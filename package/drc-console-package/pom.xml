@@ -1,0 +1,77 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>package</artifactId>
+		<groupId>com.ctrip.framework.drc</groupId>
+		<version>0.0.1</version>
+	</parent>
+	<artifactId>drc-console-package</artifactId>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.ctrip.framework.drc</groupId>
+			<artifactId>console</artifactId>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>trip</id>
+			<dependencies>
+				<dependency>
+					<groupId>com.ctrip.framework.drc</groupId>
+					<artifactId>trip-service</artifactId>
+				</dependency>
+				<dependency>
+					<groupId>com.ctrip.platform</groupId>
+					<artifactId>ctrip-dal-client</artifactId>
+					<exclusions>
+						<exclusion>
+							<groupId>com.ctrip.platform</groupId>
+							<artifactId>ctrip-datasource</artifactId>
+						</exclusion>
+					</exclusions>
+					<version>${dal.version}</version>
+				</dependency>
+				<dependency>
+					<groupId>com.ctrip.platform</groupId>
+					<artifactId>ctrip-datasource</artifactId>
+					<version>${dal.version}</version>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.ctrip.framework.drc.console.ConsoleApplication</mainClass>
+					<executable>true</executable>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<finalName>${project.artifactId}-${project.version}</finalName>
+							<appendAssemblyId>false</appendAssemblyId>
+							<descriptors>
+								<descriptor>src/assembly/assembly-descriptor.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

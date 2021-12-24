@@ -1,0 +1,10 @@
+
+spring:
+  application:
+    name: fx-drc-replicator-application
+  profiles:
+    active: local
+
+
+server:
+  port: 8080

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<drc>
+    <dc id="shaoy">
+        <routes>
+            <route id="1" org-id="0" tag="meta" src-dc="jq" dst-dc="fra" routeInfo="PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443"/>
+            <route id="2" org-id="0" tag="meta" src-dc="jq" dst-dc="fra" routeInfo="PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.7:443,PROXYTLS://127.0.0.7:443"/>
+        </routes>
+        <clusterManager ip="10.2.84.122" port="8080" master="true"/>
+        <zkServer address="10.2.84.112:2181"/>
+        <dbClusters>
+            <dbCluster id="integration-test.fxdrc" name="integration-test" mhaName="fxdrc" buName="BBZ" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="127.0.0.1" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                    <db ip="127.0.0.1" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                </dbs>
+                <replicator ip="127.0.0.1" port="8080" applierPort="8383" gtidSkip="" master="false"/>
+                <applier ip="127.0.0.1" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+            </dbCluster>
+            <dbCluster id="integration-test.fxdrc2" name="integration-test" mhaName="fxdrc2" buName="BBZ" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="127.0.0.2" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                    <db ip="127.0.0.2" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                </dbs>
+                <replicator ip="127.0.0.2" port="8080" applierPort="8383" gtidSkip="" master="false"/>
+                <applier ip="127.0.0.2" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+            </dbCluster>
+            <dbCluster id="integration-test.fxdrc_multi" name="integration-test" mhaName="fxdrc_multi" buName="BBZ" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="127.0.0.1" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                    <db ip="127.0.0.1" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
+                </dbs>
+                <replicator ip="127.0.0.1" port="8080" applierPort="8383" gtidSkip="" master="false"/>
+                <applier ip="127.0.0.1" port="8080" targetIdc="sharb" targetMhaName="mockTargetMha" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+                <applier ip="127.0.0.3" port="8080" targetIdc="sharb" targetMhaName="fxdrc_multi" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+                <applier ip="127.0.0.4" port="8080" targetIdc="sharb" targetMhaName="mockTargetMha" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+            </dbCluster>
+        </dbClusters>
+    </dc>
+
+    <dc id="sharb">
+        <clusterManager ip="10.2.84.109" port="8080" master="true"/>
+        <zkServer address="10.2.83.114:2181"/>
+        <dbClusters>
+            <dbCluster id="integration-test.fxdrcrb"  name="integration-test" mhaName="fxdrcrb" buName="BBZ" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="127.0.0.1" port="13306" master="true" uuid=""/>
+                    <db ip="127.0.0.1" port="13307" master="false" uuid=""/>
+                </dbs>
+                <replicator ip="127.0.0.1" port="8081" applierPort="8383" gtidSkip="" master="false"/>
+                <applier ip="127.0.0.1" port="8081" targetIdc="shaoy" targetMhaName="fxdrc" gtidExecuted="aa0c60f0-73c2-11ea-938d-fa163e02998c:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+            </dbCluster>
+            <dbCluster id="integration-test.fxdrcrb2"  name="integration-test" mhaName="fxdrcrb2" buName="BBZ" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="127.0.0.2" port="13306" master="true" uuid=""/>
+                    <db ip="127.0.0.2" port="13307" master="false" uuid=""/>
+                </dbs>
+                <replicator ip="127.0.0.2" port="8081" applierPort="8383" gtidSkip="" master="false"/>
+                <applier ip="127.0.0.2" port="8081" targetIdc="shaoy" targetMhaName="fxdrc" gtidExecuted="aa0c60f0-73c2-11ea-938d-fa163e02998c:1-24" master="false" includedDbs="db1,db2" applyMode="0" />
+            </dbCluster>
+        </dbClusters>
+    </dc>
+
+</drc>

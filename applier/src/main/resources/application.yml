@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: fx-drc-applier-application
+  profiles:
+    active: local
+
+
+server:
+  port: 9000
+

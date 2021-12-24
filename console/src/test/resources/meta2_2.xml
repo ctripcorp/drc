@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<drc>
+    <dc id="shaoy">
+        <dbClusters>
+            <dbCluster id="integration-test.drcTestW1" name="integration-test" mhaName="drcTestW1" buName="BBZ" org-id="1" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="10.2.83.109" port="3307" master="true" uuid="3c458a5b-128a-11eb-a91a-fa163e02998c"/>
+                </dbs>
+                <replicator ip="10.2.83.105" port="8080" applierPort="8384" gtidSkip="f62377c5-1289-11eb-b456-fa163ec90ff6:1-24" master="false" excludedTables=""/>
+                <replicator ip="10.2.87.153" port="8080" applierPort="8384" gtidSkip="f62377c5-1289-11eb-b456-fa163ec90ff6:1-24" master="false" excludedTables=""/>
+                <replicator ip="10.2.87.154" port="8080" applierPort="8384" gtidSkip="f62377c5-1289-11eb-b456-fa163ec90ff6:1-24" master="false" excludedTables=""/>
+                <applier ip="10.2.83.100" port="8080" targetIdc="sharb" targetMhaName="drcTestW2" gtidExecuted="3c458a5b-128a-11eb-a91a-fa163e02998c:1-24" master="false" applyMode="0"/>
+                <applier ip="10.2.86.137" port="8080" targetIdc="sharb" targetMhaName="drcTestW2" gtidExecuted="3c458a5b-128a-11eb-a91a-fa163e02998c:1-24" master="false" applyMode="0"/>
+                <applier ip="10.2.86.138" port="8080" targetIdc="sharb" targetMhaName="drcTestW2" gtidExecuted="3c458a5b-128a-11eb-a91a-fa163e02998c:1-24" master="false" applyMode="0"/>
+            </dbCluster>
+        </dbClusters>
+    </dc>
+    <dc id="sharb">
+        <dbClusters>
+            <dbCluster id="integration-test.drcTestW2" name="integration-test" mhaName="drcTestW2" buName="BBZ" org-id="1" appId="100024819">
+                <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+                    <db ip="10.2.83.110" port="3307" master="true" uuid="f62377c5-1289-11eb-b456-fa163ec90ff6"/>
+                </dbs>
+                <replicator ip="10.2.83.106" port="8080" applierPort="8384" gtidSkip="3c458a5b-128a-11eb-a91a-fa163e02998c:1-24" master="false" excludedTables=""/>
+                <applier ip="10.2.83.111" port="8080" targetIdc="shaoy" targetMhaName="drcTestW1" gtidExecuted="f62377c5-1289-11eb-b456-fa163ec90ff6:1-24" master="false" applyMode="0"/>
+            </dbCluster>
+        </dbClusters>
+    </dc>
+</drc>

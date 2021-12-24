@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model model-package="com.ctrip.framework.drc.core" enable-sax-parser="true" enable-base-visitor="true" parent="true">
+    <entity name="drc" root="true" implements="java.io.Serializable">
+        <entity-ref name="dc" type="map" />
+    </entity>
+    <entity name="dc" implements="java.io.Serializable">
+        <entity-ref name="dbCluster" type="map" />
+        <attribute name="id" key="true" />
+    </entity>
+    <entity name="clusterManager" implements="java.io.Serializable">
+    </entity>
+    <entity name="zkServer" implements="java.io.Serializable">
+    </entity>
+    <entity name="dbCluster" implements="java.io.Serializable">
+        <attribute name="appId" value-type="long" />
+        <attribute name="id" key="true" />
+    </entity>
+    <entity name="dbs" implements="java.io.Serializable">
+    </entity>
+    <entity name="db" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
+    </entity>
+    <entity name="replicatorMonitor" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
+    </entity>
+    <entity name="replicator" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
+    </entity>
+    <entity name="applier" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
+    </entity>
+    <entity name="route" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.IRoute">
+        <attribute name="id" key="true" />
+    </entity>
+</model>
+

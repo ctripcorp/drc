@@ -1,0 +1,77 @@
+package com.ctrip.framework.drc.replicator.impl.inbound.filter;
+
+import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
+import com.google.common.collect.Sets;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
+
+/**
+ * @Author limingdong
+ * @create 2020/2/24
+ */
+public class BlackTableNameFilter extends AbstractLogEventFilter {
+
+    public static HashSet<String> EXCLUDED_DB = Sets.newHashSet("configdb", "mysql", "performance_schema", "sys", "information_schema");
+
+    private HashSet<String> EXCLUDED_TABLE = Sets.newHashSet();
+
+    private HashSet<String> EXCLUDED_CUSTOM_TABLE = Sets.newHashSet();
+
+    private InboundMonitorReport inboundMonitorReport;
+
+    public BlackTableNameFilter(InboundMonitorReport inboundMonitorReport, Set<String> tableNames) {
+        this.inboundMonitorReport = inboundMonitorReport;
+        EXCLUDED_CUSTOM_TABLE.addAll(tableNames);
+    }
+
+    @Override
+    public boolean doFilter(LogEventWithGroupFlag value) {
+
+        LogEvent logEvent = value.getLogEvent();
+        final LogEventType logEventType = logEvent.getLogEventType();
+
+        if (table_map_log_event == logEventType) {
+            TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+            String dbName = tableMapLogEvent.getSchemaName();
+            String dbAndTable = tableMapLogEvent.getSchemaNameDotTableName();
+            String tableName = tableMapLogEvent.getTableName();
+            if (logger.isDebugEnabled()) {
+                logger.debug("[Receive] table map log event for {}", dbAndTable);
+            }
+            inboundMonitorReport.addDb(dbName, value.getGtid());
+            inboundMonitorReport.addTable(dbAndTable);
+
+            if (EXCLUDED_DB.contains(dbName) || EXCLUDED_TABLE.contains(tableName) || EXCLUDED_CUSTOM_TABLE.contains(dbAndTable)) {
+                value.setInExcludeGroup(true);
+                value.setTableFiltered(true);
+                inboundMonitorReport.addDbFilter(dbAndTable);
+            } else if (DDLPredication.isGhostTable(dbAndTable)) {
+                value.setInExcludeGroup(true);
+                value.setTableFiltered(true);
+                inboundMonitorReport.addGhostDbFilter(dbAndTable);
+            }
+        }
+
+        return doNext(value, value.isInExcludeGroup());
+
+    }
+
+    public HashSet<String> getEXCLUDED_DB() {
+        return EXCLUDED_DB;
+    }
+
+    public HashSet<String> getEXCLUDED_CUSTOM_TABLE() {
+        return EXCLUDED_CUSTOM_TABLE;
+    }
+
+    public Set<String> getEXCLUDED_TABLE() {
+        return EXCLUDED_TABLE;
+    }
+}

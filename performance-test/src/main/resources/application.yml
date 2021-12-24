@@ -1,0 +1,10 @@
+
+spring:
+  application:
+    name: fx-drc-performance-test-application
+  profiles:
+    active: local
+
+
+server:
+  port: 9000
