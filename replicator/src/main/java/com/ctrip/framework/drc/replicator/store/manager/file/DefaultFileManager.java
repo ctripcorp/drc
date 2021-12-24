@@ -55,7 +55,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
 
-    public static final String LOG_PATH = SystemConfig.REPLICATOR_PATH;
+    public static final String LOG_PATH = System.getProperty(SystemConfig.KEY_REPLICATOR_PATH, SystemConfig.REPLICATOR_PATH);
 
     public static final int FORMAT_LOG_EVENT_SIZE = 119;
 

@@ -33,7 +33,6 @@ tomcat.8080/**
 hostkey.ser
 
 # test configuration
-replicator/src/test/java/com/ctrip/framework/drc/replicator/impl/inbound/AbstractServerTest.java
 integrationTest/src/test/java/com/ctrip/framework/drc/monitor/CustomizedBidirectionalStarter.java
 applier/src/main/META-INF/
 

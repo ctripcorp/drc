@@ -4,9 +4,6 @@ import com.ctrip.framework.drc.core.server.utils.IpUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
  * Created by mingdongli
  * 2019/10/11 上午11:02.
@@ -20,6 +17,8 @@ public class SystemConfig {
     public static final String DATA_PATH = "/data/drc";
 
     public static final String REPLICATOR_PATH = DATA_PATH + "/replicator/";
+
+    public static final String KEY_REPLICATOR_PATH ="drc.replicator.data.log";
 
     public static final String APPLIER_PATH = OPT_PATH + DATA_PATH + "/applier/";
 
@@ -66,9 +65,6 @@ public class SystemConfig {
     public static final String DRC_TRANSACTION_TABLE_NAME = "gtid_executed";
 
     public static final String DRC_DELAY_MONITOR_NAME = DRC_MONITOR_SCHEMA_NAME + "." + DRC_DELAY_MONITOR_TABLE_NAME;
-
-    // fx-drc-zookeeper-application(100023934), fx-drc-cluster-manager2-application(100025243), fx-drc-replicator-application(100023498), fx-drc-applier-application(100023500)
-    public static final List<Long> DRC_RESOURCE_APP_ID_LIST = Arrays.asList(100023934L, 100025243L, 100023498L, 100023500L);
 
     public static final String EVENT_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionMonitorFilter";
 

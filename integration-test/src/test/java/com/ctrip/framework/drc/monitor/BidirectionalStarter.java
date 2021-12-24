@@ -28,6 +28,8 @@ import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.R
  */
 public class BidirectionalStarter extends AbstractTestStarter {
 
+    private static final String REPLICATOR_PATH = "/tmp/";
+
     private ReplicatorApplierPairModule replicatorApplierPairModule;
 
     private int replicatorPortB = replicatorPortA + 1;
@@ -44,6 +46,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (startLocalSchemaManager) {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
         }
+        System.setProperty(SystemConfig.KEY_REPLICATOR_PATH, REPLICATOR_PATH);
     }
 
     @Test

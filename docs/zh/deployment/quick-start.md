@@ -1,10 +1,25 @@
 # 准备工作
+
 ## Java
 
-* 1.8+
+* JDK 11+
+
+## Docker
+
+```txt
+brew install --cask --appdir=/Applications docker 
+```
 
 ## MySQL
 
-* 版本要求：5.7.22+
+* MySQL镜像，要求：5.7.22+。
 
-Applier并发回放SQL时，依赖源端MySQL开启writeset，writeset特性从5.7.22版本开始支持。
+```txt
+docker pull mysql:5.7
+```
+
+# 启动双向复制
+
+```txt
+
+```
