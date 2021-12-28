@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,7 +40,7 @@ public class DefaultApplierMasterChooserManagerTest extends AbstractDbClusterTes
     }
 
     @Test
-    public void handleClusterAdded() {
+    public void handleClusterChange() {
         String mha = dbCluster.getAppliers().get(0).getTargetMhaName();
         String idc = dbCluster.getAppliers().get(0).getTargetIdc();
         DefaultApplierMasterChooserManager.Key key1 = new DefaultApplierMasterChooserManager.Key(mha, idc);
@@ -48,8 +49,19 @@ public class DefaultApplierMasterChooserManagerTest extends AbstractDbClusterTes
 
         doNothing().when(currentMetaManager).addResource(anyString(), anyObject());
 
+        Assert.assertEquals(0, applierMasterChooserManager.getApplierMasterChoosers().size());
+
         applierMasterChooserManager.handleClusterAdd(dbCluster);
         verify(currentMetaManager, times(1)).addResource(anyString(), anyObject());
+        Assert.assertEquals(1, applierMasterChooserManager.getApplierMasterChoosers().size());
 
+        ClusterComparator clusterComparator = new ClusterComparator(dbCluster, dbCluster);
+        applierMasterChooserManager.handleClusterModified(clusterComparator);  // get from Map
+
+        verify(currentMetaManager, times(1)).addResource(anyString(), anyObject());
+        Assert.assertEquals(1, applierMasterChooserManager.getApplierMasterChoosers().size());
+
+        applierMasterChooserManager.handleClusterDeleted(dbCluster);
+        Assert.assertEquals(0, applierMasterChooserManager.getApplierMasterChoosers().size());
     }
 }
