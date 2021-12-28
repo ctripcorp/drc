@@ -56,8 +56,8 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
-        logger.info("[handleClusterModified]{}", comparator.getCurrent().getId());
-        doHandleClusterChange(comparator.getCurrent());
+        logger.info("[handleClusterModified]{}", comparator.getFuture().getId());
+        doHandleClusterChange(comparator.getFuture());
     }
 
     @Override
@@ -74,7 +74,7 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
 
     @Override
     protected void handleClusterAdd(DbCluster dbCluster) {
-        logger.info("[handleClusterModified]{}", dbCluster.getId());
+        logger.info("[handleClusterAdd]{}", dbCluster.getId());
         doHandleClusterChange(dbCluster);
     }
 
