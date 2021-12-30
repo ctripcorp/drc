@@ -432,14 +432,14 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                         "  `a_id` numeric(10,0),\n" +
                         "  `q_id` numeric(10,0) not null,\n" +
                         "  `best_answer` numeric(1) default 0 not null,\n" +
-                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',\n" +
                         " primary key(a_id),\n" +
                         " foreign key (q_id) references question(q_id)\n" +
                         ") ENGINE=InnoDB;",
 
                 "CREATE TABLE `drc4`.`question` (\n" +
                         "  `q_id` numeric(10,0),\n" +
-                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',\n" +
                         " primary key(q_id)\n" +
                         ") ENGINE=InnoDB;"
         );
