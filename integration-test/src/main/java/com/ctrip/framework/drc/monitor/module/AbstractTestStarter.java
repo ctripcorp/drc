@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.monitor.module.replicate.UnidirectionalReplicateM
 import java.io.File;
 
 import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_PATH;
 
 /**
  * Created by mingdongli
@@ -54,7 +55,7 @@ public abstract class AbstractTestStarter {
     }
 
     private void doCleanUp(String destination) {
-        File logDir = new File(SystemConfig.REPLICATOR_PATH + destination);
+        File logDir = new File(LOG_PATH + destination);
         File[] files = logDir.listFiles();
         if (files == null) {
             return;
