@@ -132,21 +132,6 @@
 
         <!-- test -->
         <dependency>
-            <groupId>com.ctrip.framework.xpipe</groupId>
-            <artifactId>core</artifactId>
-            <classifier>tests</classifier>
-            <exclusions>
-                <exclusion>
-                    <artifactId>fastjson</artifactId>
-                    <groupId>com.alibaba</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>tomcat-embed-core</artifactId>
-                    <groupId>org.apache.tomcat.embed</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
             <version>${curator.version}</version>

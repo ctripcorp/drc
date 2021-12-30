@@ -316,19 +316,6 @@
 
             <!-- for unit test -->
             <dependency>
-                <groupId>com.ctrip.framework.xpipe</groupId>
-                <artifactId>core</artifactId>
-                <version>${xpipe.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.dianping.cat</groupId>
-                        <artifactId>cat-client</artifactId>
-                    </exclusion>
-                </exclusions>
-                <classifier>tests</classifier>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>1.19</version>
