@@ -1,12 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,6 +14,8 @@ import java.util.Map;
 public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
 
     public static final String CREATE_DB = "CREATE DATABASE IF NOT EXISTS %s;";
+
+    public static final String FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS=0";
 
     private Map<String, Map<String, String>> ddlSchemas;
 
@@ -35,46 +35,27 @@ public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable
     public Boolean call() throws Exception {
         try (Connection connection = inMemoryDataSource.getConnection()) {
             try (Statement statement = connection.createStatement()) {
+                boolean pass = statement.execute(FOREIGN_KEY_CHECKS);
+                DDL_LOGGER.info("[Execute] {} with result {}", FOREIGN_KEY_CHECKS, pass);
+
                 for (Map.Entry<String, Map<String, String>> entry : ddlSchemas.entrySet()) {
-                    List<String> foreignKey = Lists.newArrayList();
-                    boolean pass = statement.execute(String.format(CREATE_DB, entry.getKey()));
+                    pass = statement.execute(String.format(CREATE_DB, entry.getKey()));
                     DDL_LOGGER.info("[Create] database {} with result {}", entry.getKey(), pass);
                     Map<String, String> sqls = entry.getValue();
                     int batchSize = 0;
                     for (String sql : sqls.values()) {
-                        if (sql.contains("FOREIGN KEY")) {
-                            foreignKey.add(sql);
-                            DDL_LOGGER.info("FOREIGN KEY sql is {}", sql);
-                        } else {
-                            statement.addBatch(sql);
-                            batchSize++;
-                            if (batchSize >= 10) {
-                                statement.executeBatch();
-                                batchSize = 0;
-                                DDL_LOGGER.info("[Create] batch");
-                            }
-                            DDL_LOGGER.info("[Create] table {}", sql);
+                        statement.addBatch(sql);
+                        batchSize++;
+                        if (batchSize >= 10) {
+                            statement.executeBatch();
+                            batchSize = 0;
+                            DDL_LOGGER.info("[Create] batch");
                         }
+                        DDL_LOGGER.info("[Create] table {}", sql);
                     }
 
                     if (batchSize > 0) {
                         statement.executeBatch();
-                    }
-
-                    List<String> error = Lists.newArrayList();
-                    for (String f : foreignKey) {
-                        try {
-                            statement.execute(f);
-                        } catch (Exception e) {
-                            DDL_LOGGER.error("execute foreign key error for {}", f, e);
-                            error.add(f);
-                        }
-                    }
-
-                    if (!error.isEmpty()) {
-                        for (int i = error.size() - 1; i >= 0; i--) {
-                            statement.execute(error.get(i));
-                        }
                     }
                 }
                 return true;
