@@ -12,6 +12,8 @@ import org.mockito.Mockito;
 
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask.FOREIGN_KEY_CHECKS;
+
 /**
  * @Author limingdong
  * @create 2021/4/7
@@ -57,7 +59,8 @@ public class SchemeCloneTaskTest extends AbstractSchemaTaskTest {
 
         Boolean res = retryTask.call();
         verify(statement, times(3)).executeBatch();
-        verify(statement, times(1)).execute(Mockito.contains("FOREIGN KEY"));
+        verify(statement, times(0)).execute(Mockito.contains("FOREIGN KEY")); // executeBatch instead
+        verify(statement, times(1)).execute(FOREIGN_KEY_CHECKS); // executeBatch instead
         Assert.assertTrue(res);
     }
 
