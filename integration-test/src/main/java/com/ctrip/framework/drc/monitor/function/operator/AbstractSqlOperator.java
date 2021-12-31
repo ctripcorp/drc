@@ -127,6 +127,7 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         res.addAll(initFloatPointType());
         res.addAll(initCharsetType());
         res.addAll(initTimeType());
+        res.addAll(initForeignKey());
         res.addAll(initQps());
         res.addAll(initDelayMonitor());
         res.addAll(initDDL());
@@ -420,6 +421,26 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                         "`dest_ip` varchar(15) NOT NULL," +
                         "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)," +
                         "PRIMARY KEY(`id`)" +
+                        ") ENGINE=InnoDB;"
+        );
+    }
+
+    private List<String> initForeignKey() {
+        return Lists.newArrayList(
+                "SET FOREIGN_KEY_CHECKS=0;",
+                "CREATE TABLE `drc4`.`answer` (\n" +
+                        "  `a_id` numeric(10,0),\n" +
+                        "  `q_id` numeric(10,0) not null,\n" +
+                        "  `best_answer` numeric(1) default 0 not null,\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',\n" +
+                        " primary key(a_id),\n" +
+                        " foreign key (q_id) references question(q_id)\n" +
+                        ") ENGINE=InnoDB;",
+
+                "CREATE TABLE `drc4`.`question` (\n" +
+                        "  `q_id` numeric(10,0),\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',\n" +
+                        " primary key(q_id)\n" +
                         ") ENGINE=InnoDB;"
         );
     }
