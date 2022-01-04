@@ -49,7 +49,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         return res;
     }
 
-    private boolean doClone(Map<String, Map<String, String>> ddlSchemas) {
+    protected boolean doClone(Map<String, Map<String, String>> ddlSchemas) {
         new RetryTask<>(new SchemeClearTask(inMemoryEndpoint, inMemoryDataSource)).call();
         Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource)).call();
         return res == null ? false : res.booleanValue();
