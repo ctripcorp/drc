@@ -168,7 +168,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.gate = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
 
             String filter = dumpCommandPacket.getNameFilter();
-            filter = "drcmonitordb.(?!parent).*";
             logger.info("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);
             if (StringUtils.isNotBlank(filter)) {
                 this.aviatorFilter = new AviatorRegexFilter(filter);
