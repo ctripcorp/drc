@@ -42,7 +42,7 @@ public class DefaultConfigApplierMasterChooserAlgorithm extends AbstractApplierM
                 List<Replicator> replicators = dbCluster.getReplicators();
                 for (Replicator r : replicators) {
                     if (r.isMaster()) {
-                        logger.debug("[doChooseKeeperMaster]{}, {}, {}, {}", targetIdc, clusterId, backupClusterId, r);
+                        logger.debug("[doChooseApplierMaster]{}, {}, {}, {}", targetIdc, clusterId, backupClusterId, r);
                         return new Pair<>(r.getIp(), r.getApplierPort());
                     }
                 }

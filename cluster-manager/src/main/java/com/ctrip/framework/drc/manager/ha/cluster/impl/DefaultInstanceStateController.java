@@ -223,7 +223,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         RegistryKey registryKey = RegistryKey.from(clusterId);
         String clusterName = registryKey.getClusterName();
         String targetMhaName = applier.getTargetMhaName();
-        String backupClusterId = RegistryKey.from(clusterName, targetMhaName);
+        String backupClusterId = RegistryKey.from(clusterName, targetMhaName);  // suppose clusterName is same in replications
         DbCluster dbCluster = dcMetaCache.getCluster(clusterId);
         DbCluster clone = MetaClone.clone(dbCluster);
         clone.getAppliers().clear();
