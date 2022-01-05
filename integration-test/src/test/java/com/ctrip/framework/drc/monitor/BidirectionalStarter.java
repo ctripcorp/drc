@@ -39,7 +39,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
 
     private int replicatorPortB = replicatorPortA + 1;
 
-    private Set<String> includedDbs = Sets.newHashSet("drc1");   //inverse direction
+    private Set<String> includedDbs = Sets.newHashSet();   //inverse direction
 
     public boolean blockForManualTest = true;
     public boolean skipMonitor = false;
