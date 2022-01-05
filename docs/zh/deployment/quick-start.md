@@ -32,8 +32,8 @@ docker pull mysql:5.7
 
 # 启动双向复制
 
-本地集成测试以 com.ctrip.framework.drc.monitor.BidirectionalStarter 单元测试启动，仅依赖外部Docker实例启动的MySQL实例，实现单实例版数据库双向复制。
-默认会启动2个docker MySQL实例，分别使用3306和3307端口，每个单向复制启动一对Replicator Instance和Applier Instance。
+本地集成测试以 com.ctrip.framework.drc.monitor.BidirectionalStarter 单元测试形式启动，仅依赖外部Docker实例启动的MySQL实例，实现单实例版数据库双向复制。
+默认会启动2个docker MySQL实例，分别工作在3306和3307端口，每个单向复制启动一对Replicator Instance和Applier Instance复制通道。
 
 ## 双向复制验证
 
@@ -59,4 +59,3 @@ insert into `drc4`.`insert1`(`three`, `four`) values("three_3307", "four_3307");
 由于文件中保存了DRC自定义的事件，需要加 -f 选项。
 ```
 mysqlbinlog -vvf rbinlog.0000000001
-```
