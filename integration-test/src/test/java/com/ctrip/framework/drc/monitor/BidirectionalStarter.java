@@ -9,9 +9,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.DESTINATION_REVERSE;
-import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.REGISTRY_KEY;
+import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
 
 /**
  *  *  run doTest to start integrity test WITHOUT any interference
@@ -21,12 +21,17 @@ import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.R
  *  *
  *  *  my.cnf is placed in src/my.cnf and dst/my.cnf respectively
  *  *
- *  *  docker ps -a | grep mysql | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f
  *  *  to stop all containers
  * Created by mingdongli
  * 2019/10/15 上午1:10.
  */
 public class BidirectionalStarter extends AbstractTestStarter {
+
+    static {
+        stopMysql();
+    }
+
+    private static final String MYSQL_STOP = "docker ps -a | grep mysql | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f";
 
     private static final String REPLICATOR_PATH = "/tmp/drc/";
 
@@ -82,5 +87,24 @@ public class BidirectionalStarter extends AbstractTestStarter {
             unidirectionalReplicateModule.stopMonitorModule();
         }
         super.tearDown();
+    }
+
+    private static void stopMysql() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            processBuilder.command("bash", "-c", MYSQL_STOP);
+            Process stop = processBuilder.start();
+            int exitVal = stop.waitFor();
+            if (exitVal == 0) {
+                while (available(BASE_PORT) != BASE_PORT) {
+                    TimeUnit.MILLISECONDS.sleep(500);  // port reuse
+                }
+                logger.info("[exec] {}, stop docker mysql success", MYSQL_STOP);
+                return;
+            }
+            throw new RuntimeException("stop docker mysql error");
+        } catch (Throwable t) {
+            throw new RuntimeException("stop docker mysql error");
+        }
     }
 }

@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.monitor.module;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
 import com.ctrip.framework.drc.monitor.module.replicate.UnidirectionalReplicateModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -14,6 +16,8 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  * 2019/10/15 上午11:06.
  */
 public abstract class AbstractTestStarter {
+
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractTestStarter.class);
 
     protected UnidirectionalReplicateModule unidirectionalReplicateModule;
 
