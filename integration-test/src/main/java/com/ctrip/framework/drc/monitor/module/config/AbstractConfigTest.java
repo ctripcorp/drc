@@ -55,7 +55,7 @@ public abstract class AbstractConfigTest extends AbstractLifecycle {
         }
     }
 
-    private static int available(int port) {
+    public static int available(int port) {
         while (true) {
             try (Socket ignored = new Socket(LOCALHOST, port)) {
                 port++;

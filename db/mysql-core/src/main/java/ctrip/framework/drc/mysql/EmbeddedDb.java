@@ -78,7 +78,6 @@ public class EmbeddedDb {
                 .withCharset(Charset.UTF8)
                 .withUser(user, password)
                 .withServerVariable("lower_case_table_names", 1)
-                .withServerVariable("foreign_key_checks", 0)
                 .withServerVariable("character_set_server", "utf8mb4")
                 .withServerVariable("collation_server", "utf8mb4_general_ci")
                 .build();

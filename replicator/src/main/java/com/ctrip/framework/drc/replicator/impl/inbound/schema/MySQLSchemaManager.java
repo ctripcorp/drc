@@ -8,9 +8,6 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeApplyTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeClearTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
@@ -66,8 +63,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = \"%s\" AND `table_name` = \"%s\" and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
 
     public static final String SHOW_DATABASES_QUERY = "SHOW DATABASES;";
-
-    public static final String DROP_DATABASE = "DROP DATABASE %s;";
 
     private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\"";
 
@@ -133,15 +128,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         }
 
         return tableMeta;
-    }
-
-    @Override
-    public boolean apply(String schema, String ddl) {
-        tableInfoMap.clear();
-        synchronized (this) {
-             Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
-            return res == null ? false : res.booleanValue();
-        }
     }
 
     @Override
@@ -216,12 +202,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         Map<String, Map<String, String>> ddlSchemas = doSnapshot(endpoint);
         doClone(ddlSchemas);
         DDL_LOGGER.info("[Dump] remote table info finished");
-    }
-
-    private boolean doClone(Map<String, Map<String, String>> ddlSchemas) {
-        new RetryTask<>(new SchemeClearTask(inMemoryEndpoint, inMemoryDataSource)).call();
-        Boolean res = new RetryTask<>(new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource)).call();
-        return res == null ? false : res.booleanValue();
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")

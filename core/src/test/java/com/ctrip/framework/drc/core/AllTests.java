@@ -173,7 +173,7 @@ public class AllTests {
     {
         try {
             srcDb.stop();
-//            server.stop();
+            server.stop();
         } catch (Exception e) {
         }
     }
