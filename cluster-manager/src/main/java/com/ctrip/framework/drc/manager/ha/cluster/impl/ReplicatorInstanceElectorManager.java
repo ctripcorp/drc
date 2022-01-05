@@ -75,7 +75,7 @@ public class ReplicatorInstanceElectorManager extends AbstractInstanceElectorMan
         }
 
         if(survivalReplicators.size() != childrenData.size()){
-            throw new IllegalStateException(String.format("[children data not equal with survival keepers]%s, %s", childrenData, survivalReplicators));
+            throw new IllegalStateException(String.format("[children data not equal with survival replicators]%s, %s", childrenData, survivalReplicators));
         }
 
         InstanceActiveElectAlgorithm klea = instanceActiveElectAlgorithmManager.get(clusterId);
