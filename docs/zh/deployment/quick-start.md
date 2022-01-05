@@ -49,6 +49,4 @@ insert into `drc4`.`insert1`(`three`, `four`) values("three_3307", "four_3307");
 
 此时2边MySQL实例经过底层双向复制，会同时存在2条数据：
 
-<div align="center">
-    <img src="docs/zh/images/drc4_insert1.png" width="50%" height="50%" >
-</div>
+![双向复制](../images/drc4_insert1.png)
