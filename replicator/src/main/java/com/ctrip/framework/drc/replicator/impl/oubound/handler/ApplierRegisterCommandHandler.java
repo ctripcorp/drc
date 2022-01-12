@@ -21,7 +21,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.replicator.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
