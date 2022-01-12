@@ -111,6 +111,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
 
+        OpenApiServiceImplTest.class,
+
         // controller
         AccessControllerTest.class,
         MhaControllerTest.class,
@@ -122,6 +124,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaControllerTest.class,
         HealthControllerTest.class,
         MonitorControllerTest.class,
+        OpenApiControllerTest.class,
 
         // monitor
         ConsistentMonitorContainerTest.class,
