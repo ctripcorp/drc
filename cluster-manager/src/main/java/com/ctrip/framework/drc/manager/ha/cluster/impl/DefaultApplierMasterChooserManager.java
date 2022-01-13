@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.manager.ha.cluster.ApplierMasterElector;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
-import com.ctrip.framework.drc.manager.ha.multidc.ApplierMasterChooser;
+import com.ctrip.framework.drc.manager.ha.multidc.AbstractApplierMasterChooser;
 import com.ctrip.framework.drc.manager.ha.multidc.DefaultDcApplierMasterChooser;
 import com.ctrip.framework.drc.manager.ha.multidc.MultiDcService;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
@@ -46,7 +46,7 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
 
     private ScheduledExecutorService scheduled;
 
-    private Map<Key, ApplierMasterChooser> applierMasterChoosers = new ConcurrentHashMap<>();
+    private Map<Key, AbstractApplierMasterChooser> applierMasterChoosers = new ConcurrentHashMap<>();
 
     @Override
     protected void doInitialize() throws Exception {
@@ -63,11 +63,12 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
     @Override
     protected void handleClusterDeleted(DbCluster dbCluster) {
         logger.info("[handleClusterDeleted]{}", dbCluster.getId());
+        String replicatorMha = dbCluster.getMhaName();
         for (Applier applier : dbCluster.getAppliers()) {
             String targetMhaName = applier.getTargetMhaName();
             String targetIdc = applier.getTargetIdc();
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                applierMasterChoosers.remove(new Key(targetIdc, targetMhaName));
+                applierMasterChoosers.remove(new Key(targetIdc, targetMhaName, replicatorMha));
             }
         }
     }
@@ -90,17 +91,22 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
             String targetIdc = applier.getTargetIdc();
             logger.info("[doHandleClusterChange]{}, {}", targetMhaName, targetIdc);
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                targetMhaNameSet.add(new Key(targetIdc, targetMhaName));
+                targetMhaNameSet.add(new Key(targetIdc, targetMhaName, replicatorMhaName));
             }
         }
 
         for (Key entry : targetMhaNameSet) {
-            MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, replicatorMhaName), RegistryKey.from(clusterName, entry.getMha())));
+            AbstractApplierMasterChooser previous = MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, replicatorMhaName), RegistryKey.from(clusterName, entry.getMha())));
+            if (previous != null && !previous.isStarted()) {
+                applierMasterChoosers.remove(entry);
+                MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, replicatorMhaName), RegistryKey.from(clusterName, entry.getMha())));
+                logger.info("[AbstractApplierMasterChooser] restart for {}", entry);
+            }
         }
     }
 
-    private ApplierMasterChooser addApplierMasterChooser(String targetIdc, String clusterId, String backupClusterId) {
-        ApplierMasterChooser applierMasterChooser = new DefaultDcApplierMasterChooser(targetIdc, clusterId, backupClusterId, multiDcService, currentMetaManager, clusterManagerConfig, scheduled);
+    private AbstractApplierMasterChooser addApplierMasterChooser(String targetIdc, String clusterId, String backupClusterId) {
+        AbstractApplierMasterChooser applierMasterChooser = new DefaultDcApplierMasterChooser(targetIdc, clusterId, backupClusterId, multiDcService, currentMetaManager, clusterManagerConfig, scheduled);
 
         try {
             logger.info("[addApplier]{}, {}, {}, {}", targetIdc, clusterId, backupClusterId, applierMasterChooser);
@@ -123,10 +129,12 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
     static class Key {
         String idc;
         String mha;
+        String localMha;
 
-        public Key(String idc, String mha) {
+        public Key(String idc, String mha, String localMha) {
             this.idc = idc;
             this.mha = mha;
+            this.localMha = localMha;
         }
 
         public String getIdc() {
@@ -143,18 +151,19 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
             if (!(o instanceof Key)) return false;
             Key key = (Key) o;
             return Objects.equals(idc, key.idc) &&
-                    Objects.equals(mha, key.mha);
+                    Objects.equals(mha, key.mha) &&
+                    Objects.equals(localMha, key.localMha);
         }
 
         @Override
         public int hashCode() {
 
-            return Objects.hash(idc, mha);
+            return Objects.hash(idc, mha, localMha);
         }
     }
 
     @VisibleForTesting
-    public Map<Key, ApplierMasterChooser> getApplierMasterChoosers() {
+    public Map<Key, AbstractApplierMasterChooser> getApplierMasterChoosers() {
         return applierMasterChoosers;
     }
 }

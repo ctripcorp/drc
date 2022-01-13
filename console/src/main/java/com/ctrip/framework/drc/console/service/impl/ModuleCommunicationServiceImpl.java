@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +32,14 @@ public class ModuleCommunicationServiceImpl implements ModuleCommunicationServic
     public Replicator getActiveReplicator(String dc, String clusterId) {
         try {
             String cmMetaServerAddress = config.getCMMetaServerAddress(dc);
-            String activeReplicatorPath = getActiveReplicatorPath(cmMetaServerAddress);
-            return HttpUtils.get(activeReplicatorPath, Replicator.class, clusterId);
+            if (StringUtils.isNotBlank(cmMetaServerAddress)) {
+                String activeReplicatorPath = getActiveReplicatorPath(cmMetaServerAddress);
+                return HttpUtils.get(activeReplicatorPath, Replicator.class, clusterId);
+            }
         } catch(Exception e) {
             logger.error("[[registryKey={},dc={}]]getActiveReplicator, ", clusterId, dc, e);
-            return null;
         }
+        return null;
     }
 
     @Override

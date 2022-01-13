@@ -9,6 +9,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
+import org.springframework.web.client.RestClientException;
 
 public class ModuleCommunicationServiceImplTest {
 
@@ -27,14 +28,19 @@ public class ModuleCommunicationServiceImplTest {
     public void tesGetActiveReplicator() {
         Mockito.doReturn("127.0.0.0:8080").when(config).getCMMetaServerAddress(Mockito.anyString());
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when((MockedStatic.Verification) HttpUtils.get(Mockito.anyString(), Replicator.class, Mockito.anyString())).thenReturn(new Replicator());
-            Assert.assertNotNull(moduleCommunicationService.getActiveReplicator("", ""));
+            theMock.when((MockedStatic.Verification) HttpUtils.get(Mockito.anyString(), Mockito.any(), Mockito.anyString())).thenReturn(new Replicator());            Assert.assertNotNull(moduleCommunicationService.getActiveReplicator("", ""));
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when((MockedStatic.Verification) HttpUtils.get(Mockito.anyString(), Replicator.class, Mockito.anyString())).thenReturn(null);
+            theMock.when((MockedStatic.Verification) HttpUtils.get(Mockito.anyString(), Mockito.any(), Mockito.anyString())).thenReturn(null);
+            Assert.assertNull(moduleCommunicationService.getActiveReplicator("", ""));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when((MockedStatic.Verification) HttpUtils.get(Mockito.anyString(), Mockito.any(), Mockito.anyString())).thenThrow(new RestClientException("http request error"));
             Assert.assertNull(moduleCommunicationService.getActiveReplicator("", ""));
         } catch (Exception e) {
             e.printStackTrace();
