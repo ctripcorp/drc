@@ -19,7 +19,7 @@
     </properties>
 
     <dependencies>
-<!--for-trip-loaclRunning-->
+<!--&lt;!&ndash;for-trip-loaclRunning&ndash;&gt;-->
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->

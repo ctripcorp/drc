@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.sql.SQLException;
+
 import static org.junit.Assert.*;
 
 public class OpenApiControllerTest {
@@ -29,7 +31,7 @@ public class OpenApiControllerTest {
     private OpenApiService openApiService;
     
     @Before
-    public void setUp() {
+    public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         mvc = MockMvcBuilders.standaloneSetup(openApiController).build();
         Mockito.doReturn(Lists.newArrayList()).when(openApiService).getAllDrcMhaDbFilters();
