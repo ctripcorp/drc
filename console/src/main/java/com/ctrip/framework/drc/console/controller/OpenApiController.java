@@ -1,8 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.service.OpenApiService;
-import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.vo.MhaDbFiltersVo;
+import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,7 @@ public class OpenApiController {
     @GetMapping("/info/mhas")
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {
-            List<MhaDbFiltersVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
+            List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
             return ApiResult.getSuccessInstance(allDrcMhaDbFilters);
         } catch (Exception e) {
             logger.error("error in getDrcAllMhaDb",e);

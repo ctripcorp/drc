@@ -13,8 +13,6 @@
             <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                <db ip="10.2.83.108" port="3321" master="true" uuid="f5644def-4153-11ec-a095-fa163e2d32b8"/>
             </dbs>
-            <replicator ip="10.2.83.105" port="8080" applierPort="8413" gtidSkip="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-29" master="false" excludedTables=""/>
-            <applier ip="10.2.83.100" port="8080" targetIdc="ntgxh" targetMhaName="drctestnt" gtidExecuted="f5644def-4153-11ec-a095-fa163e2d32b8:1-30" master="false" includedDbs="drcmonitordb" applyMode="0"/>
          </dbCluster>
       </dbClusters>
    </dc>
@@ -35,15 +33,6 @@
             <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                <db ip="10.2.83.109" port="3321" master="true" uuid="99b0b1e4-4158-11ec-ab78-fa163e02998c"/>
             </dbs>
-            <replicator ip="10.2.83.106" port="8080" applierPort="8413" gtidSkip="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-228,f5644def-4153-11ec-a095-fa163e2d32b8:1-224" master="false" excludedTables=""/>
-            <applier ip="10.2.83.111" port="8080" targetIdc="ntgxh" targetMhaName="drctestnt" gtidExecuted="99b0b1e4-4158-11ec-ab78-fa163e02998c:1-207" master="false" includedDbs="drcmonitordb" applyMode="0"/>
-         </dbCluster>
-         <dbCluster id="drctest_dalcluster.drctestrb2" name="drctest_dalcluster" mhaName="drctestrb2" buName="BBZ" org-id="3" appId="100012345">
-            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
-               <db ip="10.2.83.110" port="3321" master="true" uuid="972dc7a2-46d4-11ec-99b2-fa163ec90ff6"/>
-            </dbs>
-            <replicator ip="10.2.83.106" port="8080" applierPort="8414" gtidSkip="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-506135,972dc7a2-46d4-11ec-99b2-fa163ec90ff6:1-750,99b0b1e4-4158-11ec-ab78-fa163e02998c:1-513533,f5644def-4153-11ec-a095-fa163e2d32b8:1-500986" master="false" excludedTables=""/>
-            <applier ip="10.2.83.111" port="8080" targetIdc="ntgxh" targetMhaName="drctestnt" gtidExecuted="42fe6925-4155-11ec-bd33-fa163eaa9d69:507346-511156:511158-1339778,972dc7a2-46d4-11ec-99b2-fa163ec90ff6:1-779149" master="false" applyMode="0" nameFilter="drcmonitordb.delaymonitor"/>
          </dbCluster>
          <dbCluster id="integration-test2.drcTestW3" name="integration-test2" mhaName="drcTestW3" buName="FX" org-id="5" appId="100012345">
             <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
@@ -116,10 +105,6 @@
             <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                <db ip="10.2.83.107" port="3321" master="true" uuid="42fe6925-4155-11ec-bd33-fa163eaa9d69"/>
             </dbs>
-            <replicator ip="10.2.75.53" port="8080" applierPort="8383" gtidSkip="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-507226,972dc7a2-46d4-11ec-99b2-fa163ec90ff6:1-1875,99b0b1e4-4158-11ec-ab78-fa163e02998c:1-514639,f5644def-4153-11ec-a095-fa163e2d32b8:1-500986" master="false" excludedTables=""/>
-            <applier ip="10.2.75.34" port="8080" targetIdc="shaoy" targetMhaName="drctestoy" gtidExecuted="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-29" master="false" includedDbs="drcmonitordb" applyMode="0"/>
-            <applier ip="10.2.75.34" port="8080" targetIdc="sharb" targetMhaName="drctestrb" gtidExecuted="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-228,f5644def-4153-11ec-a095-fa163e2d32b8:1-225" master="false" includedDbs="drcmonitordb" applyMode="0"/>
-            <applier ip="10.2.75.34" port="8080" targetIdc="sharb" targetMhaName="drctestrb2" gtidExecuted="42fe6925-4155-11ec-bd33-fa163eaa9d69:1-506135,972dc7a2-46d4-11ec-99b2-fa163ec90ff6:1-750,99b0b1e4-4158-11ec-ab78-fa163e02998c:1-513533,f5644def-4153-11ec-a095-fa163e2d32b8:1-500986" master="false" applyMode="0" nameFilter="drcmonitordb.delaymonitor"/>
          </dbCluster>
          <dbCluster id="bbzaccountsshardbasedb_dalcluster.fatbbzxh" name="bbzaccountsshardbasedb_dalcluster" mhaName="fatbbzxh" buName="BBZ" org-id="3" appId="100006837">
             <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
