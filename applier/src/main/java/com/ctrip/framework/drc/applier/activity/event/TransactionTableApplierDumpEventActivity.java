@@ -44,6 +44,12 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
+    public void doStart() throws Exception {
+        transactionTable.mergeRecordsFromDB();
+        super.doStart();
+    }
+
+    @Override
     protected boolean shouldSkip() {
         return skipEvent;
     }

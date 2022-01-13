@@ -132,6 +132,11 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
         }
     }
 
+    @Override
+    public boolean isEmptyTransaction() {
+        return (events[1] instanceof TerminateEvent);
+    }
+
     public void close() {
         lock.lock();
         try {

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,12 @@ public class TransactionTableGtidReader implements GtidReader {
     private static final String SELECT_TRANSACTION_TABLE_GTID_SET = "select `server_uuid`, `gtidset` from `drcmonitordb`.`gtid_executed` where `id` = -1;";
 
     private static final String SELECT_TRANSACTION_TABLE_GTID = "select `server_uuid`, `gno` from `drcmonitordb`.`gtid_executed` where `id` > -1;";
+
+    private static final String SELECT_TRANSACTION_TABLE_SPECIFIC_GTID = "select `gno` from `drcmonitordb`.`gtid_executed` where `id` > -1 and `server_uuid` = \"%s\";";
+
+    private static final String ALI_RDS = "/*FORCE_MASTER*/";
+
+    private static final String SERVER_UUID_COMMAND = ALI_RDS + "show global variables like \"server_uuid\";";
 
     @Override
     public String getExecutedGtids(Connection connection) {
@@ -51,5 +58,30 @@ public class TransactionTableGtidReader implements GtidReader {
             logger.warn("execute select sql error, sql is: {}", sql, e);
         }
         return result;
+    }
+
+    public GtidSet getSpecificGtidSet(Connection connection) throws SQLException {
+        GtidSet specificGtidSet = new GtidSet("");
+        String uuid = getUuid(connection);
+        String sql = String.format(SELECT_TRANSACTION_TABLE_SPECIFIC_GTID, uuid);
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                while (resultSet.next()) {
+                    specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                }
+            }
+        }
+        return specificGtidSet;
+    }
+
+    public String getUuid(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet uuidResultSet = statement.executeQuery(SERVER_UUID_COMMAND)) {
+                if (uuidResultSet.next()) {
+                    return uuidResultSet.getString("Value");
+                }
+            }
+        }
+        return StringUtils.EMPTY;
     }
 }

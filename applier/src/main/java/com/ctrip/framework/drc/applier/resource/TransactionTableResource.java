@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.resource;
 
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -9,6 +10,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +89,18 @@ public class TransactionTableResource extends AbstractResource implements Transa
             usedIndex.put(i, 0);
             flags[i] = new Object();
         }
-        updateOppositeGtidSetInDataBaseSchedule();
+        mergeTransactionTableSchedule();
+    }
+
+    public void mergeRecordsFromDB() throws SQLException {
+        TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
+        try (Connection connection = dataSource.getConnection()) {
+            GtidSet gtidSet = gtidReader.getSpecificGtidSet(connection);
+            if (StringUtils.isNotBlank(gtidSet.toString())) {
+                updateGtidSetInDataBase(gtidSet);
+            }
+            loggerTT.info("[TT] merge records from db success, merged gtid set is: {}", gtidSet.toString());
+        }
     }
 
     @Override
@@ -176,6 +189,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     private boolean updateGtidSetInDataBase(GtidSet gtidSet) throws SQLException {
+        loggerTT.info("[TT] all gtid set to merge is: {}", gtidSet.toString());
         Connection connection = null;
         try {
             connection = dataSource.getConnection();
@@ -191,6 +205,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                         }
                     }
                 }
+                loggerTT.info("[TT] gtid set select from db is: {}", gtidSetFromDb);
                 if (gtidSetFromDb == null) {
                     String uuidSetToUpdate = gtidSet.getUUIDSet(uuid).toString();
                     try (PreparedStatement insertStatement = connection.prepareStatement(INSERT_GTID_SET_SQL)) {
@@ -202,6 +217,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                     }
                 } else {
                     String uuidSetToUpdate = new GtidSet(gtidSetFromDb).union(gtidSet).getUUIDSet(uuid).toString();
+                    loggerTT.info("[TT] the final gtid set to update is: {}", uuidSetToUpdate);
                     try (PreparedStatement statement = connection.prepareStatement(UPDATE_GTID_SET_SQL)) {
                         statement.setString(1, uuidSetToUpdate);
                         statement.setString(2, uuid);
@@ -360,14 +376,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
         });
     }
 
-    private void updateOppositeGtidSetInDataBaseSchedule() {
+    private void mergeTransactionTableSchedule() {
         scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 long current = System.currentTimeMillis();
                 if ((current - mergeGtidLastTime)/1000 > PERIOD) {
                     mergeTransactionTable(true);
-                    loggerTT.info("[TT] merge opposite transaction table gtid set periodically");
+                    loggerTT.info("[TT] merge transaction table gtid set periodically");
                 }
             }
         }, PERIOD, PERIOD, TimeUnit.SECONDS);

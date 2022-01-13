@@ -19,4 +19,6 @@ public interface TransactionTable {
     void recordOppositeGtid(String gtid);
 
     void mergeOppositeGtid(boolean needRetry);
+
+    void mergeRecordsFromDB() throws SQLException;
 }
