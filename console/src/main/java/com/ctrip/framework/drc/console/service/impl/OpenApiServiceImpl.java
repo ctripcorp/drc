@@ -66,7 +66,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             
             int i = 0;
             for (MhaTbl mhaTbl : twoMha) {
-                String anotherMhaName = twoMha.stream().filter(p -> p.getId() != mhaTbl.getId()).findFirst().get().getMhaName();
+                String anotherMhaName = twoMha.stream().filter(p -> !p.getId().equals(mhaTbl.getId())).findFirst().get().getMhaName();
                 String mhaName = mhaTbl.getMhaName();
                 Long mhaTblId = mhaTbl.getId();
                 String dcName = dcTbls.stream().filter(p -> p.getId().equals(mhaTbl.getDcId())).findFirst().get().getDcName();
