@@ -47,8 +47,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public static String DEFAULT_DELAY_EXCEPTION_TIME = "864500000";
 
-    private Map<String, DcInfo> dcInfos = Maps.newConcurrentMap();
-
     private Map<String, String> dbaDcInfos = Maps.newConcurrentMap();
 
     private Map<String, String> consoleDcInfos = Maps.newConcurrentMap();
@@ -158,7 +156,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getCMMetaServerAddress(String dc) {
         Map<String, DcInfo> dcInfos = getDcInfos();
-        return dcInfos.get(dc).getMetaServerAddress();
+        DcInfo dcInfo = dcInfos.get(dc);
+        if (dcInfo != null) {
+            return dcInfo.getMetaServerAddress();
+        }
+        logger.warn("[getCMMetaServerAddress] not configured for {}", dc);
+        return null;
     }
 
     private Map<String, String> getDbaDcInfoMapping() {

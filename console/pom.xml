@@ -19,6 +19,28 @@
     </properties>
 
     <dependencies>
+<!--&lt;!&ndash;for-trip-loaclRunning&ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.framework.drc</groupId>-->
+<!--            <artifactId>trip-service</artifactId>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>ctrip-dal-client</artifactId>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.ctrip.platform</groupId>-->
+<!--                    <artifactId>ctrip-datasource</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--            <version>${dal.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>ctrip-datasource</artifactId>-->
+<!--            <version>${dal.version}</version>-->
+<!--        </dependency>-->
+        
         <!-- spring boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
