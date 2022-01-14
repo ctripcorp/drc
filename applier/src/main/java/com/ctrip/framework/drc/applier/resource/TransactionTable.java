@@ -16,9 +16,11 @@ public interface TransactionTable {
 
     void commit(String gtid);
 
-    void recordOppositeGtid(String gtid);
+    void recordGtidInMemory(String gtid);
 
-    void mergeOppositeGtid(boolean needRetry);
+    void syncMergeGtid(boolean needRetry);
 
-    void mergeRecordsFromDB() throws SQLException;
+    void asyncMergeGtid(boolean needRetry);
+
+    void mergeGtidRecordInDB(String uuid);
 }

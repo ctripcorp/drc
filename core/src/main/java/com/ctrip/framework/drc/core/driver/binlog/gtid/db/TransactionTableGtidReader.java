@@ -60,9 +60,9 @@ public class TransactionTableGtidReader implements GtidReader {
         return result;
     }
 
-    public GtidSet getSpecificGtidSet(Connection connection) throws SQLException {
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public GtidSet getSpecificGtidSet(Connection connection, String uuid) throws SQLException {
         GtidSet specificGtidSet = new GtidSet("");
-        String uuid = getUuid(connection);
         String sql = String.format(SELECT_TRANSACTION_TABLE_SPECIFIC_GTID, uuid);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
@@ -71,17 +71,7 @@ public class TransactionTableGtidReader implements GtidReader {
                 }
             }
         }
+        logger.info("select specific gtid set is: {}", specificGtidSet.toString());
         return specificGtidSet;
-    }
-
-    public String getUuid(Connection connection) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            try (ResultSet uuidResultSet = statement.executeQuery(SERVER_UUID_COMMAND)) {
-                if (uuidResultSet.next()) {
-                    return uuidResultSet.getString("Value");
-                }
-            }
-        }
-        return StringUtils.EMPTY;
     }
 }

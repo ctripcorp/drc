@@ -31,14 +31,14 @@ public class TransactionTableApplyActivity extends ApplyActivity {
     }
 
     @Override
-    protected void handleEmptyTransaction(Transaction transaction) throws InterruptedException {
+    protected boolean handleEmptyTransaction(Transaction transaction) throws InterruptedException {
         if (transaction.isEmptyTransaction()) {
             transaction.reset();
             ApplierGtidEvent event = (ApplierGtidEvent)transaction.next();
-            transactionTable.begin(event.getGtid());
-            transactionTable.commit(batch.fetchGtid());
+            transactionTable.recordGtidInMemory(event.getGtid());
             loggerTT.info("handle empty transaction({}) success", event.getGtid());
-            super.onSuccess(transaction);
+            return true;
         }
+        return false;
     }
 }
