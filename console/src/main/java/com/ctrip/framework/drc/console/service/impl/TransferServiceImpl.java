@@ -202,8 +202,9 @@ public class TransferServiceImpl implements TransferService {
                     Long replicatorGroupId = metaInfoService.getReplicatorGroupId(targetMhaName);
                     String includedDbs = appliers.size() == 0 ? "" : appliers.get(0).getIncludedDbs();
                     String nameFilter = appliers.size() == 0 ? "" : appliers.get(0).getNameFilter();
+                    String nameMapping = appliers.size() == 0 ? "" : appliers.get(0).getNameMapping();
                     int applyMode = appliers.size() == 0 ? 0 : appliers.get(0).getApplyMode();
-                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter);
+                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping);
 
                     // rough implementation, only for duo repl
                     for(Applier applier : appliers) {

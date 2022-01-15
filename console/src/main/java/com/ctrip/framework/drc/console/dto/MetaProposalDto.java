@@ -22,6 +22,8 @@ public class MetaProposalDto {
 
     private String srcApplierNameFilter;
 
+    private String srcApplierNameMapping;
+
     private int srcApplierApplyMode;
 
     private List<String> destReplicatorIps;
@@ -31,6 +33,8 @@ public class MetaProposalDto {
     private String destApplierIncludedDbs;
 
     private String destApplierNameFilter;
+
+    private String destApplierNameMapping;
 
     private int destApplierApplyMode;
 
@@ -150,6 +154,22 @@ public class MetaProposalDto {
         this.destApplierNameFilter = destApplierNameFilter;
     }
 
+    public String getSrcApplierNameMapping() {
+        return srcApplierNameMapping;
+    }
+
+    public void setSrcApplierNameMapping(String srcApplierNameMapping) {
+        this.srcApplierNameMapping = srcApplierNameMapping;
+    }
+
+    public String getDestApplierNameMapping() {
+        return destApplierNameMapping;
+    }
+
+    public void setDestApplierNameMapping(String destApplierNameMapping) {
+        this.destApplierNameMapping = destApplierNameMapping;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -166,12 +186,13 @@ public class MetaProposalDto {
                 Objects.equals(destApplierIps, that.destApplierIps) &&
                 Objects.equals(destApplierIncludedDbs, that.destApplierIncludedDbs) &&
                 Objects.equals(destApplierNameFilter, that.destApplierNameFilter) &&
+                Objects.equals(destApplierNameMapping, that.destApplierNameMapping) &&
                 destApplierApplyMode == that.destApplierApplyMode;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierApplyMode);
+        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierNameMapping, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierNameMapping, destApplierApplyMode);
     }
 
     @Override
@@ -183,11 +204,13 @@ public class MetaProposalDto {
                 ", srcApplierIps=" + srcApplierIps +
                 ", srcApplierIncludedDbs='" + srcApplierIncludedDbs + '\'' +
                 ", srcApplierNameFilter='" + srcApplierNameFilter + '\'' +
+                ", srcApplierNameMapping='" + srcApplierNameMapping + '\'' +
                 ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
                 ", destReplicatorIps=" + destReplicatorIps +
                 ", destApplierIps=" + destApplierIps +
                 ", destApplierIncludedDbs='" + destApplierIncludedDbs + '\'' +
                 ", destApplierNameFilter='" + destApplierNameFilter + '\'' +
+                ", destApplierNameMapping='" + destApplierNameMapping + '\'' +
                 ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
                 ", destApplierApplyMode='" + destApplierApplyMode + '\'' +
                 ", destGtidExecuted='" + destGtidExecuted + '\'' +

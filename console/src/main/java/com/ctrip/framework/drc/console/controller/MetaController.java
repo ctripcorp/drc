@@ -224,6 +224,18 @@ public class MetaController {
         }
     }
 
+    @GetMapping("namemapping")
+    public ApiResult getNameMapping(@RequestParam(value = "localMha") String localMha,
+                                   @RequestParam(value = "remoteMha") String remoteMha) {
+        logger.info("[meta] get nameMapping setting for appliers being used by {}<-{}", localMha, remoteMha);
+        try {
+            return ApiResult.getSuccessInstance(metaInfoService.getNameMapping(localMha, remoteMha));
+        } catch (SQLException e) {
+            logger.error("[meta] Fail get nameMapping setting for appliers being used by {}<-{}", localMha, remoteMha);
+            return ApiResult.getSuccessInstance(null);
+        }
+    }
+
     @GetMapping("applymode")
     public ApiResult getApplyMode(@RequestParam(value = "localMha") String localMha,
                                   @RequestParam(value = "remoteMha") String remoteMha) {

@@ -62,8 +62,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         // 2. configure and persistent in database
         long srcReplicatorGroupId = configureReplicators(srcMhaTbl, destMhaTbl, metaProposalDto.getSrcReplicatorIps(), metaProposalDto.getDestGtidExecuted());
         long destReplicatorGroupId = configureReplicators(destMhaTbl, srcMhaTbl, metaProposalDto.getDestReplicatorIps(), metaProposalDto.getSrcGtidExecuted());
-        configureAppliers(srcMhaTbl, metaProposalDto.getSrcApplierIps(), destReplicatorGroupId, metaProposalDto.getSrcApplierIncludedDbs(), metaProposalDto.getSrcApplierApplyMode(), metaProposalDto.getSrcGtidExecuted(), metaProposalDto.getSrcApplierNameFilter());
-        configureAppliers(destMhaTbl, metaProposalDto.getDestApplierIps(), srcReplicatorGroupId, metaProposalDto.getDestApplierIncludedDbs(), metaProposalDto.getDestApplierApplyMode(), metaProposalDto.getDestGtidExecuted(), metaProposalDto.getDestApplierNameFilter());
+        configureAppliers(srcMhaTbl, metaProposalDto.getSrcApplierIps(), destReplicatorGroupId, metaProposalDto.getSrcApplierIncludedDbs(), metaProposalDto.getSrcApplierApplyMode(), metaProposalDto.getSrcGtidExecuted(), metaProposalDto.getSrcApplierNameFilter(), metaProposalDto.getSrcApplierNameMapping());
+        configureAppliers(destMhaTbl, metaProposalDto.getDestApplierIps(), srcReplicatorGroupId, metaProposalDto.getDestApplierIncludedDbs(), metaProposalDto.getDestApplierApplyMode(), metaProposalDto.getDestGtidExecuted(), metaProposalDto.getDestApplierNameFilter(), metaProposalDto.getDestApplierNameMapping());
 
 
         // update status and return the configured xml from db
@@ -207,17 +207,17 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         return replicatorInstancesRemoved;
     }
 
-    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs, int applyMode, String localGtidExecuted, String nameFilter) throws SQLException {
-        Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter);
+    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs, int applyMode, String localGtidExecuted, String nameFilter, String nameMapping) throws SQLException {
+        Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, nameMapping);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, localGtidExecuted);
         return applierGroupId;
     }
 
-    protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter) throws SQLException {
+    protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter, String nameMapping) throws SQLException {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={}, includedDbs={}, replicatorGroupId={}]]configure or update applier group", mhaName, mhaId, includedDbs, replicatorGroupId);
-        return dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter);
+        return dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping);
     }
 
     protected void configureApplierInstances(MhaTbl mhaTbl, List<String> applierIps, Long applierGroupId, String localGtidExecuted) throws SQLException {

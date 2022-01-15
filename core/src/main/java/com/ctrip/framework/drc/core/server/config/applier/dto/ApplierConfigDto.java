@@ -20,6 +20,7 @@ public class ApplierConfigDto extends ApplierMeta {
     private int managerPort;
     private String includedDbs;
     private String nameFilter;
+    private String nameMapping;
     private String routeInfo;
     private String skipEvent;
     private int applyMode;
@@ -86,6 +87,14 @@ public class ApplierConfigDto extends ApplierMeta {
 
     public void setNameFilter(String nameFilter) {
         this.nameFilter = nameFilter;
+    }
+
+    public String getNameMapping() {
+        return nameMapping;
+    }
+
+    public void setNameMapping(String nameMapping) {
+        this.nameMapping = nameMapping;
     }
 
     public String getRouteInfo() {
