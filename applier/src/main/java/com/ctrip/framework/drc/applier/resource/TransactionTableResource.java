@@ -77,7 +77,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private long lastTimeGtidMerged;
 
-    private ExecutorService asyncMergeGtidService = ThreadUtils.newSingleThreadExecutor("Async-Merge-GtidSet");
+    private ExecutorService mergeGtidService = ThreadUtils.newSingleThreadExecutor("Merge-GtidSet");
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("Merge-GtidSet-Schedule");
 
@@ -95,11 +95,13 @@ public class TransactionTableResource extends AbstractResource implements Transa
         startGtidMergeSchedule();
     }
 
-    public void mergeGtidRecordInDB(String uuid) {
+    @Override
+    public void mergeRecord(String uuid, boolean needRetry) {
         TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
         try (Connection connection = dataSource.getConnection()) {
             GtidSet gtidSet = gtidReader.getSpecificGtidSet(connection, uuid);
             if (StringUtils.isNotBlank(gtidSet.toString())) {
+                doMergeGtid(gtidSet, needRetry);
                 updateGtidSetRecord(gtidSet);
             }
             loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
@@ -137,22 +139,25 @@ public class TransactionTableResource extends AbstractResource implements Transa
     private synchronized void mergeGtid(boolean needRetry) {
         long start = System.currentTimeMillis();
         GtidSet allGtidToMerge = getAllGtidToMerge();
+        doMergeGtid(allGtidToMerge, needRetry);
+        resetBeginAndCommitStates(indexesToMerge);
+        loggerTT.info("[TT] merge gtid success, cost: {} ms", System.currentTimeMillis() - start);
+        lastTimeGtidMerged = System.currentTimeMillis();
+    }
+
+    private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new gtidMergeCallable(allGtidToMerge), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new gtidMergeCallable(gtidSet), RETRY_TIME).call();
             if (res == null) {
                 shutdownSystem();
             }
         } else {
             try {
-                updateGtidSetRecord(allGtidToMerge);
+                updateGtidSetRecord(gtidSet);
             } catch (SQLException e) {
-                loggerTT.error("[TT] merge gtid failed without retry", e);
+                loggerTT.error("[TT] do merge gtid failed without retry", e);
             }
         }
-
-        resetBeginAndCommitStates(indexesToMerge);
-        loggerTT.info("[TT] merge gtid success, cost: {} ms", System.currentTimeMillis() - start);
-        lastTimeGtidMerged = System.currentTimeMillis();
     }
 
     private GtidSet getAllGtidToMerge() {
@@ -269,7 +274,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         }
     }
 
-    public void markDiscard(Connection connection) {
+    private void markDiscard(Connection connection) {
         try {
             if (connection != null) {
                 connection.unwrap(PooledConnection.class).setDiscarded(true);
@@ -363,19 +368,19 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @Override
-    public void recordGtidInMemory(String gtid) {
+    public void recordToMemory(String gtid) {
         synchronized (gtidSavedInMemoryLock) {
             if (++gtidSetSizeInMemory >= TRANSACTION_TABLE_MERGE_SIZE) {
                 gtidSetSizeInMemory = 0;
-                asyncMergeGtid(true);
+                merge(true);
             }
             gtidSavedInMemory.add(gtid);
         }
     }
 
     @Override
-    public void asyncMergeGtid(boolean needRetry) {
-        asyncMergeGtidService.submit(new Runnable() {
+    public void merge(boolean needRetry) {
+        mergeGtidService.submit(new Runnable() {
             @Override
             public void run() {
                 loggerTT.info("[TT] async merge gtid start");
@@ -383,13 +388,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
                 loggerTT.info("[TT] async merge gtid end");
             }
         });
-    }
-
-    @Override
-    public void syncMergeGtid(boolean needRetry) {
-        loggerTT.info("[TT] sync merge gtid start");
-        mergeGtid(needRetry);
-        loggerTT.info("[TT] sync merge gtid end");
     }
 
     private void startGtidMergeSchedule() {
@@ -435,14 +433,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @Override
-    protected void doDispose() {
+    protected void doDispose() throws Exception {
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdown();
             scheduledExecutorService = null;
         }
-        if (asyncMergeGtidService != null) {
-            asyncMergeGtidService.shutdown();
-            asyncMergeGtidService = null;
+        if (mergeGtidService != null) {
+            mergeGtidService.awaitTermination(3, TimeUnit.SECONDS);
+            mergeGtidService = null;
         }
     }
 }

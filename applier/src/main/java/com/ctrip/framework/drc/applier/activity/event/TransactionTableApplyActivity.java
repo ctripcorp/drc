@@ -35,7 +35,7 @@ public class TransactionTableApplyActivity extends ApplyActivity {
         if (transaction.isEmptyTransaction()) {
             transaction.reset();
             ApplierGtidEvent event = (ApplierGtidEvent)transaction.next();
-            transactionTable.recordGtidInMemory(event.getGtid());
+            transactionTable.recordToMemory(event.getGtid());
             loggerTT.info("handle empty transaction({}) success", event.getGtid());
             return true;
         }

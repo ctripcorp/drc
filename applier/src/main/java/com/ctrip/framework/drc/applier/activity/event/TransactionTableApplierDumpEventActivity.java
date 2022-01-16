@@ -36,13 +36,13 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         skipEvent = false;
 
         if (event instanceof ApplierDrcGtidEvent) {
-            transactionTable.recordGtidInMemory(((ApplierDrcGtidEvent) event).getGtid());
+            transactionTable.recordToMemory(((ApplierDrcGtidEvent) event).getGtid());
             skipEvent = true;
             return;
         }
 
         if (event instanceof ApplierFormatDescriptionEvent) {
-            transactionTable.asyncMergeGtid(true);
+            transactionTable.merge(true);
             skipEvent = true;
             return;
         }
@@ -55,7 +55,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("uuid has changed, old uuid is: {}, new uuid is: {}", lastUuid, currentUuid);
-            transactionTable.mergeGtidRecordInDB(currentUuid);
+            transactionTable.mergeRecord(currentUuid, true);
             lastUuid = currentUuid;
         }
 
@@ -69,7 +69,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     public void doDispose() throws Exception{
+        transactionTable.merge(false);
         super.doDispose();
-        transactionTable.syncMergeGtid(false);
     }
 }
