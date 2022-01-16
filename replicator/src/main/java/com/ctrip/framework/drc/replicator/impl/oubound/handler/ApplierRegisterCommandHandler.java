@@ -63,7 +63,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private static AtomicInteger threadNum = new AtomicInteger(1);
 
-    private static int END_OF_STATEMENT_FLAG = 1;
+    private static final int END_OF_STATEMENT_FLAG = 1;
 
     private GtidManager gtidManager;
 
@@ -133,7 +133,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private boolean dbFiltering = false;
 
-        private boolean tableFiltered = false;
+        private boolean shouldSkipEvent = false;
 
         private int continuousTableMapCount = 0;
 
@@ -435,11 +435,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean processNameFilter(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
-            tableFiltered = false;
-
             if (!includedDbs.isEmpty() || aviatorFilter == null) {
                 return false;
             }
+
+            shouldSkipEvent = false;
 
             if (xid_log_event == eventType) {
                 continuousTableMapCount = 0;
@@ -456,34 +456,35 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
                 handNameFilterTableMapEvent(fileChannel, eventSize, headByteBuf);
             } else {
-                if (!skipTableNameMap.isEmpty()) {
-                    if (continuousTableMapCount == 1) {
-                        fileChannel.position(fileChannel.position() + (eventSize - eventHeaderLengthVersionGt1));  // forward body size
-                        GTID_LOGGER.info("[Skip] rows event {} for name filter", skipTableNameMap.toString());
-                        return true;
-                    } else {
-                        switch (eventType) {
-                            case write_rows_event_v2:
-                                handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new WriteRowsEvent());
-                                break;
-                            case update_rows_event_v2:
-                                handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new UpdateRowsEvent());
-                                break;
-                            case delete_rows_event_v2:
-                                handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new DeleteRowsEvent());
-                                break;
-                        }
+                if (skipTableNameMap.isEmpty()) {
+                    return false;
+                }
+                if (continuousTableMapCount == 1) {
+                    fileChannel.position(fileChannel.position() + (eventSize - eventHeaderLengthVersionGt1));  // forward body size
+                    GTID_LOGGER.info("[Skip] rows event {} for name filter", skipTableNameMap.toString());
+                    return true;
+                } else {
+                    switch (eventType) {
+                        case write_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new WriteRowsEvent());
+                            break;
+                        case update_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new UpdateRowsEvent());
+                            break;
+                        case delete_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new DeleteRowsEvent());
+                            break;
                     }
                 }
             }
-            return tableFiltered;
+            return shouldSkipEvent;
         }
 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
             if (!aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
-                tableFiltered = true;
+                shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
                 GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
             } else {
@@ -498,14 +499,14 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             String tableName = skipTableNameMap.get(rowsEvent.getRowsEventPostHeader().getTableId());
 
             if (StringUtils.isNotBlank(tableName)) {
-                tableFiltered = true;
+                shouldSkipEvent = true;
                 GTID_LOGGER.info("[Skip] rows event {} for name filter", tableName);
             } else {
                 fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
             }
 
             if (rowsEvent.getRowsEventPostHeader().getFlags() == END_OF_STATEMENT_FLAG) {
-                continuousTableMapCount = 1;
+                continuousTableMapCount = 0;
                 skipTableNameMap.clear();
             }
             releaseCompositeByteBuf(compositeByteBuf);
