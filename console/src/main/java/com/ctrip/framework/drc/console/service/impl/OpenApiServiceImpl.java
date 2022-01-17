@@ -71,42 +71,33 @@ public class OpenApiServiceImpl implements OpenApiService {
                 Long mhaTblId = mhaTbl.getId();
                 String dcName = dcTbls.stream().filter(p -> p.getId().equals(mhaTbl.getDcId())).findFirst().get().getDcName();
                 MachineTbl machineTbl = machineTbls.stream().filter(p -> p.getMhaId().equals(mhaTblId) && p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().get();
+
+                String includedDbs = metaInfoService.getIncludedDbs(mhaName, anotherMhaName);
+                String nameFilter = metaInfoService.getNameFilter(mhaName, anotherMhaName);
                 if (i++ == 0) {
                     mhaGroupFilterVo.setSrcMhaName(mhaName);
                     mhaGroupFilterVo.setSrcDc(dcName);
                     mhaGroupFilterVo.setSrcIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    int applyMode = metaInfoService.getApplyMode(mhaName, anotherMhaName);
                     String srcApplierFilter = ALLMATCH;
-                    if (applyMode == SET_GTID_MODE) {
-                        String includedDbs = metaInfoService.getIncludedDbs(mhaName, anotherMhaName);
-                        if (StringUtils.isNotBlank(includedDbs)) {
-                            srcApplierFilter = includedDbs;
-                        }
+                    if (StringUtils.isNotBlank(nameFilter)) {
+                        srcApplierFilter = nameFilter;
+                    } else if (StringUtils.isNotBlank(includedDbs)) {
+                        srcApplierFilter = includedDbs;
                     } else {
-                        String nameFilter = metaInfoService.getNameFilter(mhaName, anotherMhaName);
-                        if (StringUtils.isNotBlank(nameFilter)) {
-                            srcApplierFilter = nameFilter;
-                        }
+                        logger.info("srcApplierFilter find no filter,use allMatch,mhaId is {}",mhaTblId);
                     }
                     mhaGroupFilterVo.setSrcApplierFilter(srcApplierFilter);
                 } else {
                     mhaGroupFilterVo.setDestMhaName(mhaName);
                     mhaGroupFilterVo.setDestDc(dcName);
                     mhaGroupFilterVo.setDestIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    int applyMode = metaInfoService.getApplyMode(mhaName, anotherMhaName);
                     String destApplierFilter = ALLMATCH;
-                    if (applyMode == SET_GTID_MODE) {
-                        String includedDbs = metaInfoService.getIncludedDbs(mhaName, anotherMhaName);
-                        if (StringUtils.isNotBlank(includedDbs)) {
-                            destApplierFilter = includedDbs;
-                        }
-                    } else if(applyMode == TRANSACTION_TABLE_MODE) {
-                        String nameFilter = metaInfoService.getNameFilter(mhaName, anotherMhaName);
-                        if (StringUtils.isNotBlank(nameFilter)) {
-                            destApplierFilter = nameFilter;
-                        }
+                    if (StringUtils.isNotBlank(nameFilter)) {
+                        destApplierFilter = nameFilter;
+                    } else if (StringUtils.isNotBlank(includedDbs)) {
+                        destApplierFilter = includedDbs;
                     } else {
-                        logger.warn("error applier mode in mhaGroup {}",mhaGroupTblId);
+                        logger.info("destApplierFilter find no filter,use allMatch,mhaId is {}",mhaTblId);
                     }
                     mhaGroupFilterVo.setDestApplierFilter(destApplierFilter);
                 }
