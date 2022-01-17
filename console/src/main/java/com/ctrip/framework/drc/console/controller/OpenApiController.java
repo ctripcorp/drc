@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -28,7 +29,8 @@ public class OpenApiController {
     private OpenApiService openApiService;
     
     
-    @GetMapping("/info/mhas")
+    @GetMapping(value= "/info/mhas",produces={"application/json; charset=UTF-8"})
+    @ResponseBody
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {
             List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
