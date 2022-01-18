@@ -498,7 +498,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             rowsEvent.loadPostHeader();
             String tableName = skipTableNameMap.get(rowsEvent.getRowsEventPostHeader().getTableId());
 
-            if (StringUtils.isNotBlank(tableName)) {
+            if (tableName != null) {
                 shouldSkipEvent = true;
                 GTID_LOGGER.info("[Skip] rows event {} for name filter", tableName);
             } else {
