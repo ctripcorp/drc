@@ -106,16 +106,18 @@ public class MonitorServiceImpl implements MonitorService {
             for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
                 if(!entry.getKey().equalsIgnoreCase(currentDcName)) {
                     String uri = String.format("%s/api/drc/v1/monitor/switches/on", entry.getValue());
-                    MhaNamesResponseVo mhaNamesResponseVo = openService.getMhaNamesToBeMonitored(uri);
-
-                    if (Constants.zero.equals(mhaNamesResponseVo.getStatus())) {
-                        return mhaNamesResponseVo.getData();
-                    }
+                    String uriResponse = openService.getMhaNamesToBeMonitored(uri);
+                    logger.info("uri is : {},uriResponse is {}",uri,uriResponse);
+                    throw new IllegalStateException("get remote mha names info for test,throw exception");
+//                    if (Constants.zero.equals(mhaNamesResponseVo.getStatus())) {
+//                        return mhaNamesResponseVo.getData();
+//                    }
                 }
             }
         }
-        logger.info("can not get remote mha names to be monitored");
-        throw new IllegalStateException("get remote mha names to be monitored exception");
+        return null;
+//        logger.info("can not get remote mha names to be monitored");
+//        throw new IllegalStateException("get remote mha names to be monitored exception");
     }
 
     private List<String> getLocalMhaNamesToBeMonitored() throws SQLException {

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.impl.openapi;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.console.vo.response.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -20,8 +21,8 @@ public class OpenService {
         return HttpUtils.get(uri, MhaResponseVo.class, params);
     }
 
-    public MhaNamesResponseVo getMhaNamesToBeMonitored(String uri) {
-        return HttpUtils.get(uri, MhaNamesResponseVo.class);
+    public String getMhaNamesToBeMonitored(String uri) {
+        return HttpUtils.get(uri, String.class);
     }
     
     public UuidResponseVo getUUIDFromRemoteDC(String uri, Map<String, Object> params) {
