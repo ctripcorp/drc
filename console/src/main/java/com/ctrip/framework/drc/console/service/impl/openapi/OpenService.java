@@ -32,4 +32,5 @@ public class OpenService {
     public AbstractResponse<String> updateUuidByMachineTbl(String uri, MachineTbl machineTbl) {
         return HttpUtils.post(uri, machineTbl, AbstractResponse.class);
     }
+    
 }

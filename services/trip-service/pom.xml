@@ -84,6 +84,12 @@
             <groupId>com.ctrip.infosec</groupId>
             <artifactId>sso-client-new</artifactId>
             <version>0.0.4</version>
+            <exclusions>
+                <exclusion>
+                <artifactId>jackson-databind</artifactId>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
