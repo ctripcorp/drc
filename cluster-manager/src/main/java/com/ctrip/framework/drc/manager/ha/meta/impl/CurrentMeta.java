@@ -280,7 +280,7 @@ public class CurrentMeta implements Releasable {
         }
 
         public boolean setApplierMaster(String clusterId, Pair<String, Integer> applierMaster) {
-            logger.info("[setApplierMaster]{},{},{}", clusterId, applierMaster);
+            logger.info("[setApplierMaster]{},{}", clusterId, applierMaster);
             Pair<String, Integer> previousApplierMaster = applierMasters.get(clusterId);
 
             if (ObjectUtils.equals(previousApplierMaster, applierMaster)) {

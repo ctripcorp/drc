@@ -31,6 +31,8 @@
 
     <properties>
         <framework.bom.version>5.42.0</framework.bom.version>
+        <foundation-service.version>3.1.2</foundation-service.version>
+        <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.3.30</dal.version>
         <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
@@ -42,6 +44,7 @@
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
         <spring-platfrom-bom.version>2.0.5.RELEASE</spring-platfrom-bom.version>
+        <spring.version>4.3.6.RELEASE</spring.version>
         <mariadb.version>2.4.0</mariadb.version>
         <wiremock.version>2.23.2</wiremock.version>
         <spring-boot.version>1.5.0.RELEASE</spring-boot.version>
@@ -181,6 +184,16 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <version>${log4j2.version}</version>
             </dependency>
+            <dependency>
+                <artifactId>log4j-api</artifactId>
+                <groupId>org.apache.logging.log4j</groupId>
+                <version>${log4j2.version}</version>
+            </dependency>
+            <dependency>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <groupId>org.apache.logging.log4j</groupId>
+                <version>${log4j2.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -218,6 +231,52 @@
                         <artifactId>hibernate-validator</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-aop</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-beans</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-expression</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-web</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-webmvc</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-test</artifactId>
+                <version>${spring.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
@@ -306,21 +365,13 @@
                 <artifactId>oro</artifactId>
                 <version>${oro.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.codehaus.plexus</groupId>
+                <artifactId>plexus-container-default</artifactId>
+                <version>${plexus-container-default.version}</version>
+            </dependency>
 
             <!-- for unit test -->
-            <dependency>
-                <groupId>com.ctrip.framework.xpipe</groupId>
-                <artifactId>core</artifactId>
-                <version>${xpipe.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.dianping.cat</groupId>
-                        <artifactId>cat-client</artifactId>
-                    </exclusion>
-                </exclusions>
-                <classifier>tests</classifier>
-                <scope>test</scope>
-            </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
@@ -357,10 +408,26 @@
                     <artifactId>log4j-core</artifactId>
                     <groupId>org.apache.logging.log4j</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>log4j-api</artifactId>
+                    <groupId>org.apache.logging.log4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                    <groupId>org.apache.logging.log4j</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <artifactId>log4j-core</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+        </dependency>
+        <dependency>
+            <artifactId>log4j-api</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+        </dependency>
+        <dependency>
+            <artifactId>log4j-slf4j-impl</artifactId>
             <groupId>org.apache.logging.log4j</groupId>
         </dependency>
         <dependency>

@@ -20,7 +20,6 @@ classes/**
 *.patch
 *.tmp
 console/memory_meta_server_dao_file.xml
-memory_meta_server_dao_file.xml
 
 # system ignore
 .DS_Store

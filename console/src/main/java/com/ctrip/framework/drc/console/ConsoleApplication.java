@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.web.support.SpringBootServletInitializer;
+import org.springframework.context.annotation.ComponentScan;
 
 
 /**
@@ -12,6 +13,7 @@ import org.springframework.boot.web.support.SpringBootServletInitializer;
  */
 @ServletComponentScan
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.ctrip.framework.drc.console","com.ctrip.framework.drc.service.console"})
 public class ConsoleApplication extends SpringBootServletInitializer {
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {

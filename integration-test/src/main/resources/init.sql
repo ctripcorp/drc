@@ -400,6 +400,23 @@ CREATE TABLE `drc4`.`benchmark` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
+SET FOREIGN_KEY_CHECKS=0;
+
+CREATE TABLE `drc4`.`answer` (
+  `a_id` numeric(10,0),
+  `q_id` numeric(10,0) not null,
+  `best_answer` numeric(1) default 0 not null,
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+ primary key(a_id),
+ foreign key (q_id) references question(q_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE `drc4`.`question` (
+  `q_id` numeric(10,0),
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+ primary key(q_id)
+) ENGINE=InnoDB;
+
 -- 延时监控表
 CREATE DATABASE IF NOT EXISTS drcmonitordb;
 CREATE TABLE IF NOT EXISTS `drcmonitordb`.`delaymonitor` (
