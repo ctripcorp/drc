@@ -82,8 +82,8 @@
         </dependency>
         <dependency>
             <groupId>com.ctrip.infosec</groupId>
-            <artifactId>sso-client-qconfig</artifactId>
-            <version>1.1.5</version>
+            <artifactId>sso-client-new</artifactId>
+            <version>0.0.4</version>
         </dependency>
     </dependencies>
 

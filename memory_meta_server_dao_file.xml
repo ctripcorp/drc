@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<drc>
+   <dc id="shaoy">
+      <clusterManager ip="10.2.84.122" port="8080" master="true"/>
+      <zkServer address="10.2.84.112:2181"/>
+      <dbClusters>
+         <dbCluster id="integration-test2.drcTestW1" name="integration-test2" mhaName="drcTestW1" buName="FX" org-id="5" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.109" port="3307" master="true" uuid="30ef5cdb-4781-11ec-a555-fa163e02998c"/>
+            </dbs>
+         </dbCluster>
+         <dbCluster id="drctest_dalcluster.drctestoy" name="drctest_dalcluster" mhaName="drctestoy" buName="BBZ" org-id="3" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.108" port="3321" master="true" uuid="f5644def-4153-11ec-a095-fa163e2d32b8"/>
+            </dbs>
+         </dbCluster>
+      </dbClusters>
+   </dc>
+   <dc id="sharb">
+      <routes>
+         <route id="2" org-id="3" tag="meta" src-dc="sharb" dst-dc="shaoy" routeInfo="PROXY://10.5.117.31:80,PROXY://10.5.117.30:80 PROXYTLS://10.5.111.148:443"/>
+         <route id="4" org-id="3" tag="console" src-dc="sharb" dst-dc="shaoy" routeInfo="PROXY://10.5.117.30:80"/>
+      </routes>
+      <clusterManager ip="10.2.84.109" port="8080" master="true"/>
+      <zkServer address="10.2.83.114:2181"/>
+      <dbClusters>
+         <dbCluster id="integration-test2.drcTestW2" name="integration-test2" mhaName="drcTestW2" buName="FX" org-id="5" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.110" port="3307" master="true" uuid="973f2ed7-71f5-11ec-bcca-fa163ec90ff6"/>
+            </dbs>
+         </dbCluster>
+         <dbCluster id="drctest_dalcluster.drctestrb" name="drctest_dalcluster" mhaName="drctestrb" buName="BBZ" org-id="3" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.109" port="3321" master="true" uuid="99b0b1e4-4158-11ec-ab78-fa163e02998c"/>
+            </dbs>
+         </dbCluster>
+         <dbCluster id="integration-test2.drcTestW3" name="integration-test2" mhaName="drcTestW3" buName="FX" org-id="5" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.108" port="3307" master="true" uuid="3384bfeb-5d84-11ec-b14d-fa163e2d32b8"/>
+            </dbs>
+         </dbCluster>
+      </dbClusters>
+   </dc>
+   <dc id="ntgxh">
+      <clusterManager ip="10.2.85.53" port="8080" master="true"/>
+      <zkServer address="10.2.85.60:2181"/>
+      <dbClusters>
+         <dbCluster id="bbzdrcbenchmarkdb_dalcluster.fat-fx-drc1" name="bbzdrcbenchmarkdb_dalcluster" mhaName="fat-fx-drc1" buName="BBZ" org-id="3" appId="100024819">
+            <dbs readUser="m_drc_w" readPassword="80+H44bA5wwqA(!R_" writeUser="m_drc_w" writePassword="80+H44bA5wwqA(!R_" monitorUser="m_drc_w" monitorPassword="80+H44bA5wwqA(!R_">
+               <db ip="10.2.72.230" port="55111" master="true" uuid="459b7dd6-a097-11ea-aade-fa163efb7175"/>
+               <db ip="10.2.72.247" port="55111" master="false" uuid="69f3dff0-a098-11ea-a665-fa163eb5defa"/>
+            </dbs>
+            <replicator ip="10.2.75.50" port="8080" applierPort="8383" gtidSkip="34493220-2ee7-11eb-a8be-fa163ebaf157:1-2850620,459b7dd6-a097-11ea-aade-fa163efb7175:1-10664751,61d90419-e61b-11eb-8cce-fa163ec687c3:1-3481344,69f3dff0-a098-11ea-a665-fa163eb5defa:1-13252583,923f55ad-e61b-11eb-9a5a-fa163ebaf157:1-4415128,a542335c-2fac-11eb-95a5-fa163ec687c3:1-7110447" master="false" excludedTables="bbzdrccameldb.basicorder"/>
+            <applier ip="10.2.75.233" port="8080" targetIdc="ntgxy" targetMhaName="fat-fx-drc2" gtidExecuted="34493220-2ee7-11eb-a8be-fa163ebaf157:1-2850620,459b7dd6-a097-11ea-aade-fa163efb7175:1-10665302,61d90419-e61b-11eb-8cce-fa163ec687c3:1-3481344,69f3dff0-a098-11ea-a665-fa163eb5defa:1-13252583,923f55ad-e61b-11eb-9a5a-fa163ebaf157:1-4415128,a542335c-2fac-11eb-95a5-fa163ec687c3:1-7110447" master="false" applyMode="1"/>
+         </dbCluster>
+         <dbCluster id="commonordershardbasedb_dalcluster.commonordershardnt" name="commonordershardbasedb_dalcluster" mhaName="commonordershardnt" buName="BBZ" org-id="3" appId="100020515">
+            <dbs readUser="m_drc_r" readPassword="S05cysutcaZrziqhkrg" writeUser="m_drc_w" writePassword="rp70gwrqRMnwaoutuup" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.5.58.160" port="55111" master="false" uuid="f82cba63-4fe0-11eb-a3c1-5439dfd2e302"/>
+               <db ip="10.5.58.243" port="55111" master="true" uuid="f5256bb7-4fe0-11eb-b1d3-5439dfd2e1de"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8399" gtidSkip="0204cf01-a871-11ea-86e5-5439dfd2e302:1-10732,34e4e566-a11b-11ea-924b-5439dfd2e302:1-159141,48fb6da8-c36e-11eb-9be8-5439dfd2dae2:1-1284676,81568617-5412-11ec-b0d2-5439dfd2e316:1-272493,8743fee2-6831-11ea-b509-5439dfd2dae2:1-4848834273,888576b5-a990-11ea-b30b-5439dfd2e302:1-8921857,913d1486-c36c-11eb-b290-5439dfd2e316:1,9c721732-540d-11ec-ad49-5439dfd2e316:1-8,b38faabb-a2ea-11ea-9757-5439dfd2e302:1-545294,b719cf67-34a8-11eb-bea1-5439dfd2e316:1-1202734698,c7e57076-4f2e-11eb-b589-5439dfd2e1de:1-67176,cdeb917d-a992-11ea-9930-5439dfd2e1de:1-656824147,d1d400ef-34a7-11eb-a75f-5439dfd2dae2:1-546,e788f1d3-d341-11eb-bba5-5439dfd2dae2:1-14675449,f5256bb7-4fe0-11eb-b1d3-5439dfd2e1de:1-5075012312,f82cba63-4fe0-11eb-a3c1-5439dfd2e302:1-1039509" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="commonordershardst" gtidExecuted="0204cf01-a871-11ea-86e5-5439dfd2e302:1-10732,34e4e566-a11b-11ea-924b-5439dfd2e302:1-159141,48fb6da8-c36e-11eb-9be8-5439dfd2dae2:1-1284676,81568617-5412-11ec-b0d2-5439dfd2e316:1-272460,8743fee2-6831-11ea-b509-5439dfd2dae2:1-4848834273,888576b5-a990-11ea-b30b-5439dfd2e302:1-8921857,913d1486-c36c-11eb-b290-5439dfd2e316:1,9c721732-540d-11ec-ad49-5439dfd2e316:1-8,b38faabb-a2ea-11ea-9757-5439dfd2e302:1-545294,b719cf67-34a8-11eb-bea1-5439dfd2e316:1-1202734698,c7e57076-4f2e-11eb-b589-5439dfd2e1de:1-67176,cdeb917d-a992-11ea-9930-5439dfd2e1de:1-656824147,d1d400ef-34a7-11eb-a75f-5439dfd2dae2:1-546,e788f1d3-d341-11eb-bba5-5439dfd2dae2:1-14675449,f5256bb7-4fe0-11eb-b1d3-5439dfd2e1de:1-5075020857,f82cba63-4fe0-11eb-a3c1-5439dfd2e302:1-1039509" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="ibuitineraryshardbasedb_dalcluster.uat-ibuitinerary1" name="ibuitineraryshardbasedb_dalcluster" mhaName="uat-ibuitinerary1" buName="IBU" org-id="4" appId="100013988">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.2.27.114" port="55777" master="false" uuid="d52f4a2b-4fc6-11eb-9919-fa163e9cd112"/>
+               <db ip="10.2.27.75" port="55777" master="true" uuid="d94ed53d-4fc6-11eb-8c4c-fa163eb53a22"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8383" gtidSkip="0b319596-1753-11eb-a1d2-fa163e653820:1-77134,17e96922-4f33-11eb-b88b-fa163eb53a22:1-65207,6121191a-1756-11eb-b40b-fa163eb53a22:1-6444664,7cbebd88-176f-11eb-8c17-fa163ea132c5:1-20282098,d94ed53d-4fc6-11eb-8c4c-fa163eb53a22:1-12598718" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="uat-ibuitinerary2" gtidExecuted="0b319596-1753-11eb-a1d2-fa163e653820:1-77134,17e96922-4f33-11eb-b88b-fa163eb53a22:1-65207,5e005d22-1770-11eb-8317-fa163e3c1113:1-933592,6121191a-1756-11eb-b40b-fa163eb53a22:1-6444664,7cbebd88-176f-11eb-8c17-fa163ea132c5:1-20803486,d94ed53d-4fc6-11eb-8c4c-fa163eb53a22:1-14974135" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="qschedule_dalcluster.uat-qschedule" name="qschedule_dalcluster" mhaName="uat-qschedule" buName="BBZ" org-id="3" appId="100005820">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.2.37.121" port="55777" master="false" uuid="05a6aa56-45f0-11ec-8927-fa163eb12b7e"/>
+               <db ip="10.2.37.120" port="55777" master="true" uuid="bda062b9-4503-11eb-98e5-fa163eb4562f"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8394" gtidSkip="0396482b-349f-11eb-a862-fa163e681784:1-432903490,4060172d-33b4-11eb-b17e-fa163eb12b7e:1-838095016,4536afa6-33b6-11eb-a809-fa163eb4562f:1-36285975,45730342-4fcc-11eb-92de-fa163e681784:1-203445676,848eb2df-db13-11eb-87e5-fa163e681784:1-7190,897138a6-a704-11eb-a735-fa163e681784:1-3249618,930e534c-4f36-11eb-a7b7-fa163e681784:1-45884,b05265b6-33d8-11eb-a73c-fa163e681784:1-17864,ba92bd19-4503-11eb-a117-fa163eb12b7e:1-6979452875,c15b6c94-c352-11eb-912c-fa163e681784:1-1292190,d01e23d8-a13a-11e9-b43d-fa163e76b468:16767872464-16773762232,deb3e5e3-d340-11eb-8e50-fa163e681784:1-909537" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="uat-qschedule2" gtidExecuted="0396482b-349f-11eb-a862-fa163e681784:1-432903490,4060172d-33b4-11eb-b17e-fa163eb12b7e:1-838095016,4536afa6-33b6-11eb-a809-fa163eb4562f:1-36285975,45730342-4fcc-11eb-92de-fa163e681784:1-203445676,77c16fca-03eb-11ec-a33f-fa163e681784:1-26500,848eb2df-db13-11eb-87e5-fa163e681784:1-4517478,897138a6-a704-11eb-a735-fa163e681784:1-3249618,930e534c-4f36-11eb-a7b7-fa163e681784:1-45884,b05265b6-33d8-11eb-a73c-fa163e681784:1-17864,ba92bd19-4503-11eb-a117-fa163eb12b7e:1-9102506678,c15b6c94-c352-11eb-912c-fa163e681784:1-1292190,d01e23d8-a13a-11e9-b43d-fa163e76b468:16767872464-16773762232,deb3e5e3-d340-11eb-8e50-fa163e681784:1-909537" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="qschedule_dalcluster.fat-qschedule1" name="qschedule_dalcluster" mhaName="fat-qschedule1" buName="BBZ" org-id="3" appId="100005820">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.2.72.170" port="55111" master="true" uuid="d9f224ec-03e6-11ec-a5d3-fa163ef2e74c"/>
+               <db ip="10.2.72.171" port="55111" master="false" uuid="e2a2b12a-fced-11eb-bca6-fa163ed0ed9a"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8396" gtidSkip="4bd8e750-3df8-11eb-ac6a-40a8f03540d0:4157965152-4167049783:4210873675-5090879836,55598cdb-ccad-11eb-b094-fa163ef2e74c:1-651994264,79d936bb-d343-11eb-a440-fa163e79609b:1-5426063,94f03961-9dc4-11eb-88bf-fa163ed0ed9a:1-3706023:4139388,a516e0d8-87bd-11eb-be17-fa163e79609b:1-3820229820,ab5170f3-66d3-11eb-89fc-fa163ed0ed9a:1-2958935888,cc58d71b-728f-11eb-9db0-fa163e388f48:1-589759589,e2a2b12a-fced-11eb-bca6-fa163ed0ed9a:1-7108628,e484efdb-c825-11eb-86de-fa163ed0ed9a:1-4485644605,e8fc16cb-82de-11eb-a1d8-fa163e388f48:1-563220,f1fd035b-03f0-11ec-9d61-fa163e79609b:1-3441" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="fat-qschedule2" gtidExecuted="4bd8e750-3df8-11eb-ac6a-40a8f03540d0:4157965152-4167049783:4210873675-5090879836,55598cdb-ccad-11eb-b094-fa163ef2e74c:1-651994264,79d936bb-d343-11eb-a440-fa163e79609b:1-5426063,94f03961-9dc4-11eb-88bf-fa163ed0ed9a:1-3706023:4139388,a516e0d8-87bd-11eb-be17-fa163e79609b:1-3820229820,ab5170f3-66d3-11eb-89fc-fa163ed0ed9a:1-2958935888,cc58d71b-728f-11eb-9db0-fa163e388f48:1-589759589,e2a2b12a-fced-11eb-bca6-fa163ed0ed9a:1-21917266,e484efdb-c825-11eb-86de-fa163ed0ed9a:1-4485644605,e8fc16cb-82de-11eb-a1d8-fa163e388f48:1-563220,f1fd035b-03f0-11ec-9d61-fa163e79609b:1-22000" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="ccardspheredb_dalcluster.fat-ccard1" name="ccardspheredb_dalcluster" mhaName="fat-ccard1" buName="MBU" org-id="6" appId="100026600">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.2.73.19" port="55111" master="true" uuid="e588be4f-b3a6-11eb-a41a-fa163ef04567"/>
+               <db ip="10.2.73.191" port="55111" master="false" uuid="2b6f016a-b3a5-11eb-9979-fa163ef91c6e"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8393" gtidSkip="2b6f016a-b3a5-11eb-9979-fa163ef91c6e:1-3910856,80c1fb1c-c768-11eb-a7c6-fa163e447466:1-395945,a889e456-c769-11eb-a370-fa163e5d8c6e:1-1817108,d440147e-b3c5-11eb-9955-fa163e447466:1-1871001" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="fat-ccard2" gtidExecuted="2b6f016a-b3a5-11eb-9979-fa163ef91c6e:1-2209025,d440147e-b3c5-11eb-9955-fa163e447466:1-1871001" master="false" includedDbs="" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="bbzdrcintegrationtestdb_dalcluster.fat-bbzdrcxh" name="bbzdrcintegrationtestdb_dalcluster" mhaName="fat-bbzdrcxh" buName="BBZ" org-id="3" appId="100032473">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.2.75.142" port="55111" master="true" uuid="9b4d827e-f37a-11eb-83ca-fa163ecbc6da"/>
+               <db ip="10.2.75.141" port="55111" master="false" uuid="0f4d097b-f37b-11eb-ac94-fa163eede1b0"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8395" gtidSkip="0849bd75-f36a-11eb-a994-fa163e498fcf:1-1212" master="false" excludedTables=""/>
+            <applier ip="10.2.85.8" port="8080" targetIdc="ntgxy" targetMhaName="fat-bbzdrcxy" gtidExecuted="0849bd75-f36a-11eb-a994-fa163e498fcf:1-1212,9b4d827e-f37a-11eb-83ca-fa163ecbc6da:1-819" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="drctest_dalcluster.drctestnt" name="drctest_dalcluster" mhaName="drctestnt" buName="BBZ" org-id="3" appId="100012345">
+            <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+               <db ip="10.2.83.107" port="3321" master="true" uuid="42fe6925-4155-11ec-bd33-fa163eaa9d69"/>
+            </dbs>
+         </dbCluster>
+         <dbCluster id="bbzaccountsshardbasedb_dalcluster.fatbbzxh" name="bbzaccountsshardbasedb_dalcluster" mhaName="fatbbzxh" buName="BBZ" org-id="3" appId="100006837">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.6.57.37" port="55111" master="true" uuid="6daf894b-57f0-11ec-8690-1402ec722140"/>
+               <db ip="10.6.57.36" port="55111" master="false" uuid="3c0a1632-5702-11ec-9217-1402ec722138"/>
+            </dbs>
+            <replicator ip="10.6.53.71" port="8080" applierPort="8400" gtidSkip="3c0a1632-5702-11ec-9217-1402ec722138:1-1511975,65a32fd3-57f1-11ec-a007-1402ec7223e4:1-15760" master="false" excludedTables=""/>
+            <applier ip="10.6.53.68" port="8080" targetIdc="ntgxy" targetMhaName="fatbbzxy" gtidExecuted="3c0a1632-5702-11ec-9217-1402ec722138:1-1531549,65a32fd3-57f1-11ec-a007-1402ec7223e4:1-15760" master="false" applyMode="1" nameFilter="drcmonitordb\.delaymonitor,bbzmembersaccountshard\d*db\.sjp_(uid_accounts|user_password)_\d*,bbzaccountsshard\d*db\.sjp_user_accounts_\d*,bbzcredentialshard\d*db\.sjp_credential_keyid_\d*"/>
+         </dbCluster>
+      </dbClusters>
+   </dc>
+   <dc id="ntgxy">
+      <clusterManager ip="10.2.85.51" port="8080" master="true"/>
+      <zkServer address="10.2.85.64:2181"/>
+      <dbClusters>
+         <dbCluster id="bbzdrcbenchmarkdb_dalcluster.fat-fx-drc2" name="bbzdrcbenchmarkdb_dalcluster" mhaName="fat-fx-drc2" buName="BBZ" org-id="3" appId="100024819">
+            <dbs readUser="m_drc_w" readPassword="80+H44bA5wwqA(!R_" writeUser="m_drc_w" writePassword="80+H44bA5wwqA(!R_" monitorUser="m_drc_w" monitorPassword="80+H44bA5wwqA(!R_">
+               <db ip="10.2.72.248" port="55111" master="true" uuid="923f55ad-e61b-11eb-9a5a-fa163ebaf157"/>
+               <db ip="10.2.72.246" port="55111" master="false" uuid="e0046e09-1115-11ec-b593-fa163ec687c3"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8400" gtidSkip="34493220-2ee7-11eb-a8be-fa163ebaf157:1-2850620,459b7dd6-a097-11ea-aade-fa163efb7175:1-4852512,61d90419-e61b-11eb-8cce-fa163ec687c3:1-3481344,69f3dff0-a098-11ea-a665-fa163eb5defa:1-13185951,923f55ad-e61b-11eb-9a5a-fa163ebaf157:1-11511281,a542335c-2fac-11eb-95a5-fa163ec687c3:1-7110447" master="false" excludedTables="bbzdrccameldb.basicorder"/>
+            <applier ip="10.2.63.110" port="8080" targetIdc="ntgxh" targetMhaName="fat-fx-drc1" gtidExecuted="34493220-2ee7-11eb-a8be-fa163ebaf157:1-2850620,459b7dd6-a097-11ea-aade-fa163efb7175:1-4852512,61d90419-e61b-11eb-8cce-fa163ec687c3:1-3481344,69f3dff0-a098-11ea-a665-fa163eb5defa:1-13185951,923f55ad-e61b-11eb-9a5a-fa163ebaf157:1-11580342,a542335c-2fac-11eb-95a5-fa163ec687c3:1-7110447" master="false" applyMode="1"/>
+         </dbCluster>
+         <dbCluster id="commonordershardbasedb_dalcluster.commonordershardst" name="commonordershardbasedb_dalcluster" mhaName="commonordershardst" buName="BBZ" org-id="3" appId="100020515">
+            <dbs readUser="m_drc_r" readPassword="S05cysutcaZrziqhkrg" writeUser="m_drc_w" writePassword="rp70gwrqRMnwaoutuup" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.5.170.252" port="55111" master="true" uuid="81568617-5412-11ec-b0d2-5439dfd2e316"/>
+               <db ip="10.5.170.134" port="55111" master="false" uuid="190b1859-6480-11ec-8162-5439dfd2dae2"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8398" gtidSkip="0204cf01-a871-11ea-86e5-5439dfd2e302:1-10732,34e4e566-a11b-11ea-924b-5439dfd2e302:1-159141,48fb6da8-c36e-11eb-9be8-5439dfd2dae2:1-1284676,81568617-5412-11ec-b0d2-5439dfd2e316:1-272460,8743fee2-6831-11ea-b509-5439dfd2dae2:1-4848834273,888576b5-a990-11ea-b30b-5439dfd2e302:1-8921857,913d1486-c36c-11eb-b290-5439dfd2e316:1,9c721732-540d-11ec-ad49-5439dfd2e316:1-8,b38faabb-a2ea-11ea-9757-5439dfd2e302:1-545294,b719cf67-34a8-11eb-bea1-5439dfd2e316:1-1202734698,c7e57076-4f2e-11eb-b589-5439dfd2e1de:1-67176,cdeb917d-a992-11ea-9930-5439dfd2e1de:1-656824147,d1d400ef-34a7-11eb-a75f-5439dfd2dae2:1-546,e788f1d3-d341-11eb-bba5-5439dfd2dae2:1-14675449,f5256bb7-4fe0-11eb-b1d3-5439dfd2e1de:1-5075020845,f82cba63-4fe0-11eb-a3c1-5439dfd2e302:1-1039509" master="false" excludedTables=""/>
+            <applier ip="10.2.85.79" port="8080" targetIdc="ntgxh" targetMhaName="commonordershardnt" gtidExecuted="0204cf01-a871-11ea-86e5-5439dfd2e302:1-10732,34e4e566-a11b-11ea-924b-5439dfd2e302:1-159141,48fb6da8-c36e-11eb-9be8-5439dfd2dae2:1-1284676,81568617-5412-11ec-b0d2-5439dfd2e316:1-272493,8743fee2-6831-11ea-b509-5439dfd2dae2:1-4848834273,888576b5-a990-11ea-b30b-5439dfd2e302:1-8921857,913d1486-c36c-11eb-b290-5439dfd2e316:1,9c721732-540d-11ec-ad49-5439dfd2e316:1-8,b38faabb-a2ea-11ea-9757-5439dfd2e302:1-545294,b719cf67-34a8-11eb-bea1-5439dfd2e316:1-1202734698,c7e57076-4f2e-11eb-b589-5439dfd2e1de:1-67176,cdeb917d-a992-11ea-9930-5439dfd2e1de:1-656824147,d1d400ef-34a7-11eb-a75f-5439dfd2dae2:1-546,e788f1d3-d341-11eb-bba5-5439dfd2dae2:1-14675449,f5256bb7-4fe0-11eb-b1d3-5439dfd2e1de:1-5075012312,f82cba63-4fe0-11eb-a3c1-5439dfd2e302:1-1039509" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="ibuitineraryshardbasedb_dalcluster.uat-ibuitinerary2" name="ibuitineraryshardbasedb_dalcluster" mhaName="uat-ibuitinerary2" buName="IBU" org-id="4" appId="100013988">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.21.39.2" port="55777" master="true" uuid="7cbebd88-176f-11eb-8c17-fa163ea132c5"/>
+               <db ip="10.21.39.201" port="55777" master="false" uuid="7a08bcb6-50e7-11ec-9281-fa163e3c1113"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8391" gtidSkip="0b319596-1753-11eb-a1d2-fa163e653820:1-77134,17e96922-4f33-11eb-b88b-fa163eb53a22:1-65207,5e005d22-1770-11eb-8317-fa163e3c1113:1-933592,6121191a-1756-11eb-b40b-fa163eb53a22:1-6444664,7cbebd88-176f-11eb-8c17-fa163ea132c5:1-20803486,d94ed53d-4fc6-11eb-8c4c-fa163eb53a22:1-14974135" master="false" excludedTables=""/>
+            <applier ip="10.6.53.75" port="8080" targetIdc="ntgxh" targetMhaName="uat-ibuitinerary1" gtidExecuted="0b319596-1753-11eb-a1d2-fa163e653820:1-77134,17e96922-4f33-11eb-b88b-fa163eb53a22:1-65207,5e005d22-1770-11eb-8317-fa163e3c1113:1-366981,6121191a-1756-11eb-b40b-fa163eb53a22:1-6444664,7cbebd88-176f-11eb-8c17-fa163ea132c5:1-20803486,d94ed53d-4fc6-11eb-8c4c-fa163eb53a22:1-14209652" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="qschedule_dalcluster.uat-qschedule2" name="qschedule_dalcluster" mhaName="uat-qschedule2" buName="BBZ" org-id="3" appId="100005820">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.21.39.40" port="55777" master="true" uuid="91fc8f58-405e-11ec-8f96-fa163efbf5a7"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8397" gtidSkip="0396482b-349f-11eb-a862-fa163e681784:1-432903490,4060172d-33b4-11eb-b17e-fa163eb12b7e:1-838095016,4536afa6-33b6-11eb-a809-fa163eb4562f:1-36285975,45730342-4fcc-11eb-92de-fa163e681784:1-203445676,77c16fca-03eb-11ec-a33f-fa163e681784:1-26500,848eb2df-db13-11eb-87e5-fa163e681784:1-4517478,897138a6-a704-11eb-a735-fa163e681784:1-3249618,930e534c-4f36-11eb-a7b7-fa163e681784:1-45884,b05265b6-33d8-11eb-a73c-fa163e681784:1-17864,ba92bd19-4503-11eb-a117-fa163eb12b7e:1-9102506677,c15b6c94-c352-11eb-912c-fa163e681784:1-1292190,d01e23d8-a13a-11e9-b43d-fa163e76b468:16767872464-16773762232,deb3e5e3-d340-11eb-8e50-fa163e681784:1-909537" master="false" excludedTables=""/>
+            <applier ip="10.6.53.75" port="8080" targetIdc="ntgxh" targetMhaName="uat-qschedule" gtidExecuted="0396482b-349f-11eb-a862-fa163e681784:1-432903490,4060172d-33b4-11eb-b17e-fa163eb12b7e:1-838095016,4536afa6-33b6-11eb-a809-fa163eb4562f:1-36285975,45730342-4fcc-11eb-92de-fa163e681784:1-203445676,848eb2df-db13-11eb-87e5-fa163e681784:1-7190,897138a6-a704-11eb-a735-fa163e681784:1-3249618,930e534c-4f36-11eb-a7b7-fa163e681784:1-45884,b05265b6-33d8-11eb-a73c-fa163e681784:1-17864,ba92bd19-4503-11eb-a117-fa163eb12b7e:1-6979452875,c15b6c94-c352-11eb-912c-fa163e681784:1-1292190,d01e23d8-a13a-11e9-b43d-fa163e76b468:16767872464-16773762232,deb3e5e3-d340-11eb-8e50-fa163e681784:1-909537" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="qschedule_dalcluster.fat-qschedule2" name="qschedule_dalcluster" mhaName="fat-qschedule2" buName="BBZ" org-id="3" appId="100005820">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.21.36.52" port="55111" master="false" uuid="702b9860-3af9-11ec-97f5-fa163e388f48"/>
+               <db ip="10.21.36.53" port="55111" master="true" uuid="f1fd035b-03f0-11ec-9d61-fa163e79609b"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8396" gtidSkip="4bd8e750-3df8-11eb-ac6a-40a8f03540d0:4157965152-4167049783:4210873675-5090879836,55598cdb-ccad-11eb-b094-fa163ef2e74c:1-651994264,79d936bb-d343-11eb-a440-fa163e79609b:1-5426063,94f03961-9dc4-11eb-88bf-fa163ed0ed9a:1-3706023:4139388,a516e0d8-87bd-11eb-be17-fa163e79609b:1-3820229820,ab5170f3-66d3-11eb-89fc-fa163ed0ed9a:1-2958935888,cc58d71b-728f-11eb-9db0-fa163e388f48:1-589759589,e2a2b12a-fced-11eb-bca6-fa163ed0ed9a:1-21917263,e484efdb-c825-11eb-86de-fa163ed0ed9a:1-4485644605,e8fc16cb-82de-11eb-a1d8-fa163e388f48:1-563220,f1fd035b-03f0-11ec-9d61-fa163e79609b:1-22000" master="false" excludedTables=""/>
+            <applier ip="10.6.53.75" port="8080" targetIdc="ntgxh" targetMhaName="fat-qschedule1" gtidExecuted="4bd8e750-3df8-11eb-ac6a-40a8f03540d0:4157965152-4167049783:4210873675-5090879836,55598cdb-ccad-11eb-b094-fa163ef2e74c:1-651994264,79d936bb-d343-11eb-a440-fa163e79609b:1-5426063,94f03961-9dc4-11eb-88bf-fa163ed0ed9a:1-3706023:4139388,a516e0d8-87bd-11eb-be17-fa163e79609b:1-3820229820,ab5170f3-66d3-11eb-89fc-fa163ed0ed9a:1-2958935888,cc58d71b-728f-11eb-9db0-fa163e388f48:1-589759589,e2a2b12a-fced-11eb-bca6-fa163ed0ed9a:1-7108628,e484efdb-c825-11eb-86de-fa163ed0ed9a:1-4485644605,e8fc16cb-82de-11eb-a1d8-fa163e388f48:1-563220,f1fd035b-03f0-11ec-9d61-fa163e79609b:1-3441" master="false" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="ccardspheredb_dalcluster.fat-ccard2" name="ccardspheredb_dalcluster" mhaName="fat-ccard2" buName="MBU" org-id="6" appId="100026600">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.21.37.102" port="55111" master="true" uuid="a889e456-c769-11eb-a370-fa163e5d8c6e"/>
+               <db ip="10.21.37.104" port="55111" master="false" uuid="80c1fb1c-c768-11eb-a7c6-fa163e447466"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8387" gtidSkip="2b6f016a-b3a5-11eb-9979-fa163ef91c6e:1-2209025,d440147e-b3c5-11eb-9955-fa163e447466:1-1871001" master="false" excludedTables=""/>
+            <applier ip="10.2.85.79" port="8080" targetIdc="ntgxh" targetMhaName="fat-ccard1" gtidExecuted="2b6f016a-b3a5-11eb-9979-fa163ef91c6e:1-2636567:2636574,80c1fb1c-c768-11eb-a7c6-fa163e447466:1-395945,a889e456-c769-11eb-a370-fa163e5d8c6e:1-358068,d440147e-b3c5-11eb-9955-fa163e447466:1-1871001" master="false" includedDbs="" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="bbzdrcintegrationtestdb_dalcluster.fat-bbzdrcxy" name="bbzdrcintegrationtestdb_dalcluster" mhaName="fat-bbzdrcxy" buName="BBZ" org-id="3" appId="100032473">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.21.38.175" port="55111" master="true" uuid="0849bd75-f36a-11eb-a994-fa163e498fcf"/>
+               <db ip="10.21.38.181" port="55111" master="false" uuid="85baa6c4-f368-11eb-a1ae-fa163ee2509b"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8393" gtidSkip="0849bd75-f36a-11eb-a994-fa163e498fcf:1-1212,9b4d827e-f37a-11eb-83ca-fa163ecbc6da:1-819" master="false" excludedTables=""/>
+            <applier ip="10.2.63.110" port="8080" targetIdc="ntgxh" targetMhaName="fat-bbzdrcxh" gtidExecuted="0849bd75-f36a-11eb-a994-fa163e498fcf:1-1212" master="false" includedDbs="" applyMode="0"/>
+         </dbCluster>
+         <dbCluster id="bbzaccountsshardbasedb_dalcluster.fatbbzxy" name="bbzaccountsshardbasedb_dalcluster" mhaName="fatbbzxy" buName="BBZ" org-id="3" appId="100006837">
+            <dbs readUser="m_drc_r" readPassword="g?gwWrlwiXwiqzk1pp2d" writeUser="m_drc_w" writePassword="5hwrzcv9ddfsjgb@PudU" monitorUser="m_drcconsole" monitorPassword="edvmyc71duMxuwnRaqk">
+               <db ip="10.6.53.190" port="55111" master="true" uuid="65a32fd3-57f1-11ec-a007-1402ec7223e4"/>
+               <db ip="10.6.53.187" port="55111" master="false" uuid="60dd1132-57f2-11ec-ab5a-80615f00437b"/>
+            </dbs>
+            <replicator ip="10.6.53.66" port="8080" applierPort="8399" gtidSkip="3c0a1632-5702-11ec-9217-1402ec722138:1-216848,65a32fd3-57f1-11ec-a007-1402ec7223e4:1-15760" master="false" excludedTables=""/>
+            <applier ip="10.2.85.79" port="8080" targetIdc="ntgxh" targetMhaName="fatbbzxh" gtidExecuted="3c0a1632-5702-11ec-9217-1402ec722138:1-224163,65a32fd3-57f1-11ec-a007-1402ec7223e4:1-1331872" master="false" applyMode="1" nameFilter="drcmonitordb\.delaymonitor,bbzmembersaccountshard\d*db\.sjp_(uid_accounts|user_password)_\d*,bbzaccountsshard\d*db\.sjp_user_accounts_\d*,bbzcredentialshard\d*db\.sjp_credential_keyid_\d*"/>
+         </dbCluster>
+      </dbClusters>
+   </dc>
+   <dc id="shali">
+      <zkServer address=""/>
+   </dc>
+</drc>

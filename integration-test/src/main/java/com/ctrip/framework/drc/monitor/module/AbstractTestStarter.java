@@ -3,16 +3,21 @@ package com.ctrip.framework.drc.monitor.module;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
 import com.ctrip.framework.drc.monitor.module.replicate.UnidirectionalReplicateModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
 import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_PATH;
 
 /**
  * Created by mingdongli
  * 2019/10/15 上午11:06.
  */
 public abstract class AbstractTestStarter {
+
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractTestStarter.class);
 
     protected UnidirectionalReplicateModule unidirectionalReplicateModule;
 
@@ -54,7 +59,7 @@ public abstract class AbstractTestStarter {
     }
 
     private void doCleanUp(String destination) {
-        File logDir = new File(SystemConfig.REPLICATOR_PATH + destination);
+        File logDir = new File(LOG_PATH + destination);
         File[] files = logDir.listFiles();
         if (files == null) {
             return;
