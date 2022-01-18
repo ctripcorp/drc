@@ -71,6 +71,12 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         super.write(ioCache);
     }
 
+    public void loadPostHeader() {
+        final ByteBuf payloadBuf = getPayloadBuf();
+        // do read row event payload post-header
+        rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
+    }
+
     @Override
     public void load(final List<TableMapLogEvent.Column> columns) {
         if (checksum != null) {

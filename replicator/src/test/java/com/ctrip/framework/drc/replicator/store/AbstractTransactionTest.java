@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -54,7 +55,7 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         fileManager.append(byteBuf);
         res += byteBuf.writerIndex();
         byteBuf.release();
-        TableMapLogEvent tableMapLogEvent = getFilteredTableMapLogEvent(dbName);
+        TableMapLogEvent tableMapLogEvent = getFilteredTableMapLogEvent(dbName, "unitest", 123);
         byteBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
         fileManager.append(byteBuf);
         byteBuf = tableMapLogEvent.getPayloadBuf();
@@ -69,6 +70,57 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBuf = getXidEvent();
         fileManager.append(byteBuf);
         res += byteBuf.writerIndex();
+        byteBuf.release();
+        return res;
+    }
+
+    protected int writeTransactionWithMultiTableMapLogEvent() throws Exception {
+        int res = 0;
+        ByteBuf byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+
+        //one table map event, should send
+        res += writeTableMapEvent(fileManager, "db1", "table1",123);
+        byteBuf = getMinimalRowsEventByteBuf();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+
+        //two table map events
+        res += writeTableMapEvent(fileManager, "db1", "table1",123);
+        res += writeTableMapEvent(fileManager, "db1", "table2",124);
+        byteBuf = getMinimalRowsEventByteBufWithNotEndOfStatement();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+        byteBuf = getMinimalRowsEventByteBuf();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+
+        //one table map event, should skip
+        res += writeTableMapEvent(fileManager, "db1", "table2",124);
+        byteBuf = getMinimalRowsEventByteBufWithEndOfStatement();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+
+        byteBuf = getXidEvent();
+        fileManager.append(byteBuf);
+        res += byteBuf.writerIndex();
+        byteBuf.release();
+        return res;
+    }
+
+    private int writeTableMapEvent(FileManager fileManager, String dbName, String tableName, long tableId) throws IOException {
+        TableMapLogEvent tableMapLogEvent = getFilteredTableMapLogEvent(dbName, tableName,tableId);
+        ByteBuf byteBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
+        fileManager.append(byteBuf);
+        byteBuf = tableMapLogEvent.getPayloadBuf();
+        fileManager.append(byteBuf);
+        int res = byteBuf.writerIndex();
         byteBuf.release();
         return res;
     }
