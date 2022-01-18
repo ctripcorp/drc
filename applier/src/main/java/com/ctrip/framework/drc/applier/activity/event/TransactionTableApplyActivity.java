@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  */
 public class TransactionTableApplyActivity extends ApplyActivity {
 
-    private final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
+    private final Logger loggerTE = LoggerFactory.getLogger("TRX END");
 
     @InstanceResource
     public TransactionTable transactionTable;
@@ -36,7 +36,7 @@ public class TransactionTableApplyActivity extends ApplyActivity {
             transaction.reset();
             ApplierGtidEvent event = (ApplierGtidEvent)transaction.next();
             transactionTable.recordToMemory(event.getGtid());
-            loggerTT.info("handle empty transaction({}) success", event.getGtid());
+            loggerTE.info("({}) record empty transaction to memory", event.getGtid());
             return true;
         }
         return false;
