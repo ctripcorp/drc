@@ -405,7 +405,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(attribute.get()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
-        Thread.sleep(1000 * 250 * 100);
+        Thread.sleep(250);
         verify(channel, Mockito.times(size/2 * 4 /* dbName2 */ + size/2 * 2 /* dbName1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
     }
 
