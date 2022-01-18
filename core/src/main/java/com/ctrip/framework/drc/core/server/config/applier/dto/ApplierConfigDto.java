@@ -135,6 +135,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 ", gtidExecuted='" + gtidExecuted + '\'' +
                 ", includedDbs='" + includedDbs + '\'' +
                 ", nameFilter='" + nameFilter + '\'' +
+                ", nameMapping='" + nameMapping + '\'' +
                 ", routeInfo='" + routeInfo + '\'' +
                 ", managerIp='" + managerIp + '\'' +
                 ", managerPort=" + managerPort +
@@ -164,6 +165,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 Objects.equals(target.ip, that.target.ip) &&
                 Objects.equals(includedDbs, that.includedDbs) &&
                 Objects.equals(nameFilter, that.nameFilter) &&
+                Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
                 applyMode == that.applyMode;
@@ -171,6 +173,6 @@ public class ApplierConfigDto extends ApplierMeta {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, routeInfo, target.port, applyMode);
+        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode);
     }
 }
