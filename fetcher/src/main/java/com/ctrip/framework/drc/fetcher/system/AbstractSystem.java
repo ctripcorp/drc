@@ -3,8 +3,7 @@ package com.ctrip.framework.drc.fetcher.system;
 import com.ctrip.framework.drc.fetcher.system.lifecycle.DrcLifecycle;
 import com.ctrip.framework.drc.fetcher.system.lifecycle.Lifecycle;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -63,19 +62,25 @@ public class AbstractSystem extends DrcLifecycle implements Lifecycle, ConfigLoa
 
     @Override
     public void doStop() throws Exception {
-        for (Activity activity : activities.values()) {
+        for (Activity activity : reverse(activities)) {
             activity.stop();
         }
     }
 
     @Override
     public void doDispose() throws Exception {
-        for (Activity activity : activities.values()) {
+        for (Activity activity : reverse(activities)) {
             activity.dispose();
         }
-        for (Resource resource : resources.values()) {
+        for (Resource resource : reverse(resources)) {
             resource.dispose();
         }
+    }
+
+    private <T> List<T> reverse(Map<String, T> maps) {
+        List<T> list = new ArrayList<T>(maps.values());
+        Collections.reverse(list);
+        return list;
     }
 
     public void mustShutdown() throws InterruptedException {

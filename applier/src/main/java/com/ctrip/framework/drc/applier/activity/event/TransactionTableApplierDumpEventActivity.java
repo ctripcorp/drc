@@ -66,10 +66,4 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     protected boolean shouldSkip() {
         return skipEvent;
     }
-
-    @Override
-    public void doDispose() throws Exception{
-        transactionTable.merge(false);
-        super.doDispose();
-    }
 }

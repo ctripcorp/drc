@@ -434,12 +434,13 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     protected void doDispose() throws Exception {
+        mergeGtid(false);
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdown();
             scheduledExecutorService = null;
         }
         if (mergeGtidService != null) {
-            mergeGtidService.awaitTermination(3, TimeUnit.SECONDS);
+            mergeGtidService.shutdown();
             mergeGtidService = null;
         }
     }
