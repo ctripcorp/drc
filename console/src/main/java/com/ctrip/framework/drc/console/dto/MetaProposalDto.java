@@ -32,6 +32,8 @@ public class MetaProposalDto {
 
     private String destApplierNameFilter;
 
+    private String destClusterName;
+
     private int destApplierApplyMode;
 
     private String srcGtidExecuted;
@@ -150,6 +152,14 @@ public class MetaProposalDto {
         this.destApplierNameFilter = destApplierNameFilter;
     }
 
+    public String getDestClusterName() {
+        return destClusterName;
+    }
+
+    public void setDestClusterName(String destClusterName) {
+        this.destClusterName = destClusterName;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -166,12 +176,13 @@ public class MetaProposalDto {
                 Objects.equals(destApplierIps, that.destApplierIps) &&
                 Objects.equals(destApplierIncludedDbs, that.destApplierIncludedDbs) &&
                 Objects.equals(destApplierNameFilter, that.destApplierNameFilter) &&
+                Objects.equals(destClusterName, that.destClusterName) &&
                 destApplierApplyMode == that.destApplierApplyMode;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierApplyMode);
+        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destClusterName, destApplierApplyMode);
     }
 
     @Override
@@ -183,6 +194,7 @@ public class MetaProposalDto {
                 ", srcApplierIps=" + srcApplierIps +
                 ", srcApplierIncludedDbs='" + srcApplierIncludedDbs + '\'' +
                 ", srcApplierNameFilter='" + srcApplierNameFilter + '\'' +
+                ", destClusterName='" + destClusterName + '\'' +
                 ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
                 ", destReplicatorIps=" + destReplicatorIps +
                 ", destApplierIps=" + destApplierIps +
