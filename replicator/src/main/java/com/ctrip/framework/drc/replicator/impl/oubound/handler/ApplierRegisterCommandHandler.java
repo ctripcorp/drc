@@ -4,10 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcIndexLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.PreviousGtidsLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
@@ -52,8 +49,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
@@ -66,6 +62,8 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
 public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler implements CommandHandler {
 
     private static AtomicInteger threadNum = new AtomicInteger(1);
+
+    private static final int END_OF_STATEMENT_FLAG = 1;
 
     private GtidManager gtidManager;
 
@@ -135,7 +133,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private boolean dbFiltering = false;
 
-        private boolean nameFiltering = false;
+        private boolean shouldSkipEvent = false;
+
+        private int continuousTableMapCount = 0;
+
+        private Map<Long, String> skipTableNameMap = Maps.newHashMap();
+
+        private LogEventType lastEventType = null;
 
         private AviatorRegexFilter aviatorFilter = null;
 
@@ -384,11 +388,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
                 updateMonitorStatis(eventSize, previousGtidLogEvent);
-                return previousGtidLogEvent;
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
                         || checkIncludedDbs(fileChannel, eventSize, eventType, headByteBuf))
                         || processNameFilter(fileChannel, eventSize, eventType, headByteBuf)) {
+                    lastEventType = eventType;
                     return previousGtidLogEvent;
                 }
 
@@ -397,8 +401,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 outboundMonitorReport.addSize(eventSize);
 
-                return previousGtidLogEvent;
             }
+            lastEventType = eventType;
+            return previousGtidLogEvent;
         }
 
         private boolean checkIncludedDbs(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
@@ -434,32 +439,75 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 return false;
             }
 
+            shouldSkipEvent = false;
+
             if (xid_log_event == eventType) {
-                nameFiltering = false;
-                return nameFiltering;
+                continuousTableMapCount = 0;
+                skipTableNameMap.clear();
+                return false;
             }
 
             if (table_map_log_event == eventType) {
+                if (lastEventType == table_map_log_event) {
+                    continuousTableMapCount++;
+                } else {
+                    continuousTableMapCount = 1;
+                    skipTableNameMap.clear();
+                }
                 handNameFilterTableMapEvent(fileChannel, eventSize, headByteBuf);
             } else {
-                if (nameFiltering) {
+                if (skipTableNameMap.isEmpty()) {
+                    return false;
+                }
+                if (continuousTableMapCount == 1) {
                     fileChannel.position(fileChannel.position() + (eventSize - eventHeaderLengthVersionGt1));  // forward body size
-                    return nameFiltering;
+                    GTID_LOGGER.info("[Skip] rows event {} for name filter", skipTableNameMap.toString());
+                    return true;
+                } else {
+                    switch (eventType) {
+                        case write_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new WriteRowsEvent());
+                            break;
+                        case update_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new UpdateRowsEvent());
+                            break;
+                        case delete_rows_event_v2:
+                            handNameFilterRowsEvent(fileChannel, eventSize, headByteBuf, new DeleteRowsEvent());
+                            break;
+                    }
                 }
             }
-
-            return nameFiltering;
+            return shouldSkipEvent;
         }
 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
             if (!aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
-                nameFiltering = true;
-                GTID_LOGGER.info("[Skip] {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
+                shouldSkipEvent = true;
+                skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
+                GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
             } else {
-                nameFiltering = false;
                 fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
+            }
+            releaseCompositeByteBuf(compositeByteBuf);
+        }
+
+        private void handNameFilterRowsEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, AbstractRowsEvent rowsEvent) throws IOException {
+            CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, rowsEvent, headByteBuf);
+            rowsEvent.loadPostHeader();
+            String tableName = skipTableNameMap.get(rowsEvent.getRowsEventPostHeader().getTableId());
+
+            if (tableName != null) {
+                shouldSkipEvent = true;
+                GTID_LOGGER.info("[Skip] rows event {} for name filter", tableName);
+            } else {
+                fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
+            }
+
+            if (rowsEvent.getRowsEventPostHeader().getFlags() == END_OF_STATEMENT_FLAG) {
+                continuousTableMapCount = 0;
+                skipTableNameMap.clear();
             }
             releaseCompositeByteBuf(compositeByteBuf);
         }

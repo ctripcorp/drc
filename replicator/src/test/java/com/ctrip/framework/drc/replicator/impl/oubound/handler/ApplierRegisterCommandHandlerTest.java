@@ -409,6 +409,32 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channel, Mockito.times(size/2 * 4 /* dbName2 */ + size/2 * 2 /* dbName1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
     }
 
+    // send 123(tableId) -> db1.table1(tableName), skip 124(tableId) -> db1.table2(tableName)
+    @Test
+    public void test_15_nameFilter() throws Exception {
+
+        String nameFilter = "db1.table1";
+
+        when(dumpCommandPacket.getApplierName()).thenReturn(APPLIER_NAME);
+        when(dumpCommandPacket.getNameFilter()).thenReturn(nameFilter);
+        when(nettyClient.channel()).thenReturn(channel);
+        when(channel.remoteAddress()).thenReturn(socketAddress);
+        when(channel.closeFuture()).thenReturn(channelFuture);
+        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.ACTIVE.getStatus());
+
+        createDiffTableRows();
+        GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2500");
+
+
+        when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
+        when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
+        when(attribute.get()).thenReturn(gate);
+
+        applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
+        Thread.sleep(250);
+        verify(channel, Mockito.times(6 /* db1.table1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
+    }
+
     public int createDiffDbRows(Set<String> dbNames) throws Exception {
         fileManager = new DefaultFileManager(schemaManager, APPLIER_NAME);
         fileManager.initialize();
@@ -440,6 +466,27 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
             writeTransaction(db);
             eventSize++;
         }
+        fileManager.flush();
+
+        return eventSize;
+    }
+
+    public int createDiffTableRows() throws Exception {
+        fileManager = new DefaultFileManager(schemaManager, APPLIER_NAME);
+        fileManager.initialize();
+        fileManager.start();
+        fileManager.setGtidManager(gtidManager);
+
+        File logDir = fileManager.getDataDir();
+        deleteFiles(logDir);
+
+        GtidSet gtidSet1 = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2500");
+        gtidManager.updateExecutedGtids(gtidSet1);
+        int eventSize = 0;
+
+        writeTransactionWithMultiTableMapLogEvent();
+        eventSize++;
+
         fileManager.flush();
 
         return eventSize;
