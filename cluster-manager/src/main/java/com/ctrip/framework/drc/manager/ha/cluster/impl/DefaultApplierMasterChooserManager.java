@@ -67,8 +67,9 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
         for (Applier applier : dbCluster.getAppliers()) {
             String targetMhaName = applier.getTargetMhaName();
             String targetIdc = applier.getTargetIdc();
+            String targetName = applier.getTargetName();
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                applierMasterChoosers.remove(new Key(targetIdc, targetMhaName, replicatorMha));
+                applierMasterChoosers.remove(new Key(targetIdc, targetMhaName, targetName, replicatorMha));
             }
         }
     }
@@ -80,26 +81,27 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
     }
 
     private void doHandleClusterChange(DbCluster dbCluster) {
-        String replicatorMhaName = dbCluster.getMhaName();
+        String localMhaName = dbCluster.getMhaName();
         String clusterName = dbCluster.getName();
         List<Applier> applierList = dbCluster.getAppliers();
         Set<Key> targetMhaNameSet = Sets.newHashSet();
 
-        logger.info("[doHandleClusterChange]{}, {}, {}", replicatorMhaName, clusterName, applierList.size());
+        logger.info("[doHandleClusterChange]{}, {}, {}", localMhaName, clusterName, applierList.size());
         for (Applier applier : applierList) {
             String targetMhaName = applier.getTargetMhaName();
             String targetIdc = applier.getTargetIdc();
-            logger.info("[doHandleClusterChange]{}, {}", targetMhaName, targetIdc);
-            if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                targetMhaNameSet.add(new Key(targetIdc, targetMhaName, replicatorMhaName));
+            String targetName = applier.getTargetName();
+            logger.info("[doHandleClusterChange]{}, {}, {}", targetMhaName, targetIdc, targetName);
+            if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc) && StringUtils.isNotBlank(targetName)) {
+                targetMhaNameSet.add(new Key(targetIdc, targetMhaName, targetName, localMhaName));
             }
         }
 
         for (Key entry : targetMhaNameSet) {
-            AbstractApplierMasterChooser previous = MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, replicatorMhaName), RegistryKey.from(clusterName, entry.getMha())));
+            AbstractApplierMasterChooser previous = MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, localMhaName), RegistryKey.from(entry.getName(), entry.getMha())));
             if (previous != null && !previous.isStarted()) {
                 applierMasterChoosers.remove(entry);
-                MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, replicatorMhaName), RegistryKey.from(clusterName, entry.getMha())));
+                MapUtils.getOrCreate(applierMasterChoosers, entry, () -> addApplierMasterChooser(entry.getIdc(), RegistryKey.from(clusterName, localMhaName), RegistryKey.from(entry.getName(), entry.getMha())));
                 logger.info("[AbstractApplierMasterChooser] restart for {}", entry);
             }
         }
@@ -129,11 +131,13 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
     static class Key {
         String idc;
         String mha;
+        String name;
         String localMha;
 
-        public Key(String idc, String mha, String localMha) {
+        public Key(String idc, String mha, String name, String localMha) {
             this.idc = idc;
             this.mha = mha;
+            this.name = name;
             this.localMha = localMha;
         }
 
@@ -145,6 +149,10 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
             return mha;
         }
 
+        public String getName() {
+            return name;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -152,13 +160,14 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
             Key key = (Key) o;
             return Objects.equals(idc, key.idc) &&
                     Objects.equals(mha, key.mha) &&
+                    Objects.equals(name, key.name) &&
                     Objects.equals(localMha, key.localMha);
         }
 
         @Override
         public int hashCode() {
 
-            return Objects.hash(idc, mha, localMha);
+            return Objects.hash(idc, mha, name, localMha);
         }
     }
 

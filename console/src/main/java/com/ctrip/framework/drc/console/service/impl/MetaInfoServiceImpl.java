@@ -804,6 +804,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
         }
@@ -842,6 +843,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
         }
