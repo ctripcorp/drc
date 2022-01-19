@@ -102,7 +102,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
             GtidSet gtidSet = gtidReader.getSpecificGtidSet(connection, uuid);
             if (StringUtils.isNotBlank(gtidSet.toString())) {
                 doMergeGtid(gtidSet, needRetry);
-                updateGtidSetRecord(gtidSet);
             }
             loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
         } catch (SQLException e) {
