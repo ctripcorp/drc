@@ -16,8 +16,6 @@ public interface TransactionTable {
 
     void commit(String gtid);
 
-    void merge(boolean needRetry);
-
     void recordToMemory(String gtid);
 
     void mergeRecord(String uuid, boolean needRetry);

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.activity.replicator.converter.TransactionTableApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.applier.event.ApplierFormatDescriptionEvent;
 import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.resource.TransactionTable;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
@@ -37,12 +36,6 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
         if (event instanceof ApplierDrcGtidEvent) {
             transactionTable.recordToMemory(((ApplierDrcGtidEvent) event).getGtid());
-            skipEvent = true;
-            return;
-        }
-
-        if (event instanceof ApplierFormatDescriptionEvent) {
-            transactionTable.merge(true);
             skipEvent = true;
             return;
         }
