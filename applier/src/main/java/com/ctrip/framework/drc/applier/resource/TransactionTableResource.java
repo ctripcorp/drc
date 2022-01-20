@@ -1,17 +1,20 @@
 package com.ctrip.framework.drc.applier.resource;
 
-import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
-import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.concurrent.AbstractExceptionLogTask;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,11 +84,28 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("Merge-GtidSet-Schedule");
 
-    @InstanceResource
-    public DataSource dataSource;
+    private DataSource dataSource;
+
+    private Endpoint endpoint;
+
+    @InstanceConfig(path = "target.ip")
+    public String ip;
+
+    @InstanceConfig(path = "target.port")
+    public int port;
+
+    @InstanceConfig(path = "target.username")
+    public String username;
+
+    @InstanceConfig(path = "target.password")
+    public String password;
+
 
     @Override
     protected void doInitialize() throws Exception {
+        endpoint = new DefaultEndPoint(ip, port, username, password);
+        dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+
         for (int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {
             beginState.put(i, false);
             commitState.put(i, false);
@@ -97,16 +117,19 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     public void mergeRecord(String uuid, boolean needRetry) {
-        TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
+        GtidSet gtidSet = new GtidSet(StringUtils.EMPTY);
         try (Connection connection = dataSource.getConnection()) {
-            GtidSet gtidSet = gtidReader.getSpecificGtidSet(connection, uuid);
-            if (StringUtils.isNotBlank(gtidSet.toString())) {
-                doMergeGtid(gtidSet, needRetry);
-            }
-            loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
+            TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
+            gtidSet = gtidReader.getSpecificGtidSet(connection, uuid);
+            loggerTT.info("[TT] get gtid record in db success: {}", gtidSet.toString());
         } catch (SQLException e) {
-            loggerTT.error("[TT] merge gtid record in db failed, uuid is: {}", uuid, e);
+            loggerTT.error("[TT] get gtid record in db failed, uuid is: {}", uuid, e);
+            shutdownSystem();
         }
+        if (StringUtils.isNotBlank(gtidSet.toString())) {
+            doMergeGtid(gtidSet, needRetry);
+        }
+        loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
     }
 
     @Override
@@ -436,9 +459,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     protected void doDispose() throws Exception {
-        loggerTT.info("[TT] merge gtid when disposing start");
-        mergeGtid(false);
-        loggerTT.info("[TT] merge gtid when disposing end");
+        if (dataSource != null) {
+            loggerTT.info("[TT] merge gtid when disposing start");
+            mergeGtid(false);
+            loggerTT.info("[TT] merge gtid when disposing end");
+            DataSourceManager.getInstance().clearDataSource(endpoint);
+        }
         if (scheduledExecutorService != null) {
             scheduledExecutorService.shutdown();
             scheduledExecutorService = null;

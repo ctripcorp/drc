@@ -35,7 +35,9 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         skipEvent = false;
 
         if (event instanceof ApplierDrcGtidEvent) {
-            transactionTable.recordToMemory(((ApplierDrcGtidEvent) event).getGtid());
+            String gtid = ((ApplierDrcGtidEvent) event).getGtid();
+            loggerER.info("{} {} - RECEIVED - {}", cluster, gtid, event.getClass().getSimpleName());
+            transactionTable.recordToMemory(gtid);
             skipEvent = true;
             return;
         }
