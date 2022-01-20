@@ -19,6 +19,7 @@
             :total="total"
             :current.sync="current"
             :page-size="size"
+            :page-size-opts="[10,20,40,80,100]"
             show-sizer
             show-elevator
             @on-page-size-change="handleChangeSize"></Page>
@@ -141,7 +142,7 @@ export default {
       mhaGroups: [],
       total: 0,
       current: 1,
-      size: 10,
+      size: 40,
       mergeColData: []
     }
   },
