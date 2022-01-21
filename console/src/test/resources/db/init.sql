@@ -199,6 +199,7 @@ CREATE TABLE `applier_group_tbl` (
  `name_filter`              varchar(2047) DEFAULT NULL COMMENT 'table name filter, seprated by commas',
  `apply_mode`               tinyint NOT NULL DEFAULT 0 COMMENT 'apply mode, 0:set gtid; 1:transaction table',
  `deleted`                  tinyint NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
+ `target_name`               varchar(64)  DEFAULT NULL   comment 'targetMha cluster_name,if null default use this mhas cluster_name',
  `create_time`              timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
  `datachange_lasttime`      timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
  PRIMARY KEY (`id`)

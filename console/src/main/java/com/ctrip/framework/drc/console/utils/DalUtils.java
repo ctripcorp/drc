@@ -345,8 +345,7 @@ public class DalUtils {
                 || !(includedDbs == null ? applierGroupTbl.getIncludedDbs() == null : includedDbs.equalsIgnoreCase(applierGroupTbl.getIncludedDbs()))
                 || applyMode != applierGroupTbl.getApplyMode()
                 || !(nameFilter == null ? applierGroupTbl.getNameFilter() == null : nameFilter.equalsIgnoreCase(applierGroupTbl.getNameFilter()))
-                || !(targetName == null ? applierGroupTbl.getTargetName() == null : targetName.equalsIgnoreCase(applierGroupTbl.getTargetName()))
-        ) {
+                || !(targetName == null ? applierGroupTbl.getTargetName() == null : targetName.equalsIgnoreCase(applierGroupTbl.getTargetName()))) {
             logger.info("[[mhaId={}]] update AGroup, included dbs is: {}, apply mode is: {}", mhaId, includedDbs, applyMode);
             applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
             applierGroupTbl.setIncludedDbs((includedDbs == null || includedDbs.length() == 0) ? null : includedDbs);
