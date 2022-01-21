@@ -142,7 +142,7 @@ export default {
       mhaGroups: [],
       total: 0,
       current: 1,
-      size: 40,
+      size: 100,
       mergeColData: []
     }
   },
