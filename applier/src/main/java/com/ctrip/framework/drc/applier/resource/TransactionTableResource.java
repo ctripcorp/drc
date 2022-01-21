@@ -364,7 +364,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         int index = (int) (gno % TRANSACTION_TABLE_SIZE);
         indexAndGtid.put(index, gtid);
         if (needMerged()) {
-            loggerTT.info("[TT] merge gtid for up to transaction table merge size start");
+            loggerTT.info("[TT] merge gtid for up to transaction table merge size {} start", commitCount);
             mergeGtid(true);
             loggerTT.info("[TT] merge gtid for up to transaction table merge size end");
         }
@@ -397,7 +397,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
         synchronized (gtidSavedInMemoryLock) {
             if (++gtidSetSizeInMemory >= TRANSACTION_TABLE_MERGE_SIZE) {
                 gtidSetSizeInMemory = 0;
+                loggerTT.info("[TT] merge gtid for up to memory merge size {} start", gtidSetSizeInMemory);
                 asyncMergeGtid(true);
+                loggerTT.info("[TT] merge gtid for up to memory merge size end");
             }
             gtidSavedInMemory.add(gtid);
         }
@@ -415,7 +417,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     private void startGtidMergeSchedule() {
-        scheduledExecutorService.scheduleAtFixedRate(new AbstractExceptionLogTask() {
+        scheduledExecutorService.scheduleWithFixedDelay(new AbstractExceptionLogTask() {
             @Override
             public void doRun() throws Exception {
                 long current = System.currentTimeMillis();

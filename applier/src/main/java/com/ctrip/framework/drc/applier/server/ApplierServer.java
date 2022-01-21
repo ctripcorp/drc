@@ -20,9 +20,6 @@ import com.ctrip.framework.drc.fetcher.system.AbstractLink;
  */
 public class ApplierServer extends AbstractLink {
 
-    // resources and activities have an order
-    // and this order determines the order in which resources and activities are initialized and disposed
-    // see AbstractSystem class for more detail
     public void define() throws Exception {
             source(ApplierDumpEventActivity.class)
                     .with(ExecutorResource.class)
