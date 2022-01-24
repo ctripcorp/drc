@@ -191,7 +191,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         loggerTT.info("[TT] get gtid saved in memory to merge: {}", gtidSetInMemory.toString());
 
         GtidSet allGtidSetToMerge = gtidSetRecorded.union(gtidSetInMemory);
-        loggerTT.info("[TT] get all gtid to merge: {}", gtidSetInMemory.toString());
+        loggerTT.info("[TT] get all gtid to merge: {}", allGtidSetToMerge.toString());
         return allGtidSetToMerge;
     }
 
@@ -396,8 +396,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
     public void recordToMemory(String gtid) {
         synchronized (gtidSavedInMemoryLock) {
             if (++gtidSetSizeInMemory >= TRANSACTION_TABLE_MERGE_SIZE) {
-                gtidSetSizeInMemory = 0;
                 loggerTT.info("[TT] merge gtid for up to memory merge size {} start", gtidSetSizeInMemory);
+                gtidSetSizeInMemory = 0;
                 asyncMergeGtid(true);
                 loggerTT.info("[TT] merge gtid for up to memory merge size end");
             }

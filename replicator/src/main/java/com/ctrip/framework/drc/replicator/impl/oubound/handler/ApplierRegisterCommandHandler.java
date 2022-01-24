@@ -190,7 +190,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean skipEvent(GtidSet excludedSet, ByteBuf byteBuf, String gtid, boolean in_exclude_group) {
-            if (LogEventUtils.parseNextLogEventType(byteBuf) == LogEventType.gtid_log_event) {
+            LogEventType logEventType = LogEventUtils.parseNextLogEventType(byteBuf);
+            if (logEventType == LogEventType.gtid_log_event || logEventType == drc_gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
