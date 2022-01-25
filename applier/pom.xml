@@ -10,6 +10,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>applier</artifactId>
+    <properties>
+        <commons-collections4>4.2</commons-collections4>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -34,6 +37,11 @@
                     <artifactId>cat-client</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>${commons-collections4}</version>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
