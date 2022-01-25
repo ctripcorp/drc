@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 
 import java.util.List;
+import java.util.Queue;
 
 /**
  * @Author Slight
@@ -27,6 +28,6 @@ public interface TransactionContext extends BaseTransactionContext {
 
     List<Boolean> getConflictMap();
     List<Boolean> getOverwriteMap();
-    List<String> getLogs();
+    Queue<String> getLogs();
     Throwable getLastUnbearable();
 }
