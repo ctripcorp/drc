@@ -83,9 +83,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
 
     private String conflictSummary(String title) {
         StringBuilder conflictSummary = new StringBuilder(title);
-        getLogs().forEach((l) -> {
-            conflictSummary.append("\n").append(l);
-        });
+        getLogs().forEach((l) -> conflictSummary.append("\n").append(l));
         conflictSummary.append("\n");
         return conflictSummary.toString();
     }

@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.system.Resource;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 
 import static com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult.TYPE.*;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType.isDatetimePrecisionType;
@@ -98,7 +100,7 @@ public class TransactionContextResource extends AbstractContext
     public static int CONFLICT_SIZE = 100;
     protected List<Boolean> conflictMap = null;
     protected List<Boolean> overwriteMap = null;
-    protected List<String> logs;
+    protected Queue<String> logs;
     protected ConflictTransactionLog conflictTransactionLog;
     protected String rawSql = null;
     protected String rawSqlExecuteResult = null;
@@ -119,7 +121,7 @@ public class TransactionContextResource extends AbstractContext
     }
 
     @Override
-    public List<String> getLogs() {
+    public Queue<String> getLogs() {
         return logs;
     }
 
@@ -177,7 +179,7 @@ public class TransactionContextResource extends AbstractContext
         connection = dataSource.getConnection();
         conflictMap = new ArrayList<>(CONFLICT_SIZE);
         overwriteMap = new ArrayList<>(CONFLICT_SIZE);
-        logs = new ArrayList<>(CONFLICT_SIZE);
+        logs = new CircularFifoQueue<>(CONFLICT_SIZE);
         conflictTransactionLog = new ConflictTransactionLog();
         lastUnbearable = null;
         costTimeNS = 0;
@@ -799,9 +801,7 @@ public class TransactionContextResource extends AbstractContext
     }
 
     private void addLogs(String log) {
-        if (logs.size() < CONFLICT_SIZE) {
-            logs.add(log);
-        }
+        logs.add(log);
     }
 
     private void conflictMark(Boolean isConflict) {
