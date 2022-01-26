@@ -25,17 +25,21 @@ public class TransformerContextResource extends AbstractResource implements Tran
     }
 
     @VisibleForTesting
-    protected void setNameMap(Map<String, String> nameMap) {
-        this.nameMap = nameMap;
+    protected void setNameMapping(String nameMapping) {
+        this.nameMapping = nameMapping;
     }
 
     @Override
     public void doInitialize() throws Exception {
+        parseNameMapping();
+    }
+
+    @VisibleForTesting
+    protected void parseNameMapping() {
         logger.info("name mapping is: {}", nameMapping);
         if (StringUtils.isBlank(nameMapping)) {
             return;
         }
-
         nameMapping = nameMapping.trim().toLowerCase();
         String[] names = StringUtils.split(nameMapping, ';');
 

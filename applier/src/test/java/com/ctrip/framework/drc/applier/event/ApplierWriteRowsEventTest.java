@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.event;
 
 import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
@@ -29,6 +30,9 @@ public class ApplierWriteRowsEventTest implements ApplierColumnsRelatedTest {
     @Mock
     LogEventHeader logEventHeader;
 
+    @Mock
+    RowsEventPostHeader rowsEventPostHeader;
+
     DecryptedWriteRowsEvent event;
 
     @Before
@@ -45,6 +49,7 @@ public class ApplierWriteRowsEventTest implements ApplierColumnsRelatedTest {
         when(event.getBeforePresentRowsValues()).thenReturn(values);
         when(event.getLogEventHeader()).thenReturn(logEventHeader);
         when(event.getBeforeRowsKeysPresent()).thenReturn(bitmap);
+        when(event.getRowsEventPostHeader()).thenReturn(rowsEventPostHeader);
         event.setDirectMemory(mock(DirectMemory.class));
         doNothing().when(event).load(any());
         event.apply(context);
