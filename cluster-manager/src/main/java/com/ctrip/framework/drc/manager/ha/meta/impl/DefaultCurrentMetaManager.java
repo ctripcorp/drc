@@ -416,14 +416,14 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     @VisibleForTesting
     protected List<Pair<String, String>> getUpstreamDcClusterIdList(DbCluster clusterMeta) {
         List<Pair<String, String>> upstreamDcClusterIdList = Lists.newArrayList();
-        String clusterName = clusterMeta.getName();
         List<Applier> applierList = clusterMeta.getAppliers();
 
         for (Applier applier : applierList) {
             String targetMhaName = applier.getTargetMhaName();
+            String targetName = applier.getTargetName();
             String targetIdc = applier.getTargetIdc();
             if (StringUtils.isNotBlank(targetMhaName) && StringUtils.isNotBlank(targetIdc)) {
-                upstreamDcClusterIdList.add(new Pair<>(targetIdc, RegistryKey.from(clusterName, targetMhaName)));
+                upstreamDcClusterIdList.add(new Pair<>(targetIdc, RegistryKey.from(targetName, targetMhaName)));
             }
         }
 

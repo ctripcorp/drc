@@ -220,10 +220,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     private DbCluster getDbClusterWithRefreshApplier(String clusterId, Applier applier, Endpoint mysqlMaster) {  //just notify applier for iterate outside
-        RegistryKey registryKey = RegistryKey.from(clusterId);
-        String clusterName = registryKey.getClusterName();
+        String targetName = applier.getTargetName();
         String targetMhaName = applier.getTargetMhaName();
-        String backupClusterId = RegistryKey.from(clusterName, targetMhaName);  // suppose clusterName is same in replications
+        String backupClusterId = RegistryKey.from(targetName, targetMhaName);
         DbCluster dbCluster = dcMetaCache.getCluster(clusterId);
         DbCluster clone = MetaClone.clone(dbCluster);
         clone.getAppliers().clear();

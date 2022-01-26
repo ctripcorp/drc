@@ -20,6 +20,9 @@
               <Option v-for="item in drc.applierlist.old" :value="item" :key="item">{{ item }}</Option>
             </Select>
           </FormItem>
+          <FormItem label="设置ApplierTargetName" prop="oldTargetName" style="width: 600px">
+            <Input v-model="drc.oldTargetName" placeholder="请输入设置ApplierTargetName，不填默认为本侧dalcluster_name"/>
+          </FormItem>
           <FormItem label="设置includedDbs" prop="oldIncludedDbs" style="width: 600px">
             <Input v-model="drc.oldIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认为全部DB"/>
           </FormItem>
@@ -50,6 +53,9 @@
             <Select v-model="drc.appliers.new" multiple style="width: 200px" placeholder="选择新集群Applier">
               <Option v-for="item in drc.applierlist.new" :value="item" :key="item">{{ item }}</Option>
             </Select>
+          </FormItem>
+          <FormItem label="设置ApplierTargetName" prop="newTargetName" style="width: 600px">
+            <Input v-model="drc.newTargetName" placeholder="请输入设置ApplierTargetName，不填默认为dalcluster_name"/>
           </FormItem>
           <FormItem label="设置includedDbs" prop="newIncludedDbs" style="width: 600px">
             <Input v-model="drc.newIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认全部DB"/>
@@ -91,6 +97,9 @@
               <FormItem label="源集群端Applier">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.appliers.old" readonly/>
               </FormItem>
+              <FormItem label="源ApplierTargetName" >
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldTargetName" readonly/>
+              </FormItem>
               <FormItem label="源集群端includedDbs">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldIncludedDbs" readonly/>
               </FormItem>
@@ -117,6 +126,9 @@
               </FormItem>
               <FormItem label="新集群端Applier">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.appliers.new" readonly/>
+              </FormItem>
+              <FormItem label="新ApplierTargetName" >
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newTargetName" readonly/>
               </FormItem>
               <FormItem label="新集群端includedDbs">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newIncludedDbs" readonly/>
@@ -203,6 +215,8 @@ export default {
         resultModal: false,
         oldClusterName: this.oldClusterName,
         newClusterName: this.newClusterName,
+        oldTargetName: this.oldTargetName,
+        newTargetName: this.newTargetName,
         oldIncludedDbs: '',
         newIncludedDbs: '',
         oldNameFilter: '',
@@ -321,6 +335,11 @@ export default {
           this.drc.appliers.old = []
           response.data.data.forEach(ip => this.drc.appliers.old.push(ip))
         })
+      this.axios.get('/api/drc/v1/meta/targetName?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
+        .then(response => {
+          console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' targetName ' + response.data.data)
+          this.drc.oldTargetName = response.data.data
+        })
       this.axios.get('/api/drc/v1/meta/includeddbs?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
         .then(response => {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' includedbs ' + response.data.data)
@@ -365,6 +384,11 @@ export default {
           console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' appliers ' + response.data.data)
           this.drc.appliers.new = []
           response.data.data.forEach(ip => this.drc.appliers.new.push(ip))
+        })
+      this.axios.get('/api/drc/v1/meta/targetName?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
+        .then(response => {
+          console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' targetName ' + response.data.data)
+          this.drc.newTargetName = response.data.data
         })
       this.axios.get('/api/drc/v1/meta/includeddbs?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
         .then(response => {
@@ -474,6 +498,8 @@ export default {
       console.log(this.drc.newIncludedDbs)
       console.log(this.drc.newApplyMode)
       console.log(this.drc.newExecutedGtid)
+      console.log(this.drc.oldTargetName)
+      console.log(this.drc.newTargetName)
       this.axios.post('/api/drc/v1/meta/config', {
         srcMha: this.drc.oldClusterName,
         destMha: this.drc.newClusterName,
@@ -483,12 +509,14 @@ export default {
         srcApplierNameFilter: this.drc.oldNameFilter,
         srcApplierApplyMode: this.drc.oldApplyMode,
         srcGtidExecuted: this.drc.oldExecutedGtid,
+        srcClusterName: this.drc.oldTargetName,
         destReplicatorIps: this.drc.replicators.new,
         destApplierIps: this.drc.appliers.new,
         destApplierIncludedDbs: this.drc.newIncludedDbs,
         destApplierNameFilter: this.drc.newNameFilter,
         destApplierApplyMode: this.drc.newApplyMode,
-        destGtidExecuted: this.drc.newExecutedGtid
+        destGtidExecuted: this.drc.newExecutedGtid,
+        destClusterName: this.drc.newTargetName
       }).then(response => {
         console.log(response.data)
         that.result = response.data.data

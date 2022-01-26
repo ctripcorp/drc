@@ -226,13 +226,15 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         Assert.assertEquals("sharb", upstreamDcClusterIdList.get(0).getKey());
         Assert.assertEquals("integration-test.fxdrcrb", upstreamDcClusterIdList.get(0).getValue());
 
-        clusterMeta.getAppliers().add(new Applier().setTargetIdc("shajq").setTargetMhaName("fxdrcjq"));
+        String newTargetName = "newTargetName";
+        String newTargetMhaName = "newTargetMhaName";
+        clusterMeta.getAppliers().add(new Applier().setTargetIdc("shajq").setTargetMhaName(newTargetMhaName).setTargetName(newTargetName));
         upstreamDcClusterIdList = currentMetaManager.getUpstreamDcClusterIdList(clusterMeta);
         Assert.assertEquals(2, upstreamDcClusterIdList.size());
         Assert.assertEquals("sharb", upstreamDcClusterIdList.get(0).getKey());
         Assert.assertEquals("integration-test.fxdrcrb", upstreamDcClusterIdList.get(0).getValue());
         Assert.assertEquals("shajq", upstreamDcClusterIdList.get(1).getKey());
-        Assert.assertEquals("integration-test.fxdrcjq", upstreamDcClusterIdList.get(1).getValue());
+        Assert.assertEquals(newTargetName + "." + newTargetMhaName, upstreamDcClusterIdList.get(1).getValue());
     }
 
     @Test(expected = IllegalArgumentException.class)
