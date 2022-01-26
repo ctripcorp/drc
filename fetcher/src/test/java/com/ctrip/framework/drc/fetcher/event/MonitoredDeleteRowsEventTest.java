@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.MockTest;
@@ -16,6 +17,7 @@ import java.util.List;
 
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * @Author limingdong
@@ -28,6 +30,9 @@ public class MonitoredDeleteRowsEventTest extends MockTest implements ColumnsRel
 
     @Mock
     private LogEventHeader logEventHeader;
+
+    @Mock
+    RowsEventPostHeader rowsEventPostHeader;
 
     private MonitoredDeleteRowsEvent event;
 
@@ -43,6 +48,7 @@ public class MonitoredDeleteRowsEventTest extends MockTest implements ColumnsRel
         when(event.getLogEventHeader()).thenReturn(logEventHeader);
         when(event.getBeforePresentRowsValues()).thenReturn(Lists.<List<Object>>newArrayList(Lists.newArrayList(1, "Mag", "Female", "2019-12-09 16:00:00.000")));
         when(event.getBeforeRowsKeysPresent()).thenReturn(Lists.newArrayList(true, true, true, true));
+        when(event.getRowsEventPostHeader()).thenReturn(rowsEventPostHeader);
         doNothing().when(event).load(Mockito.any());
         event.setDirectMemory(mock(DirectMemory.class));
         event.apply(context);
