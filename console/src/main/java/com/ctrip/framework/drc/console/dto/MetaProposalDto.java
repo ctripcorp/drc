@@ -32,6 +32,10 @@ public class MetaProposalDto {
 
     private String destApplierNameFilter;
 
+    private String srcClusterName;
+    
+    private String destClusterName;
+
     private int destApplierApplyMode;
 
     private String srcGtidExecuted;
@@ -150,6 +154,22 @@ public class MetaProposalDto {
         this.destApplierNameFilter = destApplierNameFilter;
     }
 
+    public String getDestClusterName() {
+        return destClusterName;
+    }
+
+    public void setDestClusterName(String destClusterName) {
+        this.destClusterName = destClusterName;
+    }
+
+    public String getSrcClusterName() {
+        return srcClusterName;
+    }
+
+    public void setSrcClusterName(String srcClusterName) {
+        this.srcClusterName = srcClusterName;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -166,12 +186,14 @@ public class MetaProposalDto {
                 Objects.equals(destApplierIps, that.destApplierIps) &&
                 Objects.equals(destApplierIncludedDbs, that.destApplierIncludedDbs) &&
                 Objects.equals(destApplierNameFilter, that.destApplierNameFilter) &&
+                Objects.equals(destClusterName, that.destClusterName) &&
+                Objects.equals(srcClusterName, that.srcClusterName) &&
                 destApplierApplyMode == that.destApplierApplyMode;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierApplyMode);
+        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcClusterName,srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destClusterName, destApplierApplyMode);
     }
 
     @Override
@@ -183,6 +205,8 @@ public class MetaProposalDto {
                 ", srcApplierIps=" + srcApplierIps +
                 ", srcApplierIncludedDbs='" + srcApplierIncludedDbs + '\'' +
                 ", srcApplierNameFilter='" + srcApplierNameFilter + '\'' +
+                ", srcClusterName='" + srcClusterName + '\'' +
+                ", destClusterName='" + destClusterName + '\'' +
                 ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
                 ", destReplicatorIps=" + destReplicatorIps +
                 ", destApplierIps=" + destApplierIps +

@@ -74,6 +74,7 @@
     <attribute name="port" value-type="int" />
     <attribute name="targetIdc" value-type="String" />
     <attribute name="targetMhaName" value-type="String" />
+    <attribute name="targetName" value-type="String" />
     <attribute name="gtidExecuted" value-type="String" />
     <attribute name="master" value-type="boolean" primitive="true" />
     <attribute name="includedDbs" value-type="String" />

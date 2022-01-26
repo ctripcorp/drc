@@ -1,9 +1,0 @@
-<DAL modelVersion="1">
-    <Cluster name="fxdrcmetadb_dalcluster" dbCategory="mysql" type="normal" version="1">
-        <DatabaseShards>
-            <DatabaseShard index="0">
-                <Database ip="127.0.0.1" port="3306" dbName="fxdrcmetadb" uid="root" pwd="root"/>
-            </DatabaseShard>
-        </DatabaseShards>
-    </Cluster>
-</DAL>
