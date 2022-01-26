@@ -3,7 +3,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
-import com.ctrip.framework.drc.console.pojo.Mha;
 import com.ctrip.framework.drc.console.service.TransferService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
@@ -203,8 +202,9 @@ public class TransferServiceImpl implements TransferService {
                     String includedDbs = appliers.size() == 0 ? "" : appliers.get(0).getIncludedDbs();
                     String nameFilter = appliers.size() == 0 ? "" : appliers.get(0).getNameFilter();
                     String nameMapping = appliers.size() == 0 ? "" : appliers.get(0).getNameMapping();
+                    String targetName = appliers.size() == 0 ? "" : appliers.get(0).getTargetName();
                     int applyMode = appliers.size() == 0 ? 0 : appliers.get(0).getApplyMode();
-                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping);
+                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
 
                     // rough implementation, only for duo repl
                     for(Applier applier : appliers) {

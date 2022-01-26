@@ -622,6 +622,14 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         return Lists.newArrayList();
     }
 
+    @Override
+    public String getTargetName(String mha, String remoteMha) throws SQLException {
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mhaTbl, remoteMhaTbl);
+        return applierGroupTbl == null ? null : applierGroupTbl.getTargetName();
+    }
+
     public String getIncludedDbs(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
@@ -679,11 +687,11 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         // header tag
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
-        ClusterMhaMapTbl clusterMhaMapTbl = metaService.getClusterMhaMapTbls().stream().filter(cMMapTbl -> cMMapTbl.getMhaId().equals(mhaId)).findFirst().get();
+        ClusterMhaMapTbl clusterMhaMapTbl = metaService.getClusterMhaMapTbls().stream().filter(cMMapTbl -> cMMapTbl.getMhaId().equals(mhaId) && cMMapTbl.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
         Long clusterId = clusterMhaMapTbl.getClusterId();
-        ClusterTbl clusterTbl = metaService.getClusterTbls().stream().filter(cTbl -> cTbl.getId().equals(clusterId)).findFirst().get();
+        ClusterTbl clusterTbl = metaService.getClusterTbls().stream().filter(cTbl -> cTbl.getId().equals(clusterId) && cTbl.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
         String clusterName = clusterTbl.getClusterName();
-        BuTbl buTbl = metaService.getBuTbls().stream().filter(predicate -> predicate.getId().equals(clusterTbl.getBuId())).findFirst().get();
+        BuTbl buTbl = metaService.getBuTbls().stream().filter(predicate -> predicate.getId().equals(clusterTbl.getBuId()) && predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
         logger.info("generate view dbCluster for mha: {}", mhaName);
         DbCluster dbCluster = new DbCluster();
         dbCluster.setId(clusterName+'.'+mhaName)
@@ -812,6 +820,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
+                    .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
         }
@@ -851,6 +860,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
+                    .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
         }
@@ -1246,4 +1256,6 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         }
         return dcTbls.get(0).getId();
     }
+
+
 }

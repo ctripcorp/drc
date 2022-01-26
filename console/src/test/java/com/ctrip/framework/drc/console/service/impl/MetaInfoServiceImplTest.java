@@ -241,6 +241,12 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         includedDbs = metaInfoService.getIncludedDbs("fat-fx-drc2", "fat-fx-drc1");
         Assert.assertNull(includedDbs);
     }
+    
+    @Test
+    public void testGetTargetName() throws SQLException {
+        String targetName = metaInfoService.getTargetName("fat-fx-drc1", "fat-fx-drc2");
+        Assert.assertEquals("integration-test",targetName);
+    }
 
     // take effect of DrcBuildServiceImplTest.testSubmitConfig
     @Test

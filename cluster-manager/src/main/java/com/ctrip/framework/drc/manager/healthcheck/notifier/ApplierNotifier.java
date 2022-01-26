@@ -137,6 +137,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
 
         //incorrect naming, should use 'sourceIdc'.
         String targetIdc = null;
+        String targetName = null;
         String replicatorMhaName = null;
         for (Applier applier : dbCluster.getAppliers()) {
             if (ipAndPort.equals(applier.getIp() + ":" + applier.getPort())) {
@@ -150,6 +151,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 Route route = getRoute(dbCluster.getId(), applier.getTargetIdc());
                 config.setRouteInfo(route == null ? "" : (route.routeProtocol() + " " + ProxyEndpoint.PROXY_SCHEME.TCP.name()));
                 targetIdc = applier.getTargetIdc();
+                targetName = applier.getTargetName();
                 replicatorMhaName = applier.getTargetMhaName();
             }
         }
@@ -175,7 +177,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
         if (!register) {
             config.replicator.ip = replicator.getIp();
             config.replicator.port = replicator.getApplierPort();
-            config.replicator.name = "unknown";
+            config.replicator.name = targetName;
             config.replicator.cluster = dbCluster.getName();
             config.replicator.idc = "unknown";
         }

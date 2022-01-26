@@ -89,6 +89,13 @@ public class ApplierGroupTbl implements DalPojo {
 	@Type(value = Types.VARCHAR)
 	private String nameMapping;
 
+	/**
+	 * target cluster name
+	 */
+	@Column(name = "target_name")
+	@Type(value = Types.VARCHAR)
+	private String targetName;
+
 	public Long getId() {
 		return id;
 	}
@@ -167,5 +174,13 @@ public class ApplierGroupTbl implements DalPojo {
 
 	public void setNameMapping(String nameMapping) {
 		this.nameMapping = nameMapping;
+	}
+
+	public String getTargetName() {
+		return targetName;
+	}
+
+	public void setTargetName(String targetName) {
+		this.targetName = targetName;
 	}
 }

@@ -34,6 +34,7 @@ public class DefaultConsoleConfigTest {
         Assert.assertEquals(2, dcInfos.keySet().size());
         Assert.assertEquals(new DcInfo("http://oy"), dcInfos.get("shaoy"));
         Assert.assertEquals(new DcInfo("http://rb"), dcInfos.get("sharb"));
+        Assert.assertNull(config.getCMMetaServerAddress("noConfigDc"));
     }
 
     @Test

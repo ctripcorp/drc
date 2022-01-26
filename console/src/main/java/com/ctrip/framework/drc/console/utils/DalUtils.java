@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.console.common.bean.DalConfig.DRC_TITAN_KEY;
@@ -329,24 +328,25 @@ public class DalUtils {
         return replicatorGroupTbl.getId();
     }
 
-    public Long insertAGroup(long replicatorGroupId, long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping) throws SQLException {
+    public Long insertAGroup(long replicatorGroupId, long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
-        ApplierGroupTbl aGroupPojo = createAGroupPojo(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping);
+        ApplierGroupTbl aGroupPojo = createAGroupPojo(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
         applierGroupTblDao.insert(new DalHints(), keyHolder, aGroupPojo);
         return (Long) keyHolder.getKey();
     }
 
-    public Long updateOrCreateAGroup(long replicatorGroupId, long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping) throws SQLException {
-        logger.debug("updateOrCreateAGroup: {}-{}-{}-{}", replicatorGroupId, mhaId, includedDbs, applyMode);
+    public Long updateOrCreateAGroup(long replicatorGroupId, long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName) throws SQLException {
+        logger.debug("updateOrCreateAGroup: {}-{}-{}-{}-{}-{}", replicatorGroupId, mhaId, includedDbs, applyMode, nameMapping, targetName);
         ApplierGroupTbl applierGroupTbl = applierGroupTblDao.queryAll().stream().filter(p -> p.getReplicatorGroupId().equals(replicatorGroupId) && p.getMhaId().equals(mhaId)).findFirst().orElse(null);
         if(null == applierGroupTbl) {
             logger.info("[[mhaId={}]] insert AGroup", mhaId);
-            return insertAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping);
+            return insertAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
         } else if (BooleanEnum.TRUE.getCode().equals(applierGroupTbl.getDeleted())
                 || !(includedDbs == null ? applierGroupTbl.getIncludedDbs() == null : includedDbs.equalsIgnoreCase(applierGroupTbl.getIncludedDbs()))
                 || applyMode != applierGroupTbl.getApplyMode()
                 || !(nameFilter == null ? applierGroupTbl.getNameFilter() == null : nameFilter.equalsIgnoreCase(applierGroupTbl.getNameFilter()))
                 || !(nameMapping == null ? applierGroupTbl.getNameMapping() == null : nameMapping.equalsIgnoreCase(applierGroupTbl.getNameMapping()))
+                || !(targetName == null ? applierGroupTbl.getTargetName() == null : targetName.equalsIgnoreCase(applierGroupTbl.getTargetName()))
         ) {
             logger.info("[[mhaId={}]] update AGroup, included dbs is: {}, apply mode is: {}", mhaId, includedDbs, applyMode);
             applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
@@ -354,6 +354,7 @@ public class DalUtils {
             applierGroupTbl.setApplyMode(applyMode);
             applierGroupTbl.setNameFilter((StringUtils.isBlank(nameFilter)) ? null : nameFilter);
             applierGroupTbl.setNameMapping((StringUtils.isBlank(nameMapping)) ? null : nameMapping);
+            applierGroupTbl.setTargetName((StringUtils.isBlank(targetName)) ? null : targetName);
             DalHints dalHints=new DalHints();
             dalHints.updateNullField();
             applierGroupTblDao.update(dalHints, applierGroupTbl);
@@ -579,7 +580,8 @@ public class DalUtils {
         return daoPojo;
     }
 
-    public ApplierGroupTbl createAGroupPojo(Long replicatorGroupId, Long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping) {
+
+    public ApplierGroupTbl createAGroupPojo(Long replicatorGroupId, Long mhaId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName) {
         ApplierGroupTbl daoPojo = new ApplierGroupTbl();
         daoPojo.setReplicatorGroupId(replicatorGroupId);
         daoPojo.setMhaId(mhaId);
@@ -587,6 +589,7 @@ public class DalUtils {
         daoPojo.setApplyMode(applyMode);
         daoPojo.setNameFilter(nameFilter);
         daoPojo.setNameMapping(nameMapping);
+        daoPojo.setTargetName(targetName);
         return daoPojo;
     }
 

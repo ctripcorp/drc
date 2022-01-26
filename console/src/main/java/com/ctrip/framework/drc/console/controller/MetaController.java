@@ -200,6 +200,18 @@ public class MetaController {
         return ApiResult.getSuccessInstance(metaInfoService.updateMhaDc(mha, dcName));
     }
 
+    @GetMapping("targetName")
+    public ApiResult getTargetName(@RequestParam(value = "localMha") String localMha,
+                                    @RequestParam(value = "remoteMha") String remoteMha) {
+        logger.info("[meta] get targetName setting for appliers being used by {}<-{}", localMha, remoteMha);
+        try {
+            return ApiResult.getSuccessInstance(metaInfoService.getTargetName(localMha, remoteMha));
+        } catch (SQLException e) {
+            logger.error("[meta] Fail get targetName setting for appliers being used by {}<-{}", localMha, remoteMha);
+            return ApiResult.getSuccessInstance(null);
+        }
+    }
+
     @GetMapping("includeddbs")
     public ApiResult getIncludedDbs(@RequestParam(value = "localMha") String localMha,
                                     @RequestParam(value = "remoteMha") String remoteMha) {
@@ -223,6 +235,7 @@ public class MetaController {
             return ApiResult.getSuccessInstance(null);
         }
     }
+    
 
     @GetMapping("namemapping")
     public ApiResult getNameMapping(@RequestParam(value = "localMha") String localMha,
