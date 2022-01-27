@@ -1,9 +1,8 @@
 package com.ctrip.framework.drc.core.service.dal;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +18,6 @@ import java.util.Map;
 public class BlankDbClusterApiServiceImpl implements DbClusterApiService {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-    private ObjectMapper objectMapper;
 
     @Override
     public JsonNode getDalClusterInfo(String dalServicePrefix, String dalClusterName) {
@@ -74,13 +71,9 @@ public class BlankDbClusterApiServiceImpl implements DbClusterApiService {
 
     @Override
     public JsonNode getResultNode(String uri) {
-        if(null == objectMapper) {
-            objectMapper = new ObjectMapper();
-        }
         JsonNode result = null;
         try {
-            String response = HttpUtils.doGet(uri);
-            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode rootNode = JacksonUtils.getRootNode(uri, JacksonUtils.HTTP_METHOD_GET);
             result = rootNode.get("result");
         } catch (Exception e) {
             logger.error("Exception, ", e);

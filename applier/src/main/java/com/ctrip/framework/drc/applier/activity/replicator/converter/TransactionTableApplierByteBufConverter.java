@@ -21,8 +21,6 @@ public class TransactionTableApplierByteBufConverter extends AbstractByteBufConv
                 return new TransactionTableApplierGtidEvent();
             case drc_gtid_log_event:
                 return new ApplierDrcGtidEvent();
-            case format_description_log_event:
-                return new ApplierFormatDescriptionEvent();
             case table_map_log_event:
                 return new ApplierTableMapEvent();
             case write_rows_event_v2:

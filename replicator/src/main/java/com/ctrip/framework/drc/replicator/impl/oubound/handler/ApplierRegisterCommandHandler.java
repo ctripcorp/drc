@@ -71,7 +71,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private ExecutorService dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" +threadNum.getAndIncrement());
+    private ExecutorService dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + threadNum.getAndIncrement());
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
@@ -190,7 +190,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean skipEvent(GtidSet excludedSet, ByteBuf byteBuf, String gtid, boolean in_exclude_group) {
-            if (LogEventUtils.parseNextLogEventType(byteBuf) == LogEventType.gtid_log_event) {
+            if (LogEventUtils.isGtidLogEvent(LogEventUtils.parseNextLogEventType(byteBuf))) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
@@ -247,8 +247,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private File firstFileToSend() {
             GtidSet excludedSet = dumpCommandPacket.getGtidSet();
-            Collection<GtidSet.UUIDSet> uuidSets =  excludedSet.getUUIDSets();
-            return  (uuidSets == null || uuidSets.isEmpty()) ? blankUuidSets() : calculateGtidSet(excludedSet);
+            Collection<GtidSet.UUIDSet> uuidSets = excludedSet.getUUIDSets();
+            return (uuidSets == null || uuidSets.isEmpty()) ? blankUuidSets() : calculateGtidSet(excludedSet);
         }
 
         private void sendResultCode() {
@@ -273,7 +273,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("[Serving] {} begin, first file name {}", applierName, file.getName());
                 // 3、open file，send every file
                 while (loop()) {
-                    if(sendBinlog(file, excludedSet) == 1) {
+                    if (sendBinlog(file, excludedSet) == 1) {
                         if (channelClosed) {
                             logger.info("[Inactive] for {}", applierName);
                             return;
@@ -304,7 +304,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             logger.info("[Remove] observer of DumpTask {}:{} from fileManager", applierName, ip);
         }
 
-        private boolean sendEvents(FileChannel fileChannel, GtidSet excludedSet, long endPos) throws Exception{
+        private boolean sendEvents(FileChannel fileChannel, GtidSet excludedSet, long endPos) throws Exception {
 
             boolean in_exclude_group = false;
             String gtidForLog = StringUtils.EMPTY;
@@ -328,7 +328,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     continue;
                 }
 
-                Pair<GtidLogEvent, CompositeByteBuf> eventPair = checkGtidEvent(fileChannel, LogEventUtils.isOriginGtidLogEvent(eventType), eventSize, headByteBuf);
+                Pair<GtidLogEvent, CompositeByteBuf> eventPair = checkGtidEvent(fileChannel, LogEventUtils.isGtidLogEvent(eventType), eventSize, headByteBuf);
 
                 boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
 
@@ -387,7 +387,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
-                updateMonitorStatis(eventSize, previousGtidLogEvent);
+                if (gtid_log_event == eventType) {
+                    updateMonitorStatis(eventSize, previousGtidLogEvent);
+                }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
                         || checkIncludedDbs(fileChannel, eventSize, eventType, headByteBuf))
@@ -529,7 +531,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
             } else {
                 String newGtidForLog = gtidLogEvent.getGtid();
-                GTID_LOGGER.info("[Skip] gtid log event, gtid:{},lastCommitted:{},sequenceNumber:{}", newGtidForLog, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber());
+                GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", newGtidForLog, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", applierName);
                 long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
                 if (nextTransactionOffset > 0) {
@@ -660,6 +662,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         /**
          * 0 mean reaching the end, 1 mean fail, otherwise endPos
+         *
          * @param fileChannel
          * @param file
          * @return
@@ -685,7 +688,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return endPos;
                 }
 
-                if(!waitNewEvents(endPos)) {  //== to wait
+                if (!waitNewEvents(endPos)) {  //== to wait
                     return 1;
                 }
             } while (loop());

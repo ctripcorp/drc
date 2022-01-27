@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.applier.resource;
 
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
-import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,8 +30,11 @@ public class TransactionTableResourceTest extends ConflictTest {
         System.setProperty(SystemConfig.TRANSACTION_TABLE_SIZE, "50");
         System.setProperty(SystemConfig.TRANSACTION_TABLE_MERGE_SIZE, "10");
         transactionTable = new TransactionTableResource();
+        transactionTable.ip = "127.0.0.1";
+        transactionTable.port = 3306;
+        transactionTable.username = "root";
+        transactionTable.password = "123456";
         transactionTable.initialize();
-        transactionTable.dataSource = DataSource.wrap(dataSource);
         initTransactionTable();
         latch = new CountDownLatch(3);
         delete();
