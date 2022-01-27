@@ -16,7 +16,7 @@ public interface TransactionTable {
 
     void commit(String gtid);
 
-    void recordOppositeGtid(String gtid);
+    void recordToMemory(String gtid);
 
-    void mergeOppositeGtid(boolean needRetry);
+    void mergeRecord(String uuid, boolean needRetry);
 }
