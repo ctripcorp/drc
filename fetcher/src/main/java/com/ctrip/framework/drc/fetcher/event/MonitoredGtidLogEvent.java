@@ -78,6 +78,7 @@ public class MonitoredGtidLogEvent<T extends BaseTransactionContext> extends Gti
         loggerEGS.info("set gtid next for {}", getGtid());
         context.updateGtid(getGtid());
         context.updateSequenceNumber(getSequenceNumber());
+        context.resetTableKeyMap();
         return TransactionData.ApplyResult.SUCCESS;
     }
 

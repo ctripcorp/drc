@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.fetcher.activity.event.GroupActivity;
 import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
+import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
 /**
  * @Author limingdong
@@ -13,9 +15,14 @@ import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
  */
 public class ApplierGroupActivity extends GroupActivity {
 
+    @InstanceResource
+    public TransformerContext transformerContext;
+
     @Override
     protected Transaction getTransaction(BeginEvent b) {
-        return new ApplierTransaction((com.ctrip.framework.drc.applier.event.transaction.BeginEvent) b);
+        ApplierTransaction transaction = new ApplierTransaction((com.ctrip.framework.drc.applier.event.transaction.BeginEvent) b);
+        transaction.setTransformerResource(transformerContext);
+        return transaction;
     }
 
     @Override

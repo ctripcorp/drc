@@ -29,6 +29,9 @@
           <FormItem label="配置同步对象" prop="oldNameFilter" style="width: 600px">
             <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
           </FormItem>
+          <FormItem label="配置表名映射" prop="oldNameMapping" style="width: 600px">
+            <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true" placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
+          </FormItem>
           <FormItem label="设置executedGtid" style="width: 600px">
             <Input v-model="drc.oldExecutedGtid" placeholder="请输入源集群executedGtid，不填默认自动获取"/>
           </FormItem>
@@ -62,6 +65,9 @@
           </FormItem>
           <FormItem label="配置同步对象" prop="newNameFilter" style="width: 600px">
             <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+          </FormItem>
+          <FormItem label="配置表名映射" prop="newNameMapping" style="width: 600px">
+            <Input v-model="drc.newNameMapping" type="textarea" :autosize="true" placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="设置executedGtid" style="width: 600px">
             <Input v-model="drc.newExecutedGtid" placeholder="请输入新集群executedGtid，不填默认自动获取"/>
@@ -106,6 +112,9 @@
               <FormItem label="源集群端同步对象">
                 <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" readonly/>
               </FormItem>
+              <FormItem label="源集群端表名映射">
+                <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true" readonly/>
+              </FormItem>
               <FormItem label="源集群端executedGtid">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldExecutedGtid" readonly/>
               </FormItem>
@@ -135,6 +144,9 @@
               </FormItem>
               <FormItem label="新集群端同步对象">
                 <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" readonly/>
+              </FormItem>
+              <FormItem label="新集群端表名映射">
+                <Input v-model="drc.newNameMapping" type="textarea" :autosize="true" readonly/>
               </FormItem>
               <FormItem label="新集群端executedGtid">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newExecutedGtid" readonly/>
@@ -220,7 +232,9 @@ export default {
         oldIncludedDbs: '',
         newIncludedDbs: '',
         oldNameFilter: '',
+        oldNameMapping: '',
         newNameFilter: '',
+        newNameMapping: '',
         oldExecutedGtid: '',
         newExecutedGtid: '',
         oldApplyMode: 0,
@@ -350,6 +364,11 @@ export default {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' namefilter ' + response.data.data)
           this.drc.oldNameFilter = response.data.data
         })
+      this.axios.get('/api/drc/v1/meta/namemapping?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
+        .then(response => {
+          console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' namemapping ' + response.data.data)
+          this.drc.oldNameMapping = response.data.data
+        })
       this.axios.get('/api/drc/v1/meta/applymode?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
         .then(response => {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' applymode ' + response.data.data)
@@ -399,6 +418,11 @@ export default {
         .then(response => {
           console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' namefilter ' + response.data.data)
           this.drc.newNameFilter = response.data.data
+        })
+      this.axios.get('/api/drc/v1/meta/namemapping?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
+        .then(response => {
+          console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' namemapping ' + response.data.data)
+          this.drc.newNameMapping = response.data.data
         })
       this.axios.get('/api/drc/v1/meta/applymode?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
         .then(response => {
@@ -491,11 +515,14 @@ export default {
       console.log(this.drc.appliers.old)
       console.log(this.drc.oldIncludedDbs)
       console.log(this.drc.oldNameFilter)
+      console.log(this.drc.oldNameMapping)
       console.log(this.drc.oldApplyMode)
       console.log(this.drc.oldExecutedGtid)
       console.log(this.drc.replicators.new)
       console.log(this.drc.appliers.new)
       console.log(this.drc.newIncludedDbs)
+      console.log(this.drc.newNameFilter)
+      console.log(this.drc.newNameMapping)
       console.log(this.drc.newApplyMode)
       console.log(this.drc.newExecutedGtid)
       console.log(this.drc.oldTargetName)
@@ -507,6 +534,7 @@ export default {
         srcApplierIps: this.drc.appliers.old,
         srcApplierIncludedDbs: this.drc.oldIncludedDbs,
         srcApplierNameFilter: this.drc.oldNameFilter,
+        srcApplierNameMapping: this.drc.oldNameMapping,
         srcApplierApplyMode: this.drc.oldApplyMode,
         srcGtidExecuted: this.drc.oldExecutedGtid,
         srcClusterName: this.drc.oldTargetName,
@@ -514,6 +542,7 @@ export default {
         destApplierIps: this.drc.appliers.new,
         destApplierIncludedDbs: this.drc.newIncludedDbs,
         destApplierNameFilter: this.drc.newNameFilter,
+        destApplierNameMapping: this.drc.newNameMapping,
         destApplierApplyMode: this.drc.newApplyMode,
         destGtidExecuted: this.drc.newExecutedGtid,
         destClusterName: this.drc.newTargetName

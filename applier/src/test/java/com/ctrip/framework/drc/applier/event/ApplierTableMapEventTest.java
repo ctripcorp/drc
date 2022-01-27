@@ -28,7 +28,7 @@ public class ApplierTableMapEventTest {
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.involve(mock(LinkContextResource.class));
         testEvent.apply(context);
-        verify(context, times(1)).setTableKey(eq(TableKey.from("prod", "hello")));
+        verify(context, times(1)).updateTableKeyMap(0L, TableKey.from("prod", "hello"));
     }
 
     @Test

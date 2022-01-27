@@ -629,7 +629,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mhaTbl, remoteMhaTbl);
         return applierGroupTbl == null ? null : applierGroupTbl.getTargetName();
     }
-    
+
     public String getIncludedDbs(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
@@ -642,6 +642,13 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mhaTbl, remoteMhaTbl);
         return applierGroupTbl == null ? null : applierGroupTbl.getNameFilter();
+    }
+
+    public String getNameMapping(String mha, String remoteMha) throws SQLException {
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mhaTbl, remoteMhaTbl);
+        return applierGroupTbl == null ? null : applierGroupTbl.getNameMapping();
     }
 
     public int getApplyMode(String mha, String remoteMha) throws SQLException {
@@ -812,6 +819,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
@@ -851,6 +859,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
@@ -1248,5 +1257,5 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         return dcTbls.get(0).getId();
     }
 
-    
+
 }

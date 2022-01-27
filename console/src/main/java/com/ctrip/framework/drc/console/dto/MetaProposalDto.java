@@ -22,6 +22,10 @@ public class MetaProposalDto {
 
     private String srcApplierNameFilter;
 
+    private String srcApplierNameMapping;
+
+    private String srcClusterName;
+
     private int srcApplierApplyMode;
 
     private List<String> destReplicatorIps;
@@ -32,8 +36,8 @@ public class MetaProposalDto {
 
     private String destApplierNameFilter;
 
-    private String srcClusterName;
-    
+    private String destApplierNameMapping;
+
     private String destClusterName;
 
     private int destApplierApplyMode;
@@ -154,6 +158,22 @@ public class MetaProposalDto {
         this.destApplierNameFilter = destApplierNameFilter;
     }
 
+    public String getSrcApplierNameMapping() {
+        return srcApplierNameMapping;
+    }
+
+    public void setSrcApplierNameMapping(String srcApplierNameMapping) {
+        this.srcApplierNameMapping = srcApplierNameMapping;
+    }
+
+    public String getDestApplierNameMapping() {
+        return destApplierNameMapping;
+    }
+
+    public void setDestApplierNameMapping(String destApplierNameMapping) {
+        this.destApplierNameMapping = destApplierNameMapping;
+    }
+
     public String getDestClusterName() {
         return destClusterName;
     }
@@ -181,19 +201,20 @@ public class MetaProposalDto {
                 Objects.equals(srcApplierIps, that.srcApplierIps) &&
                 Objects.equals(srcApplierIncludedDbs, that.srcApplierIncludedDbs) &&
                 Objects.equals(srcApplierNameFilter, that.srcApplierNameFilter) &&
+                Objects.equals(srcClusterName, that.srcClusterName) &&
                 srcApplierApplyMode == that.srcApplierApplyMode &&
                 Objects.equals(destReplicatorIps, that.destReplicatorIps) &&
                 Objects.equals(destApplierIps, that.destApplierIps) &&
                 Objects.equals(destApplierIncludedDbs, that.destApplierIncludedDbs) &&
                 Objects.equals(destApplierNameFilter, that.destApplierNameFilter) &&
+                Objects.equals(destApplierNameMapping, that.destApplierNameMapping) &&
                 Objects.equals(destClusterName, that.destClusterName) &&
-                Objects.equals(srcClusterName, that.srcClusterName) &&
                 destApplierApplyMode == that.destApplierApplyMode;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcClusterName,srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destClusterName, destApplierApplyMode);
+        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierNameMapping, srcClusterName, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierNameMapping, destClusterName, destApplierApplyMode);
     }
 
     @Override
@@ -205,14 +226,15 @@ public class MetaProposalDto {
                 ", srcApplierIps=" + srcApplierIps +
                 ", srcApplierIncludedDbs='" + srcApplierIncludedDbs + '\'' +
                 ", srcApplierNameFilter='" + srcApplierNameFilter + '\'' +
+                ", srcApplierNameMapping='" + srcApplierNameMapping + '\'' +
                 ", srcClusterName='" + srcClusterName + '\'' +
-                ", destClusterName='" + destClusterName + '\'' +
                 ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
                 ", destReplicatorIps=" + destReplicatorIps +
                 ", destApplierIps=" + destApplierIps +
                 ", destApplierIncludedDbs='" + destApplierIncludedDbs + '\'' +
                 ", destApplierNameFilter='" + destApplierNameFilter + '\'' +
-                ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
+                ", destApplierNameMapping='" + destApplierNameMapping + '\'' +
+                ", destClusterName='" + destClusterName + '\'' +
                 ", destApplierApplyMode='" + destApplierApplyMode + '\'' +
                 ", destGtidExecuted='" + destGtidExecuted + '\'' +
                 '}';

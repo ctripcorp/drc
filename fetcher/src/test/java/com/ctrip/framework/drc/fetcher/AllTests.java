@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResourceTest;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResourceTest;
 import com.ctrip.framework.drc.fetcher.resource.context.*;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResourceTest;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResourceTest;
 import com.ctrip.framework.drc.fetcher.system.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -54,6 +55,7 @@ import org.junit.runners.Suite;
         //Resource
         CapacityResourceTest.class,
         ListenableDirectMemoryResourceTest.class,
+        TransformerContextResourceTest.class,
 
         //Thread
         ExecutorResourceTest.class,

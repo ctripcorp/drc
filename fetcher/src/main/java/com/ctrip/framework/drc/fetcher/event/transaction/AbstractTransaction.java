@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.fetcher.event.transaction;
 
 import com.ctrip.framework.drc.fetcher.event.FetcherEventGroup;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 
 /**
@@ -9,8 +10,14 @@ import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
  */
 public abstract class AbstractTransaction<T extends BaseTransactionContext> extends FetcherEventGroup implements Transaction, TransactionData<T> {
 
+    private TransformerContext transformerContext;
+
     public AbstractTransaction(TransactionEvent event) {
         super(event);
+    }
+
+    public void setTransformerResource(TransformerContext transformerContext) {
+        this.transformerContext = transformerContext;
     }
 
     @Override
@@ -27,6 +34,7 @@ public abstract class AbstractTransaction<T extends BaseTransactionContext> exte
                 TransactionEvent event = next();
                 if (event == null)
                     break;
+                event.transformer(transformerContext);
                 TransactionData.ApplyResult result = event.apply(context);
                 switch (result) {
                     case SUCCESS:

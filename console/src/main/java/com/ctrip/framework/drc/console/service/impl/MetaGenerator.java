@@ -31,10 +31,10 @@ public class MetaGenerator {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
+
     @Autowired
     private DataCenterService dataCenterService;
-    
+
     private DalUtils dalUtils = DalUtils.getInstance();
 
     protected String localDcName;
@@ -252,6 +252,7 @@ public class MetaGenerator {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);

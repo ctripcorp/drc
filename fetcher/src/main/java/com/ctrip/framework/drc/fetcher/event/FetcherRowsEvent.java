@@ -27,6 +27,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
 
     protected static final Logger logger = LoggerFactory.getLogger(FetcherRowsEvent.class);
     protected static final Logger loggerR = LoggerFactory.getLogger("ROWS");
+    private static final int END_OF_STATEMENT_FLAG = 1;
 
     protected Columns columns;  //drc_table_map_log_event
     protected Columns originColumns;  //just having meta and nullable
@@ -96,7 +97,9 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
             mustLoad(context);
             release();
             try {
+                beforeDoApply(context);
                 doApply(context);
+                afterDoApply(context);
                 return ApplyResult.SUCCESS;
             } catch (Throwable e) {
                 logger.error(attachTags(context, getClass() + ".doApply() - UNLIKELY"), e);
@@ -141,6 +144,18 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
                 columns.get(i).setMeta(originColumns.get(i).getMeta());  //update meta
                 columns.get(i).setType(originColumns.get(i).getType());  //update type
             }
+        }
+    }
+
+    private void beforeDoApply(T context) {
+        TableKey tableKey = context.fetchTableKeyInMap(getRowsEventPostHeader().getTableId());
+        context.setTableKey(tableKey);
+    }
+
+    private void afterDoApply(T context) {
+        int flag = getRowsEventPostHeader().getFlags();
+        if (flag == END_OF_STATEMENT_FLAG) {
+            context.resetTableKeyMap();
         }
     }
 

@@ -62,9 +62,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         // 2. configure and persistent in database
         long srcReplicatorGroupId = configureReplicators(srcMhaTbl, destMhaTbl, metaProposalDto.getSrcReplicatorIps(), metaProposalDto.getDestGtidExecuted());
         long destReplicatorGroupId = configureReplicators(destMhaTbl, srcMhaTbl, metaProposalDto.getDestReplicatorIps(), metaProposalDto.getSrcGtidExecuted());
-        configureAppliers(srcMhaTbl, metaProposalDto.getSrcApplierIps(), destReplicatorGroupId, metaProposalDto.getSrcApplierIncludedDbs(), metaProposalDto.getSrcApplierApplyMode(), metaProposalDto.getSrcGtidExecuted(), metaProposalDto.getSrcApplierNameFilter(), metaProposalDto.getSrcClusterName());
-        configureAppliers(destMhaTbl, metaProposalDto.getDestApplierIps(), srcReplicatorGroupId, metaProposalDto.getDestApplierIncludedDbs(), metaProposalDto.getDestApplierApplyMode(), metaProposalDto.getDestGtidExecuted(), metaProposalDto.getDestApplierNameFilter(), metaProposalDto.getDestClusterName());
-
+        configureAppliers(srcMhaTbl, metaProposalDto.getSrcApplierIps(), destReplicatorGroupId, metaProposalDto.getSrcApplierIncludedDbs(), metaProposalDto.getSrcApplierApplyMode(), metaProposalDto.getSrcGtidExecuted(), metaProposalDto.getSrcApplierNameFilter(), metaProposalDto.getSrcApplierNameMapping(), metaProposalDto.getSrcClusterName());
+        configureAppliers(destMhaTbl, metaProposalDto.getDestApplierIps(), srcReplicatorGroupId, metaProposalDto.getDestApplierIncludedDbs(), metaProposalDto.getDestApplierApplyMode(), metaProposalDto.getDestGtidExecuted(), metaProposalDto.getDestApplierNameFilter(), metaProposalDto.getDestApplierNameMapping(), metaProposalDto.getDestClusterName());
 
         // update status and return the configured xml from db
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
@@ -207,13 +206,13 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         return replicatorInstancesRemoved;
     }
 
-    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs, int applyMode, String localGtidExecuted, String nameFilter, String targetName) throws SQLException {
-        Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, targetName);
+    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs, int applyMode, String localGtidExecuted, String nameFilter, String nameMapping, String targetName) throws SQLException {
+        Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, localGtidExecuted);
         return applierGroupId;
     }
 
-    protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter, String targetName) throws SQLException {
+    protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName) throws SQLException {
         if (StringUtils.isBlank(targetName)) {
             ClusterMhaMapTbl clusterMhaMapTbl = dalUtils.getClusterMhaMapTblDao().queryAll().stream().filter(p -> p.getMhaId().equals(mhaTbl.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
             ClusterTbl clusterTbl = dalUtils.getClusterTblDao().queryAll().stream().filter(p -> p.getId().equals(clusterMhaMapTbl.getClusterId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
@@ -221,8 +220,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         }
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
-        logger.info("[[mha={}, mhaId={}, includedDbs={}, replicatorGroupId={}]]configure or update applier group", mhaName, mhaId, includedDbs, replicatorGroupId);
-        return dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, targetName);
+        logger.info("[[mha={}, mhaId={}, includedDbs={}, applyMode={}, nameFilter={}, nameMapping={}, targetName={}, replicatorGroupId={}]]configure or update applier group", mhaName, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName, replicatorGroupId);
+        return dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
     }
 
     protected void configureApplierInstances(MhaTbl mhaTbl, List<String> applierIps, Long applierGroupId, String localGtidExecuted) throws SQLException {
