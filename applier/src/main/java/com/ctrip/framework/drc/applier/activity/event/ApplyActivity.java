@@ -31,6 +31,9 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
     public Transaction doTask(Transaction transaction) throws InterruptedException {
         loggerTL.info("apply {}", transaction.identifier());
         boolean bigTransaction = transaction.isOverflowed();
+        if (handleEmptyTransaction(transaction)) {
+            return hand(transaction);
+        }
         batch.setBigTransaction(bigTransaction);
         switch (transaction.apply(batch)) {
             case SUCCESS:
@@ -52,6 +55,10 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
             default:
                 return onSuccess(transaction);
         }
+    }
+
+    protected boolean handleEmptyTransaction(Transaction transaction) throws InterruptedException {
+        return false;
     }
 
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {

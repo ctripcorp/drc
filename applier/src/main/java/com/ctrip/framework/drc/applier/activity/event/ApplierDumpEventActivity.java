@@ -33,7 +33,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     @Override
     protected void doHandleLogEvent(FetcherEvent event) {
         if (event instanceof ApplierGtidEvent) {
-            ((ApplierGtidEvent) event).involve(context);
+            handleApplierGtidEvent(event);
         }
 
         if (event instanceof ApplierXidEvent) {
@@ -56,6 +56,10 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         } else {
             super.afterHandleLogEvent(logEvent);
         }
+    }
+
+    protected void handleApplierGtidEvent(FetcherEvent event) {
+        ((ApplierGtidEvent) event).involve(context);
     }
 
     protected boolean shouldSkip() {

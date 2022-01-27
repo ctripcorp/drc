@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.service.console;
 
+
 import com.ctrip.infosec.sso.client.CtripSSOFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
 
 @Configuration
 public class FilterConfig {
@@ -33,7 +35,7 @@ public class FilterConfig {
 
         // 这里需要填入自己的站点url，例如本地调试时为"http://localhost:8080"，各环境会不一样，最好通过qconfig配置。
         initParamMap.put("serverName", serverName);
-
+        
         initParamMap.put("encoding", "UTF-8");
         registration.setInitParameters(initParamMap);
 

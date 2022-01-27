@@ -279,17 +279,15 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     @Override
     public Map<String, String> getBackupDcs(String clusterId) {
-        RegistryKey registryKey = RegistryKey.from(clusterId);
-        String clusterName = registryKey.getClusterName();
-
         Map<String, String> res = Maps.newHashMap();
         DbCluster dbCluster = getCluster(clusterId);
         List<Applier> applierList = dbCluster.getAppliers();
         for (Applier applier : applierList) {
             logger.info("[Applier] is {}", applier);
             String targetMhaName = applier.getTargetMhaName();
+            String targetName = applier.getTargetName();
             if (StringUtils.isNotBlank(targetMhaName)) {
-                res.put(applier.getTargetIdc(), RegistryKey.from(clusterName, targetMhaName));
+                res.put(applier.getTargetIdc(), RegistryKey.from(targetName, targetMhaName));
             }
         }
 

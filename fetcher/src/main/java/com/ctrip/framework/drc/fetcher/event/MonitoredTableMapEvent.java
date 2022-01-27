@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import org.slf4j.Logger;
@@ -44,11 +45,15 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
         }
     }
 
+    public void setTableKey(TableKey tableKey) {
+        this.tableKey = tableKey;
+    }
+
     @Override
     public void involve(LinkContext linkContext) {
         gtid = linkContext.fetchGtid();
         dataIndex = linkContext.increaseDataIndexByOne();
-        tableKey = TableKey.from(getSchemaName(), getTableName());
+        setTableKey(TableKey.from(getSchemaName(), getTableName()));
         linkContext.updateTableKey(tableKey);
         linkContext.updateColumns(getColumns());
         DefaultEventMonitorHolder.getInstance().logBatchEvent("db", getSchemaName(), 1, 0);
@@ -64,9 +69,17 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
     }
 
     @Override
+    public void transformer(TransformerContext transformerContext) {
+        String transformerName = transformerContext.getNameMap().get(tableKey.toString());
+        if (transformerName != null) {
+            setTableKey(TableKey.from(transformerName));
+        }
+    }
+
+    @Override
     public ApplyResult apply(T context) {
         release();
-        context.setTableKey(tableKey);
+        context.updateTableKeyMap(getTableId(), tableKey);
         return ApplyResult.SUCCESS;
     }
 

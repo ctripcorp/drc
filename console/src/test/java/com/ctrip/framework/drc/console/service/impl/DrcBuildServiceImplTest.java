@@ -117,6 +117,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         for(Applier applier : actualAppliers) {
             Assert.assertTrue(expectedApplierIps.contains(applier.getIp()));
         }
+        
     }
 
     // this test is based on the MetaGeneratorTest.testRouteInfo, may need to make it standalone later
@@ -166,7 +167,6 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         metaProposalDto.setDestMha(MHA1RB);
         
         //case1
-        
         List<String> srcReplicators = Lists.newArrayList("10.2.83.105","10.2.87.153");
         List<String> destReplicators = Lists.newArrayList("10.2.83.106","10.2.86.199");
         // one mock for 3 case
@@ -195,7 +195,6 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         DrcBuildPreCheckVo drcBuildPreCheckVo3 = drcBuildService.preCheckBeforeBuild(metaProposalDto);
         Assert.assertEquals(DrcBuildPreCheckVo.CONFLICT,drcBuildPreCheckVo3.getStatus());
         Assert.assertEquals(MHA1OY,drcBuildPreCheckVo3.getConflictMha());
-        
         
     }
 }

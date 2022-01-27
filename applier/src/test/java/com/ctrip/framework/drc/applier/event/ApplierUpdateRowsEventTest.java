@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.event;
 
 import com.ctrip.framework.drc.applier.resource.context.DecryptedTransactionContextResource;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
@@ -27,6 +28,9 @@ public class ApplierUpdateRowsEventTest implements ApplierColumnsRelatedTest {
     LogEventHeader logEventHeader;
     DecryptedUpdateRowsEvent event;
 
+    @Mock
+    RowsEventPostHeader rowsEventPostHeader;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -41,6 +45,7 @@ public class ApplierUpdateRowsEventTest implements ApplierColumnsRelatedTest {
         when(event.getAfterRowsKeysPresent()).thenReturn(Lists.newArrayList(true, true, true, true));
         when(event.getBeforePresentRowsValues()).thenReturn(Lists.<List<Object>>newArrayList(Lists.newArrayList(1, "Phy", "Male", "2019-12-09 15:00:00.000")));
         when(event.getBeforeRowsKeysPresent()).thenReturn(Lists.newArrayList(true, true, true, true));
+        when(event.getRowsEventPostHeader()).thenReturn(rowsEventPostHeader);
         doNothing().when(event).load(columns1());
         event.setDirectMemory(mock(DirectMemory.class));
         event.apply(context);

@@ -37,6 +37,7 @@ public class UserServiceImpl extends AbstractConfigBean implements UserService {
             String ssoLogoutUrl = getProperty(SSO_LOGOUT_URL);
             return ssoLogoutUrl;
         } catch (Exception e) {
+            logger.warn("getInfo error",e);
             return null;
         }
     }

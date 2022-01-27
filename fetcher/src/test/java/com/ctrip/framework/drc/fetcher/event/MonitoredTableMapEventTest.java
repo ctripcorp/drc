@@ -40,7 +40,7 @@ public class MonitoredTableMapEventTest extends MockTest {
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.involve(mock(LinkContextResource.class));
         testEvent.apply(transactionContext);
-        verify(transactionContext, times(1)).setTableKey(eq(TableKey.from("prod", "hello")));
+        verify(transactionContext, times(1)).updateTableKeyMap(0L, TableKey.from("prod", "hello"));
     }
 
     @Test

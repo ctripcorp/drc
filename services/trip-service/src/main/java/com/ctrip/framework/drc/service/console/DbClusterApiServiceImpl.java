@@ -27,8 +27,6 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.MHA_INSTANCES
 public class DbClusterApiServiceImpl implements DbClusterApiService {
     private static final Logger logger = LoggerFactory.getLogger(DbClusterApiServiceImpl.class);
 
-    private ObjectMapper objectMapper;
-
     private static final String DB_CLUSTER_GET_CLUSTER_INFO = "clusters/%s?operator=DRCConsole";
 
     private static final String MHA_INSTANCES_GROUP_CLUSTER_INFO = "instanceGroups/%s/clusters?operator=DRCConsole";
@@ -112,13 +110,9 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
 
     @Override
     public JsonNode getResultNode(String uri) {
-        if(null == objectMapper) {
-            objectMapper = new ObjectMapper();
-        }
         JsonNode result = null;
         try {
-            String response = HttpUtils.doGet(uri);
-            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode rootNode = JacksonUtils.getRootNode(uri, JacksonUtils.HTTP_METHOD_GET);
             result = rootNode.get("result");
         } catch (Exception e) {
             logger.error("Exception, ", e);

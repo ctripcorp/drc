@@ -3,18 +3,24 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.activity.replicator.converter.TransactionTableApplierByteBufConverter;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.applier.event.ApplierFormatDescriptionEvent;
+import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.resource.TransactionTable;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by jixinwang on 2021/8/20
  */
 public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventActivity {
 
+    protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
+
     private boolean skipEvent;
+
+    private String lastUuid;
 
     @InstanceResource
     public TransactionTable transactionTable;
@@ -29,13 +35,9 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         skipEvent = false;
 
         if (event instanceof ApplierDrcGtidEvent) {
-            transactionTable.recordOppositeGtid(((ApplierDrcGtidEvent) event).getGtid());
-            skipEvent = true;
-            return;
-        }
-
-        if (event instanceof ApplierFormatDescriptionEvent) {
-            transactionTable.mergeOppositeGtid(true);
+            String gtid = ((ApplierDrcGtidEvent) event).getGtid();
+            loggerER.info("{} {} - RECEIVED - {}", cluster, gtid, event.getClass().getSimpleName());
+            transactionTable.recordToMemory(gtid);
             skipEvent = true;
             return;
         }
@@ -44,13 +46,19 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     }
 
     @Override
-    protected boolean shouldSkip() {
-        return skipEvent;
+    protected void handleApplierGtidEvent(FetcherEvent event) {
+        String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
+        if (!currentUuid.equalsIgnoreCase(lastUuid)) {
+            loggerTT.info("uuid has changed, old uuid is: {}, new uuid is: {}", lastUuid, currentUuid);
+            transactionTable.mergeRecord(currentUuid, true);
+            lastUuid = currentUuid;
+        }
+
+        super.handleApplierGtidEvent(event);
     }
 
     @Override
-    public void doDispose() throws Exception{
-        super.doDispose();
-        transactionTable.mergeOppositeGtid(false);
+    protected boolean shouldSkip() {
+        return skipEvent;
     }
 }

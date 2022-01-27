@@ -138,10 +138,10 @@ public abstract class AbstractEventTest extends MockTest {
         return byteBuf;
     }
 
-    protected TableMapLogEvent getFilteredTableMapLogEvent(String dbName) throws IOException {
+    protected TableMapLogEvent getFilteredTableMapLogEvent(String dbName, String tableName, long tableId) throws IOException {
         List<TableMapLogEvent.Column> columns = mockColumns();
         TableMapLogEvent constructorTableMapLogEvent = new TableMapLogEvent(
-                1L, 813, 123, dbName, "unitest", columns, null, table_map_log_event, 0
+                1L, 813, tableId, dbName, tableName, columns, null, table_map_log_event, 0
         );
         return constructorTableMapLogEvent;
     }
@@ -177,6 +177,53 @@ public abstract class AbstractEventTest extends MockTest {
         return columns;
     }
 
+
+    // is not STMT_END_F, table id is 0x7c(124)
+    protected ByteBuf getMinimalRowsEventByteBufWithEndOfStatement() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(49);
+        byte[] bytes = new byte[]{
+                (byte) 0x91, (byte) 0x5d, (byte) 0x7e, (byte) 0x5d, (byte) 0x1e, (byte) 0x01, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x31, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xbd, (byte) 0x06, (byte) 0x00,
+
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x7c, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x04, (byte) 0x09, (byte) 0xfc,
+
+                (byte) 0x09, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x07, (byte) 0x00, (byte) 0x76, (byte) 0x61,
+                (byte) 0x72, (byte) 0x63, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0xb8, (byte) 0x74, (byte) 0xe8,
+
+                (byte) 0x80
+        };
+        byteBuf.writeBytes(bytes);
+
+        WRITE_ROW_SIZE = bytes.length;
+
+        return byteBuf;
+    }
+
+
+    // is not STMT_END_F, table id is 0x7c(124)
+    protected ByteBuf getMinimalRowsEventByteBufWithNotEndOfStatement() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(49);
+        byte[] bytes = new byte[]{
+                (byte) 0x91, (byte) 0x5d, (byte) 0x7e, (byte) 0x5d, (byte) 0x1e, (byte) 0x01, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x31, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xbd, (byte) 0x06, (byte) 0x00,
+
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x7c, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x04, (byte) 0x09, (byte) 0xfc,
+
+                (byte) 0x09, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x07, (byte) 0x00, (byte) 0x76, (byte) 0x61,
+                (byte) 0x72, (byte) 0x63, (byte) 0x68, (byte) 0x61, (byte) 0x72, (byte) 0xb8, (byte) 0x74, (byte) 0xe8,
+
+                (byte) 0x80
+        };
+        byteBuf.writeBytes(bytes);
+
+        WRITE_ROW_SIZE = bytes.length;
+
+        return byteBuf;
+    }
+
+    // is STMT_END_F, table id is 0x7b(123)
     protected ByteBuf getMinimalRowsEventByteBuf() {
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(49);
         byte[] bytes = new byte[]{
