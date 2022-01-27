@@ -34,7 +34,7 @@ public class DalServiceImpl implements DalService {
 
     Logger logger = LoggerFactory.getLogger(getClass());
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
     
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
     

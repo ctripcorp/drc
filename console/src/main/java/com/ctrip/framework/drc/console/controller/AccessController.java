@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +25,6 @@ import java.util.Map;
 public class AccessController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private AccessServiceImpl accessServiceImp;
