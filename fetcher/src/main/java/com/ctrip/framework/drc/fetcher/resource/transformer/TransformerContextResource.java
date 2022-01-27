@@ -55,12 +55,6 @@ public class TransformerContextResource extends AbstractResource implements Tran
                     logger.error("source name: {} and target name: {} size are not same", sourceNames, targetNames);
                     throw new RuntimeException("source and target name size are not same");
                 }
-
-                if (sourceNames.size() > 1000) {
-                    logger.error("shard size: {} is too large, the max shard size is 1000", sourceNames.size());
-                    throw new RuntimeException("shard size is too large");
-                }
-
                 for (int i = 0; i < sourceNames.size(); i++) {
                     nameMap.put(sourceNames.get(i), targetNames.get(i));
                 }
@@ -68,7 +62,7 @@ public class TransformerContextResource extends AbstractResource implements Tran
                 nameMap.put(parseSingleName(sourceName), parseSingleName(targetName));
             }
         }
-        logger.info("init name mapping: {} success", nameMap);
+        logger.info("init name mapping success, size is: {}, content is: {}", nameMap.size(), nameMap);
     }
 
     private List<String> parseNameMode(String name) {
