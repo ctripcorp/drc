@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean;
@@ -48,6 +49,11 @@ public class WebMvcConfigSupplement extends WebMvcConfigurerAdapter {
             logger.info("!!! default converter use MappingJackson2HttpMessageConverter");
         }
         logger.info("!!! default converter no use MappingJackson2HttpMessageConverter");
+    }
+
+    @Override
+    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+        configurer.defaultContentType(MediaType.APPLICATION_JSON);
     }
 
 }
