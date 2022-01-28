@@ -4,6 +4,7 @@ import com.ctrip.xpipe.retry.RetryPolicyFactories;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -54,7 +55,7 @@ public class HttpUtils {
         if(null == headers) {
             headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
         }
     }
 
