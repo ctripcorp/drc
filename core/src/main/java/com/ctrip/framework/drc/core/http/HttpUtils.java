@@ -54,6 +54,7 @@ public class HttpUtils {
         if(null == headers) {
             headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(MediaType.APPLICATION_JSON);
         }
     }
 
