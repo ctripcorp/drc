@@ -54,8 +54,8 @@ public class HttpUtils {
         }
         if(null == headers) {
             headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
         }
     }
 
@@ -73,12 +73,14 @@ public class HttpUtils {
 
     public static <T> T get(String url, Class<T> responseType, Object... urlVariables) {
         init();
-        return restTemplate.getForObject(url, responseType, urlVariables);
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
+        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
 
     public static <T> T get(String url, Class<T> responseType, Map<String, ?> urlVariables) {
         init();
-        return restTemplate.getForObject(url, responseType, urlVariables);
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
+        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
 
     public static <T> T put(String url, Object body, Class<T> clazz) {
