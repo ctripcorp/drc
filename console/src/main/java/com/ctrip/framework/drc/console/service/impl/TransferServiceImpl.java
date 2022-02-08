@@ -256,15 +256,6 @@ public class TransferServiceImpl implements TransferService {
         List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
-        List<GroupMappingTbl> groupMappingTblsToBeDeleted = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode()) && p.getMhaGroupId().equals(mhaGroupTbl.getId())).collect(Collectors.toList());
-        for(GroupMappingTbl groupMappingTbl : groupMappingTblsToBeDeleted){
-            groupMappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        }
-        logger.info("do delete mha group {}", mhaGroupTbl.getId());
-        mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.UNSTART.getCode());
-        mhaGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        mhaGroupTbl.setMonitorSwitch(BooleanEnum.FALSE.getCode());
-
         List<MachineTbl> machineTblsToBeDeleted = Lists.newArrayList();
         List<MhaTbl> mhaTblsToBeDeleted = Lists.newArrayList();
         List<ReplicatorGroupTbl> replicatorGroupTblsToBeDeleted = Lists.newArrayList();
@@ -272,79 +263,74 @@ public class TransferServiceImpl implements TransferService {
         List<ReplicatorTbl> replicatorTblsToBeDeleted = Lists.newArrayList();
         List<ApplierTbl> applierTblsToBeDeleted = Lists.newArrayList();
 
+        logger.info("do mark mha group as deleted{}", mhaGroupTbl.getId());
+        mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.UNSTART.getCode());
+        mhaGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        mhaGroupTbl.setMonitorSwitch(BooleanEnum.FALSE.getCode());
+
+        // should be mark as deleted in any case
+        List<GroupMappingTbl> groupMappingTblsToBeDeleted = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode()) && p.getMhaGroupId().equals(mhaGroupTbl.getId())).collect(Collectors.toList());
+        for(GroupMappingTbl groupMappingTbl : groupMappingTblsToBeDeleted){
+            logger.info("do mark groupMapping as deleted {}", groupMappingTbl.getId());
+            groupMappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        }
+        for (MhaTbl mhaTbl : mhaTbls) {
+            long anOtherMhaId = mhaTbls.stream().filter(p -> !p.getMhaName().equals(mhaTbl.getMhaName())).findFirst().get().getId();
+            long anOtherMhaReplicatorGroupId = replicatorGroupTbls.stream().filter(p -> p.getMhaId().equals(anOtherMhaId)).findFirst().get().getId();
+            ApplierGroupTbl applierGroupTbl = applierGroupTbls.stream()
+                    .filter(p -> p.getReplicatorGroupId().equals(anOtherMhaReplicatorGroupId) && p.getMhaId().equals(mhaTbl.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
+            logger.info("do mark applier group {} as deleted", applierGroupTbl.getId());
+            applierGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            applierGroupTblsToBeDeleted.add(applierGroupTbl);
+            applierTbls.stream().filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).forEach(applierTbl -> {
+                logger.info("do mark applier as deleted,id is {}", applierTbl.getId());
+                applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                applierTblsToBeDeleted.add(applierTbl);
+            });
+        }
+        
         //judge by mapping_number
         MhaTbl srcMhaTbl = mhaTbls.get(0);
         MhaTbl destMhaTbl = mhaTbls.get(1);
-
-        MhaTbl finalSrcMhaTbl = srcMhaTbl;
-        List<GroupMappingTbl> srcMappingTbls = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getMhaId().equals(finalSrcMhaTbl.getId())).collect(Collectors.toList());
-        MhaTbl finalDestMhaTbl = destMhaTbl;
-        List<GroupMappingTbl> destMappingTbls = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getMhaId().equals(finalDestMhaTbl.getId())).collect(Collectors.toList());
-
-        // put srcMha at first as mainMha
-        if(destMappingTbls.size() > 1) {
-            MhaTbl tmp = srcMhaTbl;
-            srcMhaTbl = destMhaTbl;
-            destMhaTbl = tmp;
-        }
-
-        if(srcMappingTbls.size() > 1 || destMappingTbls.size() > 1) {
-            // one_to_many_effect_toBeDeleted  :  group_mapping,mha_group,mha,destMha：{replicator_group,replicator,applier_group,applier,machine}
-            // + srcMha's applier_group and its applier ( replicator_group_id = dest.replicator_group_id)
-            // replicator_group.mha_id means its.srcMhaId  applier_group.mha_id means its.destMhaId
+        List<GroupMappingTbl> srcMappingTbls = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getMhaId().equals(srcMhaTbl.getId())).collect(Collectors.toList());
+        List<GroupMappingTbl> destMappingTbls = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getMhaId().equals(destMhaTbl.getId())).collect(Collectors.toList());
+        
+        if (srcMappingTbls.size() > 1 && destMappingTbls.size() > 1) {
+            // many2many case
+            logger.info("retain two mha in many2many case,mhaGroupId to be deleted is {}",mhaGroupTbl.getId());
+        } else if (srcMappingTbls.size() > 1) {
+            // one2many case 
             mhaTblsToBeDeleted.add(destMhaTbl);
-
-            MhaTbl finalDestMhaTbl1 = destMhaTbl;
-            final long destMha_replicator_group_id = replicatorGroupTbls.stream().filter(predicate -> predicate.getMhaId().equals(finalDestMhaTbl1.getId())).findFirst().get().getId();
-            MhaTbl finalSrcMhaTbl1 = srcMhaTbl;
-            applierGroupTbls.stream().filter(p -> p.getReplicatorGroupId().equals(destMha_replicator_group_id) && p.getMhaId().equals(finalSrcMhaTbl1.getId())).forEach(applierGroupTbl -> {
-                logger.info("do mark srcMha's applier group {} as deleted", applierGroupTbl.getId());
-                applierGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
-                applierGroupTblsToBeDeleted.add(applierGroupTbl);
-                applierTbls.stream().filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).forEach(applierTbl -> {
-                    logger.info("do mark srcMha's applier {} as deleted", applierTbl.getId());
-                    applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
-                    applierTblsToBeDeleted.add(applierTbl);
-                });
-            });
-        }else{
-            // one_to_one
+        } else if (destMappingTbls.size() > 1) {
+            // one2many case 
+            mhaTblsToBeDeleted.add(srcMhaTbl);
+        } else {
+            // one2one case
             mhaTblsToBeDeleted.addAll(mhaTbls);
         }
+
         for(MhaTbl mhaTbl : mhaTblsToBeDeleted) {
             Long mhaId = mhaTbl.getId();
             logger.info("do mark mha {} as deleted", mhaTbl.getMhaName());
             mhaTbl.setDeleted(BooleanEnum.TRUE.getCode());
-            machineTbls.stream().filter(predicate -> predicate.getMhaId().equals(mhaId)).forEach(machineTbl -> {
-                logger.info("do mark machine {}:{} as deleted", machineTbl.getIp(), machineTbl.getPort());
+            machineTbls.stream().filter(p -> p.getMhaId().equals(mhaId) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).forEach(machineTbl -> {
+                logger.info("do mark db machine {}:{} as deleted", machineTbl.getIp(), machineTbl.getPort());
                 machineTbl.setDeleted(BooleanEnum.TRUE.getCode());
                 machineTblsToBeDeleted.add(machineTbl);
             });
-            replicatorGroupTbls.stream().filter(predicate -> predicate.getMhaId().equals(mhaId)).forEach(replicatorGroupTbl -> {
+            replicatorGroupTbls.stream().filter(p -> p.getMhaId().equals(mhaId) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).forEach(replicatorGroupTbl -> {
                 logger.info("do mark replicator group {} as deleted", replicatorGroupTbl.getId());
                 replicatorGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
                 replicatorGroupTblsToBeDeleted.add(replicatorGroupTbl);
-                replicatorTbls.stream().filter(predicate -> predicate.getRelicatorGroupId().equals(replicatorGroupTbl.getId())).forEach(replicatorTbl -> {
+                replicatorTbls.stream().filter(p -> p.getRelicatorGroupId().equals(replicatorGroupTbl.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).forEach(replicatorTbl -> {
                     logger.info("do mark replicator {} as deleted", replicatorTbl.getId());
                     replicatorTbl.setDeleted(BooleanEnum.TRUE.getCode());
                     replicatorTblsToBeDeleted.add(replicatorTbl);
                 });
             });
-            // one2many destMha's applierGroup_mhaId could make sure unique one,no need replicator_group_id
-            applierGroupTbls.stream().filter(predicate -> predicate.getMhaId().equals(mhaId)).forEach(applierGroupTbl -> {
-                logger.info("do mark applier group {} as deleted", applierGroupTbl.getId());
-                applierGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
-                applierGroupTblsToBeDeleted.add(applierGroupTbl);
-                applierTbls.stream().filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).forEach(applierTbl -> {
-                    logger.info("do mark applier {} as deleted", applierTbl.getId());
-                    applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
-                    applierTblsToBeDeleted.add(applierTbl);
-                });
-            });
         }
 
-
-        logger.info("do delete mhaGroup, GroupMhaMapping, mha, machine, replicator group, applier group, replicator, applier s");
+        logger.info("do delete mhaGroup, GroupMhaMapping, mha, machine, replicator group, applier group, replicator, applier");
         dalUtils.getMhaGroupTblDao().update(mhaGroupTbl);
         dalUtils.getGroupMappingTblDao().update(groupMappingTblsToBeDeleted);
         dalUtils.getMhaTblDao().update(mhaTblsToBeDeleted);
@@ -358,7 +344,11 @@ public class TransferServiceImpl implements TransferService {
 
     public void recoverDeletedDrc(String mhaName, String dstMhaName) throws SQLException {
         Long mhaGroupId = metaInfoService.getMhaGroupId(mhaName,dstMhaName,BooleanEnum.TRUE);
-        if(null != mhaGroupId) {
+        if (metaInfoService.getMhaGroupId(mhaName,dstMhaName,BooleanEnum.FALSE) != null) {
+            logger.warn("group-{}-{} already exist",mhaName,dstMhaName);
+            return;
+        }
+        if (null != mhaGroupId ) {
             MhaGroupTbl mhaGroupTbl = dalUtils.getMhaGroupTblDao().queryByPk(mhaGroupId);
             List<MhaTbl> srcMha = dalUtils.getMhaTblDao().queryAll().stream()
                     .filter(p -> (p.getMhaName().equalsIgnoreCase(mhaName))).collect(Collectors.toList());
@@ -366,83 +356,62 @@ public class TransferServiceImpl implements TransferService {
             List<MhaTbl> destMha = dalUtils.getMhaTblDao().queryAll().stream()
                     .filter(p -> (p.getMhaName().equalsIgnoreCase(dstMhaName))).collect(Collectors.toList());
             srcMha.addAll(destMha);
-            doUpdate(mhaGroupTbl, srcMha,BooleanEnum.FALSE);
+            doReCover(mhaGroupTbl, srcMha);
         }
     }
 
-    public void doUpdate(MhaGroupTbl mhaGroupTbl, List<MhaTbl> mhaTbls, BooleanEnum finalDeletedStatus) throws SQLException{
-        if (finalDeletedStatus.equals(BooleanEnum.TRUE)) {
-            // doRemove
-            return;
-        } else {
-            // doRecover
-            // gruop,groupMapping,mha,replicator_group,applicator_group,machine
-            // replicators,appliers insert new data no need recovery
-            List<GroupMappingTbl> groupMappingTblsToBeUpdated = dalUtils.getGroupMappingTblDao().queryAll().stream()
-                    .filter(p -> p.getDeleted().equals(BooleanEnum.TRUE.getCode())
-                            && p.getMhaGroupId().equals(mhaGroupTbl.getId())).collect(Collectors.toList());
-            List<MhaTbl> mhaTblsToBeUpdated = Lists.newArrayList();
-            List<MachineTbl> machineTblsToBeUpdated = Lists.newArrayList();
-            List<ReplicatorGroupTbl> replicatorGroupTblsToBeUpdated = Lists.newArrayList();
-            List<ApplierGroupTbl> applierGroupTblsToBeUpdated = Lists.newArrayList();
-            List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
-            List<ApplierTbl> applierTblsToBeUpdated = Lists.newArrayList();
-            for (MhaTbl mhaTbl : mhaTbls) {
-                if (mhaTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
-                    mhaTblsToBeUpdated.add(mhaTbl);
-                }
-            }
-            logger.info("do recover mha group {}", mhaGroupTbl.getId());
-            mhaGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            for (GroupMappingTbl groupMappingTbl : groupMappingTblsToBeUpdated) {
-                logger.info("do recover mha group mapping {}", groupMappingTbl.getId());
-                groupMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            }
-            if (mhaTblsToBeUpdated.size() == 1) {
-                // recover one2many(one is not deleted) gruop*1,groupMapping*2,mha*1,replicator_group*1,applicator_group*2,machine*(n/2n)
-                // special applicator_group and applicators is essential recover first
-                long destMhaId = mhaTblsToBeUpdated.get(0).getId();
-                long srcMhaId = mhaTbls.stream().filter(p -> !p.getId().equals(destMhaId)).findFirst().get().getId();
-                final long destMha_replicator_group_id = dalUtils.getReplicatorGroupTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(destMhaId)).findFirst().get().getId();
-                dalUtils.getApplierGroupTblDao().queryAll().stream().filter(p -> p.getReplicatorGroupId().equals(destMha_replicator_group_id) && p.getMhaId().equals(srcMhaId)).forEach(applierGroupTbl -> {
-                    logger.info("do mark srcMha's applier group {} as unDeleted", applierGroupTbl.getId());
-                    applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                    applierGroupTblsToBeUpdated.add(applierGroupTbl);
-                });
-            }
-            for (MhaTbl mhaTbl : mhaTblsToBeUpdated) {
-                Long mhaId = mhaTbl.getId();
-                logger.info("mark mha {} as unDeleted", mhaTbl.getMhaName());
-                mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                dalUtils.getMachineTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(mhaId) && predicate.getDeleted().equals(BooleanEnum.TRUE.getCode())).forEach(machineTbl -> {
-                    logger.info("mark machine {}:{} as unDeleted", machineTbl.getIp(), machineTbl.getPort());
-                    machineTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                    machineTblsToBeUpdated.add(machineTbl);
-                });
-                dalUtils.getReplicatorGroupTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(mhaId) && predicate.getDeleted().equals(BooleanEnum.TRUE.getCode())).forEach(replicatorGroupTbl -> {
-                    logger.info("mark replicator group {} as unDeleted", replicatorGroupTbl.getId());
-                    replicatorGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                    replicatorGroupTblsToBeUpdated.add(replicatorGroupTbl);
-                });
-                dalUtils.getApplierGroupTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(mhaId) && predicate.getDeleted().equals(BooleanEnum.TRUE.getCode())).forEach(applierGroupTbl -> {
-                    logger.info("mark applier group {} as unDeleted", applierGroupTbl.getId());
-                    applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                    applierGroupTblsToBeUpdated.add(applierGroupTbl);
-                });
-            }
+    public void doReCover(MhaGroupTbl mhaGroupTbl, List<MhaTbl> mhaTbls) throws SQLException {
+        // gruop,groupMapping,mha,applicator_group,replicator_group,machine
+        // replicators,appliers insert new data no need to recovery
 
-            logger.info("do recover mhaGroup, GroupMhaMapping, mha, machine, replicator group, applier group, replicator, applier s");
-            dalUtils.getMhaGroupTblDao().update(mhaGroupTbl);
-            dalUtils.getGroupMappingTblDao().update(groupMappingTblsToBeUpdated);
-            dalUtils.getMhaTblDao().update(mhaTblsToBeUpdated);
-            dalUtils.getMachineTblDao().update(machineTblsToBeUpdated);
+        List<GroupMappingTbl> groupMappingTblsToBeUpdated = Lists.newArrayList();
+        List<MhaTbl> mhaTblsToBeUpdated = Lists.newArrayList();
+        List<MachineTbl> machineTblsToBeUpdated = Lists.newArrayList();
+        List<ReplicatorGroupTbl> replicatorGroupTblsToBeUpdated = Lists.newArrayList();
+        List<ApplierGroupTbl> applierGroupTblsToBeUpdated = Lists.newArrayList();
 
-            dalUtils.getReplicatorGroupTblDao().update(replicatorGroupTblsToBeUpdated);
-            dalUtils.getApplierGroupTblDao().update(applierGroupTblsToBeUpdated);
-            dalUtils.getReplicatorTblDao().update(replicatorTblsToBeUpdated);
-            dalUtils.getApplierTblDao().update(applierTblsToBeUpdated);
-
+        logger.info("do recover mha group {}", mhaGroupTbl.getId());
+        mhaGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        groupMappingTblsToBeUpdated = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.TRUE.getCode())
+                && p.getMhaGroupId().equals(mhaGroupTbl.getId())).collect(Collectors.toList());
+        for (GroupMappingTbl groupMappingTbl : groupMappingTblsToBeUpdated) {
+            logger.info("do recover mha group mapping {}", groupMappingTbl.getId());
+            groupMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
         }
+        for (MhaTbl mhaTbl : mhaTbls) {
+            long anOtherMhaId = mhaTbls.stream().filter(p -> !p.getMhaName().equals(mhaTbl.getMhaName())).findFirst().get().getId();
+            long anOtherMhaReplicatorGroupId = dalUtils.getReplicatorGroupTblDao().queryAll().stream().filter(p -> p.getMhaId().equals(anOtherMhaId)).findFirst().get().getId();
+            ApplierGroupTbl applierGroupTbl = dalUtils.getApplierGroupTblDao().queryAll().stream()
+                    .filter(p -> p.getReplicatorGroupId().equals(anOtherMhaReplicatorGroupId) && p.getMhaId().equals(mhaTbl.getId()) && p.getDeleted().equals(BooleanEnum.TRUE.getCode())).findFirst().get();
+            logger.info("do recover applier group {} as unDeleted", applierGroupTbl.getId());
+            applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            applierGroupTblsToBeUpdated.add(applierGroupTbl);
+        }
+
+        mhaTblsToBeUpdated.addAll(mhaTbls.stream().filter(p -> p.getDeleted().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList()));
+        for (MhaTbl mhaTbl : mhaTblsToBeUpdated) {
+            Long mhaId = mhaTbl.getId();
+            logger.info("mark mha {} as unDeleted", mhaTbl.getMhaName());
+            mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            dalUtils.getMachineTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(mhaId) && predicate.getDeleted().equals(BooleanEnum.TRUE.getCode())).forEach(machineTbl -> {
+                logger.info("mark machine {}:{} as unDeleted", machineTbl.getIp(), machineTbl.getPort());
+                machineTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                machineTblsToBeUpdated.add(machineTbl);
+            });
+            dalUtils.getReplicatorGroupTblDao().queryAll().stream().filter(predicate -> predicate.getMhaId().equals(mhaId) && predicate.getDeleted().equals(BooleanEnum.TRUE.getCode())).forEach(replicatorGroupTbl -> {
+                logger.info("mark replicator group {} as unDeleted", replicatorGroupTbl.getId());
+                replicatorGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                replicatorGroupTblsToBeUpdated.add(replicatorGroupTbl);
+            });
+        }
+
+        logger.info("do recover mhaGroup, GroupMhaMapping, mha, machine, replicator group, applier group, replicator, applier s");
+        dalUtils.getMhaGroupTblDao().update(mhaGroupTbl);
+        dalUtils.getGroupMappingTblDao().update(groupMappingTblsToBeUpdated);
+        dalUtils.getMhaTblDao().update(mhaTblsToBeUpdated);
+        dalUtils.getMachineTblDao().update(machineTblsToBeUpdated);
+        dalUtils.getReplicatorGroupTblDao().update(replicatorGroupTblsToBeUpdated);
+        dalUtils.getApplierGroupTblDao().update(applierGroupTblsToBeUpdated);
 
     }
 }

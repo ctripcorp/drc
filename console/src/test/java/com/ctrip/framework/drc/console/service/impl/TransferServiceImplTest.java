@@ -148,14 +148,14 @@ public class TransferServiceImplTest extends AbstractTest {
         transferService.loadMetaData(DRC_XML2_1);
         transferService.loadOneMetaData(DRC_XML2_2);
         transferService.removeConfig("fat-fx-drc3", "fat-fx-drc1");
-        System.out.println("pause and watch mysql status");
-        
-        //some status like monitor_switch cannot recover
+        System.out.println("pause and watch check mysql status");
+
+        //some status like monitor_switch shouldn't recover
         transferService.recoverDeletedDrc("fat-fx-drc3", "fat-fx-drc1");
-        
+
         System.out.println("pause and watch mysql status");
-        
-    // to make data consistent for test after
+
+        // to make data consistent for test after
         AllTests.truncateAllMetaDb();
         transferService.loadMetaData(DRC_XML2_1);
         transferService.loadOneMetaData(DRC_XML2_2);
