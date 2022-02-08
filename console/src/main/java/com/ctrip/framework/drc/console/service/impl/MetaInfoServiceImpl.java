@@ -116,7 +116,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         srcMhaTbl.setMhaName(srcMha);
         dstMhaTbl.setMhaName(dstMha);
         List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(srcMhaTbl);
-        List<MhaTbl> mhaTbls1 = dalUtils.getMhaTblDao().queryBy(srcMhaTbl);
+        List<MhaTbl> mhaTbls1 = dalUtils.getMhaTblDao().queryBy(dstMhaTbl);
         if(mhaTbls == null || mhaTbls.size() != 1){
             logger.info("no such mhaTbls name is {}",srcMha);
             return null;
