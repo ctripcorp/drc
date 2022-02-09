@@ -41,9 +41,8 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     @InstanceResource
     public Executor executor;
 
-    //100 for apply activity, 1 for merge opposite gtid set
     @InstanceConfig(path = "target.poolSize")
-    public int poolSize = 100 + 1;
+    public int poolSize = 100;
 
     public int validationInterval = 30000;
 

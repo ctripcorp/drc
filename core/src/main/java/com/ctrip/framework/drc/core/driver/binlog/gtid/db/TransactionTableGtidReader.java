@@ -66,7 +66,6 @@ public class TransactionTableGtidReader implements GtidReader {
                 }
             }
         }
-        logger.info("select specific gtid set is: {}", specificGtidSet.toString());
         return specificGtidSet;
     }
 }

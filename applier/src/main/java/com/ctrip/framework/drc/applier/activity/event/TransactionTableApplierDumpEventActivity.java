@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledC
 import com.ctrip.framework.drc.applier.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.resource.TransactionTable;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -38,6 +39,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
             String gtid = ((ApplierDrcGtidEvent) event).getGtid();
             loggerER.info("{} {} - RECEIVED - {}", cluster, gtid, event.getClass().getSimpleName());
             transactionTable.recordToMemory(gtid);
+            updateGtidSet(gtid);
             skipEvent = true;
             return;
         }
@@ -60,5 +62,11 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     @Override
     protected boolean shouldSkip() {
         return skipEvent;
+    }
+
+    protected void updateGtidSet(String gtid) {
+        GtidSet set = context.fetchGtidSet();
+        set.add(gtid);
+        context.updateGtidSet(set);
     }
 }

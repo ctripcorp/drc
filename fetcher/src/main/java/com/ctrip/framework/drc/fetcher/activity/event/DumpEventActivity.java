@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import com.ctrip.framework.drc.fetcher.system.*;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -209,5 +210,10 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @Override
     public boolean tryAcquire(long timeout, TimeUnit unit) throws InterruptedException {
         return capacity.tryAcquire(100, TimeUnit.MILLISECONDS);
+    }
+
+    @VisibleForTesting
+    public void setContext(NetworkContextResource context) {
+        this.context = context;
     }
 }
