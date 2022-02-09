@@ -60,6 +60,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
 
         if (whateverGoesWrong) {
             rollback();
+            conflictAndRollback();
             if (getLastUnbearable() != null) {
                 return ApplyResult.UNKNOWN;
             } else {
@@ -67,6 +68,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             }
         }
         commit();
+        if (getConflictMap().contains(true)) {
+            conflictAndCommit();
+        }
         if (getLastUnbearable() != null) {
             return ApplyResult.UNKNOWN;
         } else {

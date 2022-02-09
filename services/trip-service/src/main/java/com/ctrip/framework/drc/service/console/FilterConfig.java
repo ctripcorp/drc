@@ -18,9 +18,8 @@ public class FilterConfig {
 
     @Bean
     public FilterRegistrationBean ssoFilterRegistration() {
+        // config at bypass/filter/permission on qconfig permissionsconfig.xml
         FilterRegistrationBean registration = new FilterRegistrationBean();
-//         for openSource Filter use Blank
-//         registration.setFilter(new BlankFilter());
         registration.setFilter(new CtripSSOFilter());
         registration.setDispatcherTypes(DispatcherType.REQUEST);
 
