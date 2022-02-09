@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.filter.aviator;
+package com.ctrip.framework.drc.core.filter.aviator;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;

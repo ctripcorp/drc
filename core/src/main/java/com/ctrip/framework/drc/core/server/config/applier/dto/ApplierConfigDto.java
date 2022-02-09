@@ -20,6 +20,7 @@ public class ApplierConfigDto extends ApplierMeta {
     private int managerPort;
     private String includedDbs;
     private String nameFilter;
+    private String nameMapping;
     private String routeInfo;
     private String skipEvent;
     private int applyMode;
@@ -88,6 +89,14 @@ public class ApplierConfigDto extends ApplierMeta {
         this.nameFilter = nameFilter;
     }
 
+    public String getNameMapping() {
+        return nameMapping;
+    }
+
+    public void setNameMapping(String nameMapping) {
+        this.nameMapping = nameMapping;
+    }
+
     public String getRouteInfo() {
         return routeInfo;
     }
@@ -126,6 +135,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 ", gtidExecuted='" + gtidExecuted + '\'' +
                 ", includedDbs='" + includedDbs + '\'' +
                 ", nameFilter='" + nameFilter + '\'' +
+                ", nameMapping='" + nameMapping + '\'' +
                 ", routeInfo='" + routeInfo + '\'' +
                 ", managerIp='" + managerIp + '\'' +
                 ", managerPort=" + managerPort +
@@ -155,6 +165,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 Objects.equals(target.ip, that.target.ip) &&
                 Objects.equals(includedDbs, that.includedDbs) &&
                 Objects.equals(nameFilter, that.nameFilter) &&
+                Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
                 applyMode == that.applyMode;
@@ -162,6 +173,6 @@ public class ApplierConfigDto extends ApplierMeta {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, routeInfo, target.port, applyMode);
+        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode);
     }
 }

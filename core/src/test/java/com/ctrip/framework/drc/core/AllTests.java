@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCo
 import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
@@ -138,7 +139,10 @@ import org.junit.runners.Suite;
         ModuleEnumTest.class,
         QueryTypeTest.class,
 
-        DelayMonitorColumnTest.class
+        DelayMonitorColumnTest.class,
+
+        // table regex filter
+        AviatorRegexFilterTest.class,
 })
 public class AllTests {
 

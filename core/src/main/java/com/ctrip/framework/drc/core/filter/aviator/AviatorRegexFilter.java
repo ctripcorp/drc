@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.filter.aviator;
+package com.ctrip.framework.drc.core.filter.aviator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.ctrip.framework.drc.replicator.filter.exception.FilterException;
+import com.ctrip.framework.drc.core.filter.exception.FilterException;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 

@@ -13,4 +13,6 @@ public interface EventGroup {
     boolean isOverflowed() throws InterruptedException;
 
     void reset();
+
+    boolean isEmptyTransaction();
 }

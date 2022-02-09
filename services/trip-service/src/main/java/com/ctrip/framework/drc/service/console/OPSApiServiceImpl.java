@@ -32,7 +32,7 @@ public class OPSApiServiceImpl  implements OPSApiService {
     private static final String DAL_SERVICE_SUFFIX = "?operator=drcAdmin";
 
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public JsonNode getAllClusterInfo(String getAllClusterUrl,String accessToken) throws JsonProcessingException  {
