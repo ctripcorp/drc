@@ -133,6 +133,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         if (srcMhaGroupIds.size() == 1) {
             return srcMhaGroupIds.iterator().next();
         }
+        logger.warn("group for {}-{} find not one but {}",srcMha,dstMha,srcMhaGroupIds.size());
         return null;
     }
 
