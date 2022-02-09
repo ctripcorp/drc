@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResource;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResource;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 
 /**
  * Created by jixinwang on 2021/9/14
@@ -35,6 +36,7 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .with(CapacityResource.class)
                 .with(ListenableDirectMemoryResource.class)
                 .with(TransactionTableResource.class)
+                .with(TransformerContextResource.class)
                 .with(MetricsActivity.class)
                 .with(ReportConflictActivity.class)
                 .with(LoadEventActivity.class)

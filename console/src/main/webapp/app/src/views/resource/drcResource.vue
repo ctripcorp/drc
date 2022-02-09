@@ -121,6 +121,10 @@ export default {
         {
           value: 'sinibuaws',
           label: 'IBU-VPC'
+        },
+        {
+          value: 'sinaws',
+          label: '新加坡AWS'
         }
       ],
       result: ''

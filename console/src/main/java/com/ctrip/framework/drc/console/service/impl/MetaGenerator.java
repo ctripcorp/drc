@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -32,10 +31,10 @@ public class MetaGenerator {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
+
     @Autowired
     private DataCenterService dataCenterService;
-    
+
     private DalUtils dalUtils = DalUtils.getInstance();
 
     protected String localDcName;
@@ -253,6 +252,8 @@ public class MetaGenerator {
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setNameMapping(applierGroupTbl.getNameMapping())
+                    .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode());
             dbCluster.addApplier(applier);
         }

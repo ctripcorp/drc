@@ -49,9 +49,10 @@ public class DefaultApplierMasterChooserManagerTest extends AbstractDbClusterTes
     public void handleClusterChange() {
         String replicatorMha = dbCluster.getMhaName();
         String mha = dbCluster.getAppliers().get(0).getTargetMhaName();
+        String name = dbCluster.getAppliers().get(0).getTargetMhaName();
         String idc = dbCluster.getAppliers().get(0).getTargetIdc();
-        DefaultApplierMasterChooserManager.Key key1 = new DefaultApplierMasterChooserManager.Key(idc, mha, replicatorMha);
-        DefaultApplierMasterChooserManager.Key key2 = new DefaultApplierMasterChooserManager.Key(idc, mha, replicatorMha);
+        DefaultApplierMasterChooserManager.Key key1 = new DefaultApplierMasterChooserManager.Key(idc, mha, name, replicatorMha);
+        DefaultApplierMasterChooserManager.Key key2 = new DefaultApplierMasterChooserManager.Key(idc, mha, name, replicatorMha);
         Assert.assertEquals(key1, key2);
 
         doNothing().when(currentMetaManager).addResource(anyString(), anyObject());
@@ -76,9 +77,10 @@ public class DefaultApplierMasterChooserManagerTest extends AbstractDbClusterTes
     public void handleClusterChangeWithUpdate() throws Exception {
         String replicatorMha = dbCluster.getMhaName();
         String mha = dbCluster.getAppliers().get(0).getTargetMhaName();
+        String name = dbCluster.getAppliers().get(0).getTargetName();
         String idc = dbCluster.getAppliers().get(0).getTargetIdc();
-        DefaultApplierMasterChooserManager.Key key1 = new DefaultApplierMasterChooserManager.Key(idc, mha, replicatorMha);
-        DefaultApplierMasterChooserManager.Key key2 = new DefaultApplierMasterChooserManager.Key(idc, mha, replicatorMha);
+        DefaultApplierMasterChooserManager.Key key1 = new DefaultApplierMasterChooserManager.Key(idc, mha, name, replicatorMha);
+        DefaultApplierMasterChooserManager.Key key2 = new DefaultApplierMasterChooserManager.Key(idc, mha, name, replicatorMha);
         Assert.assertEquals(key1, key2);
 
         doNothing().when(currentMetaManager).addResource(anyString(), anyObject());

@@ -59,6 +59,7 @@ public abstract class AbstractDbClusterTest extends AbstractZkTest {
         newReplicator.setMaster(false);
 
         newApplier.setTargetMhaName("mockTargetMha_*&^%");
+        newApplier.setTargetName("mockTargetName_1234");
         newApplier.setTargetIdc("mockTargetIdc_*&^%");
         newApplier.setMaster(true);
         newApplier.setIp(LOCAL_IP);

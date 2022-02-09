@@ -27,7 +27,7 @@ import java.util.List;
 @Component
 public class DbClusterRetriever extends AbstractConfigBean {
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
     
     @Autowired
     private DomainConfig domainConfig;
@@ -57,9 +57,6 @@ public class DbClusterRetriever extends AbstractConfigBean {
      * get all the cluster objects from DAL
      */
     public List<DalCluster> getDalClusters(JsonNode result) {
-        if(null == objectMapper) {
-            objectMapper = new ObjectMapper();
-        }
         List<DalCluster> res = Lists.newArrayList();
         for(final JsonNode objNode : result) {
             try {
@@ -75,9 +72,6 @@ public class DbClusterRetriever extends AbstractConfigBean {
      * get all mhas objects for give JsonNode list
      */
     public List<Mha> getMhas(JsonNode result) {
-        if(null == objectMapper) {
-            objectMapper = new ObjectMapper();
-        }
         objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
         List<Mha> res = Lists.newArrayList();
         for(final JsonNode objNode : result) {

@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
-import com.ctrip.framework.drc.replicator.filter.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorConnectionTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.EventTransactionCacheTest;
@@ -90,9 +89,6 @@ import java.sql.Statement;
 
         //transaction filters
         TransactionTableFilterTest.class,
-
-        // table regex filter
-        AviatorRegexFilterTest.class,
 
         // ddl
         DdlParserTest.class,

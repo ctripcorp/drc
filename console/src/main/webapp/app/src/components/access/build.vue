@@ -86,16 +86,20 @@ export default {
             label: '南通星湖大道'
           },
           {
-            value: 'shali',
-            label: '上海阿里'
-          },
-          {
             value: 'fraaws',
             label: '法兰克福AWS'
           },
           {
+            value: 'shali',
+            label: '上海阿里'
+          },
+          {
             value: 'sinibuaws',
             label: 'IBU-VPC'
+          },
+          {
+            value: 'sinaws',
+            label: '新加坡AWS'
           }
         ]
       },

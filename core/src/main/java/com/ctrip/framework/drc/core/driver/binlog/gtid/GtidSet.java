@@ -148,11 +148,12 @@ public class GtidSet {
     }
 
     public GtidSet union(GtidSet other) {
-        if (other == null || other.map == null || other.map.size() == 0) {
+        if (other == null || other.map.size() == 0) {
             return clone();
         }
         GtidSet clone = clone();
-        for (Map.Entry<String, UUIDSet> entry : other.map.entrySet()) {
+        GtidSet otherClone = other.clone();
+        for (Map.Entry<String, UUIDSet> entry : otherClone.map.entrySet()) {
             String uuid = entry.getKey();
             UUIDSet uuidSet = clone.getUUIDSet(uuid);
             if (uuidSet == null) {

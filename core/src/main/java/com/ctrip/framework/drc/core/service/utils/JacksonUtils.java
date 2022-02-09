@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.service.utils;
 
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ public class JacksonUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(JacksonUtils.class);
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,false);
 
     private static final Integer ERROR_STATUS = 400;
 
