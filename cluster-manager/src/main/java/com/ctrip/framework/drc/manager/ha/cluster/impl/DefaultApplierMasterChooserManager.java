@@ -166,7 +166,6 @@ public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObser
 
         @Override
         public int hashCode() {
-
             return Objects.hash(idc, mha, name, localMha);
         }
     }
