@@ -64,7 +64,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         return skipEvent;
     }
 
-    private void updateGtidSet(String gtid) {
+    protected void updateGtidSet(String gtid) {
         GtidSet set = context.fetchGtidSet();
         set.add(gtid);
         context.updateGtidSet(set);

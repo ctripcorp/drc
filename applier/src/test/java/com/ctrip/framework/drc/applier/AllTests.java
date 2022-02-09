@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier;
 
+import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplierDumpEventActivityTest;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnectorTest;
 import com.ctrip.framework.drc.applier.confirmed.ConfirmedTests;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainerTest;
@@ -85,7 +86,10 @@ import org.junit.runners.Suite;
         //integrated
         ApplierTest.class,
         ApplierTestWithMockedEvents.class,
-        ApplierServerControllerTest.class
+        ApplierServerControllerTest.class,
+
+        //activity
+        TransactionTableApplierDumpEventActivityTest.class
 })
 public class AllTests {
 
