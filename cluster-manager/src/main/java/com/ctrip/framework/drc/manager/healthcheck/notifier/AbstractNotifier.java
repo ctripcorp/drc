@@ -94,6 +94,7 @@ public abstract class AbstractNotifier implements Notifier {
         String url = httpSend.getUrl();
         try {
             ApiResult<Boolean> apiResult = httpSend.sendHttp();
+            NOTIFY_LOGGER.info("put result, apiResult is: {}, data is: {}", apiResult, apiResult.getData());
             boolean success = apiResult.getData();
             NOTIFY_LOGGER.info("[Notify] {} by http with result {} and message {}", url, success, apiResult.getMessage());
             if (!success) {
@@ -186,6 +187,7 @@ public abstract class AbstractNotifier implements Notifier {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Object> entity = new HttpEntity<Object>(getBody(ipAndPort, dbCluster, register), headers);
             ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.PUT, entity, ApiResult.class);
+            logger.info("put send result is: {}", response.getBody());
             return response.getBody();
         }
     }
