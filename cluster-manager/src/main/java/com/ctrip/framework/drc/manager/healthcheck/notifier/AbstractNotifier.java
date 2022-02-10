@@ -95,7 +95,6 @@ public abstract class AbstractNotifier implements Notifier {
         String url = httpSend.getUrl();
         try {
             ApiResult<Boolean> apiResult = httpSend.sendHttp();
-            NOTIFY_LOGGER.info("put result, apiResult is: {}, data is: {}", apiResult.toString(), apiResult.getData());
             boolean success = apiResult.getData();
             NOTIFY_LOGGER.info("[Notify] {} by http with result {} and message {}", url, success, apiResult.getMessage());
             if (!success) {
@@ -169,7 +168,13 @@ public abstract class AbstractNotifier implements Notifier {
 
         @Override
         public ApiResult<Boolean> sendHttp() {
-            return restTemplate.postForObject(url, getBody(ipAndPort, dbCluster, false), ApiResult.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+            HttpEntity<Object> entity = new HttpEntity<Object>(getBody(ipAndPort, dbCluster, false), headers);
+            ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.POST, entity, ApiResult.class);
+            return response.getBody();
+            //return restTemplate.postForObject(url, getBody(ipAndPort, dbCluster, false), ApiResult.class);
         }
     }
 
@@ -189,7 +194,6 @@ public abstract class AbstractNotifier implements Notifier {
             headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
             HttpEntity<Object> entity = new HttpEntity<Object>(getBody(ipAndPort, dbCluster, register), headers);
             ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.PUT, entity, ApiResult.class);
-            logger.info("put send result is: {}", response.getBody().toString());
             return response.getBody();
         }
     }
@@ -204,6 +208,7 @@ public abstract class AbstractNotifier implements Notifier {
         public ApiResult<Boolean> sendHttp() {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
             restTemplate.delete(url);
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         }
