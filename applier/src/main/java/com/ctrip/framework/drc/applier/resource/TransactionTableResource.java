@@ -48,6 +48,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private static final String INSERT_GTID_SET_SQL = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`, `gtidset`) values(-1, ?, -1, ?);";
 
+    private static final String BEGIN = "begin";
+
     private static final String COMMIT = "commit";
 
     private static final String ROLLBACK = "rollback";
@@ -229,6 +231,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
         Connection connection = null;
         try {
             connection = dataSource.getConnection();
+            try (PreparedStatement statement = connection.prepareStatement(BEGIN)) {
+                statement.execute();
+            }
             boolean needCommit = false;
             for (String uuid : gtidSet.getUUIDs()) {
                 needCommit = true;
@@ -450,6 +455,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
         @Override
         public void afterException(Throwable t) {
+            DataSourceManager.getInstance().clearDataSource(endpoint);
             loggerTT.error("[TT] call gtid merge task failed", t);
             try {
                 TimeUnit.SECONDS.sleep(1);
