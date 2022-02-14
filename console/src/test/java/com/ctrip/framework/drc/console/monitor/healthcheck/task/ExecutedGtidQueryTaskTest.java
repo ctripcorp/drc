@@ -17,6 +17,6 @@ public class ExecutedGtidQueryTaskTest {
     @Test
     public void testDownGrade() {
         ExecutedGtidQueryTask executedGtidQueryTask = new ExecutedGtidQueryTask(wrongCiEndpoint);
-        Assert.assertTrue(StringUtils.isNotEmpty(executedGtidQueryTask.doQuery()));
+        Assert.assertTrue(StringUtils.isEmpty(executedGtidQueryTask.doQuery()));
     }
 }
