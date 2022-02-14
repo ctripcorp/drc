@@ -412,9 +412,10 @@ public class MetaController {
     public ApiResult getProxyRoutes(@RequestParam(value = "routeOrgName", required = false) String routeOrgName,
                                     @RequestParam(value = "srcDcName", required = false) String srcDcName,
                                     @RequestParam(value = "dstDcName", required = false) String dstDcName,
-                                    @RequestParam(value = "tag", required = false) String tag) {
-        logger.info("[meta] get proxy routes for {}-{},{}->{}", routeOrgName, tag, srcDcName, dstDcName);
-        List<RouteDto> routeDtoList = metaInfoService.getRoutes(routeOrgName, srcDcName, dstDcName, tag);
+                                    @RequestParam(value = "tag", required = false) String tag,
+                                    @RequestParam(value = "deleted",required = true) Integer deleted){
+        logger.info("[meta] get proxy routes for {}-{},{}->{},{}", routeOrgName, tag, srcDcName, dstDcName,deleted);
+        List<RouteDto> routeDtoList = metaInfoService.getRoutes(routeOrgName, srcDcName, dstDcName, tag,deleted);
         return ApiResult.getSuccessInstance(routeDtoList);
     }
 

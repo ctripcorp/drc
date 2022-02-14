@@ -476,7 +476,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Test
     public void testGetProxyRoutes() {
-        List<RouteDto> proxyRoutes = metaInfoService.getRoutes(null, null, null, null);
+        List<RouteDto> proxyRoutes = metaInfoService.getRoutes(null, null, null, null,0);
         Assert.assertEquals(2, proxyRoutes.size());
         for (RouteDto dto : proxyRoutes) {
             Assert.assertEquals("shaoy", dto.getSrcDcName());
@@ -500,7 +500,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             }
         }
 
-        proxyRoutes = metaInfoService.getRoutes("BBZ", "shaoy", "sharb", "meta");
+        proxyRoutes = metaInfoService.getRoutes("BBZ", "shaoy", "sharb", "meta",0);
         Assert.assertEquals(1, proxyRoutes.size());
         for (RouteDto dto : proxyRoutes) {
             Assert.assertEquals("shaoy", dto.getSrcDcName());
@@ -517,10 +517,10 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             Assert.assertTrue(dstProxyIps.contains(PROXYTLS_DC2_2));
         }
 
-        proxyRoutes = metaInfoService.getRoutes("nosuchorg", "shaoy", "sharb", "meta");
+        proxyRoutes = metaInfoService.getRoutes("nosuchorg", "shaoy", "sharb", "meta",0);
         Assert.assertEquals(0, proxyRoutes.size());
 
-        proxyRoutes = metaInfoService.getRoutes("", "", "", "");
+        proxyRoutes = metaInfoService.getRoutes("", "", "", "",0);
         Assert.assertEquals(0, proxyRoutes.size());
     }
 
