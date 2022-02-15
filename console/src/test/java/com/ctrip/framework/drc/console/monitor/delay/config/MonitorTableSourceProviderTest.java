@@ -94,5 +94,6 @@ public class MonitorTableSourceProviderTest {
         Assert.assertEquals("off", monitorTableSourceProvider.getAllowFailoverSwitch());
         Assert.assertEquals(3000, monitorTableSourceProvider.getDalServiceTimeout());
         Assert.assertEquals("on", monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch());
+        Assert.assertEquals(30,monitorTableSourceProvider.getGtidMonitorPeriod());
     }
 }
