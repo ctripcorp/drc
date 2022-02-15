@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.service.task;
 
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 
 public class GlobalExecutedGtidQueryTask extends ExecutedGtidQueryTask {
