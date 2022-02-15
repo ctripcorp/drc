@@ -11,8 +11,8 @@
         源端机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.srcDcName" />
         目标机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.dstDcName" />
         tag：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.tag" />
-        deleted：<Select v-model="searchCondition.deleted"  style="width: 200px" placeholder="inUse">
-          <Option v-for="item in searchOption.deleteOptions" :value="item.value" :key="item.key">{{ item.key }}</Option>
+        deleted：<Select v-model="searchCondition.deleted"  style="width: 200px" placeholder="inUse" @on-change="getRoutes">
+          <Option v-for="item in searchOption.deleteOptions" :value="item.value" :key="item.key" >{{ item.key }}</Option>
         </Select>
           <Button :style="{marginLeft: '10px'}" type="primary" @click="getRoutes">查询</Button>
           <Button :style="{marginLeft: '10px'}" type="primary" @click="goToRouteManagementLink">添加路由</Button>
