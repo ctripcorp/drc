@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.service.task;
 
+import com.ctrip.framework.drc.core.driver.healthcheck.task.AbstractQueryTask;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;

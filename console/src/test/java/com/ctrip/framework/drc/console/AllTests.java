@@ -30,6 +30,7 @@ import com.ctrip.framework.drc.console.monitor.delay.task.InitDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
+import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest;
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest2;
 import com.ctrip.framework.drc.console.monitor.table.task.CheckTableConsistencyTaskTest;
@@ -126,6 +127,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MonitorControllerTest.class,
         OpenApiControllerTest.class,
 
+        //task
+        ExecutedGtidQueryTaskTest.class,
         // monitor
         ConsistentMonitorContainerTest.class,
         StaticDelayMonitorServerTest.class,
