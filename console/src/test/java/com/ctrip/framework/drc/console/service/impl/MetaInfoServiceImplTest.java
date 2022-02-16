@@ -247,6 +247,12 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         String targetName = metaInfoService.getTargetName("fat-fx-drc1", "fat-fx-drc2");
         Assert.assertEquals("integration-test",targetName);
     }
+    
+    @Test
+    public void testGetApplierFilter() throws SQLException {
+        String applierFilter = metaInfoService.getApplierFilter("fat-fx-drc1", "fat-fx-drc2");
+        Assert.assertEquals("drcmonitordb\\.*", applierFilter);
+    }
 
     // take effect of DrcBuildServiceImplTest.testSubmitConfig
     @Test
