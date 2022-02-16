@@ -221,7 +221,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
      * report the columns consistency between tables in two dc
      */
     public void reportTableConsistency(@Valid ConsistencyEntity consistencyEntity, ConsistencyEnum consistencyEnum) {
-        reportConsistencyBasic(consistencyEntity, consistencyEnum, TABLE_CONSISTENCY_MEASUREMENT);
+        resetReportCounter(consistencyEntity.getTags(),consistencyEnum.getCode(),TABLE_CONSISTENCY_MEASUREMENT);
     }
 
     /**
