@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.utils;
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -20,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl.ALLMATCH;
 
 /**
  * @author shenhaibo
@@ -151,7 +154,7 @@ public class MySqlUtilsTest {
     @Test
     public void testGetCreateTblStmts() throws InterruptedException {
         Thread.sleep(500);
-        Map<String, String> createTblStmts = MySqlUtils.getDefaultCreateTblStmts(endpointCi3306);
+        Map<String, String> createTblStmts = MySqlUtils.getDefaultCreateTblStmts(endpointCi3306,new AviatorRegexFilter(ALLMATCH));
         Assert.assertEquals(3, createTblStmts.keySet().size());
         List<String> expected = new ArrayList<>() {{
             add(CREATE_TABLE1.toLowerCase().replaceAll("\r|\n", ""));
