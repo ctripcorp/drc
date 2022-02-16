@@ -130,7 +130,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         }
         CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency]] unionFilter is {} for {}-{}",unionFilter,srcMha,destMha);
         AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
-        // key: Columns, value: the number of occurrences for the Columns between two DCs
+        // key: database.table, value: createTblStmts
         Map<String, String> srcStmts = MySqlUtils.getDefaultCreateTblStmts(srcEndpoint,aviatorRegexFilter);
         Map<String, String> destStmts = MySqlUtils.getDefaultCreateTblStmts(destEndpoint,aviatorRegexFilter);
         

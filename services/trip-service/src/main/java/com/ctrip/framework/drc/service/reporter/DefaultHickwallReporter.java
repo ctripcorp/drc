@@ -195,7 +195,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     private void reportGtid(GtidGapEntity gtidGapEntity, Long value, String measurement) {
-        reportResetCounter(gtidGapEntity.getTags(), value, measurement);
+        resetReportCounter(gtidGapEntity.getTags(),value,measurement);
     }
 
     public void reportGtidGapCount(@Valid GtidGapEntity gtidGapEntity, Long gap) {
