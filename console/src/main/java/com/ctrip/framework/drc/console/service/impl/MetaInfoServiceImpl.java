@@ -47,6 +47,8 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Service
 public class MetaInfoServiceImpl implements MetaInfoService {
 
+    public static final String ALLMATCH = ".*";
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -622,7 +624,25 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         }
         return Lists.newArrayList();
     }
-
+    
+    public String getApplierFilter(String mha, String remoteMha) throws SQLException {
+        String includedDbs = getIncludedDbs(mha, remoteMha);
+        String nameFilter = getNameFilter(mha, remoteMha);
+        String applierFilter = ALLMATCH;
+        if (StringUtils.isNotBlank(nameFilter)) {
+            applierFilter = nameFilter;
+        } else if (StringUtils.isNotBlank(includedDbs)) {
+            String[] includedDbArray = includedDbs.split(",");
+            for (int i = 0; i < includedDbArray.length; i++) {
+                includedDbArray[i] += "\\.*";
+            }
+            applierFilter = StringUtils.join(includedDbArray,",");
+        } else {
+            logger.info("srcApplierFilter find none,use allMatch,mha-remoteMha is {}-{}",mha,remoteMha);
+        }
+        return applierFilter;
+    }
+    
     @Override
     public String getTargetName(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
