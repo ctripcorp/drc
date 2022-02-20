@@ -59,9 +59,9 @@ public class UuidFilterTest extends AbstractFilterTest {
         Set<String> uuids = Sets.newHashSet();
         uuids.add(UUID.randomUUID().toString());
         uuids.add(UUID.randomUUID().toString());
-        drcUuidLogEvent = new DrcUuidLogEvent(uuids, 0 , 10);
+        drcUuidLogEvent = new DrcUuidLogEvent(uuids, 0, 10);
 
-        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(drcUuidLogEvent, false, false, "");
+        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(drcUuidLogEvent, false, false, false, "");
         boolean skip = uuidFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 

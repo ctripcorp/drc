@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.transaction;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionEvent;
@@ -13,8 +14,11 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
 
 /**
  * @Author limingdong
@@ -27,6 +31,8 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
     public static int bufferSize = 1024 * 8;
 
     private int indexMask;
+
+    private boolean transactionTableRelated;
 
     private LogEvent[] entries;
 
@@ -130,11 +136,34 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }
+            if (transactionTableRelated) {
+                transformToDrcGtidLogEvent(transaction);
+            }
             filterChain.doFilter(transaction);
             transaction.write(ioCache);
             notifyExecutedGtid();
             transaction.release();
             flushSequence.set(end);
+        }
+    }
+
+    private void transformToDrcGtidLogEvent(TransactionEvent transaction) {
+        List<LogEvent> logEvents = transaction.getEvents();
+        Iterator<LogEvent> iterator = logEvents.iterator();
+        while (iterator.hasNext()) {
+            LogEvent logEvent = iterator.next();
+            LogEventType logEventType = logEvent.getLogEventType();
+            if (LogEventType.gtid_log_event == logEventType) {
+                GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
+                gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
+            } else {
+                try {
+                    logEvent.release();
+                } catch (Exception e) {
+                    EVENT_LOGGER.error("released logEventType of {} error when release redundant events", logEventType, e);
+                }
+                iterator.remove();
+            }
         }
     }
 
@@ -145,6 +174,10 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         } else {
             return true;
         }
+    }
+
+    public void markTransactionTableRelated(boolean transactionTableRelated) {
+        this.transactionTableRelated = transactionTableRelated;
     }
 
     private int getIndex(long sequence) {

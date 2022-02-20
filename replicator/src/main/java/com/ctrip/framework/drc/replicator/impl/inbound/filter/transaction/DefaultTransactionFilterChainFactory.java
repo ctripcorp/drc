@@ -12,11 +12,8 @@ public class DefaultTransactionFilterChainFactory {
     public static Filter<ITransactionEvent> createFilterChain(MonitorManager delayMonitor) {
         TransactionOffsetFilter transactionOffsetFilter = new TransactionOffsetFilter();
 
-        TransactionTableFilter transactionTableFilter = new TransactionTableFilter(delayMonitor);
-        transactionTableFilter.setSuccessor(transactionOffsetFilter);
-
         DdlIndexFilter ddlIndexFilter = new DdlIndexFilter();
-        ddlIndexFilter.setSuccessor(transactionTableFilter);
+        ddlIndexFilter.setSuccessor(transactionOffsetFilter);
 
         return ddlIndexFilter;
     }

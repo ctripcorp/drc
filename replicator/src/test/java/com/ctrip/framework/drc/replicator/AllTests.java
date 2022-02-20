@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventH
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapLogEventTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
@@ -86,9 +85,6 @@ import java.sql.Statement;
         DdlFilterTest.class,
         BlackTableNameFilterTest.class,
         DdlIndexFilterTest.class,
-
-        //transaction filters
-        TransactionTableFilterTest.class,
 
         // ddl
         DdlParserTest.class,
