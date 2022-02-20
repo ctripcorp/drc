@@ -137,7 +137,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }
             if (transactionTableRelated) {
-                transformToDrcGtidLogEvent(transaction);
+                convertToDrcGtidLogEvent(transaction);
             }
             filterChain.doFilter(transaction);
             transaction.write(ioCache);
@@ -147,7 +147,9 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         }
     }
 
-    private void transformToDrcGtidLogEvent(TransactionEvent transaction) {
+    //in our design, transaction blocked by circular replication needs to be converted into drc_gtid_log_event
+    @VisibleForTesting
+    public void convertToDrcGtidLogEvent(TransactionEvent transaction) {
         List<LogEvent> logEvents = transaction.getEvents();
         Iterator<LogEvent> iterator = logEvents.iterator();
         while (iterator.hasNext()) {

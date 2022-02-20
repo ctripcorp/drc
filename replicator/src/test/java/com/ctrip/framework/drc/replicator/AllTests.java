@@ -85,6 +85,7 @@ import java.sql.Statement;
         DdlFilterTest.class,
         BlackTableNameFilterTest.class,
         DdlIndexFilterTest.class,
+        TransactionTableFilterTest.class,
 
         // ddl
         DdlParserTest.class,
