@@ -34,8 +34,11 @@ public class DefaultFilterChainFactory {
         uuidFilter.setWhiteList(context.getWhiteUUID());
         eventTypeFilter.setSuccessor(uuidFilter);
 
+        TransactionTableFilter transactionTableFilter = new TransactionTableFilter();
+        uuidFilter.setSuccessor(transactionTableFilter);
+
         DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager());
-        uuidFilter.setSuccessor(ddlFilter);
+        transactionTableFilter.setSuccessor(ddlFilter);
 
         BlackTableNameFilter tableNameFilter = new BlackTableNameFilter(context.getInboundMonitorReport(), context.getTableNames());
         context.registerBlackTableNameFilter(tableNameFilter);

@@ -45,18 +45,21 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
 
     private boolean tableFiltered = false;
 
+    private boolean transactionTableRelated = false;
+
     /**
      * write and release
      */
     @Override
     public synchronized void onLogEvent(LogEvent logEvent, LogEventCallBack logEventCallBack, BinlogDumpGtidException exception) {
 
-        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(logEvent, inExcludeGroup, tableFiltered, currentGtid);
+        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(logEvent, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
 
         inExcludeGroup = filterChain.doFilter(eventWithGroupFlag);
 
         currentGtid = eventWithGroupFlag.getGtid();
         tableFiltered = eventWithGroupFlag.isTableFiltered();
+        transactionTableRelated = eventWithGroupFlag.isTransactionTableRelated();
     }
 
     @Override

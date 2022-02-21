@@ -58,7 +58,7 @@ public class DdlFilterTest extends MockTest {
         doNothing().when(monitorManager).onDdlEvent(anyString(), anyString(), anyString(), any(QueryType.class));
 
         ddlFilter = new DdlFilter(schemaManager, monitorManager);
-        value = new LogEventWithGroupFlag(queryLogEvent, false, false, "");
+        value = new LogEventWithGroupFlag(queryLogEvent, false, false, false, "");
 
         logEventHeader = new LogEventHeader(query_log_event.getType(), 1L, 64, 12246);
     }
@@ -111,7 +111,7 @@ public class DdlFilterTest extends MockTest {
     }
 
     @Test
-    public void testCreateCharset(){
+    public void testCreateCharset() {
         String CREATE_TABLE = "create /* gh-ost */ table `ghostdb`.`_test1g_gho` like `ghostdb`.`test1g`";
         when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
         when(queryLogEvent.getQueryStatus()).thenReturn(queryStatus);
@@ -150,7 +150,7 @@ public class DdlFilterTest extends MockTest {
         when(schemaSnapshotLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(schemaSnapshotLogEvent.getLogEventType()).thenReturn(drc_schema_snapshot_log_event);
         when(schemaManager.recovery(schemaSnapshotLogEvent)).thenReturn(true);
-        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(schemaSnapshotLogEvent, false, false, "");
+        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(schemaSnapshotLogEvent, false, false, false, "");
         Assert.assertTrue(ddlFilter.doFilter(logEventWithGroupFlag));
     }
 
@@ -164,7 +164,7 @@ public class DdlFilterTest extends MockTest {
         when(drcDdlLogEvent.getDdl()).thenReturn(ALTER_TABLE);
         when(drcDdlLogEvent.getSchema()).thenReturn("ghostdb");
 
-        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(drcDdlLogEvent, false, false, "");
+        LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(drcDdlLogEvent, false, false, false, "");
         Assert.assertFalse(ddlFilter.doFilter(logEventWithGroupFlag));
     }
 }

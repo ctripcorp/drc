@@ -13,4 +13,6 @@ import java.io.Flushable;
 public interface TransactionCache extends Resettable, GtidObservable, Lifecycle, Flushable {
 
     boolean add(LogEvent logEvent);
+
+    default void markTransactionTableRelated(boolean transactionTableRelated) {}
 }
