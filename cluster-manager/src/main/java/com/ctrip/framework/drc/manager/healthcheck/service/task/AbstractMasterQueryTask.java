@@ -16,9 +16,9 @@ import java.sql.Statement;
  */
 public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
 
-    protected static final String SHOW_SLAVE_STATUS = ALI_RDS + "show slave status;";
+    protected static final String SHOW_SLAVE_STATUS = "/*FORCE_MASTER*/show slave status;";
 
-    protected static final String IS_READ_ONLY_COMMAND = ALI_RDS + "show global variables like \"read_only\"";
+    protected static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\"";
 
     protected static final String ACCESS_DENIED = "Access denied";
 

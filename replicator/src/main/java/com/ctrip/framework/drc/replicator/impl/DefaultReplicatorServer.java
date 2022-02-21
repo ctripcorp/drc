@@ -93,8 +93,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
         eventStore = new FilePersistenceEventStore(schemaManager, clusterName);
-        transactionCache = isMaster ? new EventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain(delayMonitor))
-                : new BackupEventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain(delayMonitor));
+        transactionCache = isMaster ? new EventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain())
+                : new BackupEventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain());
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 

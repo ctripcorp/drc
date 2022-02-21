@@ -18,14 +18,17 @@ public class LogEventWithGroupFlag {
 
     private boolean tableFiltered;
 
+    private boolean transactionTableRelated;
+
     private String gtid;
 
     private boolean notRelease = false;
 
-    public LogEventWithGroupFlag(LogEvent logEvent, boolean inExcludeGroup, boolean tableFiltered, String gtid) {
+    public LogEventWithGroupFlag(LogEvent logEvent, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
         this.logEvent = logEvent;
         this.inExcludeGroup = inExcludeGroup;
         this.tableFiltered = tableFiltered;
+        this.transactionTableRelated = transactionTableRelated;
         this.gtid = gtid;
     }
 
@@ -51,6 +54,14 @@ public class LogEventWithGroupFlag {
 
     public void setTableFiltered(boolean tableFiltered) {
         this.tableFiltered = tableFiltered;
+    }
+
+    public boolean isTransactionTableRelated() {
+        return transactionTableRelated;
+    }
+
+    public void setTransactionTableRelated(boolean transactionTableRelated) {
+        this.transactionTableRelated = transactionTableRelated;
     }
 
     public String getGtid() {
