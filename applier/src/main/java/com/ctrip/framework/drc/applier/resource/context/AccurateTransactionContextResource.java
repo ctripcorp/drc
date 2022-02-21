@@ -3,8 +3,6 @@ package com.ctrip.framework.drc.applier.resource.context;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
 
@@ -13,9 +11,6 @@ import java.sql.PreparedStatement;
  * Jul 28, 2020
  */
 public class AccurateTransactionContextResource extends TransactionContextResource implements TransactionContext {
-
-    private final Logger loggerED = LoggerFactory.getLogger("EVT DELAY");
-    private final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     private static final String BEGIN = "begin";
 
@@ -72,22 +67,6 @@ public class AccurateTransactionContextResource extends TransactionContextResour
         return success();
     }
 
-    private String delayDesc() {
-        long delay = fetchDelayMS();
-        return "delay: " + delay + "ms " + ((delay > 100) ? "SLOW" : "");
-    }
-
-    private String gtidDesc() {
-        return "(" + fetchGtid() + ") ";
-    }
-
-    private String conflictSummary(String title) {
-        StringBuilder conflictSummary = new StringBuilder(title);
-        getLogs().forEach((l) -> conflictSummary.append("\n").append(l));
-        conflictSummary.append("\n");
-        return conflictSummary.toString();
-    }
-
     private TransactionData.ApplyResult success() {
         try {
             String preMark = fetchTableKey().getTableName().equals("delaymonitor") ? "DELAY MONITOR C" : "C";
@@ -96,20 +75,6 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             loggerED.info("{}{}", gtidDesc(), delayDesc());
         }
         return TransactionData.ApplyResult.SUCCESS;
-    }
-
-    private TransactionData.ApplyResult conflictAndRollback() {
-        String title = "CFL R" + gtidDesc() + delayDesc();
-        loggerED.info(title);
-        loggerSC.info(conflictSummary(title));
-        return TransactionData.ApplyResult.CONFLICT_ROLLBACK;
-    }
-
-    private TransactionData.ApplyResult conflictAndCommit() {
-        String title = "CFL C" + gtidDesc() + delayDesc();
-        loggerED.info(title);
-        loggerSC.info(conflictSummary(title));
-        return TransactionData.ApplyResult.CONFLICT_COMMIT;
     }
 
     public TransactionData.ApplyResult deadlock() {

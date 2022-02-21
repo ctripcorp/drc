@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.healthcheck.service.task;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.Dbs;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.AbstractQueryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;

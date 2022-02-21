@@ -41,6 +41,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final String SWITCH_STATUS_OFF = "off";
 
     private static final String GTID_MONITOR_SWITCH = "gtid.monitor.switch";
+    private static final String GTID_MONITOR_PERIOD = "gtid.monitor.period";
+    private static final int DEFAULT_GTID_MONITOR_PERIOD = 120;
 
     public static final String DRC_DELAY_MESUREMENT = "fx.drc.delay";
 
@@ -251,6 +253,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getGtidMonitorSwitch() {
         return getProperty(GTID_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public int getGtidMonitorPeriod() {
+        return getIntProperty(GTID_MONITOR_PERIOD,DEFAULT_GTID_MONITOR_PERIOD);
     }
 
     public String getIncrementIdMonitorSwitch() {

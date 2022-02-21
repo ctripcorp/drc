@@ -11,11 +11,16 @@
         源端机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.srcDcName" />
         目标机房：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.dstDcName" />
         tag：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.tag" />
+        deleted：<Select v-model="searchCondition.deleted"  style="width: 200px" placeholder="inUse" @on-change="getRoutes">
+          <Option v-for="item in searchOption.deleteOptions" :value="item.value" :key="item.key" >{{ item.key }}</Option>
+        </Select>
           <Button :style="{marginLeft: '10px'}" type="primary" @click="getRoutes">查询</Button>
           <Button :style="{marginLeft: '10px'}" type="primary" @click="goToRouteManagementLink">添加路由</Button>
           <Table stripe :columns="columns" :data="dataWithPage">
             <template slot-scope="{ row, index }" slot="action">
+              <Button type="error" size="small" style="margin-right: 5px" @click="goToDelete(row, index)">下线</Button>
               <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
+              <Button type="warning" size="small" style="margin-right: 5px" @click="goToRecover(row, index)">回滚</Button>
             </template>
           </Table>
           <div style="text-align: center;margin: 16px 0">
@@ -79,21 +84,51 @@ export default {
           key: 'tag'
         },
         {
+          title: '状态',
+          key: 'deleted',
+          align: 'center',
+          resizable: true,
+          render: (h, params) => {
+            const row = params.row
+            const color = row.deleted === 0 ? 'blue' : 'volcano'
+            const text = row.deleted === 0 ? 'inUse' : 'discard'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: '操作',
           slot: 'action',
-          align: 'center'
+          align: 'center',
+          width: 200
         }
       ],
       searchCondition: {
         routeOrgName: '',
         srcDcName: '',
         dstDcName: '',
-        tag: ''
+        tag: '',
+        deleted: 0
       },
       routes: [],
       total: 0,
       current: 1,
-      size: 10
+      size: 10,
+      searchOption: {
+        deleteOptions: [
+          {
+            value: 0,
+            key: 'inUse'
+          },
+          {
+            value: 1,
+            key: 'discard'
+          }
+        ]
+      }
     }
   },
   computed: {
@@ -141,6 +176,12 @@ export default {
           uri = uri + '&tag=' + this.searchCondition.tag
         }
       }
+      if (flag === false) {
+        uri = uri + '?deleted=' + this.searchCondition.deleted
+        flag = true
+      } else {
+        uri = uri + '&deleted=' + this.searchCondition.deleted
+      }
       console.log('uri: {}', uri)
       that.axios.get(uri)
         .then(response => {
@@ -153,8 +194,68 @@ export default {
       this.size = val
     },
     goToLink (row, index) {
-      console.log('go to manage route for' + row.routeOrgName + '-' + row.tag + ', from ' + row.srcDcName + ' to ' + row.dstDcName)
-      this.$router.push({ path: '/proxyRouteManagement', query: { routeOrgName: row.routeOrgName, srcDcName: row.srcDcName, dstDcName: row.dstDcName, tag: row.tag } })
+      if (row.deleted === 1) {
+        alert('已经下线，请先回滚！')
+      } else {
+        console.log('go to manage route for' + row.routeOrgName + '-' + row.tag + ', from ' + row.srcDcName + ' to ' + row.dstDcName)
+        this.$router.push({ path: '/proxyRouteManagement', query: { routeOrgName: row.routeOrgName, srcDcName: row.srcDcName, dstDcName: row.dstDcName, tag: row.tag } })
+      }
+    },
+    goToDelete (row, index) {
+      if (row.deleted === 1) {
+        // forbidden
+        alert('已经下线，无需操作！')
+      } else {
+        this.axios.post('/api/drc/v1/meta/routes', {
+          id: 0,
+          routeOrgName: row.routeOrgName,
+          srcDcName: row.srcDcName,
+          dstDcName: row.dstDcName,
+          srcProxyUris: row.srcProxyUris,
+          relayProxyUris: row.relayProxyUris,
+          dstProxyUris: row.dstProxyUris,
+          tag: row.tag,
+          deleted: 1
+        }).then(response => {
+          console.log(response.data)
+          console.log(response.data.data)
+          if (response.data.status === 0) {
+            alert('下线成功！')
+            this.searchCondition.deleted = 1
+            this.getRoutes()
+          } else {
+            alert('操作失败！')
+          }
+        })
+      }
+    },
+    goToRecover (row, index) {
+      if (row.deleted === 0) {
+        // forbidden
+        alert('正在使用中无需回滚！')
+      } else {
+        this.axios.post('/api/drc/v1/meta/routes', {
+          id: 0,
+          routeOrgName: row.routeOrgName,
+          srcDcName: row.srcDcName,
+          dstDcName: row.dstDcName,
+          srcProxyUris: row.srcProxyUris,
+          relayProxyUris: row.relayProxyUris,
+          dstProxyUris: row.dstProxyUris,
+          tag: row.tag,
+          deleted: 0
+        }).then(response => {
+          console.log(response.data)
+          console.log(response.data.data)
+          if (response.data.status === 0) {
+            alert('回滚成功！')
+            this.searchCondition.deleted = 0
+            this.getRoutes()
+          } else {
+            alert('操作失败！')
+          }
+        })
+      }
     },
     goToRouteManagementLink () {
       console.log('go to manage route')

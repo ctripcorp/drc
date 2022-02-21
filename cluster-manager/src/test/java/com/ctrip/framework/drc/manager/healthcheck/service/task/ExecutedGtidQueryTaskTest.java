@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.healthcheck.service.task;
 
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;

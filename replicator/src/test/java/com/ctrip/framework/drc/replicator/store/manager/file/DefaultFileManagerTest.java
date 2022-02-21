@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
-import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
@@ -58,7 +57,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
     @Mock
     private SchemaManager schemaManager;
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain(new DefaultMonitorManager());
+    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
 
     @Before
     public void setUp() throws Exception {

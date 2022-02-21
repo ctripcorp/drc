@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.monitor.healthcheck.task;
+package com.ctrip.framework.drc.core.driver.healthcheck.task;
 
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Callable;
 
 /**
- * @author shenhaibo
- * @version 1.0
- * date: 2019-12-25
+ * Created by mingdongli
+ * 2019/11/21 下午10:44.
  */
 public abstract class AbstractQueryTask<V> implements Callable<V> {
+
+    protected static final String ALI_RDS = "/*FORCE_MASTER*/";
 
     protected Logger logger = LoggerFactory.getLogger(getClass());
 

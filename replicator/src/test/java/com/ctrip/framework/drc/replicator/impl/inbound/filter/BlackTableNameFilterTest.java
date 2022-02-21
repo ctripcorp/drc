@@ -47,7 +47,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
         byteBuf.release();
 
-        value = new LogEventWithGroupFlag(tableMapLogEvent, false, false, "");
+        value = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
     }
 
     @After
@@ -78,16 +78,16 @@ public class BlackTableNameFilterTest extends MockTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, QMQ_TABLE, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, "");
+        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
 
-        tableNameFilter.getEXCLUDED_CUSTOM_TABLE().add(testDbName + DOT +  testTableName);
+        tableNameFilter.getEXCLUDED_CUSTOM_TABLE().add(testDbName + DOT + testTableName);
         tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, testTableName, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, "");
+        eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
@@ -99,6 +99,7 @@ public class BlackTableNameFilterTest extends MockTest {
      * #     381d 8a 02 00 00 00 00 01 00  07 67 68 6f 73 74 64 62 |.........ghostdb|
      * #     382d 00 0b 5f 74 65 73 74 31  67 5f 67 68 63 00 04 08 |...test1g.ghc...|
      * #     383d 11 0f 0f 05 00 40 00 00  10 00 2a d1 db 56       |.............V|
+     *
      * @return
      */
     private ByteBuf getTableMapLogEvent() {
@@ -107,7 +108,7 @@ public class BlackTableNameFilterTest extends MockTest {
 
     private ByteBuf initByteBuf() {
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(35);
-        byte[] bytes = new byte[] {
+        byte[] bytes = new byte[]{
                 (byte) 0xd3, (byte) 0x85, (byte) 0x53, (byte) 0x5e, (byte) 0x13, (byte) 0x64, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x41, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xce, (byte) 0xf6, (byte) 0x30,
 

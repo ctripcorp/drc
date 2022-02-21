@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.getInstance;
 
 /**
  * @author shenhaibo
@@ -50,7 +51,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
 
     public static final int INITIAL_DELAY = 0;
 
-    public static final int PERIOD = 5;
+    public static final int PERIOD = getInstance().getGtidMonitorPeriod();
 
     public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
