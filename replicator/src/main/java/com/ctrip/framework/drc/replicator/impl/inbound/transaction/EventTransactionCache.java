@@ -18,8 +18,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
-
 /**
  * @Author limingdong
  * @create 2020/4/22
@@ -162,7 +160,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
                 try {
                     logEvent.release();
                 } catch (Exception e) {
-                    EVENT_LOGGER.error("released logEventType of {} error when release redundant events", logEventType, e);
+                    logger.error("released logEventType of {} error when release redundant events", logEventType, e);
                 }
                 iterator.remove();
             }
