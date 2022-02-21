@@ -144,7 +144,7 @@ import org.junit.runners.Suite;
 
         // table regex filter
         AviatorRegexFilterTest.class,
-        
+
         // QueryTask
         ExecutedGtidQueryTaskTest.class
 })

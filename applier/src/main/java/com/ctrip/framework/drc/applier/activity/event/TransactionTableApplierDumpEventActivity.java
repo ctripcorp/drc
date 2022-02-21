@@ -70,3 +70,4 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         context.updateGtidSet(set);
     }
 }
+
