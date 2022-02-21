@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCom
 import com.ctrip.framework.drc.core.driver.command.packet.client.*;
 import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
@@ -143,6 +144,9 @@ import org.junit.runners.Suite;
 
         // table regex filter
         AviatorRegexFilterTest.class,
+        
+        // QueryTask
+        ExecutedGtidQueryTaskTest.class
 })
 public class AllTests {
 

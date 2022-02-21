@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.console.monitor.gtid.function;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
-import com.ctrip.framework.drc.console.monitor.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.GtidGapEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.api.endpoint.Endpoint;

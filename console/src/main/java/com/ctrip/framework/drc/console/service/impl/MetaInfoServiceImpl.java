@@ -1173,7 +1173,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         return uuidMap;
     }
 
-    public List<RouteDto> getRoutes(String routeOrgName, String srcDcName, String dstDcName, String tag) {
+    public List<RouteDto> getRoutes(String routeOrgName, String srcDcName, String dstDcName, String tag,Integer deleted) {
         List<RouteDto> routes = Lists.newArrayList();
         try {
             Long buId = null, srcDcId = null, dstDcId = null;
@@ -1187,9 +1187,8 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                 dstDcId = dalUtils.getId(TableEnum.DC_TABLE, dstDcName);
             }
             final Long finalBuId = buId, finalSrcDcId = srcDcId, finalDstDcId = dstDcId;
-
             List<RouteTbl> routeTbls = dalUtils.getRouteTblDao().queryAll().stream()
-                    .filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode()) &&
+                    .filter(p -> p.getDeleted().equals(deleted) &&
                             (null == routeOrgName || p.getRouteOrgId().equals(finalBuId)) &&
                             (null == srcDcName || p.getSrcDcId().equals(finalSrcDcId)) &&
                             (null == dstDcName || p.getDstDcId().equals(finalDstDcId)) &&
@@ -1225,6 +1224,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         routeDto.setRelayProxyUris(relayProxyUris);
         routeDto.setDstProxyUris(dstProxyUris);
         routeDto.setTag(routeTbl.getTag());
+        routeDto.setDeleted(routeTbl.getDeleted());
         return routeDto;
     }
 

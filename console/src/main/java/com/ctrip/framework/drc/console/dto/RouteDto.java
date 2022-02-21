@@ -19,11 +19,13 @@ public class RouteDto {
     private List<String> dstProxyUris;
 
     private String tag;
+    
+    private Integer deleted;
 
     public RouteDto() {
     }
 
-    public RouteDto(Long id, String routeOrgName, String srcDcName, String dstDcName, List<String> srcProxyUris, List<String> relayProxyUris, List<String> dstProxyUris, String tag) {
+    public RouteDto(Long id, String routeOrgName, String srcDcName, String dstDcName, List<String> srcProxyUris, List<String> relayProxyUris, List<String> dstProxyUris, String tag,Integer deleted) {
         this.id = id;
         this.routeOrgName = routeOrgName;
         this.srcDcName = srcDcName;
@@ -32,6 +34,7 @@ public class RouteDto {
         this.relayProxyUris = relayProxyUris;
         this.dstProxyUris = dstProxyUris;
         this.tag = tag;
+        this.deleted = deleted;
     }
 
     public Long getId() {
@@ -98,6 +101,14 @@ public class RouteDto {
         this.tag = tag;
     }
 
+    public Integer getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
+
     @Override
     public String toString() {
         return "RouteDto{" +
@@ -109,6 +120,7 @@ public class RouteDto {
                 ", relayProxyUris=" + relayProxyUris +
                 ", dstProxyUris=" + dstProxyUris +
                 ", tag='" + tag + '\'' +
+                ", deleted='" + deleted + '\'' +
                 '}';
     }
 }
