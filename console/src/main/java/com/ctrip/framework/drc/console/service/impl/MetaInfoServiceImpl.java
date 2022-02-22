@@ -776,7 +776,8 @@ public class MetaInfoServiceImpl implements MetaInfoService {
 
     private void generateReplicators(DbCluster dbCluster, MhaTbl mhaTbl) throws SQLException {
         //  replicators
-        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(mhaTbl.getId())).findFirst().get();
+        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(mhaTbl.getId())).findFirst().orElse(null);
+        if (replicatorGroupTbl == null) return;
         List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(r -> (r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getRelicatorGroupId().equals(replicatorGroupTbl.getId()))).collect(Collectors.toList());
         for(ReplicatorTbl replicatorTbl : replicatorTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(replicatorTbl.getResourceId())).findFirst().get();
@@ -825,7 +826,8 @@ public class MetaInfoServiceImpl implements MetaInfoService {
 
     private void generateAppliers(DbCluster dbCluster, MhaTbl mhaTbl, MhaTbl targetMhaTbl) throws SQLException {
         // appliers
-        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(targetMhaTbl.getId())).findFirst().get();
+        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(targetMhaTbl.getId())).findFirst().orElse(null);
+        if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
         for(ApplierTbl applierTbl : applierTbls) {

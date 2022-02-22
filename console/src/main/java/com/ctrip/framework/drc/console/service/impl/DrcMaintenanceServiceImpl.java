@@ -112,6 +112,26 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
         }
         return false;
     }
+    
+    public Boolean recordMhaInstances(MhaInstanceGroupDto dto) throws Throwable {
+        String mhaName = dto.getMhaName();
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && mhaName.equals(p.getMhaName())).findFirst().orElse(null);
+        if (null == mhaTbl) {
+            logger.info("mha({}) null", mhaName);
+            return false;
+        }
+        Long mhaId = mhaTbl.getId();
+        List<MachineTbl> currentMachineTbls = dalUtils.getMachineTblDao().queryAll().stream().filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && mhaId.equals(p.getMhaId())).collect(Collectors.toList());
+        if (dto.getMaster() != null) {
+            logger.info("add master machine-{} in mha-{}",dto.getMaster(),dto.getMhaName());
+            return checkMasterMachineMatch(dto, currentMachineTbls, mhaId, mhaName);
+        } else if (dto.getSlaves() != null) {
+            logger.info("add slave machine-{} in mha-{}",dto.getMaster(),dto.getMhaName());
+            checkSlaveMachines(dto, currentMachineTbls, mhaId, false);
+            return true;
+        }
+        return false;
+    }
 
     private boolean checkMasterMachineMatch(MhaInstanceGroupDto dto, List<MachineTbl> currentMachineTbls, Long mhaId, String mhaName) throws Throwable {
         MhaInstanceGroupDto.MySQLInstance master = dto.getMaster();
