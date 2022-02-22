@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -59,6 +60,9 @@ public class AccessServiceImpl implements AccessService {
 
     @Autowired
     private MhaServiceImpl mhaService;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
@@ -389,9 +393,17 @@ public class AccessServiceImpl implements AccessService {
         Long originalDcId = dalUtils.updateOrCreateDc(dc);
         Long newBuiltDcId = dalUtils.updateOrCreateDc(newBuiltMhaDc);
 
-        // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
-        Long mhaGroupId = dalUtils.insertMhaGroup(BooleanEnum.FALSE, EstablishStatusEnum.BUILT_NEW_MHA, usersAndPasswords.get(READ_USER_KEY), usersAndPasswords.get(READ_PASSWORD_KEY), usersAndPasswords.get(WRITE_USER_KEY), usersAndPasswords.get(WRITE_PASSWORD_KEY), usersAndPasswords.get(MONITOR_USER_KEY), usersAndPasswords.get(MONITOR_PASSWORD_KEY));
-
+        Long mhaGroupId = metaInfoService.getMhaGroupId(originalMha, newBuiltMha, BooleanEnum.TRUE);
+        if (mhaGroupId != null) {
+            MhaGroupTbl sample = new MhaGroupTbl();
+            sample.setDeleted(BooleanEnum.FALSE.getCode());
+            sample.setId(mhaGroupId);
+            dalUtils.getMhaGroupTblDao().update(sample);
+            logger.info("recover a deleted mhaGroup mhas {}-{}",originalMha,newBuiltMha);
+        } else {
+            // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
+            mhaGroupId = dalUtils.insertMhaGroup(BooleanEnum.FALSE, EstablishStatusEnum.BUILT_NEW_MHA, usersAndPasswords.get(READ_USER_KEY), usersAndPasswords.get(READ_PASSWORD_KEY), usersAndPasswords.get(WRITE_USER_KEY), usersAndPasswords.get(WRITE_PASSWORD_KEY), usersAndPasswords.get(MONITOR_USER_KEY), usersAndPasswords.get(MONITOR_PASSWORD_KEY));
+        }
         Long originalMhaId = dalUtils.updateOrCreateMha(originalMha, originalDcId);
         Long newBuiltMhaId = dalUtils.updateOrCreateMha(newBuiltMha, newBuiltDcId);
 
