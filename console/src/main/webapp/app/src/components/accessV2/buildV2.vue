@@ -160,10 +160,11 @@ export default {
             if (response.data.status === 0) {
               that.status = 'success'
               that.title = '集群创建完成!'
-              that.$emit('newClusterChanged', response.data.data.drcCluster)
+              that.message = response.data.message
             } else {
               that.status = 'error'
               that.title = '集群创建失败!'
+              that.message = response.data.message
             }
           })
         }

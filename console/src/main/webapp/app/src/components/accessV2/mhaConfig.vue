@@ -90,6 +90,7 @@
       v-model="newMhaMachine.modal"
       title="录入右侧Mha Db信息"
       @on-ok="submitNewMhaMachine">
+      <p>Mha: {{newMhaMachine.mhaName}} </p>
       <p> db信息 [host: {{newMhaMachine.ip}}:{{newMhaMachine.port}}]</p>
       <p> db信息 [isMaster:{{newMhaMachine.master}}]</p>
       <p> db信息 [idc:{{newMhaMachine.idc}}]</p>
@@ -330,11 +331,11 @@ export default {
         that.hasResp = true
         if (response.data.status === 0) {
           that.status = 'success'
-          that.title = 'mha:' + this.oldMhaMachine.mhaName + '录入db成功!'
+          that.title = 'mha:' + this.newMhaMachine.mhaName + '录入db成功!'
           that.message = response.data.message
         } else {
           that.status = 'error'
-          that.title = 'mha:' + this.oldMhaMachine.mhaName + '录入db失败!'
+          that.title = 'mha:' + this.newMhaMachine.mhaName + '录入db失败!'
           that.message = response.data.message
         }
       })
