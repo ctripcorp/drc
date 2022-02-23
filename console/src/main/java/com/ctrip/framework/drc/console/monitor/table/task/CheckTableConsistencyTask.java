@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -144,7 +145,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
             String srcStmt = srcStmts.get(table);
             String destStmt = destStmts.get(table);
             if(!srcStmt.equalsIgnoreCase(destStmt)) {
-                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table {} is different between two DCs' db: {}:{} and {}:{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
+                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table {} is different between two DCs' db: {}:{} and {}:{},after filter ,srcStmt:{},destStmt{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(),srcStmt,destStmt);
                 return false;
             }
         }
