@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -18,6 +19,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,7 +40,7 @@ public class AccessControllerTest extends AbstractControllerTest {
     private DrcMaintenanceServiceImpl drcMaintenanceService;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() throws Throwable {
         Map<String, Object> res = new HashMap<>();
         res.put("x", 1);
         res.put("y", 2);
@@ -54,8 +56,38 @@ public class AccessControllerTest extends AbstractControllerTest {
         Mockito.when(accessService.registerDalCluster(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(res);
         Mockito.when(accessService.deployDns(Mockito.anyString())).thenReturn(res);
         Mockito.when(accessService.applyPreCheck(Mockito.anyString())).thenReturn(res);
+        
     }
 
+    @Test
+    public void testRecordMachineInfo() throws Throwable {
+        Mockito.when(drcMaintenanceService.recordMhaInstances(Mockito.any(MhaInstanceGroupDto.class))).thenReturn(true);
+        MhaMachineDto dto = new MhaMachineDto();
+        dto.setMhaName("mhaA");
+        dto.setMaster(true);
+        dto.setMySQLInstance(new MhaInstanceGroupDto.MySQLInstance());
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/mha/machineInfo")
+                .contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).accept(MediaType.APPLICATION_JSON)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+        Assert.assertNotEquals("", response);
+
+        
+        Mockito.when(drcMaintenanceService.recordMhaInstances(Mockito.any(MhaInstanceGroupDto.class))).thenThrow(new SQLException("testSqlException"));
+        dto.setMaster(false);
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/mha/machineInfo")
+                .contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).accept(MediaType.APPLICATION_JSON)).andReturn();
+        Assert.assertEquals(200, status);
+        response = mvcResult.getResponse().getContentAsString();
+        System.out.println(response);
+        Assert.assertNotNull(response);
+        Assert.assertNotEquals("", response);
+    }
+    
     @Test
     public void testPreCheck() throws Exception {
         String requestBody = "{\n" +

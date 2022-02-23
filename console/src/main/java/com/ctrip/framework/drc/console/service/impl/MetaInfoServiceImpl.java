@@ -47,6 +47,8 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Service
 public class MetaInfoServiceImpl implements MetaInfoService {
 
+    public static final String ALLMATCH = ".*";
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -622,7 +624,25 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         }
         return Lists.newArrayList();
     }
-
+    
+    public String getApplierFilter(String mha, String remoteMha) throws SQLException {
+        String includedDbs = getIncludedDbs(mha, remoteMha);
+        String nameFilter = getNameFilter(mha, remoteMha);
+        String applierFilter = ALLMATCH;
+        if (StringUtils.isNotBlank(nameFilter)) {
+            applierFilter = nameFilter;
+        } else if (StringUtils.isNotBlank(includedDbs)) {
+            String[] includedDbArray = includedDbs.split(",");
+            for (int i = 0; i < includedDbArray.length; i++) {
+                includedDbArray[i] += "\\..*";
+            }
+            applierFilter = StringUtils.join(includedDbArray,",");
+        } else {
+            logger.info("srcApplierFilter find none,use allMatch,mha-remoteMha is {}-{}",mha,remoteMha);
+        }
+        return applierFilter;
+    }
+    
     @Override
     public String getTargetName(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
@@ -756,7 +776,8 @@ public class MetaInfoServiceImpl implements MetaInfoService {
 
     private void generateReplicators(DbCluster dbCluster, MhaTbl mhaTbl) throws SQLException {
         //  replicators
-        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(mhaTbl.getId())).findFirst().get();
+        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(mhaTbl.getId())).findFirst().orElse(null);
+        if (replicatorGroupTbl == null) return;
         List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(r -> (r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getRelicatorGroupId().equals(replicatorGroupTbl.getId()))).collect(Collectors.toList());
         for(ReplicatorTbl replicatorTbl : replicatorTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(replicatorTbl.getResourceId())).findFirst().get();
@@ -805,7 +826,8 @@ public class MetaInfoServiceImpl implements MetaInfoService {
 
     private void generateAppliers(DbCluster dbCluster, MhaTbl mhaTbl, MhaTbl targetMhaTbl) throws SQLException {
         // appliers
-        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(targetMhaTbl.getId())).findFirst().get();
+        ReplicatorGroupTbl replicatorGroupTbl = metaService.getReplicatorGroupTbls().stream().filter(rg -> rg.getMhaId().equals(targetMhaTbl.getId())).findFirst().orElse(null);
+        if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
         for(ApplierTbl applierTbl : applierTbls) {

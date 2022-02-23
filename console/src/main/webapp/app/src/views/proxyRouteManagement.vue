@@ -76,9 +76,9 @@ export default {
         dstDcName: this.$route.query.dstDcName,
         tag: this.$route.query.tag,
         proxyUris: {
-          src: [],
-          relay: [],
-          dst: []
+          src: this.$route.query.srcProxyUris,
+          relay: this.$route.query.relayProxyUris,
+          dst: this.$route.query.dstProxyUris
         },
         proxyUriList: {
           src: [],
@@ -255,7 +255,8 @@ export default {
         '?routeOrgName=' + this.route.routeOrgName +
         '&srcDcName=' + this.route.srcDcName +
         '&dstDcName=' + this.route.dstDcName +
-        '&tag=' + this.route.tag
+        '&tag=' + this.route.tag +
+        '&deleted=' + 0
       console.log('uri: ' + uri)
       this.axios.get(uri)
         .then(response => {

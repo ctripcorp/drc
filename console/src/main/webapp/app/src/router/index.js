@@ -33,6 +33,10 @@ const routes = [
     component: () => import('../views/access.vue')
   },
   {
+    path: '/accessV2',
+    component: () => import('../views/accessV2.vue')
+  },
+  {
     path: '/proxyRouteCluster',
     component: () => import('../views/proxyRouteCluster.vue')
   },

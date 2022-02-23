@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -12,6 +13,7 @@ import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
@@ -59,6 +61,9 @@ public class AccessServiceImpl implements AccessService {
 
     @Autowired
     private MhaServiceImpl mhaService;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
@@ -372,6 +377,11 @@ public class AccessServiceImpl implements AccessService {
 
     public ApiResult initMhaGroup(BuildMhaDto dto) {
         try {
+            Long mhaGroupId = metaInfoService.getMhaGroupId(dto.getOriginalMha(), dto.getNewBuiltMha(), BooleanEnum.TRUE);
+            if (mhaGroupId != null) {
+                logger.warn("Fail init mha group: {}, already exist in deleted ,please rollback ", dto);
+                return ApiResult.getInstance(false, ResultCode.HANDLE_FAIL.getCode(),"already exist group in deleted ,please rollback");
+            }
             initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
@@ -388,10 +398,8 @@ public class AccessServiceImpl implements AccessService {
         String dc = StringUtils.isNotBlank(originalMhaDc) ? originalMhaDc : mhaService.getDcForMha(originalMha);
         Long originalDcId = dalUtils.updateOrCreateDc(dc);
         Long newBuiltDcId = dalUtils.updateOrCreateDc(newBuiltMhaDc);
-
-        // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
+            // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
         Long mhaGroupId = dalUtils.insertMhaGroup(BooleanEnum.FALSE, EstablishStatusEnum.BUILT_NEW_MHA, usersAndPasswords.get(READ_USER_KEY), usersAndPasswords.get(READ_PASSWORD_KEY), usersAndPasswords.get(WRITE_USER_KEY), usersAndPasswords.get(WRITE_PASSWORD_KEY), usersAndPasswords.get(MONITOR_USER_KEY), usersAndPasswords.get(MONITOR_PASSWORD_KEY));
-
         Long originalMhaId = dalUtils.updateOrCreateMha(originalMha, originalDcId);
         Long newBuiltMhaId = dalUtils.updateOrCreateMha(newBuiltMha, newBuiltDcId);
 
