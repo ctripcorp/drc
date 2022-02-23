@@ -142,9 +142,10 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                     String clusterName = dbCluster.getName();
                     List<Applier> appliers = dbCluster.getAppliers();
                     for(Applier applier : appliers) {
+                        String targetClusterName = applier.getTargetName();
                         String targetDcName = applier.getTargetIdc();
                         String targetMhaName = applier.getTargetMhaName();
-                        String targetRegistrykey = clusterName + "." + targetMhaName;
+                        String targetRegistrykey = targetClusterName + "." + targetMhaName;
                         Dc targetDc = dcs.get(targetDcName);
                         if(null != targetDc) {
                             DbCluster targetDbCluster = targetDc.getDbClusters().get(targetRegistrykey);
