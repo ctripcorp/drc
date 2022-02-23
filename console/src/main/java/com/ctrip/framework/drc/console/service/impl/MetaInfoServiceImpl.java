@@ -634,7 +634,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         } else if (StringUtils.isNotBlank(includedDbs)) {
             String[] includedDbArray = includedDbs.split(",");
             for (int i = 0; i < includedDbArray.length; i++) {
-                includedDbArray[i] += "\\.*";
+                includedDbArray[i] += "\\..*";
             }
             applierFilter = StringUtils.join(includedDbArray,",");
         } else {
