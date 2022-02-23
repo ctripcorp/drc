@@ -251,7 +251,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testGetApplierFilter() throws SQLException {
         String applierFilter = metaInfoService.getApplierFilter("fat-fx-drc1", "fat-fx-drc2");
-        Assert.assertEquals("drcmonitordb\\.*", applierFilter);
+        Assert.assertEquals("drcmonitordb\\..*", applierFilter);
     }
 
     // take effect of DrcBuildServiceImplTest.testSubmitConfig
