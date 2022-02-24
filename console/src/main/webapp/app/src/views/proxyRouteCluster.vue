@@ -207,7 +207,8 @@ export default {
             tag: row.tag,
             srcProxyUris: row.srcProxyUris,
             relayProxyUris: row.relayProxyUris,
-            dstProxyUris: row.dstProxyUris
+            dstProxyUris: row.dstProxyUris,
+            updateStatus: true
           }
         })
       }
@@ -270,7 +271,12 @@ export default {
     },
     goToRouteManagementLink () {
       console.log('go to manage route')
-      this.$router.push({ path: '/proxyRouteManagement' })
+      this.$router.push({
+        path: '/proxyRouteManagement',
+        query: {
+          updateStatus: false
+        }
+      })
     }
   },
   created () {

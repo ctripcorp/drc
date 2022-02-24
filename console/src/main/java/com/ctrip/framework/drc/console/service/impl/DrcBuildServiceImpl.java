@@ -326,7 +326,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
 
     public String submitProxyRouteConfig(RouteDto routeDto) {
         try {
-            Long routeOrgId = dalUtils.getId(TableEnum.BU_TABLE, routeDto.getRouteOrgName());
+            Long routeOrgId = StringUtils.isBlank(routeDto.getRouteOrgName()) ? 0L : dalUtils.getId(TableEnum.BU_TABLE, routeDto.getRouteOrgName());
             Long srcDcId = dalUtils.getId(TableEnum.DC_TABLE, routeDto.getSrcDcName());
             Long dstDcId = dalUtils.getId(TableEnum.DC_TABLE, routeDto.getDstDcName());
             List<Long> srcProxyIds = Lists.newArrayList();

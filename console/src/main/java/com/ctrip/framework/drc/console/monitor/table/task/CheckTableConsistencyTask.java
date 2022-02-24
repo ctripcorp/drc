@@ -99,6 +99,16 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
                     MetaKey dstMetaKey = new MetaKey(destMha.getDc(), destDbCluster.getId(), destDbCluster.getName(), destDbCluster.getMhaName());
                     Endpoint srcEndpoint = masterMySQLEndpointMap.get(srcMetaKey);
                     Endpoint destEndpoint = masterMySQLEndpointMap.get(dstMetaKey);
+                    String srcMhaName = srcDbCluster.getMhaName();
+                    String dstMhaName = destDbCluster.getMhaName();
+                    try {
+                        if (metaInfoService.getApplierGroupTbl(srcMhaName, dstMhaName) == null && metaInfoService.getApplierGroupTbl(dstMhaName, srcMhaName) == null){
+                            CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,srcMha={},destMha={}]] no directed dts, skip",srcMha,destMha);
+                            continue;
+                        }
+                    } catch (SQLException e) {
+                        CONSOLE_TABLE_LOGGER.error("[[monitor=tableConsistency,srcMha={},dstMha={}]] sql error",srcMhaName,dstMhaName,e);
+                    }
                     boolean consistency = checkTableConsistency(srcEndpoint, destEndpoint, srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
                     if(consistency) {
                         CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table is consistent between two DCs': {}:{} and {}:{}", srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
