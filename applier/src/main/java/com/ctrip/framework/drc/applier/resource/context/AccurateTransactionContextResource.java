@@ -86,4 +86,10 @@ public class AccurateTransactionContextResource extends TransactionContextResour
         loggerED.info("ERR" + gtidDesc() + delayDesc());
         return TransactionData.ApplyResult.UNKNOWN;
     }
+
+    @Override
+    protected String contextDesc() {
+        return " ACCURATE";
+    }
+
 }

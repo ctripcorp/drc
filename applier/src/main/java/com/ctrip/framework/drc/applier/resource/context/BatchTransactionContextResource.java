@@ -96,4 +96,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             logger.error("set transaction table begin statue error,exception is: {}", e.getCause().toString());
         }
     }
+
+    @Override
+    protected String contextDesc() {
+        return bigTransaction ? " BIG" : " BATCH";
+    }
 }
