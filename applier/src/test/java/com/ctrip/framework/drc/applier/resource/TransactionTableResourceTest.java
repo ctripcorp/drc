@@ -1,9 +1,14 @@
 package com.ctrip.framework.drc.applier.resource;
 
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
+import com.ctrip.framework.drc.applier.resource.position.GtidQueryTask;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,7 +95,7 @@ public class TransactionTableResourceTest extends ConflictTest {
 
     @Test
     public void testMerge() {
-        for (int i = 0; i < 20; i++) {
+        for (int i = 1; i <= 20; i++) {
             try (Connection connection = dataSource.getConnection()) {
                 String gtid = "uuid1:" + i;
                 transactionTable.begin(gtid);
@@ -103,11 +108,35 @@ public class TransactionTableResourceTest extends ConflictTest {
             }
         }
 
-        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1;";
+        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1 and uuid = 'uuid1';";
         String gtidSet = (String) select(selectGtidSetSql);
-        Assert.assertEquals("uuid1:0-19", gtidSet);
+        Assert.assertEquals("uuid1:1-20", gtidSet);
     }
 
+
+    @Test
+    public void testGtidQuery() {
+        for (int i = 1; i <= 15; i++) {
+            try (Connection connection = dataSource.getConnection()) {
+                String gtid = "uuid2:" + i;
+                transactionTable.begin(gtid);
+                transactionTable.record(connection, gtid);
+                try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
+                    statement.execute();
+                }
+                transactionTable.commit(gtid);
+            } catch (SQLException | InterruptedException e) {
+            }
+        }
+
+        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1 and uuid = 'uuid2';";
+        String gtidSet = (String) select(selectGtidSetSql);
+        Assert.assertEquals("uuid2:1-10", gtidSet);
+
+        transactionTable.mergeRecord("uuid2", false);
+        String gtidSet2 = (String) select(selectGtidSetSql);
+        Assert.assertEquals("uuid1:1-15", gtidSet2);
+    }
 
     private Object select(String sql) {
         try (Connection connection = dataSource.getConnection()) {
