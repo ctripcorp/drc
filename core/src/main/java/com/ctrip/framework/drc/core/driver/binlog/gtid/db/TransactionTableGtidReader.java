@@ -64,7 +64,7 @@ public class TransactionTableGtidReader implements GtidReader {
                 while (resultSet.next()) {
                     String gtidSet = resultSet.getString(2);
                     if (gtidSet != null) {
-                        specificGtidSet.add(gtidSet);
+                        specificGtidSet = specificGtidSet.union(new GtidSet(gtidSet));
                     } else {
                         specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
                     }

@@ -356,4 +356,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
             mergeGtidService = null;
         }
     }
+
+    @VisibleForTesting
+    public DataSource getDataSource() {
+        return dataSource;
+    }
 }
