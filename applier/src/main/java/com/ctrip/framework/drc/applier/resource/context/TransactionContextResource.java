@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.resource.context;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
-import com.ctrip.framework.drc.applier.resource.TransactionTable;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.applier.resource.context.sql.*;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
