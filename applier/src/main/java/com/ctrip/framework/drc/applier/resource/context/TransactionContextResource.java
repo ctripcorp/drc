@@ -848,6 +848,10 @@ public class TransactionContextResource extends AbstractContext
         conflictHandleSqlResult = result;
     }
 
+    protected String contextDesc() {
+        return "";
+    }
+
     protected String delayDesc() {
         long delay = fetchDelayMS();
         return "delay: " + delay + "ms " + ((delay > 100) ? "SLOW" : "");
@@ -858,14 +862,14 @@ public class TransactionContextResource extends AbstractContext
     }
 
     protected TransactionData.ApplyResult conflictAndCommit() {
-        String title = "CFL C" + gtidDesc() + delayDesc();
+        String title = "CFL C" + contextDesc() + gtidDesc() + delayDesc();
         loggerED.info(title);
         loggerSC.info(conflictSummary(title));
         return TransactionData.ApplyResult.CONFLICT_COMMIT;
     }
 
     protected TransactionData.ApplyResult conflictAndRollback() {
-        String title = "CFL R" + gtidDesc() + delayDesc();
+        String title = "CFL R" + contextDesc() + gtidDesc() + delayDesc();
         loggerED.info(title);
         loggerSC.info(conflictSummary(title));
         return TransactionData.ApplyResult.CONFLICT_ROLLBACK;
