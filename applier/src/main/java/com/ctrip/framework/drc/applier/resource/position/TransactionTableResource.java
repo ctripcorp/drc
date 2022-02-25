@@ -1,8 +1,7 @@
-package com.ctrip.framework.drc.applier.resource;
+package com.ctrip.framework.drc.applier.resource.position;
 
+import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
@@ -15,13 +14,11 @@ import com.ctrip.xpipe.concurrent.AbstractExceptionLogTask;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
@@ -41,18 +38,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
     private static final String UPDATE_TRANSACTION_TABLE = "update `drcmonitordb`.`gtid_executed` set `gno` = ? where `id`= ? and `server_uuid`= ?;";
 
     private static final String INSERT_TRANSACTION_TABLE = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`) values(?, ?, ?);";
-
-    private static final String SELECT_GTID_SET_SQL = "select `gtidset` from `drcmonitordb`.`gtid_executed` where `id` = -1 and `server_uuid` = ? for update;";
-
-    private static final String UPDATE_GTID_SET_SQL = "update `drcmonitordb`.`gtid_executed` set `gtidset` = ? where `id` = -1 and `server_uuid` = ?;";
-
-    private static final String INSERT_GTID_SET_SQL = "insert into `drcmonitordb`.`gtid_executed`(`id`, `server_uuid`, `gno`, `gtidset`) values(-1, ?, -1, ?);";
-
-    private static final String BEGIN = "begin";
-
-    private static final String COMMIT = "commit";
-
-    private static final String ROLLBACK = "rollback";
 
     private static final int RETRY_TIME = 10;
 
@@ -102,6 +87,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "target.password")
     public String password;
 
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
+
+    @InstanceConfig(path = "container")
+    public ApplierServerContainer container;
+
 
     @Override
     protected void doInitialize() throws Exception {
@@ -119,19 +110,17 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     public void mergeRecord(String uuid, boolean needRetry) {
-        GtidSet gtidSet = new GtidSet(StringUtils.EMPTY);
-        try (Connection connection = dataSource.getConnection()) {
-            TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
-            gtidSet = gtidReader.getSpecificGtidSet(connection, uuid);
-            loggerTT.info("[TT] get gtid record in db success: {}", gtidSet.toString());
-        } catch (SQLException e) {
-            loggerTT.error("[TT] get gtid record in db failed, uuid is: {}", uuid, e);
-            shutdownSystem();
+        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, endpoint), RETRY_TIME).call();
+        if (gtidSet == null) {
+            loggerTT.error("[TT] query gtid set error, shutdown server, key is: {}", registryKey);
+            shutdownServer();
+        } else {
+            if (StringUtils.isNotBlank(gtidSet.toString())) {
+                doMergeGtid(gtidSet, needRetry);
+            }
+            loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
         }
-        if (StringUtils.isNotBlank(gtidSet.toString())) {
-            doMergeGtid(gtidSet, needRetry);
-        }
-        loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
+
     }
 
     @Override
@@ -172,16 +161,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new gtidMergeCallable(gtidSet), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), RETRY_TIME).call();
             if (res == null) {
-                shutdownSystem();
+                shutdownServer();
             }
         } else {
-            try {
-                updateGtidSetRecord(gtidSet);
-            } catch (SQLException e) {
-                loggerTT.error("[TT] do merge gtid failed without retry", e);
-            }
+            new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), 0).call();
         }
     }
 
@@ -206,12 +191,14 @@ public class TransactionTableResource extends AbstractResource implements Transa
         return gtidSavedInMemory;
     }
 
-    private void shutdownSystem() {
+    private void shutdownServer() {
         try {
-            system.mustShutdown();
-            loggerTT.info("[TT] shutdown system");
-        } catch (InterruptedException e) {
-            loggerTT.error("[TT] shutdown system error", e);
+            loggerTT.info("[TT] transaction removes server start, key is: {}", registryKey);
+            container.removeServer(registryKey, true);
+            container.registerServer(registryKey);
+            loggerTT.info("[TT] transaction table removes server success, key is: {}", registryKey);
+        } catch (Throwable t) {
+            loggerTT.error("[TT] transaction table removes server error, key is: {}", registryKey, t);
         }
     }
 
@@ -226,100 +213,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
         return gtidSet;
     }
 
-    private boolean updateGtidSetRecord(GtidSet gtidSet) throws SQLException {
-        loggerTT.info("[TT] use the gtid set: {} to union the old gtid set record", gtidSet.toString());
-        Connection connection = null;
-        try {
-            connection = dataSource.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(BEGIN)) {
-                statement.execute();
-            }
-            boolean needCommit = false;
-            for (String uuid : gtidSet.getUUIDs()) {
-                needCommit = true;
-                String gtidSetFromDb = null;
-                try (PreparedStatement statement = connection.prepareStatement(SELECT_GTID_SET_SQL)) {
-                    statement.setString(1, uuid);
-                    try (ResultSet result = statement.executeQuery()) {
-                        while (result.next()) {
-                            gtidSetFromDb = result.getString("gtidset");
-                        }
-                    }
-                }
-                if (gtidSetFromDb == null) {
-                    String gtidSetToInsert = gtidSet.getUUIDSet(uuid).toString();
-                    loggerTT.info("[TT] use the gtid set: {} to insert", gtidSetToInsert);
-                    try (PreparedStatement insertStatement = connection.prepareStatement(INSERT_GTID_SET_SQL)) {
-                        insertStatement.setString(1, uuid);
-                        insertStatement.setString(2, gtidSetToInsert);
-                        if (insertStatement.executeUpdate() != 1) {
-                            throw new SQLException("[TT] insert gtid set error, affected rows not 1");
-                        }
-                    }
-                } else {
-                    String gtidSetToUpdate = new GtidSet(gtidSetFromDb).union(gtidSet).getUUIDSet(uuid).toString();
-                    loggerTT.info("[TT] use the new gtid set: {} to update the old gtid set record: {}", gtidSetToUpdate, gtidSetFromDb);
-                    try (PreparedStatement statement = connection.prepareStatement(UPDATE_GTID_SET_SQL)) {
-                        statement.setString(1, gtidSetToUpdate);
-                        statement.setString(2, uuid);
-                        if (statement.executeUpdate() != 1) {
-                            throw new SQLException("[TT] update gtid set error, affected rows not 1");
-                        }
-                    }
-                }
-            }
-            if (needCommit) {
-                try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
-                    statement.execute();
-                }
-            }
-        } catch (SQLException e) {
-            rollback(connection);
-            loggerTT.error("[TT] update gtid set record error", e);
-            markDiscard(connection);
-            throw e;
-        } finally {
-            closeConnection(connection);
-        }
-        return true;
-    }
-
-    private void rollback(Connection connection) {
-        try (PreparedStatement statement = connection.prepareStatement(ROLLBACK)) {
-            statement.execute();
-        } catch (Throwable e) {
-            loggerTT.error("[TT] transaction.rollback() - execute: ", e);
-        }
-    }
-
-    private void closeConnection(Connection connection) {
-        try {
-            if (connection != null) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            loggerTT.error("[TT] connection.close(): ", e);
-        }
-    }
-
-    private void markDiscard(Connection connection) {
-        try {
-            if (connection != null) {
-                connection.unwrap(PooledConnection.class).setDiscarded(true);
-                loggerTT.warn("[TT] transaction table connection discarded");
-            }
-        } catch (SQLException e) {
-            loggerTT.error("[TT] markDiscard() will succeed absolutely, UNLIKELY - ", e);
-        }
-    }
-
     private void resetBeginAndCommitStates(Set<Integer> idsToMerge) {
         for (Integer id : idsToMerge) {
             beginState.replace(id, false);
             commitState.replace(id, false);
         }
     }
-
 
     @Override
     public void record(Connection connection, String gtid) throws SQLException {
@@ -346,7 +245,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                         throw e;
                     } else {
                         loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown the system", e);
-                        shutdownSystem();
+                        shutdownServer();
                     }
                 }
             }
@@ -438,31 +337,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @VisibleForTesting
     public ConcurrentHashMap<Integer, Boolean> getBeginState() {
         return beginState;
-    }
-
-    class gtidMergeCallable implements NamedCallable<Boolean> {
-
-        private GtidSet gtidSet;
-
-        public gtidMergeCallable(GtidSet gtidSet) {
-            this.gtidSet = gtidSet;
-        }
-
-        @Override
-        public Boolean call() throws SQLException {
-            return updateGtidSetRecord(gtidSet);
-        }
-
-        @Override
-        public void afterException(Throwable t) {
-            DataSourceManager.getInstance().clearDataSource(endpoint);
-            loggerTT.error("[TT] call gtid merge task failed", t);
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                loggerTT.error("[TT] sleep error when calling gtid merge task", e);
-            }
-        }
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.applier.resource;
+package com.ctrip.framework.drc.applier.resource.position;
 
 import java.sql.Connection;
 import java.sql.SQLException;
