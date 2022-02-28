@@ -77,7 +77,11 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
             if (server.getTransactionTableStatus() == SystemStatus.STOPPED) {
-                logger.info("system ({}) transaction table status is stopped, going to remove server", key);
+                logger.info("transaction table status is stopped, going to remove server ({})", key);
+                removeServer(key);
+            }
+            if (server.getApplyActivityStatus() == SystemStatus.STOPPED) {
+                logger.info("apply activity status is stopped, going to remove server ({})", key);
                 removeServer(key);
             }
         } catch (Throwable t) {
