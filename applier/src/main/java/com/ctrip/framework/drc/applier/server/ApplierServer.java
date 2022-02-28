@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
 import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResource;
@@ -15,7 +14,10 @@ import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractLink;
+import com.ctrip.framework.drc.fetcher.system.Activity;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
+
+import java.util.Map;
 
 /**
  * @Author Slight
@@ -57,6 +59,18 @@ public class ApplierServer extends AbstractLink {
     }
 
     public SystemStatus getTransactionTableStatus() {
-        return ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
+        return SystemStatus.RUNNABLE;
+    }
+
+    public SystemStatus getApplyActivityStatus() {
+        for (Map.Entry<String, Activity> activity : activities.entrySet()) {
+            if (activity.getKey().contains("ApplyActivity")) {
+                ApplyActivity applyActivity = (ApplyActivity) activity;
+                if (applyActivity.getStatus() == SystemStatus.STOPPED) {
+                    return SystemStatus.STOPPED;
+                }
+            }
+        }
+        return SystemStatus.RUNNABLE;
     }
 }
