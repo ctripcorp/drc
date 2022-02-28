@@ -77,6 +77,7 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
             if (server.getStatus() == SystemStatus.STOPPED) {
+                logger.info("system ({}) status is stopped, going to remove server", key);
                 removeServer(key);
             }
         } catch (Throwable t) {
