@@ -66,7 +66,6 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 bearingTimeMillis = 10 * 60 * 1000; //10 minutes
             long currentTimeMillis = System.currentTimeMillis();
             LastLWM lastLWM = lastLWMHashMap.computeIfAbsent(key, k -> new LastLWM(currentLWM, currentProgress, currentTimeMillis));
-            logger.info("start check lwm status");
             if (lastLWM.lwm == currentLWM && lastLWM.progress == currentProgress) {
                 if (currentTimeMillis - lastLWM.lastTimeMillis > bearingTimeMillis) {
                     logger.info("lwm does not raise since {}ms, going to remove server", lastLWM.lastTimeMillis);
@@ -77,13 +76,12 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 lastLWMHashMap.put(key, new LastLWM(currentLWM, currentProgress, currentTimeMillis));
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
-            logger.info("start check transaction table status");
             if (server.getTransactionTableStatus() == SystemStatus.STOPPED) {
                 logger.info("transaction table status is stopped, going to remove server ({})", key);
                 removeServer(key);
             }
-            logger.info("start check apply activity status");
             if (server.getApplyActivityStatus() == SystemStatus.STOPPED) {
+                logger.info("apply activity status is stopped, going to remove server ({})", key);
                 removeServer(key);
             }
         } catch (Throwable t) {
