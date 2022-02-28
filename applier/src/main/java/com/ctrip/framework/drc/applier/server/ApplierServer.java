@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
 import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResource;
@@ -66,7 +67,9 @@ public class ApplierServer extends AbstractLink {
         for (Map.Entry<String, Activity> activity : activities.entrySet()) {
             if (activity.getKey().contains("ApplyActivity")) {
                 ApplyActivity applyActivity = (ApplyActivity) activity;
-                if (applyActivity.getStatus() == SystemStatus.STOPPED) {
+                SystemStatus status = applyActivity.getStatus();
+                logger.info("applyActivity status is: {}", status);
+                if (status == SystemStatus.STOPPED) {
                     return SystemStatus.STOPPED;
                 }
             }
