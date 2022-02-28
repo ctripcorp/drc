@@ -47,4 +47,13 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(CommitActivity.class);
         check();
     }
+
+    @Override
+    public void doInitialize() throws Exception {
+        super.doInitialize();
+        TransactionTableResource transactionTable = (TransactionTableResource) resources.get("TransactionTable");
+        logger.info("transactionTable is: {}", transactionTable);
+        transactionTable.setContainer(getContainer());
+        logger.info("container in transactionTable is: {}", getContainer());
+    }
 }
