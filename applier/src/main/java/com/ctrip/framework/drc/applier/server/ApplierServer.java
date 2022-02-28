@@ -66,7 +66,7 @@ public class ApplierServer extends AbstractLink {
     public SystemStatus getApplyActivityStatus() {
         for (Map.Entry<String, Activity> activity : activities.entrySet()) {
             if (activity.getKey().contains("ApplyActivity")) {
-                ApplyActivity applyActivity = (ApplyActivity) activity;
+                ApplyActivity applyActivity = (ApplyActivity) activity.getValue();
                 SystemStatus status = applyActivity.getStatus();
                 logger.info("applyActivity status is: {}", status);
                 if (status == SystemStatus.STOPPED) {
