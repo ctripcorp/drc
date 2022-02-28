@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
 import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResource;
@@ -14,6 +15,7 @@ import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractLink;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 
 /**
  * @Author Slight
@@ -54,4 +56,7 @@ public class ApplierServer extends AbstractLink {
         return ((DataSourceResource) resources.get("DataSource"));
     }
 
+    public SystemStatus getTransactionTableStatus() {
+        return ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
+    }
 }

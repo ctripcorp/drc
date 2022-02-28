@@ -71,6 +71,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("Merge-GtidSet-Schedule");
 
+    private SystemStatus status = SystemStatus.RUNNABLE;
+
     private DataSource dataSource;
 
     private Endpoint endpoint;
@@ -109,7 +111,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, endpoint), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT] query gtid set error, shutdown server, key is: {}", registryKey);
-            markSystemStopped();
+            setStatus(SystemStatus.STOPPED);
         } else {
             if (StringUtils.isNotBlank(gtidSet.toString())) {
                 doMergeGtid(gtidSet, needRetry);
@@ -159,7 +161,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
         if (needRetry) {
             Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), RETRY_TIME).call();
             if (res == null) {
-                markSystemStopped();
+                loggerTT.error("[TT] merge gtid set error, shutdown server, key is: {}", registryKey);
+                setStatus(SystemStatus.STOPPED);
             }
         } else {
             new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), 0).call();
@@ -185,11 +188,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
             this.gtidSavedInMemory = new GtidSet("");
         }
         return gtidSavedInMemory;
-    }
-
-    private void markSystemStopped() {
-        system.setStatus(SystemStatus.STOPPED);
-        loggerTT.info("[TT] transaction table set system status stopped, register key is: {}, then watch activity will remove this server", registryKey);
     }
 
     private GtidSet getGtidRecordedInDB() {
@@ -234,8 +232,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
                         loggerTT.error("[TT] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", e);
                         throw e;
                     } else {
-                        loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown the system", e);
-                        markSystemStopped();
+                        loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown server, key is: {}", registryKey, e);
+                        setStatus(SystemStatus.STOPPED);
                     }
                 }
             }
@@ -350,5 +348,13 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @VisibleForTesting
     public DataSource getDataSource() {
         return dataSource;
+    }
+
+    public SystemStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SystemStatus status) {
+        this.status = status;
     }
 }
