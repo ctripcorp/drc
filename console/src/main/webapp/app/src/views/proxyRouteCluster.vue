@@ -274,7 +274,10 @@ export default {
       this.$router.push({
         path: '/proxyRouteManagement',
         query: {
-          updateStatus: false
+          updateStatus: false,
+          srcProxyUris: [],
+          relayProxyUris: [],
+          dstProxyUris: []
         }
       })
     }
