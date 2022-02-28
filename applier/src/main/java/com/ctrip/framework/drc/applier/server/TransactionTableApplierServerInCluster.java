@@ -50,8 +50,6 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
     }
 
     public SystemStatus getTransactionTableStatus() {
-        SystemStatus status = ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
-        logger.info("TransactionTableResource status is: {}", status);
-        return status;
+        return ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
     }
 }
