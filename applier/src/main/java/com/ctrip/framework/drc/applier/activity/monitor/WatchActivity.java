@@ -3,10 +3,7 @@ package com.ctrip.framework.drc.applier.activity.monitor;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.server.ApplierServer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.fetcher.system.AbstractLoopActivity;
-import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
-import com.ctrip.framework.drc.fetcher.system.TaskActivity;
-import com.ctrip.framework.drc.fetcher.system.TaskSource;
+import com.ctrip.framework.drc.fetcher.system.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,16 +70,23 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 if (currentTimeMillis - lastLWM.lastTimeMillis > bearingTimeMillis) {
                     logger.info("lwm does not raise since {}ms, going to remove server", lastLWM.lastTimeMillis);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("alert", "lwm does not raise for a long time.", 1, 0);
-                    container.removeServer(key, true);
-                    container.registerServer(key);
-                    lastLWMHashMap.remove(key);
+                    removeServer(key);
                 }
             } else {
                 lastLWMHashMap.put(key, new LastLWM(currentLWM, currentProgress, currentTimeMillis));
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
+            if (server.getStatus() == SystemStatus.STOPPED) {
+                removeServer(key);
+            }
         } catch (Throwable t) {
         }
+    }
+
+    private void removeServer(String key) throws Throwable{
+        container.removeServer(key, true);
+        container.registerServer(key);
+        lastLWMHashMap.remove(key);
     }
 
     @Override

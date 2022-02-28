@@ -23,6 +23,16 @@ public class AbstractSystem extends DrcLifecycle implements Lifecycle, ConfigLoa
 
     private String name;
 
+    private SystemStatus status = SystemStatus.RUNNABLE;
+
+    public SystemStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SystemStatus status) {
+        this.status = status;
+    }
+
     public Object getConfig() {
         return config;
     }
