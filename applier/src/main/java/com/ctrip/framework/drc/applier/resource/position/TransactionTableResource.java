@@ -90,9 +90,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
-    @InstanceConfig(path = "container")
-    public ApplierServerContainer container;
+    private ApplierServerContainer container;
 
+    public void setContainer(ApplierServerContainer container) {
+        this.container = container;
+    }
 
     @Override
     protected void doInitialize() throws Exception {
@@ -193,7 +195,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void shutdownServer() {
         try {
-            loggerTT.info("[TT] transaction removes server start, key is: {}", registryKey);
+            loggerTT.info("[TT] transaction table removes server start, key is: {}", registryKey);
             container.removeServer(registryKey, true);
             container.registerServer(registryKey);
             loggerTT.info("[TT] transaction table removes server success, key is: {}", registryKey);
