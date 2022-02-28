@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.applier.server;
 
-import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 
 /**
@@ -10,8 +9,6 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 public class ApplierServerInCluster extends ApplierServer {
 
     public ApplierConfigDto config;
-
-    private ApplierServerContainer container;
 
     public ApplierServerInCluster(ApplierConfigDto config) throws Exception {
         setConfig(config, ApplierConfigDto.class);
@@ -23,13 +20,5 @@ public class ApplierServerInCluster extends ApplierServer {
     @Override
     public void doDispose() throws Exception {
         super.doDispose();
-    }
-
-    public ApplierServerContainer getContainer() {
-        return container;
-    }
-
-    public void setContainer(ApplierServerContainer container) {
-        this.container = container;
     }
 }

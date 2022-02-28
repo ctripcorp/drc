@@ -71,7 +71,6 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
     protected void doAddServer(ApplierConfigDto config) throws Exception {
         String clusterKey = config.getRegistryKey();
         ApplierServerInCluster newServer = getApplierServer(config);
-        newServer.setContainer(this);
         newServer.initialize();
         newServer.start();
         logger.info("applier servers put cluster: {}", clusterKey);

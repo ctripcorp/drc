@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.applier.resource.position;
 
-import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -9,6 +8,7 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.concurrent.AbstractExceptionLogTask;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -90,12 +90,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
-    private ApplierServerContainer container;
-
-    public void setContainer(ApplierServerContainer container) {
-        this.container = container;
-    }
-
     @Override
     protected void doInitialize() throws Exception {
         endpoint = new DefaultEndPoint(ip, port, username, password);
@@ -115,7 +109,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, endpoint), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT] query gtid set error, shutdown server, key is: {}", registryKey);
-            shutdownServer();
+            markSystemStopped();
         } else {
             if (StringUtils.isNotBlank(gtidSet.toString())) {
                 doMergeGtid(gtidSet, needRetry);
@@ -165,7 +159,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         if (needRetry) {
             Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), RETRY_TIME).call();
             if (res == null) {
-                shutdownServer();
+                markSystemStopped();
             }
         } else {
             new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), 0).call();
@@ -193,15 +187,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
         return gtidSavedInMemory;
     }
 
-    private void shutdownServer() {
-        try {
-            loggerTT.info("[TT] transaction table removes server start, key is: {}", registryKey);
-            container.removeServer(registryKey, true);
-            container.registerServer(registryKey);
-            loggerTT.info("[TT] transaction table removes server success, key is: {}", registryKey);
-        } catch (Throwable t) {
-            loggerTT.error("[TT] transaction table removes server error, key is: {}", registryKey, t);
-        }
+    private void markSystemStopped() {
+        system.setStatus(SystemStatus.STOPPED);
+        loggerTT.info("[TT] transaction table set system status stopped, register key is: {}, then watch activity will remove this server", registryKey);
     }
 
     private GtidSet getGtidRecordedInDB() {
@@ -247,7 +235,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
                         throw e;
                     } else {
                         loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown the system", e);
-                        shutdownServer();
+                        markSystemStopped();
                     }
                 }
             }
