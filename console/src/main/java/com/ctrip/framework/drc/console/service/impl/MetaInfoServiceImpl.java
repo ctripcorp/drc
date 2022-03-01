@@ -1201,7 +1201,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
             Long buId = null, srcDcId = null, dstDcId = null;
             if(null != routeOrgName) {
                 // ternary operator should make sure type consistent
-                buId = routeOrgName.equals(NULL_STRING) ? Long.valueOf(100) : dalUtils.getId(TableEnum.BU_TABLE, routeOrgName);
+                buId = routeOrgName.equals(NULL_STRING) ? Long.valueOf(0L) : dalUtils.getId(TableEnum.BU_TABLE, routeOrgName);
             }
             if(null != srcDcName) {
                 srcDcId = dalUtils.getId(TableEnum.DC_TABLE, srcDcName);
