@@ -128,6 +128,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
+        setJvmTtlForDns();
         LifecycleHelper.initializeIfPossible(schemaManager);
         LifecycleHelper.initializeIfPossible(eventStore);
         LifecycleHelper.initializeIfPossible(transactionCache);
@@ -145,6 +146,10 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         }
         LifecycleHelper.initializeIfPossible(inboundMonitorReport);
         LifecycleHelper.initializeIfPossible(outboundMonitorReport);
+    }
+
+    private void setJvmTtlForDns() {
+        java.security.Security.setProperty("networkaddress.cache.ttl", "60");
     }
 
     @Override
