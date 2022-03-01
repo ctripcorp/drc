@@ -31,9 +31,6 @@ import java.util.stream.Collectors;
 public class OpenApiServiceImpl implements OpenApiService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
-    private static final String ALLMATCH = "*";
-    private static final int SET_GTID_MODE = 0;
-    private static final int TRANSACTION_TABLE_MODE = 1;
     
     @Autowired
     private MetaGenerator metaGenerator;
@@ -71,35 +68,17 @@ public class OpenApiServiceImpl implements OpenApiService {
                 Long mhaTblId = mhaTbl.getId();
                 String dcName = dcTbls.stream().filter(p -> p.getId().equals(mhaTbl.getDcId())).findFirst().get().getDcName();
                 MachineTbl machineTbl = machineTbls.stream().filter(p -> p.getMhaId().equals(mhaTblId) && p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().get();
-
-                String includedDbs = metaInfoService.getIncludedDbs(mhaName, anotherMhaName);
-                String nameFilter = metaInfoService.getNameFilter(mhaName, anotherMhaName);
+                String unionApplierFilter = metaInfoService.getUnionApplierFilter(mhaName, anotherMhaName);
                 if (i++ == 0) {
                     mhaGroupFilterVo.setSrcMhaName(mhaName);
                     mhaGroupFilterVo.setSrcDc(dcName);
                     mhaGroupFilterVo.setSrcIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    String srcApplierFilter = ALLMATCH;
-                    if (StringUtils.isNotBlank(nameFilter)) {
-                        srcApplierFilter = nameFilter;
-                    } else if (StringUtils.isNotBlank(includedDbs)) {
-                        srcApplierFilter = includedDbs;
-                    } else {
-                        logger.info("srcApplierFilter find no filter,use allMatch,mhaId is {}",mhaTblId);
-                    }
-                    mhaGroupFilterVo.setSrcApplierFilter(srcApplierFilter);
+                    mhaGroupFilterVo.setSrcApplierFilter(unionApplierFilter);
                 } else {
                     mhaGroupFilterVo.setDestMhaName(mhaName);
                     mhaGroupFilterVo.setDestDc(dcName);
                     mhaGroupFilterVo.setDestIpPort(machineTbl.getIp()+":"+machineTbl.getPort());
-                    String destApplierFilter = ALLMATCH;
-                    if (StringUtils.isNotBlank(nameFilter)) {
-                        destApplierFilter = nameFilter;
-                    } else if (StringUtils.isNotBlank(includedDbs)) {
-                        destApplierFilter = includedDbs;
-                    } else {
-                        logger.info("destApplierFilter find no filter,use allMatch,mhaId is {}",mhaTblId);
-                    }
-                    mhaGroupFilterVo.setDestApplierFilter(destApplierFilter);
+                    mhaGroupFilterVo.setDestApplierFilter(unionApplierFilter);
                 }
             }
             allDrcMhaDbFilters.add(mhaGroupFilterVo);

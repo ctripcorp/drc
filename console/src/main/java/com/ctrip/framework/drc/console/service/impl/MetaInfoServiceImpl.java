@@ -29,6 +29,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.dom4j.DocumentException;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 public class MetaInfoServiceImpl implements MetaInfoService {
 
     public static final String ALLMATCH = ".*";
+    public static final String NO_MATCH = "![.*]";
     public static final String NULL_STRING = "null";
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -627,6 +629,13 @@ public class MetaInfoServiceImpl implements MetaInfoService {
     }
     
     public String getApplierFilter(String mha, String remoteMha) throws SQLException {
+        ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
+        if (null == applierGroupTbl) {
+            return NO_MATCH;
+        } else if (null == dalUtils.getApplierTblDao().queryAll().stream().
+                    filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
+            return NO_MATCH;
+        }
         String includedDbs = getIncludedDbs(mha, remoteMha);
         String nameFilter = getNameFilter(mha, remoteMha);
         String applierFilter = ALLMATCH;
@@ -642,6 +651,23 @@ public class MetaInfoServiceImpl implements MetaInfoService {
             logger.info("srcApplierFilter find none,use allMatch,mha-remoteMha is {}-{}",mha,remoteMha);
         }
         return applierFilter;
+    }
+    
+    public String getUnionApplierFilter(String mha, String remoteMha) throws SQLException {
+        String applierFilter1 = getApplierFilter(mha, remoteMha);
+        String applierFilter2 = getApplierFilter(remoteMha, mha);
+        if (applierFilter1.equals(ALLMATCH) || applierFilter2.equals(ALLMATCH)) {
+            return ALLMATCH;
+        } else if (applierFilter1.equals(NO_MATCH)) {
+            return applierFilter2;
+        } else if (applierFilter2.equals(NO_MATCH)) {
+            return applierFilter1;
+        } else {
+            HashSet<String> filters = Sets.newHashSet();
+            filters.addAll(List.of(getApplierFilter(mha,remoteMha).split(",")));
+            filters.addAll(List.of(getApplierFilter(remoteMha,mha).split(",")));
+            return StringUtils.join(filters,",");
+        }
     }
     
     @Override
