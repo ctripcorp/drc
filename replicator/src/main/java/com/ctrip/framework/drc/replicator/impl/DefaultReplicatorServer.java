@@ -36,6 +36,7 @@ import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.google.common.collect.Sets;
 
+import java.security.Security;
 import java.util.Set;
 import java.util.UUID;
 
@@ -149,7 +150,10 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
     }
 
     private void setJvmTtlForDns() {
+        logger.info("SecurityManager is null: {}", System.getSecurityManager() == null);
+        logger.info("before Security setting, ttl is: {}", Security.getProperty("networkaddress.cache.ttl"));
         java.security.Security.setProperty("networkaddress.cache.ttl", "60");
+        logger.info("after Security setting, ttl is: {}", Security.getProperty("networkaddress.cache.ttl"));
     }
 
     @Override
