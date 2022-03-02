@@ -27,13 +27,21 @@
             <Input v-model="drc.oldIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认为全部DB"/>
           </FormItem>
           <FormItem label="配置同步对象" prop="oldNameFilter" style="width: 600px">
-            <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true"
+                   placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
           </FormItem>
           <FormItem label="配置表名映射" prop="oldNameMapping" style="width: 600px">
-            <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true" placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
+            <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true"
+                   placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="设置executedGtid" style="width: 600px">
-            <Input v-model="drc.oldExecutedGtid" placeholder="请输入源集群executedGtid，不填默认自动获取"/>
+            <Input v-model="drc.oldExecutedGtid" placeholder="请输入源集群executedGtid，不填自动获取本侧gtid"/>
+            <Button @click="queryNewMhaMachineGtid">查询对侧gtid</Button>
+            <span v-if="hasTest1">
+                  <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess1 ? 'green' : 'red'"/>
+                    {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
+                </span>
           </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.oldApplyMode" style="width:200px">
@@ -64,13 +72,21 @@
             <Input v-model="drc.newIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认全部DB"/>
           </FormItem>
           <FormItem label="配置同步对象" prop="newNameFilter" style="width: 600px">
-            <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Input v-model="drc.newNameFilter" type="textarea" :autosize="true"
+                   placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
           </FormItem>
           <FormItem label="配置表名映射" prop="newNameMapping" style="width: 600px">
-            <Input v-model="drc.newNameMapping" type="textarea" :autosize="true" placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
+            <Input v-model="drc.newNameMapping" type="textarea" :autosize="true"
+                   placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="设置executedGtid" style="width: 600px">
-            <Input v-model="drc.newExecutedGtid" placeholder="请输入新集群executedGtid，不填默认自动获取"/>
+            <Input v-model="drc.newExecutedGtid" placeholder="请输入新集群executedGtid，不填自动获取本侧gtid"/>
+            <Button @click="queryOldMhaMachineGtid">查询对侧gtid</Button>
+            <span v-if="hasTest2">
+                  <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess2 ? 'green' : 'red'"/>
+                    {{ testSuccess2 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
+                </span>
           </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.newApplyMode" style="width:200px">
@@ -83,7 +99,8 @@
     </Row>
     <Form :label-width="250" style="margin-top: 50px">
       <FormItem>
-        <Button @click="handleReset('drc1');handleReset('drc2')">重置</Button><br><br>
+        <Button @click="handleReset('drc1');handleReset('drc2')">重置</Button>
+        <br><br>
         <Button type="primary" @click="preCheckConfigure ()">提交</Button>
       </FormItem>
       <Modal
@@ -103,7 +120,7 @@
               <FormItem label="源集群端Applier">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.appliers.old" readonly/>
               </FormItem>
-              <FormItem label="源ApplierTargetName" >
+              <FormItem label="源ApplierTargetName">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldTargetName" readonly/>
               </FormItem>
               <FormItem label="源集群端includedDbs">
@@ -136,7 +153,7 @@
               <FormItem label="新集群端Applier">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.appliers.new" readonly/>
               </FormItem>
-              <FormItem label="新ApplierTargetName" >
+              <FormItem label="新ApplierTargetName">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newTargetName" readonly/>
               </FormItem>
               <FormItem label="新集群端includedDbs">
@@ -172,26 +189,26 @@
       </Modal>
       <!--             v-model="drc.warnModal"-->
       <Modal
-             v-model="drc.warnModal"
-             title="存在一对多共用运行配置请确认"
-             width="900px"
-             @on-ok="reviewConfigure">
-            <label style="color: black">共用replicator配置的集群:  </label>
-            <input v-model="drc.conflictMha"></input>
-            <Divider/>
-              <div>
-                <p style="color: red">线上一对多replicator配置</p>
-                <ul>
-                  <ol v-for="item in drc.replicators.share" :key="item">{{item}}</ol>
-                </ul>
-              </div>
-              <Divider />
-              <div>
-                <p style="color: black">修改后replicator配置</p>
-                <ul>
-                  <ol v-for="item in drc.replicators.conflictCurrent" :key="item">{{item}}</ol>
-                </ul>
-              </div>
+        v-model="drc.warnModal"
+        title="存在一对多共用运行配置请确认"
+        width="900px"
+        @on-ok="reviewConfigure">
+        <label style="color: black">共用replicator配置的集群: </label>
+        <input v-model="drc.conflictMha"></input>
+        <Divider/>
+        <div>
+          <p style="color: red">线上一对多replicator配置</p>
+          <ul>
+            <ol v-for="item in drc.replicators.share" :key="item">{{item}}</ol>
+          </ul>
+        </div>
+        <Divider/>
+        <div>
+          <p style="color: black">修改后replicator配置</p>
+          <ul>
+            <ol v-for="item in drc.replicators.conflictCurrent" :key="item">{{item}}</ol>
+          </ul>
+        </div>
       </Modal>
     </Form>
   </div>
@@ -211,6 +228,10 @@ export default {
       title: '',
       message: '',
       hasResp: false,
+      hasTest1: false,
+      testSuccess1: false,
+      hasTest2: false,
+      testSuccess2: false,
       applyModeList: [
         {
           value: 0,
@@ -283,8 +304,7 @@ export default {
           share: [],
           conflictCurrent: []
         },
-        replicator: {
-        },
+        replicator: {},
         searchReplicatorIp: '',
         usedReplicatorPorts: '',
         applierlist: {
@@ -322,14 +342,14 @@ export default {
     },
     getResourcesInOld () {
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
-      // this.axios.get('/api/drc/v1/meta/resources?type=R')
+        // this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.old = []
           response.data.data.forEach(ip => this.drc.replicatorlist.old.push(ip))
         })
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
-      // this.axios.get('/api/drc/v1/meta/resources?type=A')
+        // this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.old = []
@@ -377,14 +397,14 @@ export default {
     },
     getResourcesInNew () {
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
-      // this.axios.get('/api/drc/v1/meta/resources?type=R')
+        // this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.new = []
           response.data.data.forEach(ip => this.drc.replicatorlist.new.push(ip))
         })
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
-      // this.axios.get('/api/drc/v1/meta/resources?type=A')
+        // this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.new = []
@@ -428,6 +448,38 @@ export default {
         .then(response => {
           console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' applymode ' + response.data.data)
           this.drc.newApplyMode = response.data.data
+        })
+    },
+    queryOldMhaMachineGtid () {
+      const that = this
+      console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
+      that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
+        .then(response => {
+          this.hasTest2 = true
+          if (response.data.status === 0) {
+            this.drc.newExecutedGtid = response.data.data
+            this.testSuccess2 = true
+          } else {
+            this.testSuccess2 = false
+          }
+        })
+    },
+    queryNewMhaMachineGtid () {
+      const that = this
+      console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
+      that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
+        .then(response => {
+          this.hasTest1 = true
+          if (response.data.status === 0) {
+            this.drc.oldExecutedGtid = response.data.data
+            this.testSuccess1 = true
+          } else {
+            this.testSuccess1 = false
+          }
         })
     },
     debug () {
@@ -563,11 +615,12 @@ export default {
 }
 </script>
 <style scoped>
-    .demo-split {
-      height: 200px;
-      border: 1px solid #dcdee2;
-    }
-    .demo-split-pane {
-      padding: 10px;
-    }
+.demo-split {
+  height: 200px;
+  border: 1px solid #dcdee2;
+}
+
+.demo-split-pane {
+  padding: 10px;
+}
 </style>

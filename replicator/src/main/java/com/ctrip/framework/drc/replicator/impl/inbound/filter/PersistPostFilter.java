@@ -49,6 +49,14 @@ public class PersistPostFilter extends AbstractPostLogEventFilter {
                     transactionCache.add(logEvent);
                     value.setNotRelease(true);
                 }
+                if (value.isTransactionTableRelated()) {
+                    value.setTransactionTableRelated(false);
+                    checkXid(logEvent, logEventType, value);
+                    transactionCache.markTransactionTableRelated(true);
+                    transactionCache.add(logEvent);
+                    transactionCache.markTransactionTableRelated(false);
+                    value.setNotRelease(true);
+                }
             }
         } else {
             checkXid(logEvent, logEventType, value);

@@ -18,9 +18,9 @@
           <Button :style="{marginLeft: '10px'}" type="primary" @click="goToRouteManagementLink">添加路由</Button>
           <Table stripe :columns="columns" :data="dataWithPage">
             <template slot-scope="{ row, index }" slot="action">
-              <Button type="error" size="small" style="margin-right: 5px" @click="goToDelete(row, index)">下线</Button>
-              <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
-              <Button type="warning" size="small" style="margin-right: 5px" @click="goToRecover(row, index)">回滚</Button>
+              <Button type="error" size="small" v-if="row.deleted === 0" style="margin-right: 5px" @click="goToDelete(row, index)">下线</Button>
+              <Button type="primary" size="small" v-if="row.deleted === 0" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
+              <Button type="warning" size="small" v-if="row.deleted === 1" style="margin-right: 5px" @click="goToRecover(row, index)">回滚</Button>
             </template>
           </Table>
           <div style="text-align: center;margin: 16px 0">
@@ -198,7 +198,18 @@ export default {
         alert('已经下线，请先回滚！')
       } else {
         console.log('go to manage route for' + row.routeOrgName + '-' + row.tag + ', from ' + row.srcDcName + ' to ' + row.dstDcName)
-        this.$router.push({ path: '/proxyRouteManagement', query: { routeOrgName: row.routeOrgName, srcDcName: row.srcDcName, dstDcName: row.dstDcName, tag: row.tag } })
+        this.$router.push({
+          path: '/proxyRouteManagement',
+          query: {
+            routeOrgName: row.routeOrgName,
+            srcDcName: row.srcDcName,
+            dstDcName: row.dstDcName,
+            tag: row.tag,
+            srcProxyUris: row.srcProxyUris,
+            relayProxyUris: row.relayProxyUris,
+            dstProxyUris: row.dstProxyUris
+          }
+        })
       }
     },
     goToDelete (row, index) {

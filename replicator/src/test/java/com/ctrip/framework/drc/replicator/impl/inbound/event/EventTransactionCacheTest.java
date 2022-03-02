@@ -1,17 +1,20 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.event;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
+import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.server.common.Filter;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractEventTest;
 import io.netty.buffer.ByteBuf;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @Author limingdong
@@ -139,6 +142,21 @@ public class EventTransactionCacheTest extends AbstractEventTest {
 
         eventTransactionCache.stop();
         eventTransactionCache.dispose();
+    }
+
+    @Test
+    public void testConvertToDrcGtidLogEvent() {
+        EventTransactionCache eventTransactionCache = new EventTransactionCache(ioCache, filterChain);
+        TransactionEvent transaction = new TransactionEvent();
+        transaction.addLogEvent(getGtidLogEvent());
+        transaction.addLogEvent(getDrcTableMapLogEvent());
+        transaction.addLogEvent(getXidLogEvent());
+
+        eventTransactionCache.convertToDrcGtidLogEvent(transaction);
+        List<LogEvent> logEvents = transaction.getEvents();
+
+        Assert.assertEquals(1, logEvents.size());
+        Assert.assertTrue(LogEventType.drc_gtid_log_event == logEvents.get(0).getLogEventType());
     }
 
     private GtidLogEvent getDrcGtidLogEvent() {

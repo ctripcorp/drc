@@ -28,6 +28,9 @@
             <MenuItem name="/access" to="/access">
               <span>搭建DRC</span>
             </MenuItem>
+            <MenuItem name="/accessV2" to="/accessV2">
+              <span>出海DRC</span>
+            </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
             </MenuItem>

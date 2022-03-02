@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -107,9 +108,9 @@ public class MySqlUtils {
      * @param endpoint
      * @return key: database.table, value: createTblStmts
      */
-    public static Map<String, String> getDefaultCreateTblStmts(Endpoint endpoint) {
+    public static Map<String, String> getDefaultCreateTblStmts(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
-        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::toString).collect(Collectors.toList()), false);
+        return getCreateTblStmts(endpoint, tables.stream().filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).map(TableSchemaName::toString).collect(Collectors.toList()), false);
     }
 
     /**
@@ -478,5 +479,10 @@ public class MySqlUtils {
         public String toString() {
             return String.format("`%s`.`%s`", schema, name);
         }
+        
+        public String getDirectSchemaTableName() {
+            return String.format("%s.%s", schema, name);
+        }
+        
     }
 }
