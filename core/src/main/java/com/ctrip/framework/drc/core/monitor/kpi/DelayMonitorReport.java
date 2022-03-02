@@ -2,11 +2,10 @@ package com.ctrip.framework.drc.core.monitor.kpi;
 
 import com.ctrip.framework.drc.core.monitor.entity.UnidirectionalEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
+import com.ctrip.framework.drc.core.monitor.util.IsolateHashCache;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DELAY_LOGGER;
@@ -25,9 +24,9 @@ public class DelayMonitorReport extends AbstractMonitorResource {
 
     private UnidirectionalEntity unidirectionalEntity;
 
-    private LinkedHashMap<String, Long> gtidMap;
+    private IsolateHashCache<String, Long> gtidMap;
 
-    private LinkedHashMap<String, String> monitorGtidMap;
+    private IsolateHashCache<String, String> monitorGtidMap;
 
     public DelayMonitorReport(long domain, TrafficEntity trafficEntity) {
         clusterName = trafficEntity.getClusterName();
@@ -42,19 +41,9 @@ public class DelayMonitorReport extends AbstractMonitorResource {
 
     @Override
     protected void doInitialize() throws Exception {
-        gtidMap = new LinkedHashMap<>(16, 0.75F, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, Long> eldst) {
-                return size() > MAX_SIZE;
-            }
-        };  //end map
+        gtidMap = new IsolateHashCache<>(MAX_SIZE, 16, 4);
 
-        monitorGtidMap = new LinkedHashMap<>(16, 0.75F, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, String> eldst) {
-                return size() > (MAX_SIZE / 100);
-            }
-        };  //end map
+        monitorGtidMap = new IsolateHashCache<>(MAX_SIZE, 16, 4);
 
         sendDelayExecutorService = ThreadUtils.newSingleThreadExecutor(getClass().getSimpleName() + "-send-" + clusterName);
     }
@@ -78,13 +67,14 @@ public class DelayMonitorReport extends AbstractMonitorResource {
         sendDelayExecutorService.submit(() -> {
             try {
                 long now = System.currentTimeMillis();
-                Long receiveTime =  gtidMap.remove(gtid);
+                Long receiveTime =  gtidMap.getIfPresent(gtid);
                 if (receiveTime == null) {
                     if (DELAY_LOGGER.isDebugEnabled()) {
                         DELAY_LOGGER.debug("[Delay] reset for {} to now and delay 0ms", gtid);
                     }
                     return;
                 }
+                gtidMap.invalidate(gtid);
 
                 long delay = now - receiveTime;
                 if (delay > 5) {
@@ -92,11 +82,12 @@ public class DelayMonitorReport extends AbstractMonitorResource {
                         DELAY_LOGGER.debug("[Slow] delay for {} is {}ms ", gtid, delay);
                     }
                 }
-                if (monitorGtidMap.remove(gtid) != null) {
+                if (monitorGtidMap.getIfPresent(gtid) != null) {
                     hickwallReporter.reportDelay(unidirectionalEntity, delay, DRC_REPLICATOR_DELAY_MEASUREMENT);
                     if (DELAY_LOGGER.isDebugEnabled()) {
                         DELAY_LOGGER.debug("[Hickwall] report for {}", gtid);
                     }
+                    monitorGtidMap.invalidate(gtid);
                 }
             } catch (Exception e) {
                 DELAY_LOGGER.error("reportDelay error", e);
