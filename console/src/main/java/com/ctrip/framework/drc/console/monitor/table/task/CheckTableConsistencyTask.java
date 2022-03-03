@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl.ALLMATCH;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_TABLE_LOGGER;
@@ -57,8 +58,6 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
 
     private Map<String, ConsistencyEntity> consistencyEntityMap = Maps.newConcurrentMap();
 
-    private List<Set<DbClusterSourceProvider.Mha>> mhaGroups;
-
     private Map<String, Boolean> consistencyMapper = new ConcurrentHashMap<>();
 
     protected Map<String, Boolean> getConsistencyMapper() {
@@ -77,7 +76,6 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         setPeriod(PERIOD);
         setTimeUnit(TIME_UNIT);
         super.initialize();
-        mhaGroups = dbClusterSourceProvider.getMhaGroups();
         currentMetaManager.addObserver(this);
     }
 
@@ -85,7 +83,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
     public void scheduledTask() {
             String tableConsistencyMonitorSwitch = monitorTableSourceProvider.getTableConsistencySwitch();
             if(SWITCH_STATUS_ON.equalsIgnoreCase(tableConsistencyMonitorSwitch)) {
-                List<List<DbClusterSourceProvider.Mha>> mhaCombinationList = dbClusterSourceProvider.getAllMhaCombinationList();
+                List<List<DbClusterSourceProvider.Mha>> mhaCombinationList = new ArrayList(dbClusterSourceProvider.getMhaGroupPairs().values());
                 for(List<DbClusterSourceProvider.Mha> mhaCombination : mhaCombinationList) {
                     if(isFilteredOut(mhaCombination)) {
                         continue;
@@ -118,13 +116,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         // aviator unionFilter;
         String unionFilter;
         try {
-            String applierFilter1 = metaInfoService.getApplierFilter(srcMha, destMha);
-            String applierFilter2 = metaInfoService.getApplierFilter(destMha, srcMha);
-            if (applierFilter1.equals(ALLMATCH) || applierFilter2.equals(ALLMATCH)) {
-                unionFilter = ALLMATCH;
-            } else {
-                unionFilter = applierFilter1 + "," + applierFilter2;
-            }
+            unionFilter = metaInfoService.getUnionApplierFilter(srcMha, destMha);
         } catch (SQLException e) {
             CONSOLE_TABLE_LOGGER.warn("[[monitor=tableConsistency]] SQLException in get applier Filter in {}-{},report table diff",srcMha,destMha);
             return false;
@@ -145,7 +137,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
             String srcStmt = srcStmts.get(table);
             String destStmt = destStmts.get(table);
             if(!srcStmt.equalsIgnoreCase(destStmt)) {
-                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table {} is different between two DCs' db: {}:{} and {}:{},after filter ,srcStmt:{},destStmt{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(),srcStmt,destStmt);
+                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table {} is different between two DCs' db: {}:{} and {}:{},after filter ,srcStmt:{},destStmt:{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(),srcStmt,destStmt);
                 return false;
             }
         }

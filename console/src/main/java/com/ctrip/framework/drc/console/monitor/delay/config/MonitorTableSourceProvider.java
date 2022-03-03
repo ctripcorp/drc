@@ -52,7 +52,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String TABLE_CONSISTENCY_MONITOR_SWITCH = "table.consistency.monitor.switch";
     private static final String TABLE_CONSISTENCY_MONITOR_PERIOD = "table.consistency.monitor.period";
-    private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 300;
+    private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 600;
 
     private static final String SWITCH_DRC_TASK_SYNC_MHA = "switch.drc.task.syncmha";
 
