@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class IsolateHashCacheTest {
 
     @Test
-    public void test() throws InterruptedException {
+    public void testIsolateHashCache() throws InterruptedException {
         ExecutorService put = ThreadUtils.newSingleThreadExecutor("123");
         ExecutorService remove = ThreadUtils.newSingleThreadExecutor("456");
         final IsolateHashCache<Integer, String> map = new IsolateHashCache<Integer, String>(1000, 16, 4);
@@ -49,7 +49,6 @@ public class IsolateHashCacheTest {
         t2.start();
         t1.join();
         t2.join();
-        Thread.sleep(100);
-        Assert.assertTrue(1000 - map.size() >= 0);
+        Assert.assertTrue(1004 - map.size() >= 0);
     }
 }
