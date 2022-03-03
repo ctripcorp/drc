@@ -14,6 +14,10 @@ import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractLink;
+import com.ctrip.framework.drc.fetcher.system.Activity;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
+
+import java.util.Map;
 
 /**
  * @Author Slight
@@ -54,4 +58,19 @@ public class ApplierServer extends AbstractLink {
         return ((DataSourceResource) resources.get("DataSource"));
     }
 
+    public SystemStatus getTransactionTableStatus() {
+        return SystemStatus.RUNNABLE;
+    }
+
+    public SystemStatus getApplyActivityStatus() {
+        for (Map.Entry<String, Activity> activity : activities.entrySet()) {
+            if (activity.getKey().contains("ApplyActivity")) {
+                ApplyActivity applyActivity = (ApplyActivity) activity.getValue();
+                if (SystemStatus.STOPPED == applyActivity.getStatus()) {
+                    return SystemStatus.STOPPED;
+                }
+            }
+        }
+        return SystemStatus.RUNNABLE;
+    }
 }

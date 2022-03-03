@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.server;
 import com.ctrip.framework.drc.applier.activity.event.*;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
-import com.ctrip.framework.drc.applier.resource.TransactionTableResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemory
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 
 /**
  * Created by jixinwang on 2021/9/14
@@ -46,5 +47,9 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(TransactionTableApplyActivity.class, 100)
                 .link(CommitActivity.class);
         check();
+    }
+
+    public SystemStatus getTransactionTableStatus() {
+        return ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
     }
 }

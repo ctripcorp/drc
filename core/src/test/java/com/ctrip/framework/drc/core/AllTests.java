@@ -28,6 +28,7 @@ import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
+import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -113,6 +114,7 @@ import org.junit.runners.Suite;
         CharsetConversionTest.class,
         MySQLPasswordEncrypterTest.class,
         FileUtilTest.class,
+        IsolateHashCacheTest.class,
 
         //schema package
         SchemaTests.class,
@@ -144,7 +146,7 @@ import org.junit.runners.Suite;
 
         // table regex filter
         AviatorRegexFilterTest.class,
-        
+
         // QueryTask
         ExecutedGtidQueryTaskTest.class
 })
