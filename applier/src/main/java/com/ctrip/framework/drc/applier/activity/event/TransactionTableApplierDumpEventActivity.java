@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.applier.activity.replicator.converter.Transaction
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
-import com.ctrip.framework.drc.applier.resource.TransactionTable;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
@@ -70,4 +70,3 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         context.updateGtidSet(set);
     }
 }
-

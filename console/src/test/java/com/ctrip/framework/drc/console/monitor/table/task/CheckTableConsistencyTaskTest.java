@@ -5,6 +5,7 @@ import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -27,8 +28,11 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+
+import static com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl.ALLMATCH;
 
 /**
  * @author shenhaibo
@@ -39,13 +43,16 @@ public class CheckTableConsistencyTaskTest {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private CheckTableConsistencyTask task = new CheckTableConsistencyTask();
+    private CheckTableConsistencyTask task1 = new CheckTableConsistencyTask();
 
     @InjectMocks
     private CheckTableConsistencyTask checkTableConsistencyTask;
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Mock
+    private MetaInfoServiceImpl metaInfoService;
 
     private DataSource dataSource;
 
@@ -103,7 +110,7 @@ public class CheckTableConsistencyTaskTest {
     private Drc drc;
 
     @Before
-    public void setUp() throws IOException, SAXException {
+    public void setUp() throws IOException, SAXException, SQLException {
         MockitoAnnotations.openMocks(this);
         // for db
         try {
@@ -199,6 +206,8 @@ public class CheckTableConsistencyTaskTest {
             }});
         }};
 
+        Mockito.doReturn(ALLMATCH).when(metaInfoService).getApplierFilter(Mockito.anyString(),Mockito.anyString());
+
         ntMaster1 = new DefaultEndPoint(IP, NT_PORT1, MYSQL_USER, MYSQL_PASSWORD);
         ntMaster2 = new DefaultEndPoint(IP, NT_PORT2, MYSQL_USER, MYSQL_PASSWORD);
         oyMaster1 = new DefaultEndPoint(IP, OY_PORT1, MYSQL_USER, MYSQL_PASSWORD);
@@ -208,45 +217,46 @@ public class CheckTableConsistencyTaskTest {
     @Test
     public void testCheckTableConsistency() throws InterruptedException {
 
+        
         Thread.sleep(200);
-        Assert.assertTrue(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(DELETE_TABLE1, OY_PORT1);
         Thread.sleep(100);
-        Assert.assertFalse(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertFalse(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(CREATE_TABLE1, OY_PORT1);
         Thread.sleep(100);
-        Assert.assertTrue(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(DELETE_TABLE1, OY_PORT2);
         Thread.sleep(100);
-        Assert.assertTrue(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertFalse(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertFalse(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(CREATE_TABLE1, OY_PORT2);
         Thread.sleep(100);
-        Assert.assertTrue(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(ADD_INDEX1, NT_PORT1);
         Thread.sleep(100);
-        Assert.assertFalse(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertFalse(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(ADD_INDEX2, OY_PORT1);
         Thread.sleep(100);
-        Assert.assertFalse(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertFalse(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
 
         execute(DROP_INDEX1, NT_PORT1);
         execute(DROP_INDEX2, OY_PORT1);
         Thread.sleep(100);
-        Assert.assertTrue(task.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
-        Assert.assertTrue(task.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster1, oyMaster1, "drcNt", "drcOy", "drc-Test01"));
+        Assert.assertTrue(checkTableConsistencyTask.checkTableConsistency(ntMaster2, oyMaster2, "drcNt2", "drcOy2", "drc-Test02"));
     }
 
     private void initDb(int port) {

@@ -39,7 +39,7 @@
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
         <netty-all.version>4.1.68.Final</netty-all.version>
-        <guava.version>18.0</guava.version>
+        <guava.version>19.0</guava.version>
         <fastjson.version>1.2.71</fastjson.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>

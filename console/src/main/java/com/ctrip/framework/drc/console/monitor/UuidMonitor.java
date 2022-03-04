@@ -94,11 +94,11 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
 
     private String localDcName;
 
-    public static final int INITIAL_DELAY = 30;
+    public  final int INITIAL_DELAY = 30;
 
-    public static final int PERIOD = 300;
+    public  final int PERIOD = 300;
 
-    public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+    public  final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
     @Override
     public void initialize() {

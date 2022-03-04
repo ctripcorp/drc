@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -89,6 +90,19 @@ public class AccessController {
             return ApiResult.getSuccessInstance(String.format("standalone build mha instance %s result: %s", dto, res));
         } catch (Throwable t) {
             return ApiResult.getFailInstance(String.format("Fail standalone build mha instance %s for %s", dto, t));
+        }
+    }
+
+    @PostMapping("mha/machineInfo")
+    public ApiResult recordMachineInfo(@RequestBody MhaMachineDto dto) {
+        logger.info("record machineInfo : {}", dto);
+        try {
+            MhaInstanceGroupDto mhaInstanceGroupDto = MhaMachineDto.transferToMhaInstanceGroupDto(dto);
+            logger.info("record mha instance: {}", dto);
+            Boolean res = drcMaintenanceService.recordMhaInstances(mhaInstanceGroupDto);
+            return ApiResult.getSuccessInstance(String.format("record mha machine %s result: %s", dto, res));
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(String.format("Fail record mha machine %s for %s", dto, t));
         }
     }
 

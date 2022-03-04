@@ -10,15 +10,15 @@
             <i-col span="12">
                 <Form ref="route" :model="route" :rules="ruleRoute" :label-width="250" style="float: left; margin-top: 50px">
                     <FormItem label="BU"  prop="routeOrgName" style="width: 500px">
-                        <Input v-model="route.routeOrgName" placeholder="请输入路由BU"/>
+                        <Input :disabled="updateStatus" v-model="route.routeOrgName" placeholder="请输入路由BU,不填默认为公用路由"/>
                     </FormItem>
                     <FormItem label="源端机房"  prop="srcDcName">
-                        <Select v-model="route.srcDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInSrc" placeholder="请选择源端机房" @on-create="handleCreateDc">
+                        <Select :disabled="updateStatus" v-model="route.srcDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInSrc" placeholder="请选择源端机房" @on-create="handleCreateDc">
                         <Option v-for="item in drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
                         </Select>
                     </FormItem>
                     <FormItem label="目标机房"  prop="dstDcName">
-                        <Select v-model="route.dstDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInDst" placeholder="请选择目标机房" @on-create="handleCreateDc">
+                        <Select :disabled="updateStatus" v-model="route.dstDcName" filterable allow-create style="width: 250px" @on-select="getProxyUrisInDst" placeholder="请选择目标机房" @on-create="handleCreateDc">
                         <Option v-for="item in drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
                         </Select>
                     </FormItem>
@@ -33,12 +33,12 @@
                       </Select>
                     </FormItem>
                     <FormItem label="目标Proxy" prop="dstProxyUris">
-                        <Select v-model="route.proxyUris.dst" filterable multiple style="width: 250px" placeholder="请选择目标Proxy">
+                        <Select  v-model="route.proxyUris.dst" filterable multiple style="width: 250px" placeholder="请选择目标Proxy">
                         <Option v-for="item in route.proxyUriList.dst" :value="item" :key="item">{{ item }}</Option>
                         </Select>
                     </FormItem>
                     <FormItem label="Tag"  prop="tag" style="width: 500px">
-                        <Input v-model="route.tag" placeholder="请输入路由tag"/>
+                        <Input :disabled="updateStatus" v-model="route.tag" placeholder="请输入路由tag"/>
                     </FormItem>
                     <FormItem>
                       <Button @click="handleReset()">重置</Button><br><br>
@@ -47,7 +47,7 @@
                     <Modal
                         v-model="route.reviewModal"
                         title="录入确认"
-                        @on-ok="inputResource">
+                        @on-ok="inputResource()">
                         对BU[{{ this.route.routeOrgName }}]、tag[{{ this.route.tag }}]、方向[{{ this.route.srcDcName }}->{{ this.route.dstDcName }}]，确认新增/修改路由为源端Proxies：{{ this.route.proxyUris.src }}，中继Proxies：{{ this.route.proxyUris.relay }}，目标Proxies：{{ this.route.proxyUris.dst }}吗？
                     </Modal>
                     <Modal
@@ -68,6 +68,7 @@ export default {
   name: 'proxyRouteManagement',
   data () {
     return {
+      updateStatus: this.$route.query.updateStatus,
       route: {
         reviewModal: false,
         resultModal: false,
@@ -76,9 +77,9 @@ export default {
         dstDcName: this.$route.query.dstDcName,
         tag: this.$route.query.tag,
         proxyUris: {
-          src: [],
-          relay: [],
-          dst: []
+          src: this.$route.query.srcProxyUris,
+          relay: this.$route.query.relayProxyUris,
+          dst: this.$route.query.dstProxyUris
         },
         proxyUriList: {
           src: [],
@@ -87,9 +88,6 @@ export default {
         }
       },
       ruleRoute: {
-        routeOrgName: [
-          { required: true, message: 'BU不能为空', trigger: 'blur' }
-        ],
         srcDcName: [
           { required: true, message: '源端机房不能为空', trigger: 'blur' }
         ],
@@ -255,7 +253,8 @@ export default {
         '?routeOrgName=' + this.route.routeOrgName +
         '&srcDcName=' + this.route.srcDcName +
         '&dstDcName=' + this.route.dstDcName +
-        '&tag=' + this.route.tag
+        '&tag=' + this.route.tag +
+        '&deleted=' + 0
       console.log('uri: ' + uri)
       this.axios.get(uri)
         .then(response => {

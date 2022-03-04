@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.applier.resource;
 
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,13 +19,13 @@ import java.util.concurrent.ExecutorService;
  */
 public class TransactionTableResourceTest extends ConflictTest {
 
-    private static final String COMMIT = "commit";
-
     private CountDownLatch latch;
 
     private static TransactionTableResource transactionTable;
 
     private ExecutorService executor = ThreadUtils.newFixedThreadPool(3, "TransactionTableTest");
+
+    private DataSource dataSource;
 
     @Before
     public void before() throws Exception {
@@ -35,6 +37,7 @@ public class TransactionTableResourceTest extends ConflictTest {
         transactionTable.username = "root";
         transactionTable.password = "123456";
         transactionTable.initialize();
+        dataSource = transactionTable.getDataSource();
         initTransactionTable();
         latch = new CountDownLatch(3);
         delete();
@@ -56,9 +59,6 @@ public class TransactionTableResourceTest extends ConflictTest {
             try (PreparedStatement statement = connection.prepareStatement(createTransactionTable)) {
                 statement.execute();
             }
-            try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
-                statement.execute();
-            }
         }
     }
 
@@ -77,9 +77,6 @@ public class TransactionTableResourceTest extends ConflictTest {
     public void testRecord() {
         try (Connection connection = dataSource.getConnection()) {
             transactionTable.record(connection, "uuid1:1");
-            try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
-                statement.execute();
-            }
             String sql = "select gno from drcmonitordb.gtid_executed where id = 1";
             long gno = (long)select(sql);
             Assert.assertEquals(1, gno);
@@ -89,24 +86,42 @@ public class TransactionTableResourceTest extends ConflictTest {
 
     @Test
     public void testMerge() {
-        for (int i = 0; i < 20; i++) {
+        for (int i = 1; i <= 20; i++) {
             try (Connection connection = dataSource.getConnection()) {
                 String gtid = "uuid1:" + i;
                 transactionTable.begin(gtid);
                 transactionTable.record(connection, gtid);
-                try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
-                    statement.execute();
-                }
                 transactionTable.commit(gtid);
             } catch (SQLException | InterruptedException e) {
             }
         }
 
-        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1;";
+        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1 and server_uuid = 'uuid1';";
         String gtidSet = (String) select(selectGtidSetSql);
-        Assert.assertEquals("uuid1:0-19", gtidSet);
+        Assert.assertEquals("uuid1:1-20", gtidSet);
     }
 
+
+    @Test
+    public void testGtidQuery() {
+        for (int i = 1; i <= 15; i++) {
+            try (Connection connection = dataSource.getConnection()) {
+                String gtid = "89c42b4a-9611-11ec-a8a2-0242ac110002:" + i;
+                transactionTable.begin(gtid);
+                transactionTable.record(connection, gtid);
+                transactionTable.commit(gtid);
+            } catch (SQLException | InterruptedException e) {
+            }
+        }
+
+        String selectGtidSetSql = "select gtidset from drcmonitordb.gtid_executed where id = -1 and server_uuid = '89c42b4a-9611-11ec-a8a2-0242ac110002';";
+        String gtidSet = (String) select(selectGtidSetSql);
+        Assert.assertEquals("89c42b4a-9611-11ec-a8a2-0242ac110002:1-10", gtidSet);
+
+        transactionTable.mergeRecord("89c42b4a-9611-11ec-a8a2-0242ac110002", false);
+        String gtidSet2 = (String) select(selectGtidSetSql);
+        Assert.assertEquals("89c42b4a-9611-11ec-a8a2-0242ac110002:1-15", gtidSet2);
+    }
 
     private Object select(String sql) {
         try (Connection connection = dataSource.getConnection()) {
@@ -118,6 +133,7 @@ public class TransactionTableResourceTest extends ConflictTest {
                 }
             }
         } catch (SQLException e) {
+            System.out.println("select error" + e.getMessage());
         }
         return StringUtils.EMPTY;
     }
@@ -126,9 +142,6 @@ public class TransactionTableResourceTest extends ConflictTest {
         String deleteSql = "delete from drcmonitordb.gtid_executed;";
         try (Connection connection = dataSource.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(deleteSql)) {
-                statement.execute();
-            }
-            try (PreparedStatement statement = connection.prepareStatement(COMMIT)) {
                 statement.execute();
             }
         }

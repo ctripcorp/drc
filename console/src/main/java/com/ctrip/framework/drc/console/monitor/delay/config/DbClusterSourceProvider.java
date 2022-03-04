@@ -130,6 +130,39 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     }
 
 
+    public synchronized Map<String,List<Mha>> getMhaGroupPairs() {
+        Map<String,List<Mha>> mhaGroupPairsMap = Maps.newHashMap();
+        Map<String, Dc> dcs = getDcs();
+        for (String dcName : dcs.keySet()) {
+            Dc dc = dcs.get(dcName);
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            for (String registrykey : dbClusters.keySet()) {
+                DbCluster dbCluster = dbClusters.get(registrykey);
+                String mhaName = dbCluster.getMhaName();
+                String clusterName = dbCluster.getName();
+                List<Applier> appliers = dbCluster.getAppliers();
+                for (Applier applier : appliers) {
+                    String targetClusterName = StringUtils.isNotBlank(applier.getTargetName()) ? applier.getTargetName() : clusterName;
+                    String targetDcName = applier.getTargetIdc();
+                    String targetMhaName = applier.getTargetMhaName();
+                    String targetRegistrykey = targetClusterName + "." + targetMhaName;
+                    Dc targetDc = dcs.get(targetDcName);
+                    if (null != targetDc) {
+                        DbCluster targetDbCluster = targetDc.getDbClusters().get(targetRegistrykey);
+                        if (null != targetDbCluster) {
+                            Mha localMha = new Mha(dcName, dbCluster);
+                            Mha targetMha = new Mha(targetDcName, targetDbCluster);
+                            if (!mhaGroupPairsMap.containsKey(mhaName+"."+targetMhaName) && 
+                                    !mhaGroupPairsMap.containsKey(targetMhaName+"."+mhaName)) {
+                                mhaGroupPairsMap.put(mhaName+"."+targetMhaName,Lists.newArrayList(localMha,targetMha));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return mhaGroupPairsMap;
+    }
     public synchronized List<Set<Mha>> getMhaGroups() {
         if(null == mhaGroups) {
             mhaGroups = Lists.newArrayList();
@@ -142,9 +175,10 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                     String clusterName = dbCluster.getName();
                     List<Applier> appliers = dbCluster.getAppliers();
                     for(Applier applier : appliers) {
+                        String targetClusterName = StringUtils.isNotBlank(applier.getTargetName()) ? applier.getTargetName() : clusterName;
                         String targetDcName = applier.getTargetIdc();
                         String targetMhaName = applier.getTargetMhaName();
-                        String targetRegistrykey = clusterName + "." + targetMhaName;
+                        String targetRegistrykey = targetClusterName + "." + targetMhaName;
                         Dc targetDc = dcs.get(targetDcName);
                         if(null != targetDc) {
                             DbCluster targetDbCluster = targetDc.getDbClusters().get(targetRegistrykey);
@@ -380,6 +414,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         }
         return allMhaCombinationList;
     }
+    
 
     @Override
     public int getOrder() {
