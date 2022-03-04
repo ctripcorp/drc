@@ -63,13 +63,13 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
     protected Map<String, Boolean> getConsistencyMapper() {
         return Collections.unmodifiableMap(consistencyMapper);
     }
-    
+
     public  final int INITIAL_DELAY = 30;
 
     public  final int PERIOD = MonitorTableSourceProvider.getInstance().getTableConsistencyMonitorPeriod();
 
     public  final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    
+
     @Override
     public void initialize() {
         setInitialDelay(INITIAL_DELAY);
@@ -81,32 +81,32 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
 
     @Override
     public void scheduledTask() {
-            String tableConsistencyMonitorSwitch = monitorTableSourceProvider.getTableConsistencySwitch();
-            if(SWITCH_STATUS_ON.equalsIgnoreCase(tableConsistencyMonitorSwitch)) {
-                List<List<DbClusterSourceProvider.Mha>> mhaCombinationList = new ArrayList(dbClusterSourceProvider.getMhaGroupPairs().values());
-                for(List<DbClusterSourceProvider.Mha> mhaCombination : mhaCombinationList) {
-                    if(isFilteredOut(mhaCombination)) {
-                        continue;
-                    }
-                    DbClusterSourceProvider.Mha srcMha = mhaCombination.get(0);
-                    DbCluster srcDbCluster = srcMha.getDbCluster();
-                    DbClusterSourceProvider.Mha destMha = mhaCombination.get(1);
-                    DbCluster destDbCluster = destMha.getDbCluster();
-                    ConsistencyEntity consistencyEntity = getConsistencyEntity(srcMha, destMha);
-                    MetaKey srcMetaKey = new MetaKey(srcMha.getDc(), srcDbCluster.getId(), srcDbCluster.getName(), srcDbCluster.getMhaName());
-                    MetaKey dstMetaKey = new MetaKey(destMha.getDc(), destDbCluster.getId(), destDbCluster.getName(), destDbCluster.getMhaName());
-                    Endpoint srcEndpoint = masterMySQLEndpointMap.get(srcMetaKey);
-                    Endpoint destEndpoint = masterMySQLEndpointMap.get(dstMetaKey);
-                    boolean consistency = checkTableConsistency(srcEndpoint, destEndpoint, srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
-                    if(consistency) {
-                        CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table is consistent between two DCs': {}:{} and {}:{}", srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
-                        DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.CONSISTENT);
-                    } else {
-                        DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.NON_CONSISTENT);
-                    }
-                    consistencyMapper.put(srcDbCluster.getMhaName()+"."+destDbCluster.getMhaName(), consistency);
+        String tableConsistencyMonitorSwitch = monitorTableSourceProvider.getTableConsistencySwitch();
+        if(SWITCH_STATUS_ON.equalsIgnoreCase(tableConsistencyMonitorSwitch)) {
+            List<List<DbClusterSourceProvider.Mha>> mhaCombinationList = new ArrayList(dbClusterSourceProvider.getMhaGroupPairs().values());
+            for(List<DbClusterSourceProvider.Mha> mhaCombination : mhaCombinationList) {
+                if(isFilteredOut(mhaCombination)) {
+                    continue;
                 }
+                DbClusterSourceProvider.Mha srcMha = mhaCombination.get(0);
+                DbCluster srcDbCluster = srcMha.getDbCluster();
+                DbClusterSourceProvider.Mha destMha = mhaCombination.get(1);
+                DbCluster destDbCluster = destMha.getDbCluster();
+                ConsistencyEntity consistencyEntity = getConsistencyEntity(srcMha, destMha);
+                MetaKey srcMetaKey = new MetaKey(srcMha.getDc(), srcDbCluster.getId(), srcDbCluster.getName(), srcDbCluster.getMhaName());
+                MetaKey dstMetaKey = new MetaKey(destMha.getDc(), destDbCluster.getId(), destDbCluster.getName(), destDbCluster.getMhaName());
+                Endpoint srcEndpoint = masterMySQLEndpointMap.get(srcMetaKey);
+                Endpoint destEndpoint = masterMySQLEndpointMap.get(dstMetaKey);
+                boolean consistency = checkTableConsistency(srcEndpoint, destEndpoint, srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
+                if(consistency) {
+                    CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table is consistent between two DCs': {}:{} and {}:{}", srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
+                    DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.CONSISTENT);
+                } else {
+                    DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.NON_CONSISTENT);
+                }
+                consistencyMapper.put(srcDbCluster.getMhaName()+"."+destDbCluster.getMhaName(), consistency);
             }
+        }
     }
 
     protected boolean checkTableConsistency(Endpoint srcEndpoint, Endpoint destEndpoint, String srcMha, String destMha, String cluster) {
@@ -126,8 +126,8 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         // key: database.table, value: createTblStmts
         Map<String, String> srcStmts = MySqlUtils.getDefaultCreateTblStmts(srcEndpoint,aviatorRegexFilter);
         Map<String, String> destStmts = MySqlUtils.getDefaultCreateTblStmts(destEndpoint,aviatorRegexFilter);
-        
-        
+
+
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
             CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Something is wrong between two DCs' db: {}:{} and {}:{}. Check these tables: {}", srcMha, destMha, cluster, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(), tableDiff);

@@ -51,7 +51,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";
     public static final String NULL_STRING = "null";
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -627,13 +627,13 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         }
         return Lists.newArrayList();
     }
-    
+
     public String getApplierFilter(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
         if (null == applierGroupTbl) {
             return NO_MATCH;
         } else if (null == dalUtils.getApplierTblDao().queryAll().stream().
-                    filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
+                filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
             return NO_MATCH;
         }
         String includedDbs = getIncludedDbs(mha, remoteMha);
@@ -652,7 +652,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
         }
         return applierFilter;
     }
-    
+
     public String getUnionApplierFilter(String mha, String remoteMha) throws SQLException {
         String applierFilter1 = getApplierFilter(mha, remoteMha);
         String applierFilter2 = getApplierFilter(remoteMha, mha);
@@ -669,7 +669,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
             return StringUtils.join(filters,",");
         }
     }
-    
+
     @Override
     public String getTargetName(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
@@ -702,7 +702,7 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                 .filter(p -> (p.getDeleted().equals(BooleanEnum.FALSE.getCode()) && mhaTbl.getId().equals(p.getMhaId()) && p.getReplicatorGroupId().equals(remoteReplicatorGroupTbl.getId())))
                 .findFirst().orElse(null);
     }
-    
+
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);

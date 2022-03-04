@@ -342,14 +342,14 @@ export default {
     },
     getResourcesInOld () {
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
-        // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.old = []
           response.data.data.forEach(ip => this.drc.replicatorlist.old.push(ip))
         })
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
-        // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.old = []
@@ -397,14 +397,14 @@ export default {
     },
     getResourcesInNew () {
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
-        // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.new = []
           response.data.data.forEach(ip => this.drc.replicatorlist.new.push(ip))
         })
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
-        // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.new = []
@@ -453,9 +453,9 @@ export default {
     queryOldMhaMachineGtid () {
       const that = this
       console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
+          ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
       that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
+          ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -469,9 +469,9 @@ export default {
     queryNewMhaMachineGtid () {
       const that = this
       console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
+          ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
       that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
+          ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -615,12 +615,12 @@ export default {
 }
 </script>
 <style scoped>
-.demo-split {
-  height: 200px;
-  border: 1px solid #dcdee2;
-}
+  .demo-split {
+    height: 200px;
+    border: 1px solid #dcdee2;
+  }
 
-.demo-split-pane {
-  padding: 10px;
-}
+  .demo-split-pane {
+    padding: 10px;
+  }
 </style>
