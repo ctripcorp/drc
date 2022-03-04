@@ -14,9 +14,4 @@ public class BenchmarkPairCaseManager extends AbstractPairCase<ReadWriteSqlOpera
     public void addPairCase(PairCase<ReadWriteSqlOperator, ReadWriteSqlOperator> pairCase) {
         pairCases.add(pairCase);
     }
-
-    @Override
-    public void test(ReadWriteSqlOperator src, ReadWriteSqlOperator dst) {
-
-    }
 }

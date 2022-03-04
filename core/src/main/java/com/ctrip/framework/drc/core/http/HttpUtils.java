@@ -92,7 +92,9 @@ public class HttpUtils {
 
     public static <T> T post(String url, Object body, Class<T> clazz) {
         init();
-        return restTemplate.postForObject(url, body, clazz);
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
+        return response.getBody();
     }
 
     public static <T> T delete(String url, Class<T> clazz) {
