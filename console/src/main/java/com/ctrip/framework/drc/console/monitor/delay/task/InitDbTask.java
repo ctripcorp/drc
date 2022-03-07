@@ -217,11 +217,16 @@ public class InitDbTask {
 
     public Map<String, Long> getMhaNameAndIdMap(String dcName) throws SQLException {
         Map<String, Long> mhaNameAndIdMap = Maps.newHashMap();
-        List<MhaTbl> mhaTbls = getMhasByDcName(dcName);
-        mhaTbls.forEach(mhaTbl -> {
-            mhaNameAndIdMap.put(mhaTbl.getMhaName(), mhaTbl.getId());
-        });
-        return mhaNameAndIdMap;
+        Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
+        if (localConfigCloudDc.contains(dcName.toLowerCase())) {
+            return consoleConfig.getLocalConfigMhasMap();
+        } else {
+            List<MhaTbl> mhaTbls = getMhasByDcName(dcName);
+            mhaTbls.forEach(mhaTbl -> {
+                mhaNameAndIdMap.put(mhaTbl.getMhaName(), mhaTbl.getId());
+            });
+            return mhaNameAndIdMap;
+        }
     }
 
     private List<MhaTbl> getMhasByDcName(String dcName) throws SQLException {

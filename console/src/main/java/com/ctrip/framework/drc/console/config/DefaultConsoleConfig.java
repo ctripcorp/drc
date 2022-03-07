@@ -8,12 +8,10 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author shenhaibo
@@ -69,6 +67,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
+    
+    private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
+    private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws";
+    private static String LOCAL_CONFIG_MONITOR_MHAS = "local.config.monitor.mhas";
+    private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
+    private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
+    private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
 
     private static String CONSOLE_GRAY_MHA = "console.gray.mha";
     private static String DEFAULT_CONSOLE_GRAY_MHA = "";
@@ -274,6 +279,33 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         String publicCloudDc = getProperty(PUBLIC_CLOUD_DC, DEFAULT_PUBLIC_CLOUD_DC);
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
+    }
+    
+    public Set<String> getLocalConfigCloudDc() {
+        String localConfigCloudDc = getProperty(LOCAL_CONFIG_CLOUD_DC, DEFAULT_LOCAL_CONFIG_CLOUD_DC);
+        logger.info("localConfigCloudDc: {}", localConfigCloudDc);
+        return Sets.newHashSet(localConfigCloudDc.split(","));
+    }
+
+    public List<String> getLocalDcMhaNamesToBeMonitored() {
+        String localDcMhaNamesToBeMonitored = getProperty(LOCAL_CONFIG_MONITOR_MHAS, DEFAULT_LOCAL_CONFIG_MONITOR_MHAS);
+        logger.info("localDcMhaNamesToBeMonitored: {}", localDcMhaNamesToBeMonitored);
+        if (null == localDcMhaNamesToBeMonitored || StringUtils.isBlank(localDcMhaNamesToBeMonitored)) {
+            return null;
+        }
+        return Lists.newArrayList(localDcMhaNamesToBeMonitored.split(","));
+    }
+
+    public Map<String, Long> getLocalConfigMhasMap() {
+        HashMap<String, Long> mhasIdNameMap = Maps.newHashMap();
+        String mhaNameIdMapString = getProperty(LOCAL_CONFIG_MHAS_MAP, DEFAULT_LOCAL_CONFIG_MHAS_MAP);
+        logger.info("mhaNameIdMapString: {}", mhaNameIdMapString);
+        Map<String, String> decode = JsonCodec.INSTANCE.decode(mhaNameIdMapString, new GenericTypeReference<Map<String, String>>() {});
+        for (Map.Entry<String,String> entry : decode.entrySet()) {
+            mhasIdNameMap.put(entry.getKey(),Long.valueOf(entry.getValue()));
+        }
+        return mhasIdNameMap;
+
     }
 
     public Set<String> getGrayMha() {

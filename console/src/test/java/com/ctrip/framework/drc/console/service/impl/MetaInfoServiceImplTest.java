@@ -462,9 +462,9 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Set<String> mha1dc2 = uuidMap.get("mha1dc2");
         Set<String> mha2dc2 = uuidMap.get("mha2dc2");
         Set<String> mha3dc2 = uuidMap.get("mha3dc2");
-        Assert.assertEquals(1, mha1dc2.size());
-        Assert.assertEquals(3, mha2dc2.size());
-        Assert.assertEquals(3, mha3dc2.size());
+        Assert.assertEquals(2, mha1dc2.size());
+        Assert.assertEquals(5, mha2dc2.size());
+        Assert.assertEquals(5, mha3dc2.size());
         Assert.assertTrue(mha1dc2.contains("92345678-1234-abcd-abcd-123456789abc"));
         Assert.assertTrue(mha2dc2.contains("13345678-1234-abcd-abcd-123456789abc"));
 

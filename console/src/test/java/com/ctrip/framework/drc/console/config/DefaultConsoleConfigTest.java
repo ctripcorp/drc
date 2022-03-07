@@ -7,7 +7,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author shenhaibo
@@ -91,5 +93,25 @@ public class DefaultConsoleConfigTest {
         Map<String, String> nosuchcluster = config.getUidMap("nosuchcluster");
         Assert.assertNotNull(nosuchcluster);
         Assert.assertEquals(0, nosuchcluster.size());
+    }
+    
+    @Test 
+    public void testGetLocalConfigCloudDc() {
+        Set<String> localConfigCloudDc = config.getLocalConfigCloudDc();
+        Assert.assertEquals(1,localConfigCloudDc.size());
+    }
+    
+    @Test
+    public void testGetLocalDcMhaNamesToBeMonitored() {
+        List<String> localDcMhaNamesToBeMonitored = config.getLocalDcMhaNamesToBeMonitored();
+        Assert.assertNotNull(localDcMhaNamesToBeMonitored);
+        Assert.assertEquals(0,localDcMhaNamesToBeMonitored.size());
+    }
+    
+    @Test 
+    public void testGetLocalConfigMhasMap() {
+        Map<String, Long> localConfigMhasMap = config.getLocalConfigMhasMap();
+        Assert.assertNotNull(localConfigMhasMap);
+        Assert.assertEquals(0,localConfigMhasMap.size());
     }
 }
