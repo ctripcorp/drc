@@ -89,8 +89,14 @@ public class MonitorServiceImpl implements MonitorService {
         List<String> mhaNamesToBeMonitored;
 
         if (publicCloudDc.contains(currentDcName)) {
-            mhaNamesToBeMonitored = getRemoteMhaNamesToBeMonitored(currentDcName);
-            logger.info("get mha name to be monitored from remote: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
+            Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
+            if (localConfigCloudDc.contains(currentDcName)) {
+                mhaNamesToBeMonitored = consoleConfig.getLocalDcMhaNamesToBeMonitored();
+                logger.info("get mha name to be monitored from local config: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
+            } else {
+                mhaNamesToBeMonitored = getRemoteMhaNamesToBeMonitored(currentDcName);
+                logger.info("get mha name to be monitored from remote: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
+            }
         } else {
             mhaNamesToBeMonitored = getLocalMhaNamesToBeMonitored();
             logger.info("get mha name to be monitored from local: {}", JsonUtils.toJson(mhaNamesToBeMonitored));

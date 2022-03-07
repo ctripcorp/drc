@@ -46,7 +46,8 @@ import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZ
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SOURCE_QCONFIG;
 
 @Service
-public class MetaInfoServiceImpl implements MetaInfoService {
+public class 
+MetaInfoServiceImpl implements MetaInfoService {
 
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";
@@ -1202,18 +1203,15 @@ public class MetaInfoServiceImpl implements MetaInfoService {
                     Dbs dbs = dbCluster.getDbs();
                     List<Db> dbList = dbs.getDbs();
                     for(Db db : dbList) {
-                        if(db.isMaster()) {
-                            // ali dc uuid is not only
-                            String uuidString = db.getUuid();
-                            String[] uuids = uuidString.split(",");
-                            Set<String> uuidSet = uuidMap.getOrDefault(localMhaName, Sets.newHashSet());
-                            for (String uuid : uuids) {
-                                uuidSet.add(uuid);
-                                logger.info("mhaName is {},opposite end mha master uuid contain {}",localMhaName,uuid);
-                            }
-                            uuidMap.put(localMhaName, uuidSet);
-                            break;
+                        // ali dc uuid is not only
+                        String uuidString = db.getUuid();
+                        String[] uuids = uuidString.split(",");
+                        Set<String> uuidSet = uuidMap.getOrDefault(localMhaName, Sets.newHashSet());
+                        for (String uuid : uuids) {
+                            uuidSet.add(uuid);
+                            logger.info("mhaName is {},opposite end mha isMaster{} uuid contain {}", localMhaName, db.isMaster(), uuid);
                         }
+                        uuidMap.put(localMhaName, uuidSet);
                     }
                 }
             }
