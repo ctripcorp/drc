@@ -104,8 +104,7 @@ public class DefaultConsoleConfigTest {
     @Test
     public void testGetLocalDcMhaNamesToBeMonitored() {
         List<String> localDcMhaNamesToBeMonitored = config.getLocalDcMhaNamesToBeMonitored();
-        Assert.assertNotNull(localDcMhaNamesToBeMonitored);
-        Assert.assertEquals(0,localDcMhaNamesToBeMonitored.size());
+        Assert.assertNull(localDcMhaNamesToBeMonitored);
     }
     
     @Test 
