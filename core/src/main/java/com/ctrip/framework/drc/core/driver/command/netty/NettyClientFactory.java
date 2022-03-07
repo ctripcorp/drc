@@ -80,7 +80,7 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
     @Override
     public PooledObject<NettyClient> makeObject() {
 
-        ChannelFuture channelFuture = b.connect(target.getSocketAddress()).awaitUninterruptibly();
+        ChannelFuture channelFuture = b.connect(target.getHost(), target.getPort()).awaitUninterruptibly();
         NettyClientWithEndpoint nettyClient = new AsyncNettyClientWithEndpoint(channelFuture, target);
         channelFuture.channel().attr(KEY_CLIENT).set(nettyClient);
         channelFuture.addListener(connFuture -> {
