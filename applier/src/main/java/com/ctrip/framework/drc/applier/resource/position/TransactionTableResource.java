@@ -215,28 +215,38 @@ public class TransactionTableResource extends AbstractResource implements Transa
         long gno = Long.parseLong(uuidAndGno[1]);
         int id = (int) (gno % TRANSACTION_TABLE_SIZE);
 
+        try {
+            if (updateTransactionTable(connection, id, uuid, gno) != 1) {
+                insertTransactionTable(connection, id, uuid, gno);
+            }
+        } catch (SQLException e) {
+            //already executed or deadlock
+            String message = e.getMessage();
+            if (message.startsWith("Duplicate entry") || message.equals("Deadlock found when trying to get lock; try restarting transaction")) {
+                loggerTT.error("[TT] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", e);
+                throw e;
+            } else {
+                loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown server, key is: {}", registryKey, e);
+                setStatus(SystemStatus.STOPPED);
+            }
+        }
+    }
+
+    private int updateTransactionTable(Connection connection, int id, String uuid, long gno) throws SQLException {
         try (PreparedStatement updateStatement = connection.prepareStatement(UPDATE_TRANSACTION_TABLE)) {
             updateStatement.setLong(1, gno);
             updateStatement.setInt(2, id);
             updateStatement.setString(3, uuid);
-            if (updateStatement.executeUpdate() != 1) {
-                try (PreparedStatement insertStatement = connection.prepareStatement(INSERT_TRANSACTION_TABLE)) {
-                    insertStatement.setInt(1, id);
-                    insertStatement.setString(2, uuid);
-                    insertStatement.setLong(3, gno);
-                    insertStatement.execute();
-                } catch (SQLException e) {
-                    //already executed or deadlock
-                    String message = e.getMessage();
-                    if (message.startsWith("Duplicate entry") || message.equals("Deadlock found when trying to get lock; try restarting transaction")) {
-                        loggerTT.error("[TT] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", e);
-                        throw e;
-                    } else {
-                        loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown server, key is: {}", registryKey, e);
-                        setStatus(SystemStatus.STOPPED);
-                    }
-                }
-            }
+            return updateStatement.executeUpdate();
+        }
+    }
+
+    private void insertTransactionTable(Connection connection, int id, String uuid, long gno) throws SQLException {
+        try (PreparedStatement insertStatement = connection.prepareStatement(INSERT_TRANSACTION_TABLE)) {
+            insertStatement.setInt(1, id);
+            insertStatement.setString(2, uuid);
+            insertStatement.setLong(3, gno);
+            insertStatement.executeUpdate();
         }
     }
 
