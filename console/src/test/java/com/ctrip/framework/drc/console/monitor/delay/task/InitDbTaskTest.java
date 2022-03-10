@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import junit.framework.TestCase;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -27,6 +28,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -140,6 +143,12 @@ public class InitDbTaskTest extends TestCase {
         initDbTask.initDelayMonitorTbl();
     }
 
+    @Test
+    public void testGetMhaNameAndIdMap() throws SQLException {
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(new HashSet<>(){{add("shaoy");}});
+        Map<String, Long> map = initDbTask.getMhaNameAndIdMap("shaoy");
+        Assert.assertEquals(0,map.size());
+    }
     @Test
     public void testInitPublicCloudDbTask() throws Exception {
         Mockito.when(dbClusterSourceProvider.getLocalDcName()).thenReturn("shali");

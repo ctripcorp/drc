@@ -17,6 +17,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -71,5 +72,9 @@ public class MonitorServiceImplTest extends AbstractTest {
         Mockito.doReturn(mhaNamesResponseVo).when(openService).getMhaNamesToBeMonitored(Mockito.anyString());
         List<String> mhaNamesToBeMonitored = monitorService.getMhaNamesToBeMonitored();
         Assert.assertEquals(1, mhaNamesToBeMonitored.size());
+        
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("publicDc"));
+        Mockito.when(consoleConfig.getLocalDcMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mah1","mha2"));
+        Assert.assertEquals(2,monitorService.getMhaNamesToBeMonitored().size());
     }
 }

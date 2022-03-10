@@ -20,7 +20,7 @@ public class FilterConfig {
     public FilterRegistrationBean ssoFilterRegistration() {
 
         FilterRegistrationBean registration = new FilterRegistrationBean();
-        registration.setFilter(new CtripSSOFilter());
+        registration.setFilter(new CtripSSOFilterWithDegradeSwtich());
         registration.addUrlPatterns("/*");
         registration.setName("sessionFilter");
         return registration;

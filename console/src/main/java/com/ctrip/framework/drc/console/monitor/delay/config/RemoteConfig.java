@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 
@@ -24,6 +25,10 @@ public class RemoteConfig extends AbstractConfig implements Config {
     @Override
     public void updateConfig() {
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+        Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
+        if (localConfigCloudDc.contains(dbClusterSourceProvider.getLocalDcName())) {
+            return;
+        }
         if(consoleDcInfos.size() != 0) {
             for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
                 if(!entry.getKey().equalsIgnoreCase(dbClusterSourceProvider.getLocalDcName())) {
