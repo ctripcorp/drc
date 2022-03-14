@@ -21,12 +21,14 @@ import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCom
 import com.ctrip.framework.drc.core.driver.command.packet.client.*;
 import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
+import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -112,6 +114,7 @@ import org.junit.runners.Suite;
         CharsetConversionTest.class,
         MySQLPasswordEncrypterTest.class,
         FileUtilTest.class,
+        IsolateHashCacheTest.class,
 
         //schema package
         SchemaTests.class,
@@ -143,6 +146,9 @@ import org.junit.runners.Suite;
 
         // table regex filter
         AviatorRegexFilterTest.class,
+
+        // QueryTask
+        ExecutedGtidQueryTaskTest.class
 })
 public class AllTests {
 

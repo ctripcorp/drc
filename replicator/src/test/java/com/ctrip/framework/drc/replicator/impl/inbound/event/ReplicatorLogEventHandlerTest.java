@@ -60,7 +60,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     @Mock
     private InboundMonitorReport inboundMonitorReport;
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain(delayMonitor);
+    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
 
     private FilePersistenceEventStore filePersistenceEventStore;
 

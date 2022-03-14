@@ -3,15 +3,22 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.Filter;
+import java.lang.reflect.Method;
 import java.util.Map;
 
 
@@ -92,6 +99,19 @@ public class AccessController {
         }
     }
 
+    @PostMapping("mha/machineInfo")
+    public ApiResult recordMachineInfo(@RequestBody MhaMachineDto dto) {
+        logger.info("record machineInfo : {}", dto);
+        try {
+            MhaInstanceGroupDto mhaInstanceGroupDto = MhaMachineDto.transferToMhaInstanceGroupDto(dto);
+            logger.info("record mha instance: {}", dto);
+            Boolean res = drcMaintenanceService.recordMhaInstances(mhaInstanceGroupDto);
+            return ApiResult.getSuccessInstance(String.format("record mha machine %s result: %s", dto, res));
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(String.format("Fail record mha machine %s for %s", dto, t));
+        }
+    }
+
 
     @DeleteMapping("mhas/{mha}")
     public ApiResult stopCheckNewMhaBuilt(@PathVariable String mha) {
@@ -158,4 +178,27 @@ public class AccessController {
             return ApiResult.getFailInstance(res);
         }
     }
+    
+    @PostMapping("sso/degrade/switch/{status}")
+    public ApiResult changeSSOFilterStatus(@PathVariable String status) {
+        Boolean openDegradeSwitch = status.equals("on");
+        logger.info("[[switch=ssoDegrade]] changeSSOFilterStatus to {}",openDegradeSwitch);
+        try {
+            ApplicationContext applicationContext = SpringUtils.getApplicationContext();
+            FilterRegistrationBean ssoFilterRegistration = (FilterRegistrationBean) applicationContext.getBean("ssoFilterRegistration");
+            Filter sessionFilter = ssoFilterRegistration.getFilter();
+            Class<? extends Filter> sessionFilterClass = sessionFilter.getClass();
+            Method setSSODegradeMethod = sessionFilterClass.getMethod("setSSODegrade", Boolean.class);
+            Boolean invokeResult = (Boolean) setSSODegradeMethod.invoke(sessionFilter, openDegradeSwitch);
+            if (openDegradeSwitch.equals(invokeResult)) {
+                return ApiResult.getSuccessInstance(null);
+            } else {
+                return ApiResult.getFailInstance("invoke result not equal the expected");
+            }
+        } catch (Exception e) {
+            logger.error("[[switch=ssoDegrade]] changeSSOFilterStatus occur error",e);
+            return ApiResult.getFailInstance(e);
+        }
+    }
+    
 }

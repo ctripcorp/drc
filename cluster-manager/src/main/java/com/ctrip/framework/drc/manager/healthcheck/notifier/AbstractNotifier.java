@@ -13,6 +13,7 @@ import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -167,7 +168,13 @@ public abstract class AbstractNotifier implements Notifier {
 
         @Override
         public ApiResult<Boolean> sendHttp() {
-            return restTemplate.postForObject(url, getBody(ipAndPort, dbCluster, false), ApiResult.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+            HttpEntity<Object> entity = new HttpEntity<Object>(getBody(ipAndPort, dbCluster, false), headers);
+            ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.POST, entity, ApiResult.class);
+            return response.getBody();
+            //return restTemplate.postForObject(url, getBody(ipAndPort, dbCluster, false), ApiResult.class);
         }
     }
 
@@ -184,6 +191,7 @@ public abstract class AbstractNotifier implements Notifier {
         public ApiResult<Boolean> sendHttp() {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
             HttpEntity<Object> entity = new HttpEntity<Object>(getBody(ipAndPort, dbCluster, register), headers);
             ResponseEntity<ApiResult> response = restTemplate.exchange(url, HttpMethod.PUT, entity, ApiResult.class);
             return response.getBody();
@@ -200,6 +208,7 @@ public abstract class AbstractNotifier implements Notifier {
         public ApiResult<Boolean> sendHttp() {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
             restTemplate.delete(url);
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         }

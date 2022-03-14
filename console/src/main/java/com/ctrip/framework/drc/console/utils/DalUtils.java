@@ -367,15 +367,19 @@ public class DalUtils {
         routeTblDao.insert(routeTbl);
     }
 
-    public void updateOrCreateRoute(Long routeOrgId, Long srcDcId, Long dstDcId, String srcProxyIds, String relayProxyIds, String dstProxyIds, String tag) throws SQLException {
+    public void updateOrCreateRoute(Long routeOrgId, Long srcDcId, Long dstDcId, String srcProxyIds, String relayProxyIds, String dstProxyIds, String tag,Integer deleted) throws SQLException {
         RouteTbl routeTbl = routeTblDao.queryAll().stream().filter(p -> routeOrgId.equals(p.getRouteOrgId()) && tag.equalsIgnoreCase(p.getTag()) && srcDcId.equals(p.getSrcDcId()) && dstDcId.equals(p.getDstDcId())).findFirst().orElse(null);
         if(null == routeTbl) {
             insertRoute(routeOrgId, srcDcId, dstDcId, srcProxyIds, relayProxyIds, dstProxyIds, tag);
-        } else if (BooleanEnum.TRUE.getCode().equals(routeTbl.getDeleted())
+        } else if ( (routeTbl.getDeleted() != null && !routeTbl.getDeleted().equals(deleted))
                 || !srcProxyIds.equalsIgnoreCase(routeTbl.getSrcProxyIds())
                 || !dstProxyIds.equalsIgnoreCase(routeTbl.getDstProxyIds())
                 || !relayProxyIds.equalsIgnoreCase(routeTbl.getOptionalProxyIds())) {
-            routeTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            if (null == deleted) {
+                routeTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            } else {
+                routeTbl.setDeleted(deleted);
+            }
             routeTbl.setSrcProxyIds(srcProxyIds);
             routeTbl.setDstProxyIds(dstProxyIds);
             routeTbl.setOptionalProxyIds(relayProxyIds);

@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.resource.context;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
-import com.ctrip.framework.drc.applier.resource.TransactionTable;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.applier.resource.context.sql.*;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
@@ -51,6 +51,8 @@ public class TransactionContextResource extends AbstractContext
 
     private final Logger loggerS = LoggerFactory.getLogger("SQL");
     private final Logger loggerTE = LoggerFactory.getLogger("TRX END");
+    protected final Logger loggerED = LoggerFactory.getLogger("EVT DELAY");
+    protected final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     private static final String SET_NEXT_GTID = "set gtid_next = '%s'";
     private static final String COMMIT = "commit";
@@ -844,6 +846,40 @@ public class TransactionContextResource extends AbstractContext
     private void logConflictHandleSQLExecutedResult(String result) {
         addLogs(result);
         conflictHandleSqlResult = result;
+    }
+
+    protected String contextDesc() {
+        return "";
+    }
+
+    protected String delayDesc() {
+        long delay = fetchDelayMS();
+        return "delay: " + delay + "ms " + ((delay > 100) ? "SLOW" : "");
+    }
+
+    protected String gtidDesc() {
+        return "(" + fetchGtid() + ") ";
+    }
+
+    protected TransactionData.ApplyResult conflictAndCommit() {
+        String title = "CFL C" + contextDesc() + gtidDesc() + delayDesc();
+        loggerED.info(title);
+        loggerSC.info(conflictSummary(title));
+        return TransactionData.ApplyResult.CONFLICT_COMMIT;
+    }
+
+    protected TransactionData.ApplyResult conflictAndRollback() {
+        String title = "CFL R" + contextDesc() + gtidDesc() + delayDesc();
+        loggerED.info(title);
+        loggerSC.info(conflictSummary(title));
+        return TransactionData.ApplyResult.CONFLICT_ROLLBACK;
+    }
+
+    protected String conflictSummary(String title) {
+        StringBuilder conflictSummary = new StringBuilder(title);
+        getLogs().forEach((l) -> conflictSummary.append("\n").append(l));
+        conflictSummary.append("\n");
+        return conflictSummary.toString();
     }
 
     private String syntaxErrorToColumnName(Throwable t) {

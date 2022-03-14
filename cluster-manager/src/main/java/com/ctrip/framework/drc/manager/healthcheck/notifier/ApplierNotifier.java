@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManager;
-import com.ctrip.framework.drc.manager.healthcheck.service.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.manager.utils.SpringUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;

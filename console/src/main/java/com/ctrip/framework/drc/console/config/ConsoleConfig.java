@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.console.config;
 
 public class ConsoleConfig {
     public static final String GTID_EXECUTED_COMMAND = "show master status;";
-    public static final String UUID_COMMAND = "show global variables like 'server_uuid';";
+    public static final String UUID_COMMAND = "/*FORCE_MASTER*/show global variables like 'server_uuid';";
     public static final int ZERO_ROWS_AFFECT = 0;
     public static final int SHOULD_AFFECTED_ROWS = 2;
     public static final int UUID_INDEX = 2;

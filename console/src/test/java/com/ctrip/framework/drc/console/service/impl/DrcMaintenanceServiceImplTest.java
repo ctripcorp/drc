@@ -67,6 +67,18 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     }
 
     @Test
+    public void recordMhaInstances() throws Throwable {
+        MhaInstanceGroupDto dto = new MhaInstanceGroupDto();
+        dto.setMhaName("fat-fx-drc2");
+        MhaInstanceGroupDto.MySQLInstance mySQLInstance = new MhaInstanceGroupDto.MySQLInstance();
+        mySQLInstance.setIp("10.2.72.246");
+        mySQLInstance.setPort(55111);
+        dto.setMaster(mySQLInstance);
+        Boolean isSuccess = drcMaintenanceService.recordMhaInstances(dto);
+        Assert.assertEquals(true,isSuccess);
+    }
+    
+    @Test
     public void testChangeMasterDb() {
         ApiResult result = drcMaintenanceService.changeMasterDb("nosuchmha", "127.0.0.1", 3306);
         Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());

@@ -27,6 +27,6 @@ public abstract class AbstractFilterTest extends MockTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, "");
+        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, false, "");
     }
 }

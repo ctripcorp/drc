@@ -247,6 +247,12 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         String targetName = metaInfoService.getTargetName("fat-fx-drc1", "fat-fx-drc2");
         Assert.assertEquals("integration-test",targetName);
     }
+    
+    @Test
+    public void testGetApplierFilter() throws SQLException {
+        String applierFilter = metaInfoService.getApplierFilter("fat-fx-drc1", "fat-fx-drc2");
+        Assert.assertEquals("drcmonitordb\\..*", applierFilter);
+    }
 
     // take effect of DrcBuildServiceImplTest.testSubmitConfig
     @Test
@@ -456,9 +462,9 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Set<String> mha1dc2 = uuidMap.get("mha1dc2");
         Set<String> mha2dc2 = uuidMap.get("mha2dc2");
         Set<String> mha3dc2 = uuidMap.get("mha3dc2");
-        Assert.assertEquals(1, mha1dc2.size());
-        Assert.assertEquals(3, mha2dc2.size());
-        Assert.assertEquals(3, mha3dc2.size());
+        Assert.assertEquals(2, mha1dc2.size());
+        Assert.assertEquals(5, mha2dc2.size());
+        Assert.assertEquals(5, mha3dc2.size());
         Assert.assertTrue(mha1dc2.contains("92345678-1234-abcd-abcd-123456789abc"));
         Assert.assertTrue(mha2dc2.contains("13345678-1234-abcd-abcd-123456789abc"));
 
@@ -476,7 +482,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Test
     public void testGetProxyRoutes() {
-        List<RouteDto> proxyRoutes = metaInfoService.getRoutes(null, null, null, null);
+        List<RouteDto> proxyRoutes = metaInfoService.getRoutes(null, null, null, null,0);
         Assert.assertEquals(2, proxyRoutes.size());
         for (RouteDto dto : proxyRoutes) {
             Assert.assertEquals("shaoy", dto.getSrcDcName());
@@ -500,7 +506,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             }
         }
 
-        proxyRoutes = metaInfoService.getRoutes("BBZ", "shaoy", "sharb", "meta");
+        proxyRoutes = metaInfoService.getRoutes("BBZ", "shaoy", "sharb", "meta",0);
         Assert.assertEquals(1, proxyRoutes.size());
         for (RouteDto dto : proxyRoutes) {
             Assert.assertEquals("shaoy", dto.getSrcDcName());
@@ -517,10 +523,10 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             Assert.assertTrue(dstProxyIps.contains(PROXYTLS_DC2_2));
         }
 
-        proxyRoutes = metaInfoService.getRoutes("nosuchorg", "shaoy", "sharb", "meta");
+        proxyRoutes = metaInfoService.getRoutes("nosuchorg", "shaoy", "sharb", "meta",0);
         Assert.assertEquals(0, proxyRoutes.size());
 
-        proxyRoutes = metaInfoService.getRoutes("", "", "", "");
+        proxyRoutes = metaInfoService.getRoutes("", "", "", "",0);
         Assert.assertEquals(0, proxyRoutes.size());
     }
 

@@ -326,7 +326,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
 
     public String submitProxyRouteConfig(RouteDto routeDto) {
         try {
-            Long routeOrgId = dalUtils.getId(TableEnum.BU_TABLE, routeDto.getRouteOrgName());
+            Long routeOrgId = StringUtils.isBlank(routeDto.getRouteOrgName()) ? 0L : dalUtils.getId(TableEnum.BU_TABLE, routeDto.getRouteOrgName());
             Long srcDcId = dalUtils.getId(TableEnum.DC_TABLE, routeDto.getSrcDcName());
             Long dstDcId = dalUtils.getId(TableEnum.DC_TABLE, routeDto.getDstDcName());
             List<Long> srcProxyIds = Lists.newArrayList();
@@ -341,7 +341,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             for(String proxyUri : routeDto.getDstProxyUris()) {
                 dstProxyIds.add(dalUtils.getId(TableEnum.PROXY_TABLE, proxyUri));
             }
-            dalUtils.updateOrCreateRoute(routeOrgId, srcDcId, dstDcId, StringUtils.join(srcProxyIds, ","), StringUtils.join(relayProxyIds, ","), StringUtils.join(dstProxyIds, ","), routeDto.getTag());
+            dalUtils.updateOrCreateRoute(routeOrgId, srcDcId, dstDcId, StringUtils.join(srcProxyIds, ","), StringUtils.join(relayProxyIds, ","), StringUtils.join(dstProxyIds, ","), routeDto.getTag(),routeDto.getDeleted());
             return "update proxy route succeeded";
         } catch (SQLException e) {
             logger.error("update proxy route failed, ", e);

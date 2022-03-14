@@ -60,6 +60,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
 
         if (whateverGoesWrong) {
             rollback();
+            conflictAndRollback();
             if (getLastUnbearable() != null) {
                 return ApplyResult.UNKNOWN;
             } else {
@@ -67,6 +68,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             }
         }
         commit();
+        if (getConflictMap().contains(true)) {
+            conflictAndCommit();
+        }
         if (getLastUnbearable() != null) {
             return ApplyResult.UNKNOWN;
         } else {
@@ -91,5 +95,10 @@ public class BatchTransactionContextResource extends TransactionContextResource 
         } catch (InterruptedException e) {
             logger.error("set transaction table begin statue error,exception is: {}", e.getCause().toString());
         }
+    }
+
+    @Override
+    protected String contextDesc() {
+        return bigTransaction ? " BIG" : " BATCH";
     }
 }

@@ -586,8 +586,8 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetProxyRoutes() throws Exception {
-        Mockito.doReturn(Lists.newArrayList()).when(metaInfoService).getRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString());
-        MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/routes?routeOrgName=testBu&srcDcName=testSrc&dstDcName=testDst&tag=meta");
+        Mockito.doReturn(Lists.newArrayList()).when(metaInfoService).getRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),Mockito.anyString(),Mockito.any());
+        MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/routes?routeOrgName=testBu&srcDcName=testSrc&dstDcName=testDst&tag=meta&deleted=0");
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_SUCCESS);
     }
 

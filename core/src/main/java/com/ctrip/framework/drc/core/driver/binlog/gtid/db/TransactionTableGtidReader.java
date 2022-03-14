@@ -22,7 +22,7 @@ public class TransactionTableGtidReader implements GtidReader {
 
     private static final String SELECT_TRANSACTION_TABLE_GTID = "select `server_uuid`, `gno` from `drcmonitordb`.`gtid_executed` where `id` > -1;";
 
-    private static final String SELECT_TRANSACTION_TABLE_SPECIFIC_GTID = "select `gno` from `drcmonitordb`.`gtid_executed` where `id` > -1 and `server_uuid` = \"%s\";";
+    private static final String SELECT_TRANSACTION_TABLE_SPECIFIC_GTID_SET = "select `gno`, `gtidset` from `drcmonitordb`.`gtid_executed` where `server_uuid` = \"%s\";";
 
     @Override
     public String getExecutedGtids(Connection connection) {
@@ -56,17 +56,21 @@ public class TransactionTableGtidReader implements GtidReader {
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    public GtidSet getSpecificGtidSet(Connection connection, String uuid) throws SQLException {
+    public GtidSet getGtidSetByUuid(Connection connection, String uuid) throws SQLException {
         GtidSet specificGtidSet = new GtidSet("");
-        String sql = String.format(SELECT_TRANSACTION_TABLE_SPECIFIC_GTID, uuid);
+        String sql = String.format(SELECT_TRANSACTION_TABLE_SPECIFIC_GTID_SET, uuid);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 while (resultSet.next()) {
-                    specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                    String gtidSet = resultSet.getString(2);
+                    if (gtidSet != null) {
+                        specificGtidSet = specificGtidSet.union(new GtidSet(gtidSet));
+                    } else {
+                        specificGtidSet.add(uuid + ":" + resultSet.getLong(1));
+                    }
                 }
             }
         }
-        logger.info("select specific gtid set is: {}", specificGtidSet.toString());
         return specificGtidSet;
     }
 }

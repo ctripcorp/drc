@@ -41,6 +41,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public static final String SWITCH_STATUS_OFF = "off";
 
     private static final String GTID_MONITOR_SWITCH = "gtid.monitor.switch";
+    private static final String GTID_MONITOR_PERIOD = "gtid.monitor.period";
+    private static final int DEFAULT_GTID_MONITOR_PERIOD = 120;
 
     public static final String DRC_DELAY_MESUREMENT = "fx.drc.delay";
 
@@ -49,6 +51,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String INCREMENT_ID_MONITOR_SWITCH = "increment.id.monitor.switch";
 
     private static final String TABLE_CONSISTENCY_MONITOR_SWITCH = "table.consistency.monitor.switch";
+    private static final String TABLE_CONSISTENCY_MONITOR_PERIOD = "table.consistency.monitor.period";
+    private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 600;
 
     private static final String SWITCH_DRC_TASK_SYNC_MHA = "switch.drc.task.syncmha";
 
@@ -253,12 +257,20 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         return getProperty(GTID_MONITOR_SWITCH, SWITCH_STATUS_ON);
     }
 
+    public int getGtidMonitorPeriod() {
+        return getIntProperty(GTID_MONITOR_PERIOD,DEFAULT_GTID_MONITOR_PERIOD);
+    }
+
     public String getIncrementIdMonitorSwitch() {
         return getProperty(INCREMENT_ID_MONITOR_SWITCH, SWITCH_STATUS_OFF);
     }
 
     public String getTableConsistencySwitch() {
         return getProperty(TABLE_CONSISTENCY_MONITOR_SWITCH, SWITCH_STATUS_OFF);
+    }
+
+    public int getTableConsistencyMonitorPeriod() {
+        return getIntProperty(TABLE_CONSISTENCY_MONITOR_PERIOD,DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD);
     }
 
     public String getSyncMhaSwitch() {
