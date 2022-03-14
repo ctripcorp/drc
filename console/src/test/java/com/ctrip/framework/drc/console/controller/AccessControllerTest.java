@@ -5,15 +5,14 @@ import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -254,5 +253,13 @@ public class AccessControllerTest extends AbstractControllerTest {
         System.out.println(response);
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
+    }
+    
+    @Test
+    public  void testChangeSSOFilterStatus() throws Exception {
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/switch/on")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Assert.assertEquals(200, mvcResult.getResponse().getStatus());
     }
 }

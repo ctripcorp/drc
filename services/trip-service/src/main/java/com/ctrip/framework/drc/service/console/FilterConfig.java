@@ -13,7 +13,6 @@ public class FilterConfig {
 
     @Bean
     public FilterRegistrationBean ssoFilterRegistration() {
-
         FilterRegistrationBean registration = new FilterRegistrationBean();
         registration.setFilter(new CtripSSOFilterWithDegradeSwitch());
         registration.addUrlPatterns("/*");

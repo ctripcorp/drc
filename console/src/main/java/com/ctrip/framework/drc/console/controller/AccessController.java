@@ -184,14 +184,14 @@ public class AccessController {
         Boolean openDegradeSwitch = status.equals("on");
         logger.info("[[switch=ssoDegrade]] changeSSOFilterStatus to {}",openDegradeSwitch);
         try {
-            ApplicationContext applicationContext = SpringUtils.getApplicationContext();
-            FilterRegistrationBean ssoFilterRegistration = (FilterRegistrationBean) applicationContext.getBean("ssoFilterRegistration");
-            Filter sessionFilter = ssoFilterRegistration.getFilter();
-            Class<? extends Filter> sessionFilterClass = sessionFilter.getClass();
-            Method setSSODegradeMethod = sessionFilterClass.getMethod("setSSODegrade", Boolean.class);
-            Boolean invokeResult = (Boolean) setSSODegradeMethod.invoke(sessionFilter, openDegradeSwitch);
+            FilterRegistrationBean ssoFilterRegistration = (FilterRegistrationBean) SpringUtils.getApplicationContext().
+                    getBean("ssoFilterRegistration");
+            Filter ssoFilter = ssoFilterRegistration.getFilter();
+            Class<? extends Filter> ssoFilterClass = ssoFilter.getClass();
+            Method setSSODegradeMethod = ssoFilterClass.getMethod("setSSODegrade", Boolean.class);
+            Boolean invokeResult = (Boolean) setSSODegradeMethod.invoke(ssoFilter, openDegradeSwitch);
             if (openDegradeSwitch.equals(invokeResult)) {
-                return ApiResult.getSuccessInstance(null);
+                return ApiResult.getSuccessInstance("set ssoDegradeSwitch to :" + status);
             } else {
                 return ApiResult.getFailInstance("invoke result not equal the expected");
             }

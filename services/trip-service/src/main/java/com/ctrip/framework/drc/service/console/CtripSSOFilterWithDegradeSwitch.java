@@ -33,6 +33,11 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
     public CtripSSOFilterWithDegradeSwitch() {
     }
     
+    //only for unitTest
+    public CtripSSOFilterWithDegradeSwitch (Boolean ssoDegrade) {
+        this.ssoDegrade = ssoDegrade;
+    }
+    
     public Boolean setSSODegrade(Boolean ssoDegrade) {
         this.ssoDegrade = ssoDegrade;
         return this.ssoDegrade;
@@ -50,15 +55,19 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         if (ssoDegrade) {
-            logger.info("[[switch=ssoDegrade]] ssoDegrade switch turn on");
-            Map<String, String> userAttr = Maps.newHashMap();
-            userAttr.put("name",DEFAULT_SSO_DEGRADE_USERNAME);
-            AssertionImpl assertion = new AssertionImpl(new AttributePrincipalImpl(DEFAULT_SSO_DEGRADE_USERNAME, userAttr));
-            AssertionHolder.setAssertion(assertion);
+            setDefaultUser();
             chain.doFilter(request,response);
         } else {
             super.doFilter(request,  response,  chain);
         }
+    }
+    
+    protected void setDefaultUser() {
+        logger.info("[[switch=ssoDegrade]] ssoDegrade switch turn on");
+        Map<String, String> userAttr = Maps.newHashMap();
+        userAttr.put("name",DEFAULT_SSO_DEGRADE_USERNAME);
+        AssertionImpl assertion = new AssertionImpl(new AttributePrincipalImpl(DEFAULT_SSO_DEGRADE_USERNAME, userAttr));
+        AssertionHolder.setAssertion(assertion);
     }
 
     @Override
