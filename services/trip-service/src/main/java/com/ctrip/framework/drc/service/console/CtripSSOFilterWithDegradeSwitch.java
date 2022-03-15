@@ -7,6 +7,7 @@ import com.ctrip.infosec.sso.client.principal.AttributePrincipalImpl;
 import com.ctrip.infosec.sso.client.util.AssertionHolder;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.api.config.ConfigChangeListener;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,14 +24,19 @@ import java.util.Map;
  * @Version: $
  */
 
-public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
+public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter implements ConfigChangeListener {
     
     private static final Logger logger = LoggerFactory.getLogger(CtripSSOFilterWithDegradeSwitch.class);
     private final String DEFAULT_SSO_DEGRADE_USERNAME = "admin";
-    
+    private final String SSO_DEGRADE_SWITCH = "sso.degrade.switch";
+    private final String DEFAULT_SSO_DEGRADE_SWITCH = "off";
+
+    private Config config;
     private boolean ssoDegrade = false;
     
     public CtripSSOFilterWithDegradeSwitch() {
+        this.config = Config.DEFAULT;
+        config.addConfigChangeListener(this);
     }
     
     //only for unitTest
@@ -38,6 +44,7 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
         this.ssoDegrade = ssoDegrade;
     }
     
+    //http post to change degrade status
     public Boolean setSSODegrade(Boolean ssoDegrade) {
         this.ssoDegrade = ssoDegrade;
         return this.ssoDegrade;
@@ -45,16 +52,12 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
     
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        if (ssoDegrade) {
-            // no need to init permissionBean
-            return;
-        }
         super.init(filterConfig);
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        if (ssoDegrade) {
+        if (ssoDegrade || getProperty(SSO_DEGRADE_SWITCH, DEFAULT_SSO_DEGRADE_SWITCH).equalsIgnoreCase("on")) {
             setDefaultUser();
             chain.doFilter(request,response);
         } else {
@@ -62,6 +65,7 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
         }
     }
     
+    @VisibleForTesting
     protected void setDefaultUser() {
         logger.info("[[switch=ssoDegrade]] ssoDegrade switch turn on");
         Map<String, String> userAttr = Maps.newHashMap();
@@ -73,6 +77,15 @@ public class CtripSSOFilterWithDegradeSwitch extends CtripSSOFilter  {
     @Override
     public void destroy() {
         super.destroy();
+    }
+
+    protected String getProperty(String key, String defaultValue){
+        return config.get(key, defaultValue);
+    }
+
+    @Override
+    public void onChange(String key, String oldValue, String newValue) {
+        //String value change trigger already done in mapConfig
     }
     
 }
