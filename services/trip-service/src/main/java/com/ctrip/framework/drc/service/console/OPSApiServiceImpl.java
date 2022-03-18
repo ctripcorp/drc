@@ -70,19 +70,16 @@ public class OPSApiServiceImpl implements OPSApiService {
     public List<AppNode> getAppNodes(String cmsGetServerUrl,String accessToken,List<String> appIds,String env) {
         Map<String, Object> body = Maps.newHashMap();
         body.put("app.appId@in", appIds);
-        
         if (null != env) {
             body.put("subenvName@like", env);
         }
         Map<String, Object> requestBody = Maps.newHashMap();
         requestBody.put("request_body", body);
         requestBody.put("access_token", accessToken);
-
         AppClusterResult appClusterResult = HttpUtils.post(cmsGetServerUrl, requestBody, AppClusterResult.class);
         return appClusterResult.getData();
     }
-
-
+    
     @Override
     public int getOrder() {
         return 0;

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.utils.SpringUtils;
@@ -34,6 +35,9 @@ public class AccessControllerTest extends AbstractControllerTest {
 
     @Mock
     private AccessServiceImpl accessService;
+    
+    @Mock
+    private SSOService ssoServiceImpl;
 
     @Mock
     private DrcMaintenanceServiceImpl drcMaintenanceService;
@@ -256,8 +260,15 @@ public class AccessControllerTest extends AbstractControllerTest {
     }
     
     @Test
-    public  void testChangeSSOFilterStatus() throws Exception {
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/switch/on")
+    public  void testSSODegrade() throws Exception {
+        Mockito.doReturn(ApiResult.getSuccessInstance(null)).when(ssoServiceImpl).degradeAllServer(true);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/switch/true")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Assert.assertEquals(200, mvcResult.getResponse().getStatus());
+
+        Mockito.doReturn(ApiResult.getSuccessInstance(null)).when(ssoServiceImpl).setDegradeSwitch(true);
+         mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/notify/true")
                         .accept(MediaType.APPLICATION_JSON))
                 .andReturn();
         Assert.assertEquals(200, mvcResult.getResponse().getStatus());

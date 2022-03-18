@@ -43,7 +43,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_MYSQL_DB_CLUSTER_URL = "http://localhost:8080/ops/mysqldbcluster";
 
     private static final String CMS_GET_SERVER_URL ="cms.get.server";
-    private static final String DEFAULT_CMS_GET_SERVER_URL ="http://localhost:8080/ops/getServers";
+    private static final String DEFAULT_CMS_GET_SERVER_URL ="http://localhost:8080/ops/getFATServers";
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
     

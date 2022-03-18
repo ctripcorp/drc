@@ -9,8 +9,6 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.xpipe.api.foundation.FoundationService;
-import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +17,6 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.Filter;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -43,7 +39,6 @@ public class SSOServiceImpl implements SSOService {
     private DomainConfig domainConfig;
     
     OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
-    
     
     
     @Override
@@ -87,7 +82,7 @@ public class SSOServiceImpl implements SSOService {
         List<AppNode> appNodes = getAppNodes();
         InetAddress localHost = InetAddress.getLocalHost();
         for (AppNode appNode : appNodes) {
-            if (appNode.getIp().equals(localHost.getHostAddress())) {
+            if (appNode.getIp().equals(localHost.getHostAddress()) && !appNode.isLegal()) {
                 continue;
             }
             String url = String.format(degradeUrl, appNode.getIp(), appNode.getPort(), isOpen);
@@ -97,7 +92,7 @@ public class SSOServiceImpl implements SSOService {
             }
             logger.info("notify other machine success,ip:port is {}:{}", appNode.getIp(), appNode.getPort());
         }
-        return ApiResult.getSuccessInstance("notifyOtherMachineSuccess");
+        return ApiResult.getSuccessInstance("notifyAllMachineDegradeSwitch openStatus to " + isOpen );
     }
     
     @Override
