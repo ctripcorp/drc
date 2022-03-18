@@ -4,9 +4,11 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.utils.SpringUtils;
+import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +40,9 @@ public class AccessController {
 
     @Autowired
     private DrcMaintenanceServiceImpl drcMaintenanceService;
+    
+    @Autowired
+    private SSOService ssoServiceImpl;
 
     @PostMapping("precheck")
     public ApiResult preCheck(@RequestBody String requestBody) {
@@ -179,26 +184,15 @@ public class AccessController {
         }
     }
     
-    @PostMapping("sso/degrade/switch/{status}")
-    public ApiResult changeSSOFilterStatus(@PathVariable String status) {
-        Boolean openDegradeSwitch = status.equals("on");
-        logger.info("[[switch=ssoDegrade]] changeSSOFilterStatus to {}",openDegradeSwitch);
-        try {
-            FilterRegistrationBean ssoFilterRegistration = (FilterRegistrationBean) SpringUtils.getApplicationContext().
-                    getBean("ssoFilterRegistration");
-            Filter ssoFilter = ssoFilterRegistration.getFilter();
-            Class<? extends Filter> ssoFilterClass = ssoFilter.getClass();
-            Method setSSODegradeMethod = ssoFilterClass.getMethod("setSSODegrade", Boolean.class);
-            Boolean invokeResult = (Boolean) setSSODegradeMethod.invoke(ssoFilter, openDegradeSwitch);
-            if (openDegradeSwitch.equals(invokeResult)) {
-                return ApiResult.getSuccessInstance("set ssoDegradeSwitch to :" + status);
-            } else {
-                return ApiResult.getFailInstance("invoke result not equal the expected");
-            }
-        } catch (Exception e) {
-            logger.error("[[switch=ssoDegrade]] changeSSOFilterStatus occur error",e);
-            return ApiResult.getFailInstance(e);
-        }
+    @PostMapping("sso/degrade/switch/{isOpen}")
+    public ApiResult changeAllServerSSODegradeStatus(@PathVariable Boolean isOpen) {
+        return ssoServiceImpl.degradeAllServer(isOpen);
+    }
+
+    
+    @PostMapping("sso/degrade/notify/{isOpen}")
+    public ApiResult changeLocalServerSSODegradeStatus(@PathVariable Boolean isOpen) {
+        return ssoServiceImpl.setDegradeSwitch(isOpen);
     }
     
 }

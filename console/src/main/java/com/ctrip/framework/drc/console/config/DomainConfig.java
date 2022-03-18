@@ -42,8 +42,14 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String MYSQL_DB_CLUSTER_URL = "mysql.dbcluster.url";
     private static final String DEFAULT_MYSQL_DB_CLUSTER_URL = "http://localhost:8080/ops/mysqldbcluster";
 
+    private static final String CMS_GET_SERVER_URL ="cms.get.server";
+    private static final String DEFAULT_CMS_GET_SERVER_URL ="http://localhost:8080/ops/getServers";
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
+    
+    public String getCmsGetServerUrl() {
+        return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
+    }
     
     public String getDalServicePrefix() {
         return getProperty(DAL_SERVICE_PREFIX,DEFAULT_DAL_SERVICE_PREFIX);
@@ -88,4 +94,5 @@ public class DomainConfig extends AbstractConfigBean {
     public String getOpsAccessToken() {
         return getProperty(OPS_ACCESS_TOKEN,DEFAULT_OPS_ACCESS_TOKEN);
     }
+    
 }
