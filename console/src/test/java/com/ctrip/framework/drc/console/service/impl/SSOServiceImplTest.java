@@ -30,7 +30,6 @@ public class SSOServiceImplTest {
     OPSApiService opsApiService;
     
     private final String default_url = "http://localhost:8080/ops/getFATServers";
-    private final String degradeUrl = "http://ip1:8080/api/drc/v1/access/sso/degrade/notify/true";
     
     @Before
     public void setUp() {
@@ -50,13 +49,13 @@ public class SSOServiceImplTest {
                 getAppNodes(Mockito.eq(default_url),Mockito.any(),Mockito.anyList(),Mockito.eq("FAT"));
         
         try (MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when(()-> HttpUtils.post(Mockito.eq(degradeUrl),Mockito.any(),Mockito.any())).thenReturn(ApiResult.getSuccessInstance("set ssoDegradeSwitch to : true"));
+            theMock.when(()-> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.any())).thenReturn(ApiResult.getSuccessInstance("set ssoDegradeSwitch to : true"));
             ApiResult apiResult = ssoService.notifyOtherMachine(true);
             Assert.assertTrue(apiResult.getStatus().equals(ResultCode.HANDLE_SUCCESS.getCode()));
         }
 
         try (MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when(()-> HttpUtils.post(Mockito.eq(degradeUrl),Mockito.any(),Mockito.any())).thenReturn(ApiResult.getFailInstance("changeSSOFilterStatus occur error"));
+            theMock.when(()-> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.any())).thenReturn(ApiResult.getFailInstance("changeSSOFilterStatus occur error"));
             ApiResult apiResult = ssoService.notifyOtherMachine(true);
             Assert.assertTrue(apiResult.getStatus().equals(ResultCode.HANDLE_SUCCESS.getCode()));
         }
