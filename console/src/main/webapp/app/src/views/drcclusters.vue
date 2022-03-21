@@ -7,21 +7,22 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
-          BU：<Select v-model="searchCondition.buId"  style="width: 200px"  @on-change="getMhaGroups">
-                  <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
-              </Select>
-          MhaA：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.srcMha" />
-          MhaB：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.destMha" />
-          A端机房: <Select v-model="searchCondition.srcDcId"  style="width: 200px"  @on-change="getMhaGroups">
+          A端机房: <Select v-model="searchCondition.srcDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
                       <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
                   </Select>
-          B端机房: <Select v-model="searchCondition.destDcId"  style="width: 200px"  @on-change="getMhaGroups">
+          B端机房: <Select v-model="searchCondition.destDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
                     <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
                   </Select>
-          clusterName：<Input :style="{width: '180px', marginRight: '10px'}" v-model="searchCondition.clusterName" />
-          type：<Select v-model="searchCondition.type"  style="width: 200px"  @on-change="getMhaGroups">
+          部门：<Select v-model="searchCondition.buId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
+          <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
+        </Select>
+          类型：<Select v-model="searchCondition.type"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
                     <Option v-for="item in searchOption.types" :value="item.value" :key="item.label" >{{ item.label }}</Option>
                 </Select>
+          <br/>
+          cluster：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
+          MhaA：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.srcMha" />
+          MhaB：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.destMha" />
           <Button :style="{marginLeft: '10px'}" type="primary" @click="getMhaGroups">查询</Button>
           <Table stripe :columns="columns" :data="dataWithPage" border :span-method="handleSpan" >
             <template slot-scope="{ row, index }" slot="action">
