@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+
 /**
  * Created by mingdongli
  * 2019/11/21 下午10:50.
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
 
     private ListeningExecutorService zoneInfoExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("DbClusterHeartbeatTask-Zone"));
+
+    private static final int CONNECTION_TIMEOUT_DELTA = 500;
 
     private DbCluster dbCluster;
 
@@ -58,7 +62,7 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
         });
 
         try {
-            boolean queryResult = countDownLatch.await(1100, TimeUnit.MILLISECONDS);
+            boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT + CONNECTION_TIMEOUT_DELTA, TimeUnit.MILLISECONDS);
             if (!queryResult) {
                 logger.error("[Timeout] for countDownLatch querying {}", dbCluster.getName());
             }
