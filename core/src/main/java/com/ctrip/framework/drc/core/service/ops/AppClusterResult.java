@@ -19,19 +19,6 @@ public class AppClusterResult {
 
     private List<AppNode> data;
 
-    public boolean isLegal() {
-        if (status && data.size() != 0) {
-            for (AppNode node : data) {
-                if (!node.isLegal()) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     @Override
     public String toString() {
         return "AppClusterResult{" +
@@ -40,19 +27,6 @@ public class AppClusterResult {
                 ", status=" + status +
                 ", data=" + data +
                 '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AppClusterResult that = (AppClusterResult) o;
-        return status == that.status && Objects.equals(message, that.message) && Objects.equals(total, that.total) && Objects.equals(data, that.data);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(message, total, status, data);
     }
 
     public String getMessage() {
