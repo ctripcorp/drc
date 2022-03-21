@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -308,7 +309,7 @@ public class ListenReplicatorTask {
 
     public static final class StaticDelayMonitorHolder extends AbstractLifecycle {
 
-        private StaticDelayMonitorServer server;
+        private StaticDelayMonitorServer server; 
 
         private DelayMonitorSlaveConfig config;
 
@@ -405,5 +406,9 @@ public class ListenReplicatorTask {
 
     public Map<String, StaticDelayMonitorHolder> getDelayMonitorHolderMap() {
         return Collections.unmodifiableMap(delayMonitorHolderMap);
+    }
+    
+    public void getMap(String ... s) {
+        
     }
 }
