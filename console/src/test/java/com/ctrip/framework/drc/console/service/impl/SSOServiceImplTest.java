@@ -59,6 +59,12 @@ public class SSOServiceImplTest {
             ApiResult apiResult = ssoService.notifyOtherMachine(true);
             Assert.assertTrue(apiResult.getStatus().equals(ResultCode.HANDLE_SUCCESS.getCode()));
         }
+        
+        try (MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when(()-> HttpUtils.post(Mockito.anyString(),Mockito.any(),Mockito.any())).thenThrow(new RuntimeException("runtimeException"));
+            ApiResult apiResult = ssoService.notifyOtherMachine(true);
+            Assert.assertTrue(apiResult.getStatus().equals(ResultCode.HANDLE_SUCCESS.getCode()));
+        }
     }
     
    

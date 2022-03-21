@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
@@ -82,13 +83,18 @@ public class SSOServiceImpl implements SSOService {
         List<AppNode> appNodes = getAppNodes();
         InetAddress localHost = InetAddress.getLocalHost();
         for (AppNode appNode : appNodes) {
-            if (appNode.getIp().equals(localHost.getHostAddress()) && !appNode.isLegal()) {
+            if (appNode.getIp().equals(localHost.getHostAddress()) || !appNode.isLegal()) {
                 continue;
             }
             String url = String.format(degradeUrl, appNode.getIp(), appNode.getPort(), isOpen);
-            ApiResult postResult = HttpUtils.post(url, null, ApiResult.class);
-            if (postResult.getStatus().equals(ResultCode.HANDLE_FAIL.getCode())) {
-                logger.warn("notify other machine fail,ip:port is {}:{}", appNode.getIp(), appNode.getPort());
+            try {
+                ApiResult postResult = HttpUtils.post(url, null, ApiResult.class);
+                if (postResult.getStatus().equals(ResultCode.HANDLE_FAIL.getCode())) {
+                    logger.warn("notify other machine fail,ip:port is {}:{}", appNode.getIp(), appNode.getPort());
+                }
+            } catch (Exception e) {
+               logger.error("notify other machine fail,ip:port is {}:{}", appNode.getIp(), appNode.getPort(),e);
+               continue;
             }
             logger.info("notify other machine success,ip:port is {}:{}", appNode.getIp(), appNode.getPort());
         }
