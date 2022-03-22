@@ -8,20 +8,21 @@ import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Sets;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -94,9 +95,11 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         // no change but still need provide the old value
         metaProposalDto.setDestReplicatorIps(Arrays.asList("10.2.83.106", "10.2.86.199"));
         metaProposalDto.setDestApplierIps(Arrays.asList("10.2.86.136", "10.2.86.138"));
-        s = drcBuildService.submitConfig(metaProposalDto);
-        Assert.assertEquals("xml", s);
-
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(()-> MySqlUtils.getGtidExecuted(Mockito.any())).thenReturn("gtid");
+            s = drcBuildService.submitConfig(metaProposalDto);
+            Assert.assertEquals("xml", s);
+        }
         String resultXml = metaService.getDrc().toString();
         System.out.println("updated xml: " +  resultXml);
         Drc drc = DefaultSaxParser.parse(resultXml);

@@ -9,16 +9,14 @@ import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -104,11 +102,16 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
         Assert.assertEquals(2, ((Integer) result.getData()).intValue());
         Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
 
-        // change back for further use
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
-        Assert.assertEquals(0, result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+        
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(()-> MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString(),Mockito.anyBoolean())).thenReturn("uuid");
+            // change back for further use
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
+            Assert.assertEquals(0, result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+        }
+        
     }
 
     @Test
@@ -175,7 +178,10 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
         dto.setSlaves(new ArrayList<>() {{
             add(new MhaInstanceGroupDto.MySQLInstance().setIp("10.2.72.247").setPort(55111).setIdc("SHAOY"));
         }});
-        Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto, false));
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(()-> MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString(),Mockito.anyBoolean())).thenReturn("uuid");
+            Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto, false));
+        }
     }
 
     @Test
