@@ -129,6 +129,7 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
         MySqlEndpoint mySqlEndpoint = entry.getValue();
         String ip = mySqlEndpoint.getIp();
         int port = mySqlEndpoint.getPort();
+        
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(mySqlEndpoint);
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();

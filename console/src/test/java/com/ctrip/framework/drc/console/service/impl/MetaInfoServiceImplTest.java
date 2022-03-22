@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.DBInfo;
@@ -35,7 +34,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.AllTests.DRC_XML;
 import static com.ctrip.framework.drc.console.AllTests.DRC_XML_one2many;
 import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 
@@ -97,22 +95,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             Assert.assertTrue(mhaNames.contains(mhaTbl.getMhaName()));
         }
     }
-
-    /**
-     * getMhaGroupId for given mhaNames or mhaName
-     */
-//    @Test
-//    public void testGetMhaGroupId() throws SQLException {
-//        Set<String> mhaNames = Sets.newHashSet(Arrays.asList("nosuchmha"));
-//        Assert.assertNull(metaInfoService.getMhaGroupId(mhaNames));
-//
-//        mhaNames = Sets.newHashSet(Arrays.asList(MHA1OY, MHA1RB));
-//        Assert.assertEquals(mhaGroupId, metaInfoService.getMhaGroupId(mhaNames));
-//
-//        mhaNames = Sets.newHashSet(Arrays.asList(MHA2OY, MHA2RB));
-//        Assert.assertNull(metaInfoService.getMhaGroupId(mhaNames));
-//    }
-
+    
     @Test
     public void testGetMhaGroupForMha() throws Exception {
 
@@ -170,24 +153,12 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Assert.assertEquals(2, machines.size());
         Assert.assertEquals("10.2.72.246:55111", machines.get(0));
     }
+    
 
     @Test
-    public void testGetAllMhaGroups() throws Exception {
-        List<MhaGroupPair> allMhaGroups = metaInfoService.getAllMhaGroups();
-        Assert.assertEquals(2, allMhaGroups.size());
-        MhaGroupPair mhaGroupPair = allMhaGroups.get(0);
-        Assert.assertEquals(MHA1OY, mhaGroupPair.getSrcMha());
-        Assert.assertEquals(MHA1RB1, mhaGroupPair.getDestMha());
-        Assert.assertEquals(EstablishStatusEnum.ESTABLISHED.getCode(), mhaGroupPair.getDrcEstablishStatus().intValue());
-        mhaGroupPair = allMhaGroups.get(1);
-        Assert.assertEquals(MHA1OY, mhaGroupPair.getSrcMha());
-        Assert.assertEquals(MHA1RB2, mhaGroupPair.getDestMha());
-        Assert.assertEquals(EstablishStatusEnum.ESTABLISHED.getCode(), mhaGroupPair.getDrcEstablishStatus().intValue());
-    }
-
-    @Test
-    public void testGetAllOrderedGroupPairs() throws Exception {
-        List<MhaGroupPairVo> allMhaGroups = metaInfoService.getAllOrderedGroupPairs();
+    public void testGetMhaGroupPariVos() throws Exception {
+        List<MhaGroupPairVo> allMhaGroups = metaInfoService
+                .getMhaGroupPariVos(null,null,null,null,null,null,null);
         Assert.assertEquals(2, allMhaGroups.size());
         MhaGroupPairVo mhaGroupPairVo = allMhaGroups.get(0);
         Assert.assertEquals(MHA1OY, mhaGroupPairVo.getSrcMha());
@@ -532,8 +503,8 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
 
     @Test
-    public void testGetAllOrderedDeletedGroupPairs() throws SQLException{
-        List<MhaGroupPairVo> allOrderedDeletedGroupPairs = metaInfoService.getAllOrderedDeletedGroupPairs();
+    public void testGetDeletedMhaGroupPairVos() throws SQLException{
+        List<MhaGroupPairVo> allOrderedDeletedGroupPairs = metaInfoService.getDeletedMhaGroupPairVos();
         Assert.assertEquals(1,allOrderedDeletedGroupPairs.size());
     }
 

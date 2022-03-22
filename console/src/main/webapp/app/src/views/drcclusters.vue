@@ -20,10 +20,11 @@
                     <Option v-for="item in searchOption.types" :value="item.value" :key="item.label" >{{ item.label }}</Option>
                 </Select>
           <br/>
-          cluster：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
-          MhaA：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.srcMha" />
-          MhaB：<Input :style="{width: '180px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.destMha" />
-          <Button :style="{marginLeft: '10px'}" type="primary" @click="getMhaGroups">查询</Button>
+          cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
+          MhaA：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.srcMha" />
+          MhaB：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.destMha" />
+          <Button :style="{marginLeft: '250px'}" type="primary" @click="getMhaGroups">查询</Button>
+          <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
           <Table stripe :columns="columns" :data="dataWithPage" border :span-method="handleSpan" >
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
@@ -332,6 +333,15 @@ export default {
           that.total = this.mhaGroups.length
           that.assembleData(this.mhaGroups)
         })
+    },
+    reset () {
+      this.searchCondition.srcMha = null
+      this.searchCondition.destMha = null
+      this.searchCondition.srcDcId = null
+      this.searchCondition.destDcId = null
+      this.searchCondition.clusterName = null
+      this.searchCondition.buId = null
+      this.searchCondition.type = null
     },
     getBus () {
       this.axios.get('/api/drc/v1/meta/bus/all')

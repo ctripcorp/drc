@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -53,16 +52,16 @@ public class MetaController {
     private DbClusterSourceProvider sourceProvider;
 
 
-    @GetMapping("groups/all")
-    public ApiResult getAllMhaGroups() {
-        logger.info("[meta] get all mha groups info");
-        try {
-            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
-        } catch (Exception e) {
-            logger.error("[meta] get all mha groups info", e);
-            return ApiResult.getFailInstance(null);
-        }
-    }
+//    @GetMapping("groups/all")
+//    public ApiResult getAllMhaGroups() {
+//        logger.info("[meta] get all mha groups info");
+//        try {
+//            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
+//        } catch (Exception e) {
+//            logger.error("[meta] get all mha groups info", e);
+//            return ApiResult.getFailInstance(null);
+//        }
+//    }
 
 //    @GetMapping("orderedGroups/all")
 //    public ApiResult getAllOrderedGroups() {
@@ -76,7 +75,7 @@ public class MetaController {
 //    }
     
     @GetMapping("orderedGroups/all")
-    public ApiResult getOrderedGroups (@RequestParam(value = "srcMha", required = false) String srcMha,
+    public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "srcMha", required = false) String srcMha,
                                     @RequestParam(value = "destMha", required = false) String destMha,
                                     @RequestParam(value = "srcDcId", required = false) Long srcDcId ,
                                     @RequestParam(value = "destDcId", required = false) Long destDcId,
@@ -88,7 +87,7 @@ public class MetaController {
                 srcMha, destMha,  srcDcId,  destDcId,  clusterName,  buId,  type);
         try {
             if (deleted.equals(BooleanEnum.FALSE.getCode())) {
-                return ApiResult.getSuccessInstance(metaInfoService.getMhaGroups(srcMha, destMha,  srcDcId,  destDcId,  clusterName,  buId,  type));
+                return ApiResult.getSuccessInstance(metaInfoService.getMhaGroupPariVos(srcMha, destMha,  srcDcId,  destDcId,  clusterName,  buId,  type));
             } else {
                 return ApiResult.getFailInstance(null);
             }
@@ -122,7 +121,7 @@ public class MetaController {
     public ApiResult getAllDeletedOrderedGroups() {
         logger.info("[meat] get all deleted mha groups info");
         try {
-            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedDeletedGroupPairs());
+            return ApiResult.getSuccessInstance(metaInfoService.getDeletedMhaGroupPairVos());
         } catch (Exception e) {
             logger.info("[meat] get all deleted mha groups info", e);
             return ApiResult.getFailInstance(null);

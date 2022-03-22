@@ -1,13 +1,10 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.GroupMappingTblDao;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
-import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -16,7 +13,6 @@ import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
@@ -30,7 +26,6 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.dom4j.DocumentException;
 import org.slf4j.Logger;
@@ -41,7 +36,6 @@ import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_REPLICATOR_APPLIER_PORT;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZE;
@@ -50,8 +44,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Service
 public class
 MetaInfoServiceImpl implements MetaInfoService {
-
-
+    
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";
     public static final String NULL_STRING = "null";
@@ -289,116 +282,25 @@ MetaInfoServiceImpl implements MetaInfoService {
         return machines;
     }
 
-    public List<MhaGroupPair> getAllMhaGroups() throws Exception {
-        List<MhaGroupPair> mhaGroupPairs = Lists.newArrayList();
-        List<DalPojo> allPojos = TableEnum.MHA_GROUP_TABLE.getAllPojos();
-        allPojos.forEach(dalPojo -> {
-            MhaGroupTbl mhaGroupTbl = (MhaGroupTbl) dalPojo;
-            Long mhaGroupTblId = mhaGroupTbl.getId();
-            try {
-                List<MhaTbl> mhaTbls = getMhaTbls(mhaGroupTblId);
-                if(MHA_GROUP_SIZE != mhaTbls.size()) {
-                    logger.info("Fail to get mhas for group id: {}", mhaGroupTblId);
-                } else {
-                    Integer unitVerificationSwitch = mhaGroupTbl.getUnitVerificationSwitch();
-                    Integer monitorSwitch = mhaGroupTbl.getMonitorSwitch();
-                    MhaGroupPair mhaGroupPair = new MhaGroupPair(mhaTbls.get(0).getMhaName(),
-                            mhaTbls.get(1).getMhaName(),
-                            EstablishStatusEnum.getEnumByCode(mhaGroupTbl.getDrcEstablishStatus()),
-                            unitVerificationSwitch, monitorSwitch, mhaGroupTblId);
-                    if(BooleanEnum.TRUE.getCode().equals(unitVerificationSwitch)) {
-                        mhaGroupPairs.add(0, mhaGroupPair);
-                    } else {
-                        mhaGroupPairs.add(mhaGroupPair);
-                    }
-                }
-            } catch (SQLException e) {
-                logger.error("Fail to get mhas for group id: {}", mhaGroupTblId, e);
-            }
-        });
 
-        return mhaGroupPairs;
-    }
-
-    
-
-    public List<MhaGroupPairVo> getAllOrderedDeletedGroupPairs() throws SQLException {
+    public List<MhaGroupPairVo> getDeletedMhaGroupPairVos() throws SQLException {
         List<MhaGroupPairVo> mhaGroupPairVos = Lists.newArrayList();
         MhaGroupTblDao mhaGroupTblDao = dalUtils.getMhaGroupTblDao();
         List<MhaGroupTbl> deletedMhaGroups = mhaGroupTblDao.queryAll().stream()
-                .filter(predicate -> BooleanEnum.TRUE.getCode().equals(predicate.getDeleted()))
-                .collect(Collectors.toList());
-        HashMap<String, Integer> srcNameNumMap = srcNameNumMap(deletedMhaGroups, BooleanEnum.TRUE);
-        HashMap<String, List<MhaGroupPairVo>> srcNameListMap = new HashMap<>();
+                .filter(predicate -> BooleanEnum.TRUE.getCode().equals(predicate.getDeleted())).collect(Collectors.toList());
         for (MhaGroupTbl mhaGroupTbl : deletedMhaGroups) {
             Long mhaGroupTblId = mhaGroupTbl.getId();
-            List<MhaTbl> mhaTbls = getMhasByGroupId(mhaGroupTblId, BooleanEnum.TRUE);
-            if (mhaTbls.size() != MHA_GROUP_SIZE) continue;
-            String mhaName0 = mhaTbls.get(0).getMhaName();
-            String mhaName1 = mhaTbls.get(1).getMhaName();
-            MhaGroupPairVo mhaGroupPairVo = new MhaGroupPairVo();
-            if (srcNameNumMap.get(mhaName1) > 1) {
-                mhaGroupPairVo.setSrcMha(mhaName1);
-                mhaGroupPairVo.setDestMha(mhaName0);
-                List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName1, new ArrayList<MhaGroupPairVo>());
-                list.add(mhaGroupPairVo);
-                srcNameListMap.put(mhaName1, list);
-            } else {
-                mhaGroupPairVo.setSrcMha(mhaName0);
-                mhaGroupPairVo.setDestMha(mhaName1);
-                List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName0, new ArrayList<MhaGroupPairVo>());
-                list.add(mhaGroupPairVo);
-                srcNameListMap.put(mhaName0, list);
+            List<MhaTbl> mhaTbls = getMhaTblsByMhaGroupId(mhaGroupTblId, BooleanEnum.TRUE.getCode());
+            if (null == mhaTbls || mhaTbls.size() != 2) {
+                continue;
             }
+            MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(mhaTbls.get(0).getMhaName(), mhaTbls.get(1).getMhaName(),
+                    mhaGroupTbl.getDrcEstablishStatus(), mhaGroupTbl.getUnitVerificationSwitch() ,mhaGroupTbl.getMonitorSwitch(), mhaGroupTbl.getId());
+            mhaGroupPairVos.add(mhaGroupPair);
         }
-        Iterator<List<MhaGroupPairVo>> iterator = srcNameListMap.values().iterator();
-        while (iterator.hasNext()) {
-            List<MhaGroupPairVo> list = iterator.next();
-            list.forEach(mhaGroupPairVo -> {
-                mhaGroupPairVos.add(mhaGroupPairVo);
-            });
-        }
-        return mhaGroupPairVos;
+        return mhaGroupPairVoSort(mhaGroupPairVos);
     }
-
-    public List<MhaTbl> getMhasByGroupId(Long mhaGroupTblId,BooleanEnum isDeleted) {
-        ArrayList<MhaTbl> mhaTbls = Lists.newArrayList();
-        try {
-            GroupMappingTblDao groupMappingTblDao = dalUtils.getGroupMappingTblDao();
-            List<Long> mhaIds = groupMappingTblDao.queryAll().stream()
-                    .filter(p -> mhaGroupTblId.equals(p.getMhaGroupId()) && isDeleted.getCode().equals(p.getDeleted()))
-                    .map(GroupMappingTbl::getMhaId).collect(Collectors.toList());
-            if (mhaIds.size() != MHA_GROUP_SIZE) {
-                logger.info("Fail to get mhas for group id: {}", mhaGroupTblId);
-                return mhaTbls;
-            }
-            MhaTblDao mhaTblDao = dalUtils.getMhaTblDao();
-            for (Long mhaId : mhaIds) {
-                MhaTbl mhaTbl = mhaTblDao.queryByPk(mhaId);
-                mhaTbls.add(mhaTbl);
-            }
-        } catch (SQLException e) {
-            logger.error("Fail occur in SQL" + e.getMessage());
-        }
-        return mhaTbls;
-    }
-
-    private HashMap<String, Integer> srcNameNumMap(List<MhaGroupTbl> mhaGroups,BooleanEnum isDeleted) {
-        HashMap<String, Integer> srcNameNumMap = new HashMap<>();
-        for (MhaGroupTbl mhaGroupTbl : mhaGroups) {
-            List<MhaTbl> mhaTbls = getMhasByGroupId(mhaGroupTbl.getId(),isDeleted);
-            if (MHA_GROUP_SIZE != mhaTbls.size()) {
-                logger.info("Fail to get mhas for group id: {}", mhaGroupTbl.getId());
-            } else {
-                String mhaName0 = mhaTbls.get(0).getMhaName();
-                String mhaName1 = mhaTbls.get(1).getMhaName();
-                srcNameNumMap.put(mhaName0, srcNameNumMap.getOrDefault(mhaName0, 0) + 1);
-                srcNameNumMap.put(mhaName1, srcNameNumMap.getOrDefault(mhaName1, 0) + 1);
-            }
-        }
-        return srcNameNumMap;
-    }
-
+    
     public String getXmlConfiguration(String srcMha, String dstMha) throws Exception {
         Long mhaGroupId = getMhaGroupId(srcMha, dstMha);
         return getXmlConfiguration(mhaGroupId);
@@ -412,7 +314,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     public String getXmlConfiguration(Long mhaGroupId,BooleanEnum isDeleted) throws DocumentException {
         Drc drc = new Drc();
         try{
-            List<MhaTbl> mhaTbls = getMhasByGroupId(mhaGroupId,isDeleted); // BooleanEnum
+            List<MhaTbl> mhaTbls = getMhaTblsByMhaGroupId(mhaGroupId,isDeleted.getCode()); // BooleanEnum
             if(MHA_GROUP_SIZE != mhaTbls.size()) {
                 return XmlUtils.formatXML(drc.toString());
             }
@@ -1225,7 +1127,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
 
-    public List<MhaGroupPairVo> getMhaGroups(String srcMha, String destMha, Long srcDcId, Long destDcId, String clusterName, Long buId, String type) throws SQLException {
+    public List<MhaGroupPairVo> getMhaGroupPariVos(String srcMha, String destMha, Long srcDcId, Long destDcId, String clusterName, Long buId, String type) throws SQLException {
         List<MhaGroupPairVo> pairVos = Lists.newArrayList();
         List<MhaGroupTbl> mhaGroupTbls = dalUtils.getMhaGroupTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         for (MhaGroupTbl mhaGroupTbl : mhaGroupTbls) {
@@ -1299,7 +1201,8 @@ MetaInfoServiceImpl implements MetaInfoService {
     public List<MhaTbl> getMhaTblsByMhaGroupId(Long mhaGroupTblId, Integer deleted) throws SQLException {
         List<MhaTbl> mhaTbls = Lists.newArrayList();
         List<GroupMappingTbl> groupMappingTbls = dalUtils.getGroupMappingTblDao().queryByMhaGroupIds(Lists.newArrayList(mhaGroupTblId), deleted);
-        if (null == groupMappingTbls || groupMappingTbls.size() == 0) {
+        if (null == groupMappingTbls || groupMappingTbls.size() == 0 || groupMappingTbls.size() != MHA_GROUP_SIZE) {
+            logger.info("Fail to get mhas for group id: {}", mhaGroupTblId);
             return null;
         }
         for (GroupMappingTbl groupMappingTbl : groupMappingTbls) {
@@ -1343,88 +1246,4 @@ MetaInfoServiceImpl implements MetaInfoService {
         return sortedPairVos;
     }
     
-    public List<MhaGroupPairVo> getAllOrderedGroupPairs() {
-        List<MhaGroupPairVo> mhaGroupPairVos = Lists.newArrayList();
-        List<DalPojo> allPojos;
-        try {
-            allPojos = TableEnum.MHA_GROUP_TABLE.getAllPojos();
-            if(null == allPojos){
-                logger.info("Fail to get allMhaGroup" );
-                return null;
-            }
-        } catch (SQLException throwables) {
-            logger.error("Fail to get allMhaGroup" + throwables.getMessage());
-            return null;
-        }
-        HashMap<String, Integer> srcNameNumMap = srcNameNumCount();
-        HashMap<String, List<MhaGroupPairVo>> srcNameListMap = new HashMap<>();
-        allPojos.forEach(dalPojo -> {
-            MhaGroupTbl mhaGroupTbl = (MhaGroupTbl) dalPojo;
-            Long mhaGroupTblId = mhaGroupTbl.getId();
-            try {
-                List<MhaTbl> mhaTbls = getMhaTbls(mhaGroupTblId);
-                String mhaName0 = mhaTbls.get(0).getMhaName();
-                String mhaName1 = mhaTbls.get(1).getMhaName();
-                Integer unitVerificationSwitch = mhaGroupTbl.getUnitVerificationSwitch();
-                Integer monitorSwitch = mhaGroupTbl.getMonitorSwitch();
-                if(srcNameNumMap.get(mhaName1) > 1){
-                    MhaGroupPairVo mhaGroupPairVo = new MhaGroupPairVo(mhaName1, mhaName0,
-                            mhaGroupTbl.getDrcEstablishStatus(), unitVerificationSwitch ,monitorSwitch, mhaGroupTblId);
-                    List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName1, new ArrayList<MhaGroupPairVo>());
-                    list.add(mhaGroupPairVo);
-                    srcNameListMap.put(mhaName1,list);
-                }else {
-                    MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(mhaName0, mhaName1,
-                            mhaGroupTbl.getDrcEstablishStatus(), unitVerificationSwitch ,monitorSwitch, mhaGroupTblId);
-                    List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName0, new ArrayList<MhaGroupPairVo>());
-                    list.add(mhaGroupPair);
-                    srcNameListMap.put(mhaName0,list);
-                }
-            } catch (SQLException e) {
-                logger.error("Fail occur in SQL" + e.getMessage());
-            }
-        });
-        Collection<List<MhaGroupPairVo>> allPairs = srcNameListMap.values();
-        Iterator<List<MhaGroupPairVo>> iterator = allPairs.iterator();
-        while(iterator.hasNext()){
-            List<MhaGroupPairVo> list = iterator.next();
-            list.forEach(mhaGroupPairVo -> {
-                mhaGroupPairVos.add(mhaGroupPairVo);
-            });
-        }
-        return mhaGroupPairVos;
-    }
-
-    private HashMap<String, Integer> srcNameNumCount(){
-        List<DalPojo> allPojos;
-        try {
-            allPojos = TableEnum.MHA_GROUP_TABLE.getAllPojos();
-            if(null == allPojos){
-                logger.error("Fail to get allMhaGroup" );
-                return null;
-            }
-        } catch (SQLException throwables) {
-            logger.error("Fail to get allMhaGroup" + throwables.getMessage());
-            return null;
-        }
-        HashMap<String, Integer> srcNameNumMap = new HashMap<>();
-        allPojos.forEach(dalPojo -> {
-            MhaGroupTbl mhaGroupTbl = (MhaGroupTbl) dalPojo;
-            Long mhaGroupTblId = mhaGroupTbl.getId();
-            try {
-                List<MhaTbl> mhaTbls = getMhaTbls(mhaGroupTblId);
-                String mhaName0 = mhaTbls.get(0).getMhaName();
-                String mhaName1 = mhaTbls.get(1).getMhaName();
-                if (MHA_GROUP_SIZE != mhaTbls.size()) {
-                    logger.info("Fail to get mhas for group id: {}", mhaGroupTblId);
-                } else {
-                    srcNameNumMap.put(mhaName0, srcNameNumMap.getOrDefault(mhaName0, 0) + 1);
-                    srcNameNumMap.put(mhaName1, srcNameNumMap.getOrDefault(mhaName1, 0) + 1);
-                }
-            } catch (SQLException e) {
-                logger.error("Fail occur in SQL" + e.getMessage());
-            }
-        });
-        return srcNameNumMap;
-    }
 }
