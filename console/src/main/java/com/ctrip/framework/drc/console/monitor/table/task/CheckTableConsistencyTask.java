@@ -130,14 +130,16 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
-            CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Something is wrong between two DCs' db: {}:{} and {}:{}. Check these tables: {}", srcMha, destMha, cluster, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(), tableDiff);
+            CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]]" +
+                    "[Report table inconsistency] between two DCs' db: {}:{} and {}:{}. Check these tables: {}", srcMha, destMha, cluster, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(), tableDiff);
             return false;
         }
         for(String table : srcStmts.keySet()) {
             String srcStmt = srcStmts.get(table);
             String destStmt = destStmts.get(table);
             if(!srcStmt.equalsIgnoreCase(destStmt)) {
-                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table {} is different between two DCs' db: {}:{} and {}:{},after filter ,diff is {},srcStmt:{},destStmt:{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(),StringUtils.difference(srcStmt,destStmt),srcStmt,destStmt);
+                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]]" +
+                        "[Report table inconsistency] Table {} is different between two DCs' db: {}:{} and {}:{},after filter,\ndiff is {},\nsrcStmt:{},\ndestStmt:{}", srcMha, destMha, cluster, table, srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort(),StringUtils.difference(srcStmt,destStmt),srcStmt,destStmt);
                 return false;
             }
         }

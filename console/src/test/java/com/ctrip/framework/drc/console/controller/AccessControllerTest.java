@@ -3,17 +3,17 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -35,6 +35,9 @@ public class AccessControllerTest extends AbstractControllerTest {
 
     @Mock
     private AccessServiceImpl accessService;
+    
+    @Mock
+    private SSOService ssoServiceImpl;
 
     @Mock
     private DrcMaintenanceServiceImpl drcMaintenanceService;
@@ -254,5 +257,20 @@ public class AccessControllerTest extends AbstractControllerTest {
         System.out.println(response);
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
+    }
+    
+    @Test
+    public  void testSSODegrade() throws Exception {
+        Mockito.doReturn(ApiResult.getSuccessInstance(null)).when(ssoServiceImpl).degradeAllServer(true);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/switch/true")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Assert.assertEquals(200, mvcResult.getResponse().getStatus());
+
+        Mockito.doReturn(ApiResult.getSuccessInstance(null)).when(ssoServiceImpl).setDegradeSwitch(true);
+         mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/sso/degrade/notify/true")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Assert.assertEquals(200, mvcResult.getResponse().getStatus());
     }
 }
