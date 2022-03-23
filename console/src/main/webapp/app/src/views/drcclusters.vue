@@ -7,24 +7,27 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
-          A端机房: <Select v-model="searchCondition.srcDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
+          A端机房: <Select v-model="searchCondition.srcDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups" >
                       <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
                   </Select>
-          B端机房: <Select v-model="searchCondition.destDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
+          B端机房: <Select v-model="searchCondition.destDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups" >
                     <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
                   </Select>
           部门：<Select v-model="searchCondition.buId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
-          <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
-        </Select>
+                  <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
+              </Select>
           类型：<Select v-model="searchCondition.type"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
                     <Option v-for="item in searchOption.types" :value="item.value" :key="item.label" >{{ item.label }}</Option>
                 </Select>
           <br/>
+          <br/>
           cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
           MhaA：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.srcMha" />
           MhaB：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.destMha" />
-          <Button :style="{marginLeft: '250px'}" type="primary" @click="getMhaGroups">查询</Button>
+          <Button :style="{marginLeft: '50px'}" type="primary" @click="getMhaGroups">查询</Button>
           <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
+          <br/>
+          <br/>
           <Table stripe :columns="columns" :data="dataWithPage" border :span-method="handleSpan" >
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
@@ -306,25 +309,25 @@ export default {
     getMhaGroups () {
       const that = this
       let uri = '/api/drc/v1/meta/orderedGroups/all?deleted=0'
-      if (this.searchCondition.srcMha !== null) {
+      if (this.searchCondition.srcMha !== null && this.searchCondition.srcMha !== undefined) {
         uri = uri + '&srcMha=' + this.searchCondition.srcMha
       }
-      if (this.searchCondition.destMha !== null) {
+      if (this.searchCondition.destMha !== null && this.searchCondition.destMha !== undefined) {
         uri = uri + '&destMha=' + this.searchCondition.destMha
       }
-      if (this.searchCondition.srcDcId !== null) {
+      if (this.searchCondition.srcDcId !== null && this.searchCondition.srcDcId !== undefined) {
         uri = uri + '&srcDcId=' + this.searchCondition.srcDcId
       }
-      if (this.searchCondition.destDcId !== null) {
+      if (this.searchCondition.destDcId !== null && this.searchCondition.destDcId !== undefined) {
         uri = uri + '&destDcId=' + this.searchCondition.destDcId
       }
-      if (this.searchCondition.clusterName !== null) {
+      if (this.searchCondition.clusterName !== null && this.searchCondition.clusterName !== undefined) {
         uri = uri + '&clusterName=' + this.searchCondition.clusterName
       }
-      if (this.searchCondition.buId !== null) {
+      if (this.searchCondition.buId !== null && this.searchCondition.buId !== undefined) {
         uri = uri + '&buId=' + this.searchCondition.buId
       }
-      if (this.searchCondition.type !== null) {
+      if (this.searchCondition.type !== null && this.searchCondition.type !== undefined) {
         uri = uri + '&type=' + this.searchCondition.type
       }
       this.axios.get(uri)
