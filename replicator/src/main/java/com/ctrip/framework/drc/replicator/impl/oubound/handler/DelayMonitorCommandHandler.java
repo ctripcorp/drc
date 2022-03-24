@@ -19,11 +19,11 @@ import com.ctrip.xpipe.utils.Gate;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -57,7 +57,10 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
         DelayMonitorCommandPacket monitorCommandPacket = (DelayMonitorCommandPacket) serverCommandPacket;
         String dcName = monitorCommandPacket.getDcName();
         String clusterName = monitorCommandPacket.getClusterName();
-        DelayMonitorKey key = getKey(monitorCommandPacket);
+        Channel channel = nettyClient.channel();
+        InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
+        String ip = remoteAddress.getAddress().getHostAddress();
+        DelayMonitorKey key = getKey(monitorCommandPacket, ip);
         if (!delayMonitorClient.containsKey(key)) {
             delayMonitorClient.putIfAbsent(key, nettyClient);
             MonitorEventTask delayMonitorEventTask = new MonitorEventTask(nettyClient.channel(), monitorCommandPacket, key);
@@ -66,16 +69,15 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             logger.info("[Receive] request for {} delay monitor {}:{}", registryKey, dcName, clusterName);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.console.dump", key.toString());
         } else {
-            Channel channel = nettyClient.channel();
             logger.info("[Duplicate] request for {} delay monitor {}:{} and close channel {}", registryKey, dcName, clusterName, channel);
             channel.close();
         }
     }
 
-    private DelayMonitorKey getKey(DelayMonitorCommandPacket monitorCommandPacket) {
+    private DelayMonitorKey getKey(DelayMonitorCommandPacket monitorCommandPacket, String ip) {
         String dcName = monitorCommandPacket.getDcName();
         String clusterName = monitorCommandPacket.getClusterName();
-        return new DelayMonitorKey(dcName, clusterName);
+        return new DelayMonitorKey(dcName, clusterName, ip);
     }
 
     @Override
@@ -123,20 +125,17 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
         @Override
         public void run() {
             try {
-                this.channel.closeFuture().addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        Throwable throwable = future.cause();
-                        if (throwable != null) {
-                            logger.error("MonitorEventTask closeFuture", throwable);
-                        }
-                        channelClosed = true;
-                        Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
-                        gate.open();
-                        logger.info("MonitorEventTask closeFuture Listener invoke open gate {} and set channelClosed", gate);
-                        clearResource();
-                        logger.info("[Remove] MonitorEventObserver from delayMonitorEventObservable");
+                this.channel.closeFuture().addListener((ChannelFutureListener) future -> {
+                    Throwable throwable = future.cause();
+                    if (throwable != null) {
+                        logger.error("MonitorEventTask closeFuture", throwable);
                     }
+                    channelClosed = true;
+                    Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+                    gate.open();
+                    logger.info("MonitorEventTask closeFuture Listener invoke open gate {} and set channelClosed", gate);
+                    clearResource();
+                    logger.info("[Remove] MonitorEventObserver from delayMonitorEventObservable");
                 });
                 while (!channelClosed) {
                     LogEvent logEvent = delayBlockingQueue.poll(4, TimeUnit.SECONDS);
@@ -229,7 +228,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                     logger.error("[Release] logEvent error", e);
                 }
             }
-            NettyClient nettyClient = delayMonitorClient.remove(getKey(monitorCommandPacket));
+            NettyClient nettyClient = delayMonitorClient.remove(key);
             nettyClient.channel().close();
         }
 
@@ -254,31 +253,36 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private String clusterName;
 
-        public DelayMonitorKey(String srcDcName, String clusterName) {
+        private String ip;
+
+        public DelayMonitorKey(String srcDcName, String clusterName, String ip) {
             this.srcDcName = srcDcName;
             this.clusterName = clusterName;
+            this.ip = ip;
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (!(o instanceof DelayMonitorKey)) return false;
             DelayMonitorKey that = (DelayMonitorKey) o;
             return Objects.equals(srcDcName, that.srcDcName) &&
-                    Objects.equals(clusterName, that.clusterName);
+                    Objects.equals(clusterName, that.clusterName) &&
+                    Objects.equals(ip, that.ip);
         }
 
         @Override
         public int hashCode() {
 
-            return Objects.hash(srcDcName, clusterName);
+            return Objects.hash(srcDcName, clusterName, ip);
         }
 
         @Override
         public String toString() {
             return "DelayMonitorKey{" +
                     "srcDcName='" + srcDcName + '\'' +
-                    ", registerKey='" + clusterName + '\'' +
+                    ", clusterName='" + clusterName + '\'' +
+                    ", ip='" + ip + '\'' +
                     '}';
         }
     }
