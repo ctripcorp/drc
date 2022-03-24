@@ -7,11 +7,8 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
-          A端机房: <Select v-model="searchCondition.srcDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups" >
+          机房: <Select v-model="searchCondition.dcIds"  style="width: 200px" placeholder="默认全部" multiple @on-change="getMhaGroups" >
                       <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
-                  </Select>
-          B端机房: <Select v-model="searchCondition.destDcId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups" >
-                    <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
                   </Select>
           部门：<Select v-model="searchCondition.buId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
                   <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
@@ -21,9 +18,8 @@
                 </Select>
           <br/>
           <br/>
+          Mhas：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
           cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
-          MhaA：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.srcMha" />
-          MhaB：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="searchCondition.destMha" />
           <Button :style="{marginLeft: '50px'}" type="primary" @click="getMhaGroups">查询</Button>
           <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
           <br/>
@@ -202,10 +198,8 @@ export default {
       buIdMaps: new Map(),
       dcs: [],
       searchCondition: {
-        srcMha: null,
-        destMha: null,
-        srcDcId: null,
-        destDcId: null,
+        mhas: null,
+        dcIds: [],
         clusterName: null,
         buId: null,
         type: null
@@ -230,6 +224,7 @@ export default {
   },
   computed: {
     dataWithPage () {
+      console.log('dataWithPage')
       const data = this.mhaGroups
       const mergeData = this.mergeColData
       const start = this.current * this.size - this.size
@@ -266,11 +261,13 @@ export default {
       if (columnIndex === 1) {
         const x = row.mergeCol === 0 ? 0 : row.mergeCol
         const y = row.mergeCol === 0 ? 0 : 1
-        // console.log(x , y)
+        // console.log(x, y)
         return [x, y]
       }
     },
     assembleData (data) {
+      this.mergeColData = []
+      console.log('assembleData')
       const names = []
       data.forEach(e => {
         if (!names.includes(e.srcMha)) {
@@ -304,22 +301,15 @@ export default {
       })
       const tmp = data
       this.mhaGroups = tmp
-      console.log('assemble')
     },
     getMhaGroups () {
       const that = this
       let uri = '/api/drc/v1/meta/orderedGroups/all?deleted=0'
-      if (this.searchCondition.srcMha !== null && this.searchCondition.srcMha !== undefined) {
-        uri = uri + '&srcMha=' + this.searchCondition.srcMha
+      if (this.searchCondition.mhas !== null && this.searchCondition.mhas !== undefined) {
+        uri = uri + '&mhas=' + this.searchCondition.mhas
       }
-      if (this.searchCondition.destMha !== null && this.searchCondition.destMha !== undefined) {
-        uri = uri + '&destMha=' + this.searchCondition.destMha
-      }
-      if (this.searchCondition.srcDcId !== null && this.searchCondition.srcDcId !== undefined) {
-        uri = uri + '&srcDcId=' + this.searchCondition.srcDcId
-      }
-      if (this.searchCondition.destDcId !== null && this.searchCondition.destDcId !== undefined) {
-        uri = uri + '&destDcId=' + this.searchCondition.destDcId
+      if (this.searchCondition.dcIds !== null && this.searchCondition.dcIds !== undefined && this.searchCondition.dcIds.length !== 0) {
+        uri = uri + '&dcIds=' + this.searchCondition.dcIds
       }
       if (this.searchCondition.clusterName !== null && this.searchCondition.clusterName !== undefined) {
         uri = uri + '&clusterName=' + this.searchCondition.clusterName
@@ -338,10 +328,8 @@ export default {
         })
     },
     reset () {
-      this.searchCondition.srcMha = null
-      this.searchCondition.destMha = null
-      this.searchCondition.srcDcId = null
-      this.searchCondition.destDcId = null
+      this.searchCondition.mhas = null
+      this.searchCondition.dcIds = []
       this.searchCondition.clusterName = null
       this.searchCondition.buId = null
       this.searchCondition.type = null

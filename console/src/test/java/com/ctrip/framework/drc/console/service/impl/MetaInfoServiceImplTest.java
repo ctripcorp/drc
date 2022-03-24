@@ -158,7 +158,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testGetMhaGroupPariVos() throws Exception {
         List<MhaGroupPairVo> allMhaGroups = metaInfoService
-                .getMhaGroupPariVos(null,null,null,null,null,null,null);
+                .getMhaGroupPariVos(null,null,null,null,null);
         Assert.assertEquals(2, allMhaGroups.size());
         MhaGroupPairVo mhaGroupPairVo = allMhaGroups.get(0);
         Assert.assertEquals(MHA1OY, mhaGroupPairVo.getSrcMha());

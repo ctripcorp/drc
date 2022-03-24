@@ -182,7 +182,7 @@ public class MetaControllerTest extends AbstractControllerTest {
             add(new MhaGroupPairVo("mha5", "mha6", EstablishStatusEnum.ESTABLISHED.getCode(), 0, 0, 0L));
         }};
 
-        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any()))
+        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any()))
                 .thenReturn(mhaGroupPairVos);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/?deleted=0"))
                 .andDo(MockMvcResultHandlers.print())
@@ -204,7 +204,7 @@ public class MetaControllerTest extends AbstractControllerTest {
         jsonNode = objectMapper.readTree(responseStr);
         Assert.assertEquals("null", jsonNode.get("data").toString());
 
-        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any())).thenThrow(new SQLException("sql error"));
+        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any())).thenThrow(new SQLException("sql error"));
         mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/?deleted=1"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();

@@ -1127,7 +1127,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
 
-    public List<MhaGroupPairVo> getMhaGroupPariVos(String srcMha, String destMha, Long srcDcId, Long destDcId, String clusterName, Long buId, String type) throws SQLException {
+    public List<MhaGroupPairVo> getMhaGroupPariVos(List<String> mhas, List<Long> dcIds, String clusterName, Long buId, String type) throws SQLException {
         List<MhaGroupPairVo> pairVos = Lists.newArrayList();
         List<MhaGroupTbl> mhaGroupTbls = dalUtils.getMhaGroupTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         for (MhaGroupTbl mhaGroupTbl : mhaGroupTbls) {
@@ -1138,20 +1138,14 @@ MetaInfoServiceImpl implements MetaInfoService {
             }
             MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(mhaTbls.get(0).getMhaName(), mhaTbls.get(1).getMhaName(),
                     mhaGroupTbl.getDrcEstablishStatus(), mhaGroupTbl.getUnitVerificationSwitch() ,mhaGroupTbl.getMonitorSwitch(), mhaGroupTbl.getId());
-            //filter mhaName
+            //filter mhaNames
             List<String> actualMhaNames = mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
-            if (srcMha != null  && !actualMhaNames.contains(srcMha)) {
-                continue;
-            }
-            if (destMha != null && !actualMhaNames.contains(destMha)) {
+            if (mhas != null && mhas.size() != 0 && !actualMhaNames.containsAll(mhas)) {
                 continue;
             }
             //filter dc
             List<Long> actualDcIds = mhaTbls.stream().map(MhaTbl::getDcId).collect(Collectors.toList());
-            if (srcDcId != null && !actualDcIds.contains(srcDcId)) {
-                continue;
-            }
-            if (destDcId != null && !actualDcIds.contains(destDcId)) {
+            if (dcIds != null && dcIds.size() != 0 && !actualDcIds.containsAll(dcIds)) {
                 continue;
             }
             //filter cluster and bu
@@ -1163,7 +1157,7 @@ MetaInfoServiceImpl implements MetaInfoService {
                 actualClusters.add(dalUtils.getClusterTblDao().queryByPk(clusterId));
             }
             mhaGroupPair.setBuId(actualClusters.get(0).getBuId());
-            if (clusterName != null && actualClusters.stream().noneMatch(p -> p.getClusterName().equalsIgnoreCase(clusterName))){
+            if (StringUtils.isNotBlank(clusterName) && actualClusters.stream().noneMatch(p -> p.getClusterName().equalsIgnoreCase(clusterName))){
                 continue;
             }
             if (buId != null && actualClusters.stream().noneMatch(p -> p.getBuId().equals(buId))) {

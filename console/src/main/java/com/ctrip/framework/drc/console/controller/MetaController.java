@@ -10,12 +10,16 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.google.common.collect.Lists;
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
@@ -75,19 +79,19 @@ public class MetaController {
 //    }
     
     @GetMapping("orderedGroups/all")
-    public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "srcMha", required = false) String srcMha,
-                                    @RequestParam(value = "destMha", required = false) String destMha,
-                                    @RequestParam(value = "srcDcId", required = false) Long srcDcId ,
-                                    @RequestParam(value = "destDcId", required = false) Long destDcId,
+    public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "mhas", required = false) String mhas,
+                                    @RequestParam(value = "dcIds", required = false) List<Long> dcIds ,
                                     @RequestParam(value = "clusterName", required = false) String clusterName,
                                     @RequestParam(value = "buId", required = false) Long buId,
                                     @RequestParam(value = "type",required = false) String type,
                                     @RequestParam(value = "deleted",required = true) Integer deleted){
-        logger.info("[meta] get allOrderedGroup,srcMha:{},destMha:{},srcDcId:{},destDcId:{},clusterName:{},buId:{},type:{}",
-                srcMha, destMha,  srcDcId,  destDcId,  clusterName,  buId,  type);
+        
+        logger.info("[meta] get allOrderedGroup,mhas:{},dcIds:{},clusterName:{},buId:{},type:{}",
+                mhas, dcIds, clusterName,  buId,  type);
         try {
             if (deleted.equals(BooleanEnum.FALSE.getCode())) {
-                return ApiResult.getSuccessInstance(metaInfoService.getMhaGroupPariVos(srcMha, destMha,  srcDcId,  destDcId,  clusterName,  buId,  type));
+                List<String> mhaList = StringUtils.isBlank(mhas) ? null : Lists.newArrayList(mhas.split(","));
+                return ApiResult.getSuccessInstance(metaInfoService.getMhaGroupPariVos(mhaList, dcIds, clusterName,  buId,  type));
             } else {
                 return ApiResult.getFailInstance(null);
             }
