@@ -4,17 +4,22 @@ import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.google.common.collect.Lists;
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
@@ -51,34 +56,76 @@ public class MetaController {
     private DbClusterSourceProvider sourceProvider;
 
 
-    @GetMapping("groups/all")
-    public ApiResult getAllMhaGroups() {
-        logger.info("[meta] get all mha groups info");
-        try {
-            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
-        } catch (Exception e) {
-            logger.error("[meta] get all mha groups info", e);
-            return ApiResult.getFailInstance(null);
-        }
-    }
+//    @GetMapping("groups/all")
+//    public ApiResult getAllMhaGroups() {
+//        logger.info("[meta] get all mha groups info");
+//        try {
+//            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
+//        } catch (Exception e) {
+//            logger.error("[meta] get all mha groups info", e);
+//            return ApiResult.getFailInstance(null);
+//        }
+//    }
 
+//    @GetMapping("orderedGroups/all")
+//    public ApiResult getAllOrderedGroups() {
+//        logger.info("[meta] get all mha groups info");
+//        try {
+//            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedGroupPairs());
+//        } catch (Exception e) {
+//            logger.error("[meta] get all mha groups info", e);
+//            return ApiResult.getFailInstance(null);
+//        }
+//    }
+    
     @GetMapping("orderedGroups/all")
-    public ApiResult getAllOrderedGroups() {
-        logger.info("[meta] get all mha groups info");
+    public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "mhas", required = false) String mhas,
+                                    @RequestParam(value = "dcIds", required = false) List<Long> dcIds ,
+                                    @RequestParam(value = "clusterName", required = false) String clusterName,
+                                    @RequestParam(value = "buId", required = false) Long buId,
+                                    @RequestParam(value = "type",required = false) String type,
+                                    @RequestParam(value = "deleted",required = true) Integer deleted){
+        
+        logger.info("[meta] get allOrderedGroup,mhas:{},dcIds:{},clusterName:{},buId:{},type:{}",
+                mhas, dcIds, clusterName,  buId,  type);
         try {
-            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedGroupPairs());
-        } catch (Exception e) {
-            logger.error("[meta] get all mha groups info", e);
+            if (deleted.equals(BooleanEnum.FALSE.getCode())) {
+                List<String> mhaList = StringUtils.isBlank(mhas) ? null : Lists.newArrayList(mhas.split(","));
+                return ApiResult.getSuccessInstance(metaInfoService.getMhaGroupPariVos(mhaList, dcIds, clusterName,  buId,  type));
+            } else {
+                return ApiResult.getFailInstance(null);
+            }
+        } catch (SQLException e) {
+            logger.error("[meta] get MhaGroup error",e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+    
+    @GetMapping("bus/all")
+    public ApiResult getAllBuTbls() {
+        try {
+            return ApiResult.getSuccessInstance(TableEnum.BU_TABLE.getAllPojos());
+        } catch (SQLException e) {
+            logger.error("[meta] get allBuTbls error",e);
             return ApiResult.getFailInstance(null);
         }
     }
 
+    @GetMapping("dcs/all")
+    public ApiResult getAllDcTbls() {
+        try {
+            return ApiResult.getSuccessInstance(TableEnum.DC_TABLE.getAllPojos());
+        } catch (SQLException e) {
+            logger.error("[meta] get allDcTbls error",e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
 
     @GetMapping("orderedDeletedGroups/all")
     public ApiResult getAllDeletedOrderedGroups() {
         logger.info("[meat] get all deleted mha groups info");
         try {
-            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedDeletedGroupPairs());
+            return ApiResult.getSuccessInstance(metaInfoService.getDeletedMhaGroupPairVos());
         } catch (Exception e) {
             logger.info("[meat] get all deleted mha groups info", e);
             return ApiResult.getFailInstance(null);
