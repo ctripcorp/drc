@@ -31,11 +31,13 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                 @Override
                 public void onSuccess() {
                     toggleAutoRead(channel, true);
+                    onHeartHeat();
                 }
 
                 @Override
                 public void onFailure() {
                     toggleAutoRead(channel, false);
+                    onHeartHeat();
                 }
 
                 @Override

@@ -1,12 +1,14 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
+import com.ctrip.framework.drc.core.driver.binlog.HeartBeatCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.handler.HeartBeatHandler;
+import com.ctrip.framework.drc.core.driver.command.packet.client.HeartBeatResponsePacket;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfiguration;
@@ -20,6 +22,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +42,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     private ScheduledExecutorService heartBeatExecutorService;
 
-    private ConcurrentMap<Channel, Long> responses = Maps.newConcurrentMap();
+    private ConcurrentMap<Channel, HeartBeatContext> responses = Maps.newConcurrentMap();
 
     private HeartBeatConfiguration heartBeatConfiguration = HeartBeatConfiguration.getInstance();
 
@@ -49,7 +52,13 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     @Override
     public void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
-        removeCachedChannel(nettyClient.channel());
+        HeartBeatResponsePacket heartBeatResponsePacket = (HeartBeatResponsePacket) serverCommandPacket;
+        int autoRead = heartBeatResponsePacket.getAutoRead();
+        if (autoRead != HeartBeatCallBack.AUTO_READ) {
+            updateAutoRead(nettyClient.channel());
+        } else {
+            removeCachedChannel(nettyClient.channel());
+        }
     }
 
     @Override
@@ -77,8 +86,8 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                     HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to empty");
                     return;
                 }
-                Map<Channel, Long> copy = Maps.newHashMap(responses);
-                for (Map.Entry<Channel, Long> entry : copy.entrySet()) {
+                Map<Channel, HeartBeatContext> copy = Maps.newHashMap(responses);
+                for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
                     Channel channel = entry.getKey();
                     if (expired(entry.getValue())) {
                         removeCachedChannel(channel);
@@ -110,8 +119,9 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                             removeCachedChannel(channel);
                             HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
                         } else {
-                            responses.putIfAbsent(channel, System.currentTimeMillis());
-                            HEARTBEAT_LOGGER.info("[WriterIdle] send heartbeat to {}", channel);
+                            HeartBeatContext context = newHeartBeatContext();
+                            responses.putIfAbsent(channel, newHeartBeatContext());
+                            HEARTBEAT_LOGGER.info("[Send] send heartbeat to {}:{}", channel, context.getTime());
                         }
                     });
                 }
@@ -129,12 +139,25 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
     }
 
     private void removeCachedChannel(Channel channel) {
-        Long time = responses.remove(channel);
-        HEARTBEAT_LOGGER.info("[HeartBeat] remove for {}:{}", channel, time);
+        HeartBeatContext heartBeatContext = responses.remove(channel);
+        HEARTBEAT_LOGGER.info("[Remove] heartbeat for {}:{}", channel, heartBeatContext);
     }
 
-    private boolean expired(long time) {
-        return System.currentTimeMillis() - time > EXPIRE_TIME;
+    private void updateAutoRead(Channel channel) {
+        HeartBeatContext heartBeatContext = responses.getOrDefault(channel, newHeartBeatContext());
+        heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
+        HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
+    }
+
+    private HeartBeatContext newHeartBeatContext() {
+        return new HeartBeatContext(System.currentTimeMillis(), HeartBeatCallBack.AUTO_READ);
+    }
+
+    private boolean expired(HeartBeatContext heartBeatContext) {
+        if (heartBeatContext.getAutoRead() != HeartBeatCallBack.AUTO_READ) {
+            return false;
+        }
+        return System.currentTimeMillis() - heartBeatContext.getTime() > EXPIRE_TIME;
     }
 
     @VisibleForTesting
@@ -143,7 +166,58 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
     }
 
     @VisibleForTesting
-    public ConcurrentMap<Channel, Long> getResponses() {
+    public ConcurrentMap<Channel, HeartBeatContext> getResponses() {
         return responses;
+    }
+
+    private static class HeartBeatContext {
+
+        private long time;
+
+        private int autoRead;
+
+        public HeartBeatContext(long time, int autoRead) {
+            this.time = time;
+            this.autoRead = autoRead;
+        }
+
+        public long getTime() {
+            return time;
+        }
+
+        public void setTime(long time) {
+            this.time = time;
+        }
+
+        public int getAutoRead() {
+            return autoRead;
+        }
+
+        public void setAutoRead(int autoRead) {
+            this.autoRead = autoRead;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof HeartBeatContext)) return false;
+            HeartBeatContext that = (HeartBeatContext) o;
+            return time == that.time &&
+                    autoRead == that.autoRead;
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(time, autoRead);
+        }
+
+        @Override
+        public String toString() {
+            return "HeartBeatContext{" +
+                    "time=" + time +
+                    ", autoRead=" + autoRead +
+                    '}';
+        }
     }
 }

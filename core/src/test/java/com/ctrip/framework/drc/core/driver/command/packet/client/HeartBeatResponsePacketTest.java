@@ -27,7 +27,7 @@ public class HeartBeatResponsePacketTest extends AbstractCommandPacketTest {
         HeartBeatResponsePacket clone = new HeartBeatResponsePacket();
         clone.read(byteBuf);
         Assert.assertArrayEquals(heartBeatResponsePacket.getBody(), clone.getBody());
-        Assert.assertEquals(heartBeatResponsePacket.getBody().length, 1);
+        Assert.assertEquals(heartBeatResponsePacket.getAutoRead(), 1);
         Assert.assertEquals(heartBeatResponsePacket.getCommand(), SERVER_COMMAND.COM_HEARTBEAT_RESPONSE.getCode());
     }
 }

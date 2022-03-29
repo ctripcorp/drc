@@ -81,7 +81,7 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
                         p.addLast(new LoggingHandler(LogLevel.DEBUG));
                         p.addLast(new UnpackDecoder());
                         p.addLast(new ChunkedWriteHandler());
-                        p.addLast(new IdleStateHandler(0, MASTER_HEARTBEAT_PERIOD_SECONDS, 0));
+                        p.addLast(new IdleStateHandler(MASTER_HEARTBEAT_PERIOD_SECONDS, MASTER_HEARTBEAT_PERIOD_SECONDS, 0));
                         p.addLast(new ReplicatorMasterHandler(handlerManager));
                     }
                 });
