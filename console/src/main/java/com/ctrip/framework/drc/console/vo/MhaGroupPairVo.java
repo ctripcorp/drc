@@ -18,8 +18,33 @@ public class MhaGroupPairVo {
     private int monitorSwitch;
 
     private Long mhaGroupId;
+    
+    private String type;
+    
+    private Long BuId;
+    
+    
+    public MhaGroupPairVo exchangeMha() {
+        String tmp = srcMha;
+        setSrcMha(destMha);
+        setDestMha(tmp);
+        return this;
+    }
 
-    public MhaGroupPairVo() {
+    public Long getBuId() {
+        return BuId;
+    }
+
+    public void setBuId(Long buId) {
+        BuId = buId;
+    }
+   
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getSrcMha() {
@@ -70,6 +95,10 @@ public class MhaGroupPairVo {
         this.mhaGroupId = mhaGroupId;
     }
 
+
+    public MhaGroupPairVo() {
+    }
+    
     public MhaGroupPairVo(String srcMha, String destMha, Integer drcEstablishStatus, int unitVerificationSwitch, int monitorSwitch, Long mhaGroupId) {
         this.srcMha = srcMha;
         this.destMha = destMha;

@@ -6,24 +6,43 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
-        <Table stripe :columns="columns" :data="dataWithPage" border :span-method="handleSpan" >
-          <template slot-scope="{ row, index }" slot="action">
-            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
-            <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
-            <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">删除</Button>
-          </template>
-        </Table>
-        <div style="text-align: center;margin: 16px 0">
-          <Page
-            :transfer="true"
-            :total="total"
-            :current.sync="current"
-            :page-size="size"
-            :page-size-opts="[10,20,40,80,100]"
-            show-sizer
-            show-elevator
-            @on-page-size-change="handleChangeSize"></Page>
-        </div>
+        <Card>
+          机房: <Select v-model="searchCondition.dcIds"  style="width: 200px" placeholder="默认全部" multiple @on-change="getMhaGroups" >
+                      <Option v-for="item in dcs" :value="item.id" :key="item.dcName" >{{ item.dcName }}</Option>
+                  </Select>
+          部门：<Select v-model="searchCondition.buId"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
+                  <Option v-for="item in bus" :value="item.id" :key="item.buName" >{{ item.buName }}</Option>
+              </Select>
+          类型：<Select v-model="searchCondition.type"  style="width: 200px" placeholder="默认全部" @on-change="getMhaGroups">
+                    <Option v-for="item in searchOption.types" :value="item.value" :key="item.label" >{{ item.label }}</Option>
+                </Select>
+          <br/>
+          <br/>
+          Mhas：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
+          cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
+          <Button :style="{marginLeft: '50px'}" type="primary" @click="getMhaGroups">查询</Button>
+          <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
+          <br/>
+          <br/>
+          <Table stripe :columns="columns" :data="dataWithPage" border :span-method="handleSpan" >
+            <template slot-scope="{ row, index }" slot="action">
+              <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
+              <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
+              <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">删除</Button>
+            </template>
+          </Table>
+          <div style="text-align: center;margin: 16px 0">
+            <Page
+              :transfer="true"
+              :total="total"
+              :current.sync="current"
+              :page-size="size"
+              :page-size-opts="[10,20,40,80,100]"
+              show-sizer
+              show-elevator
+              @on-page-size-change="handleChangeSize"></Page>
+          </div>
+        </Card>
       </div>
       <Modal
         v-model="cluster.modal.config"
@@ -86,6 +105,36 @@ export default {
           key: 'destMha'
         },
         {
+          title: '类型',
+          key: 'type',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const color = 'blue'
+            const text = row.type === 'duplex' ? '双向' : row.type === 'simplex' ? '单向' : 'null'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
+          title: '部门',
+          key: 'buId',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const color = 'blue'
+            const text = this.buIdMaps.get(row.buId)
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: '状态',
           key: 'drcEstablishStatus',
           width: 100,
@@ -104,6 +153,7 @@ export default {
         {
           title: '监控',
           key: 'monitorSwitch',
+          width: 100,
           align: 'center',
           render: (h, params) => {
             const row = params.row
@@ -143,11 +193,38 @@ export default {
       total: 0,
       current: 1,
       size: 100,
-      mergeColData: []
+      mergeColData: [],
+      bus: [],
+      buIdMaps: new Map(),
+      dcs: [],
+      searchCondition: {
+        mhas: null,
+        dcIds: [],
+        clusterName: null,
+        buId: null,
+        type: null
+      },
+      searchOption: {
+        types: [
+          {
+            label: '单向',
+            value: 'simplex'
+          },
+          {
+            label: '双向',
+            value: 'duplex'
+          },
+          {
+            label: '未配置',
+            value: 'noConfig'
+          }
+        ]
+      }
     }
   },
   computed: {
     dataWithPage () {
+      console.log('dataWithPage')
       const data = this.mhaGroups
       const mergeData = this.mergeColData
       const start = this.current * this.size - this.size
@@ -184,11 +261,13 @@ export default {
       if (columnIndex === 1) {
         const x = row.mergeCol === 0 ? 0 : row.mergeCol
         const y = row.mergeCol === 0 ? 0 : 1
-        // console.log(x , y)
+        // console.log(x, y)
         return [x, y]
       }
     },
     assembleData (data) {
+      this.mergeColData = []
+      console.log('assembleData')
       const names = []
       data.forEach(e => {
         if (!names.includes(e.srcMha)) {
@@ -222,14 +301,54 @@ export default {
       })
       const tmp = data
       this.mhaGroups = tmp
-      console.log('assemble')
     },
     getMhaGroups () {
-      this.axios.get('/api/drc/v1/meta/orderedGroups/all')
+      const that = this
+      let uri = '/api/drc/v1/meta/orderedGroups/all?deleted=0'
+      if (this.searchCondition.mhas !== null && this.searchCondition.mhas !== undefined) {
+        uri = uri + '&mhas=' + this.searchCondition.mhas
+      }
+      if (this.searchCondition.dcIds !== null && this.searchCondition.dcIds !== undefined && this.searchCondition.dcIds.length !== 0) {
+        uri = uri + '&dcIds=' + this.searchCondition.dcIds
+      }
+      if (this.searchCondition.clusterName !== null && this.searchCondition.clusterName !== undefined) {
+        uri = uri + '&clusterName=' + this.searchCondition.clusterName
+      }
+      if (this.searchCondition.buId !== null && this.searchCondition.buId !== undefined) {
+        uri = uri + '&buId=' + this.searchCondition.buId
+      }
+      if (this.searchCondition.type !== null && this.searchCondition.type !== undefined) {
+        uri = uri + '&type=' + this.searchCondition.type
+      }
+      this.axios.get(uri)
         .then(response => {
           this.mhaGroups = response.data.data
-          this.total = this.mhaGroups.length
-          this.assembleData(this.mhaGroups)
+          that.total = this.mhaGroups.length
+          that.assembleData(this.mhaGroups)
+        })
+    },
+    reset () {
+      this.searchCondition.mhas = null
+      this.searchCondition.dcIds = []
+      this.searchCondition.clusterName = null
+      this.searchCondition.buId = null
+      this.searchCondition.type = null
+    },
+    getBus () {
+      this.axios.get('/api/drc/v1/meta/bus/all')
+        .then(response => {
+          this.bus = response.data.data
+          this.buIdMaps = new Map()
+          this.bus.forEach((item, index) => {
+            this.buIdMaps.set(item.id, item.buName)
+          })
+        })
+    },
+    getDcs () {
+      this.axios.get('/api/drc/v1/meta/dcs/all')
+        .then(response => {
+          this.dcs = response.data.data
+          console.log(this.dcs)
         })
     },
     handleChangeSize (val) {
@@ -368,6 +487,8 @@ export default {
   },
   created () {
     this.getMhaGroups()
+    this.getBus()
+    this.getDcs()
   }
 }
 </script>

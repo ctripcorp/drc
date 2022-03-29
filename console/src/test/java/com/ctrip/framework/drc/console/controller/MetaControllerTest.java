@@ -30,8 +30,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -144,16 +142,49 @@ public class MetaControllerTest extends AbstractControllerTest {
         }});
     }
 
+//    @Test
+//    public void testGetAllMhaGroups() throws Exception {
+//        List<MhaGroupPair> mhaGroupPairs = new ArrayList<>() {{
+//            add(new MhaGroupPair("mha1", "mha2", EstablishStatusEnum.BUILT_NEW_MHA, 0, 0, 0L));
+//            add(new MhaGroupPair("mha4", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME, 0, 0, 0L));
+//            add(new MhaGroupPair("mha5", "mha6", EstablishStatusEnum.ESTABLISHED, 0, 0 ,0L));
+//        }};
+//
+//        when(metaInfoService.getAllMhaGroups()).thenReturn(mhaGroupPairs);
+//        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/groups/all/"))
+//                .andDo(MockMvcResultHandlers.print())
+//                .andReturn();
+//        MockHttpServletResponse response = mvcResult.getResponse();
+//        int status = response.getStatus();
+//        String responseStr = response.getContentAsString();
+//        Assert.assertEquals(200, status);
+//        JsonNode jsonNode = objectMapper.readTree(responseStr);
+//        Assert.assertNotEquals("null", jsonNode.get("data").toString());
+//
+//        when(metaInfoService.getAllMhaGroups()).thenThrow(Exception.class);
+//        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/groups/all/"))
+//                .andDo(MockMvcResultHandlers.print())
+//                .andReturn();
+//        response = mvcResult.getResponse();
+//        status = response.getStatus();
+//        responseStr = response.getContentAsString();
+//        Assert.assertEquals(200, status);
+//        jsonNode = objectMapper.readTree(responseStr);
+//        Assert.assertEquals(1, jsonNode.get("status").asInt());
+//        Assert.assertEquals("null", jsonNode.get("data").toString());
+//    }
+
     @Test
-    public void testGetAllMhaGroups() throws Exception {
-        List<MhaGroupPair> mhaGroupPairs = new ArrayList<>() {{
-            add(new MhaGroupPair("mha1", "mha2", EstablishStatusEnum.BUILT_NEW_MHA, 0, 0, 0L));
-            add(new MhaGroupPair("mha4", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME, 0, 0, 0L));
-            add(new MhaGroupPair("mha5", "mha6", EstablishStatusEnum.ESTABLISHED, 0, 0 ,0L));
+    public void testGetAllOrderedGroupsAfterFilter() throws Exception {
+        List<MhaGroupPairVo> mhaGroupPairVos = new ArrayList<>() {{
+            add(new MhaGroupPairVo("mha1", "mha2", EstablishStatusEnum.BUILT_NEW_MHA.getCode(), 0, 0, 0L));
+            add(new MhaGroupPairVo("mha1", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME.getCode(), 0, 0, 0L));
+            add(new MhaGroupPairVo("mha5", "mha6", EstablishStatusEnum.ESTABLISHED.getCode(), 0, 0, 0L));
         }};
 
-        when(metaInfoService.getAllMhaGroups()).thenReturn(mhaGroupPairs);
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/groups/all/"))
+        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any()))
+                .thenReturn(mhaGroupPairVos);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/?deleted=0"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         MockHttpServletResponse response = mvcResult.getResponse();
@@ -162,9 +193,8 @@ public class MetaControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         JsonNode jsonNode = objectMapper.readTree(responseStr);
         Assert.assertNotEquals("null", jsonNode.get("data").toString());
-
-        when(metaInfoService.getAllMhaGroups()).thenThrow(Exception.class);
-        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/groups/all/"))
+        
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/?deleted=1"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
         response = mvcResult.getResponse();
@@ -172,29 +202,18 @@ public class MetaControllerTest extends AbstractControllerTest {
         responseStr = response.getContentAsString();
         Assert.assertEquals(200, status);
         jsonNode = objectMapper.readTree(responseStr);
-        Assert.assertEquals(1, jsonNode.get("status").asInt());
         Assert.assertEquals("null", jsonNode.get("data").toString());
-    }
 
-    @Test
-    public void testGetAllOrderedGroups() throws Exception {
-        List<MhaGroupPairVo> mhaGroupPairVos = new ArrayList<>() {{
-            add(new MhaGroupPairVo("mha1", "mha2", EstablishStatusEnum.BUILT_NEW_MHA.getCode(), 0, 0, 0L));
-            add(new MhaGroupPairVo("mha1", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME.getCode(), 0, 0, 0L));
-            add(new MhaGroupPairVo("mha5", "mha6", EstablishStatusEnum.ESTABLISHED.getCode(), 0, 0, 0L));
-        }};
-
-        when(metaInfoService.getAllOrderedGroupPairs()).thenReturn(mhaGroupPairVos);
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/"))
+        when(metaInfoService.getMhaGroupPariVos(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any())).thenThrow(new SQLException("sql error"));
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/orderedGroups/all/?deleted=1"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
-        MockHttpServletResponse response = mvcResult.getResponse();
-        int status = response.getStatus();
-        String responseStr = response.getContentAsString();
+        response = mvcResult.getResponse();
+        status = response.getStatus();
+        responseStr = response.getContentAsString();
         Assert.assertEquals(200, status);
-        JsonNode jsonNode = objectMapper.readTree(responseStr);
-        Assert.assertNotEquals("null", jsonNode.get("data").toString());
-
+        jsonNode = objectMapper.readTree(responseStr);
+        Assert.assertEquals("null", jsonNode.get("data").toString());
     }
 
     @Test
@@ -704,12 +723,12 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     @GetMapping("orderedDeletedGroups/all")
-    public void testGetAllDeletedOrderedGroups() throws Exception {
-        Mockito.doReturn(null).when(metaInfoService).getAllOrderedDeletedGroupPairs();
+    public void testGetAllDeletedMhaGroups() throws Exception {
+        Mockito.doReturn(null).when(metaInfoService).getDeletedMhaGroupPairVos();
         MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/orderedDeletedGroups/all");
         assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
 
-        Mockito.doThrow(new SQLException()).when(metaInfoService).getAllOrderedDeletedGroupPairs();
+        Mockito.doThrow(new SQLException()).when(metaInfoService).getDeletedMhaGroupPairVos();
         mvcResult = doNormalGet("/api/drc/v1/meta/orderedDeletedGroups/all");
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
     }
