@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.core.driver.MySQLSlave;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
@@ -185,6 +186,16 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     logEvent.release();
                 } catch (Exception e) {
                     log("[release] ParsedDdlLogEvent: ", ERROR, e);
+                }
+            }
+        } else if(logEvent instanceof DrcHeartbeatLogEvent) {
+            try {
+                logEventCallBack.onHeartHeat();
+            } finally {
+                try {
+                    logEvent.release();
+                } catch (Exception e) {
+                    log("[release] DrcHeartbeatLogEvent: ", ERROR, e);
                 }
             }
         }

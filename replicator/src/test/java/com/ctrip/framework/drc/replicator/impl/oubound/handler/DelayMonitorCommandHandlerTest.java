@@ -31,6 +31,7 @@ public class DelayMonitorCommandHandlerTest {
         DefaultMonitorManager defaultMonitorManager = new DefaultMonitorManager();
         ObservableLogEventHandler logEventHandler = new ReplicatorLogEventHandler(null, defaultMonitorManager, null);
         DelayMonitorCommandHandler delayMonitorCommandHandler = new DelayMonitorCommandHandler(logEventHandler, "test_dalcluster");
+        delayMonitorCommandHandler.initialize();
         DelayMonitorCommandPacket monitorCommandPacket = new DelayMonitorCommandPacket("ntgxh", "test_dalcluster");
 
         NettyClient nettyClient = new DefaultNettyClient(channel);
@@ -38,5 +39,6 @@ public class DelayMonitorCommandHandlerTest {
 
         // 1) DefaultNettyClient 2) MonitorEventTask:run
         Mockito.verify(channelFuture, Mockito.atLeast(1)).addListener(Mockito.any());
+        delayMonitorCommandHandler.dispose();
     }
 }

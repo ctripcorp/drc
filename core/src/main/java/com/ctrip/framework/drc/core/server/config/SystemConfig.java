@@ -82,6 +82,10 @@ public class SystemConfig {
 
     public static final Logger STATE_LOGGER = LoggerFactory.getLogger(STATE_CONTROLLER_LOG);
 
+    public static final String HEARTBEAT_LOG = "HEARTBEAT";
+
+    public static final Logger HEARTBEAT_LOGGER = LoggerFactory.getLogger(HEARTBEAT_LOG);
+
     public static final String META_LOG = "metaLogger";
 
     public static final Logger META_LOGGER = LoggerFactory.getLogger(META_LOG);

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.lifecycle.Disposable;
+import com.ctrip.xpipe.api.lifecycle.Initializable;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import org.slf4j.Logger;
@@ -14,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * Created by mingdongli
  * 2019/9/21 下午11:17
  */
-public abstract class AbstractServerCommandHandler<V> implements CommandHandler<V> , Disposable {
+public abstract class AbstractServerCommandHandler<V> implements CommandHandler<V> , Initializable, Disposable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -23,6 +24,11 @@ public abstract class AbstractServerCommandHandler<V> implements CommandHandler<
     @Override
     public CommandFuture<V> handle(ServerCommandPacket serverCommandPacket, SimpleObjectPool<NettyClient> simpleObjectPool) {
         return null;
+    }
+
+    @Override
+    public void initialize() {
+
     }
 
 }

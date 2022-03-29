@@ -143,7 +143,11 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     }
 
     protected boolean beforeHandleLogEvent(LogEvent logEvent, LogEventCallBack logEventCallBack, BinlogDumpGtidException exception) {
-        return exceptionCheck(exception) && rateLimit(logEvent, logEventCallBack);
+        return exceptionCheck(exception) && rateLimit(logEvent, logEventCallBack) && !heartBeat(logEvent, logEventCallBack);
+    }
+
+    protected boolean heartBeat(LogEvent logEvent, LogEventCallBack logEventCallBack){
+        return false;
     }
 
     protected boolean rateLimit(LogEvent logEvent, LogEventCallBack logEventCallBack) {

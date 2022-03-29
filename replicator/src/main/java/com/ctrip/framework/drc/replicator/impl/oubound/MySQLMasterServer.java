@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.replicator.impl.AbstractMySQLServer;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.CommandHandlerManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler;
 import com.ctrip.xpipe.concurrent.NamedThreadFactory;
+import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -55,11 +56,12 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
 
     public MySQLMasterServer(MySQLMasterConfig mySQLMasterConfig) {
         this.mySQLMasterConfig = mySQLMasterConfig;
+        handlerManager = new CommandHandlerManager();
     }
 
     protected void doInitialize() throws Exception {
         super.doInitialize();
-        handlerManager = new CommandHandlerManager();
+        LifecycleHelper.initializeIfPossible(handlerManager);
         bootstrap = new ServerBootstrap();
         bossGroup = new NioEventLoopGroup(1, new NamedThreadFactory("Binlog-Acceptor-" + mySQLMasterConfig.getPort()));
         workerGroup = new NioEventLoopGroup(WORK_THREAD_COUNT, new NamedThreadFactory("Binlog-Sender-" + mySQLMasterConfig.getPort()));
@@ -70,7 +72,6 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-//                .childOption(ChannelOption.MESSAGE_SIZE_ESTIMATOR, FileRegionMessageSizeEstimator.DEFAULT)
                 .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(WRITE_LOW_WATER_MARK, WRITE_HIGH_WATER_MARK))
                 .childOption(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(RECV_BUFFER_SIZE))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -96,7 +97,7 @@ public class MySQLMasterServer extends AbstractMySQLServer implements MySQLServe
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
         serverChannel.close();
-        handlerManager.dispose();
+        LifecycleHelper.disposeIfPossible(handlerManager);
     }
 
     @Override

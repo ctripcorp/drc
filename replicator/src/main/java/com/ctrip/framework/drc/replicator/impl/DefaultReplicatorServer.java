@@ -29,6 +29,7 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServer;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandler;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorCommandHandler;
+import com.ctrip.framework.drc.replicator.impl.oubound.handler.HeartBeatCommandHandler;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -132,7 +133,12 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         LifecycleHelper.initializeIfPossible(eventStore);
         LifecycleHelper.initializeIfPossible(transactionCache);
         LifecycleHelper.initializeIfPossible(replicatorSlaveServer);
+
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport));
+        mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
+        mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler());
         LifecycleHelper.initializeIfPossible(mySQLMasterServer);
+
         GtidSet gtidSet = eventStore.getGtidManager().getExecutedGtids();
         GtidSet initedGtidSet = replicatorConfig.getGtidSet();
         if ((initedGtidSet != null && !initedGtidSet.getUUIDSets().isEmpty()) && gtidSet.getUUIDSets().isEmpty()) { //first time
@@ -153,8 +159,6 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         LifecycleHelper.startIfPossible(schemaManager);
         LifecycleHelper.startIfPossible(eventStore);
         LifecycleHelper.startIfPossible(transactionCache);
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport));
-        mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
         LifecycleHelper.startIfPossible(replicatorSlaveServer);
         LifecycleHelper.startIfPossible(mySQLMasterServer);
         LifecycleHelper.startIfPossible(inboundMonitorReport);

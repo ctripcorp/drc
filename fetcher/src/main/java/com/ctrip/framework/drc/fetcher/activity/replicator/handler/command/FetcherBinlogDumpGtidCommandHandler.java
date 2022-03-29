@@ -37,13 +37,17 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                 public void onFailure() {
                     toggleAutoRead(channel, false);
                 }
+
+                @Override
+                public Channel getChannel() {
+                    return channel;
+                }
             };
             logger.info("[LogEventCallBack] put for key {}:{}", channel, channel.hashCode());
             logEventCallBackMap.put(channel, logEventCallBack);
         }
         return logEventCallBack;
     }
-
 
     private synchronized void toggleAutoRead(Channel channel, boolean autoRead) {
         try {

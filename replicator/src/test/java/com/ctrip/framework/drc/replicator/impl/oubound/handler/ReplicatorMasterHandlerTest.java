@@ -35,6 +35,9 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     private Channel channel;
 
     @Mock
+    private CommandHandlerManager commandHandlerManager;
+
+    @Mock
     private Attribute attribute;
 
     @Mock
@@ -85,7 +88,7 @@ public class ReplicatorMasterHandlerTest extends MockTest {
 
         when(channel.isWritable()).thenReturn(true);
         masterHandler.userEventTriggered(channelHandlerContext, idleStateEvent);
-        verify(channelHandlerContext, times(2)).writeAndFlush(any(ByteBuf.class));  // header and body
+        verify(commandHandlerManager, times(1)).sendHeartBeat(any(Channel.class));
 
         masterHandler.userEventTriggered(channelHandlerContext, inputShutdownReadComplete);
         verify(channelHandlerContext, times(1)).close();

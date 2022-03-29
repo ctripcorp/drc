@@ -3,10 +3,14 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
+import com.ctrip.framework.drc.core.driver.command.handler.HeartBeatHandler;
 import com.ctrip.framework.drc.core.driver.util.MySQLConstants;
 import com.ctrip.xpipe.api.lifecycle.Disposable;
+import com.ctrip.xpipe.api.lifecycle.Initializable;
+import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by mingdongli
  * 2019/9/21 下午11:22
  */
-public class CommandHandlerManager implements Disposable {
+public class CommandHandlerManager extends AbstractLifecycle implements HeartBeatHandler {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -52,12 +56,33 @@ public class CommandHandlerManager implements Disposable {
     }
 
     @Override
-    public void dispose() throws Exception {
+    protected void doDispose() throws Exception {
         for (Map.Entry<SERVER_COMMAND, CommandHandler> entry : handlers.entrySet()) {
             CommandHandler commandHandler = entry.getValue();
             if (commandHandler instanceof Disposable) {
                 ((Disposable) commandHandler).dispose();
                 logger.info("[CommandHandler] dispose for {}", entry.getKey());
+            }
+        }
+    }
+
+    @Override
+    protected void doInitialize() throws Exception {
+        for (Map.Entry<SERVER_COMMAND, CommandHandler> entry : handlers.entrySet()) {
+            CommandHandler commandHandler = entry.getValue();
+            if (commandHandler instanceof Initializable) {
+                ((Initializable) commandHandler).initialize();
+                logger.info("[CommandHandler] initialize for {}", entry.getKey());
+            }
+        }
+    }
+
+    @Override
+    public void sendHeartBeat(Channel channel) {
+        for (Map.Entry<SERVER_COMMAND, CommandHandler> entry : handlers.entrySet()) {
+            CommandHandler commandHandler = entry.getValue();
+            if (commandHandler instanceof HeartBeatHandler) {
+                ((HeartBeatHandler) commandHandler).sendHeartBeat(channel);
             }
         }
     }

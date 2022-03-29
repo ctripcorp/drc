@@ -1,8 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
@@ -10,18 +7,15 @@ import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.Gate;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
-import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
-import java.util.Collection;
 
 /**
  * Created by mingdongli
@@ -86,8 +80,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
                     Channel channel = ctx.channel();
                     boolean writable = channel.isWritable();
                     if (writable) {
-                        handleWriterIdle(ctx);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.writeidle", ctx.channel().remoteAddress().toString());
+                        handlerManager.sendHeartBeat(channel);
                     } else {
                         logger.info("write idle false and skip heart beat for {}", ctx.channel().toString());
                     }
@@ -102,40 +95,6 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
             logger.info("receive {} event for {}", evt.toString(), ctx.channel().toString());
         }
         ctx.fireUserEventTriggered(evt);
-    }
-
-    protected void handleWriterIdle(ChannelHandlerContext ctx) {
-        DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent();
-        Channel channel = ctx.channel();
-        drcHeartbeatLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    byteBuf.readerIndex(0);
-                    ChannelFuture future = ctx.writeAndFlush(byteBuf);
-                    future.addListener((GenericFutureListener) f -> {
-                        if (!f.isSuccess()) {
-                            ctx.close();
-                            logger.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
-                        } else {
-                            logger.info("[WriterIdle] send heartbeat to {}", channel);
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-            }
-        });
     }
 
     /**

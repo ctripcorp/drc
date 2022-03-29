@@ -36,7 +36,6 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDtoTe
 import com.ctrip.framework.drc.core.server.config.cm.dto.SchemasHistoryDeltaDtoTest;
 import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
-import com.ctrip.framework.drc.core.service.ops.AppNode;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
@@ -76,6 +75,7 @@ import org.junit.runners.Suite;
         AbstractRowsEventTest.class,
 //        DeleteRowsEventTest.class,
         DrcErrorLogEventTest.class,
+        DrcHeartbeatLogEventTest.class,
         FormatDescriptionLogEventTest.class,
         GtidLogEventTest.class,
         HeartBeatLogEventTest.class,
@@ -109,6 +109,7 @@ import org.junit.runners.Suite;
         RegisterSlaveCommandPacketTest.class,
         ErrorPacketTest.class,
         HeartBeatPacketTest.class,
+        HeartBeatResponsePacketTest.class,
         DelayMonitorCommandPacketTest.class,
 
         NettyClientFactoryTest.class,

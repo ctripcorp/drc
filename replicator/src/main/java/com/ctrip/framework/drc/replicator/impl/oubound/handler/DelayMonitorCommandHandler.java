@@ -49,7 +49,6 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
     public DelayMonitorCommandHandler(ObservableLogEventHandler logEventHandler, String registryKey) {
         this.logEventHandler = logEventHandler;
         this.registryKey = registryKey;
-        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Delay-DefaultMonitorManager-" + registryKey);
     }
 
     @Override
@@ -78,6 +77,11 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
         String dcName = monitorCommandPacket.getDcName();
         String clusterName = monitorCommandPacket.getClusterName();
         return new DelayMonitorKey(dcName, clusterName, ip);
+    }
+
+    @Override
+    public void initialize() {
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Delay-DefaultMonitorManager-" + registryKey);
     }
 
     @Override

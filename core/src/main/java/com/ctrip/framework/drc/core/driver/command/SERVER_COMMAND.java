@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.core.driver.command;
 
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.driver.command.packet.client.BinlogDumpGtidCommandPacket;
-import com.ctrip.framework.drc.core.driver.command.packet.client.HeartBeatPacket;
-import com.ctrip.framework.drc.core.driver.command.packet.client.QueryCommandPacket;
-import com.ctrip.framework.drc.core.driver.command.packet.client.RegisterSlaveCommandPacket;
+import com.ctrip.framework.drc.core.driver.command.packet.client.*;
 import com.ctrip.framework.drc.core.driver.command.packet.monitor.DelayMonitorCommandPacket;
 
 /**
@@ -24,7 +21,9 @@ public enum SERVER_COMMAND {
 
     COM_HEARTBEAT((byte)0x0e, HeartBeatPacket.class),
 
-    COM_DELAY_MONITOR((byte)0xf1, DelayMonitorCommandPacket.class);
+    COM_DELAY_MONITOR((byte)0xf1, DelayMonitorCommandPacket.class),
+
+    COM_HEARTBEAT_RESPONSE((byte)0xf2, HeartBeatResponsePacket.class);
 
     private byte code;
 

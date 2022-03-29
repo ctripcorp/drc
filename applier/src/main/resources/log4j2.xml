@@ -294,6 +294,20 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="RollingFileHeartBeatInfo" fileName="${baseDir}/heartbeat.log"
+                     filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.heartbeat.log.gz">
+            <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="${appName}*.heartbeat.log.gz"/>
+                    <IfLastModified age="7d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
     </Appenders>
 
     <Loggers>
@@ -362,6 +376,9 @@
         </Logger>
         <Logger name="GAQ WAIT" additivity="false">
             <AppenderRef ref="acc"/>
+        </Logger>
+        <Logger name="HEARTBEAT" additivity="false">
+            <AppenderRef ref="RollingFileHeartBeatInfo"/>
         </Logger>
         <Root level="info">
             <AppenderRef ref="Info"/>
