@@ -31,6 +31,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 
 /**
+ * if Applier or Console close autoRead, it may not send heartbeat response, so don't close channel
  * @Author limingdong
  * @create 2022/3/29
  */
@@ -55,9 +56,9 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
         HeartBeatResponsePacket heartBeatResponsePacket = (HeartBeatResponsePacket) serverCommandPacket;
         int autoRead = heartBeatResponsePacket.getAutoRead();
         if (autoRead != HeartBeatCallBack.AUTO_READ) {
-            updateAutoRead(nettyClient.channel());
+            updateHeartBeatContext(nettyClient.channel());
         } else {
-            removeCachedChannel(nettyClient.channel());
+            removeHeartBeatContext(nettyClient.channel());
         }
     }
 
@@ -90,7 +91,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                 for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
                     Channel channel = entry.getKey();
                     if (expired(entry.getValue())) {
-                        removeCachedChannel(channel);
+                        removeHeartBeatContext(channel);
                         channel.close();
                         HEARTBEAT_LOGGER.warn("[HeartBeat] expired for {} and close channel", channel);
                     }
@@ -116,7 +117,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                     ChannelFuture future = channel.writeAndFlush(byteBuf);
                     future.addListener((GenericFutureListener) f -> {
                         if (!f.isSuccess()) {
-                            removeCachedChannel(channel);
+                            removeHeartBeatContext(channel);
                             HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
                         } else {
                             HeartBeatContext context = newHeartBeatContext();
@@ -138,12 +139,12 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.writeidle", channel.remoteAddress().toString());
     }
 
-    private void removeCachedChannel(Channel channel) {
+    private void removeHeartBeatContext(Channel channel) {
         HeartBeatContext heartBeatContext = responses.remove(channel);
         HEARTBEAT_LOGGER.info("[Remove] heartbeat for {}:{}", channel, heartBeatContext);
     }
 
-    private void updateAutoRead(Channel channel) {
+    private void updateHeartBeatContext(Channel channel) {
         HeartBeatContext heartBeatContext = responses.getOrDefault(channel, newHeartBeatContext());
         heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
         HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
