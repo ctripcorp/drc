@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.handler.HeartBeatHandler;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfiguration;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -22,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_IDLE_TIMEOUT_SECOND;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
@@ -33,18 +33,23 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  */
 public class HeartBeatCommandHandler extends AbstractServerCommandHandler implements CommandHandler, HeartBeatHandler {
 
-    private static AtomicInteger threadNum = new AtomicInteger(1);
-
     private long EXPIRE_TIME = CONNECTION_IDLE_TIMEOUT_SECOND * 1000;
 
-    private ScheduledExecutorService heartBeatExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("HeartBeatResponse-" + threadNum.getAndIncrement());
+    private String registerKey;
+
+    private ScheduledExecutorService heartBeatExecutorService;
 
     private ConcurrentMap<Channel, Long> responses = Maps.newConcurrentMap();
 
+    private HeartBeatConfiguration heartBeatConfiguration = HeartBeatConfiguration.getInstance();
+
+    public HeartBeatCommandHandler(String registerKey) {
+        this.registerKey = registerKey;
+    }
+
     @Override
-    public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
-        Channel channel = nettyClient.channel();
-        removeCachedChannel(channel);
+    public void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
+        removeCachedChannel(nettyClient.channel());
     }
 
     @Override
@@ -60,10 +65,17 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     @Override
     public void initialize() {
+        heartBeatExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("HeartBeatResponse-" + registerKey);
         heartBeatExecutorService.scheduleWithFixedDelay(() -> {
             try {
+                if (!heartBeatConfiguration.gray(registerKey)) {
+                    responses.clear();
+                    HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to not gray for {}", registerKey);
+                    return;
+                }
                 if (responses.isEmpty()) {
                     HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to empty");
+                    return;
                 }
                 Map<Channel, Long> copy = Maps.newHashMap(responses);
                 for (Map.Entry<Channel, Long> entry : copy.entrySet()) {
@@ -71,11 +83,11 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                     if (expired(entry.getValue())) {
                         removeCachedChannel(channel);
                         channel.close();
-                        HEARTBEAT_LOGGER.info("[HeartBeat] expired for {} and close channel", channel);
+                        HEARTBEAT_LOGGER.warn("[HeartBeat] expired for {} and close channel", channel);
                     }
                 }
             } catch (Throwable t) {
-
+                HEARTBEAT_LOGGER.error("[HeartBeat] check error");
             }
         }, 0, EXPIRE_TIME / 2, TimeUnit.MILLISECONDS);
     }

@@ -25,7 +25,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     @Test
     public void testHeartBeat() throws InterruptedException {
         // test not remove for CONNECTION_IDLE_TIMEOUT_SECOND
-        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler();
+        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
         heartBeatCommandHandler.initialize();
         heartBeatCommandHandler.sendHeartBeat(channel);
         TimeUnit.MILLISECONDS.sleep(100);
@@ -33,7 +33,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         heartBeatCommandHandler.dispose();
 
         // test for remove
-        heartBeatCommandHandler = new HeartBeatCommandHandler();
+        heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
         heartBeatCommandHandler.setEXPIRE_TIME(100);
         heartBeatCommandHandler.initialize();
         heartBeatCommandHandler.sendHeartBeat(channel);

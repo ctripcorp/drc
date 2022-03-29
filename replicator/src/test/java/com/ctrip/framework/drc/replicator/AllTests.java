@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTest;
+import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorConnectionTest;
@@ -48,6 +49,7 @@ import java.sql.Statement;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         FilterChainFactoryTest.class,
+        HeartBeatConfigurationTest.class,
         TableFilterConfigurationTest.class,
         ReplicatorServerContainerTest.class,
         FileRegionMessageSizeEstimatorTest.class,

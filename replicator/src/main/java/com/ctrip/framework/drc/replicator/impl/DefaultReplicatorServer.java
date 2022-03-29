@@ -136,7 +136,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport));
         mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
-        mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler());
+        mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler(replicatorConfig.getRegistryKey()));
         LifecycleHelper.initializeIfPossible(mySQLMasterServer);
 
         GtidSet gtidSet = eventStore.getGtidManager().getExecutedGtids();
