@@ -9,9 +9,7 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
-import com.ctrip.framework.drc.core.driver.command.handler.BackupBinlogDumpGtidClientCommandHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandlerTest;
-import com.ctrip.framework.drc.core.driver.command.impl.replicator.ComBackupBinlogDumpGtidCommandTest;
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactoryTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.AuthenticateResultHandlerTest;
@@ -142,9 +140,7 @@ import org.junit.runners.Suite;
 
         DrcLeaderElectorTest.class,
 
-        BackupBinlogDumpGtidClientCommandHandlerTest.class,
         BinlogDumpGtidClientCommandHandlerTest.class,
-        ComBackupBinlogDumpGtidCommandTest.class,
         ModuleEnumTest.class,
         QueryTypeTest.class,
 

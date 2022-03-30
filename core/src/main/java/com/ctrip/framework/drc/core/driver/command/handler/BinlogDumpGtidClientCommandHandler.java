@@ -21,14 +21,18 @@ import com.ctrip.xpipe.command.DefaultCommandFuture;
 import com.ctrip.xpipe.exception.ErrorMessage;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.tuple.Pair;
+import com.ctrip.xpipe.utils.MapUtils;
+import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_error_log_event;
 
 /**
+ * for replicator master dump binlog from mysql
  * Created by mingdongli
  * 2019/9/18 下午7:44.
  */
@@ -37,6 +41,8 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
     protected ByteBufConverter converter;
 
     protected LogEventHandler handler;
+
+    protected Map<Channel, LogEventCallBack> logEventCallBackMap = Maps.newConcurrentMap();
 
     public BinlogDumpGtidClientCommandHandler(LogEventHandler handler, ByteBufConverter converter) {
         this.converter = converter;
@@ -97,7 +103,13 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
     }
 
     protected LogEventCallBack getLogEventCallBack(Channel channel) {
-        return null;
+        return MapUtils.getOrCreate(logEventCallBackMap, channel,
+                () -> new LogEventCallBack() {
+                    @Override
+                    public Channel getChannel() {
+                        return channel;
+                    }
+                });
     }
 
 }

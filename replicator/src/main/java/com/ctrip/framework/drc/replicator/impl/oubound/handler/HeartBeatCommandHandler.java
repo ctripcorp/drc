@@ -143,12 +143,12 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             public void write(LogEvent logEvent) {
             }
         });
-        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.writeidle", channel.remoteAddress().toString());
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.heartbeat", channel.remoteAddress().toString());
     }
 
     private void removeHeartBeatContext(Channel channel) {
         HeartBeatContext heartBeatContext = responses.remove(channel);
-        HEARTBEAT_LOGGER.info("[Remove] heartbeat for {}:{}", channel, heartBeatContext);
+        HEARTBEAT_LOGGER.info("[Receive] heartbeat for {}:{}", channel, heartBeatContext);
     }
 
     // update time when AUTO_READ_CLOSE

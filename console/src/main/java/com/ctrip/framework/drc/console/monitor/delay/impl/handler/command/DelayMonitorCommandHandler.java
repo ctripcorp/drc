@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.delay.impl.handler.command;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.converter.ByteBufConverter;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
@@ -14,20 +13,14 @@ import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.command.DefaultCommandFuture;
 import com.ctrip.xpipe.netty.commands.NettyClient;
-import com.ctrip.xpipe.utils.MapUtils;
-import com.google.common.collect.Maps;
-import io.netty.channel.Channel;
-
-import java.util.Map;
 
 /**
+ * for console dump binlog from replicator
  * @author shenhaibo
  * @version 1.0
  * date: 2019-12-02
  */
 public class DelayMonitorCommandHandler extends BinlogDumpGtidClientCommandHandler implements CommandHandler<ResultCode>, LogEventObserver {
-
-    private Map<Channel, LogEventCallBack> logEventCallBackMap = Maps.newConcurrentMap();
 
     public DelayMonitorCommandHandler(LogEventHandler handler, ByteBufConverter converter) {
         super(handler, converter);
@@ -42,16 +35,5 @@ public class DelayMonitorCommandHandler extends BinlogDumpGtidClientCommandHandl
             return execute(delayMonitorCommand);
         }
         return new DefaultCommandFuture<>();
-    }
-
-    @Override
-    protected LogEventCallBack getLogEventCallBack(Channel channel) {
-        return MapUtils.getOrCreate(logEventCallBackMap, channel,
-                () -> new LogEventCallBack() {
-                    @Override
-                    public Channel getChannel() {
-                        return channel;
-                    }
-                });
     }
 }

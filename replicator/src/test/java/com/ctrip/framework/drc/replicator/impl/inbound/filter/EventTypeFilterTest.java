@@ -46,4 +46,12 @@ public class EventTypeFilterTest extends AbstractFilterTest {
         boolean skip = eventTypeFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
     }
+
+    @Test
+    public void doFilterDrcHeartBeatEvent() {
+        when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.drc_heartbeat_log_event);
+        boolean skip = eventTypeFilter.doFilter(logEventWithGroupFlag);
+        verify(callBack, times(1)).onHeartHeat();
+        Assert.assertTrue(skip);
+    }
 }
