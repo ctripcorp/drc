@@ -19,6 +19,9 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.embedded.EmbeddedChannel;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -51,11 +54,15 @@ public class FetcherBinlogDumpGtidCommandHandlerTest extends MockTest {
     @Mock
     private Channel channel;
 
+    @Mock
+    private ChannelFuture channelFuture;
+
     private LogEventCallBack logEventCallBack;
 
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(channel.closeFuture()).thenReturn(channelFuture);
         binlogDumpGtidClientCommandHandler = new FetcherBinlogDumpGtidCommandHandler(logEventHandler, byteBufConverter);
         logEventCallBack = binlogDumpGtidClientCommandHandler.getLogEventCallBack(channel);
     }
@@ -79,6 +86,17 @@ public class FetcherBinlogDumpGtidCommandHandlerTest extends MockTest {
         binlogDumpGtidClientCommandHandler.update(Pair.from(compositeByteBuf, channel), dumpGtidCommand);
         verify(logEventHandler, times(0)).onLogEvent(anyObject(), logEventCallBack, null);
         compositeByteBuf.release();
+    }
+
+    @Test
+    public void testLogEventCallBack() {
+        Channel channel1 = new EmbeddedChannel();
+        Channel channel2 = new EmbeddedChannel();
+        LogEventCallBack logEventCallBack1 = () -> channel1;
+        LogEventCallBack logEventCallBack2 = () -> channel2;
+
+        Assert.assertFalse(logEventCallBack1.equals(logEventCallBack2));
+        Assert.assertTrue(logEventCallBack1.equals(logEventCallBack1));
     }
 
     @Test

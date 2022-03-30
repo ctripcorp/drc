@@ -75,7 +75,6 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
             logEventCallBack.onHeartHeat();
             try {
                 logEvent.release();
-                progress.tick();
             } catch (Exception e) {
                 logger.error("[Release] heartbeat event error");
             }
