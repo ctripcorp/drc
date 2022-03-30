@@ -112,19 +112,26 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
             @Override
             public void write(Collection<ByteBuf> byteBufs) {
+                int index = 0;
                 for (ByteBuf byteBuf : byteBufs) {
                     byteBuf.readerIndex(0);
                     ChannelFuture future = channel.writeAndFlush(byteBuf);
-                    future.addListener((GenericFutureListener) f -> {
-                        if (!f.isSuccess()) {
-                            removeHeartBeatContext(channel);
-                            HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
-                        } else {
-                            HeartBeatContext context = newHeartBeatContext();
-                            responses.putIfAbsent(channel, context);
-                            HEARTBEAT_LOGGER.info("[Send] send heartbeat to {}:{}", channel, context.getTime());
-                        }
-                    });
+                    if (index == 0) {  // listen for header
+                        future.addListener((GenericFutureListener) f -> {
+                            if (!f.isSuccess()) {
+                                removeHeartBeatContext(channel);
+                                HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
+                            } else {
+                                HeartBeatContext prev = null;
+                                if (!responses.containsKey(channel)) {
+                                    HeartBeatContext context = newHeartBeatContext();
+                                    prev = responses.putIfAbsent(channel, context);
+                                }
+                                HEARTBEAT_LOGGER.info("[Send] heartbeat to {}:{}, prev:{}", channel, responses.get(channel), prev);
+                            }
+                        });
+                        index++;
+                    }
                 }
             }
 
