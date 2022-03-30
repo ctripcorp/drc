@@ -118,8 +118,8 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
                         Channel channel = ctx.channel();
                         DefaultNettyClient defaultNettyClient=  new DefaultNettyClient(channel);
                         channel.closeFuture().addListener((ChannelFutureListener) future -> {
-                            nettyClientMap.remove(channel);
-                            logger.info("[Remove] {} from nettyClientMap", channel);
+                            NettyClient cache = nettyClientMap.remove(channel);
+                            logger.info("[Remove] {}:{} from nettyClientMap", channel, cache);
                         });
                         return defaultNettyClient;
                     });
