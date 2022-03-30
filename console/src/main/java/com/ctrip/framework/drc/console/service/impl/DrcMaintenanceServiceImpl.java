@@ -69,7 +69,8 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
             int[] AffectedUpdateArr = dalUtils.getMachineTblDao().batchUpdate(machineTblToBeUpdated);
             int updateAffected = Arrays.stream(AffectedUpdateArr).reduce(0, Integer::sum);
             int allAffected = insertAffected + updateAffected;
-            return SHOULD_AFFECTED_ROWS == allAffected ? ApiResult.getInstance(allAffected, ResultCode.HANDLE_SUCCESS.getCode(), "update " + mhaName + " master instance succeeded, u" + updateAffected + 'i' + insertAffected) : ApiResult.getInstance(allAffected, ResultCode.HANDLE_FAIL.getCode(), mhaName + " inserted: " + insertAffected + ", updated: " + updateAffected);
+            return SHOULD_AFFECTED_ROWS == allAffected ? ApiResult.getInstance(allAffected, ResultCode.HANDLE_SUCCESS.getCode(), "update " + mhaName + " master instance succeeded, u" + updateAffected + 'i' + insertAffected) 
+                    : ApiResult.getInstance(allAffected, ResultCode.HANDLE_FAIL.getCode(), mhaName + " inserted: " + insertAffected + ", updated: " + updateAffected);
         } catch (Throwable t) {
             logger.error("Fail update {} master instance", mhaName, t);
             return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "Fail update master instance as " + t);
