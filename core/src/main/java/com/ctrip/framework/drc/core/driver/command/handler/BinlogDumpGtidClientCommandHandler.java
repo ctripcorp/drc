@@ -25,6 +25,7 @@ import com.ctrip.xpipe.utils.MapUtils;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 
 import java.util.List;
 import java.util.Map;
@@ -104,12 +105,17 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
 
     protected LogEventCallBack getLogEventCallBack(Channel channel) {
         return MapUtils.getOrCreate(logEventCallBackMap, channel,
-                () -> new LogEventCallBack() {
-                    @Override
-                    public Channel getChannel() {
-                        return channel;
-                    }
+                () -> {
+                    addCloseListener(channel);
+                    return () -> channel;
                 });
+    }
+
+    protected void addCloseListener(Channel channel) {
+        channel.closeFuture().addListener((ChannelFutureListener) future -> {
+            LogEventCallBack logEventCallBack = logEventCallBackMap.remove(channel);
+            logger.info("[Remove] {}:{} from logEventCallBackMap", channel, logEventCallBack);
+        });
     }
 
 }
