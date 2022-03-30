@@ -30,37 +30,41 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
     @Override
     protected LogEventCallBack getLogEventCallBack(Channel channel) {
         return MapUtils.getOrCreate(logEventCallBackMap, channel,
-                () -> new LogEventCallBack() {
-                    private ScheduledExecutorService scheduledExecutorService;
-                    private ScheduledFuture future;
+                () -> {
+                    addCloseListener(channel);
+                    return new LogEventCallBack() {
+                        private ScheduledExecutorService scheduledExecutorService;
+                        private ScheduledFuture future;
 
-                    @Override
-                    public void onSuccess() {
-                        toggleAutoRead(channel, true);
-                        if (future != null) {
-                            future.cancel(false);
+                        @Override
+                        public void onSuccess() {
+                            toggleAutoRead(channel, true);
+                            if (future != null) {
+                                future.cancel(false);
+                            }
+                            if (scheduledExecutorService != null) {
+                                scheduledExecutorService.shutdownNow();
+                                scheduledExecutorService = null;
+                            }
+                            onHeartHeat();
                         }
-                        if (scheduledExecutorService != null) {
-                            scheduledExecutorService.shutdownNow();
-                            scheduledExecutorService = null;
-                        }
-                        onHeartHeat();
-                    }
 
-                    @Override
-                    public void onFailure() {
-                        toggleAutoRead(channel, false);
-                        if (scheduledExecutorService == null) {
-                            scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                        @Override
+                        public void onFailure() {
+                            toggleAutoRead(channel, false);
+                            if (scheduledExecutorService == null) {
+                                scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                            }
+                            future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
                         }
-                        future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
-                    }
 
-                    @Override
-                    public Channel getChannel() {
-                        return channel;
-                    }
-                });
+                        @Override
+                        public Channel getChannel() {
+                            return channel;
+                        }
+                    };
+                }
+        );
     }
 
     private synchronized void toggleAutoRead(Channel channel, boolean autoRead) {
