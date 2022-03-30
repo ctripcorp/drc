@@ -121,7 +121,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                             HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
                         } else {
                             HeartBeatContext context = newHeartBeatContext();
-                            responses.putIfAbsent(channel, newHeartBeatContext());
+                            responses.putIfAbsent(channel, context);
                             HEARTBEAT_LOGGER.info("[Send] send heartbeat to {}:{}", channel, context.getTime());
                         }
                     });
@@ -144,20 +144,19 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
         HEARTBEAT_LOGGER.info("[Remove] heartbeat for {}:{}", channel, heartBeatContext);
     }
 
+    // update time when AUTO_READ_CLOSE
     private void updateHeartBeatContext(Channel channel) {
         HeartBeatContext heartBeatContext = responses.getOrDefault(channel, newHeartBeatContext());
         heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
+        heartBeatContext.setTime(System.currentTimeMillis());
         HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
     }
 
     private HeartBeatContext newHeartBeatContext() {
-        return new HeartBeatContext(System.currentTimeMillis(), HeartBeatCallBack.AUTO_READ);
+        return new HeartBeatContext(System.currentTimeMillis());
     }
 
     private boolean expired(HeartBeatContext heartBeatContext) {
-        if (heartBeatContext.getAutoRead() != HeartBeatCallBack.AUTO_READ) {
-            return false;
-        }
         return System.currentTimeMillis() - heartBeatContext.getTime() > EXPIRE_TIME;
     }
 
@@ -175,11 +174,10 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
         private long time;
 
-        private int autoRead;
+        private int autoRead = HeartBeatCallBack.AUTO_READ;
 
-        public HeartBeatContext(long time, int autoRead) {
+        public HeartBeatContext(long time) {
             this.time = time;
-            this.autoRead = autoRead;
         }
 
         public long getTime() {

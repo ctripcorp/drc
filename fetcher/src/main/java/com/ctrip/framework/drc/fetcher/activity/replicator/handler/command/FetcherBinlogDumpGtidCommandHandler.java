@@ -5,11 +5,17 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.converter.ByteBufConverter;
 import com.ctrip.framework.drc.core.driver.command.handler.DrcBinlogDumpGtidCommandHandler;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.collect.Maps;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.MASTER_HEARTBEAT_PERIOD_SECONDS;
 
 /**
  * Created by mingdongli
@@ -28,16 +34,29 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
         LogEventCallBack logEventCallBack = logEventCallBackMap.get(channel);
         if (logEventCallBack == null) {
             logEventCallBack = new LogEventCallBack() {
+                private ScheduledExecutorService scheduledExecutorService;
+                private ScheduledFuture future;
+
                 @Override
                 public void onSuccess() {
                     toggleAutoRead(channel, true);
+                    if (future != null) {
+                        future.cancel(false);
+                    }
+                    if (scheduledExecutorService != null) {
+                        scheduledExecutorService.shutdownNow();
+                        scheduledExecutorService = null;
+                    }
                     onHeartHeat();
                 }
 
                 @Override
                 public void onFailure() {
                     toggleAutoRead(channel, false);
-                    onHeartHeat();
+                    if (scheduledExecutorService == null) {
+                        scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                    }
+                    future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
                 }
 
                 @Override

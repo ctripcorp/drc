@@ -77,7 +77,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
             IdleStateEvent e = (IdleStateEvent) evt;
             switch (e.state()) {
                 case WRITER_IDLE:
-                case READER_IDLE:
+                case READER_IDLE: // for heartbeat
                     Channel channel = ctx.channel();
                     boolean writable = channel.isWritable();
                     if (writable) {
