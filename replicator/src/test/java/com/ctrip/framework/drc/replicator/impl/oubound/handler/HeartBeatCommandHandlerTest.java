@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.core.driver.binlog.HeartBeatCallBack;
 import com.ctrip.framework.drc.core.driver.command.packet.client.HeartBeatResponsePacket;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.MockTest;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
 import io.netty.channel.Channel;
@@ -10,6 +11,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,7 +48,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     }
 
     @Test
-    public void testHeartBeatWithAutoRead() throws InterruptedException {
+    public void testHeartBeatWithAutoReadRemove() throws InterruptedException {
         // test not remove for autoRead = 0
         HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
         heartBeatCommandHandler.setEXPIRE_TIME(100);
@@ -56,7 +58,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         HeartBeatResponsePacket heartBeatResponsePacket = new HeartBeatResponsePacket(HeartBeatCallBack.AUTO_READ_CLOSE);
         heartBeatCommandHandler.handle(heartBeatResponsePacket, new DefaultNettyClient(channel));
         TimeUnit.MILLISECONDS.sleep(100 * 2);
-        Assert.assertEquals(heartBeatCommandHandler.getResponses().size(), 1 );
+        Assert.assertEquals(heartBeatCommandHandler.getResponses().size(), 0 );  // AUTO_READ_CLOSE also consider time
 
         // remove
         heartBeatResponsePacket = new HeartBeatResponsePacket(HeartBeatCallBack.AUTO_READ);
@@ -64,6 +66,29 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         TimeUnit.MILLISECONDS.sleep(100 * 2);
         Assert.assertEquals(heartBeatCommandHandler.getResponses().size(), 0 );
 
+        heartBeatCommandHandler.dispose();
+    }
+
+    @Test
+    public void testHeartBeatWithAutoReadNotRemove() throws InterruptedException {
+        // test not remove for autoRead = 0
+        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
+        heartBeatCommandHandler.setEXPIRE_TIME(100);
+        heartBeatCommandHandler.initialize();
+        heartBeatCommandHandler.sendHeartBeat(channel);
+
+
+        HeartBeatResponsePacket heartBeatResponsePacket = new HeartBeatResponsePacket(HeartBeatCallBack.AUTO_READ_CLOSE);
+        heartBeatCommandHandler.handle(heartBeatResponsePacket, new DefaultNettyClient(channel));
+
+        // update 
+        ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("test");
+        scheduledExecutorService.scheduleAtFixedRate(() -> heartBeatCommandHandler.handle(heartBeatResponsePacket, new DefaultNettyClient(channel)), 50, 50, TimeUnit.MILLISECONDS);
+
+        TimeUnit.MILLISECONDS.sleep(100 * 2);
+        Assert.assertEquals(heartBeatCommandHandler.getResponses().size(), 1 );  // AUTO_READ_CLOSE also consider time, not remove
+
+        scheduledExecutorService.shutdownNow();
         heartBeatCommandHandler.dispose();
     }
 }
