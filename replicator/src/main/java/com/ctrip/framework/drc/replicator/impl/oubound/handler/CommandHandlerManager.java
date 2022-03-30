@@ -35,7 +35,6 @@ public class CommandHandlerManager extends AbstractLifecycle implements HeartBea
 
     public void handle(NettyClient nettyClient, ByteBuf byteBuf) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
             byte code = (byte) (byteBuf.getByte(MySQLConstants.HEADER_PACKET_LENGTH) & 0xFF);
-            logger.info("[Receive] command code is {}", code);
             SERVER_COMMAND server_command = SERVER_COMMAND.getType(code);
             if (server_command != null) {
 

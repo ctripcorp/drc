@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_DELAY_MONITOR;
+
 /**
  * Created by mingdongli
  * 2019/12/12 下午7:33.
@@ -54,6 +56,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
     @Override
     public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
         DelayMonitorCommandPacket monitorCommandPacket = (DelayMonitorCommandPacket) serverCommandPacket;
+        logger.info("[Receive] command code is {}", COM_DELAY_MONITOR.name());
         String dcName = monitorCommandPacket.getDcName();
         String clusterName = monitorCommandPacket.getClusterName();
         Channel channel = nettyClient.channel();
@@ -99,7 +102,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
     @Override
     public SERVER_COMMAND getCommandType() {
-        return SERVER_COMMAND.COM_DELAY_MONITOR;
+        return COM_DELAY_MONITOR;
     }
 
     public class MonitorEventTask implements Runnable, MonitorEventObserver {

@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
@@ -84,6 +85,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
     @Override
     public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
         ApplierDumpCommandPacket dumpCommandPacket = (ApplierDumpCommandPacket) serverCommandPacket;
+        logger.info("[Receive] command code is {}", COM_APPLIER_BINLOG_DUMP_GTID.name());
         String applierName = dumpCommandPacket.getApplierName();
         Channel channel = nettyClient.channel();
         InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
@@ -101,7 +103,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     @Override
     public SERVER_COMMAND getCommandType() {
-        return SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
+        return COM_APPLIER_BINLOG_DUMP_GTID;
     }
 
     @Override
