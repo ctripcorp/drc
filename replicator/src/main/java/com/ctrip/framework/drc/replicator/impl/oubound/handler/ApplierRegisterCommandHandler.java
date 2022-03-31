@@ -205,7 +205,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     logger.error("DumpTask closeFuture", throwable);
                 }
                 channelClosed = true;
-                Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
                 gate.open();
                 removeListener();
                 logger.info("closeFuture Listener invoke open gate {} and set channelClosed", gate);

@@ -138,7 +138,6 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         logger.error("MonitorEventTask closeFuture", throwable);
                     }
                     channelClosed = true;
-                    Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
                     gate.open();
                     logger.info("MonitorEventTask closeFuture Listener invoke open gate {} and set channelClosed", gate);
                     clearResource();
