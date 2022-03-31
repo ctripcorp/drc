@@ -91,6 +91,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                 Map<Channel, HeartBeatContext> copy = Maps.newHashMap(responses);
                 for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
                     Channel channel = entry.getKey();
+                    HEARTBEAT_LOGGER.debug("[HeartBeat] check {}:{}", channel, entry.getValue());
                     if (expired(entry.getValue())) {
                         removeHeartBeatContext(channel);
                         channel.close();
