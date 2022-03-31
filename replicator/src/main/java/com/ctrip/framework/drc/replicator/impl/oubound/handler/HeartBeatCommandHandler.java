@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfiguration;
 import com.ctrip.xpipe.netty.commands.NettyClient;
+import com.ctrip.xpipe.utils.MapUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
@@ -159,7 +160,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     // update time when AUTO_READ_CLOSE
     private void updateHeartBeatContext(Channel channel) {
-        HeartBeatContext heartBeatContext = responses.getOrDefault(channel, newHeartBeatContext());
+        HeartBeatContext heartBeatContext = MapUtils.getOrCreate(responses, channel, () -> newHeartBeatContext());
         heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
         heartBeatContext.setTime(System.currentTimeMillis());
         HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
