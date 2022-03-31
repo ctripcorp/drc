@@ -94,6 +94,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                         removeHeartBeatContext(channel);
                         channel.close();
                         HEARTBEAT_LOGGER.warn("[HeartBeat] expired for {} and close channel", channel);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.expire", registerKey + ":" + channel);
                     }
                 }
             } catch (Throwable t) {
@@ -143,12 +144,13 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             public void write(LogEvent logEvent) {
             }
         });
-        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.network.heartbeat", channel.remoteAddress().toString());
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.request", registerKey + ":" + channel);
     }
 
     private void removeHeartBeatContext(Channel channel) {
         HeartBeatContext heartBeatContext = responses.remove(channel);
         HEARTBEAT_LOGGER.info("[Receive] heartbeat for {}:{}", channel, heartBeatContext);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.response", registerKey + ":" + channel);
     }
 
     // update time when AUTO_READ_CLOSE
@@ -157,6 +159,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
         heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
         heartBeatContext.setTime(System.currentTimeMillis());
         HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.autoread", registerKey + ":" + channel);
     }
 
     private HeartBeatContext newHeartBeatContext() {
