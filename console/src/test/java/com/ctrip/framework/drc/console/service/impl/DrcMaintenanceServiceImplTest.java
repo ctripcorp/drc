@@ -78,33 +78,38 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     
     @Test
     public void testChangeMasterDb() {
-        ApiResult result = drcMaintenanceService.changeMasterDb("nosuchmha", "127.0.0.1", 3306);
-        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
-        Assert.assertTrue(result.getMessage().contains("no such mha"));
-
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u2i0", result.getMessage());
-
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(0, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("fat-fx-drc1 10.2.72.247:55111 already master", result.getMessage());
-
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.555", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(0, ((Integer) result.getData()).intValue());
-        Assert.assertTrue(result.getMessage().contains("Fail update master instance as"));
-
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.248", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
-
-        
         try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(()-> MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString(),Mockito.anyBoolean())).thenReturn("uuid");
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenReturn("uuid");
+
+            ApiResult result = drcMaintenanceService.changeMasterDb("nosuchmha", "127.0.0.1", 3306);
+            Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
+            Assert.assertTrue(result.getMessage().contains("no such mha"));
+
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u2i0", result.getMessage());
+
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(0, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("fat-fx-drc1 10.2.72.247:55111 already master", result.getMessage());
+
+
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenThrow(new Exception("getUuidError"));
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.555", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(0, ((Integer) result.getData()).intValue());
+            Assert.assertTrue(result.getMessage().contains("Fail update master instance as"));
+
+
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenReturn("uuid");
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.248", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+
+
             // change back for further use
             result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
             Assert.assertEquals(0, result.getStatus().intValue());

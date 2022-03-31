@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 
@@ -14,6 +15,8 @@ public class LogEventWithGroupFlag {
 
     private LogEvent logEvent;
 
+    private LogEventCallBack callBack;
+
     private boolean inExcludeGroup;
 
     private boolean tableFiltered;
@@ -24,8 +27,9 @@ public class LogEventWithGroupFlag {
 
     private boolean notRelease = false;
 
-    public LogEventWithGroupFlag(LogEvent logEvent, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
+    public LogEventWithGroupFlag(LogEvent logEvent, LogEventCallBack callBack, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
         this.logEvent = logEvent;
+        this.callBack = callBack;
         this.inExcludeGroup = inExcludeGroup;
         this.tableFiltered = tableFiltered;
         this.transactionTableRelated = transactionTableRelated;
@@ -70,6 +74,10 @@ public class LogEventWithGroupFlag {
 
     public void setGtid(String gtid) {
         this.gtid = gtid;
+    }
+
+    public LogEventCallBack getCallBack() {
+        return callBack;
     }
 
     public void releaseEvent() {

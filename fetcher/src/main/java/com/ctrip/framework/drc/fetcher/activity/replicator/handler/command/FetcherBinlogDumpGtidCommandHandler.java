@@ -5,19 +5,23 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.converter.ByteBufConverter;
 import com.ctrip.framework.drc.core.driver.command.handler.DrcBinlogDumpGtidCommandHandler;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.google.common.collect.Maps;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.utils.MapUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 
-import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.MASTER_HEARTBEAT_PERIOD_SECONDS;
 
 /**
+ * for applier dump binlog from replicator
  * Created by mingdongli
  * 2019/9/24 上午11:06.
  */
 public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidCommandHandler {
-
-    private Map<Channel, LogEventCallBack> logEventCallBackMap = Maps.newConcurrentMap();
 
     public FetcherBinlogDumpGtidCommandHandler(LogEventHandler handler, ByteBufConverter converter) {
         super(handler, converter);
@@ -25,25 +29,48 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
 
     @Override
     protected LogEventCallBack getLogEventCallBack(Channel channel) {
-        LogEventCallBack logEventCallBack = logEventCallBackMap.get(channel);
-        if (logEventCallBack == null) {
-            logEventCallBack = new LogEventCallBack() {
-                @Override
-                public void onSuccess() {
-                    toggleAutoRead(channel, true);
-                }
+        return MapUtils.getOrCreate(logEventCallBackMap, channel,
+                () -> {
+                    addCloseListener(channel);
+                    return new LogEventCallBack() {
+                        private ScheduledExecutorService scheduledExecutorService;
+                        private ScheduledFuture future;
 
-                @Override
-                public void onFailure() {
-                    toggleAutoRead(channel, false);
+                        @Override
+                        public void onSuccess() {
+                            toggleAutoRead(channel, true);
+                            dispose();
+                            onHeartHeat();
+                        }
+
+                        @Override
+                        public void onFailure() {
+                            toggleAutoRead(channel, false);
+                            if (scheduledExecutorService == null) {
+                                scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("AutoRead");
+                            }
+                            future = scheduledExecutorService.scheduleAtFixedRate(() -> onHeartHeat(), 0, MASTER_HEARTBEAT_PERIOD_SECONDS, TimeUnit.SECONDS);
+                        }
+
+                        @Override
+                        public Channel getChannel() {
+                            return channel;
+                        }
+
+                        @Override
+                        public void dispose() {
+                            if (future != null) {
+                                future.cancel(false);
+                            }
+                            if (scheduledExecutorService != null) {
+                                scheduledExecutorService.shutdownNow();
+                                scheduledExecutorService = null;
+                            }
+                        }
+                    };
                 }
-            };
-            logger.info("[LogEventCallBack] put for key {}:{}", channel, channel.hashCode());
-            logEventCallBackMap.put(channel, logEventCallBack);
-        }
-        return logEventCallBack;
+        );
     }
-
 
     private synchronized void toggleAutoRead(Channel channel, boolean autoRead) {
         try {

@@ -21,7 +21,6 @@ public class DrcHeartbeatLogEvent extends AbstractLogEvent {
     public int code;
 
     public DrcHeartbeatLogEvent() {
-        this(0);
     }
 
     public DrcHeartbeatLogEvent(int code) {

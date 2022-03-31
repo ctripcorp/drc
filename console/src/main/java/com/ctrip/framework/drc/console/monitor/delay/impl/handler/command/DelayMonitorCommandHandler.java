@@ -15,6 +15,7 @@ import com.ctrip.xpipe.command.DefaultCommandFuture;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 
 /**
+ * for console dump binlog from replicator
  * @author shenhaibo
  * @version 1.0
  * date: 2019-12-02
