@@ -39,13 +39,7 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                         @Override
                         public void onSuccess() {
                             toggleAutoRead(channel, true);
-                            if (future != null) {
-                                future.cancel(false);
-                            }
-                            if (scheduledExecutorService != null) {
-                                scheduledExecutorService.shutdownNow();
-                                scheduledExecutorService = null;
-                            }
+                            dispose();
                             onHeartHeat();
                         }
 
@@ -61,6 +55,17 @@ public class FetcherBinlogDumpGtidCommandHandler extends DrcBinlogDumpGtidComman
                         @Override
                         public Channel getChannel() {
                             return channel;
+                        }
+
+                        @Override
+                        public void dispose() {
+                            if (future != null) {
+                                future.cancel(false);
+                            }
+                            if (scheduledExecutorService != null) {
+                                scheduledExecutorService.shutdownNow();
+                                scheduledExecutorService = null;
+                            }
                         }
                     };
                 }

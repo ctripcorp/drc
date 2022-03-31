@@ -114,7 +114,8 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
     protected void addCloseListener(Channel channel) {
         channel.closeFuture().addListener((ChannelFutureListener) future -> {
             LogEventCallBack logEventCallBack = logEventCallBackMap.remove(channel);
-            logger.info("[Remove] {}:{} from logEventCallBackMap", channel, logEventCallBack);
+            logEventCallBack.dispose();
+            logger.info("[Remove] {}:{} from logEventCallBackMap and dispose", channel, logEventCallBack);
         });
     }
 

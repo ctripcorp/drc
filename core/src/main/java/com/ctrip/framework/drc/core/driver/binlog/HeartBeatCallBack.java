@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog;
 
 import com.ctrip.framework.drc.core.driver.command.packet.client.HeartBeatResponsePacket;
+import com.ctrip.xpipe.api.lifecycle.Disposable;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -14,7 +15,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  * @Author limingdong
  * @create 2022/3/29
  */
-public interface HeartBeatCallBack {
+public interface HeartBeatCallBack extends Disposable {
 
     int AUTO_READ = 1;
 
@@ -43,4 +44,6 @@ public interface HeartBeatCallBack {
             HEARTBEAT_LOGGER.error("[Send] {} HeartBeatResponsePacket error", channel);
         }
     }
+
+    default void dispose() { }
 }
