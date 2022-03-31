@@ -42,7 +42,7 @@ public class HeartBeatConfiguration extends AbstractConfigBean {
         return Sets.newHashSet(grayCluster.split(","));
     }
 
-    private boolean getHeartBeatSwitch() {
+    public boolean getHeartBeatSwitch() {
         return getBooleanProperty(HEARTBEAT_SWITCH, false);
     }
 }

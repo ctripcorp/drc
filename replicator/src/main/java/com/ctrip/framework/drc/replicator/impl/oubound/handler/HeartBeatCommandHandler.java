@@ -105,6 +105,10 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     @Override
     public void sendHeartBeat(Channel channel) {
+        if (!heartBeatConfiguration.getHeartBeatSwitch()) {
+            HEARTBEAT_LOGGER.info("[HeartBeat] switch off for {}", registerKey);
+            return;
+        }
         DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0);
         drcHeartbeatLogEvent.write(new IoCache() {
             @Override
