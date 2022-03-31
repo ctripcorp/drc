@@ -74,8 +74,8 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     @Override
     protected boolean heartBeat(LogEvent logEvent, LogEventCallBack logEventCallBack) {
         if (logEvent instanceof DrcHeartbeatLogEvent) {
-            logEventCallBack.onHeartHeat();
             HEARTBEAT_LOGGER.info("{} - RECEIVED - {}", cluster, logEvent.getClass().getSimpleName());
+            logEventCallBack.onHeartHeat();
             try {
                 logEvent.release();
             } catch (Exception e) {
