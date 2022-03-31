@@ -91,4 +91,24 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         scheduledExecutorService.shutdownNow();
         heartBeatCommandHandler.dispose();
     }
+
+    @Test
+    public void testExpire() {
+        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
+        long now = System.currentTimeMillis();
+        HeartBeatCommandHandler.HeartBeatContext heartBeatContext = new HeartBeatCommandHandler.HeartBeatContext(now - 1000 * 60 * 5);
+        boolean res = heartBeatCommandHandler.doCheck();
+        Assert.assertFalse(res);
+
+        heartBeatCommandHandler.getResponses().putIfAbsent(channel, heartBeatContext);
+        res = heartBeatCommandHandler.doCheck();
+        Assert.assertTrue(res);
+        Assert.assertTrue(heartBeatCommandHandler.getResponses().isEmpty());
+
+        heartBeatContext = new HeartBeatCommandHandler.HeartBeatContext(now);
+        heartBeatCommandHandler.getResponses().putIfAbsent(channel, heartBeatContext);
+        res = heartBeatCommandHandler.doCheck();
+        Assert.assertTrue(res);
+        Assert.assertFalse(heartBeatCommandHandler.getResponses().isEmpty());
+    }
 }

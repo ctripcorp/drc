@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfiguration;
 import com.ctrip.xpipe.netty.commands.NettyClient;
+import com.ctrip.xpipe.utils.MapUtils;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
@@ -76,31 +77,38 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
     @Override
     public void initialize() {
         heartBeatExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("HeartBeatResponse-" + registerKey);
-        heartBeatExecutorService.scheduleWithFixedDelay(() -> {
-            try {
-                if (!heartBeatConfiguration.gray(registerKey)) {
-                    responses.clear();
-                    HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to not gray for {}", registerKey);
-                    return;
-                }
-                if (responses.isEmpty()) {
-                    HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to empty");
-                    return;
-                }
-                Map<Channel, HeartBeatContext> copy = Maps.newHashMap(responses);
-                for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
-                    Channel channel = entry.getKey();
-                    if (expired(entry.getValue())) {
-                        removeHeartBeatContext(channel);
-                        channel.close();
-                        HEARTBEAT_LOGGER.warn("[HeartBeat] expired for {} and close channel", channel);
+        heartBeatExecutorService.scheduleWithFixedDelay(() -> doCheck(), 0, EXPIRE_TIME / 6, TimeUnit.MILLISECONDS);
+    }
+
+    protected boolean doCheck() {
+        try {
+            if (!heartBeatConfiguration.gray(registerKey)) {
+                responses.clear();
+                HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to not gray for {}", registerKey);
+                return false;
+            }
+            if (responses.isEmpty()) {
+                HEARTBEAT_LOGGER.info("[HeartBeat] scheduled service return due to empty");
+                return false;
+            }
+            Map<Channel, HeartBeatContext> copy = Maps.newHashMap(responses);
+            for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
+                Channel channel = entry.getKey();
+                HeartBeatContext heartBeatContext = entry.getValue();
+                HEARTBEAT_LOGGER.debug("[HeartBeat] check {}:{}", heartBeatContext);
+                if (expired(heartBeatContext)) {
+                    removeHeartBeatContext(channel);
+                    channel.close();
+                    if (heartBeatContext.getAutoRead() == HeartBeatCallBack.AUTO_READ) {
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.expire", registerKey + ":" + channel.remoteAddress());
                     }
+                    HEARTBEAT_LOGGER.warn("[HeartBeat] expired for {}:{} and close channel", channel, heartBeatContext);
                 }
-            } catch (Throwable t) {
-                HEARTBEAT_LOGGER.error("[HeartBeat] check error");
             }
-        }, 0, EXPIRE_TIME / 6, TimeUnit.MILLISECONDS);
+        } catch (Throwable t) {
+            HEARTBEAT_LOGGER.error("[HeartBeat] check error");
+        }
+        return true;
     }
 
     @Override
@@ -159,7 +167,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     // update time when AUTO_READ_CLOSE
     private void updateHeartBeatContext(Channel channel) {
-        HeartBeatContext heartBeatContext = responses.getOrDefault(channel, newHeartBeatContext());
+        HeartBeatContext heartBeatContext = MapUtils.getOrCreate(responses, channel, () -> newHeartBeatContext());
         heartBeatContext.setAutoRead(HeartBeatCallBack.AUTO_READ_CLOSE);
         heartBeatContext.setTime(System.currentTimeMillis());
         HEARTBEAT_LOGGER.info("[Update] heartbeat for {}:{}", channel, heartBeatContext);
@@ -184,7 +192,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
         return responses;
     }
 
-    private static class HeartBeatContext {
+    protected static class HeartBeatContext {
 
         private long time;
 

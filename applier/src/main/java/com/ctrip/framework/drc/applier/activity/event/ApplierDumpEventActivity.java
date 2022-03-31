@@ -16,6 +16,8 @@ import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2021/3/4
@@ -72,6 +74,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     @Override
     protected boolean heartBeat(LogEvent logEvent, LogEventCallBack logEventCallBack) {
         if (logEvent instanceof DrcHeartbeatLogEvent) {
+            HEARTBEAT_LOGGER.info("{} - RECEIVED - {}", cluster, logEvent.getClass().getSimpleName());
             logEventCallBack.onHeartHeat();
             try {
                 logEvent.release();
