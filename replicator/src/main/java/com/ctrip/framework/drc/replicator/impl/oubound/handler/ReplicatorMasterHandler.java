@@ -121,10 +121,10 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
                             NettyClient cache = nettyClientMap.remove(channel);
                             logger.info("[Remove] {}:{} from nettyClientMap", channel, cache);
                         });
+                        ctx.channel().attr(KEY_CLIENT).set(new Gate(ctx.channel().remoteAddress().toString()));
                         return defaultNettyClient;
                     });
 
-            ctx.channel().attr(KEY_CLIENT).set(new Gate(ctx.channel().remoteAddress().toString()));
             handlerManager.handle(nettyClient, in);
         }
 

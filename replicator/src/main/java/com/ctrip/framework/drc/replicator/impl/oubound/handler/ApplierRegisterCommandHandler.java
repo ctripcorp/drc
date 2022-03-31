@@ -207,6 +207,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 channelClosed = true;
                 Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
                 gate.open();
+                removeListener();
                 logger.info("closeFuture Listener invoke open gate {} and set channelClosed", gate);
             });
             fileManager.addObserver(this);
@@ -296,8 +297,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error", e);
-            } finally {
-                removeListener();
             }
         }
 
