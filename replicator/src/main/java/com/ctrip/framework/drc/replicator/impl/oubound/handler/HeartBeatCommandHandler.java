@@ -37,7 +37,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  */
 public class HeartBeatCommandHandler extends AbstractServerCommandHandler implements CommandHandler, HeartBeatHandler {
 
-    private long EXPIRE_TIME = CONNECTION_IDLE_TIMEOUT_SECOND * 1000;
+    private long EXPIRE_TIME = CONNECTION_IDLE_TIMEOUT_SECOND * 1000 * 2;  // 60 seconds
 
     private String registerKey;
 
@@ -99,7 +99,7 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             } catch (Throwable t) {
                 HEARTBEAT_LOGGER.error("[HeartBeat] check error");
             }
-        }, 0, EXPIRE_TIME / 2, TimeUnit.MILLISECONDS);
+        }, 0, EXPIRE_TIME / 6, TimeUnit.MILLISECONDS);
     }
 
     @Override
