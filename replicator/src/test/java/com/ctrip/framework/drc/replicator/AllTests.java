@@ -49,6 +49,7 @@ import java.sql.Statement;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        DefaultGtidManagerTest.class,
         DefaultUuidOperatorTest.class,
         ReplicatorConnectionTest.class,
         FilterChainFactoryTest.class,
@@ -62,7 +63,6 @@ import java.sql.Statement;
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
         EventTransactionCacheTest.class,
-        DefaultGtidManagerTest.class,
         BackupTransactionEventTest.class,
 
         IndexExtractorTest.class,

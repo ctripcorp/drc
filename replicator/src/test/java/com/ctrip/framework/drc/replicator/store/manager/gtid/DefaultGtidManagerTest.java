@@ -6,13 +6,14 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
-import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
-import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
+import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
+import com.ctrip.xpipe.zk.ZkClient;
 import com.google.common.collect.Sets;
+import org.apache.curator.framework.CuratorFramework;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,17 +32,12 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
 
     private DefaultGtidManager gtidManager;
 
+    private ReplicatorConfig replicatorConfig = new ReplicatorConfig();
+
+    private DefaultUuidOperator uuidOperator = new DefaultUuidOperator();
+
     @Mock
     private SchemaManager schemaManager;
-
-    @Mock
-    private ReplicatorConfig replicatorConfig;
-
-    @Mock
-    private UuidOperator uuidOperator;
-
-    @Mock
-    private UuidConfig uuidConfig;
 
     @Mock
     private Filter<ITransactionEvent> filterChain;
@@ -50,11 +46,26 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
-        super.initMocks();
-        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
-        when(replicatorConfig.getRegistryKey()).thenReturn("");
-        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
-        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
+        super.setUp();
+        uuidOperator.setZkClient(new ZkClient() {
+            @Override
+            public CuratorFramework get() {
+                return curatorFramework;
+            }
+
+            @Override
+            public void setZkAddress(String zkAddress) {
+
+            }
+
+            @Override
+            public String getZkAddress() {
+                return zkString;
+            }
+        });
+        uuids.add(UUID.fromString("c372080a-1804-11ea-8add-98039bbedf9c"));
+        replicatorConfig.setRegistryKey("cluster", "key");
+        replicatorConfig.setWhiteUUID(uuids);
 
         System.setProperty(SystemConfig.REPLICATOR_FILE_LIMIT, String.valueOf(512 * 1000 * 1000));
         fileManager = new DefaultFileManager(schemaManager, DESTINATION);
