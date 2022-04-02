@@ -6,7 +6,8 @@ import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
-import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperator;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.AbstractServerTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -51,7 +52,17 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
         replicatorConfig.setWhiteUUID(Sets.newHashSet(UUID.fromString("12af97a8-2f0f-11eb-b4a7-d6dccc6aae29")));
         replicatorConfig.setGtidSet(new GtidSet("12af97a8-2f0f-11eb-b4a7-d6dccc6aae29:1-7"));
 
-        replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration(), new DefaultUuidOperator());
+        replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration(), new UuidOperator() {
+            @Override
+            public UuidConfig getUuids(String key) {
+                return new UuidConfig(Sets.newHashSet());
+            }
+
+            @Override
+            public void setUuids(String key, UuidConfig value) {
+
+            }
+        });
 
         replicatorServer.initialize();
     }

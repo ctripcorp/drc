@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTest;
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
+import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperatorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorConnectionTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.EventTransactionCacheTest;
@@ -48,6 +49,7 @@ import java.sql.Statement;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        DefaultUuidOperatorTest.class,
         ReplicatorConnectionTest.class,
         FilterChainFactoryTest.class,
         HeartBeatConfigurationTest.class,

@@ -12,10 +12,12 @@ public abstract class AbstractZkTest extends MockTest {
 
     protected CuratorFramework curatorFramework;
 
+    protected static final String zkString = "127.0.0.1:12181";
+
     public void setUp() throws Exception {
         super.initMocks();
         if (curatorFramework == null) {
-            curatorFramework = CuratorFrameworkFactory.newClient("127.0.0.1:12181", new ExponentialBackoffRetry(1000, 3));
+            curatorFramework = CuratorFrameworkFactory.newClient(zkString, new ExponentialBackoffRetry(1000, 3));
             curatorFramework.start();
         }
     }

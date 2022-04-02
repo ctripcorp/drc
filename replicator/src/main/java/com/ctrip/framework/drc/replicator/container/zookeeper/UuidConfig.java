@@ -10,6 +10,9 @@ public class UuidConfig {
 
     private Set<String> uuids;
 
+    public UuidConfig() {
+    }
+
     public UuidConfig(Set<String> uuids) {
         this.uuids = uuids;
     }

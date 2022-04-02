@@ -16,8 +16,6 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import java.util.concurrent.TimeUnit;
-
 import static com.ctrip.framework.drc.replicator.AllTests.*;
 
 /**
@@ -66,8 +64,6 @@ public class ReplicatorConnectionTest extends MockTest {
     public void testDump() throws InterruptedException {
 
         replicatorConnection.dump(resultCode -> eventHandler.onLogEvent(null, null, new NetworkException(resultCode.getMessage())));
-
-        TimeUnit.SECONDS.sleep(1000);
 
         if (isUsed(SRC_PORT)) {
             Thread.sleep(1200);
