@@ -1,13 +1,11 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.driver;
 
-import com.ctrip.framework.drc.core.driver.MySQLConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
-import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
 import com.ctrip.framework.drc.replicator.MockTest;
@@ -17,6 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+
+import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.replicator.AllTests.*;
 
@@ -65,12 +65,9 @@ public class ReplicatorConnectionTest extends MockTest {
     @Test //RuntimeException: dump command error : #HY000Binary log is not open
     public void testDump() throws InterruptedException {
 
-        replicatorConnection.dump(new MySQLConnection.DumpCallBack() {
-            @Override
-            public void onFailure(ResultCode resultCode) {
-                eventHandler.onLogEvent(null, null, new NetworkException(resultCode.getMessage()));
-            }
-        });
+        replicatorConnection.dump(resultCode -> eventHandler.onLogEvent(null, null, new NetworkException(resultCode.getMessage())));
+
+        TimeUnit.SECONDS.sleep(1000);
 
         if (isUsed(SRC_PORT)) {
             Thread.sleep(1200);

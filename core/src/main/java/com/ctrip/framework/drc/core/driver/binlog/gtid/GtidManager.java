@@ -21,4 +21,6 @@ public interface GtidManager extends Lifecycle, GtidReader, GtidObserver {
     void setUuids(Set<String> uuids);
 
     Set<String> getUuids();
+
+    boolean removeUuid(String uuid);
 }

@@ -51,6 +51,8 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
     private SchemaManager schemaManager;
 
+    private String currentUuid;
+
     public ReplicatorConnection(MySQLSlaveConfig mySQLSlaveConfig, LogEventHandler eventHandler, MySQLConnector connector, GtidManager gtidManager, SchemaManager schemaManager) {
         super(mySQLSlaveConfig, eventHandler, connector);
         this.gtidManager = gtidManager;
@@ -66,11 +68,11 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         try {
             ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
             SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
-            String uuid = fetchServerUuid(simpleObjectPool);
-            if (StringUtils.isNotBlank(uuid)) {
+            currentUuid = fetchServerUuid(simpleObjectPool);
+            if (StringUtils.isNotBlank(currentUuid)) {
                 Set<String> previousUuids = gtidManager.getUuids();
-                boolean added = previousUuids.add(uuid);
-                logger.info("[Uuid] {} add to previous set {} with res {}", uuid, previousUuids, added);
+                boolean added = previousUuids.add(currentUuid);
+                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
                 if (added) {
                     gtidManager.setUuids(previousUuids);
                     Set<UUID> uuidSet = Sets.newHashSet();
@@ -148,16 +150,27 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
     }
 
-    private GtidSet combine(GtidSet newGtidSet, GtidSet oldGtidSet) {
+    protected GtidSet combine(GtidSet newGtidSet, GtidSet oldGtidSet) {
         Map<String, GtidSet.UUIDSet> uuidSets = Maps.newHashMap();
+
+        // uuid persist in zk from oldGtidSet
         Set<String> uuids = gtidManager.getUuids();
         for (String uuid : uuids) {  //add old white uuid
             GtidSet.UUIDSet uuidSet =  oldGtidSet.getUUIDSet(uuid);
-            if (uuidSet != null) {
-                uuidSets.put(uuid, uuidSet);
+            GtidSet.UUIDSet newUuidSet = newGtidSet.getUUIDSet(uuid);
+            if (uuidSet != null) { // replace uuidset if uuid is not current uuid
+                if (!uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
+                    uuidSets.put(uuid, newUuidSet); // for replicator request binlog from mysql
+                    gtidManager.removeUuid(uuid); // for applier replication
+                    logger.info("[Purged] gtidset replace {} with {}", uuidSet, newUuidSet);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.gtid.purge", uuid);
+                } else {
+                    uuidSets.put(uuid, uuidSet);
+                }
             }
         }
 
+        // add absent uuid from newGtidSet
         boolean addUuidNotInWhiteList = false;
         Set<String> newUuids = newGtidSet.getUUIDs();
         for (String uuid : newUuids) {

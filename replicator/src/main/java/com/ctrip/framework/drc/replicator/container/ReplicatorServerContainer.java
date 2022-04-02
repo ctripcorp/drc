@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.DefaultReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
@@ -19,12 +20,14 @@ import org.springframework.stereotype.Component;
 public class ReplicatorServerContainer extends AbstractServerContainer implements ServerContainer<ReplicatorConfig, ApiResult>, ApplicationRunner {
 
     @Autowired
+    private UuidOperator uuidOperator;
+
+    @Autowired
     private TableFilterConfiguration tableFilterConfiguration;
 
     @Override
     protected ReplicatorServer getReplicatorServer(ReplicatorConfig config) {
-        updateUuids(config, true);
-        DefaultReplicatorServer replicatorServer = new DefaultReplicatorServer(config, SchemaManagerFactory.getOrCreateMySQLSchemaManager(config), tableFilterConfiguration);
+        DefaultReplicatorServer replicatorServer = new DefaultReplicatorServer(config, SchemaManagerFactory.getOrCreateMySQLSchemaManager(config), tableFilterConfiguration, uuidOperator);
         return replicatorServer;
     }
 

@@ -10,7 +10,11 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.AllTests;
+import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
@@ -19,6 +23,7 @@ import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +36,6 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +43,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,10 +54,21 @@ import static com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchema
  * @Author limingdong
  * @create 2020/3/3
  */
-public class MySQLSchemaManagerTest {
+public class MySQLSchemaManagerTest extends MockTest {
 
     @Mock
     private Filter<ITransactionEvent> filterChain;
+
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    private Set<UUID> uuids = Sets.newHashSet();
 
     private static final String DB1_TABLE1 = "CREATE TABLE `drc100`.`insert100` (\n" +
             "                        `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
@@ -95,10 +111,16 @@ public class MySQLSchemaManagerTest {
 
     @Before
     public void setUp() throws Exception {
+        super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
+
         remoteDataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         mySQLSchemaManager = new MySQLSchemaManager(endpoint, APPLIER_PORT + 2000, "test", null);
 
-        filePersistenceEventStore = new FilePersistenceEventStore(mySQLSchemaManager, CLUSTER_NAME);
+        filePersistenceEventStore = new FilePersistenceEventStore(mySQLSchemaManager, uuidOperator, replicatorConfig);
         mySQLSchemaManager.setEventStore(filePersistenceEventStore);
         transactionCache = new EventTransactionCache(filePersistenceEventStore, filterChain);
         mySQLSchemaManager.setTransactionCache(transactionCache);
@@ -348,14 +370,6 @@ public class MySQLSchemaManagerTest {
         byteBuf.writeBytes(bytes);
 
         return byteBuf;
-    }
-
-    private static boolean isUsed(int port) {
-        try (ServerSocket ignored = new ServerSocket(port)) {
-            return false;
-        } catch (IOException e) {
-            return true;
-        }
     }
 
     public class Task implements Runnable {

@@ -48,6 +48,7 @@ import java.sql.Statement;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        ReplicatorConnectionTest.class,
         FilterChainFactoryTest.class,
         HeartBeatConfigurationTest.class,
         TableFilterConfigurationTest.class,
@@ -63,7 +64,6 @@ import java.sql.Statement;
         BackupTransactionEventTest.class,
 
         IndexExtractorTest.class,
-        ReplicatorConnectionTest.class,
         // impl package
         // inbound package
         // converter package

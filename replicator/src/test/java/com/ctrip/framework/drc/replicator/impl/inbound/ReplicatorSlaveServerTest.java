@@ -6,6 +6,9 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.server.common.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
@@ -16,12 +19,15 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by mingdongli
@@ -44,8 +50,24 @@ public class ReplicatorSlaveServerTest extends AbstractServerTest {
     @Mock
     private Filter<ITransactionEvent> filterChain;
 
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    private Set<UUID> uuids = Sets.newHashSet();
+
     @Before
     public void setUp() throws Exception {
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
+
         System.setProperty(SystemConfig.REPLICATOR_FILE_LIMIT, String.valueOf(1024 * 2));
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));  //循环检测通过show variables like ""动态更新，集成测试使用该方式
         endpoint = new DefaultEndPoint(AbstractServerTest.IP, 8386, AbstractServerTest.USER, AbstractServerTest.PASSWORD);
@@ -53,7 +75,7 @@ public class ReplicatorSlaveServerTest extends AbstractServerTest {
         mySQLSlaveConfig.setEndpoint(endpoint);
         mySQLSlaveConfig.setRegistryKey(AbstractServerTest.DESTINATION, MHA_NAME);
         mySQLServer = new ReplicatorSlaveServer(mySQLSlaveConfig, new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint()), null);  //需要连接的master信息
-        eventStore = new FilePersistenceEventStore(null, DESTINATION);
+        eventStore = new FilePersistenceEventStore(null, uuidOperator, replicatorConfig);
         transactionCache = new EventTransactionCache(eventStore, filterChain);
         LogEventHandler eventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, DefaultFilterChainFactory.createFilterChain(new FilterChainContext()));
         mySQLServer.setLogEventHandler(eventHandler);

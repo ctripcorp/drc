@@ -10,6 +10,8 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventWithGroupFlag;
@@ -60,6 +62,17 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     @Mock
     private InboundMonitorReport inboundMonitorReport;
 
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    private Set<UUID> uuids = Sets.newHashSet();
+
     private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
 
     private FilePersistenceEventStore filePersistenceEventStore;
@@ -71,8 +84,6 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     private String clusterName = "unitTest";
 
     private static final int TABLE_MAP_EVENT_SIZE = 19 + 55 + 1;  //1 for identifier
-
-    private ReplicatorConfig replicatorConfig = new ReplicatorConfig();
 
     private  Set<UUID> uuidSet = Sets.newHashSet();
 
@@ -87,9 +98,14 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
+
         uuidSet.add(UUID.fromString(UUID_1));
         initReplicatorConfig();
-        filePersistenceEventStore = new FilePersistenceEventStore(schemaManager, clusterName);
+        filePersistenceEventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         filePersistenceEventStore.initialize();
         filePersistenceEventStore.start();
 
