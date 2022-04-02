@@ -20,7 +20,6 @@ import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteB
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.Resettable;
 import com.ctrip.xpipe.api.command.CommandFuture;
-import com.ctrip.xpipe.api.command.CommandFutureListener;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.api.pool.ObjectPoolException;
@@ -64,7 +63,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
 
     @Override
-    public void preDump() throws Exception {
+    public void preDump() {
         try {
             ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
             SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
@@ -122,29 +121,26 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
         logger.info("[Dump] gtidset is {}", gtidSet.toString());
         CommandFuture<ResultCode> commandFuture = doExecuteCommand(simpleObjectPool, gtidSet, mySQLSlaveConfig.getSlaveId());
-        commandFuture.addListener(new CommandFutureListener<ResultCode>() {
-            @Override
-            public void operationComplete(CommandFuture<ResultCode> commandFuture) throws Exception {
-                Throwable throwable = commandFuture.cause();
-                RECONNECTION_CODE reCode = null;
-                if (throwable != null) {
-                    String message = throwable.getMessage();
-                    if (throwable instanceof SocketException) {
-                        logger.error("SocketException {}", message);
-                    }
-                    if (message != null && message.contains(RECONNECTION_CODE.MORE_GTID_ERROR.getMessage())) {
-                        reCode = RECONNECTION_CODE.MORE_GTID_ERROR;
-                    } else if (message != null && message.contains(RECONNECTION_CODE.PURGED_GTID_REQUIRED.getMessage())) {
-                        reCode = RECONNECTION_CODE.PURGED_GTID_REQUIRED;
-                    }
-                } else {
-                    logger.info("BinlogDumpGtidCommandExecutor finished and try to reconnect");
+        commandFuture.addListener(commandFuture1 -> {
+            Throwable throwable = commandFuture1.cause();
+            RECONNECTION_CODE reCode = null;
+            if (throwable != null) {
+                String message = throwable.getMessage();
+                if (throwable instanceof SocketException) {
+                    logger.error("SocketException {}", message);
                 }
-                if (getLifecycleState().isStarted()) {
-                    reconnect(simpleObjectPool, callBack, reCode);
-                } else {
-                    logger.info("[State] is {} and return", getLifecycleState());
+                if (message != null && message.contains(RECONNECTION_CODE.MORE_GTID_ERROR.getMessage())) {
+                    reCode = RECONNECTION_CODE.MORE_GTID_ERROR;
+                } else if (message != null && message.contains(RECONNECTION_CODE.PURGED_GTID_REQUIRED.getMessage())) {
+                    reCode = RECONNECTION_CODE.PURGED_GTID_REQUIRED;
                 }
+            } else {
+                logger.info("BinlogDumpGtidCommandExecutor finished and try to reconnect");
+            }
+            if (getLifecycleState().isStarted()) {
+                reconnect(simpleObjectPool, callBack, reCode);
+            } else {
+                logger.info("[State] is {} and return", getLifecycleState());
             }
         });
 
@@ -161,8 +157,8 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             if (uuidSet != null) { // replace uuidset if uuid is not current uuid
                 if (!uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
                     uuidSets.put(uuid, newUuidSet); // for replicator request binlog from mysql
-                    gtidManager.removeUuid(uuid); // for applier replication
-                    logger.info("[Purged] gtidset replace {} with {}", uuidSet, newUuidSet);
+                    boolean removed = gtidManager.removeUuid(uuid); // for applier replication
+                    logger.info("[Purged] gtidset replace {} with {}, res is {}", uuidSet, newUuidSet, removed);
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.gtid.purge", uuid);
                 } else {
                     uuidSets.put(uuid, uuidSet);

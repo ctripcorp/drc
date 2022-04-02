@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.server.common.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperator;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
@@ -44,6 +45,8 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
 
     private Set<UUID> uuids = Sets.newHashSet();
 
+    private static final String uuid = "c372080a-1804-11ea-8add-98039bbedf9c";
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -63,7 +66,7 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
                 return zkString;
             }
         });
-        uuids.add(UUID.fromString("c372080a-1804-11ea-8add-98039bbedf9c"));
+        uuids.add(UUID.fromString(uuid));
         replicatorConfig.setRegistryKey("cluster", "key");
         replicatorConfig.setWhiteUUID(uuids);
 
@@ -113,5 +116,19 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
         writeGrandTransaction();
         GtidSet gtidSet = fileManager.getExecutedGtids();
         Assert.assertEquals(gtidSet.add(GTID), false);
+    }
+
+    @Test
+    public void testRemoveUuid() {
+        UuidConfig uuidConfig = uuidOperator.getUuids(replicatorConfig.getRegistryKey());
+        Assert.assertTrue(uuidConfig.getUuids().size() == 1);
+        boolean res = gtidManager.removeUuid(uuid);
+        Assert.assertTrue(res);
+
+        res = gtidManager.removeUuid(uuid + 1);
+        Assert.assertFalse(res);
+
+        uuidConfig = uuidOperator.getUuids(replicatorConfig.getRegistryKey());
+        Assert.assertTrue(uuidConfig.getUuids().size() == 0);
     }
 }

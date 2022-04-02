@@ -107,9 +107,11 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
 
     @Override
     public boolean removeUuid(String uuid) {
-        boolean res = uuids.remove(uuid);
-        persistUuids(new UuidConfig(uuids));
-        return res;
+        if (uuids.remove(uuid)) {
+            persistUuids(new UuidConfig(uuids));
+            return true;
+        }
+        return false;
     }
 
     @Override
