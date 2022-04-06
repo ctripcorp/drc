@@ -16,8 +16,6 @@ import java.util.List;
  */
 public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
 
-    public static final String DB_NOT_EXIST = "database doesn't exist";
-
     public SchemeClearTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);
     }
@@ -34,18 +32,11 @@ public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable
                         if (MySQLConstants.EXCLUDED_DB.contains(schema)) {
                             continue;
                         }
-                        try {
-                            boolean res = statement.execute(String.format(MySQLConstants.DROP_DATABASE, schema));
-                            DDL_LOGGER.info("[Drop] db {} with result {}", schema, res);
-                        } catch (Exception e) {
-                            if (e.getMessage().contains(DB_NOT_EXIST)) {
-                                DDL_LOGGER.info("[Drop] db {} with result not exist, Skip", schema);
-                                continue;
-                            }
-                            DDL_LOGGER.error("[Drop] db {} error", schema, e);
-                            throw e;
+                        if (!addBatch(statement, String.format(MySQLConstants.DROP_DATABASE, schema))) {
+                            DDL_LOGGER.info("[Drop] db {} in batch", schema);
                         }
                     }
+                    executeBatch(statement);
                     return true;
                 }
             }

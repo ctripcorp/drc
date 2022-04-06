@@ -14,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask.MAX_RETRY;
-import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeClearTask.DB_NOT_EXIST;
 
 /**
  * @Author limingdong
@@ -57,13 +56,14 @@ public class SchemeClearTaskTest extends AbstractSchemaTaskTest {
         when(statement.executeQuery(anyString())).thenReturn(resultSet);
         when(statement.execute(Mockito.contains("db2"))).thenThrow(dbException);
         when(statement.execute(Mockito.contains("db1"))).thenReturn(true);
-        when(dbException.getMessage()).thenReturn(DB_NOT_EXIST);
+        when(dbException.getMessage()).thenReturn("communication error");
 
         Boolean res = retryTask.call();
         verify(inMemoryDataSource, times(1)).getConnection();
         verify(connection, times( 1)).createStatement();
         verify(statement, times( 1)).executeQuery(anyString());
-        verify(statement, times( 2)).execute(anyString());
+        verify(statement, times( 2)).addBatch(anyString());  // for batch
+        verify(statement, times( 1)).executeBatch();  // for batch
         Assert.assertTrue(res.booleanValue());
     }
 
