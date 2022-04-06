@@ -11,8 +11,11 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
@@ -33,6 +36,7 @@ import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,15 +61,31 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
     @Mock
     private SchemaManager schemaManager;
 
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
     private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
+
+    private Set<UUID> uuids = Sets.newHashSet();
 
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
+
         System.setProperty(SystemConfig.REPLICATOR_FILE_LIMIT, String.valueOf(1024 * 2));
         System.setProperty(SystemConfig.REPLICATOR_BINLOG_PURGE_SCALE_OUT, String.valueOf(purgeSize));
         fileManager = new DefaultFileManager(schemaManager, DESTINATION);
-        gtidManager = new DefaultGtidManager(fileManager);
+        gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.initialize();
         fileManager.start();
         fileManager.setGtidManager(gtidManager);

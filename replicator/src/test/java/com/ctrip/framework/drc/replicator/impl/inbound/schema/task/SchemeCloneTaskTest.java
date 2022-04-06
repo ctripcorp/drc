@@ -58,7 +58,7 @@ public class SchemeCloneTaskTest extends AbstractSchemaTaskTest {
         when(statement.executeQuery(anyString())).thenThrow(sqlException);
 
         Boolean res = retryTask.call();
-        verify(statement, times(3)).executeBatch();
+        verify(statement, times(2)).executeBatch();
         verify(statement, times(0)).execute(Mockito.contains("FOREIGN KEY")); // executeBatch instead
         verify(statement, times(1)).execute(FOREIGN_KEY_CHECKS); // executeBatch instead
         Assert.assertTrue(res);

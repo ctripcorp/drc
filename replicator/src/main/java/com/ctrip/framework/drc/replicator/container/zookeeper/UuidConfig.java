@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.replicator.container.zookeeper;
 
-import com.google.common.collect.Sets;
-
 import java.util.Set;
 
 /**
@@ -10,7 +8,14 @@ import java.util.Set;
  */
 public class UuidConfig {
 
-    private Set<String> uuids = Sets.newHashSet();
+    private Set<String> uuids;
+
+    public UuidConfig() {
+    }
+
+    public UuidConfig(Set<String> uuids) {
+        this.uuids = uuids;
+    }
 
     public Set<String> getUuids() {
         return uuids;

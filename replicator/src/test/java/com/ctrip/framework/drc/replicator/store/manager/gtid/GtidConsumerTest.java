@@ -5,8 +5,12 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
+import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,6 +20,8 @@ import org.mockito.Mock;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,11 +39,27 @@ public class GtidConsumerTest extends AbstractTransactionTest {
     @Mock
     private SchemaManager schemaManager;
 
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
     private CountDownLatch countDownLatch = new CountDownLatch(1);
+
+    private Set<UUID> uuids = Sets.newHashSet();
 
     @Before
     public void setUp() {
         super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
+
     }
 
     @Test
@@ -74,7 +96,7 @@ public class GtidConsumerTest extends AbstractTransactionTest {
     @Test
     public void testFileManager() throws Exception {
         fileManager = new DefaultFileManager(schemaManager, "consume");
-        GtidManager gtidManager = new DefaultGtidManager(fileManager);
+        GtidManager gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.initialize();
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
@@ -95,7 +117,7 @@ public class GtidConsumerTest extends AbstractTransactionTest {
     @Test
     public void testFileManagerReality() throws Exception {
         fileManager = new DefaultFileManager(schemaManager,"unitTest");
-        GtidManager gtidManager = new DefaultGtidManager(fileManager);
+        GtidManager gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.initialize();
         fileManager.start();
         fileManager.setGtidManager(gtidManager);

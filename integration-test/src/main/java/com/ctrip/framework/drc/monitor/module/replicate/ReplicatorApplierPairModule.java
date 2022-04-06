@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.monitor.module.DrcModule;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.DefaultReplicatorServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
@@ -49,7 +51,17 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
     @Override
     protected void doInitialize() throws Exception {
         ReplicatorConfig replicatorConfig = getReplicatorConfig();
-        replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration());
+        replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration(), new UuidOperator() {
+            @Override
+            public UuidConfig getUuids(String key) {
+                return new UuidConfig(Sets.newHashSet());
+            }
+
+            @Override
+            public void setUuids(String key, UuidConfig value) {
+
+            }
+        });
         localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb);
         replicatorServer.initialize();
         localApplierServer.initialize();

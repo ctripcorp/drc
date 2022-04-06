@@ -2,7 +2,10 @@ package com.ctrip.framework.drc.replicator.store.manager.gtid;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObservable;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -13,6 +16,7 @@ import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by mingdongli
@@ -28,8 +32,37 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
 
     private FileManager fileManager;
 
-    public DefaultGtidManager(FileManager fileManager) {
+    private UuidOperator uuidOperator;
+
+    private ReplicatorConfig config;
+
+    public DefaultGtidManager(FileManager fileManager, UuidOperator uuidOperator, ReplicatorConfig replicatorConfig) {
         this.fileManager = fileManager;
+        this.uuidOperator = uuidOperator;
+        this.config = replicatorConfig;
+        uuids.addAll(getAndUpdateUuids());
+        logger.info("[Uuids] update to {} for {}", uuids, replicatorConfig.getRegistryKey());
+    }
+
+    private Set<String> getAndUpdateUuids() {
+        UuidConfig uuidConfig = retrieveUuids();
+        Set<String> uuids = uuidConfig.getUuids();
+        Set<UUID> uuidSet = config.getWhiteUUID();
+        for (UUID uuid : uuidSet) {
+            uuids.add(uuid.toString());
+        }
+        uuidConfig.setUuids(uuids);
+        persistUuids(uuidConfig);
+
+        return uuids;
+    }
+
+    private UuidConfig retrieveUuids(){
+        return uuidOperator.getUuids(config.getRegistryKey());
+    }
+
+    private void persistUuids(UuidConfig uuidConfig){
+        uuidOperator.setUuids(config.getRegistryKey(), uuidConfig);
     }
 
     @Override
@@ -70,6 +103,15 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
     @Override
     public Set<String> getUuids() {
         return new HashSet<>(uuids);
+    }
+
+    @Override
+    public boolean removeUuid(String uuid) {
+        if (uuids.remove(uuid)) {
+            persistUuids(new UuidConfig(uuids));
+            return true;
+        }
+        return false;
     }
 
     @Override

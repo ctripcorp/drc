@@ -13,22 +13,16 @@ import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
-import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
-import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.exception.ErrorMessage;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.utils.OsUtils;
-import com.ctrip.xpipe.zk.ZkClient;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.zookeeper.CreateMode;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -36,12 +30,10 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.PORT_ALREADY_EXIST;
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.REPLICATOR_UUIDS_PATH;
 
 /**
  * @Author limingdong
@@ -52,9 +44,6 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     private Map<String, Integer> runningPorts = Maps.newConcurrentMap();
 
     private Map<String, DrcServer> drcServers = Maps.newConcurrentMap();
-
-    @Autowired
-    protected ZkClient zkClient;
 
     private Set<String> processingReplicators = Sets.newConcurrentHashSet();
 
@@ -223,49 +212,6 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
         }
 
         return ApiResult.getFailInstance(Boolean.FALSE);
-    }
-
-    private Set<String> getUuidFromZookeeper(CuratorFramework curatorFramework, String registryKey) {
-        try {
-            String registerPath = REPLICATOR_UUIDS_PATH + "/" + registryKey;
-            if (curatorFramework.checkExists().forPath(registerPath) == null) {
-                curatorFramework.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(registerPath);
-                return Sets.newHashSet();
-            }
-            byte[] uuidArray = curatorFramework.getData().forPath(REPLICATOR_UUIDS_PATH + "/" + registryKey);
-            UuidConfig uuidConfig = Codec.DEFAULT.decode(uuidArray, UuidConfig.class);
-            return uuidConfig.getUuids();
-        } catch (Exception e) {
-        }
-        return Sets.newHashSet();
-    }
-
-    protected void updateUuids(ReplicatorConfig config, boolean persistToZk) {
-        UuidConfig uuidConfig = new UuidConfig();
-        Set<String> uuids = getUuidFromZookeeper(zkClient.get(), config.getRegistryKey());
-        Set<UUID> uuidSet = config.getWhiteUUID();
-        for (UUID uuid : uuidSet) {
-            uuids.add(uuid.toString());
-        }
-        uuidConfig.setUuids(uuids);
-        if (persistToZk) {
-            updateUuidToZookeeper(zkClient.get(), config.getRegistryKey(), uuidConfig);
-        }
-
-        Set<UUID> res = Sets.newHashSet();
-        for (String uuid : uuids) {
-            res.add(UUID.fromString(uuid));
-        }
-
-        config.setWhiteUUID(res);
-    }
-
-    private void updateUuidToZookeeper(CuratorFramework curatorFramework, String registryKey, UuidConfig uuidConfig) {
-        try {
-            String registerPath = REPLICATOR_UUIDS_PATH + "/" + registryKey;
-            curatorFramework.inTransaction().check().forPath(registerPath).and().setData().forPath(registerPath, Codec.DEFAULT.encodeAsBytes(uuidConfig)).and().commit();
-        } catch (Exception e) {
-        }
     }
 
     @Override

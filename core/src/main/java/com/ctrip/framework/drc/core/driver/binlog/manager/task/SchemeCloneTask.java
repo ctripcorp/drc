@@ -42,21 +42,13 @@ public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable
                     pass = statement.execute(String.format(CREATE_DB, entry.getKey()));
                     DDL_LOGGER.info("[Create] database {} with result {}", entry.getKey(), pass);
                     Map<String, String> sqls = entry.getValue();
-                    int batchSize = 0;
                     for (String sql : sqls.values()) {
-                        statement.addBatch(sql);
-                        batchSize++;
-                        if (batchSize >= 10) {
-                            statement.executeBatch();
-                            batchSize = 0;
-                            DDL_LOGGER.info("[Create] batch");
+                        if (!addBatch(statement, sql)) {
+                            DDL_LOGGER.info("[Create] table {} in batch", sql);
                         }
-                        DDL_LOGGER.info("[Create] table {}", sql);
                     }
 
-                    if (batchSize > 0) {
-                        statement.executeBatch();
-                    }
+                    executeBatch(statement);
                 }
                 return true;
             }

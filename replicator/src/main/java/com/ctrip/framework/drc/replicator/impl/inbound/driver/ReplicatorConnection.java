@@ -20,12 +20,12 @@ import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteB
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.Resettable;
 import com.ctrip.xpipe.api.command.CommandFuture;
-import com.ctrip.xpipe.api.command.CommandFutureListener;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.api.pool.ObjectPoolException;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -51,6 +51,8 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
     private SchemaManager schemaManager;
 
+    private String currentUuid;
+
     public ReplicatorConnection(MySQLSlaveConfig mySQLSlaveConfig, LogEventHandler eventHandler, MySQLConnector connector, GtidManager gtidManager, SchemaManager schemaManager) {
         super(mySQLSlaveConfig, eventHandler, connector);
         this.gtidManager = gtidManager;
@@ -62,15 +64,15 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
 
     @Override
-    public void preDump() throws Exception {
+    public void preDump() {
         try {
             ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
             SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
-            String uuid = fetchServerUuid(simpleObjectPool);
-            if (StringUtils.isNotBlank(uuid)) {
+            currentUuid = fetchServerUuid(simpleObjectPool);
+            if (StringUtils.isNotBlank(currentUuid)) {
                 Set<String> previousUuids = gtidManager.getUuids();
-                boolean added = previousUuids.add(uuid);
-                logger.info("[Uuid] {} add to previous set {} with res {}", uuid, previousUuids, added);
+                boolean added = previousUuids.add(currentUuid);
+                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
                 if (added) {
                     gtidManager.setUuids(previousUuids);
                     Set<UUID> uuidSet = Sets.newHashSet();
@@ -120,44 +122,52 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
         logger.info("[Dump] gtidset is {}", gtidSet.toString());
         CommandFuture<ResultCode> commandFuture = doExecuteCommand(simpleObjectPool, gtidSet, mySQLSlaveConfig.getSlaveId());
-        commandFuture.addListener(new CommandFutureListener<ResultCode>() {
-            @Override
-            public void operationComplete(CommandFuture<ResultCode> commandFuture) throws Exception {
-                Throwable throwable = commandFuture.cause();
-                RECONNECTION_CODE reCode = null;
-                if (throwable != null) {
-                    String message = throwable.getMessage();
-                    if (throwable instanceof SocketException) {
-                        logger.error("SocketException {}", message);
-                    }
-                    if (message != null && message.contains(RECONNECTION_CODE.MORE_GTID_ERROR.getMessage())) {
-                        reCode = RECONNECTION_CODE.MORE_GTID_ERROR;
-                    } else if (message != null && message.contains(RECONNECTION_CODE.PURGED_GTID_REQUIRED.getMessage())) {
-                        reCode = RECONNECTION_CODE.PURGED_GTID_REQUIRED;
-                    }
-                } else {
-                    logger.info("BinlogDumpGtidCommandExecutor finished and try to reconnect");
+        commandFuture.addListener(commandFuture1 -> {
+            Throwable throwable = commandFuture1.cause();
+            RECONNECTION_CODE reCode = null;
+            if (throwable != null) {
+                String message = throwable.getMessage();
+                if (throwable instanceof SocketException) {
+                    logger.error("SocketException {}", message);
                 }
-                if (getLifecycleState().isStarted()) {
-                    reconnect(simpleObjectPool, callBack, reCode);
-                } else {
-                    logger.info("[State] is {} and return", getLifecycleState());
+                if (message != null && message.contains(RECONNECTION_CODE.MORE_GTID_ERROR.getMessage())) {
+                    reCode = RECONNECTION_CODE.MORE_GTID_ERROR;
+                } else if (message != null && message.contains(RECONNECTION_CODE.PURGED_GTID_REQUIRED.getMessage())) {
+                    reCode = RECONNECTION_CODE.PURGED_GTID_REQUIRED;
                 }
+            } else {
+                logger.info("BinlogDumpGtidCommandExecutor finished and try to reconnect");
+            }
+            if (getLifecycleState().isStarted()) {
+                reconnect(simpleObjectPool, callBack, reCode);
+            } else {
+                logger.info("[State] is {} and return", getLifecycleState());
             }
         });
 
     }
 
-    private GtidSet combine(GtidSet newGtidSet, GtidSet oldGtidSet) {
+    protected GtidSet combine(GtidSet newGtidSet, GtidSet oldGtidSet) {
         Map<String, GtidSet.UUIDSet> uuidSets = Maps.newHashMap();
+
+        // uuid persist in zk from oldGtidSet
         Set<String> uuids = gtidManager.getUuids();
         for (String uuid : uuids) {  //add old white uuid
             GtidSet.UUIDSet uuidSet =  oldGtidSet.getUUIDSet(uuid);
-            if (uuidSet != null) {
-                uuidSets.put(uuid, uuidSet);
+            GtidSet.UUIDSet newUuidSet = newGtidSet.getUUIDSet(uuid);
+            if (uuidSet != null) { // replace uuidset if uuid is not current uuid
+                if (currentUuid != null && !uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
+                    uuidSets.put(uuid, newUuidSet); // for replicator request binlog from mysql
+                    boolean removed = gtidManager.removeUuid(uuid); // for applier replication
+                    logger.info("[Purged] gtidset replace {} with {}, res is {}", uuidSet, newUuidSet, removed);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.gtid.purge", uuid);
+                } else {
+                    uuidSets.put(uuid, uuidSet);
+                }
             }
         }
 
+        // add absent uuid from newGtidSet
         boolean addUuidNotInWhiteList = false;
         Set<String> newUuids = newGtidSet.getUUIDs();
         for (String uuid : newUuids) {
@@ -284,5 +294,10 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         BinlogDumpGtidClientCommandHandler dumpGtidCommandHandler = new BinlogDumpGtidClientCommandHandler(logEventHandler, new ReplicatorByteBufConverter());
         BinlogDumpGtidCommandExecutor binlogDumpGtidCommandExecutor = new BinlogDumpGtidCommandExecutor(dumpGtidCommandHandler, gtidSet, id);
         return binlogDumpGtidCommandExecutor.handle(simpleObjectPool);
+    }
+
+    @VisibleForTesting
+    public void setCurrentUuid(String currentUuid) {
+        this.currentUuid = currentUuid;
     }
 }

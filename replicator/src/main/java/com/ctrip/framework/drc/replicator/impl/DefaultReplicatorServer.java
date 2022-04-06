@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.impl.AbstractDrcServer;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.ReplicatorSlaveServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.BackupReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
@@ -35,10 +36,6 @@ import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
-import com.google.common.collect.Sets;
-
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * @author wenchao.meng
@@ -69,7 +66,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
     private TableFilterConfiguration tableFilterConfiguration;
 
-    public DefaultReplicatorServer(ReplicatorConfig replicatorConfig, MySQLSchemaManager schemaManager, TableFilterConfiguration tableFilterConfiguration) {
+    public DefaultReplicatorServer(ReplicatorConfig replicatorConfig, MySQLSchemaManager schemaManager, TableFilterConfiguration tableFilterConfiguration, UuidOperator uuidOperator) {
 
         this.replicatorConfig = replicatorConfig;
         this.schemaManager = schemaManager;
@@ -93,7 +90,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);
 
         DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
-        eventStore = new FilePersistenceEventStore(schemaManager, clusterName);
+        eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         transactionCache = isMaster ? new EventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain())
                 : new BackupEventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain());
         schemaManager.setTransactionCache(transactionCache);
@@ -109,21 +106,11 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, DefaultFilterChainFactory.createFilterChain(new FilterChainContext(replicatorConfig.getWhiteUUID(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration)));
 
         GtidManager gtidManager = eventStore.getGtidManager();
-        Set<UUID> uuidSet = replicatorConfig.getWhiteUUID();
-        Set<String> uuidStringSet = Sets.newHashSet();
-        for (UUID uuid : uuidSet) {
-            String uuidString = uuid.toString();
-            uuidStringSet.add(uuidString);
-        }
-        gtidManager.setUuids(uuidStringSet);
-        logger.info("[Uuid] update to {} in gtidManager for {}", uuidStringSet, clusterName);
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory
         replicatorSlaveServer.setLogEventHandler(logEventHandler);
         replicatorSlaveServer.setGtidManager(gtidManager);
 
         mySQLConnector.addObserver(schemaManager);  //init table
-
-
     }
 
     @Override

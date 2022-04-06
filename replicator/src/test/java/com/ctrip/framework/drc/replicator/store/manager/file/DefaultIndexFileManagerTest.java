@@ -6,11 +6,15 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcIndexLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
+import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,6 +23,8 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
@@ -38,16 +44,31 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
     private SchemaManager schemaManager;
 
     @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    @Mock
     private Filter<ITransactionEvent> filterChain;
+
+    private Set<UUID> uuids = Sets.newHashSet();
 
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
     }
 
     private void init() throws Exception {
         fileManager = new DefaultFileManager(schemaManager, DESTINATION);
-        gtidManager = new DefaultGtidManager(fileManager);
+        gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.initialize();
         fileManager.start();
         fileManager.setGtidManager(gtidManager);

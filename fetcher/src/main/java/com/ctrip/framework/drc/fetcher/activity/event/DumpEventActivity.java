@@ -43,9 +43,6 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
 
     public TaskActivity<T, ?> latter;
 
-    @InstanceConfig(path = "cluster")
-    public String cluster = "unset";
-
     @InstanceResource
     public Capacity capacity;
 
@@ -183,8 +180,8 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     }
 
     protected void afterHandleLogEvent(T logEvent) {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("instance", cluster, 1, 0);
-        loggerER.info("{} {} - RECEIVED - {}", cluster, context.fetchGtid(), logEvent.getClass().getSimpleName());
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("instance", registryKey, 1, 0);
+        loggerER.info("{} {} - RECEIVED - {}", registryKey, context.fetchGtid(), logEvent.getClass().getSimpleName());
         try {
             long start = System.currentTimeMillis();
             latter.waitSubmit(logEvent);

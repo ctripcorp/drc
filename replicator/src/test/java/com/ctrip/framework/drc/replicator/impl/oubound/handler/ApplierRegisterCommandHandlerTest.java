@@ -10,6 +10,9 @@ import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCom
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
@@ -33,6 +36,7 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * @Author limingdong
@@ -63,6 +67,15 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
     private SchemaManager schemaManager;
 
     @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    @Mock
     private Attribute<Gate> attribute;
 
     @Mock
@@ -77,19 +90,25 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
     //send file 1 and 4
     private static final GtidSet EXCLUDED_GTID = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1510:1512-2000");
 
+    private Set<UUID> uuids = Sets.newHashSet();
+
     private InetSocketAddress socketAddress = new InetSocketAddress(LOCAL_HOST, 8080);
 
     private GtidManager gtidManager;
 
     @Before
     public void setUp() throws Exception {
+        super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
+
         fileManager = new DefaultFileManager(schemaManager, APPLIER_NAME);
-        gtidManager = new DefaultGtidManager(fileManager);
+        gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.initialize();
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
-
-        gtidManager.setUuids(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
 
         applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport);
 

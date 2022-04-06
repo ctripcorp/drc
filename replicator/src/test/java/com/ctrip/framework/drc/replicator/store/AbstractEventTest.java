@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.replicator.store;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.AbstractZkTest;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -21,7 +21,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.t
  * Created by mingdongli
  * 2019/9/18 下午2:40.
  */
-public abstract class AbstractEventTest extends MockTest {
+public abstract class AbstractEventTest extends AbstractZkTest {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
