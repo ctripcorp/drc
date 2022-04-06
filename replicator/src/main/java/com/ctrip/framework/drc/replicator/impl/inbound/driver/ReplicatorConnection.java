@@ -155,7 +155,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             GtidSet.UUIDSet uuidSet =  oldGtidSet.getUUIDSet(uuid);
             GtidSet.UUIDSet newUuidSet = newGtidSet.getUUIDSet(uuid);
             if (uuidSet != null) { // replace uuidset if uuid is not current uuid
-                if (!uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
+                if (currentUuid != null && !uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
                     uuidSets.put(uuid, newUuidSet); // for replicator request binlog from mysql
                     boolean removed = gtidManager.removeUuid(uuid); // for applier replication
                     logger.info("[Purged] gtidset replace {} with {}, res is {}", uuidSet, newUuidSet, removed);
