@@ -27,8 +27,7 @@ public class ReplicatorServerContainer extends AbstractServerContainer implement
 
     @Override
     protected ReplicatorServer getReplicatorServer(ReplicatorConfig config) {
-        DefaultReplicatorServer replicatorServer = new DefaultReplicatorServer(config, SchemaManagerFactory.getOrCreateMySQLSchemaManager(config), tableFilterConfiguration, uuidOperator);
-        return replicatorServer;
+        return new DefaultReplicatorServer(config, SchemaManagerFactory.getOrCreateMySQLSchemaManager(config), tableFilterConfiguration, uuidOperator);
     }
 
 }

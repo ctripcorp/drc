@@ -111,8 +111,6 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         replicatorSlaveServer.setGtidManager(gtidManager);
 
         mySQLConnector.addObserver(schemaManager);  //init table
-
-
     }
 
     @Override

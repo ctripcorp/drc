@@ -46,8 +46,8 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
     protected void executeBatch(Statement statement) throws SQLException {
         if (batchSize > 0) {
             statement.executeBatch();
+            DDL_LOGGER.info("[Execute] batch size {}", batchSize);
             batchSize = 0;
-            DDL_LOGGER.info("[Execute] batch");
         }
     }
 }
