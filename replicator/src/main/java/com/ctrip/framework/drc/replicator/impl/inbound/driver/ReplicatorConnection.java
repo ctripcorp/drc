@@ -25,6 +25,7 @@ import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.api.pool.ObjectPoolException;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -293,5 +294,10 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         BinlogDumpGtidClientCommandHandler dumpGtidCommandHandler = new BinlogDumpGtidClientCommandHandler(logEventHandler, new ReplicatorByteBufConverter());
         BinlogDumpGtidCommandExecutor binlogDumpGtidCommandExecutor = new BinlogDumpGtidCommandExecutor(dumpGtidCommandHandler, gtidSet, id);
         return binlogDumpGtidCommandExecutor.handle(simpleObjectPool);
+    }
+
+    @VisibleForTesting
+    public void setCurrentUuid(String currentUuid) {
+        this.currentUuid = currentUuid;
     }
 }

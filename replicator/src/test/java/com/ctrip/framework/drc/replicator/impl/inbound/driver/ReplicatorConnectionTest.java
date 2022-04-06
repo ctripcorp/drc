@@ -79,10 +79,12 @@ public class ReplicatorConnectionTest extends MockTest {
 
     @Test
     public void testCombine() {
+        String currentUuid = "026aa718-6eac-11ec-9293-98039ba567ea";
+        replicatorConnection.setCurrentUuid(currentUuid);
         String testUuid = "19aa3243-6fa8-11ec-8030-b8599f4ac53c";
         Set<String> uuids = Sets.newHashSet();
         uuids.add(testUuid);
-        uuids.add("026aa718-6eac-11ec-9293-98039ba567ea");
+        uuids.add(currentUuid);
         uuids.add("cdc1156a-6ead-11ec-b1ce-98039ba56ce6");
         uuids.add("2e44ce1c-b1e1-11ec-a0b1-98039ba567ea");
         uuids.add("b5f22724-b1ce-11ec-81b7-98039ba567ea");
