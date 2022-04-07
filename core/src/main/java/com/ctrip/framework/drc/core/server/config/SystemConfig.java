@@ -58,6 +58,8 @@ public class SystemConfig {
 
     public static final String COMMA = ",";
 
+    public static final String SEMICOLON = ";";
+
     public static final String DRC_MONITOR_SCHEMA_NAME = "drcmonitordb";
 
     public static final String DRC_DELAY_MONITOR_TABLE_NAME = "delaymonitor";
