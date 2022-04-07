@@ -21,7 +21,7 @@ public class DataSourceManager extends AbstractDataSource {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final int MAX_ACTIVE = 40;
+    public static final int MAX_ACTIVE = 50;
 
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
