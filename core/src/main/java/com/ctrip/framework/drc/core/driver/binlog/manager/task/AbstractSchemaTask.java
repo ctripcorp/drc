@@ -17,7 +17,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
 
     protected DataSource inMemoryDataSource;
 
-    protected int MAX_BATCH_SIZE = 100;
+    protected int MAX_BATCH_SIZE = 400;
 
     protected int batchSize = 0;
 
