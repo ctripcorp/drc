@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
-import java.sql.Connection;
-import java.sql.Statement;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,9 +13,6 @@ import java.util.Map;
  */
 public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
 
-    public static final String CREATE_DB = "CREATE DATABASE IF NOT EXISTS %s;";
-
-    public static final String FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS=0";
 
     private Map<String, Map<String, String>> ddlSchemas;
 
@@ -30,35 +27,24 @@ public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable
         new RetryTask<>(new SchemeClearTask(inMemoryEndpoint, inMemoryDataSource)).call();
     }
 
-    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
     public Boolean call() throws Exception {
-        try (Connection connection = inMemoryDataSource.getConnection()) {
-            try (Statement statement = connection.createStatement()) {
-                boolean pass = statement.execute(FOREIGN_KEY_CHECKS);
-                DDL_LOGGER.info("[Execute] {} with result {}", FOREIGN_KEY_CHECKS, pass);
-
-                // create database
-                for (String dbName : ddlSchemas.keySet()) {
-                    if (!addBatch(statement, String.format(CREATE_DB, dbName))) {
-                        DDL_LOGGER.info("[Create] database {} in batch", dbName);
-                    }
-                }
-                executeBatch(statement);
-
-                // create table
-                for (Map<String, String> tables : ddlSchemas.values()) {
-                    for (String tableName : tables.values()) {
-                        if (!addBatch(statement, tableName)) {
-                            DDL_LOGGER.info("[Create] table {} in batch", tableName);
-                        }
-                    }
-                }
-                executeBatch(statement);
-
-                return true;
-            }
+        // create database
+        boolean res = doCreate(ddlSchemas.keySet(), DatabaseCreateTask.class, true);
+        if (!res) {
+            return res;
         }
 
+        // create table
+        List<String> sqls = Lists.newArrayList();
+        for (Map<String, String> tables : ddlSchemas.values()) {
+            for (String tableCreate : tables.values()) {
+                sqls.add(tableCreate);
+            }
+        }
+        return doCreate(sqls, TableCreateTask.class, false);
+
     }
+
+
 }

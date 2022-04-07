@@ -19,8 +19,6 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtract
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeClearTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
@@ -93,8 +91,6 @@ import java.sql.Statement;
         DdlParserTest.class,
         RetryTaskTest.class,
 //        DbInitTaskTest.class,
-        SchemeCloneTaskTest.class,
-        SchemeClearTaskTest.class,
         SchemeApplyTaskTest.class,
 
         DefaultMonitorManagerTest.class,
