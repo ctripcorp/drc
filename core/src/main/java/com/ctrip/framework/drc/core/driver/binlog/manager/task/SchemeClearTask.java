@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor;
 import com.ctrip.framework.drc.core.driver.util.MySQLConstants;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.sql.Connection;
@@ -28,16 +29,14 @@ public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(MySQLConstants.SHOW_DATABASES_QUERY)) {
                     List<String> databases = SchemaExtractor.extractValues(resultSet, null);
+                    List<String> dbs = Lists.newArrayList();
                     for (String schema : databases) {
                         if (MySQLConstants.EXCLUDED_DB.contains(schema)) {
                             continue;
                         }
-                        if (!addBatch(statement, String.format(MySQLConstants.DROP_DATABASE, schema))) {
-                            DDL_LOGGER.info("[Drop] db {} in batch", schema);
-                        }
+                        dbs.add(schema);
                     }
-                    executeBatch(statement);
-                    return true;
+                    return doCreate(dbs, DatabaseDropTask.class, true);
                 }
             }
         }

@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
@@ -48,6 +50,9 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        //schema
+        SchemeCloneTaskTest.class,
+        DatabaseCreateTaskTest.class,
         //proxy
         DrcNettyClientPoolTest.class,
         ConnectGeneratorTest.class,
@@ -154,15 +159,15 @@ import org.junit.runners.Suite;
 })
 public class AllTests {
 
-    public static final int SRC_PORT = 3308;
+    public static int ZK_PORT = 2182;
 
-    public static final int ZK_PORT = 2182;
+    public static int SRC_PORT = 3308;
 
-    public static final String IP = "127.0.0.1";
+    public static String IP = "127.0.0.1";
 
-    public static final String MYSQL_USER = "root";
+    public static String MYSQL_USER = "root";
 
-    public static final String MYSQL_PASSWORD = "";
+    public static String MYSQL_PASSWORD = "";
 
     private static DB srcDb;
 
@@ -177,6 +182,8 @@ public class AllTests {
             //for zookeeper
             server = new TestingServer(ZK_PORT, true);
         } catch (Exception e) {
+            SRC_PORT = 3306;
+            MYSQL_PASSWORD = "123456";
         }
     }
 
