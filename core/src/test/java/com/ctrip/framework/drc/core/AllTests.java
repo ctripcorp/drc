@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
@@ -48,6 +50,9 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        //schema
+        SchemeCloneTaskTest.class,
+        DatabaseCreateTaskTest.class,
         //proxy
         DrcNettyClientPoolTest.class,
         ConnectGeneratorTest.class,

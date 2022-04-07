@@ -63,7 +63,7 @@ public class DataSourceManager extends AbstractDataSource {
 
         poolProperties.setUsername(endpoint.getUser());
         poolProperties.setPassword(endpoint.getPassword());
-        poolProperties.setMaxActive(2);
+        poolProperties.setMaxActive(40);
         poolProperties.setMaxIdle(2);
         poolProperties.setMinIdle(1);
         poolProperties.setInitialSize(1);

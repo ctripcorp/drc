@@ -1,0 +1,29 @@
+package com.ctrip.framework.drc.core.driver.binlog.manager.task;
+
+import com.ctrip.xpipe.api.endpoint.Endpoint;
+import org.apache.tomcat.jdbc.pool.DataSource;
+
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+
+/**
+ * @Author limingdong
+ * @create 2022/4/7
+ */
+public class TableCreateTask extends BatchTask {
+
+    public static final String FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS=0";
+
+    public TableCreateTask(List<String> sqls, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
+        super(inMemoryEndpoint, inMemoryDataSource);
+        this.sqls.addAll(sqls);
+    }
+
+    @Override
+    protected boolean beforeExecute(Statement statement) throws SQLException {
+        boolean pass = statement.execute(FOREIGN_KEY_CHECKS);
+        DDL_LOGGER.info("[Execute] {} with result {}", FOREIGN_KEY_CHECKS, pass);
+        return pass;
+    }
+}
