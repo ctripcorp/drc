@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -52,6 +53,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
 
@@ -167,7 +169,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             logger.info("[replicatorBackup] is {} for {}", replicatorBackup, applierName);
             this.ip = ip;
-            this.gate = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            if (replicatorBackup) {
+                channelAttributeKey.setHeartBeat(false);
+                HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
+            }
+            this.gate = channelAttributeKey.getGate();
 
             String filter = dumpCommandPacket.getNameFilter();
             logger.info("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);

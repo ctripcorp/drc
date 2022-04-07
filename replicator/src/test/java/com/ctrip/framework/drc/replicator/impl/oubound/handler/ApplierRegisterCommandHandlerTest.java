@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
@@ -76,7 +77,10 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
     private UuidConfig uuidConfig;
 
     @Mock
-    private Attribute<Gate> attribute;
+    private Attribute<ChannelAttributeKey> attribute;
+
+    @Mock
+    private ChannelAttributeKey channelAttributeKey;
 
     @Mock
     private Gate gate;
@@ -132,7 +136,8 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
 
@@ -145,6 +150,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(outboundMonitorReport, times(2)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(2)).addOneCount();
         verify(outboundMonitorReport, times(2 * 2 + 2)).addSize(any(Long.class)); // +2 for drc_uuid_log
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -156,7 +162,8 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         createDrcTableMapLogEventFiles();
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
@@ -165,6 +172,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channel, times( 1 + 1)).writeAndFlush(any(DefaultFileRegion.class));  //xid and drc_uuid_log
         verify(outboundMonitorReport, times(0)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(0)).addOneCount();
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -176,7 +184,8 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         createDrcDdlLogEventFiles();
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
@@ -185,6 +194,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channel, times( 3)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map、 drc_uuid_log
         verify(outboundMonitorReport, times(0)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(0)).addOneCount();
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -197,13 +207,15 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         int transactionSize = createDrcIndexLogEventFiles();
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.atLeast( 2 + transactionSize * 4)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -216,13 +228,15 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         int transactionSize = createDrcIndexLogEventFilesWithDdl();
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.atLeast( 2 + transactionSize * 4)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -235,13 +249,15 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2001:2003-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         int transactionSize = createDrcIndexLogEventFiles();
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.atLeast( 2 + transactionSize * 4)).writeAndFlush(any(DefaultFileRegion.class));  //ddl、drc table map
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -255,12 +271,14 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + maxGtidId);
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -275,12 +293,14 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":" + ddlId);
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(500);
 
         verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + (maxGtidId - 1) * 4 /*transaction size*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -295,12 +315,14 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId - 3) + ":" + (ddlId - 1) + "-" + maxGtidId);
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -315,12 +337,14 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId + 1) + ":" + (ddlId + 3) + "-" + maxGtidId);
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
 
         verify(channel, Mockito.times( 2/*ddl with 2 events, drc_ddl and drc_talbe_map*/ + 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -335,7 +359,8 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId + 1));
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
@@ -343,6 +368,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         int numTransaction = maxGtidId - (ddlId + 1);
 
         verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*drc_gtid_log_event*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -356,11 +382,13 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1500,c372080a-1804-11ea-8add-98039bbedfad:1-15000");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
         verify(channel, Mockito.atLeast(4)).writeAndFlush(any(DefaultFileRegion.class)); //4 files and 4 gtid events
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -374,11 +402,13 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3:5-1500,c372080a-1804-11ea-8add-98039bbedfad:1-15000");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(100);
         verify(channel, Mockito.times(2)).writeAndFlush(any(ByteBuf.class)); //can not find first file and send DrcErrorLogEvent(header and body)
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -392,11 +422,13 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1830,c372080a-1804-11ea-8add-98039bbedfad:1-15600");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
         verify(channel, Mockito.atLeast(3)).writeAndFlush(any(DefaultFileRegion.class)); //second file
+        verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
     @Test
@@ -421,11 +453,13 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
         verify(channel, Mockito.times(size/2 * 4 /* dbName2 */ + size/2 * 2 /* dbName1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(0)).setHeartBeat(false);
     }
 
     // send 123(tableId) -> db1.table1(tableName), skip 124(tableId) -> db1.table2(tableName)
@@ -447,11 +481,13 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);
         verify(channel, Mockito.times(6 /* db1.table1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channelAttributeKey, times(0)).setHeartBeat(false);
     }
 
     public int createDiffDbRows(Set<String> dbNames) throws Exception {
