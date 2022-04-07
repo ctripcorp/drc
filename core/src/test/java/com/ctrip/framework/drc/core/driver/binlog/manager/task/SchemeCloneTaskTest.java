@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.driver.util.MySQLConstants;
 import com.google.common.collect.Maps;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.BatchTask.MAX_BATCH_SIZE;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
 
 /**
  * @Author limingdong
@@ -28,13 +30,19 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
 
     private static final String TABLE_CREATE = "CREATE TABLE `%s`.`%s`(`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30),`four` char(255),`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
-    private int DB1_SIZE = MAX_BATCH_SIZE * 2 + 1;
+    private int DB1_SIZE = MAX_BATCH_SIZE * MAX_ACTIVE + 20;
 
     private int DB2_SIZE = MAX_BATCH_SIZE * 3 + 20;
+
+    private static final int ORIGIN_MAX_BATCH_SIZE = MAX_BATCH_SIZE;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        MAX_BATCH_SIZE = 2;
+        DB1_SIZE = MAX_BATCH_SIZE * MAX_ACTIVE + 20;
+
+        DB2_SIZE = MAX_BATCH_SIZE * 3 + 20;
 
         Map<String, String> table1 = Maps.newHashMap();
         for (int i = 1; i <= DB1_SIZE; ++i) {
@@ -54,6 +62,11 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
     @Override
     protected AbstractSchemaTask getAbstractSchemaTask() {
         return new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource);
+    }
+
+    @After
+    public void tearDown() {
+        MAX_BATCH_SIZE = ORIGIN_MAX_BATCH_SIZE;
     }
 
     @Test
