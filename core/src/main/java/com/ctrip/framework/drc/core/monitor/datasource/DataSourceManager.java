@@ -21,6 +21,8 @@ public class DataSourceManager extends AbstractDataSource {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
+    public static final int MAX_ACTIVE = 40;
+
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
     }
@@ -63,7 +65,7 @@ public class DataSourceManager extends AbstractDataSource {
 
         poolProperties.setUsername(endpoint.getUser());
         poolProperties.setPassword(endpoint.getPassword());
-        poolProperties.setMaxActive(40);
+        poolProperties.setMaxActive(MAX_ACTIVE);
         poolProperties.setMaxIdle(2);
         poolProperties.setMinIdle(1);
         poolProperties.setInitialSize(1);

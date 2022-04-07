@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.BatchTask.MAX_BATCH_SIZE;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
 
 /**
  * @Author limingdong
@@ -82,18 +83,38 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
     }
 
     private boolean async(List<BatchTask> tasks) {
+        if (tasks.size() <= MAX_ACTIVE) {
+            return oneBatch(tasks);
+        } else {
+            boolean res = true;
+            int loopSize = tasks.size() / MAX_ACTIVE + 1;
+            for (int i = 0; i < loopSize; ++i) {
+                if (i == (loopSize - 1)) {
+                    res = oneBatch(tasks.subList(i * MAX_ACTIVE, tasks.size()));
+                } else {
+                    res = oneBatch(tasks.subList(i * MAX_ACTIVE, (i + 1) * MAX_ACTIVE));
+                }
+                if (!res) {
+                    return res;
+                }
+            }
+            return res;
+        }
+    }
+
+    private boolean oneBatch(List<BatchTask> tasks) {
         long now = System.currentTimeMillis();
         AtomicBoolean res = new AtomicBoolean(true);
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        List<ListenableFuture<Boolean>> queries = Lists.newArrayList();
+        List<ListenableFuture<Boolean>> creates = Lists.newArrayList();
 
-        for (BatchTask retryTask : tasks) {
-            ListenableFuture<Boolean> masterFuture = executorService.submit(retryTask);
-            queries.add(masterFuture);
+        for (BatchTask batchTask : tasks) {
+            ListenableFuture<Boolean> createFuture = executorService.submit(batchTask);
+            creates.add(createFuture);
         }
 
-        ListenableFuture<List<Boolean>> successfulQueries = Futures.successfulAsList(queries);
-        Futures.addCallback(successfulQueries, new FutureCallback<>() {
+        ListenableFuture<List<Boolean>> successfulCreates = Futures.successfulAsList(creates);
+        Futures.addCallback(successfulCreates, new FutureCallback<>() {
             @Override
             public void onSuccess(List<Boolean> result) {
                 for (int i = 0; i < result.size(); ++i) {
@@ -113,7 +134,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         });
 
         try {
-            boolean queryResult = countDownLatch.await(60 * 3 , TimeUnit.SECONDS);
+            boolean queryResult = countDownLatch.await(60 * 2 , TimeUnit.SECONDS);
             long elapse = System.currentTimeMillis() - now;
             if (queryResult) {
                 DDL_LOGGER.info("[BatchTask] success with {} thread and cost {}", tasks.size(), elapse);
