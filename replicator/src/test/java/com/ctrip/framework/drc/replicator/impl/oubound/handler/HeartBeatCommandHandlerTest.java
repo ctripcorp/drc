@@ -4,7 +4,9 @@ import com.ctrip.framework.drc.core.driver.binlog.HeartBeatCallBack;
 import com.ctrip.framework.drc.core.driver.command.packet.client.HeartBeatResponsePacket;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
+import com.ctrip.xpipe.utils.Gate;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Assert;
@@ -13,6 +15,8 @@ import org.junit.Test;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler.KEY_CLIENT;
 
 /**
  * @Author limingdong
@@ -25,6 +29,7 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key")));
     }
 
     @Test
@@ -110,5 +115,22 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         res = heartBeatCommandHandler.doCheck();
         Assert.assertTrue(res);
         Assert.assertFalse(heartBeatCommandHandler.getResponses().isEmpty());
+    }
+
+    @Test
+    public void testNotHeartBeat() {
+        Channel channel = new EmbeddedChannel();
+        channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key"), false));
+
+        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
+        heartBeatCommandHandler.sendHeartBeat(channel);
+        Assert.assertTrue(heartBeatCommandHandler.getResponses().isEmpty());
+
+        long now = System.currentTimeMillis();
+        HeartBeatCommandHandler.HeartBeatContext heartBeatContext = new HeartBeatCommandHandler.HeartBeatContext(now);
+        heartBeatCommandHandler.getResponses().putIfAbsent(channel, heartBeatContext);
+        boolean res = heartBeatCommandHandler.doCheck();
+        Assert.assertTrue(res);
+        Assert.assertTrue(heartBeatCommandHandler.getResponses().isEmpty());
     }
 }

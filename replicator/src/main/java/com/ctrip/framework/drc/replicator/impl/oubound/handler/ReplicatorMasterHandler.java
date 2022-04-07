@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.Gate;
@@ -29,7 +30,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final AttributeKey<Gate> KEY_CLIENT = AttributeKey.newInstance(ReplicatorMasterHandler.class.getSimpleName() + "-Replicator-Server");
+    public static final AttributeKey<ChannelAttributeKey> KEY_CLIENT = AttributeKey.newInstance(ReplicatorMasterHandler.class.getSimpleName() + "-Replicator-Server");
 
     private Map<Channel, NettyClient> nettyClientMap = Maps.newConcurrentMap();
 
@@ -67,7 +68,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
         String channelString = channel.toString();
         boolean writable = channel.isWritable();
         logger.info("{} channelWritabilityChanged to {}", channelString, writable);
-        Gate gate = channel.attr(KEY_CLIENT).get();
+        Gate gate = channel.attr(KEY_CLIENT).get().getGate();
         if (writable) {
             gate.open();
         } else {
@@ -121,7 +122,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
                             NettyClient cache = nettyClientMap.remove(channel);
                             logger.info("[Remove] {}:{} from nettyClientMap", channel, cache);
                         });
-                        ctx.channel().attr(KEY_CLIENT).set(new Gate(ctx.channel().remoteAddress().toString()));
+                        ctx.channel().attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate(ctx.channel().remoteAddress().toString())));
                         return defaultNettyClient;
                     });
 

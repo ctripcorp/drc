@@ -94,6 +94,11 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             Map<Channel, HeartBeatContext> copy = Maps.newHashMap(responses);
             for (Map.Entry<Channel, HeartBeatContext> entry : copy.entrySet()) {
                 Channel channel = entry.getKey();
+                if (!shouldHeartBeat(channel)) {
+                    HEARTBEAT_LOGGER.info("[HeartBeat] shot cut and remove for {}:{}", channel.remoteAddress(), registerKey);
+                    removeHeartBeatContext(channel);
+                    continue;
+                }
                 HeartBeatContext heartBeatContext = entry.getValue();
                 HEARTBEAT_LOGGER.debug("[HeartBeat] check {}:{}", heartBeatContext);
                 if (expired(heartBeatContext)) {
@@ -115,6 +120,10 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
     public void sendHeartBeat(Channel channel) {
         if (!heartBeatConfiguration.getHeartBeatSwitch()) {
             HEARTBEAT_LOGGER.info("[HeartBeat] switch off for {}", registerKey);
+            return;
+        }
+        if (!shouldHeartBeat(channel)) {
+            HEARTBEAT_LOGGER.info("[HeartBeat] shot cut for {}:{}", channel.remoteAddress(), registerKey);
             return;
         }
         DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0);
@@ -157,6 +166,10 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             }
         });
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.request", registerKey + ":" + channel.remoteAddress());
+    }
+
+    private boolean shouldHeartBeat(Channel channel) {
+        return channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get().isHeartBeat();
     }
 
     private void removeHeartBeatContext(Channel channel) {

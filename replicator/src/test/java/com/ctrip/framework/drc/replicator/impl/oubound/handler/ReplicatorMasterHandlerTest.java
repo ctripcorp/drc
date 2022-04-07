@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.utils.Gate;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -38,7 +39,10 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     private CommandHandlerManager commandHandlerManager;
 
     @Mock
-    private Attribute attribute;
+    private Attribute<ChannelAttributeKey> attribute;
+
+    @Mock
+    private ChannelAttributeKey channelAttributeKey;
 
     @Mock
     private Gate gate;
@@ -63,7 +67,8 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     public void testChannelWritabilityChanged() {
         when(channelHandlerContext.channel()).thenReturn(channel);
         when(channel.attr(KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         when(channel.isWritable()).thenReturn(true);
         masterHandler.channelWritabilityChanged(channelHandlerContext);
@@ -79,7 +84,8 @@ public class ReplicatorMasterHandlerTest extends MockTest {
         when(channelHandlerContext.channel()).thenReturn(channel);
         when(channelHandlerContext.writeAndFlush(any(ByteBuf.class))).thenReturn(future);
         when(idleStateEvent.state()).thenReturn(WRITER_IDLE);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
         when(channel.remoteAddress()).thenReturn(socketAddress);
 
         when(channel.isWritable()).thenReturn(false);

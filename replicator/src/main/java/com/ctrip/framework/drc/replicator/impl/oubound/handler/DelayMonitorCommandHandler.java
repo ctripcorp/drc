@@ -125,7 +125,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             this.channel = channel;
             this.monitorCommandPacket = monitorCommandPacket;
             this.key = key;
-            this.gate = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            this.gate = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get().getGate();
         }
 
 

@@ -38,18 +38,24 @@ public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable
                 boolean pass = statement.execute(FOREIGN_KEY_CHECKS);
                 DDL_LOGGER.info("[Execute] {} with result {}", FOREIGN_KEY_CHECKS, pass);
 
-                for (Map.Entry<String, Map<String, String>> entry : ddlSchemas.entrySet()) {
-                    pass = statement.execute(String.format(CREATE_DB, entry.getKey()));
-                    DDL_LOGGER.info("[Create] database {} with result {}", entry.getKey(), pass);
-                    Map<String, String> sqls = entry.getValue();
-                    for (String sql : sqls.values()) {
-                        if (!addBatch(statement, sql)) {
-                            DDL_LOGGER.info("[Create] table {} in batch", sql);
+                // create database
+                for (String dbName : ddlSchemas.keySet()) {
+                    if (!addBatch(statement, String.format(CREATE_DB, dbName))) {
+                        DDL_LOGGER.info("[Create] database {} in batch", dbName);
+                    }
+                }
+                executeBatch(statement);
+
+                // create table
+                for (Map<String, String> tables : ddlSchemas.values()) {
+                    for (String tableName : tables.values()) {
+                        if (!addBatch(statement, tableName)) {
+                            DDL_LOGGER.info("[Create] table {} in batch", tableName);
                         }
                     }
-
-                    executeBatch(statement);
                 }
+                executeBatch(statement);
+
                 return true;
             }
         }
