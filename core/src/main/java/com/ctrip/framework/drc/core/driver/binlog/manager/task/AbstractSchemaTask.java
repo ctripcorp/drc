@@ -134,7 +134,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         });
 
         try {
-            boolean queryResult = countDownLatch.await(60 * 2 , TimeUnit.SECONDS);
+            boolean queryResult = countDownLatch.await(60 * 3 , TimeUnit.SECONDS);
             long elapse = System.currentTimeMillis() - now;
             if (queryResult) {
                 DDL_LOGGER.info("[BatchTask] success with {} thread and cost {}", tasks.size(), elapse);
