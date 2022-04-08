@@ -70,9 +70,6 @@ public class ReplicatorByteBufConverter extends AbstractByteBufConverter {
             case drc_ddl_log_event:
                 logEvent =  new DrcDdlLogEvent();
                 return logEvent;
-            case drc_heartbeat_log_event:
-                logEvent =  new DrcHeartbeatLogEvent();
-                return logEvent;
             default:
                 return null;
         }
