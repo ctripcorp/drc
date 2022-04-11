@@ -24,15 +24,19 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  */
 public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
 
-    private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("Schema-Create-Task"));
+    private ListeningExecutorService executorService;
 
     protected Endpoint inMemoryEndpoint;
 
     protected DataSource inMemoryDataSource;
 
+    private String identity;
+
     public AbstractSchemaTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         this.inMemoryEndpoint = inMemoryEndpoint;
         this.inMemoryDataSource = inMemoryDataSource;
+        this.identity = getClass().getSimpleName() + "-" + inMemoryEndpoint.getSocketAddress();
+        executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool(identity));
     }
 
     @Override
@@ -121,6 +125,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
                     Boolean createRes = result.get(i);
                     if (createRes == null || !createRes) {
                         res.set(false);
+                        DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
                         return;
                     }
                 }
@@ -129,6 +134,8 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
 
             @Override
             public void onFailure(Throwable t) {
+                res.set(false);
+                DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
                 countDownLatch.countDown();
             }
         });
