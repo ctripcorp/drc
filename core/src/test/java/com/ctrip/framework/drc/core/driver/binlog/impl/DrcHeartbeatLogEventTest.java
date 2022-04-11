@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -24,6 +25,7 @@ public class DrcHeartbeatLogEventTest {
 
     @Test
     public void read() {
+        Assert.assertTrue(drcHeartbeatLogEvent.getLogEventType() == LogEventType.drc_heartbeat_log_event);
         ByteBuf headByteBuf = drcHeartbeatLogEvent.getLogEventHeader().getHeaderBuf();
         headByteBuf.readerIndex(0);
 

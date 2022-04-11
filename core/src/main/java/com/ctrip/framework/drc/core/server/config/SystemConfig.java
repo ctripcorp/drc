@@ -32,7 +32,7 @@ public class SystemConfig {
 
     public static final String REPLICATOR_FILE_FIRST = "drc.replicator.binlog.firstfile";
 
-    public static final String JDBC_URL_PARAM = "?useSSL=false&useUnicode=true&characterEncoding=UTF-8";
+    public static final String JDBC_URL_PARAM = "?allowMultiQueries=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8";
 
     public static final String DRC_PROJECT = "DRC";
 
@@ -57,6 +57,8 @@ public class SystemConfig {
     public static final String DOT = ".";
 
     public static final String COMMA = ",";
+
+    public static final String SEMICOLON = ";";
 
     public static final String DRC_MONITOR_SCHEMA_NAME = "drcmonitordb";
 

@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class DatabaseCreateTask extends BatchTask {
 
-    public static final String CREATE_DB = "CREATE DATABASE IF NOT EXISTS %s;";
+    public static final String CREATE_DB = "CREATE DATABASE IF NOT EXISTS %s";
 
     public DatabaseCreateTask(List<String> dbs, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);

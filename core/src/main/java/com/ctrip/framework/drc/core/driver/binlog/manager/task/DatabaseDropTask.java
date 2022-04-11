@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class DatabaseDropTask extends BatchTask {
 
-    public static final String DROP_DATABASE = "DROP DATABASE IF EXISTS %s;";
+    public static final String DROP_DATABASE = "DROP DATABASE IF EXISTS %s";
 
     public DatabaseDropTask(List<String> dbs, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);

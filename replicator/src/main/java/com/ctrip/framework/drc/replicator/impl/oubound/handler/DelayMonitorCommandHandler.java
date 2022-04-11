@@ -56,10 +56,10 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
     @Override
     public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
         DelayMonitorCommandPacket monitorCommandPacket = (DelayMonitorCommandPacket) serverCommandPacket;
-        logger.info("[Receive] command code is {}", COM_DELAY_MONITOR.name());
+        Channel channel = nettyClient.channel();
+        logger.info("[Receive] command code is {} for {}", COM_DELAY_MONITOR.name(), channel);
         String dcName = monitorCommandPacket.getDcName();
         String clusterName = monitorCommandPacket.getClusterName();
-        Channel channel = nettyClient.channel();
         InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
         String ip = remoteAddress.getAddress().getHostAddress();
         DelayMonitorKey key = getKey(monitorCommandPacket, ip);
