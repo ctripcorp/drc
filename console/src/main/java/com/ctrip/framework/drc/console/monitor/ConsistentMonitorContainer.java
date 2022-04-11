@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.*;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.ConsistencyEntity;
@@ -70,6 +71,9 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Autowired
+    private MonitorService monitorService;
 
     private ConsistencyCheckContainer checkContainer = new ConsistencyCheckContainer();
 
@@ -120,7 +124,8 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MachineTbl> machineTbls = machineTblDao.queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getMaster().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DcTbl> dcTbls = dcTblDao.queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        List<DataConsistencyMonitorTbl> dataConsistencyMonitorTblList = dataConsistencyMonitorTblDao.queryAll().stream().filter(p -> p.getMonitorSwitch().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+        List<Integer> mhaIdsToBeMonitored = monitorService.queryMhaIdsToBeMonitored().stream().map(Long::intValue).collect(Collectors.toList());
+        List<DataConsistencyMonitorTbl> dataConsistencyMonitorTblList = dataConsistencyMonitorTblDao.queryAll().stream().filter(p -> p.getMonitorSwitch().equals(BooleanEnum.TRUE.getCode()) && mhaIdsToBeMonitored.contains(p.getMhaId())).collect(Collectors.toList());
 
         Map<Long, MhaTbl> idAndMhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl -> MhaTbl));
         Map<Long, MachineTbl> mhaIdAndMachineMap = machineTbls.stream().collect(Collectors.toMap(MachineTbl::getMhaId, MachineTbl -> MachineTbl, (v1, v2) -> v1));
