@@ -24,7 +24,7 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  */
 public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
 
-    private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("Schema-Create-Task"));
+    private ListeningExecutorService executorService;
 
     protected Endpoint inMemoryEndpoint;
 
@@ -33,6 +33,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
     public AbstractSchemaTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         this.inMemoryEndpoint = inMemoryEndpoint;
         this.inMemoryDataSource = inMemoryDataSource;
+        executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool(getClass().getSimpleName() + "-" + inMemoryEndpoint.getSocketAddress()));
     }
 
     @Override

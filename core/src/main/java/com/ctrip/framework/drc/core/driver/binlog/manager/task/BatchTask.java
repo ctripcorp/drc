@@ -15,7 +15,7 @@ import java.util.List;
  */
 public abstract class BatchTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
 
-    public static int MAX_BATCH_SIZE = 100;
+    public static int MAX_BATCH_SIZE = 50;
 
     protected int batchSize = 0;
 
@@ -53,6 +53,7 @@ public abstract class BatchTask extends AbstractSchemaTask implements NamedCalla
 
     protected boolean addBatch(Statement statement, String sql) throws SQLException {
         statement.addBatch(sql);
+        DDL_LOGGER.info("[Add] batch {}", sql);
         if (++batchSize >= MAX_BATCH_SIZE) {
             executeBatch(statement);
             return true;
