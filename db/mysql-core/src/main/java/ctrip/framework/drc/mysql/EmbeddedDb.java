@@ -53,9 +53,6 @@ public class EmbeddedDb {
 
     private String tmpPath = "/data/drc/mysql";
 
-    private String target = "/target";
-
-
     public EmbeddedMysql mysqlServer() {
         return mysqlServer(port);
     }
@@ -79,7 +76,6 @@ public class EmbeddedDb {
                 .withPort(port)
                 .withCharset(Charset.UTF8)
                 .withUser(user, password)
-                .withTempDir(tmpPath + target)
                 .withServerVariable("lower_case_table_names", 1)
                 .withServerVariable("character_set_server", "utf8mb4")
                 .withServerVariable("collation_server", "utf8mb4_general_ci")
