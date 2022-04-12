@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.driver.util.MySQLConstants;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
+import org.apache.tomcat.jdbc.pool.DataSource;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,6 +39,8 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
 
     private static final int ORIGIN_MAX_BATCH_SIZE = MAX_BATCH_SIZE;
 
+    private static final int LOOP_SIZE = 10;
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -62,6 +67,30 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
     @Override
     protected AbstractSchemaTask getAbstractSchemaTask() {
         return new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource);
+    }
+
+    @Test
+    public void testOnBatch() {
+        // test false
+        List<BatchTask> tasks = Lists.newArrayList();
+        for (int i = 0; i < LOOP_SIZE; ++i) {
+            tasks.add(new MockBatchTask(inMemoryEndpoint, inMemoryDataSource, i));
+        }
+        Assert.assertFalse(abstractSchemaTask.oneBatch(tasks));
+
+        // test exception
+        tasks.clear();
+        for (int i = LOOP_SIZE; i < LOOP_SIZE + LOOP_SIZE; ++i) {
+            tasks.add(new MockBatchTask(inMemoryEndpoint, inMemoryDataSource, i));
+        }
+        Assert.assertFalse(abstractSchemaTask.oneBatch(tasks));
+
+        // test true
+        tasks.clear();
+        for (int i = LOOP_SIZE + 2; i < LOOP_SIZE + LOOP_SIZE + 2; i= i + 2) {
+            tasks.add(new MockBatchTask(inMemoryEndpoint, inMemoryDataSource, i));
+        }
+        Assert.assertTrue(abstractSchemaTask.oneBatch(tasks));
     }
 
     @After
@@ -108,6 +137,28 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
             }
             MySQLConstants.EXCLUDED_DB.remove(excluded_db_1);
             MySQLConstants.EXCLUDED_DB.remove(excluded_db_2);
+        }
+    }
+
+    class MockBatchTask extends BatchTask {
+
+        private int loop;
+
+        public MockBatchTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource, int loop) {
+            super(inMemoryEndpoint, inMemoryDataSource);
+            this.loop = loop;
+        }
+
+        @Override
+        public Boolean call() {
+            if (loop == LOOP_SIZE) {
+                throw new RuntimeException();
+            }
+            if (loop % 2 == 0) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 }

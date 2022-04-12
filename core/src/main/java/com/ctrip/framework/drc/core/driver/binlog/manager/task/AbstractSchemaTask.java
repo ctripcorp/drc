@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -106,7 +107,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         }
     }
 
-    private boolean oneBatch(List<BatchTask> tasks) {
+    protected boolean oneBatch(List<BatchTask> tasks) {
         long now = System.currentTimeMillis();
         AtomicBoolean res = new AtomicBoolean(true);
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -126,7 +127,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
                     if (createRes == null || !createRes) {
                         res.set(false);
                         DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
-                        return;
+                        break;
                     }
                 }
                 countDownLatch.countDown();
@@ -148,6 +149,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
             } else {
                 res.set(false);
                 DDL_LOGGER.error("[BatchTask] timeout for countDownLatch querying doCreate with {} thread and cost {}", tasks.size(), elapse);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.batch.task.timeout", identity);
             }
         } catch (InterruptedException e) {
             DDL_LOGGER.error("doCreate error in countDownLatch wait", e);
