@@ -12,13 +12,14 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
+import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
@@ -55,6 +56,7 @@ import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APP
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_PREFIX;
 
 
 /**
@@ -279,6 +281,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return;
                 }
 
+                checkFileGaps(file);
+
                 logger.info("[Serving] {} begin, first file name {}", applierName, file.getName());
                 // 3、open file，send every file
                 while (loop()) {
@@ -303,6 +307,19 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error", e);
+            }
+        }
+
+        private void checkFileGaps(File file) {
+            try {
+                File currentFile = fileManager.getCurrentLogFile();
+                long firstSendFileNum = FileUtil.getFileNumFromName(file.getName(), LOG_FILE_PREFIX);
+                long currentFileNum = FileUtil.getFileNumFromName(currentFile.getName(), LOG_FILE_PREFIX);
+                if (currentFileNum - firstSendFileNum > 10) {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.gap", applierName + ":" + ip);
+                }
+            } catch (Exception e) {
+                logger.info("checkFileHasGaps error for {}", applierName, e);
             }
         }
 
