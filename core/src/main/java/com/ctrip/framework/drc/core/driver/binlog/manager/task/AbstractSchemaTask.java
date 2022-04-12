@@ -53,7 +53,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         return sync ? sync(tasks) : async(tasks);
     }
 
-    private List<BatchTask> getBatchTasks(Collection<String> sqlCollection, Class<? extends BatchTask> clazz) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    protected List<BatchTask> getBatchTasks(Collection<String> sqlCollection, Class<? extends BatchTask> clazz) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         List<BatchTask> tasks = Lists.newArrayList();
 
         List<String> sqls = Lists.newArrayList();
