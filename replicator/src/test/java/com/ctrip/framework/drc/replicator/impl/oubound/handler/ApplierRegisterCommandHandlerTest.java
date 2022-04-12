@@ -782,7 +782,6 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         }
         writeTransactionWithGtid(UUID_STRING + ":" + (loop + 1));
         gtidManager.addExecutedGtid(UUID_STRING + ":" + (loop + 1));
-
         fileManager.flush();
 
         return loop + 1;
