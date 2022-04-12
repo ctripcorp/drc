@@ -90,7 +90,7 @@ export default {
   methods: {
     getMhaGroups () {
       const that = this
-      that.axios.get('/api/drc/v1/meta/groups/all')
+      that.axios.get('/api/drc/v1/meta/orderedGroups/all?deleted=0')
         .then(response => {
           console.log(response)
           that.total = response.data.data.length

@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyM
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,6 +23,7 @@ import org.unidal.tuple.Triple;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
@@ -51,6 +53,9 @@ public class ConsistentMonitorContainerTest extends MockTest {
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Mock
+    private MonitorService monitorService;
 
     private static final String LOCAL_DC = "shaoy";
 
@@ -59,6 +64,7 @@ public class ConsistentMonitorContainerTest extends MockTest {
         super.setUp();
         when(dbClusterSourceProvider.getLocalDcName()).thenReturn(LOCAL_DC);
         when(checkContainer.addConsistencyCheck(any(InstanceConfig.class))).thenReturn(true);
+        when(monitorService.queryMhaIdsToBeMonitored()).thenReturn(List.of(1L,2L,100L,0L));
         Mockito.doNothing().when(currentMetaManager).addObserver(consistentMonitorContainer);
     }
 
