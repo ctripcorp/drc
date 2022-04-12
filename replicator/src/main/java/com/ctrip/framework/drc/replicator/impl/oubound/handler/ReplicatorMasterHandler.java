@@ -115,7 +115,7 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
     }
 
     protected void handleWriterIdle(ChannelHandlerContext ctx) {
-        DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent();
+        DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0);
         Channel channel = ctx.channel();
         drcHeartbeatLogEvent.write(new IoCache() {
             @Override
