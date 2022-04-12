@@ -12,5 +12,7 @@ public interface MonitorService {
 
     List<String> queryMhaNamesToBeMonitored() throws SQLException;
 
+    List<Long> queryMhaIdsToBeMonitored() throws SQLException;
+
     List<String> getMhaNamesToBeMonitored() throws SQLException;
 }
