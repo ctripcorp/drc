@@ -43,26 +43,53 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     public boolean onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
         boolean released = false;
         if (nextMonitorRowsEvent) {
-            DELAY_LOGGER.debug("[Filter] with nextMonitorRowsEvent of {} with gtid {}", nextMonitorRowsEvent, gtid);
-            DelayMonitorLogEvent monitorLogEvent = null;
-            for (Observer observer : observers) {
-                if (observer instanceof MonitorEventObserver) {
-                    if (monitorLogEvent == null) {
-                        monitorLogEvent = new DelayMonitorLogEvent(gtid, updateRowsEvent);
-                    }
-                    observer.update(monitorLogEvent, this);
-                    released = true;
+            List<DelayMonitorLogEvent> delayMonitorLogEvents = getDelayMonitorLogEvents(updateRowsEvent, gtid);
+            released = notify(delayMonitorLogEvents);
+            releaseDelayMonitorLogEvent(delayMonitorLogEvents);
+        }
+        return released;
+    }
+
+    private List<DelayMonitorLogEvent> getDelayMonitorLogEvents(UpdateRowsEvent updateRowsEvent, String gtid) {
+        List<DelayMonitorLogEvent> delayMonitorLogEvents = Lists.newArrayList();
+        DELAY_LOGGER.debug("[Filter] with nextMonitorRowsEvent of {} with gtid {}", nextMonitorRowsEvent, gtid);
+        for (Observer observer : observers) {
+            if (observer instanceof MonitorEventObserver) {
+                DelayMonitorLogEvent monitorLogEvent;
+                if (delayMonitorLogEvents.isEmpty()) {
+                    monitorLogEvent = new DelayMonitorLogEvent(gtid, updateRowsEvent);
+                    delayMonitorLogEvents.add(monitorLogEvent);
+                } else {
+                    delayMonitorLogEvents.get(0).retain();
+                    DELAY_LOGGER.info("[Retain] DelayMonitorLogEvent to {}", delayMonitorLogEvents.get(0).refCnt(), gtid);
                 }
             }
-            if (monitorLogEvent != null && monitorLogEvent.isNeedReleased()) {
+        }
+        return delayMonitorLogEvents;
+    }
+
+    private boolean notify(List<DelayMonitorLogEvent> delayMonitorLogEvents) {
+        boolean notify = !delayMonitorLogEvents.isEmpty();
+        if (notify) {
+            for (Observer observer : observers) {
+                if (observer instanceof MonitorEventObserver) {
+                    observer.update(delayMonitorLogEvents.get(0), this);
+                }
+            }
+        }
+        return notify;
+    }
+
+    private void releaseDelayMonitorLogEvent(List<DelayMonitorLogEvent> delayMonitorLogEvents) {
+        for (DelayMonitorLogEvent delayMonitorLogEvent : delayMonitorLogEvents) {
+            if (delayMonitorLogEvent.isNeedReleased()) {
                 try {
-                    monitorLogEvent.release();
+                    delayMonitorLogEvent.release();
                 } catch (Exception e) {
                     logger.error("[Release] logEvent error", e);
                 }
             }
         }
-        return released;
     }
 
     @Override
