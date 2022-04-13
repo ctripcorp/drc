@@ -45,7 +45,7 @@ public class FilterChainContext {
         setInboundMonitorReport(inboundMonitorReport);
         setRegistryKey(registryKey);
         setTransactionCache(transactionCache);
-        setdelayMonitor(monitorManager);
+        setDelayMonitor(monitorManager);
         setTableFilterConfiguration(tableFilterConfiguration);
     }
 
@@ -93,7 +93,7 @@ public class FilterChainContext {
         return monitorManager;
     }
 
-    public void setdelayMonitor(DefaultMonitorManager delayMonitor) {
+    public void setDelayMonitor(DefaultMonitorManager delayMonitor) {
         this.monitorManager = delayMonitor;
     }
 

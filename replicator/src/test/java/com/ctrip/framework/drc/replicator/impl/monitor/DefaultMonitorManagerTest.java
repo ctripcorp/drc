@@ -22,7 +22,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_
  */
 public class DefaultMonitorManagerTest extends AbstractTransactionTest {
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     @Mock
     private MonitorEventObserver monitorEventObserver1;

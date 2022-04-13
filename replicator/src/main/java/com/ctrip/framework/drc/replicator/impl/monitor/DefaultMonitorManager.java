@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
 import com.ctrip.xpipe.api.observer.Observer;
@@ -28,6 +29,12 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
     private boolean nextMonitorRowsEvent = false;
+
+    private String registerKey;
+
+    public DefaultMonitorManager(String registerKey) {
+        this.registerKey = registerKey;
+    }
 
     @Override
     public void onTableMapLogEvent(TableMapLogEvent tableMapLogEvent) {
@@ -59,7 +66,7 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
                     delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, updateRowsEvent);
                 } else {
                     delayMonitorLogEvent.retain();
-                    DELAY_LOGGER.info("[Retain] DelayMonitorLogEvent refCnt to {} for {}", delayMonitorLogEvent.refCnt(), gtid);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.refcnt", registerKey);
                 }
             }
         }

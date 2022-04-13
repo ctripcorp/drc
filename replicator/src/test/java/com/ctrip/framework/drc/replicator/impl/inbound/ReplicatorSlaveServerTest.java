@@ -45,7 +45,7 @@ public class ReplicatorSlaveServerTest extends AbstractServerTest {
 
     private TransactionCache transactionCache;
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     @Mock
     private Filter<ITransactionEvent> filterChain;
