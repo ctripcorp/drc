@@ -2,16 +2,14 @@ package com.ctrip.framework.drc.replicator.impl.monitor;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -23,8 +21,6 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_
  * 2019/12/13 上午9:36.
  */
 public class DefaultMonitorManager implements MonitorEventObservable, MonitorManager {
-
-    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
@@ -90,7 +86,7 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
             try {
                 delayMonitorLogEvent.release();
             } catch (Exception e) {
-                logger.error("[Release] logEvent error", e);
+                DELAY_LOGGER.error("[Release] DelayMonitorLogEvent error", e);
             }
         }
     }
