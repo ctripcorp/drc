@@ -22,10 +22,13 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_
  */
 public class DefaultMonitorManagerTest extends AbstractTransactionTest {
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     @Mock
-    private MonitorEventObserver monitorEventObserver;
+    private MonitorEventObserver monitorEventObserver1;
+
+    @Mock
+    private MonitorEventObserver monitorEventObserver2;
 
     @Mock
     private TableMapLogEvent tableMapLogEvent;
@@ -39,7 +42,8 @@ public class DefaultMonitorManagerTest extends AbstractTransactionTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
-        delayMonitor.addObserver(monitorEventObserver);
+        delayMonitor.addObserver(monitorEventObserver1);
+        delayMonitor.addObserver(monitorEventObserver2);
         when(tableMapLogEvent.getTableName()).thenReturn(DRC_DELAY_MONITOR_TABLE_NAME);
         when(updateRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(updateRowsEvent.getPayloadBuf()).thenReturn(getXidEventHeader());
@@ -48,7 +52,8 @@ public class DefaultMonitorManagerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() {
-        delayMonitor.removeObserver(monitorEventObserver);
+        delayMonitor.removeObserver(monitorEventObserver1);
+        delayMonitor.removeObserver(monitorEventObserver2);
     }
 
     @Test
@@ -56,7 +61,8 @@ public class DefaultMonitorManagerTest extends AbstractTransactionTest {
         delayMonitor.onTableMapLogEvent(tableMapLogEvent);
         boolean release = delayMonitor.onUpdateRowsEvent(updateRowsEvent, GTID);
         Assert.assertTrue(release);
-        verify(monitorEventObserver, times(1)).update(anyObject(), anyObject());
+        verify(monitorEventObserver1, times(1)).update(anyObject(), anyObject());
+        verify(monitorEventObserver2, times(1)).update(anyObject(), anyObject());
     }
 
     @Test
