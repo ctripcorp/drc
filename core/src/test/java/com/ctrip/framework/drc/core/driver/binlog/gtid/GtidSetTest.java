@@ -9,8 +9,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by mingdongli
@@ -491,5 +493,38 @@ public class GtidSetTest {
         small = new GtidSet(gtidSetStringSmall);
         res = big.union(small);
         Assert.assertEquals(res.toString(), "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-2172782,e7d82d84-036c-11ea-bb09-075284a09713:1-427,3f40568c-6364-11ea-98b4-fa163ec90ff6:1-3");
+    }
+
+
+    @Test
+    public void testConcurrentWhenAddInterval() throws InterruptedException {
+        AtomicReference<Exception> exception = new AtomicReference<>(null);
+        String gtidSetString = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-20";
+        GtidSet gtidSet = new GtidSet(gtidSetString);
+        Thread thread1 = new Thread(() -> {
+            for (int i = 21; i < 100; ++i) {
+                try {
+                    gtidSet.clone();
+                } catch (Exception e) {
+                    exception.set(e);
+                    break;
+                }
+            }
+        });
+
+        Thread thread2 = new Thread(() -> {
+            for (int i = 22; i < 100; i = i + 2) {
+                gtidSet.add("56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:" + i);
+            }
+        });
+        thread1.start();
+        thread2.start();
+
+        thread1.join();
+        thread2.join();
+
+        if (exception.get() != null && exception.get() instanceof ConcurrentModificationException) {
+            Assert.fail();
+        }
     }
 }

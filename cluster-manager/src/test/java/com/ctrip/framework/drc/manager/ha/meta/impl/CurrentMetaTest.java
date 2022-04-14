@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
+import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,5 +62,49 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
             }
         }
         verify(releasable, times(1)).release();
+    }
+
+    @Test
+    public void testMulti() {
+        currentMeta.addCluster(dbCluster);
+        Applier applier1 = new Applier();
+        String name1 = "integration-test1";
+        String mhaName1 = "mockTargetMha";
+        applier1.setIp("127.0.0.1");
+        applier1.setPort(8080);
+        applier1.setTargetName(name1);
+        applier1.setTargetMhaName(mhaName1);
+        applier1.setMaster(true);
+
+        Applier applier2 = new Applier();
+        String name2 = "integration-test2";
+        String mhaName2 = "fxdrc_multi";
+        applier2.setIp("127.0.0.3");
+        applier2.setPort(8080);
+        applier2.setTargetName(name2);
+        applier2.setTargetMhaName(mhaName2);
+        applier2.setMaster(true);
+
+        Applier applier3 = new Applier();
+        String name3 = "integration-test3";
+        String mhaName3 = "mockTargetMha";
+        applier3.setIp("127.0.0.4");
+        applier3.setPort(8080);
+        applier3.setTargetName(name3);
+        applier3.setTargetMhaName(mhaName3);
+        applier3.setMaster(true);
+
+
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier1), applier1);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier2), applier2);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier3), applier3);
+
+        Applier applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name1, mhaName1));
+        Assert.assertEquals(applier, applier1);
+        applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name2, mhaName2));
+        Assert.assertEquals(applier, applier2);
+        applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
+        Assert.assertEquals(applier, applier3);
+
     }
 }

@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.api.factory.ObjectFactory;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.tuple.Pair;
@@ -149,22 +148,18 @@ public class CurrentMeta implements Releasable {
     }
 
     public void addCluster(final DbCluster clusterMeta) {
-        CurrentClusterMeta currentClusterMeta = MapUtils.getOrCreate(currentMetas, clusterMeta.getId(),
-                new ObjectFactory<CurrentClusterMeta>() {
-
-                    @Override
-                    public CurrentClusterMeta create() {
-                        logger.info("[addCluster][create]{}", clusterMeta.getId());
-                        Dbs dbs = clusterMeta.getDbs();
-                        List<Db> dbList = dbs.getDbs();
-                        Endpoint endpoint = null;
-                        for(Db db : dbList) {
-                            if (db.isMaster()) {
-                                endpoint = new DefaultEndPoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword());
-                            }
+        MapUtils.getOrCreate(currentMetas, clusterMeta.getId(),
+                () -> {
+                    logger.info("[addCluster][create]{}", clusterMeta.getId());
+                    Dbs dbs = clusterMeta.getDbs();
+                    List<Db> dbList = dbs.getDbs();
+                    Endpoint endpoint = null;
+                    for(Db db : dbList) {
+                        if (db.isMaster()) {
+                            endpoint = new DefaultEndPoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword());
                         }
-                        return new CurrentClusterMeta(clusterMeta.getId(), endpoint);
                     }
+                    return new CurrentClusterMeta(clusterMeta.getId(), endpoint);
                 });
 
     }
@@ -205,7 +200,7 @@ public class CurrentMeta implements Releasable {
 
         private Endpoint mysqlMaster;  //mysql master
 
-        private List<Applier> surviveAppliers = Lists.newArrayList();  // all appliers
+        private Map<String, List<Applier>> surviveAppliers = Maps.newConcurrentMap();  // all appliers
 
         private Map<String, Pair<String, Integer>> applierMasters = Maps.newConcurrentMap();  // another zone replicator connected by applier
 
@@ -220,7 +215,7 @@ public class CurrentMeta implements Releasable {
         }
 
         @Override
-        public void release() throws Exception {
+        public void release() {
             logger.info("[release]{}", clusterId);
             for (Releasable resource : resources) {
                 try {
@@ -257,7 +252,7 @@ public class CurrentMeta implements Releasable {
                 }
                 this.surviveReplicators = (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
                 logger.info("[setSurviveReplicators]{},{},{}", clusterId, surviveReplicators, activeReplicator);
-                return doSetActive(activeReplicator, this.surviveReplicators);
+                return doSetActive(clusterId, activeReplicator, this.surviveReplicators);
             } else {
                 logger.info("[setSurviveReplicators][survive replicator none, clear]{},{},{}", clusterId, surviveReplicators, activeReplicator);
                 this.surviveReplicators.clear();
@@ -270,9 +265,13 @@ public class CurrentMeta implements Releasable {
                 if (!checkIn(surviveAppliers, activeApplier)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
                 }
-                this.surviveAppliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
-                logger.info("[setSurviveAppliers]{},{},{}", clusterId, surviveAppliers, activeApplier);
-                doSetActive(activeApplier, this.surviveAppliers);
+                String clusterName = activeApplier.getTargetName();
+                String mhaName = activeApplier.getTargetMhaName();
+                String backupClusterId = RegistryKey.from(clusterName, mhaName);
+                List<Applier> appliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
+                this.surviveAppliers.put(backupClusterId, appliers);
+                logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupClusterId, surviveAppliers, activeApplier);
+                doSetActive(backupClusterId, activeApplier, appliers);
             } else {
                 logger.info("[setSurviveAppliers][survive applier none, clear]{},{},{}, {}", clusterId, surviveAppliers, activeApplier);
                 this.surviveAppliers.clear();
@@ -321,11 +320,10 @@ public class CurrentMeta implements Releasable {
 
         }
 
-        public Applier getActiveApplier(String clusterId) {  //single idc
-            RegistryKey registryKey = RegistryKey.from(clusterId);
-            String replicatorMhaName = registryKey.getMhaName();
-            for (Applier survive : surviveAppliers) {
-                if (survive.isMaster() && survive.getTargetMhaName().equalsIgnoreCase(replicatorMhaName)) {
+        public Applier getActiveApplier(String backupClusterId) {  //single idc
+            List<Applier> appliers = surviveAppliers.get(backupClusterId);
+            for (Applier survive : appliers) {
+                if (survive.isMaster()) {
                     return survive;
                 }
             }
@@ -334,9 +332,11 @@ public class CurrentMeta implements Releasable {
 
         public List<Applier> getActiveAppliers() {  //all idc
             List<Applier> appliers = Lists.newArrayList();
-            for (Applier survive : surviveAppliers) {
-                if (survive.isMaster()) {
-                    appliers.add(survive);
+            for (Map.Entry<String , List<Applier>> entry : surviveAppliers.entrySet()) {
+                for (Applier survive : entry.getValue()) {
+                    if (survive.isMaster()) {
+                        appliers.add(survive);
+                    }
                 }
             }
             return appliers;
@@ -351,10 +351,10 @@ public class CurrentMeta implements Releasable {
             return null;
         }
 
-        public <T extends Instance> boolean doSetActive(T activeInstance, List<T> activeInstances) {
+        public <T extends Instance> boolean doSetActive(String backupClusterId, T activeInstance, List<T> activeInstances) {
 
             boolean changed = false;
-            logger.info("[doSetActive]{},{}", clusterId, activeInstance);
+            logger.info("[doSetActive]{}:{},{}", clusterId, backupClusterId, activeInstance);
             for (T survive : activeInstances) {
 
                 if (survive.equalsWithIpPort(activeInstance)) {
