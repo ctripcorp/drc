@@ -524,9 +524,6 @@ public class GtidSetTest {
 
         if (exception.get() != null) {
             Assert.fail();
-        } else {
-            Assert.assertNull(exception.get());
         }
-
     }
 }
