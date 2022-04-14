@@ -101,9 +101,9 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
 
         Applier applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name1, mhaName1));
         Assert.assertEquals(applier, applier1);
-        currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name2, mhaName2));
+        applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name2, mhaName2));
         Assert.assertEquals(applier, applier2);
-        currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
+        applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
         Assert.assertEquals(applier, applier3);
 
     }

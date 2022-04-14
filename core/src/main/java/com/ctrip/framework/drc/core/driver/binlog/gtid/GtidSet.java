@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid;
 
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
@@ -345,9 +344,8 @@ public class GtidSet {
     @Override
     public String toString() {
         List<String> gtids = new ArrayList<>();
-        Map<String, UUIDSet> clone = ImmutableMap.copyOf(map);
-        for (UUIDSet uuidSet : clone.values()) {
-            gtids.add(uuidSet.getUUID() + ":" + join(uuidSet.intervals, ":"));
+        for (UUIDSet uuidSet : map.values()) {
+            gtids.add(uuidSet.toString());
         }
         return join(gtids, ",");
     }
@@ -436,7 +434,7 @@ public class GtidSet {
             return index;
         }
 
-        private boolean add(long transactionId) {
+        private synchronized boolean add(long transactionId) {
             int index = findInterval(transactionId);
             boolean addedToExisting = false;
             if (index < intervals.size()) {
@@ -574,7 +572,7 @@ public class GtidSet {
         }
 
         @Override
-        public String toString() {
+        public synchronized String toString() {
             StringBuilder sb = new StringBuilder();
             if (sb.length() != 0) {
                 sb.append(',');
