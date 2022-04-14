@@ -66,7 +66,6 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
 
     @Test
     public void testMulti() {
-        String clusterId = "integration-test.fxdrc_multi";
         currentMeta.addCluster(dbCluster);
         Applier applier1 = new Applier();
         String name1 = "integration-test1";
@@ -96,15 +95,15 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier3.setMaster(true);
 
 
-        currentMeta.setSurviveAppliers(clusterId, Lists.newArrayList(applier1), applier1);
-        currentMeta.setSurviveAppliers(clusterId, Lists.newArrayList(applier2), applier2);
-        currentMeta.setSurviveAppliers(clusterId, Lists.newArrayList(applier3), applier3);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier1), applier1);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier2), applier2);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier3), applier3);
 
-        Applier applier = currentMeta.getActiveApplier(clusterId, RegistryKey.from(name1, mhaName1));
+        Applier applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name1, mhaName1));
         Assert.assertEquals(applier, applier1);
-        currentMeta.getActiveApplier(clusterId, RegistryKey.from(name2, mhaName2));
+        currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name2, mhaName2));
         Assert.assertEquals(applier, applier2);
-        currentMeta.getActiveApplier(clusterId, RegistryKey.from(name3, mhaName3));
+        currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
         Assert.assertEquals(applier, applier3);
 
     }

@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -522,7 +523,7 @@ public class GtidSetTest {
         thread1.join();
         thread2.join();
 
-        if (exception.get() != null) {
+        if (exception.get() != null && exception.get() instanceof ConcurrentModificationException) {
             Assert.fail();
         }
     }
