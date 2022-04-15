@@ -16,10 +16,8 @@ import java.util.Map;
  */
 public class ApplierTestSchemaManager extends AbstractSchemaManager {
 
-    public static final int PORT_STEP = 10000;
-
     public ApplierTestSchemaManager(Endpoint endpoint, int applierPort, String clusterName, BaseEndpointEntity baseEndpointEntity) {
-        super(endpoint, applierPort + PORT_STEP, clusterName);
+        super(endpoint, applierPort, clusterName);
         this.baseEndpointEntity = baseEndpointEntity;
         logger.info("[Schema] port is {}", port);
     }

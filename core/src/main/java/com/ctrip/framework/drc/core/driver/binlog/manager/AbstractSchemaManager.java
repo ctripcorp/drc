@@ -26,6 +26,8 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
 
+    public static final int PORT_STEP = 10000;
+
     protected int port;
 
     protected Endpoint endpoint;
@@ -41,7 +43,8 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     protected Endpoint inMemoryEndpoint;
 
     public AbstractSchemaManager(Endpoint endpoint, int port, String clusterName) {
-        this.port = port;
+        this.port = port + PORT_STEP;
+        logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
         this.clusterName = clusterName;
         ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor("MySQLSchemaManager-" + clusterName);

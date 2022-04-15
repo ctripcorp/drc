@@ -67,8 +67,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
-    public static final int PORT_STEP = 10000;
-
     private boolean integrityTest = "true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST));
 
     private boolean firstTimeIntegrityTest = false;
@@ -82,7 +80,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     public MySQLSchemaManager(Endpoint endpoint, int applierPort, String clusterName, BaseEndpointEntity baseEndpointEntity) {
         super(endpoint, applierPort, clusterName);
         this.baseEndpointEntity = baseEndpointEntity;
-        logger.info("[Schema] port is {}", port);
     }
 
     @Override
