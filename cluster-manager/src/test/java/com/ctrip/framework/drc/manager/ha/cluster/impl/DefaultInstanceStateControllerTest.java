@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -190,6 +191,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         String cluster_multi = "integration-test.fxdrc_multi";
         Applier applier = new Applier();
         applier.setTargetMhaName("mockTargetMha");
+        applier.setTargetName("integration-test");
         applier.setTargetIdc("mockTargetIdc_*&^%");
         applier.setMaster(true);
         applier.setIp(LOCAL_IP);
@@ -213,7 +215,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
         when(dcMetaCache.getCluster(cluster_multi)).thenReturn(dbCluster);
-        when(currentMetaManager.getSurviveAppliers(cluster_multi)).thenReturn(surviveAppliers);
+        when(currentMetaManager.getSurviveAppliers(cluster_multi, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()))).thenReturn(surviveAppliers);
 
         DbCluster body = instanceStateController.addApplier(cluster_multi, applier);
 

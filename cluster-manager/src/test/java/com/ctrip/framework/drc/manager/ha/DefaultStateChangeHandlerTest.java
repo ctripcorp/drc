@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -78,7 +79,7 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
 
 
         when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
-        when(currentMetaManager.getSurviveAppliers(CLUSTER_ID)).thenReturn(Lists.newArrayList(newApplier));
+        when(currentMetaManager.getSurviveAppliers(CLUSTER_ID, RegistryKey.from(newApplier.getTargetName(), newApplier.getTargetMhaName()))).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierActiveElected(CLUSTER_ID, newApplier);
         verify(instanceStateController, times(1)).addApplier(CLUSTER_ID, newApplier);
     }

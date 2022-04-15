@@ -76,9 +76,9 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getSurviveReplicators();
     }
 
-    public List<Applier> getSurviveAppliers(String clusterId) {
+    public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
-        return currentShardMeta.getSurviveAppliers();
+        return currentShardMeta.getSurviveAppliers(backupClusterId);
     }
 
     public boolean setApplierMaster(String clusterId, String backupClusterId, Pair<String, Integer> replicatorMaster) {
@@ -265,9 +265,7 @@ public class CurrentMeta implements Releasable {
                 if (!checkIn(surviveAppliers, activeApplier)) {
                     throw new IllegalArgumentException("active not in all survivors " + activeApplier + ", all:" + this.surviveAppliers);
                 }
-                String clusterName = activeApplier.getTargetName();
-                String mhaName = activeApplier.getTargetMhaName();
-                String backupClusterId = RegistryKey.from(clusterName, mhaName);
+                String backupClusterId = RegistryKey.from(activeApplier.getTargetName(), activeApplier.getTargetMhaName());
                 List<Applier> appliers = (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
                 this.surviveAppliers.put(backupClusterId, appliers);
                 logger.info("[setSurviveAppliers]{},{},{},{}", clusterId, backupClusterId, surviveAppliers, activeApplier);
@@ -384,8 +382,12 @@ public class CurrentMeta implements Releasable {
             return (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
         }
 
-        public List<Applier> getSurviveAppliers() {
-            return (List<Applier>) MetaClone.clone((Serializable) surviveAppliers);
+        public List<Applier> getSurviveAppliers(String backupClusterId) {
+            List<Applier> appliers = surviveAppliers.get(backupClusterId);
+            if (appliers == null) {
+                return null;
+            }
+            return (List<Applier>) MetaClone.clone((Serializable) appliers);
         }
 
         public String getClusterId() {

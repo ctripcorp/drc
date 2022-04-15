@@ -76,6 +76,14 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier1.setTargetMhaName(mhaName1);
         applier1.setMaster(true);
 
+        Applier applier1_slave = new Applier();
+        applier1_slave.setIp("127.0.0.10");
+        applier1_slave.setPort(8080);
+        applier1_slave.setTargetName(name1);
+        applier1_slave.setTargetMhaName(mhaName1);
+        applier1_slave.setMaster(false);
+
+
         Applier applier2 = new Applier();
         String name2 = "integration-test2";
         String mhaName2 = "fxdrc_multi";
@@ -84,6 +92,13 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier2.setTargetName(name2);
         applier2.setTargetMhaName(mhaName2);
         applier2.setMaster(true);
+
+        Applier applier2_slave = new Applier();
+        applier2_slave.setIp("127.0.0.30");
+        applier2_slave.setPort(8080);
+        applier2_slave.setTargetName(name2);
+        applier2_slave.setTargetMhaName(mhaName2);
+        applier2_slave.setMaster(false);
 
         Applier applier3 = new Applier();
         String name3 = "integration-test3";
@@ -94,9 +109,8 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier3.setTargetMhaName(mhaName3);
         applier3.setMaster(true);
 
-
-        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier1), applier1);
-        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier2), applier2);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier1, applier1_slave), applier1);
+        currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier2, applier2_slave), applier2);
         currentMeta.setSurviveAppliers(CLUSTER_ID, Lists.newArrayList(applier3), applier3);
 
         Applier applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name1, mhaName1));
@@ -106,5 +120,18 @@ public class CurrentMetaTest extends AbstractDbClusterTest {
         applier = currentMeta.getActiveApplier(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
         Assert.assertEquals(applier, applier3);
 
+        List<Applier> appliers = currentMeta.getSurviveAppliers(CLUSTER_ID, RegistryKey.from(name1, mhaName1));
+        Assert.assertEquals(2, appliers.size());
+        Assert.assertEquals(appliers.get(0), applier1);
+        Assert.assertEquals(appliers.get(1), applier1_slave);
+
+        appliers = currentMeta.getSurviveAppliers(CLUSTER_ID, RegistryKey.from(name2, mhaName2));
+        Assert.assertEquals(2, appliers.size());
+        Assert.assertEquals(appliers.get(0), applier2);
+        Assert.assertEquals(appliers.get(1), applier2_slave);
+
+        appliers = currentMeta.getSurviveAppliers(CLUSTER_ID, RegistryKey.from(name3, mhaName3));
+        Assert.assertEquals(1, appliers.size());
+        Assert.assertEquals(appliers.get(0), applier3);
     }
 }
