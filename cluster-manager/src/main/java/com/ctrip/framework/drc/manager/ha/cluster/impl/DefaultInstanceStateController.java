@@ -120,7 +120,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         executors.submit(() -> applierNotifier.notifyAdd(body));
 
-        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId);
+        List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()));
         for (Applier a : appliers) {
             if (!a.equalsWithIpPort(applier) && a.getTargetMhaName().equalsIgnoreCase(applier.getTargetMhaName())) {
                 removeApplier(clusterId, a, false);
