@@ -73,12 +73,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private boolean firstTimeIntegrityTest = false;
 
-    protected int port;
-
-    protected Endpoint endpoint;
-
-    private String clusterName;
-
     private EmbeddedMysql embeddedDb;
 
     private TransactionCache transactionCache;
@@ -86,9 +80,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     protected EventStore eventStore;
 
     public MySQLSchemaManager(Endpoint endpoint, int applierPort, String clusterName, BaseEndpointEntity baseEndpointEntity) {
-        this.endpoint = endpoint;
-        this.port = applierPort + PORT_STEP;
-        this.clusterName = clusterName;
+        super(endpoint, applierPort, clusterName);
         this.baseEndpointEntity = baseEndpointEntity;
         logger.info("[Schema] port is {}", port);
     }

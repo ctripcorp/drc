@@ -34,11 +34,18 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected BaseEndpointEntity baseEndpointEntity;
 
-    protected ExecutorService ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor("MySQLSchemaManager-DDL");
+    protected ExecutorService ddlMonitorExecutorService;
 
     protected DataSource inMemoryDataSource;
 
     protected Endpoint inMemoryEndpoint;
+
+    public AbstractSchemaManager(Endpoint endpoint, int port, String clusterName) {
+        this.port = port;
+        this.endpoint = endpoint;
+        this.clusterName = clusterName;
+        ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor("MySQLSchemaManager-" + clusterName);
+    }
 
     @Override
     public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent) {
