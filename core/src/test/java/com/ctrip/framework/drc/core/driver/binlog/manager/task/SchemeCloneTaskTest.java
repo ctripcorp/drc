@@ -179,8 +179,8 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
         Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_1));
         Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_2));
 
-        Assert.assertEquals(ddls.get(DB_NAME_1).size(), ddlSchemas.get(DB_NAME_1).size());
-        Assert.assertEquals(ddls.get(DB_NAME_2).size(), ddlSchemas.get(DB_NAME_2).size());
+        Assert.assertEquals(ddls.get(DB_NAME_1).size(), DB1_SIZE);
+        Assert.assertEquals(ddls.get(DB_NAME_2).size(), DB2_SIZE);
     }
 
     static class MockBatchTask extends BatchTask {

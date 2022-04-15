@@ -29,6 +29,7 @@ public class SchemaSnapshotTask extends AbstractSchemaTask<Map<String, Map<Strin
         super(inMemoryEndpoint, inMemoryDataSource);
     }
 
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
     public Map<String, Map<String, String>> call() throws SQLException {
         Map<String, Map<String, String>> res = Maps.newConcurrentMap();
