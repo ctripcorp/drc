@@ -29,8 +29,6 @@ import com.google.common.collect.Sets;
 import com.wix.mysql.EmbeddedMysql;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.io.File;
@@ -58,8 +56,6 @@ import static ctrip.framework.drc.mysql.EmbeddedDb.*;
  * @create 2020/3/2
  */
 public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaManager {
-
-    protected static final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = \"%s\" AND `table_name` = \"%s\" and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
 
