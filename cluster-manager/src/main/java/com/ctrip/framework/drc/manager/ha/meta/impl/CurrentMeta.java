@@ -320,11 +320,13 @@ public class CurrentMeta implements Releasable {
 
         public Applier getActiveApplier(String backupClusterId) {  //single idc
             List<Applier> appliers = surviveAppliers.get(backupClusterId);
-            for (Applier survive : appliers) {
-                if (survive.isMaster()) {
-                    return survive;
+            if (appliers != null) {
+                for (Applier survive : appliers) {
+                    if (survive.isMaster()) {
+                        return survive;
+                    }
                 }
-            }
+            } 
             return null;
         }
 

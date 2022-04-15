@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.BlackTableNameFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractor;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTask;
@@ -26,13 +25,10 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.wix.mysql.EmbeddedMysql;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.io.File;
@@ -48,6 +44,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractColumns;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractValues;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemaSnapshotTask.SHOW_TABLES_QUERY;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
 import static ctrip.framework.drc.mysql.EmbeddedDb.*;
 
 /**
@@ -58,31 +57,15 @@ import static ctrip.framework.drc.mysql.EmbeddedDb.*;
  */
 public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaManager {
 
-    protected static final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
-
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = \"%s\" AND `table_name` = \"%s\" and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
-
-    public static final String SHOW_DATABASES_QUERY = "SHOW DATABASES;";
 
     private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\"";
 
-    private static final String SHOW_TABLES_QUERY = "show full tables from `%s` where Table_type = 'BASE TABLE';";
-
-    private static final String SHOW_CREATE_TABLE_QUERY = "show create table `%s`.`%s`;";
-
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
-
-    public static final int PORT_STEP = 10000;
 
     private boolean integrityTest = "true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST));
 
     private boolean firstTimeIntegrityTest = false;
-
-    protected int port;
-
-    protected Endpoint endpoint;
-
-    private String clusterName;
 
     private EmbeddedMysql embeddedDb;
 
@@ -91,11 +74,8 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     protected EventStore eventStore;
 
     public MySQLSchemaManager(Endpoint endpoint, int applierPort, String clusterName, BaseEndpointEntity baseEndpointEntity) {
-        this.endpoint = endpoint;
-        this.port = applierPort + PORT_STEP;
-        this.clusterName = clusterName;
+        super(endpoint, applierPort, clusterName);
         this.baseEndpointEntity = baseEndpointEntity;
-        logger.info("[Schema] port is {}", port);
     }
 
     @Override
@@ -143,55 +123,6 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             return snapshot;
         }
         return snapshot;
-    }
-
-    /**
-     * key : dbName
-     * value: List<create table>
-     * @return
-     */
-    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
-        DataSourceManager dataSourceManager = DataSourceManager.getInstance();
-        DataSource dataSource = dataSourceManager.getDataSource(endpoint);
-        Map<String, Map<String, String>> schemaDdls = Maps.newHashMap();
-
-        try (Connection connection = dataSource.getConnection()) {
-            try (Statement statement = connection.createStatement()) {
-
-                ResultSet resultSet = statement.executeQuery(SHOW_DATABASES_QUERY);
-                List<String> databases = extractValues(resultSet, null);
-                for (String schema : databases) {
-                    if (BlackTableNameFilter.EXCLUDED_DB.contains(schema)) {
-                        continue;
-                    }
-
-                    Map<String, String> createTables = Maps.newHashMap();
-                    resultSet = statement.executeQuery(String.format(SHOW_TABLES_QUERY, schema));
-                    List<String> tables = extractValues(resultSet, "BASE TABLE");
-
-                    for (String table : tables) {
-
-                        String createSql = String.format(SHOW_CREATE_TABLE_QUERY, schema, table);
-                        resultSet = statement.executeQuery(createSql);
-
-                        while (resultSet.next()) {
-                            String createTable = resultSet.getString(2);
-                            createTable = createTable.replaceFirst("`" + table + "`", "`" + schema + "`.`" + table + "`");
-                            createTables.put(table, createTable);
-                        }
-                    }
-
-                    schemaDdls.put(schema, createTables);
-                }
-                resultSet.close();
-            }
-        } catch (SQLException e) {
-            DDL_LOGGER.error("snapshot error", e);
-            return Maps.newHashMap();
-        }
-
-        return schemaDdls;
     }
 
     /**
@@ -289,7 +220,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
                 try (ResultSet dResultSet = statement.executeQuery(SHOW_DATABASES_QUERY)) {
                     List<String> databases = extractValues(dResultSet, null);
                     for (String schema : databases) {
-                        if (BlackTableNameFilter.EXCLUDED_DB.contains(schema)) {
+                        if (EXCLUDED_DB.contains(schema)) {
                             continue;
                         }
 

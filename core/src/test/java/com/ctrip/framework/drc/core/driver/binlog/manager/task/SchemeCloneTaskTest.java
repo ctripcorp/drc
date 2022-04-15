@@ -27,7 +27,7 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  */
 public class SchemeCloneTaskTest extends AbstractSchemaTest {
 
-    private Map<String, Map<String, String>> ddlSchemas = Maps.newHashMap();
+    protected Map<String, Map<String, String>> ddlSchemas = Maps.newHashMap();
 
     private static final String DB_NAME_1 = "drc3";
 
@@ -73,7 +73,7 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
     }
 
     @Override
-    protected AbstractSchemaTask getAbstractSchemaTask() {
+    protected AbstractSchemaTask<Boolean> getAbstractSchemaTask() {
         return new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource);
     }
 
@@ -157,6 +157,30 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
             MySQLConstants.EXCLUDED_DB.remove(excluded_db_1);
             MySQLConstants.EXCLUDED_DB.remove(excluded_db_2);
         }
+    }
+
+    @Test
+    public void testSnapshot() throws Exception {
+        // clear frist
+        SchemeClearTask task = new SchemeClearTask(inMemoryEndpoint, inMemoryDataSource);
+        boolean res = task.call();
+        Assert.assertTrue(res);
+
+        // create second
+        res = abstractSchemaTask.call();
+        Assert.assertTrue(res);
+
+        // snapshot last
+        Map<String, Map<String, String>> ddls = new SchemaSnapshotTask(inMemoryEndpoint, inMemoryDataSource).call();
+        Assert.assertEquals(ddls.size(), ddlSchemas.size());
+        Assert.assertTrue(ddls.containsKey(DB_NAME_1));
+        Assert.assertTrue(ddls.containsKey(DB_NAME_2));
+
+        Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_1));
+        Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_2));
+
+        Assert.assertEquals(ddls.get(DB_NAME_1).size(), DB1_SIZE);
+        Assert.assertEquals(ddls.get(DB_NAME_2).size(), DB2_SIZE);
     }
 
     static class MockBatchTask extends BatchTask {

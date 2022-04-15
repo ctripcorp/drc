@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import java.io.IOException;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DOT;
 
 /**
@@ -64,10 +65,11 @@ public class BlackTableNameFilterTest extends MockTest {
 
     @Test
     public void doBlackDbFilter() {
-        tableNameFilter.getEXCLUDED_DB().add(BLACK_DB);
+        EXCLUDED_DB.add(BLACK_DB);
         Assert.assertTrue(tableNameFilter.doFilter(value));
         Assert.assertTrue(value.isInExcludeGroup());
         Assert.assertTrue(value.isTableFiltered());
+        EXCLUDED_DB.remove(BLACK_DB);
     }
 
     @Test

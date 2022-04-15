@@ -13,7 +13,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2022/4/7
  */
-public abstract class BatchTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
+public abstract class BatchTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     public static int MAX_BATCH_SIZE = 50;
 
