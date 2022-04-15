@@ -79,6 +79,7 @@ public class EmbeddedDb {
                 .withServerVariable("lower_case_table_names", 1)
                 .withServerVariable("innodb_flush_log_at_trx_commit", 2)
                 .withServerVariable("innodb_thread_concurrency", 64)
+                .withServerVariable("innodb_buffer_pool_instance", 8)
                 .withServerVariable("character_set_server", "utf8mb4")
                 .withServerVariable("collation_server", "utf8mb4_general_ci")
                 .build();
