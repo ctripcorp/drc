@@ -15,7 +15,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
+public class SchemeClearTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     public SchemeClearTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);
