@@ -23,7 +23,7 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  * @Author limingdong
  * @create 2021/4/7
  */
-public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
+public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
 
     private ListeningExecutorService executorService;
 

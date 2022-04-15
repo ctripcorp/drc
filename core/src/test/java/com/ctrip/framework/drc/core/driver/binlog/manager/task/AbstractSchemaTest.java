@@ -22,7 +22,7 @@ import static com.ctrip.framework.drc.core.AllTests.*;
  */
 public abstract class AbstractSchemaTest {
 
-    protected AbstractSchemaTask abstractSchemaTask;
+    protected AbstractSchemaTask<Boolean> abstractSchemaTask;
 
     protected Endpoint inMemoryEndpoint;
 
@@ -54,5 +54,5 @@ public abstract class AbstractSchemaTest {
         }
     }
 
-    protected abstract AbstractSchemaTask getAbstractSchemaTask();
+    protected abstract AbstractSchemaTask<Boolean> getAbstractSchemaTask();
 }

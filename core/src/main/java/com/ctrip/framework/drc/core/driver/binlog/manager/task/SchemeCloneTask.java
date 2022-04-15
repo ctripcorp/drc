@@ -14,7 +14,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SEMICOLON;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
+public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     private Map<String, Map<String, String>> ddlSchemas;
 

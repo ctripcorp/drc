@@ -1,11 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeApplyTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeClearTask;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTask;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
+import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -43,9 +42,12 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent) {
-        Map<String, Map<String, String>> ddlSchemas = snapshotLogEvent.getDdls();
-        boolean res = doClone(ddlSchemas);
-        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {}", res);
+        Map<String, Map<String, String>> future= snapshotLogEvent.getDdls();
+        if (isSame(future)) {
+            return true;
+        }
+        boolean res = doClone(future);
+        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", res, clusterName);
         return res;
     }
 
@@ -55,6 +57,20 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         return res == null ? false : res.booleanValue();
     }
 
+    /**
+     * key : dbName
+     * value: List<create table>
+     * @return
+     */
+    protected Map<String, Map<String, String>> doSnapshot(Endpoint endpoint) {
+        DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+        Map<String, Map<String, String>> snapshot = new RetryTask<>(new SchemaSnapshotTask(endpoint, dataSource)).call();
+        if (snapshot == null) {
+            snapshot = Maps.newHashMap();
+        }
+        return snapshot;
+    }
+
     @Override
     public boolean apply(String schema, String ddl) {
         tableInfoMap.clear();
@@ -62,5 +78,17 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? false : res.booleanValue();
         }
+    }
+
+    private boolean isSame(Map<String, Map<String, String>> future) {
+        Map<String, Map<String, String>> current = doSnapshot(inMemoryEndpoint);
+        boolean same = current.equals(future);
+        if (same) {
+            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", clusterName);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to no change for {}, current : {}", clusterName, current);
+        } else {
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", clusterName, current, future);
+        }
+        return same;
     }
 }
