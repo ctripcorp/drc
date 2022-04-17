@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.console.monitor.delay.config;
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 
+import java.util.Objects;
+
 /**
  * @author shenhaibo
  * @version 1.0
@@ -86,5 +88,25 @@ public class DelayMonitorSlaveConfig extends MySQLSlaveConfig implements GlobalC
 
     public void setRouteInfo(String routeInfo) {
         this.routeInfo = routeInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        DelayMonitorSlaveConfig config = (DelayMonitorSlaveConfig) o;
+        return Objects.equals(dc, config.dc) &&
+                Objects.equals(destDc, config.destDc) &&
+                Objects.equals(cluster, config.cluster) &&
+                Objects.equals(mha, config.mha) &&
+                Objects.equals(destMha, config.destMha) &&
+                Objects.equals(measurement, config.measurement) &&
+                Objects.equals(routeInfo, config.routeInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), dc, destDc, cluster, mha, destMha, measurement, routeInfo);
     }
 }

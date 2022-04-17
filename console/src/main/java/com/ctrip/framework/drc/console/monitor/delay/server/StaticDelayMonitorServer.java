@@ -262,6 +262,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         if(!checkScheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS)) {
             checkScheduledExecutorService.shutdownNow();
         }
+        UnidirectionalEntity unidirectionalEntity = entityMap.remove(config.getMha());
+        if (unidirectionalEntity != null) {
+            DefaultReporterHolder.getInstance().removeRegister(unidirectionalEntity.getTags(), config.getMeasurement());
+        }
     }
 
     private UnidirectionalEntity getUnidirectionalEntity(String mhaString) {

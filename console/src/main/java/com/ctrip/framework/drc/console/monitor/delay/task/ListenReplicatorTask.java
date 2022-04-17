@@ -83,7 +83,7 @@ public class ListenReplicatorTask {
 
     private static final String DEBUG = "debug";
 
-    private static final String INFO= "info";
+    private static final String INFO = "info";
 
     private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},routeInfo={}]]";
 
@@ -115,6 +115,8 @@ public class ListenReplicatorTask {
 
     private ScheduledExecutorService updateListenReplicatorScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("update-listen-replicator-scheduledExecutorService");
 
+    private ExecutorService executor = ThreadUtils.newSingleThreadScheduledExecutor("update-listen-replicator-executor");
+
     @PostConstruct
     private void listen() {
         listenReplicator();
@@ -126,7 +128,7 @@ public class ListenReplicatorTask {
             @Override
             public void run() {
                 try {
-                    if(SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch())) {
+                    if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch())) {
                         logger.info("[[monitor=delaylisten]] update listen replicator");
                         try {
                             updateListenReplicators();
@@ -148,7 +150,7 @@ public class ListenReplicatorTask {
     }
 
     private void ListenReplicatorMonitors() {
-        if(!SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorMonitorSwitch())) {
+        if (!SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorMonitorSwitch())) {
             return;
         }
 
@@ -168,7 +170,7 @@ public class ListenReplicatorTask {
 
     @VisibleForTesting
     protected void startListenServer(String clusterId, ReplicatorWrapper replicatorWrapper) {
-        if(delayMonitorHolderMap.get(clusterId) != null) {
+        if (delayMonitorHolderMap.get(clusterId) != null) {
             logger.error("[[monitor=delaylisten]] current listen already exists, cluster id is: {}", clusterId);
             return;
         }
@@ -188,13 +190,33 @@ public class ListenReplicatorTask {
     @VisibleForTesting
     protected void stopListenServer(String clusterId) {
         StaticDelayMonitorHolder delayMonitorHolder = delayMonitorHolderMap.get(clusterId);
-        if(delayMonitorHolder == null) {
-            logger.error("[[monitor=delaylisten]] current listen does not exist, cluster id is: {}", clusterId);
+        if (delayMonitorHolder == null) {
+            logger.error("[[monitor=delaylisten]] current listen does not exist when stop, cluster id is: {}", clusterId);
             return;
         }
         delayMonitorHolder.stopOldServer();
         delayMonitorHolderMap.remove(clusterId);
         replicatorWrappers.remove(clusterId);
+    }
+
+    @VisibleForTesting
+    protected void modifyListenServer(String clusterId, ReplicatorWrapper newReplicatorWrapper) {
+        StaticDelayMonitorHolder delayMonitorHolder = delayMonitorHolderMap.get(clusterId);
+        if (delayMonitorHolder == null) {
+            logger.error("[[monitor=delaylisten]] current listen does not exist when modify, cluster id is: {}", clusterId);
+            return;
+        }
+
+        //avoid repeated switching caused by http calls
+        DelayMonitorSlaveConfig newConfig = generateConfig(newReplicatorWrapper, DRC_DELAY_MESUREMENT);
+        if (delayMonitorHolder.getConfig().equals(newConfig)) {
+            logger.error("[[monitor=delaylisten]] old config equal new config when modify, cluster id is: {}", clusterId);
+            replicatorWrappers.put(clusterId, newReplicatorWrapper);
+            return;
+        }
+
+        stopListenServer(clusterId);
+        startListenServer(clusterId, newReplicatorWrapper);
     }
 
     private DelayMonitorSlaveConfig generateConfig(DrcReplicatorWrapper wrapper, String measurement) {
@@ -230,35 +252,32 @@ public class ListenReplicatorTask {
     private void handleReplicatorWrapperChange(ListeningReplicatorComparator comparator,
                                                Map<String, ReplicatorWrapper> future) {
 
-        for(String added : comparator.getAdded()) {
-            logger.info("[[monitor=delaylisten]] add replicator listen, cluster id is: {}", added);
+        for (String added : comparator.getAdded()) {
             ReplicatorWrapper replicatorWrapperToAdd = future.get(added);
-            startListenServer(added, replicatorWrapperToAdd);
+            executor.submit(() -> startListenServer(added, replicatorWrapperToAdd));
         }
 
-        for(String removed : comparator.getRemoved()) {
-            logger.info("[[monitor=delaylisten]] remove replicator listen, cluster id is: {}", removed);
-            stopListenServer(removed);
+        for (String removed : comparator.getRemoved()) {
+            executor.submit(() -> stopListenServer(removed));
         }
 
-        for(@SuppressWarnings("rawtypes") MetaComparator modifiedComparator : comparator.getMofified()) {
+        for (@SuppressWarnings("rawtypes") MetaComparator modifiedComparator : comparator.getMofified()) {
             ReplicatorWrapperComparator replicatorWrapperComparator = (ReplicatorWrapperComparator) modifiedComparator;
             String modified = replicatorWrapperComparator.getDbClusterId();
             ReplicatorWrapper newReplicatorWrapper = future.get(modified);
 
             logger.info("[[monitor=delaylisten]] modify replicator listen, cluster id is: {}", modified);
-            stopListenServer(modified);
-            startListenServer(modified, newReplicatorWrapper);
+            executor.submit(() -> modifyListenServer(modified, newReplicatorWrapper));
         }
     }
 
     private void pollDetectReplicators() {
-        for(String id : delayMonitorHolderMap.keySet()) {
+        for (String id : delayMonitorHolderMap.keySet()) {
             StaticDelayMonitorHolder delayMonitorHolder = delayMonitorHolderMap.get(id);
             DelayMonitorSlaveConfig config = delayMonitorHolder.getConfig();
             logger.debug("request CM for real master R for {} in {}", id, config.getDestDc());
             Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(config.getDestDc(), id);
-            if(null != activeReplicator) {
+            if (null != activeReplicator) {
                 String ip = activeReplicator.getIp();
                 Integer applierPort = activeReplicator.getApplierPort();
                 String endpointStr = ip + ':' + applierPort;
@@ -273,12 +292,12 @@ public class ListenReplicatorTask {
 
     protected void updateMasterReplicator(DelayMonitorSlaveConfig config, String endpointStr) {
         String[] split = endpointStr.split(":");
-        if(split.length == 2) {
+        if (split.length == 2) {
             String mhaName = config.getDestMha();
             String oldIp = config.getIp();
             String newIp = split[0];
             monitorMasterRExecutorService.submit(() -> {
-                if(drcMaintenanceService.updateMasterReplicator(mhaName, newIp)) {
+                if (drcMaintenanceService.updateMasterReplicator(mhaName, newIp)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.master", String.format("%s-%s", oldIp, newIp));
                     String measurement = "fx.drc.replicator.master";
                     BaseEntity baseEntity = new BaseEntity(0L, "unset", config.getDestDc(), config.getCluster(), mhaName, RegistryKey.from(config.getCluster(), config.getDestMha()));
@@ -292,16 +311,16 @@ public class ListenReplicatorTask {
         String prefix = new StringBuilder().append(CLOG_TAGS).append(msg).toString();
         switch (types) {
             case WARN:
-                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(),config.getRouteInfo());
+                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
                 break;
             case ERROR:
-                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(),config.getRouteInfo(), e);
+                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo(), e);
                 break;
             case DEBUG:
-                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(),config.getRouteInfo());
+                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
                 break;
             case INFO:
-                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(),config.getRouteInfo());
+                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
                 break;
         }
     }
@@ -323,13 +342,13 @@ public class ListenReplicatorTask {
         }
 
         @Override
-        protected void doStart() throws Exception{
+        protected void doStart() throws Exception {
             super.doStart();
             startServer(config, periodicalUpdateDbTask, delayExceptionTime);
         }
 
         @Override
-        protected void doStop() throws Exception{
+        protected void doStop() throws Exception {
             super.doStop();
             stopOldServer();
         }
@@ -347,18 +366,18 @@ public class ListenReplicatorTask {
          */
         public synchronized void checkMaster(String endpointStr) {
             String[] split = endpointStr.split(":");
-            if(split.length == 2) {
+            if (split.length == 2) {
                 try {
                     String ip = split[0];
                     Integer port = Integer.parseInt(split[1]);
-                    if(!(server.getConfig().getIp().equalsIgnoreCase(ip) && server.getConfig().getPort().equals(port))) {
-                        log(config, "oldR(" + config.getIp() + ':'  + config.getPort() + ") unequals to realR(" + endpointStr + "), going to stop & dispose old DelayMonitor server", INFO, null);
+                    if (!(server.getConfig().getIp().equalsIgnoreCase(ip) && server.getConfig().getPort().equals(port))) {
+                        log(config, "oldR(" + config.getIp() + ':' + config.getPort() + ") unequals to realR(" + endpointStr + "), going to stop & dispose old DelayMonitor server", INFO, null);
                         stopOldServer();
                         Endpoint endpoint = new DefaultEndPoint(ip, port);
                         config.setEndpoint(endpoint);
                         startServer(config, periodicalUpdateDbTask, delayExceptionTime);
                     } else {
-                        log(config, "oldR(" + config.getIp() + ':'  + config.getPort() + ") equals to realR(" + endpointStr + ')', INFO, null);
+                        log(config, "oldR(" + config.getIp() + ':' + config.getPort() + ") equals to realR(" + endpointStr + ')', INFO, null);
                     }
                 } catch (NumberFormatException e) {
                     log(config, "incorrect endpoint(" + endpointStr + ')', ERROR, e);
@@ -370,7 +389,7 @@ public class ListenReplicatorTask {
 
         private void stopOldServer() {
             DelayMonitorSlaveConfig config = server.getConfig();
-            log(config, "stopping server", INFO,null);
+            log(config, "stopping server", INFO, null);
             try {
                 if (StringUtils.isNotBlank(config.getRouteInfo())) {
                     ProxyRegistry.unregisterProxy(config.getIp(), config.getPort());
