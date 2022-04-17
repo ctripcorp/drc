@@ -43,11 +43,6 @@ public class SwitchServiceImpl implements SwitchService {
     @Async
     @Override
     public void switchListenReplicator(String clusterId, String endpoint) {
-        Map<String, ListenReplicatorTask.StaticDelayMonitorHolder> delayMonitorHolderMap = listenReplicatorTask.getDelayMonitorHolderMap();
-        if(delayMonitorHolderMap.containsKey(clusterId)) {
-            delayMonitorHolderMap.get(clusterId).checkMaster(endpoint);
-        } else {
-            logger.info("no such clusterId: {} for master replicator {}", clusterId, endpoint);
-        }
+        listenReplicatorTask.checkMaster(clusterId, endpoint);
     }
 }

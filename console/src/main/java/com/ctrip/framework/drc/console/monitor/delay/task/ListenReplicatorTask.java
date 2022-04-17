@@ -282,12 +282,23 @@ public class ListenReplicatorTask {
                 Integer applierPort = activeReplicator.getApplierPort();
                 String endpointStr = ip + ':' + applierPort;
                 log(config, "realR ip:" + ip + ", port: " + applierPort + ", generate str: " + endpointStr, INFO, null);
-                updateMasterReplicator(config, endpointStr);
-                delayMonitorHolder.checkMaster(endpointStr);
+                checkMaster(id, endpointStr);
             } else {
                 log(config, "Fail to get realR(oldR is in tags), check next round", INFO, null);
             }
         }
+    }
+
+    public void checkMaster(String clusterId, String endpointStr) {
+        executor.submit(() -> {
+            StaticDelayMonitorHolder delayMonitorHolder = delayMonitorHolderMap.get(clusterId);
+            if(delayMonitorHolder != null) {
+                updateMasterReplicator(delayMonitorHolder.getConfig(), endpointStr);
+                delayMonitorHolderMap.get(clusterId).checkMaster(endpointStr);
+            } else {
+                logger.info("[[monitor=delaylisten]] no such clusterId: {} for master replicator {}", clusterId, endpointStr);
+            }
+        });
     }
 
     protected void updateMasterReplicator(DelayMonitorSlaveConfig config, String endpointStr) {
