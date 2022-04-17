@@ -52,7 +52,7 @@ public class DatabaseCreateTaskTest extends AbstractSchemaTest {
             Assert.assertTrue(databases.contains(DB_NAME));
 
             // create table
-            List<String> tableNames = Lists.newArrayList();
+            List<String> tableNames;
             try (Statement statement = connection.createStatement()) {
                 statement.execute("use drc_ut_db");
                 try (ResultSet resultSet = statement.executeQuery("SHOW TABLES;")) {
@@ -62,7 +62,7 @@ public class DatabaseCreateTaskTest extends AbstractSchemaTest {
             Assert.assertFalse(tableNames.contains(TABLE_NAME));
 
             AbstractSchemaTask task = new TableCreateTask(tables, inMemoryEndpoint, inMemoryDataSource);
-            res = task.call();
+            res = (boolean) task.call();
             Assert.assertTrue(res);
 
             try (Statement statement = connection.createStatement()) {
@@ -75,7 +75,7 @@ public class DatabaseCreateTaskTest extends AbstractSchemaTest {
 
             // drop db
             task = new DatabaseDropTask(dbs, inMemoryEndpoint, inMemoryDataSource);
-            res = task.call();
+            res = (boolean) task.call();
             Assert.assertTrue(res);
 
             databases = query(connection, MySQLConstants.SHOW_DATABASES_QUERY);

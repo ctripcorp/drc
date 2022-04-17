@@ -473,7 +473,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     }
 
     private void createFileIfNecessary() throws IOException {
-        if (logChannel == null) {
+        if (logChannel == null && getLifecycleState().isStarted()) {
             long fileNum = 0;
             //files desc
             List<File> files = FileUtil.sortDataDir(logDir.listFiles(), LOG_FILE_PREFIX, false);
