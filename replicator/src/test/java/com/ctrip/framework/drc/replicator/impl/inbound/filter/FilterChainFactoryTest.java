@@ -70,7 +70,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
 
     private LogEventWithGroupFlag logEventWithGroupFlag;
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     private TableFilterConfiguration tableFilterConfiguration = new TableFilterConfiguration();
 

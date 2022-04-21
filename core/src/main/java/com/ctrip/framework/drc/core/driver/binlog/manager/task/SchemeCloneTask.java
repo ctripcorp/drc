@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
+import com.ctrip.framework.drc.core.driver.binlog.manager.exception.DdlException;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -13,7 +14,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SEMICOLON;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
+public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     private Map<String, Map<String, String>> ddlSchemas;
 
@@ -43,7 +44,11 @@ public class SchemeCloneTask extends AbstractSchemaTask implements NamedCallable
                 sqls.add(trim(tableCreate));
             }
         }
-        return doCreate(sqls, TableCreateTask.class, false);
+        res = doCreate(sqls, TableCreateTask.class, false);
+        if (!res) {
+            throw new DdlException(null);
+        }
+        return res;
     }
 
     private String trim(String createTable) {

@@ -134,6 +134,15 @@ public class DelayMonitorLogEvent extends AbstractRowsEvent {
         super.write(ioCache);
     }
 
+    public void retain() {
+        getLogEventHeader().getHeaderBuf().retain();
+        getPayloadBuf().retain();
+    }
+
+    public int refCnt() {
+        return getLogEventHeader().getHeaderBuf().refCnt();
+    }
+
     @Override
     public void release() {
         super.release();
@@ -141,7 +150,6 @@ public class DelayMonitorLogEvent extends AbstractRowsEvent {
             this.updateRowsEvent.release();
         }
     }
-
     public String getGtid() {
         return gtid;
     }

@@ -71,7 +71,7 @@ public class DataSourceManager extends AbstractDataSource {
         poolProperties.setInitialSize(1);
         poolProperties.setMaxWait(10000);
         poolProperties.setMaxAge(28000000);
-        String timeout = String.format("connectTimeout=%s;socketTimeout=10000", CONNECTION_TIMEOUT);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=100000", CONNECTION_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
 
         poolProperties.setValidationInterval(30000);

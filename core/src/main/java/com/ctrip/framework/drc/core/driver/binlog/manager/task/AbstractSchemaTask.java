@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -22,17 +23,21 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  * @Author limingdong
  * @create 2021/4/7
  */
-public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
+public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
 
-    private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("Schema-Create-Task"));
+    private ListeningExecutorService executorService;
 
     protected Endpoint inMemoryEndpoint;
 
     protected DataSource inMemoryDataSource;
 
+    private String identity;
+
     public AbstractSchemaTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         this.inMemoryEndpoint = inMemoryEndpoint;
         this.inMemoryDataSource = inMemoryDataSource;
+        this.identity = getClass().getSimpleName() + "-" + inMemoryEndpoint.getSocketAddress();
+        executorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool(identity));
     }
 
     @Override
@@ -48,7 +53,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         return sync ? sync(tasks) : async(tasks);
     }
 
-    private List<BatchTask> getBatchTasks(Collection<String> sqlCollection, Class<? extends BatchTask> clazz) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    protected List<BatchTask> getBatchTasks(Collection<String> sqlCollection, Class<? extends BatchTask> clazz) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         List<BatchTask> tasks = Lists.newArrayList();
 
         List<String> sqls = Lists.newArrayList();
@@ -102,7 +107,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
         }
     }
 
-    private boolean oneBatch(List<BatchTask> tasks) {
+    protected boolean oneBatch(List<BatchTask> tasks) {
         long now = System.currentTimeMillis();
         AtomicBoolean res = new AtomicBoolean(true);
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -121,7 +126,8 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
                     Boolean createRes = result.get(i);
                     if (createRes == null || !createRes) {
                         res.set(false);
-                        return;
+                        DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
+                        break;
                     }
                 }
                 countDownLatch.countDown();
@@ -129,6 +135,8 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
 
             @Override
             public void onFailure(Throwable t) {
+                res.set(false);
+                DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
                 countDownLatch.countDown();
             }
         });
@@ -141,6 +149,7 @@ public abstract class AbstractSchemaTask implements NamedCallable<Boolean> {
             } else {
                 res.set(false);
                 DDL_LOGGER.error("[BatchTask] timeout for countDownLatch querying doCreate with {} thread and cost {}", tasks.size(), elapse);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.batch.task.timeout", identity);
             }
         } catch (InterruptedException e) {
             DDL_LOGGER.error("doCreate error in countDownLatch wait", e);

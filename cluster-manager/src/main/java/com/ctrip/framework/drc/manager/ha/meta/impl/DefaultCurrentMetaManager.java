@@ -282,8 +282,8 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
-    public List<Applier> getSurviveAppliers(String clusterId) {
-        return currentMeta.getSurviveAppliers(clusterId);
+    public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
+        return currentMeta.getSurviveAppliers(clusterId, backupClusterId);
     }
 
     @Override

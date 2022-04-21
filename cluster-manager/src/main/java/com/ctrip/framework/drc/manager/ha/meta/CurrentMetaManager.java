@@ -40,7 +40,7 @@ public interface CurrentMetaManager extends Observable {
 
     List<Replicator> getSurviveReplicators(String clusterId);
 
-    List<Applier> getSurviveAppliers(String clusterId);
+    List<Applier> getSurviveAppliers(String clusterId, String backupClusterId);
 
     String getCurrentMetaDesc();
 

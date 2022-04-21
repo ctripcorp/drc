@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutorService;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeApplyTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
+public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     public static final String DDL_SQL = "use %s;";
 

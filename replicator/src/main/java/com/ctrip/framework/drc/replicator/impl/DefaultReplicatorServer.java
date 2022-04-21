@@ -89,7 +89,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);
 
-        DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+        DefaultMonitorManager delayMonitor = new DefaultMonitorManager(clusterName);
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         transactionCache = isMaster ? new EventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain())
                 : new BackupEventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain());

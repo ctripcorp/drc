@@ -2,15 +2,14 @@ package com.ctrip.framework.drc.replicator.impl.monitor;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -23,11 +22,15 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_
  */
 public class DefaultMonitorManager implements MonitorEventObservable, MonitorManager {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
     private boolean nextMonitorRowsEvent = false;
+
+    private String registerKey;
+
+    public DefaultMonitorManager(String registerKey) {
+        this.registerKey = registerKey;
+    }
 
     @Override
     public void onTableMapLogEvent(TableMapLogEvent tableMapLogEvent) {
@@ -43,26 +46,49 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     public boolean onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
         boolean released = false;
         if (nextMonitorRowsEvent) {
-            DELAY_LOGGER.debug("[Filter] with nextMonitorRowsEvent of {} with gtid {}", nextMonitorRowsEvent, gtid);
-            DelayMonitorLogEvent monitorLogEvent = null;
-            for (Observer observer : observers) {
-                if (observer instanceof MonitorEventObserver) {
-                    if (monitorLogEvent == null) {
-                        monitorLogEvent = new DelayMonitorLogEvent(gtid, updateRowsEvent);
-                    }
-                    observer.update(monitorLogEvent, this);
-                    released = true;
-                }
-            }
-            if (monitorLogEvent != null && monitorLogEvent.isNeedReleased()) {
-                try {
-                    monitorLogEvent.release();
-                } catch (Exception e) {
-                    logger.error("[Release] logEvent error", e);
+            DelayMonitorLogEvent delayMonitorLogEvent = getDelayMonitorLogEvent(updateRowsEvent, gtid);
+            released = notify(delayMonitorLogEvent);
+            releaseDelayMonitorLogEvent(delayMonitorLogEvent);
+        }
+        return released;
+    }
+
+    private DelayMonitorLogEvent getDelayMonitorLogEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
+        DelayMonitorLogEvent delayMonitorLogEvent = null;
+        DELAY_LOGGER.debug("[Filter] with nextMonitorRowsEvent of {} with gtid {}", nextMonitorRowsEvent, gtid);
+        for (Observer observer : observers) {
+            if (observer instanceof MonitorEventObserver) {
+                if (delayMonitorLogEvent == null) {
+                    delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, updateRowsEvent);
+                } else {
+                    delayMonitorLogEvent.retain();
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.refcnt", registerKey);
                 }
             }
         }
-        return released;
+        return delayMonitorLogEvent;
+    }
+
+    private boolean notify(DelayMonitorLogEvent delayMonitorLogEvent) {
+        boolean notify = delayMonitorLogEvent != null;
+        if (notify) {
+            for (Observer observer : observers) {
+                if (observer instanceof MonitorEventObserver) {
+                    observer.update(delayMonitorLogEvent, this);
+                }
+            }
+        }
+        return notify;
+    }
+
+    private void releaseDelayMonitorLogEvent(DelayMonitorLogEvent delayMonitorLogEvent) {
+        if (delayMonitorLogEvent != null && delayMonitorLogEvent.isNeedReleased()) {
+            try {
+                delayMonitorLogEvent.release();
+            } catch (Exception e) {
+                DELAY_LOGGER.error("[Release] DelayMonitorLogEvent error", e);
+            }
+        }
     }
 
     @Override

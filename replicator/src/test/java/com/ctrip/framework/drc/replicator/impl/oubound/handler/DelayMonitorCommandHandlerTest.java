@@ -34,7 +34,7 @@ public class DelayMonitorCommandHandlerTest {
         Mockito.when(attribute.get()).thenReturn(channelAttributeKey);
         Mockito.when(channelAttributeKey.getGate()).thenReturn(gate);
 
-        DefaultMonitorManager defaultMonitorManager = new DefaultMonitorManager();
+        DefaultMonitorManager defaultMonitorManager = new DefaultMonitorManager("ut");
         ObservableLogEventHandler logEventHandler = new ReplicatorLogEventHandler(null, defaultMonitorManager, null);
         DelayMonitorCommandHandler delayMonitorCommandHandler = new DelayMonitorCommandHandler(logEventHandler, "test_dalcluster");
         delayMonitorCommandHandler.initialize();
