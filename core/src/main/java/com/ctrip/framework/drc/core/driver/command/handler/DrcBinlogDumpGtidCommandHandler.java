@@ -12,6 +12,7 @@ import com.ctrip.xpipe.command.DefaultCommandFuture;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 
 /**
+ * for replicator slave dump binlog from replicator master
  * Created by mingdongli
  * 2019/9/24 上午11:06.
  */

@@ -55,6 +55,20 @@ public class DrcConnectionPool extends ConnectionPool {
         }
     }
 
+    @Override
+    protected void returnConnection(PooledConnection con) {
+        try {
+            if (con.getConnection().isClosed() && !con.isDiscarded()) {
+                con.setDiscarded(true);
+                logger.warn("Connection marked discarded: {}", getName());
+            }
+        } catch (SQLException e) {
+            logger.error("[returnConnection]" + this, e);
+        }
+
+        super.returnConnection(con);
+    }
+
     protected long getConnectionTimeout() {
         return CONNECTION_TIMEOUT;
     }

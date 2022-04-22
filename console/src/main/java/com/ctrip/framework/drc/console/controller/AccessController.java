@@ -4,6 +4,7 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -32,6 +33,9 @@ public class AccessController {
 
     @Autowired
     private DrcMaintenanceServiceImpl drcMaintenanceService;
+    
+    @Autowired
+    private SSOService ssoServiceImpl;
 
     @PostMapping("precheck")
     public ApiResult preCheck(@RequestBody String requestBody) {
@@ -172,4 +176,16 @@ public class AccessController {
             return ApiResult.getFailInstance(res);
         }
     }
+    
+    @PostMapping("sso/degrade/switch/{isOpen}")
+    public ApiResult changeAllServerSSODegradeStatus(@PathVariable Boolean isOpen) {
+        return ssoServiceImpl.degradeAllServer(isOpen);
+    }
+
+    
+    @PostMapping("sso/degrade/notify/{isOpen}")
+    public ApiResult changeLocalServerSSODegradeStatus(@PathVariable Boolean isOpen) {
+        return ssoServiceImpl.setDegradeSwitch(isOpen);
+    }
+    
 }

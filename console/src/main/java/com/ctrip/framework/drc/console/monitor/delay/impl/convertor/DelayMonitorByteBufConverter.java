@@ -3,10 +3,7 @@ package com.ctrip.framework.drc.console.monitor.delay.impl.convertor;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConverter;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import io.netty.buffer.ByteBuf;
 
@@ -31,6 +28,8 @@ public class DelayMonitorByteBufConverter extends AbstractByteBufConverter {
                 return new DelayMonitorLogEvent();
             case drc_error_log_event:
                 return new DrcErrorLogEvent();
+            case drc_heartbeat_log_event:
+                return new DrcHeartbeatLogEvent();
             case drc_ddl_log_event:
                 return new ParsedDdlLogEvent();
             default:

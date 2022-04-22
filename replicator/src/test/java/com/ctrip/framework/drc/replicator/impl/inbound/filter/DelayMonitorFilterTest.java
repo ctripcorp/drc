@@ -38,7 +38,7 @@ public class DelayMonitorFilterTest extends AbstractFilterTest {
     @Mock
     private ByteBuf head;
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     @Mock
     private MonitorEventObserver monitorEventObserver;

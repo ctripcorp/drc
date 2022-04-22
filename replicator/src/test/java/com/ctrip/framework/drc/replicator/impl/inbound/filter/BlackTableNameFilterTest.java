@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import java.io.IOException;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DOT;
 
 /**
@@ -47,7 +48,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
         byteBuf.release();
 
-        value = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
+        value = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
     }
 
     @After
@@ -64,10 +65,11 @@ public class BlackTableNameFilterTest extends MockTest {
 
     @Test
     public void doBlackDbFilter() {
-        tableNameFilter.getEXCLUDED_DB().add(BLACK_DB);
+        EXCLUDED_DB.add(BLACK_DB);
         Assert.assertTrue(tableNameFilter.doFilter(value));
         Assert.assertTrue(value.isInExcludeGroup());
         Assert.assertTrue(value.isTableFiltered());
+        EXCLUDED_DB.remove(BLACK_DB);
     }
 
     @Test
@@ -78,7 +80,7 @@ public class BlackTableNameFilterTest extends MockTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, QMQ_TABLE, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
+        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
@@ -87,7 +89,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, testTableName, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, false, false, false, "");
+        eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());

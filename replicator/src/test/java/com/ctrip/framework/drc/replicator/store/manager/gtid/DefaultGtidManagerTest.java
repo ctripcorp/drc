@@ -5,10 +5,16 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperator;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
+import com.ctrip.xpipe.zk.ZkClient;
+import com.google.common.collect.Sets;
+import org.apache.curator.framework.CuratorFramework;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,6 +22,8 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.File;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by mingdongli
@@ -25,18 +33,46 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
 
     private DefaultGtidManager gtidManager;
 
+    private ReplicatorConfig replicatorConfig = new ReplicatorConfig();
+
+    private DefaultUuidOperator uuidOperator = new DefaultUuidOperator();
+
     @Mock
     private SchemaManager schemaManager;
 
     @Mock
     private Filter<ITransactionEvent> filterChain;
 
+    private Set<UUID> uuids = Sets.newHashSet();
+
+    private static final String uuid = "c372080a-1804-11ea-8add-98039bbedf9c";
+
     @Before
     public void setUp() throws Exception {
-        super.initMocks();
+        super.setUp();
+        uuidOperator.setZkClient(new ZkClient() {
+            @Override
+            public CuratorFramework get() {
+                return curatorFramework;
+            }
+
+            @Override
+            public void setZkAddress(String zkAddress) {
+
+            }
+
+            @Override
+            public String getZkAddress() {
+                return zkString;
+            }
+        });
+        uuids.add(UUID.fromString(uuid));
+        replicatorConfig.setRegistryKey("cluster", "key");
+        replicatorConfig.setWhiteUUID(uuids);
+
         System.setProperty(SystemConfig.REPLICATOR_FILE_LIMIT, String.valueOf(512 * 1000 * 1000));
         fileManager = new DefaultFileManager(schemaManager, DESTINATION);
-        gtidManager = new DefaultGtidManager(fileManager);
+        gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         fileManager.setGtidManager(gtidManager);
         gtidManager.initialize();
         gtidManager.start();
@@ -80,5 +116,19 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
         writeGrandTransaction();
         GtidSet gtidSet = fileManager.getExecutedGtids();
         Assert.assertEquals(gtidSet.add(GTID), false);
+    }
+
+    @Test
+    public void testRemoveUuid() {
+        UuidConfig uuidConfig = uuidOperator.getUuids(replicatorConfig.getRegistryKey());
+        Assert.assertTrue(uuidConfig.getUuids().size() == 1);
+        boolean res = gtidManager.removeUuid(uuid);
+        Assert.assertTrue(res);
+
+        res = gtidManager.removeUuid(uuid + 1);
+        Assert.assertFalse(res);
+
+        uuidConfig = uuidOperator.getUuids(replicatorConfig.getRegistryKey());
+        Assert.assertTrue(uuidConfig.getUuids().size() == 0);
     }
 }

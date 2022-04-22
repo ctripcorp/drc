@@ -52,5 +52,4 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
         return UserServiceHolder.INSTANCE;
     }
     
-
 }

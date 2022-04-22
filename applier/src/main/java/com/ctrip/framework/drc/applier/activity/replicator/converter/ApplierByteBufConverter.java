@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConverter;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import io.netty.buffer.ByteBuf;
 
@@ -34,6 +35,8 @@ public class ApplierByteBufConverter extends AbstractByteBufConverter {
                 return new ApplierDrcTableMapEvent();
             case drc_error_log_event:
                 return new DrcErrorLogEvent();
+            case drc_heartbeat_log_event:
+                return new DrcHeartbeatLogEvent();
             default:
                 return null;
         }

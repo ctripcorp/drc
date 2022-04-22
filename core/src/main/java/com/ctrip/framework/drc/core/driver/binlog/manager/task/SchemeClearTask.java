@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor;
 import com.ctrip.framework.drc.core.driver.util.MySQLConstants;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.sql.Connection;
@@ -14,9 +15,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable<Boolean> {
-
-    public static final String DB_NOT_EXIST = "database doesn't exist";
+public class SchemeClearTask extends AbstractSchemaTask<Boolean> implements NamedCallable<Boolean> {
 
     public SchemeClearTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
         super(inMemoryEndpoint, inMemoryDataSource);
@@ -30,23 +29,14 @@ public class SchemeClearTask extends AbstractSchemaTask implements NamedCallable
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(MySQLConstants.SHOW_DATABASES_QUERY)) {
                     List<String> databases = SchemaExtractor.extractValues(resultSet, null);
+                    List<String> dbs = Lists.newArrayList();
                     for (String schema : databases) {
                         if (MySQLConstants.EXCLUDED_DB.contains(schema)) {
                             continue;
                         }
-                        try {
-                            boolean res = statement.execute(String.format(MySQLConstants.DROP_DATABASE, schema));
-                            DDL_LOGGER.info("[Drop] db {} with result {}", schema, res);
-                        } catch (Exception e) {
-                            if (e.getMessage().contains(DB_NOT_EXIST)) {
-                                DDL_LOGGER.info("[Drop] db {} with result not exist, Skip", schema);
-                                continue;
-                            }
-                            DDL_LOGGER.error("[Drop] db {} error", schema, e);
-                            throw e;
-                        }
+                        dbs.add(schema);
                     }
-                    return true;
+                    return doCreate(dbs, DatabaseDropTask.class, true);
                 }
             }
         }

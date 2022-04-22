@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.event;
 
+import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
@@ -10,6 +12,8 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventWithGroupFlag;
@@ -23,6 +27,7 @@ import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,6 +44,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.t
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_SERVER_PARAM;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_XID_PARAM;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
@@ -60,6 +67,17 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     @Mock
     private InboundMonitorReport inboundMonitorReport;
 
+    @Mock
+    private ReplicatorConfig replicatorConfig;
+
+    @Mock
+    private UuidOperator uuidOperator;
+
+    @Mock
+    private UuidConfig uuidConfig;
+
+    private Set<UUID> uuids = Sets.newHashSet();
+
     private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
 
     private FilePersistenceEventStore filePersistenceEventStore;
@@ -71,8 +89,6 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     private String clusterName = "unitTest";
 
     private static final int TABLE_MAP_EVENT_SIZE = 19 + 55 + 1;  //1 for identifier
-
-    private ReplicatorConfig replicatorConfig = new ReplicatorConfig();
 
     private  Set<UUID> uuidSet = Sets.newHashSet();
 
@@ -87,9 +103,14 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
+        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
+        when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
+
         uuidSet.add(UUID.fromString(UUID_1));
         initReplicatorConfig();
-        filePersistenceEventStore = new FilePersistenceEventStore(schemaManager, clusterName);
+        filePersistenceEventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         filePersistenceEventStore.initialize();
         filePersistenceEventStore.start();
 
@@ -193,6 +214,66 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         deleteFiles(logDir);
     }
 
+    // test case that insert a drcheartbeatevent within a transacion, generate wrong transaction binlog
+    @Test
+    public void testHeartBeatEvent() throws Exception {
+        File logDir = fileManager.getDataDir();
+        deleteFiles(logDir);
+
+        writeTransactionWithHeartBeat();
+
+        File file = fileManager.getCurrentLogFile();
+        long length = file.length();
+
+        XidLogEvent fakeXidLogEvent = new XidLogEvent(FAKE_SERVER_PARAM, FAKE_XID_PARAM, FAKE_XID_PARAM);
+        int FAKE_XID_SIZE = (int) fakeXidLogEvent.getLogEventHeader().getEventSize();
+        logger.info("[Fake Xid] size is {}, [Xid] size is {}, [Gtid] size is {}", FAKE_XID_SIZE, XID_ZISE, GTID_ZISE);
+
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + 3 * (GTID_ZISE + 4)/*transaction offset (+4)*/ + XID_ZISE + FAKE_XID_SIZE);
+
+        logDir = fileManager.getDataDir();
+        deleteFiles(logDir);
+        fakeXidLogEvent.release();
+    }
+
+    private void writeTransactionWithHeartBeat() throws Exception {
+        LogEventCallBack callBack = new LogEventCallBack() {
+            @Override
+            public Channel getChannel() {
+                return null;
+            }
+            @Override
+            public void onHeartHeat() {
+
+            }
+        };
+        GtidLogEvent gtidLogEvent = getGtidLogEvent();
+        gtidLogEvent.setServerUUID(UUID.fromString(UUID_1));
+        logEventHandler.onLogEvent(gtidLogEvent, callBack, null);
+        DrcHeartbeatLogEvent heartBeatLogEvent = getDrcHeartBeatEvent();
+        logEventHandler.onLogEvent(heartBeatLogEvent, callBack, null);
+
+        TableMapLogEvent tableMapLogEvent = getFilteredTableMapLogEvent();
+        logEventHandler.onLogEvent(tableMapLogEvent, callBack, null);
+        XidLogEvent xidLogEvent = getXidLogEvent();
+        logEventHandler.onLogEvent(xidLogEvent, callBack, null);
+
+
+        gtidLogEvent = getGtidLogEvent();
+        gtidLogEvent.setServerUUID(UUID.fromString(UUID_1));
+        gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
+        logEventHandler.onLogEvent(gtidLogEvent, callBack, null);
+
+        gtidLogEvent = getGtidLogEvent();
+        gtidLogEvent.setServerUUID(UUID.fromString(UUID_1));
+        logEventHandler.onLogEvent(gtidLogEvent, callBack, null);
+        xidLogEvent = getXidLogEvent();
+        logEventHandler.onLogEvent(xidLogEvent, callBack, null);
+
+        // gtid、 drc_gtid、fake xid、gtid、xid
+    }
+
+
     private void writeFilteredTransaction() throws Exception {
         GtidLogEvent gtidLogEvent = getGtidLogEvent();
         gtidLogEvent.setServerUUID(UUID.fromString(UUID_1));
@@ -258,6 +339,10 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         XidLogEvent xidLogEvent = new XidLogEvent().read(byteBuf);
         byteBuf.release();
         return xidLogEvent;
+    }
+
+    private DrcHeartbeatLogEvent getDrcHeartBeatEvent() {
+        return new DrcHeartbeatLogEvent(0);
     }
 
     private TableMapLogEvent getFilteredTableMapLogEvent() throws IOException {

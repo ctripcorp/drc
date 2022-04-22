@@ -12,14 +12,16 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
+import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -50,8 +52,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
+import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_PREFIX;
 
 
 /**
@@ -84,6 +89,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
     @Override
     public synchronized void handle(ServerCommandPacket serverCommandPacket, NettyClient nettyClient) {
         ApplierDumpCommandPacket dumpCommandPacket = (ApplierDumpCommandPacket) serverCommandPacket;
+        logger.info("[Receive] command code is {}", COM_APPLIER_BINLOG_DUMP_GTID.name());
         String applierName = dumpCommandPacket.getApplierName();
         Channel channel = nettyClient.channel();
         InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
@@ -101,7 +107,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     @Override
     public SERVER_COMMAND getCommandType() {
-        return SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
+        return COM_APPLIER_BINLOG_DUMP_GTID;
     }
 
     @Override
@@ -165,7 +171,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             logger.info("[replicatorBackup] is {} for {}", replicatorBackup, applierName);
             this.ip = ip;
-            this.gate = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            if (replicatorBackup) {
+                channelAttributeKey.setHeartBeat(false);
+                HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
+            }
+            this.gate = channelAttributeKey.getGate();
 
             String filter = dumpCommandPacket.getNameFilter();
             logger.info("[Filter] before init name filter, applier name is: {}, filter is: {}", applierName, filter);
@@ -203,8 +214,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     logger.error("DumpTask closeFuture", throwable);
                 }
                 channelClosed = true;
-                Gate gate = future.channel().attr(ReplicatorMasterHandler.KEY_CLIENT).get();
                 gate.open();
+                removeListener();
                 logger.info("closeFuture Listener invoke open gate {} and set channelClosed", gate);
             });
             fileManager.addObserver(this);
@@ -270,6 +281,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return;
                 }
 
+                checkFileGaps(file);
+
                 logger.info("[Serving] {} begin, first file name {}", applierName, file.getName());
                 // 3、open file，send every file
                 while (loop()) {
@@ -294,8 +307,19 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error", e);
-            } finally {
-                removeListener();
+            }
+        }
+
+        private void checkFileGaps(File file) {
+            try {
+                File currentFile = fileManager.getCurrentLogFile();
+                long firstSendFileNum = FileUtil.getFileNumFromName(file.getName(), LOG_FILE_PREFIX);
+                long currentFileNum = FileUtil.getFileNumFromName(currentFile.getName(), LOG_FILE_PREFIX);
+                if (currentFileNum - firstSendFileNum > 10) {
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.gap", applierName + ":" + ip);
+                }
+            } catch (Exception e) {
+                logger.info("checkFileHasGaps error for {}", applierName, e);
             }
         }
 

@@ -158,6 +158,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConsistencyCheckContainerTest.class,
 
         OPSServiceImplTest.class,
+        SSOServiceImplTest.class,
 
         EstablishStatusEnumTest.class,
         DatachangeLastTimeMonitorCaseTest.class,

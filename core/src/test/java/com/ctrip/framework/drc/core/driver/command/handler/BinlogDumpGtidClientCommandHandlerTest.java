@@ -18,6 +18,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -50,9 +51,13 @@ public class BinlogDumpGtidClientCommandHandlerTest extends MockTest {
     @Mock
     private Channel channel;
 
+    @Mock
+    private ChannelFuture channelFuture;
+
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        when(channel.closeFuture()).thenReturn(channelFuture);
         binlogDumpGtidClientCommandHandler = new BinlogDumpGtidClientCommandHandler(logEventHandler, byteBufConverter);
     }
 
@@ -89,7 +94,7 @@ public class BinlogDumpGtidClientCommandHandlerTest extends MockTest {
         compositeByteBuf.addComponents(true, headerBuf, payload);
         when(byteBufConverter.convert(compositeByteBuf)).thenReturn(Lists.newArrayList(gtidLogEvent));
         binlogDumpGtidClientCommandHandler.update(Pair.from(compositeByteBuf, channel), dumpGtidCommand);
-        verify(logEventHandler, times(1)).onLogEvent(gtidLogEvent, null, null);
+        verify(logEventHandler, times(1)).onLogEvent(gtidLogEvent, binlogDumpGtidClientCommandHandler.getLogEventCallBack(channel), null);
         gtid.release();
         gtid.release();
     }

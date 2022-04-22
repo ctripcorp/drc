@@ -4,7 +4,9 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTest;
+import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
+import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperatorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorConnectionTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.EventTransactionCacheTest;
@@ -17,16 +19,12 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtract
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeClearTaskTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandlerTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorCommandHandlerTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandlerTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultIndexFileManagerTest;
@@ -49,7 +47,11 @@ import java.sql.Statement;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        DefaultGtidManagerTest.class,
+        DefaultUuidOperatorTest.class,
+        ReplicatorConnectionTest.class,
         FilterChainFactoryTest.class,
+        HeartBeatConfigurationTest.class,
         TableFilterConfigurationTest.class,
         ReplicatorServerContainerTest.class,
         FileRegionMessageSizeEstimatorTest.class,
@@ -59,11 +61,9 @@ import java.sql.Statement;
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
         EventTransactionCacheTest.class,
-        DefaultGtidManagerTest.class,
         BackupTransactionEventTest.class,
 
         IndexExtractorTest.class,
-        ReplicatorConnectionTest.class,
         // impl package
         // inbound package
         // converter package
@@ -91,14 +91,14 @@ import java.sql.Statement;
         DdlParserTest.class,
         RetryTaskTest.class,
 //        DbInitTaskTest.class,
-        SchemeCloneTaskTest.class,
-        SchemeClearTaskTest.class,
         SchemeApplyTaskTest.class,
 
         DefaultMonitorManagerTest.class,
         ReplicatorTableMapLogEventTest.class,
         ReplicatorMasterHandlerTest.class,
-        DelayMonitorCommandHandlerTest.class
+        DelayMonitorCommandHandlerTest.class,
+        HeartBeatCommandHandlerTest.class,
+        CommandHandlerManagerTest.class
 
 })
 public class AllTests {

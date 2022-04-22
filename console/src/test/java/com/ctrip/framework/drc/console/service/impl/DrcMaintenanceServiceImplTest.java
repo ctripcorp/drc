@@ -9,16 +9,14 @@ import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -80,35 +78,45 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     
     @Test
     public void testChangeMasterDb() {
-        ApiResult result = drcMaintenanceService.changeMasterDb("nosuchmha", "127.0.0.1", 3306);
-        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
-        Assert.assertTrue(result.getMessage().contains("no such mha"));
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenReturn("uuid");
 
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u2i0", result.getMessage());
+            ApiResult result = drcMaintenanceService.changeMasterDb("nosuchmha", "127.0.0.1", 3306);
+            Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
+            Assert.assertTrue(result.getMessage().contains("no such mha"));
 
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(0, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("fat-fx-drc1 10.2.72.247:55111 already master", result.getMessage());
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u2i0", result.getMessage());
 
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.555", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(0, ((Integer) result.getData()).intValue());
-        Assert.assertTrue(result.getMessage().contains("Fail update master instance as"));
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.247", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(0, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("fat-fx-drc1 10.2.72.247:55111 already master", result.getMessage());
 
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.248", 55111);
-        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
 
-        // change back for further use
-        result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
-        Assert.assertEquals(0, result.getStatus().intValue());
-        Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-        Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenThrow(new Exception("getUuidError"));
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.555", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(0, ((Integer) result.getData()).intValue());
+            Assert.assertTrue(result.getMessage().contains("Fail update master instance as"));
+
+
+            theMock.when(() -> MySqlUtils.getUuid(Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())).thenReturn("uuid");
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.248", 55111);
+            Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+
+
+            // change back for further use
+            result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
+            Assert.assertEquals(0, result.getStatus().intValue());
+            Assert.assertEquals(2, ((Integer) result.getData()).intValue());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+        }
+        
     }
 
     @Test
@@ -175,7 +183,10 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
         dto.setSlaves(new ArrayList<>() {{
             add(new MhaInstanceGroupDto.MySQLInstance().setIp("10.2.72.247").setPort(55111).setIdc("SHAOY"));
         }});
-        Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto, false));
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(()-> MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString(),Mockito.anyBoolean())).thenReturn("uuid");
+            Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto, false));
+        }
     }
 
     @Test

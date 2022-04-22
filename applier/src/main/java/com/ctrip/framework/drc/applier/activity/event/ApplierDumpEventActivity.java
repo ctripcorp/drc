@@ -6,12 +6,17 @@ import com.ctrip.framework.drc.applier.event.ApplierDrcTableMapEvent;
 import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.event.ApplierXidEvent;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
+import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
+import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 
 /**
  * @Author limingdong
@@ -65,4 +70,21 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     protected boolean shouldSkip() {
         return "true".equalsIgnoreCase(skipEvent);
     }
+
+    @Override
+    protected boolean heartBeat(LogEvent logEvent, LogEventCallBack logEventCallBack) {
+        if (logEvent instanceof DrcHeartbeatLogEvent) {
+            HEARTBEAT_LOGGER.info("{} - RECEIVED - {}", registryKey, logEvent.getClass().getSimpleName());
+            logEventCallBack.onHeartHeat();
+            try {
+                logEvent.release();
+            } catch (Exception e) {
+                logger.error("[Release] heartbeat event error");
+            }
+            return true;
+        }
+        return false;
+    }
+
+
 }

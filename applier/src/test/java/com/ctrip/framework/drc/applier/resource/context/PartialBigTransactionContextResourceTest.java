@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import org.junit.Assert;
@@ -7,6 +8,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.sql.SQLException;
+
+import static com.ctrip.framework.drc.applier.resource.context.PartialBigTransactionContextResource.MAX_BATCH_EXECUTE_SIZE;
 
 /**
  * @Author limingdong
@@ -84,6 +87,30 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
 
         TransactionData.ApplyResult applyResult = partialTransactionContextResource.complete();
         Assert.assertEquals(applyResult, TransactionData.ApplyResult.BATCH_ERROR);
+    }
+
+    @Test
+    public void testMultiTableConflict() throws SQLException {
+        Mockito.when(statement.executeBatch()).thenReturn(new int[]{0, 0});
+        Mockito.when(beforeRows.size()).thenReturn(MAX_BATCH_EXECUTE_SIZE / 2 + 1);
+        Mockito.when(afterRows.size()).thenReturn(MAX_BATCH_EXECUTE_SIZE / 2 + 1);
+        Mockito.when(columns.getBitmapsOfIdentifier()).thenReturn(bitmapsOfIdentifier);
+
+        Mockito.when(columns.getLastBitmapOnUpdate()).thenReturn(bitmapOfIdentifier);
+        Mockito.when(bitmapsOfIdentifier.get(Mockito.anyInt())).thenReturn(bitmapOfIdentifier);
+        Mockito.when(beforeBitmap.onBitmap(Mockito.any(Bitmap.class))).thenReturn(bitmapOfIdentifier);
+
+        TableKey tableKey = TableKey.from("1", "1");
+        partialTransactionContextResource.setTableKey(tableKey);
+        partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+
+        tableKey = TableKey.from("2", "2");
+        partialTransactionContextResource.setTableKey(tableKey);
+        partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        // batch and conflict,so * 2
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2 * 2 /*conflict*/)).prepareStatement(Mockito.anyString());
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2)).prepareStatement(Mockito.matches("DELETE FROM `1`.`1`"));
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2)).prepareStatement(Mockito.matches("DELETE FROM `2`.`2`"));
     }
 
     protected PartialTransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {

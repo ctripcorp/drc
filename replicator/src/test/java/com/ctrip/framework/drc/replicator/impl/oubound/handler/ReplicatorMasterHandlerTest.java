@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import com.ctrip.xpipe.utils.Gate;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import java.net.SocketAddress;
 
 import static com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler.KEY_CLIENT;
+import static io.netty.handler.timeout.IdleState.READER_IDLE;
 import static io.netty.handler.timeout.IdleState.WRITER_IDLE;
 
 /**
@@ -35,7 +37,13 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     private Channel channel;
 
     @Mock
-    private Attribute attribute;
+    private CommandHandlerManager commandHandlerManager;
+
+    @Mock
+    private Attribute<ChannelAttributeKey> attribute;
+
+    @Mock
+    private ChannelAttributeKey channelAttributeKey;
 
     @Mock
     private Gate gate;
@@ -60,7 +68,8 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     public void testChannelWritabilityChanged() {
         when(channelHandlerContext.channel()).thenReturn(channel);
         when(channel.attr(KEY_CLIENT)).thenReturn(attribute);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
 
         when(channel.isWritable()).thenReturn(true);
         masterHandler.channelWritabilityChanged(channelHandlerContext);
@@ -72,11 +81,34 @@ public class ReplicatorMasterHandlerTest extends MockTest {
     }
 
     @Test
-    public void testUserEventTriggered() {
+    public void testUserEventTriggeredReader() {
+        when(channelHandlerContext.channel()).thenReturn(channel);
+        when(channelHandlerContext.writeAndFlush(any(ByteBuf.class))).thenReturn(future);
+        when(idleStateEvent.state()).thenReturn(READER_IDLE);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
+        when(channel.remoteAddress()).thenReturn(socketAddress);
+
+        when(channel.isWritable()).thenReturn(false);
+        masterHandler.userEventTriggered(channelHandlerContext, idleStateEvent);
+        verify(channelHandlerContext, times(0)).writeAndFlush(any(ByteBuf.class));
+
+        when(channel.isWritable()).thenReturn(true);
+        masterHandler.userEventTriggered(channelHandlerContext, idleStateEvent);
+        verify(commandHandlerManager, times(1)).sendHeartBeat(any(Channel.class));
+
+        masterHandler.userEventTriggered(channelHandlerContext, inputShutdownReadComplete);
+        verify(channelHandlerContext, times(1)).close();
+
+    }
+
+    @Test
+    public void testUserEventTriggeredWriter() {
         when(channelHandlerContext.channel()).thenReturn(channel);
         when(channelHandlerContext.writeAndFlush(any(ByteBuf.class))).thenReturn(future);
         when(idleStateEvent.state()).thenReturn(WRITER_IDLE);
-        when(attribute.get()).thenReturn(gate);
+        when(attribute.get()).thenReturn(channelAttributeKey);
+        when(channelAttributeKey.getGate()).thenReturn(gate);
         when(channel.remoteAddress()).thenReturn(socketAddress);
 
         when(channel.isWritable()).thenReturn(false);

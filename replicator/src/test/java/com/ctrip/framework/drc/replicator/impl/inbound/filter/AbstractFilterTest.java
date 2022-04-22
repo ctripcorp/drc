@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
+import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.replicator.MockTest;
@@ -24,9 +25,12 @@ public abstract class AbstractFilterTest extends MockTest {
     @Mock
     protected XidLogEvent xidLogEvent;
 
+    @Mock
+    protected LogEventCallBack callBack;
+
     @Before
     public void setUp() throws Exception {
         super.initMocks();
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, false, "");
+        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, callBack,false, false, false, "");
     }
 }

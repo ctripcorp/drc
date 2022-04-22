@@ -53,7 +53,7 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
     @Override
     public synchronized void onLogEvent(LogEvent logEvent, LogEventCallBack logEventCallBack, BinlogDumpGtidException exception) {
 
-        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(logEvent, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
+        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(logEvent, logEventCallBack, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
 
         inExcludeGroup = filterChain.doFilter(eventWithGroupFlag);
 

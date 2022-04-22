@@ -42,8 +42,6 @@ public abstract class MySQLConstants {
         //mysql command
         public static final String SHOW_DATABASES_QUERY = "SHOW DATABASES;";
 
-        public static final String DROP_DATABASE = "DROP DATABASE %s;";
-
         public static HashSet<String> EXCLUDED_DB = Sets.newHashSet("configdb", "mysql", "performance_schema", "sys", "information_schema");
 
 }

@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.replicator.store;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
+import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
@@ -26,9 +28,9 @@ public class FilePersistenceEventStore extends AbstractLifecycle implements Even
 
     private GtidManager gtidManager;
 
-    public FilePersistenceEventStore(SchemaManager schemaManager, String registryKey) {
-        fileManager = new DefaultFileManager(schemaManager, registryKey);
-        gtidManager = new DefaultGtidManager(fileManager);
+    public FilePersistenceEventStore(SchemaManager schemaManager, UuidOperator uuidOperator, ReplicatorConfig replicatorConfig) {
+        fileManager = new DefaultFileManager(schemaManager, replicatorConfig.getRegistryKey());
+        gtidManager = new DefaultGtidManager(fileManager, uuidOperator, replicatorConfig);
         this.writerDelegate = new DumpResponseEventWriter(fileManager);
     }
 

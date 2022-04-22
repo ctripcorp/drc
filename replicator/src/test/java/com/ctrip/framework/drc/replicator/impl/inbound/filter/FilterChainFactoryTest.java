@@ -70,7 +70,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
 
     private LogEventWithGroupFlag logEventWithGroupFlag;
 
-    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager();
+    private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
     private TableFilterConfiguration tableFilterConfiguration = new TableFilterConfiguration();
 
@@ -92,7 +92,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, null, false, false, false, StringUtils.EMPTY);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 
@@ -150,7 +150,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent,  null,false, false, false, StringUtils.EMPTY);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 
@@ -207,7 +207,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, false, false, false, GTID);
+        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, null, false, false, false, GTID);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 

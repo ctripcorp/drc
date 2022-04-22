@@ -53,7 +53,6 @@ public class EmbeddedDb {
 
     private String tmpPath = "/data/drc/mysql";
 
-
     public EmbeddedMysql mysqlServer() {
         return mysqlServer(port);
     }

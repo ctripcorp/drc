@@ -343,9 +343,9 @@ public class GtidSet {
 
     @Override
     public String toString() {
-        List<String> gtids = new ArrayList<String>();
+        List<String> gtids = new ArrayList<>();
         for (UUIDSet uuidSet : map.values()) {
-            gtids.add(uuidSet.getUUID() + ":" + join(uuidSet.intervals, ":"));
+            gtids.add(uuidSet.toString());
         }
         return join(gtids, ",");
     }
@@ -434,7 +434,7 @@ public class GtidSet {
             return index;
         }
 
-        private boolean add(long transactionId) {
+        private synchronized boolean add(long transactionId) {
             int index = findInterval(transactionId);
             boolean addedToExisting = false;
             if (index < intervals.size()) {
@@ -572,7 +572,7 @@ public class GtidSet {
         }
 
         @Override
-        public String toString() {
+        public synchronized String toString() {
             StringBuilder sb = new StringBuilder();
             if (sb.length() != 0) {
                 sb.append(',');

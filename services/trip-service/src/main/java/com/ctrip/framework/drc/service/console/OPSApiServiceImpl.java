@@ -1,12 +1,18 @@
 package com.ctrip.framework.drc.service.console;
 
+import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.ops.AppClusterResult;
+import com.ctrip.framework.drc.core.service.ops.AppNode;
 import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Maps;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName OPSApiServiceImpl
@@ -14,7 +20,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @Date 2021/11/25 14:51
  * @Version: $
  */
-public class OPSApiServiceImpl  implements OPSApiService {
+public class OPSApiServiceImpl implements OPSApiService {
     
     
     private static final String ACCESS_TOKEN_KEY = "access_token";
@@ -60,6 +66,20 @@ public class OPSApiServiceImpl  implements OPSApiService {
         return root;
     }
 
+    @Override
+    public List<AppNode> getAppNodes(String cmsGetServerUrl,String accessToken,List<String> appIds,String env) {
+        Map<String, Object> body = Maps.newHashMap();
+        body.put("app.appId@in", appIds);
+        if (null != env) {
+            body.put("subenvName@like", env);
+        }
+        Map<String, Object> requestBody = Maps.newHashMap();
+        requestBody.put("request_body", body);
+        requestBody.put("access_token", accessToken);
+        AppClusterResult appClusterResult = HttpUtils.post(cmsGetServerUrl, requestBody, AppClusterResult.class);
+        return appClusterResult.getData();
+    }
+    
     @Override
     public int getOrder() {
         return 0;

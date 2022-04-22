@@ -32,7 +32,7 @@ public class SystemConfig {
 
     public static final String REPLICATOR_FILE_FIRST = "drc.replicator.binlog.firstfile";
 
-    public static final String JDBC_URL_PARAM = "?useSSL=false&useUnicode=true&characterEncoding=UTF-8";
+    public static final String JDBC_URL_PARAM = "?allowMultiQueries=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8";
 
     public static final String DRC_PROJECT = "DRC";
 
@@ -58,6 +58,8 @@ public class SystemConfig {
 
     public static final String COMMA = ",";
 
+    public static final String SEMICOLON = ";";
+
     public static final String DRC_MONITOR_SCHEMA_NAME = "drcmonitordb";
 
     public static final String DRC_DELAY_MONITOR_TABLE_NAME = "delaymonitor";
@@ -81,6 +83,10 @@ public class SystemConfig {
     public static final String STATE_CONTROLLER_LOG = "com.ctrip.framework.drc.manager.ha.cluster.impl.DefaultInstanceStateController";
 
     public static final Logger STATE_LOGGER = LoggerFactory.getLogger(STATE_CONTROLLER_LOG);
+
+    public static final String HEARTBEAT_LOG = "HEARTBEAT";
+
+    public static final Logger HEARTBEAT_LOGGER = LoggerFactory.getLogger(HEARTBEAT_LOG);
 
     public static final String META_LOG = "metaLogger";
 

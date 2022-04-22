@@ -21,6 +21,8 @@ public class DataSourceManager extends AbstractDataSource {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
+    public static final int MAX_ACTIVE = 50;
+
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
     }
@@ -63,13 +65,13 @@ public class DataSourceManager extends AbstractDataSource {
 
         poolProperties.setUsername(endpoint.getUser());
         poolProperties.setPassword(endpoint.getPassword());
-        poolProperties.setMaxActive(2);
+        poolProperties.setMaxActive(MAX_ACTIVE);
         poolProperties.setMaxIdle(2);
         poolProperties.setMinIdle(1);
         poolProperties.setInitialSize(1);
         poolProperties.setMaxWait(10000);
         poolProperties.setMaxAge(28000000);
-        String timeout = String.format("connectTimeout=%s;socketTimeout=10000", CONNECTION_TIMEOUT);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=100000", CONNECTION_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
 
         poolProperties.setValidationInterval(30000);

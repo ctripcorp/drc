@@ -6,15 +6,11 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
-import com.ctrip.xpipe.utils.StringUtil;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -31,16 +27,16 @@ import java.util.stream.Collectors;
 public class OpenApiServiceImpl implements OpenApiService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-
+    
     @Autowired
     private MetaGenerator metaGenerator;
-
+    
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
-
+    
     @Override
     public List<MhaGroupFilterVo> getAllDrcMhaDbFilters() throws SQLException {
-
+        
         ArrayList<MhaGroupFilterVo> allDrcMhaDbFilters = Lists.newArrayList();
         List<MhaGroupTbl> mhaGroupTbls = metaGenerator.getMhaGroupTbls().stream().filter(p -> p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode())).collect(Collectors.toList());
         List<GroupMappingTbl> groupMappingTbls = metaGenerator.getGroupMappingTbls();
