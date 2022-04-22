@@ -155,7 +155,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return keysPresent;
     }
 
-    protected final class Row {
+    public final class Row {
 
         private BitSet beforeNullBitMap; // is it null now
 

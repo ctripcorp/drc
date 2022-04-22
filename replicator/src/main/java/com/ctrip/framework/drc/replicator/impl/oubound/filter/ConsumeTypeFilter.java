@@ -9,9 +9,15 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
  */
 public class ConsumeTypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
+    private ConsumeType consumeType;
+
+    public ConsumeTypeFilter(ConsumeType consumeType) {
+        this.consumeType = consumeType;
+    }
+
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        if (ConsumeType.Applier != value.getConsumeType()) {
+        if (ConsumeType.Applier != consumeType) {
             value.setLineFilter(false);
         }
         return doNext(value, value.isLineFilter());

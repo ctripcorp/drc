@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.impl.oubound.filter;
+package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DeleteRowsEvent;
@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 
 import java.nio.channels.FileChannel;
 
@@ -13,7 +14,15 @@ import java.nio.channels.FileChannel;
  * @Author limingdong
  * @create 2022/4/22
  */
-public class LineFilter extends AbstractPostLogEventFilter<OutboundLogEventContext> {
+public class RowsFilter extends AbstractPostLogEventFilter<OutboundLogEventContext> {
+
+    private RuleFactory ruleFactory = new DefaultRuleFactory();
+
+    private RowsFilterRule rowsFilterRule;
+
+    public RowsFilter(RowsFilterContext filterContext) {
+        rowsFilterRule = ruleFactory.createRowsFilterRule(filterContext);
+    }
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {

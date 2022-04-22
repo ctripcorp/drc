@@ -19,19 +19,24 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
  */
 public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventContext> {
 
+    private Channel channel;
+
+    public SendFilter(Channel channel) {
+        this.channel = channel;
+    }
+
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         boolean filtered = doNext(value, value.isLineFilter());
         if (filtered) {
             sendRowsEvent(value);
         } else {
-            value.getChannel().writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos() - eventHeaderLengthVersionGt1, value.getEventSize()).retain());
+            channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos() - eventHeaderLengthVersionGt1, value.getEventSize()).retain());
         }
         return filtered;
     }
 
     private void sendRowsEvent(OutboundLogEventContext value) {
-        Channel channel = value.getChannel();
         value.getRowsEvent().write(new IoCache() {
             @Override
             public void write(byte[] data) {

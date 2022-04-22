@@ -4,7 +4,7 @@ package com.ctrip.framework.drc.core.server.common.enums;
  * @Author limingdong
  * @create 2022/4/22
  */
-public enum LineFilterType {
+public enum RowFilterType {
 
     None(0),
 
@@ -12,7 +12,7 @@ public enum LineFilterType {
 
     private int code;
 
-    LineFilterType(int code) {
+    RowFilterType(int code) {
         this.code = code;
     }
 
@@ -20,8 +20,8 @@ public enum LineFilterType {
         return code;
     }
 
-    public static LineFilterType getType(int code) {
-        for (LineFilterType filterType : values()) {
+    public static RowFilterType getType(int code) {
+        for (RowFilterType filterType : values()) {
             if (filterType.getCode() == code) {
                 return filterType;
             }

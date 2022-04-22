@@ -16,7 +16,7 @@ import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.LineFilterType;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
@@ -27,6 +27,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeK
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -163,7 +164,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private ResultCode resultCode;
 
         // line filter
-        private LineFilterType filterType;
+        private RowFilterType filterType;
 
         private ConsumeType consumeType;
 
@@ -176,7 +177,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.filterType = LineFilterType.getType(dumpCommandPacket.getLineFilterType());
+            this.filterType = RowFilterType.getType(dumpCommandPacket.getLineFilterType());
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             logger.info("[ConsumeType] is {} for {}", consumeType.name(), applierName);
             this.ip = ip;
@@ -194,7 +195,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
 
-            filterChain = new OutboundFilterChainFactory().createFilterChain(new OutboundFilterChainContext());
+            filterChain = new OutboundFilterChainFactory().createFilterChain(new OutboundFilterChainContext(this.channel, this.consumeType, tableMapWithinTransaction, new RowsFilterContext(filterType, null)));
         }
 
         private boolean check(GtidSet excludedSet) {
@@ -434,7 +435,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 logGtid(previousGtidLogEvent, eventType);
-                filterChain.doFilter(new OutboundLogEventContext(channel, fileChannel, fileChannel.position(), filterType, consumeType, eventType, eventSize, tableMapWithinTransaction));
+                filterChain.doFilter(new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize));
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 outboundMonitorReport.addSize(eventSize);
 
