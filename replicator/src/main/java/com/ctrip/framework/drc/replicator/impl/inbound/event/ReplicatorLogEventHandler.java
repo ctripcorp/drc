@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObservable;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventInboundContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.Resettable;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -25,7 +25,7 @@ import java.util.List;
  */
 public class ReplicatorLogEventHandler implements ObservableLogEventHandler, GtidObservable, UuidObserver, MonitorEventObservable, Resettable {
 
-    private Filter<LogEventInboundContext> filterChain;
+    private Filter<InboundLogEventContext> filterChain;
 
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
@@ -33,7 +33,7 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
 
     private TransactionCache transactionCache;
 
-    public ReplicatorLogEventHandler(TransactionCache transactionCache, DefaultMonitorManager delayMonitor, Filter<LogEventInboundContext> filterChain) {
+    public ReplicatorLogEventHandler(TransactionCache transactionCache, DefaultMonitorManager delayMonitor, Filter<InboundLogEventContext> filterChain) {
         this.filterChain = filterChain;
         this.transactionCache = transactionCache;
         this.delayMonitor = delayMonitor;
@@ -53,7 +53,7 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
     @Override
     public synchronized void onLogEvent(LogEvent logEvent, LogEventCallBack logEventCallBack, BinlogDumpGtidException exception) {
 
-        LogEventInboundContext eventWithGroupFlag = new LogEventInboundContext(logEvent, logEventCallBack, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
+        InboundLogEventContext eventWithGroupFlag = new InboundLogEventContext(logEvent, logEventCallBack, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
 
         inExcludeGroup = filterChain.doFilter(eventWithGroupFlag);
 

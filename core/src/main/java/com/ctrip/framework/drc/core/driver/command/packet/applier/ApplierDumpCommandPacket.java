@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHeadPacket;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.common.enums.LineFilterType;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
@@ -36,6 +37,8 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
     private Set<String> includedDbs = Sets.newHashSet();
 
     private String nameFilter = StringUtils.EMPTY;
+
+    private int lineFilterType = LineFilterType.None.getCode();
 
     public ApplierDumpCommandPacket(byte command) {
         super(command);
@@ -211,5 +214,13 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     public void setNameFilter(String nameFilter) {
         this.nameFilter = nameFilter;
+    }
+
+    public int getLineFilterType() {
+        return lineFilterType;
+    }
+
+    public void setLineFilterType(int lineFilterType) {
+        this.lineFilterType = lineFilterType;
     }
 }

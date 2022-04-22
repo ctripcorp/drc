@@ -22,12 +22,12 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.d
  * Created by mingdongli
  * 2019/10/9 上午10:17.
  */
-public class UuidFilter extends AbstractLogEventFilter<LogEventInboundContext> implements UuidObserver {
+public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> implements UuidObserver {
 
     private Set<UUID> whiteList = Sets.newConcurrentHashSet();
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
         LogEvent logEvent = value.getLogEvent();
         if (logEvent instanceof GtidLogEvent) {
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
 
 /**
  * Created by mingdongli
@@ -12,9 +13,9 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
  * postFilter
  * TransactionMonitorFilter(read) -> DelayMonitorFilter(read) -> PersistPostFilter(write) -> EventReleaseFilter(release)
  */
-public class DefaultFilterChainFactory {
+public class InboundFilterChainFactory implements FilterChainFactory<InboundFilterChainContext, InboundLogEventContext> {
 
-    public static Filter<LogEventInboundContext> createFilterChain(FilterChainContext context) {
+    public Filter<InboundLogEventContext> createFilterChain(InboundFilterChainContext context) {
 
         EventReleaseFilter eventReleaseFilter = new EventReleaseFilter();
 

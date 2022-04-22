@@ -16,7 +16,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGE
  * @Author limingdong
  * @create 2020/4/24
  */
-public class TransactionMonitorFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
+public class TransactionMonitorFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     private Frequency frequencyReceive = new Frequency("FRE GTID RECEIVE");
 
@@ -29,7 +29,7 @@ public class TransactionMonitorFilter extends AbstractPostLogEventFilter<LogEven
     }
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         LogEvent logEvent = value.getLogEvent();
 

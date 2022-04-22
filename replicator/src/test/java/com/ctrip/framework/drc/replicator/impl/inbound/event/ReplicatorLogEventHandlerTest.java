@@ -14,9 +14,9 @@ import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventInboundContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
@@ -56,7 +56,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private ReplicatorLogEventHandler logEventHandler;
 
-    private Filter<LogEventInboundContext> flagFilter;
+    private Filter<InboundLogEventContext> flagFilter;
 
     @Mock
     private SchemaManager schemaManager;
@@ -96,7 +96,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private static final String UUID_1 = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe";
 
-    private FilterChainContext filterChainContext;
+    private InboundFilterChainContext filterChainContext;
 
     private TableFilterConfiguration tableFilterConfiguration = new TableFilterConfiguration();
 
@@ -122,8 +122,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new FilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration);
-        flagFilter = DefaultFilterChainFactory.createFilterChain(filterChainContext);
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration);
+        flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }

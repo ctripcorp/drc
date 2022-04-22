@@ -24,7 +24,7 @@ public class DdlFilterTest extends MockTest {
 
     private DdlFilter ddlFilter;
 
-    private LogEventInboundContext value;
+    private InboundLogEventContext value;
 
     @Mock
     private QueryLogEvent queryLogEvent;
@@ -58,7 +58,7 @@ public class DdlFilterTest extends MockTest {
         doNothing().when(monitorManager).onDdlEvent(anyString(), anyString(), anyString(), any(QueryType.class));
 
         ddlFilter = new DdlFilter(schemaManager, monitorManager);
-        value = new LogEventInboundContext(queryLogEvent, null, false, false, false, "");
+        value = new InboundLogEventContext(queryLogEvent, null, false, false, false, "");
 
         logEventHeader = new LogEventHeader(query_log_event.getType(), 1L, 64, 12246);
     }
@@ -150,7 +150,7 @@ public class DdlFilterTest extends MockTest {
         when(schemaSnapshotLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(schemaSnapshotLogEvent.getLogEventType()).thenReturn(drc_schema_snapshot_log_event);
         when(schemaManager.recovery(schemaSnapshotLogEvent)).thenReturn(true);
-        LogEventInboundContext logEventWithGroupFlag = new LogEventInboundContext(schemaSnapshotLogEvent, null,  false, false, false, "");
+        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(schemaSnapshotLogEvent, null,  false, false, false, "");
         Assert.assertTrue(ddlFilter.doFilter(logEventWithGroupFlag));
     }
 
@@ -164,7 +164,7 @@ public class DdlFilterTest extends MockTest {
         when(drcDdlLogEvent.getDdl()).thenReturn(ALTER_TABLE);
         when(drcDdlLogEvent.getSchema()).thenReturn("ghostdb");
 
-        LogEventInboundContext logEventWithGroupFlag = new LogEventInboundContext(drcDdlLogEvent, null,false, false, false, "");
+        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcDdlLogEvent, null,false, false, false, "");
         Assert.assertFalse(ddlFilter.doFilter(logEventWithGroupFlag));
     }
 }

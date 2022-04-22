@@ -8,10 +8,10 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFil
  * @create 2020/4/24
 
  */
-public class EventReleaseFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
+public class EventReleaseFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         boolean filtered = doNext(value, value.isInExcludeGroup());  //post filter
         value.releaseEvent();

@@ -11,10 +11,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSA
 /**
  * Created by jixinwang on 2022/2/18
  */
-public class TransactionTableFilter extends AbstractLogEventFilter<LogEventInboundContext> {
+public class TransactionTableFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
 

@@ -26,7 +26,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  * @Author limingdong
  * @create 2020/2/24
  */
-public class DdlFilter extends AbstractLogEventFilter<LogEventInboundContext> {
+public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     protected final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
@@ -54,7 +54,7 @@ public class DdlFilter extends AbstractLogEventFilter<LogEventInboundContext> {
     }
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
         if (query_log_event == logEventType) {

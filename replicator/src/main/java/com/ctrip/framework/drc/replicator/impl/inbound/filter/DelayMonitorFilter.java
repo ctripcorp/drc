@@ -14,7 +14,7 @@ import org.apache.commons.lang3.StringUtils;
  * @Author limingdong
  * @create 2020/4/24
  */
-public class DelayMonitorFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
+public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     private DefaultMonitorManager delayMonitor;
 
@@ -25,7 +25,7 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<LogEventInbou
     }
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         boolean filtered = doNext(value, value.isInExcludeGroup());
 

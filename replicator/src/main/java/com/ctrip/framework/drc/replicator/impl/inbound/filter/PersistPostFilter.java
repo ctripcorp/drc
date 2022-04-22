@@ -16,7 +16,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
  * @Author limingdong
  * @create 2020/4/24
  */
-public class PersistPostFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
+public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     public static final long FAKE_XID_PARAM = 100l;
     public static final long FAKE_SERVER_PARAM = 1l;
@@ -28,7 +28,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<LogEventInboun
     }
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         boolean filtered = doNext(value, value.isInExcludeGroup());  //post filter
 
@@ -68,7 +68,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<LogEventInboun
         return filtered;
     }
 
-    private void checkXid(LogEvent logEvent, LogEventType logEventType, LogEventInboundContext value) {
+    private void checkXid(LogEvent logEvent, LogEventType logEventType, InboundLogEventContext value) {
         if (gtid_log_event == logEventType) {
             String previousGtid = value.getGtid();
             if (StringUtils.isNotBlank(previousGtid) && previousGtid.contains(":")) {  //check if fake XidLogEvent

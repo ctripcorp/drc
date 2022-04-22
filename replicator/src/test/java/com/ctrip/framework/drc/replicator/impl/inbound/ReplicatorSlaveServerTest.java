@@ -11,8 +11,8 @@ import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -77,7 +77,7 @@ public class ReplicatorSlaveServerTest extends AbstractServerTest {
         mySQLServer = new ReplicatorSlaveServer(mySQLSlaveConfig, new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint()), null);  //需要连接的master信息
         eventStore = new FilePersistenceEventStore(null, uuidOperator, replicatorConfig);
         transactionCache = new EventTransactionCache(eventStore, filterChain);
-        LogEventHandler eventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, DefaultFilterChainFactory.createFilterChain(new FilterChainContext()));
+        LogEventHandler eventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(new InboundFilterChainContext()));
         mySQLServer.setLogEventHandler(eventHandler);
     }
 

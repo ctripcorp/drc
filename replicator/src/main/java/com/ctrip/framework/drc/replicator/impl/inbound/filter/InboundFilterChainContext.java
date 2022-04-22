@@ -14,7 +14,7 @@ import java.util.UUID;
  * Created by mingdongli
  * 2019/10/9 上午11:17.
  */
-public class FilterChainContext {
+public class InboundFilterChainContext {
 
     private Set<UUID> whiteUUID = Sets.newConcurrentHashSet();
 
@@ -32,13 +32,13 @@ public class FilterChainContext {
 
     private TableFilterConfiguration tableFilterConfiguration;
 
-    public FilterChainContext() {
+    public InboundFilterChainContext() {
     }
 
-    public FilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
-                              SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
-                              TransactionCache transactionCache, DefaultMonitorManager monitorManager,
-                              String registryKey, TableFilterConfiguration tableFilterConfiguration) {
+    public InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
+                                     SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
+                                     TransactionCache transactionCache, DefaultMonitorManager monitorManager,
+                                     String registryKey, TableFilterConfiguration tableFilterConfiguration) {
         setWhiteUUID(whiteUUID);
         setTableNames(tableNames);
         setSchemaManager(schemaManager);

@@ -11,7 +11,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGG
  * Created by mingdongli
  * 2019/10/9 上午10:27.
  */
-public class LogEventInboundContext {
+public class InboundLogEventContext {
 
     private LogEvent logEvent;
 
@@ -27,7 +27,7 @@ public class LogEventInboundContext {
 
     private boolean notRelease = false;
 
-    public LogEventInboundContext(LogEvent logEvent, LogEventCallBack callBack, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
+    public InboundLogEventContext(LogEvent logEvent, LogEventCallBack callBack, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
         this.logEvent = logEvent;
         this.callBack = callBack;
         this.inExcludeGroup = inExcludeGroup;

@@ -12,7 +12,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  * Created by mingdongli
  * 2019/10/9 上午10:08.
  */
-public class EventTypeFilter extends AbstractLogEventFilter<LogEventInboundContext> {
+public class EventTypeFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private HashSet<LogEventType> SKIP_EVENT_TYPE = Sets.newHashSet(rotate_log_event, previous_gtids_log_event, format_description_log_event, heartbeat_log_event);
 
@@ -21,7 +21,7 @@ public class EventTypeFilter extends AbstractLogEventFilter<LogEventInboundConte
     private HashSet<LogEventType> NOT_SKIP_EVENT_TYPE = Sets.newHashSet(drc_ddl_log_event);
 
     @Override
-    public boolean doFilter(LogEventInboundContext value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         LogEventType logEventType = value.getLogEvent().getLogEventType();
 
