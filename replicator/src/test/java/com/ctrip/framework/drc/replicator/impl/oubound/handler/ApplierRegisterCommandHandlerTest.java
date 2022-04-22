@@ -695,21 +695,21 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
     }
 
     /*
-    * previous c372080a-1804-11ea-8add-98039bbedf9c:1-2000
-    * ddl (4 events)
-    * ddl (loop)
-    * ddl (1)
-    *
-    * ddl (loop / 2)
-    * executed_gtid c372080a-1804-11ea-8add-98039bbedf9c:1-3000
-    * ddl (loop / 2)
-    * ddl (1)
-    *
-    * ddl (loop / 2)
-    * executed_gtid c372080a-1804-11ea-8add-98039bbedf9c:1-4000
-    * ddl (loop / 2)
-    * ddl (1)
-    */
+     * previous c372080a-1804-11ea-8add-98039bbedf9c:1-2000
+     * ddl (4 events)
+     * ddl (loop)
+     * ddl (1)
+     *
+     * ddl (loop / 2)
+     * executed_gtid c372080a-1804-11ea-8add-98039bbedf9c:1-3000
+     * ddl (loop / 2)
+     * ddl (1)
+     *
+     * ddl (loop / 2)
+     * executed_gtid c372080a-1804-11ea-8add-98039bbedf9c:1-4000
+     * ddl (loop / 2)
+     * ddl (1)
+     */
     public int createDrcIndexLogEventFilesWithDdl() throws Exception {
         int interval = 1024 * 5;
         System.setProperty(SystemConfig.PREVIOUS_GTID_INTERVAL, String.valueOf(interval));

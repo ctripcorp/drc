@@ -25,8 +25,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -39,8 +37,6 @@ import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 
 
 public class MetaInfoServiceImplTest extends AbstractTest {
-
-    private Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String MHA1OY = "fat-fx-drc1";
 
@@ -95,7 +91,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
             Assert.assertTrue(mhaNames.contains(mhaTbl.getMhaName()));
         }
     }
-    
+
     @Test
     public void testGetMhaGroupForMha() throws Exception {
 
@@ -153,7 +149,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Assert.assertEquals(2, machines.size());
         Assert.assertEquals("10.2.72.246:55111", machines.get(0));
     }
-    
+
 
     @Test
     public void testGetMhaGroupPariVos() throws Exception {
@@ -212,13 +208,13 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         includedDbs = metaInfoService.getIncludedDbs("fat-fx-drc2", "fat-fx-drc1");
         Assert.assertNull(includedDbs);
     }
-    
+
     @Test
     public void testGetTargetName() throws SQLException {
         String targetName = metaInfoService.getTargetName("fat-fx-drc1", "fat-fx-drc2");
         Assert.assertEquals("integration-test",targetName);
     }
-    
+
     @Test
     public void testGetApplierFilter() throws SQLException {
         String applierFilter = metaInfoService.getApplierFilter("fat-fx-drc1", "fat-fx-drc2");
@@ -395,9 +391,9 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         setMha2Group(BooleanEnum.FALSE);
 
         Map<String, List<String>> roughRealDalClusterMap = new HashMap<>() {{
-           put(DAL_CLUSTER, Arrays.asList(MHA1OY, MHA1RB1, MHA2OY, MHA2RB));
-           put(DAL_CLUSTER2, Arrays.asList(MHA1OY, MHA1RB1, MHA2OY));
-           put(DAL_CLUSTER3, Arrays.asList(MHA1OY, MHA1RB1, MHA1RB2));
+            put(DAL_CLUSTER, Arrays.asList(MHA1OY, MHA1RB1, MHA2OY, MHA2RB));
+            put(DAL_CLUSTER2, Arrays.asList(MHA1OY, MHA1RB1, MHA2OY));
+            put(DAL_CLUSTER3, Arrays.asList(MHA1OY, MHA1RB1, MHA1RB2));
         }};
         Map<String, List<String>> realDalClusterMap = metaInfoService.generateRealDalClusterMap(roughRealDalClusterMap);
         Assert.assertTrue(AllTests.weakEquals(Sets.newHashSet(Arrays.asList(DAL_CLUSTER, DAL_CLUSTER2, DAL_CLUSTER3)), realDalClusterMap.keySet()));
