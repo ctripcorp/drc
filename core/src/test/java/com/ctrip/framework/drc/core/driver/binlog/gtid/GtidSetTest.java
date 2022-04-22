@@ -532,4 +532,12 @@ public class GtidSetTest {
             Assert.fail();
         }
     }
+
+    @Test
+    public void testGap() {
+        String gtidString = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-4:5-10";
+        GtidSet gtidSet = new GtidSet(gtidString);
+        Assert.assertEquals(gtidSet.toString(), "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-10");
+        Assert.assertEquals(gtidSet, gtidSet.clone());
+    }
 }

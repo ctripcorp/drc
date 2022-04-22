@@ -146,6 +146,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         index += 8;
         byte[] gtidSetBytes = ByteHelper.readFixedLengthBytes(data, index, (int) length);
         gtidSet.decode(gtidSetBytes);
+        gtidSet = gtidSet.clone();
         index += gtidSetBytes.length;
 
         consumeType = ByteHelper.readUnsignedShortLittleEndian(data, index);
