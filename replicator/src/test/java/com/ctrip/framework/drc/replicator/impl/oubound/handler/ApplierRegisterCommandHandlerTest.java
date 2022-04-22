@@ -114,7 +114,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
 
-        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport);
+        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, "ut");
 
         createFiles();
     }
