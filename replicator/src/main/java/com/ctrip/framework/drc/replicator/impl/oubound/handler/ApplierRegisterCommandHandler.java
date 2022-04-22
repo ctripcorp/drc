@@ -168,8 +168,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
-        private Map<Long, TableMapLogEvent> tableMapWithinTransaction = Maps.newHashMap();
-
         private Filter<OutboundLogEventContext> filterChain;
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) {
@@ -195,7 +193,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
 
-            filterChain = new OutboundFilterChainFactory().createFilterChain(new OutboundFilterChainContext(this.channel, this.consumeType, tableMapWithinTransaction, new RowsFilterContext(filterType, null)));
+            filterChain = new OutboundFilterChainFactory().createFilterChain(new OutboundFilterChainContext(this.channel, this.consumeType, new RowsFilterContext(filterType, null)));
         }
 
         private boolean check(GtidSet excludedSet) {
@@ -435,7 +433,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 logGtid(previousGtidLogEvent, eventType);
-                filterChain.doFilter(new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize));
+                // read header already
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize);
+                filterChain.doFilter(logEventContext);
+                if (logEventContext.getCause() != null) {
+                    throw logEventContext.getCause();
+                }
+                
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 outboundMonitorReport.addSize(eventSize);
 

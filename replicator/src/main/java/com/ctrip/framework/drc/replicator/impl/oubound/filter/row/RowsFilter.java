@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
-import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DeleteRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
+import com.ctrip.framework.drc.core.server.common.EventReader;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 
 import java.nio.channels.FileChannel;
@@ -14,7 +12,7 @@ import java.nio.channels.FileChannel;
  * @Author limingdong
  * @create 2022/4/22
  */
-public class RowsFilter extends AbstractPostLogEventFilter<OutboundLogEventContext> {
+public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
     private RuleFactory ruleFactory = new DefaultRuleFactory();
 
@@ -45,6 +43,13 @@ public class RowsFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
     }
 
     private boolean handLineFilterRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
+        value.backToHeader();
+        EventReader.readEvent(fileChannel, rowsEvent);
+        rowsEvent.loadPostHeader();
+        long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
+        TableMapLogEvent tableMapLogEvent = value.getTableMapWithinTransaction(tableId);
+        String tableName = tableMapLogEvent.getSchemaNameDotTableName();
+        TableMapLogEvent drcTableMap = value.getDrcTableMap(tableName);
         // check line filter and construct rows event
         if (true) {
 //            value.setRowsEvent();

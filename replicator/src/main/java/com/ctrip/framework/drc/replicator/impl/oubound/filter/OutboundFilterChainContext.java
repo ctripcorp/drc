@@ -1,11 +1,8 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilterContext;
 import io.netty.channel.Channel;
-
-import java.util.Map;
 
 /**
  * @Author limingdong
@@ -17,14 +14,11 @@ public class OutboundFilterChainContext {
 
     private ConsumeType consumeType;
 
-    private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
-
     private RowsFilterContext filterContext;
 
-    public OutboundFilterChainContext(Channel channel, ConsumeType consumeType, Map<Long, TableMapLogEvent> tableMapWithinTransaction, RowsFilterContext filterContext) {
+    public OutboundFilterChainContext(Channel channel, ConsumeType consumeType, RowsFilterContext filterContext) {
         this.channel = channel;
         this.consumeType = consumeType;
-        this.tableMapWithinTransaction = tableMapWithinTransaction;
         this.filterContext = filterContext;
     }
 
@@ -40,7 +34,4 @@ public class OutboundFilterChainContext {
         return consumeType;
     }
 
-    public Map<Long, TableMapLogEvent> getTableMapWithinTransaction() {
-        return tableMapWithinTransaction;
-    }
 }

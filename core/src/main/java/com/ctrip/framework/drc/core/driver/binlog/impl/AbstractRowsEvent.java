@@ -86,7 +86,9 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
         final ByteBuf payloadBuf = getPayloadBuf();
         // do read row event payload post-header
-        rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
+        if (rowsEventPostHeader == null) {
+            rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
+        }
 
         // do read payload body
         this.numberOfColumns = readLengthEncodeInt(payloadBuf);

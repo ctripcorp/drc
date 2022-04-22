@@ -20,7 +20,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         EventTypeFilter eventTypeFilter = new EventTypeFilter();
         consumeTypeFilter.setSuccessor(eventTypeFilter);
 
-        TableFilter tableFilter = new TableFilter(context.getTableMapWithinTransaction());
+        TableFilter tableFilter = new TableFilter();
         eventTypeFilter.setSuccessor(tableFilter);
 
 
