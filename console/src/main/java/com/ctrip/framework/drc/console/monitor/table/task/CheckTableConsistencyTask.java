@@ -126,7 +126,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         // key: database.table, value: createTblStmts
         Map<String, String> srcStmts = MySqlUtils.getDefaultCreateTblStmts(srcEndpoint,aviatorRegexFilter);
         Map<String, String> destStmts = MySqlUtils.getDefaultCreateTblStmts(destEndpoint,aviatorRegexFilter);
-        
+
         
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
