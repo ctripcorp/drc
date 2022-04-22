@@ -57,6 +57,7 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
 
         if (reconnection_code == null) {
             GtidSet gtidSet = networkContextResource.fetchGtidSet();
+            gtidSet = gtidSet.clone();
             logger.info("[Reconnect] using gtidset {}", gtidSet);
             mySQLSlaveConfig.setGtidSet(gtidSet);
         }
