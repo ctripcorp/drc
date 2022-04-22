@@ -48,7 +48,6 @@ import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
@@ -66,8 +65,6 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  */
 public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler implements CommandHandler {
 
-    private static AtomicInteger threadNum = new AtomicInteger(1);
-
     private static final int END_OF_STATEMENT_FLAG = 1;
 
     private GtidManager gtidManager;
@@ -76,14 +73,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private ExecutorService dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + threadNum.getAndIncrement());
+    private ExecutorService dumpExecutorService;
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registreKey) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + registreKey);
     }
 
     @Override

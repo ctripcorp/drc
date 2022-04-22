@@ -121,7 +121,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         LifecycleHelper.initializeIfPossible(transactionCache);
         LifecycleHelper.initializeIfPossible(replicatorSlaveServer);
 
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport));
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport, replicatorConfig.getRegistryKey()));
         mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
         mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler(replicatorConfig.getRegistryKey()));
         LifecycleHelper.initializeIfPossible(mySQLMasterServer);

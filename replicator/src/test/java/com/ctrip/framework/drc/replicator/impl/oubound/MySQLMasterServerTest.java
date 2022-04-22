@@ -86,7 +86,7 @@ public class MySQLMasterServerTest extends AbstractServerTest {
 
     @Test(expected = BindException.class)
     public void testStart() throws Exception {
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null));
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null, "ut"));
 
         mySQLMasterServer.start();
         Assert.assertTrue(isUsed(PORT));
