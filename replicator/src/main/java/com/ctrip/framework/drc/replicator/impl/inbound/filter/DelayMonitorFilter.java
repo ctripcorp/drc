@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,7 +14,7 @@ import org.apache.commons.lang3.StringUtils;
  * @Author limingdong
  * @create 2020/4/24
  */
-public class DelayMonitorFilter extends AbstractPostLogEventFilter {
+public class DelayMonitorFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
 
     private DefaultMonitorManager delayMonitor;
 
@@ -24,7 +25,7 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter {
     }
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(LogEventInboundContext value) {
 
         boolean filtered = doNext(value, value.isInExcludeGroup());
 

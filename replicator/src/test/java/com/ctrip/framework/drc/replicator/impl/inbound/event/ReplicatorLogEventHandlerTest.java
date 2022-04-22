@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.MonitorConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
@@ -16,7 +16,7 @@ import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventWithGroupFlag;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventInboundContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
@@ -56,7 +56,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private ReplicatorLogEventHandler logEventHandler;
 
-    private Filter<LogEventWithGroupFlag> flagFilter;
+    private Filter<LogEventInboundContext> flagFilter;
 
     @Mock
     private SchemaManager schemaManager;

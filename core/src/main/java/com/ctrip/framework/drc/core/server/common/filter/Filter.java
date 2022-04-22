@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.core.server.common;
+package com.ctrip.framework.drc.core.server.common.filter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

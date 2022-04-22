@@ -17,7 +17,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
 
     private TransactionTableFilter transactionTableFilter;
 
-    private LogEventWithGroupFlag value;
+    private LogEventInboundContext value;
 
     @Before
     public void setUp() throws Exception {
@@ -30,7 +30,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, "drcmonitordb", "gtid_executed", Lists.newArrayList(), null, table_map_log_event, 0
         );
-        value = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, GTID);
+        value = new LogEventInboundContext(tableMapLogEvent, null, false, false, false, GTID);
 
         transactionTableFilter.doFilter(value);
         Assert.assertTrue(value.isInExcludeGroup());
@@ -42,7 +42,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, "drcmonitordb", "delaymonitor", Lists.newArrayList(), null, table_map_log_event, 0
         );
-        value = new LogEventWithGroupFlag(tableMapLogEvent, null,false, false, false, GTID);
+        value = new LogEventInboundContext(tableMapLogEvent, null,false, false, false, GTID);
 
         transactionTableFilter.doFilter(value);
         Assert.assertFalse(value.isInExcludeGroup());

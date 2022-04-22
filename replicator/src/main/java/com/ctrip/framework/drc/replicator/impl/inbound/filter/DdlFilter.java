@@ -2,16 +2,17 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.QueryLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
-import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  * @Author limingdong
  * @create 2020/2/24
  */
-public class DdlFilter extends AbstractLogEventFilter {
+public class DdlFilter extends AbstractLogEventFilter<LogEventInboundContext> {
 
     protected final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
@@ -53,7 +54,7 @@ public class DdlFilter extends AbstractLogEventFilter {
     }
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(LogEventInboundContext value) {
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
         if (query_log_event == logEventType) {

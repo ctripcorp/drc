@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
@@ -10,10 +11,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSA
 /**
  * Created by jixinwang on 2022/2/18
  */
-public class TransactionTableFilter extends AbstractLogEventFilter {
+public class TransactionTableFilter extends AbstractLogEventFilter<LogEventInboundContext> {
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(LogEventInboundContext value) {
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
 

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 /**
  * Created by jixinwang on 2021/10/9

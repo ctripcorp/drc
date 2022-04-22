@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -66,9 +66,9 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
 
     private Set<String> tableNames = Sets.newHashSet();
 
-    private Filter<LogEventWithGroupFlag> flagFilter;
+    private Filter<LogEventInboundContext> flagFilter;
 
-    private LogEventWithGroupFlag logEventWithGroupFlag;
+    private LogEventInboundContext logEventWithGroupFlag;
 
     private DefaultMonitorManager delayMonitor = new DefaultMonitorManager("ut");
 
@@ -92,7 +92,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, null, false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new LogEventInboundContext(gtidLogEvent, null, false, false, false, StringUtils.EMPTY);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 
@@ -150,7 +150,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent,  null,false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new LogEventInboundContext(gtidLogEvent,  null,false, false, false, StringUtils.EMPTY);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 
@@ -207,7 +207,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, null, false, false, false, GTID);
+        logEventWithGroupFlag = new LogEventInboundContext(gtidLogEvent, null, false, false, false, GTID);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 

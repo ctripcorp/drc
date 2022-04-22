@@ -15,7 +15,7 @@ public abstract class AbstractFilterTest extends MockTest {
 
     protected static final long EVENT_SIZE = 65L;
 
-    protected LogEventWithGroupFlag logEventWithGroupFlag;
+    protected LogEventInboundContext logEventWithGroupFlag;
 
     protected static final String GTID = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1";
 
@@ -31,6 +31,6 @@ public abstract class AbstractFilterTest extends MockTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
-        logEventWithGroupFlag = new LogEventWithGroupFlag(gtidLogEvent, callBack,false, false, false, "");
+        logEventWithGroupFlag = new LogEventInboundContext(gtidLogEvent, callBack,false, false, false, "");
     }
 }

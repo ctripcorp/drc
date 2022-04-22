@@ -3,8 +3,8 @@ package com.ctrip.framework.drc.core.driver.command.packet.applier;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHeadPacket;
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
@@ -31,7 +31,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     private GtidSet gtidSet = new GtidSet(Maps.newLinkedHashMap());
 
-    private int replicatroBackup = InstanceStatus.ACTIVE.getStatus();
+    private int consumeType = ConsumeType.Applier.getCode();  // ConsumeType instance
 
     private Set<String> includedDbs = Sets.newHashSet();
 
@@ -98,7 +98,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         // }
         out.write(bs);
 
-        ByteHelper.writeUnsignedShortLittleEndian(replicatroBackup, out);
+        ByteHelper.writeUnsignedShortLittleEndian(consumeType, out);
 
         // includedDbs
         int dbSize = includedDbs.size();
@@ -148,7 +148,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         gtidSet.decode(gtidSetBytes);
         index += gtidSetBytes.length;
 
-        replicatroBackup = ByteHelper.readUnsignedShortLittleEndian(data, index);
+        consumeType = ByteHelper.readUnsignedShortLittleEndian(data, index);
         index += 2;
 
         if (data.length > index) {
@@ -188,12 +188,12 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         this.gtidSet = gtidSet;
     }
 
-    public int getReplicatroBackup() {
-        return replicatroBackup;
+    public int getConsumeType() {
+        return consumeType;
     }
 
-    public void setReplicatroBackup(int replicatroBackup) {
-        this.replicatroBackup = replicatroBackup;
+    public void setConsumeType(int consumeType) {
+        this.consumeType = consumeType;
     }
 
     public Set<String> getIncludedDbs() {

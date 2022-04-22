@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 /**
  * Created by mingdongli
@@ -14,7 +14,7 @@ import com.ctrip.framework.drc.core.server.common.Filter;
  */
 public class DefaultFilterChainFactory {
 
-    public static Filter<LogEventWithGroupFlag> createFilterChain(FilterChainContext context) {
+    public static Filter<LogEventInboundContext> createFilterChain(FilterChainContext context) {
 
         EventReleaseFilter eventReleaseFilter = new EventReleaseFilter();
 

@@ -133,7 +133,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
         when(attribute.get()).thenReturn(channelAttributeKey);
@@ -159,7 +159,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
         when(attribute.get()).thenReturn(channelAttributeKey);
@@ -181,7 +181,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
         when(attribute.get()).thenReturn(channelAttributeKey);
@@ -203,7 +203,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
@@ -224,7 +224,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
@@ -245,7 +245,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2001:2003-3500");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
@@ -266,7 +266,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         int maxGtidId = testIndexFileWithDiffGtidSetAndDdl();
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + maxGtidId);
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
@@ -287,7 +287,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         int maxGtidId = testIndexFileWithDiffGtidSetAndDdl();
         int ddlId = (maxGtidId - 1) / 2;
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":" + ddlId);
@@ -309,7 +309,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         int maxGtidId = testIndexFileWithDiffGtidSetAndDdl();
         int ddlId = (maxGtidId - 1) / 2;
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId - 3) + ":" + (ddlId - 1) + "-" + maxGtidId);
@@ -331,7 +331,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         int maxGtidId = testIndexFileWithDiffGtidSetAndDdl();
         int ddlId = (maxGtidId - 1) / 2;
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId + 1) + ":" + (ddlId + 3) + "-" + maxGtidId);
@@ -353,7 +353,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         int maxGtidId = testDrcGtidLogEvent();
         int ddlId = (maxGtidId - 1) / 2;
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId + 1));
@@ -377,7 +377,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         createMultiUuidsFiles();
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1500,c372080a-1804-11ea-8add-98039bbedfad:1-15000");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
@@ -397,7 +397,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         createMultiUuidsFiles();
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-3:5-1500,c372080a-1804-11ea-8add-98039bbedfad:1-15000");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
@@ -417,7 +417,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.INACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.INACTIVE.getStatus());
         createMultiUuidsFiles();
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1830,c372080a-1804-11ea-8add-98039bbedfad:1-15600");
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
@@ -444,7 +444,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.ACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.ACTIVE.getStatus());
 
         int size = createDiffDbRows(includedDbs);
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2500");
@@ -473,7 +473,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getReplicatroBackup()).thenReturn(InstanceStatus.ACTIVE.getStatus());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(InstanceStatus.ACTIVE.getStatus());
 
         createDiffTableRows();
         GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2500");

@@ -309,6 +309,11 @@ public class GtidSetTest {
     }
 
     @Test
+    public void test1() {
+        Assert.assertTrue(new GtidSet("b207f82e-2a7b-11ec-b128-1c34da51a830:1-25428879535").isContainedWithin(new GtidSet("b207f82e-2a7b-11ec-b128-1c34da51a830:1-25326877444:25326877445-25532555232")));
+    }
+
+    @Test
     public void testFilter() {
         Set<String> uuidSet = Sets.newHashSet("68226208-9374-11ea-819b-fa163e02998c", "02878c56-9375-11ea-b1c4-fa163eaa9d69", "dd3ccf94-9371-11ea-9f41-fa163ec90ff6");
         String gtidSetStringSlave = "02878c56-9375-11ea-b1c4-fa163eaa9d69:1-350744,106cab99-95c0-11ea-9ebe-fa163ec90ff6:1-4731";

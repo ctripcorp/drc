@@ -31,7 +31,7 @@ public class BlackTableNameFilterTest extends MockTest {
 
     private BlackTableNameFilter tableNameFilter;
 
-    private LogEventWithGroupFlag value;
+    private LogEventInboundContext value;
 
     private TableMapLogEvent tableMapLogEvent;
 
@@ -48,7 +48,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
         byteBuf.release();
 
-        value = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
+        value = new LogEventInboundContext(tableMapLogEvent, null, false, false, false, "");
     }
 
     @After
@@ -80,7 +80,7 @@ public class BlackTableNameFilterTest extends MockTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, QMQ_TABLE, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        LogEventWithGroupFlag eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
+        LogEventInboundContext eventWithGroupFlag = new LogEventInboundContext(tableMapLogEvent, null, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
@@ -89,7 +89,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, testTableName, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        eventWithGroupFlag = new LogEventWithGroupFlag(tableMapLogEvent, null, false, false, false, "");
+        eventWithGroupFlag = new LogEventInboundContext(tableMapLogEvent, null, false, false, false, "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
         Assert.assertTrue(eventWithGroupFlag.isTableFiltered());

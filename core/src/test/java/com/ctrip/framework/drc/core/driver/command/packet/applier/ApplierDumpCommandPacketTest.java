@@ -40,18 +40,18 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
         clone.read(byteBuf);
         Assert.assertEquals(packet.getApplierName(), clone.getApplierName());
         Assert.assertEquals(packet.getGtidSet(), clone.getGtidSet());
-        Assert.assertEquals(packet.getReplicatroBackup(), InstanceStatus.ACTIVE.getStatus());
+        Assert.assertEquals(packet.getConsumeType(), InstanceStatus.ACTIVE.getStatus());
     }
 
     @Test
     public void replicatorBackup() throws IOException {
-        packet.setReplicatroBackup(InstanceStatus.INACTIVE.getStatus());
+        packet.setConsumeType(InstanceStatus.INACTIVE.getStatus());
         packet.write(byteBuf);
         ApplierDumpCommandPacket clone = new ApplierDumpCommandPacket(SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID.getCode());
         clone.read(byteBuf);
         Assert.assertEquals(packet.getApplierName(), clone.getApplierName());
         Assert.assertEquals(packet.getGtidSet(), clone.getGtidSet());
-        Assert.assertEquals(packet.getReplicatroBackup(), InstanceStatus.INACTIVE.getStatus());
+        Assert.assertEquals(packet.getConsumeType(), InstanceStatus.INACTIVE.getStatus());
     }
 
     @Test
@@ -69,7 +69,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
 
         Assert.assertEquals(testPackage.getApplierName(), clone.getApplierName());
         Assert.assertEquals(testPackage.getGtidSet(), clone.getGtidSet());
-        Assert.assertEquals(testPackage.getReplicatroBackup(), InstanceStatus.ACTIVE.getStatus());
+        Assert.assertEquals(testPackage.getConsumeType(), InstanceStatus.ACTIVE.getStatus());
         Assert.assertEquals(testPackage.getIncludedDbs(), clone.getIncludedDbs());
         Assert.assertEquals(testPackage.getNameFilter(), clone.getNameFilter());
     }

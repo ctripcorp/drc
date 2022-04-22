@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import org.apache.commons.lang3.StringUtils;
 
@@ -15,7 +16,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
  * @Author limingdong
  * @create 2020/4/24
  */
-public class PersistPostFilter extends AbstractPostLogEventFilter {
+public class PersistPostFilter extends AbstractPostLogEventFilter<LogEventInboundContext> {
 
     public static final long FAKE_XID_PARAM = 100l;
     public static final long FAKE_SERVER_PARAM = 1l;
@@ -27,7 +28,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter {
     }
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(LogEventInboundContext value) {
 
         boolean filtered = doNext(value, value.isInExcludeGroup());  //post filter
 
@@ -67,7 +68,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter {
         return filtered;
     }
 
-    private void checkXid(LogEvent logEvent, LogEventType logEventType, LogEventWithGroupFlag value) {
+    private void checkXid(LogEvent logEvent, LogEventType logEventType, LogEventInboundContext value) {
         if (gtid_log_event == logEventType) {
             String previousGtid = value.getGtid();
             if (StringUtils.isNotBlank(previousGtid) && previousGtid.contains(":")) {  //check if fake XidLogEvent

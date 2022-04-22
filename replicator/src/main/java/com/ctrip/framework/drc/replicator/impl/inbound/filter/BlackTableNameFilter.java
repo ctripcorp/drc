@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.google.common.collect.Sets;
 
@@ -17,7 +18,7 @@ import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_D
  * @Author limingdong
  * @create 2020/2/24
  */
-public class BlackTableNameFilter extends AbstractLogEventFilter {
+public class BlackTableNameFilter extends AbstractLogEventFilter<LogEventInboundContext> {
 
     private HashSet<String> EXCLUDED_TABLE = Sets.newHashSet();
 
@@ -31,7 +32,7 @@ public class BlackTableNameFilter extends AbstractLogEventFilter {
     }
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(LogEventInboundContext value) {
 
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();

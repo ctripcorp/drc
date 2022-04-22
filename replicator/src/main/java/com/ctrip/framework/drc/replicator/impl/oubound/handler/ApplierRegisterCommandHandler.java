@@ -10,12 +10,12 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
@@ -131,7 +131,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
-        private boolean replicatorBackup;
+        private ConsumeType consumeType;
 
         private Set<String> includedDbs = Sets.newHashSet();
 
@@ -165,12 +165,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.channel = channel;
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
-            this.replicatorBackup = InstanceStatus.INACTIVE.getStatus() == dumpCommandPacket.getReplicatroBackup();
+            this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
-            logger.info("[replicatorBackup] is {} for {}", replicatorBackup, applierName);
+            logger.info("[ConsumeType] is {} for {}", consumeType.name(), applierName);
             this.ip = ip;
             ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
-            if (replicatorBackup) {
+            if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
                 HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
             }
@@ -251,7 +251,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             // 3、find first file
-            return replicatorBackup ? getFirstFile(clonedExcludedSet, !replicatorBackup) : getFirstFile(filteredExcludedSet, !replicatorBackup);
+            return consumeType.isSlave() ? getFirstFile(clonedExcludedSet, !consumeType.isSlave()) : getFirstFile(filteredExcludedSet, !consumeType.isSlave());
         }
 
         private File firstFileToSend() {
