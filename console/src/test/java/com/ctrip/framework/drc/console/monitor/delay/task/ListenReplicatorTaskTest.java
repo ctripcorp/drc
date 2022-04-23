@@ -106,14 +106,14 @@ public class ListenReplicatorTaskTest {
         newDrc = DefaultSaxParser.parse(newRouteDrcXmlStr);
     }
 
-    @Test
-    public void testUpdateMasterReplicator() {
-        DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
-        config.setDestMha("");
-        config.setEndpoint(new DefaultEndPoint("", 3306));
-        task.updateMasterReplicator(config, "ip:3336");
-        Assert.assertTrue(true);
-    }
+//    @Test
+//    public void testUpdateMasterReplicator() {
+//        DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
+//        config.setDestMha("");
+//        config.setEndpoint(new DefaultEndPoint("", 3306));
+//        task.updateMasterReplicator(config, "ip:3336");
+//        Assert.assertTrue(true);
+//    }
 
 //    @Test
 //    public void testCheckMaster() {
@@ -147,58 +147,58 @@ public class ListenReplicatorTaskTest {
 ////        Assert.assertEquals(replicatorWrapper105.getPort(), task.getReplicatorWrappers().get("integration-test.drcOy").getPort());
 //    }
 
-    @Test
-    public void testUpdateListenReplicator() throws SQLException {
-        Map<String, ReplicatorWrapper> oldReplicatorWrappers = Maps.newHashMap();
-        Map<String, ReplicatorWrapper> newReplicatorWrappers = Maps.newHashMap();
+//    @Test
+//    public void testUpdateListenReplicator() throws SQLException {
+//        Map<String, ReplicatorWrapper> oldReplicatorWrappers = Maps.newHashMap();
+//        Map<String, ReplicatorWrapper> newReplicatorWrappers = Maps.newHashMap();
+//
+//        initReplicatorWrappers(oldDrc, oldReplicatorWrappers);
+//        initReplicatorWrappers(newDrc, newReplicatorWrappers);
+//
+//        ListenReplicatorTask listenReplicatorTask = Mockito.spy(task);
+//        Mockito.doNothing().when(listenReplicatorTask).startListenServer(Mockito.anyString(), Mockito.any(ReplicatorWrapper.class));
+//        Mockito.doNothing().when(listenReplicatorTask).stopListenServer(Mockito.anyString());
+//
+//        Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
+//        Mockito.when(dbClusterSourceProvider.getReplicatorsNotInLocalDc(Mockito.anyList())).thenReturn(newReplicatorWrappers);
+//        listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
+//
+//        listenReplicatorTask.updateListenReplicators();
+//
+//        ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(oldReplicatorWrappers, newReplicatorWrappers);
+//        comparator.compare();
+//        Assert.assertEquals(1, comparator.getAdded().size());
+//        Assert.assertEquals(1, comparator.getRemoved().size());
+//        Assert.assertEquals(3, comparator.getMofified().size());
+//    }
 
-        initReplicatorWrappers(oldDrc, oldReplicatorWrappers);
-        initReplicatorWrappers(newDrc, newReplicatorWrappers);
-
-        ListenReplicatorTask listenReplicatorTask = Mockito.spy(task);
-        Mockito.doNothing().when(listenReplicatorTask).startListenServer(Mockito.anyString(), Mockito.any(ReplicatorWrapper.class));
-        Mockito.doNothing().when(listenReplicatorTask).stopListenServer(Mockito.anyString());
-
-        Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
-        Mockito.when(dbClusterSourceProvider.getReplicatorsNotInLocalDc(Mockito.anyList())).thenReturn(newReplicatorWrappers);
-        listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
-
-        listenReplicatorTask.updateListenReplicators();
-
-        ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(oldReplicatorWrappers, newReplicatorWrappers);
-        comparator.compare();
-        Assert.assertEquals(1, comparator.getAdded().size());
-        Assert.assertEquals(1, comparator.getRemoved().size());
-        Assert.assertEquals(3, comparator.getMofified().size());
-    }
-
-    private void initReplicatorWrappers(Drc drc, Map<String, ReplicatorWrapper> replicatorWrappers) {
-        Dc dc1 = drc.getDcs().get("dc1");
-        Dc dc2 = drc.getDcs().get("dc2");
-        Map<String, DbCluster> dbClusters = dc2.getDbClusters();
-        for(Map.Entry<String, DbCluster> entry : dbClusters.entrySet()) {
-            String dbClusterId = entry.getKey();
-            DbCluster dbCluster = entry.getValue();
-            List<Applier> appliers = dbCluster.getAppliers();
-            Applier applierChoose = null;
-            for(Applier applier : appliers) {
-                if(applier.getTargetIdc().equalsIgnoreCase("dc1")) {
-                    applierChoose = applier;
-                    break;
-                }
-            }
-
-            List<Route> routes = RouteUtils.filterRoutes("dc1", Route.TAG_CONSOLE, dbCluster.getOrgId(), "dc2", dc1);
-            replicatorWrappers.put(dbClusterId,
-                    new ReplicatorWrapper(dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
-                            "dc1",
-                            "dc2",
-                            dbCluster.getName(),
-                            applierChoose.getTargetMhaName(),
-                            dbCluster.getMhaName(),
-                            routes
-                    )
-            );
-        }
-    }
+//    private void initReplicatorWrappers(Drc drc, Map<String, ReplicatorWrapper> replicatorWrappers) {
+//        Dc dc1 = drc.getDcs().get("dc1");
+//        Dc dc2 = drc.getDcs().get("dc2");
+//        Map<String, DbCluster> dbClusters = dc2.getDbClusters();
+//        for(Map.Entry<String, DbCluster> entry : dbClusters.entrySet()) {
+//            String dbClusterId = entry.getKey();
+//            DbCluster dbCluster = entry.getValue();
+//            List<Applier> appliers = dbCluster.getAppliers();
+//            Applier applierChoose = null;
+//            for(Applier applier : appliers) {
+//                if(applier.getTargetIdc().equalsIgnoreCase("dc1")) {
+//                    applierChoose = applier;
+//                    break;
+//                }
+//            }
+//
+//            List<Route> routes = RouteUtils.filterRoutes("dc1", Route.TAG_CONSOLE, dbCluster.getOrgId(), "dc2", dc1);
+//            replicatorWrappers.put(dbClusterId,
+//                    new ReplicatorWrapper(dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
+//                            "dc1",
+//                            "dc2",
+//                            dbCluster.getName(),
+//                            applierChoose.getTargetMhaName(),
+//                            dbCluster.getMhaName(),
+//                            routes
+//                    )
+//            );
+//        }
+//    }
 }

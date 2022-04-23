@@ -43,6 +43,11 @@ public class SwitchServiceImpl implements SwitchService {
     @Async
     @Override
     public void switchListenReplicator(String clusterId, String endpoint) {
-        listenReplicatorTask.checkMaster(clusterId, endpoint);
+        logger.info("start switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
+        String[] split = endpoint.split(":");
+        if (split.length == 2) {
+            listenReplicatorTask.switchListenReplicator(clusterId, split[0], Integer.parseInt(split[1]));
+        }
+        logger.info("end switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
     }
 }
