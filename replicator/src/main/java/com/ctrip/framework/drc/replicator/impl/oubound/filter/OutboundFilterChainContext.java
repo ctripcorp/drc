@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilterContext;
 import io.netty.channel.Channel;
 
@@ -32,6 +33,14 @@ public class OutboundFilterChainContext {
 
     public ConsumeType getConsumeType() {
         return consumeType;
+    }
+
+    public RowFilterType getRowFilterType() {
+        return filterContext.getFilterType();
+    }
+
+    public static OutboundFilterChainContext from(Channel channel, ConsumeType consumeType, RowsFilterContext filterContext) {
+        return new OutboundFilterChainContext(channel, consumeType, filterContext);
     }
 
 }

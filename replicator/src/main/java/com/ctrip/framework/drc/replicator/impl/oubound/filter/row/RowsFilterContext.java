@@ -24,4 +24,8 @@ public class RowsFilterContext {
     public Object getFilterContext() {
         return filterContext;
     }
+
+    public static RowsFilterContext from(RowFilterType filterType, Object filterContext) {
+        return new RowsFilterContext(filterType, filterContext);
+    }
 }

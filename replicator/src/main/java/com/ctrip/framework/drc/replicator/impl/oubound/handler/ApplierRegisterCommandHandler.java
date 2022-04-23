@@ -175,7 +175,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.filterType = RowFilterType.getType(dumpCommandPacket.getLineFilterType());
+            this.filterType = RowFilterType.getType(dumpCommandPacket.getRowFilterType());
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             logger.info("[ConsumeType] is {} for {}", consumeType.name(), applierName);
             this.ip = ip;
@@ -193,7 +193,16 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
 
-            filterChain = new OutboundFilterChainFactory().createFilterChain(new OutboundFilterChainContext(this.channel, this.consumeType, new RowsFilterContext(filterType, null)));
+            filterChain = new OutboundFilterChainFactory().createFilterChain(
+                    OutboundFilterChainContext.from(
+                            this.channel,
+                            this.consumeType,
+                            RowsFilterContext.from(
+                                    filterType,
+                                    dumpCommandPacket.getRowFilterContext()
+                            )
+                    )
+            );
         }
 
         private boolean check(GtidSet excludedSet) {

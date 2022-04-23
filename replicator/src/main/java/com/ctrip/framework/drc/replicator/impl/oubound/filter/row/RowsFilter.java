@@ -24,22 +24,20 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        boolean lineFilter = false;
         if (LogEventUtils.isRowsEvent(value.getEventType())) {
             switch (value.getEventType()) {
                 case write_rows_event_v2:
-                    lineFilter = handLineFilterRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
+                    handLineFilterRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
                     break;
                 case update_rows_event_v2:
-                    lineFilter = handLineFilterRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
+                    handLineFilterRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
                     break;
                 case delete_rows_event_v2:
-                    lineFilter = handLineFilterRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
+                    handLineFilterRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
                     break;
             }
         }
-        value.setLineFilter(lineFilter);
-        return doNext(value, value.isLineFilter());
+        return doNext(value, value.isSkip());
     }
 
     private boolean handLineFilterRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {

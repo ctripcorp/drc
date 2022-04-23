@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHead
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
@@ -38,7 +39,11 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     private String nameFilter = StringUtils.EMPTY;
 
-    private int lineFilterType = RowFilterType.None.getCode();
+    private int applyMode = ApplyMode.set_gtid.getType();
+
+    private int rowFilterType = RowFilterType.None.getCode();
+
+    private String rowFilterContext = StringUtils.EMPTY;
 
     public ApplierDumpCommandPacket(byte command) {
         super(command);
@@ -115,6 +120,15 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         // nameFilter
         ByteHelper.writeNullTerminatedString(nameFilter, out);
 
+        // applyMode
+        ByteHelper.writeUnsignedShortLittleEndian(applyMode, out);
+
+        // rowFilterType
+        ByteHelper.writeUnsignedShortLittleEndian(rowFilterType, out);
+
+        // rowFilterContext
+        ByteHelper.writeNullTerminatedString(rowFilterContext, out);
+
         return out.toByteArray();
     }
 
@@ -155,22 +169,32 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         consumeType = ByteHelper.readUnsignedShortLittleEndian(data, index);
         index += 2;
 
-        if (data.length > index) {
-            long dbSize = ByteHelper.readUnsignedLongLittleEndian(data, index);
-            index += 8;
+        long dbSize = ByteHelper.readUnsignedLongLittleEndian(data, index);
+        index += 8;
 
-            if (dbSize > 0) {
-                for (int i = 0; i < dbSize; ++i) {
-                    byte[] dbNameBytes = ByteHelper.readNullTerminatedBytes(data, index);
-                    includedDbs.add(new String(dbNameBytes));
-                    index += dbNameBytes.length + 1;
-                }
+        if (dbSize > 0) {
+            for (int i = 0; i < dbSize; ++i) {
+                byte[] dbNameBytes = ByteHelper.readNullTerminatedBytes(data, index);
+                includedDbs.add(new String(dbNameBytes));
+                index += dbNameBytes.length + 1;
             }
         }
 
+        byte[] filterBytes = ByteHelper.readNullTerminatedBytes(data, index);
+        nameFilter = new String(filterBytes);
+        index += (filterBytes.length + 1);
+
         if (data.length > index) {
-            byte[] filterBytes = ByteHelper.readNullTerminatedBytes(data, index);
-            nameFilter = new String(filterBytes);
+            applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
+            index += 2;
+
+            rowFilterType = ByteHelper.readUnsignedShortLittleEndian(data, index);
+            index += 2;
+
+            // 2. read rowFilterContext
+            byte[] rowFilterContextBytes = ByteHelper.readNullTerminatedBytes(data, index);
+            rowFilterContext = new String(rowFilterContextBytes);
+            index += (rowFilterContextBytes.length + 1);
         }
 
         // end read
@@ -216,11 +240,27 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         this.nameFilter = nameFilter;
     }
 
-    public int getLineFilterType() {
-        return lineFilterType;
+    public int getApplyMode() {
+        return applyMode;
     }
 
-    public void setLineFilterType(int lineFilterType) {
-        this.lineFilterType = lineFilterType;
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
+    public int getRowFilterType() {
+        return rowFilterType;
+    }
+
+    public void setRowFilterType(int rowFilterType) {
+        this.rowFilterType = rowFilterType;
+    }
+
+    public String getRowFilterContext() {
+        return rowFilterContext;
+    }
+
+    public void setRowFilterContext(String rowFilterContext) {
+        this.rowFilterContext = rowFilterContext;
     }
 }

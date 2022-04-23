@@ -27,7 +27,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        boolean filtered = doNext(value, value.isLineFilter());
+        boolean filtered = doNext(value, value.isSkip());
         if (filtered) {
             sendRowsEvent(value);
         } else {

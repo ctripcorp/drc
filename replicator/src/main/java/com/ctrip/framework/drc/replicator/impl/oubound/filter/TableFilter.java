@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.google.common.collect.Maps;
@@ -17,9 +18,9 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  */
 public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    private Map<Long, TableMapLogEvent> tableMapWithinTransaction = Maps.newHashMap();
+    private Map<Long, TableMapLogEvent> tableMapWithinTransaction = Maps.newHashMap();  // clear with xid
 
-    private Map<String, TableMapLogEvent> drcTableMap = Maps.newHashMap();
+    private Map<String, TableMapLogEvent> drcTableMap = Maps.newHashMap();  // put every drc_table_map_log_event
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
@@ -29,22 +30,23 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             value.backToHeader();
             EventReader.readEvent(fileChannel, tableMapLogEvent);
-            value.setLineFilter(false);
+            value.setSkip(true);
             if (table_map_log_event == eventType) {
                 tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
-                value.setTableMapWithinTransaction(tableMapWithinTransaction);
             } else {
                 drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
-                value.setDrcTableMap(drcTableMap);
             }
         } else if (xid_log_event == eventType) {
             for (TableMapLogEvent tableMapLogEvent : tableMapWithinTransaction.values()) {
                 tableMapLogEvent.release();
             }
             this.tableMapWithinTransaction.clear();
-            value.setLineFilter(false);
+            value.setSkip(true);
+        } else if (LogEventUtils.isRowsEvent(eventType)) {
+            value.setTableMapWithinTransaction(tableMapWithinTransaction);
+            value.setDrcTableMap(drcTableMap);
         }
 
-        return doNext(value, value.isLineFilter());
+        return doNext(value, value.isSkip());
     }
 }

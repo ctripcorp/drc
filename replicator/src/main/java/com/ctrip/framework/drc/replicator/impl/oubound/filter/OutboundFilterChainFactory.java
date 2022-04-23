@@ -5,6 +5,13 @@ import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilter;
 
 /**
+ *
+ *  preFilter
+ *  ConsumeTypeFilter -> TableFilter -> RowsFilter
+ *
+ *  postFilter
+ *  SendFilter
+ *
  * @Author limingdong
  * @create 2022/4/22
  */
@@ -14,18 +21,14 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
     public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
         SendFilter sendFilter = new SendFilter(context.getChannel());
 
-        ConsumeTypeFilter consumeTypeFilter = new ConsumeTypeFilter(context.getConsumeType());
+        TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType(), context.getRowFilterType());
         sendFilter.setSuccessor(consumeTypeFilter);
 
-        EventTypeFilter eventTypeFilter = new EventTypeFilter();
-        consumeTypeFilter.setSuccessor(eventTypeFilter);
-
         TableFilter tableFilter = new TableFilter();
-        eventTypeFilter.setSuccessor(tableFilter);
-
+        consumeTypeFilter.setSuccessor(tableFilter);
 
         RowsFilter lineFilter = new RowsFilter(context.getFilterContext());
-        eventTypeFilter.setSuccessor(lineFilter);
+        tableFilter.setSuccessor(lineFilter);
 
         return sendFilter;
     }
