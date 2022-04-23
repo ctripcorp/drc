@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import java.nio.channels.FileChannel;
@@ -48,5 +49,15 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         }
 
         return doNext(value, value.isSkip());
+    }
+
+    @VisibleForTesting
+    public Map<Long, TableMapLogEvent> getTableMapWithinTransaction() {
+        return tableMapWithinTransaction;
+    }
+
+    @VisibleForTesting
+    public Map<String, TableMapLogEvent> getDrcTableMap() {
+        return drcTableMap;
     }
 }

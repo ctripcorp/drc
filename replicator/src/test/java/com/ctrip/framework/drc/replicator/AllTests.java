@@ -24,6 +24,8 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
@@ -47,6 +49,9 @@ import java.sql.Statement;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        TableFilterTest.class,
+        TypeFilterTest.class,
+
         DefaultGtidManagerTest.class,
         DefaultUuidOperatorTest.class,
         ReplicatorConnectionTest.class,

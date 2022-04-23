@@ -34,6 +34,9 @@ public class OutboundLogEventContext {
 
     private IOException cause;
 
+    public OutboundLogEventContext() {
+    }
+
     public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
@@ -66,10 +69,16 @@ public class OutboundLogEventContext {
     }
 
     public TableMapLogEvent getTableMapWithinTransaction(Long tableId) {
+        if (tableMapWithinTransaction == null) {
+            return null;
+        }
         return tableMapWithinTransaction.get(tableId);
     }
 
     public TableMapLogEvent getDrcTableMap(String tableName) {
+        if (drcTableMap == null) {
+            return null;
+        }
         return drcTableMap.get(tableName);
     }
 
