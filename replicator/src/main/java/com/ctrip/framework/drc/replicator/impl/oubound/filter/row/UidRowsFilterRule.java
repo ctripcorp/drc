@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
+import com.google.common.collect.Lists;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,8 +18,8 @@ public class UidRowsFilterRule implements RowsFilterRule {
         this.table2Uid = table2Uid;
     }
 
-    @Override
-    public boolean filterRow(AbstractRowsEvent.Row row) {
-        return false;
+    public List<Boolean> filterRow(List<AbstractRowsEvent.Row> rows) {
+        // TODO
+        return Lists.newArrayList(false);
     }
 }
