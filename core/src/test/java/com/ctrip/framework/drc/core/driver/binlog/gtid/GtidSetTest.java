@@ -534,10 +534,11 @@ public class GtidSetTest {
     }
 
     @Test
-    public void testGap() {
-        String gtidString = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-4:5-10";
-        GtidSet gtidSet = new GtidSet(gtidString);
-        Assert.assertEquals(gtidSet.toString(), "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:1-10");
-        Assert.assertEquals(gtidSet, gtidSet.clone());
+    public void testUnionFakeGap() {
+        String gtidSetSelectFromDb = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877444:25326877987";
+        String gtidSetInMemory = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877439-25326877441:25326877443:25326877445-25326887501";
+        GtidSet gtidSet = new GtidSet(gtidSetInMemory);
+        String gtidSetToUpdate = new GtidSet(gtidSetSelectFromDb).union(gtidSet).getUUIDSet("b207f82e-2a7b-11ec-b128-1c34da51a830").toString();
+        Assert.assertEquals(gtidSetToUpdate, "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877439-25326877441:25326877443-25326887501");
     }
 }
