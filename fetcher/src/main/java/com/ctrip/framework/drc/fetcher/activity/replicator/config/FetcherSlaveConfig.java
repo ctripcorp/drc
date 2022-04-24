@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.fetcher.activity.replicator.config;
 
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
@@ -18,6 +20,12 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
     private Set<String> includedDbs = Sets.newHashSet();
 
     private String nameFilter = StringUtils.EMPTY;
+
+    private int applyMode = ApplyMode.set_gtid.getType();
+
+    private int rowFilterType = RowFilterType.None.getCode();
+
+    private String rowFilterContext = StringUtils.EMPTY;
 
     public String getApplierName() {
         return applierName;
@@ -43,6 +51,30 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
         this.nameFilter = nameFilter;
     }
 
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
+    public int getRowFilterType() {
+        return rowFilterType;
+    }
+
+    public void setRowFilterType(int rowFilterType) {
+        this.rowFilterType = rowFilterType;
+    }
+
+    public String getRowFilterContext() {
+        return rowFilterContext;
+    }
+
+    public void setRowFilterContext(String rowFilterContext) {
+        this.rowFilterContext = rowFilterContext;
+    }
+
     @Override
     public String toString() {
         return "FetcherSlaveConfig{" +
@@ -56,6 +88,9 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
                 ", includedDbs=" + getIncludedDbs() +
                 ", applierName=" + getApplierName() +
                 ", nameFilter=" + getNameFilter() +
+                ", applyMode=" + getApplyMode() +
+                ", rowFilterType=" + getRowFilterType() +
+                ", rowFilterContext=" + getRowFilterContext() +
                 '}';
     }
 }

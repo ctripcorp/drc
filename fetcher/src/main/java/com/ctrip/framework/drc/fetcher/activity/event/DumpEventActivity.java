@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.core.exception.dump.BinlogDumpGtidException;
 import com.ctrip.framework.drc.core.exception.dump.EventConvertException;
 import com.ctrip.framework.drc.core.monitor.log.Accumulation;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
@@ -76,6 +78,15 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @InstanceConfig(path = "routeInfo")
     public String routeInfo;
 
+    @InstanceConfig(path = "applyMode")
+    public int applyMode = ApplyMode.set_gtid.getType();
+
+    @InstanceConfig(path = "rowFilterType")
+    public int rowFilterType = RowFilterType.None.getCode();
+
+    @InstanceConfig(path = "rowFilterContext")
+    public String rowFilterContext;
+
     @Override
     public void doStart() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
@@ -86,6 +97,9 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
         config.setEndpoint(endpoint);
         config.setRegistryKey(registryKey);
         config.setGtidSet(context.fetchGtidSet());
+        config.setApplyMode(applyMode);
+        config.setRowFilterType(rowFilterType);
+        config.setRowFilterContext(rowFilterContext);
         config.setApplierName(registryKey);
         if (StringUtils.isNotBlank(includedDbs)) {
             config.setIncludedDbs(Sets.newHashSet(StringUtils.split(includedDbs, COMMA)));
