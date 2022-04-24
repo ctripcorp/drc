@@ -30,7 +30,7 @@ public class OutboundLogEventContext {
 
     private Map<String, TableMapLogEvent> drcTableMap;
 
-    private boolean skip = false;
+    private boolean noRowFiltered = false;
 
     private IOException cause;
 
@@ -60,8 +60,8 @@ public class OutboundLogEventContext {
         return fileChannelPos;
     }
 
-    public boolean isSkip() {
-        return skip;
+    public boolean isNoRowFiltered() {
+        return noRowFiltered;
     }
 
     public LogEvent getRowsEvent() {
@@ -87,8 +87,8 @@ public class OutboundLogEventContext {
     }
 
     // write api
-    public void setSkip(boolean skip) {
-        this.skip = skip;
+    public void setNoRowFiltered(boolean noRowFiltered) {
+        this.noRowFiltered = noRowFiltered;
     }
 
     public void setTableMapWithinTransaction(Map<Long, TableMapLogEvent> tableMapWithinTransaction) {

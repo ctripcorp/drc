@@ -37,7 +37,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                     break;
             }
         }
-        return doNext(value, value.isSkip());
+        return doNext(value, value.isNoRowFiltered());
     }
 
     private boolean handLineFilterRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {

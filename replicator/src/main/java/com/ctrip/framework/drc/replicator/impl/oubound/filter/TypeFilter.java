@@ -24,8 +24,8 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         if (ConsumeType.Applier != consumeType || RowFilterType.None == filterType) {
-            value.setSkip(true);
+            value.setNoRowFiltered(true);
         }
-        return doNext(value, value.isSkip());
+        return doNext(value, value.isNoRowFiltered());
     }
 }

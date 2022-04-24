@@ -31,7 +31,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             value.backToHeader();
             EventReader.readEvent(fileChannel, tableMapLogEvent);
-            value.setSkip(true);
+            value.setNoRowFiltered(true);
             if (table_map_log_event == eventType) {
                 tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
@@ -42,13 +42,13 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
                 tableMapLogEvent.release();
             }
             this.tableMapWithinTransaction.clear();
-            value.setSkip(true);
+            value.setNoRowFiltered(true);
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
         }
 
-        return doNext(value, value.isSkip());
+        return doNext(value, value.isNoRowFiltered());
     }
 
     @VisibleForTesting
