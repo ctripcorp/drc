@@ -6,4 +6,12 @@ package com.ctrip.framework.drc.core.server.common.filter;
  */
 public abstract class AbstractPostLogEventFilter<T> extends AbstractLogEventFilter<T>  {
 
+    @Override
+    protected boolean doNext(T value, boolean skip) {
+        if (getSuccessor() != null) {
+            return getSuccessor().doFilter(value);
+        } else {
+            return skip;
+        }
+    }
 }
