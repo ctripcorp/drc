@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.position.EntryPosition;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ResultSetPacket;
@@ -62,40 +64,9 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         }
     }
 
-
     @Override
     public void preDump() {
-        try {
-            ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
-            SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
-            currentUuid = fetchServerUuid(simpleObjectPool);
-            if (StringUtils.isNotBlank(currentUuid)) {
-                Set<String> previousUuids = gtidManager.getUuids();
-                boolean added = previousUuids.add(currentUuid);
-                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
-                if (added) {
-                    gtidManager.setUuids(previousUuids);
-                    Set<UUID> uuidSet = Sets.newHashSet();
-                    previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
-                    mySQLSlaveConfig.setUuidSet(uuidSet);
-                    for (Observer observer : observers) {
-                        if (observer instanceof UuidObserver) {
-                            observer.update(uuidSet, this);
-                        }
-                    }
-                    logger.info("update [WHITE UUID] set to {}", uuidSet);
-                }
-            }
-
-            if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
-                EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
-                GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
-                mySQLSlaveConfig.setGtidSet(gtidSet);
-                this.gtidManager.updateExecutedGtids(gtidSet);
-            }
-        } catch (Exception e) {
-            logger.error("preDump error", e);
-        }
+        new RetryTask<>(new UuidFetchTask()).call();
     }
 
     protected void doWithSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, DumpCallBack callBack, RECONNECTION_CODE reconnectionCode) {
@@ -299,5 +270,46 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
     @VisibleForTesting
     public void setCurrentUuid(String currentUuid) {
         this.currentUuid = currentUuid;
+    }
+
+    class UuidFetchTask implements NamedCallable<Boolean> {
+
+        @Override
+        public Boolean call() throws Exception {
+            ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
+            SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
+            currentUuid = fetchServerUuid(simpleObjectPool);
+            if (StringUtils.isNotBlank(currentUuid)) {
+                Set<String> previousUuids = gtidManager.getUuids();
+                boolean added = previousUuids.add(currentUuid);
+                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
+                if (added) {
+                    gtidManager.setUuids(previousUuids);
+                    Set<UUID> uuidSet = Sets.newHashSet();
+                    previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
+                    mySQLSlaveConfig.setUuidSet(uuidSet);
+                    for (Observer observer : observers) {
+                        if (observer instanceof UuidObserver) {
+                            observer.update(uuidSet, ReplicatorConnection.this);
+                        }
+                    }
+                    logger.info("update [WHITE UUID] set to {}", uuidSet);
+                }
+            }
+
+            if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
+                EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
+                GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
+                mySQLSlaveConfig.setGtidSet(gtidSet);
+                gtidManager.updateExecutedGtids(gtidSet);
+            }
+
+            return true;
+        }
+
+        @Override
+        public void afterException(Throwable t) {
+            logger.error("preDump {}:{} error", mySQLSlaveConfig.getEndpoint(), mySQLSlaveConfig.getRegistryKey(), t);
+        }
     }
 }

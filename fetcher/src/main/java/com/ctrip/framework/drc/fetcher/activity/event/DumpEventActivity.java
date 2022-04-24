@@ -97,10 +97,12 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
         config.setEndpoint(endpoint);
         config.setRegistryKey(registryKey);
         config.setGtidSet(context.fetchGtidSet());
+        config.setApplierName(registryKey);
         config.setApplyMode(applyMode);
         config.setRowFilterType(rowFilterType);
-        config.setRowFilterContext(rowFilterContext);
-        config.setApplierName(registryKey);
+        if (StringUtils.isNotBlank(rowFilterContext)) {
+            config.setRowFilterContext(rowFilterContext);
+        }
         if (StringUtils.isNotBlank(includedDbs)) {
             config.setIncludedDbs(Sets.newHashSet(StringUtils.split(includedDbs, COMMA)));
         }
