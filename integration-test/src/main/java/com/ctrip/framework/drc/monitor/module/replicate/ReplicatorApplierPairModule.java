@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.monitor.module.replicate;
 
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.monitor.module.DrcModule;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
@@ -36,16 +37,22 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private Set<String> includedDb = Sets.newHashSet();
 
+    private RowFilterType rowFilterType;
+
+    private String rowFilterContext;
+
     public ReplicatorApplierPairModule() {
-        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
+        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, RowFilterType.None, null);
     }
 
-    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination) {
+    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, RowFilterType rowFilterType, String rowFilterContext) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
         this.repPort = repPort;
         this.destination = destination;
-        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}]", srcMySQLPort, destMySQLPort, repPort, destination);
+        this.rowFilterType = rowFilterType;
+        this.rowFilterContext = rowFilterContext;
+        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], rowFilterType [{}], rowFilterContext [{}]", srcMySQLPort, destMySQLPort, repPort, destination, rowFilterType, rowFilterContext);
     }
 
     @Override
@@ -62,7 +69,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
             }
         });
-        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb);
+        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, rowFilterType, rowFilterContext);
         replicatorServer.initialize();
         localApplierServer.initialize();
     }

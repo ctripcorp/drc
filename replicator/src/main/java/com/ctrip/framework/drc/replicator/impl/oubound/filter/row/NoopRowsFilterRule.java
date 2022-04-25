@@ -1,18 +1,16 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
-import com.google.common.collect.Lists;
-
-import java.util.List;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 
 /**
  * @Author limingdong
  * @create 2022/4/22
  */
-public class NoopRowsFilterRule implements RowsFilterRule {
+public class NoopRowsFilterRule implements RowsFilterRule<Void> {
 
     @Override
-    public List<Boolean> filterRow(List<AbstractRowsEvent.Row> rows) {
-        return Lists.newArrayList(false);
+    public RowsFilterResult<Void> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent tableMapLogEvent, TableMapLogEvent drcTableMapLogEvent) {
+        return new RowsFilterResult(false);
     }
 }

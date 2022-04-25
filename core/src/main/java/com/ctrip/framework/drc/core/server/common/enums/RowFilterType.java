@@ -8,7 +8,11 @@ public enum RowFilterType {
 
     None(0),
 
-    Uid(1);
+    Uid(1),
+
+    Custom(2),
+
+    IT(3);
 
     private int code;
 

@@ -856,7 +856,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return afterPresentBitMap;
     }
 
-    protected List<Row> getRows() {
+    public List<Row> getRows() {
         return rows;
     }
 

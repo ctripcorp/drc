@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.monitor;
 
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
@@ -64,7 +65,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, RowFilterType.IT);
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();

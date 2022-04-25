@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
+import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
@@ -48,12 +49,14 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         TableMapLogEvent tableMapLogEvent = value.getTableMapWithinTransaction(tableId);
         String tableName = tableMapLogEvent.getSchemaNameDotTableName();
         TableMapLogEvent drcTableMap = value.getDrcTableMap(tableName);
-        // check line filter and construct rows event
-        if (true) {
-//            value.setRowsEvent();
-            return true;
-        } else {
-            return false;
+
+        RowsFilterResult rowsFilterResult = rowsFilterRule.filterRow(rowsEvent, tableMapLogEvent, drcTableMap);
+        boolean filtered = rowsFilterResult.isFiltered();
+
+        if (filtered) {
+            value.setRowsEvent((LogEvent) rowsFilterResult.getRes());
         }
+
+        return filtered;
     }
 }
