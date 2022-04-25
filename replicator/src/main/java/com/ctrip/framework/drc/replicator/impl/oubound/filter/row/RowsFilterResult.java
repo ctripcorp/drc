@@ -6,25 +6,25 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
  */
 public class RowsFilterResult<V> {
 
-    private boolean filtered;
+    private boolean noRowFiltered;
 
     private V res;
 
-    public RowsFilterResult(boolean filtered) {
-        this.filtered = filtered;
+    public RowsFilterResult(boolean noRowFiltered) {
+        this.noRowFiltered = noRowFiltered;
     }
 
-    public RowsFilterResult(boolean filtered, V res) {
-        this.filtered = filtered;
+    public RowsFilterResult(boolean noRowFiltered, V res) {
+        this.noRowFiltered = noRowFiltered;
         this.res = res;
     }
 
-    public boolean isFiltered() {
-        return filtered;
+    public boolean isNoRowFiltered() {
+        return noRowFiltered;
     }
 
-    public void setFiltered(boolean filtered) {
-        this.filtered = filtered;
+    public void setNoRowFiltered(boolean noRowFiltered) {
+        this.noRowFiltered = noRowFiltered;
     }
 
     public V getRes() {

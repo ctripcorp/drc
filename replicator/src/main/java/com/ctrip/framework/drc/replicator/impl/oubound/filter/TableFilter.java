@@ -37,6 +37,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             } else {
                 drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
             }
+            value.restorePosition();
         } else if (xid_log_event == eventType) {
             for (TableMapLogEvent tableMapLogEvent : tableMapWithinTransaction.values()) {
                 tableMapLogEvent.release();

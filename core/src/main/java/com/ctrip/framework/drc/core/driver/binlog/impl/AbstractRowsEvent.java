@@ -224,7 +224,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return values;
     }
 
-    public Pair<Integer, Integer> getRealMetaAndType(final int meta) {
+    public static Pair<Integer, Integer> getRealMetaAndType(final int meta) {
         int byte0 = meta >> 8;
         int byte1 = meta & 0xff;
         if ((byte0 & 0x30) != 0x30) { // 0x30 = 0011 0000

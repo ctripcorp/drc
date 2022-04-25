@@ -10,9 +10,9 @@ public class RowsFilterContext {
 
     private RowFilterType filterType;
 
-    private Object filterContext;
+    private String filterContext;
 
-    public RowsFilterContext(RowFilterType filterType, Object filterContext) {
+    public RowsFilterContext(RowFilterType filterType, String filterContext) {
         this.filterType = filterType;
         this.filterContext = filterContext;
     }
@@ -21,11 +21,11 @@ public class RowsFilterContext {
         return filterType;
     }
 
-    public Object getFilterContext() {
+    public String getFilterContext() {
         return filterContext;
     }
 
-    public static RowsFilterContext from(RowFilterType filterType, Object filterContext) {
+    public static RowsFilterContext from(RowFilterType filterType, String filterContext) {
         return new RowsFilterContext(filterType, filterContext);
     }
 }

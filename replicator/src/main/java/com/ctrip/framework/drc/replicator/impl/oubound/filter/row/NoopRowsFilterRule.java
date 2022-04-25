@@ -9,6 +9,9 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
  */
 public class NoopRowsFilterRule implements RowsFilterRule<Void> {
 
+    public NoopRowsFilterRule(String context) {
+    }
+
     @Override
     public RowsFilterResult<Void> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent tableMapLogEvent, TableMapLogEvent drcTableMapLogEvent) {
         return new RowsFilterResult(false);

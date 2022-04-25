@@ -110,4 +110,12 @@ public class OutboundLogEventContext {
             this.cause = e;
         }
     }
+
+    public void restorePosition() {
+        try {
+            this.fileChannel.position(fileChannelPos);
+        } catch (IOException e) {
+            this.cause = e;
+        }
+    }
 }

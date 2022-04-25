@@ -45,7 +45,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         if (columns == null) {
             throw new Exception("columns not found, TableKey: " + targetTable.toString() + " - UNLIKELY");
         }
-        transformMetaAndType();
+        transformMetaAndType(originColumns, columns);
     }
 
     private Lock lock = new ReentrantLock();
@@ -121,7 +121,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
     /**
      * transform outside load() for multi rows event
      */
-    private void transformMetaAndType() {
+    public static void transformMetaAndType(Columns originColumns, Columns columns) {
         for (int i = 0; i < originColumns.size(); ++i) {
             MysqlFieldType type = MysqlFieldType.getMysqlFieldType(originColumns.get(i).getType());
             if (MysqlFieldType.mysql_type_string.equals(type)) {

@@ -137,11 +137,14 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             if (transactionTableRelated) {
                 convertToDrcGtidLogEvent(transaction);
             }
-            filterChain.doFilter(transaction);
-            transaction.write(ioCache);
-            notifyExecutedGtid();
-            transaction.release();
-            flushSequence.set(end);
+            try {
+                filterChain.doFilter(transaction);
+                transaction.write(ioCache);
+                notifyExecutedGtid();
+                flushSequence.set(end);
+            } finally {
+                transaction.release();
+            }
         }
     }
 

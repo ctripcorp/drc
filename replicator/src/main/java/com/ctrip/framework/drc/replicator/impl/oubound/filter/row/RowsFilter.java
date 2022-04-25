@@ -25,25 +25,28 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
+        boolean noRowFiltered = true;
         if (LogEventUtils.isRowsEvent(value.getEventType())) {
             switch (value.getEventType()) {
                 case write_rows_event_v2:
-                    handLineFilterRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
+                    noRowFiltered = handRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
                     break;
                 case update_rows_event_v2:
-                    handLineFilterRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
+                    noRowFiltered = handRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
                     break;
                 case delete_rows_event_v2:
-                    handLineFilterRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
+                    noRowFiltered = handRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
                     break;
             }
         }
+        value.setNoRowFiltered(noRowFiltered);
         return doNext(value, value.isNoRowFiltered());
     }
 
-    private boolean handLineFilterRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
+    private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         value.backToHeader();
         EventReader.readEvent(fileChannel, rowsEvent);
+        value.restorePosition();
         rowsEvent.loadPostHeader();
         long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
         TableMapLogEvent tableMapLogEvent = value.getTableMapWithinTransaction(tableId);
@@ -51,12 +54,12 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         TableMapLogEvent drcTableMap = value.getDrcTableMap(tableName);
 
         RowsFilterResult rowsFilterResult = rowsFilterRule.filterRow(rowsEvent, tableMapLogEvent, drcTableMap);
-        boolean filtered = rowsFilterResult.isFiltered();
+        boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
-        if (filtered) {
+        if (!noRowFiltered) {
             value.setRowsEvent((LogEvent) rowsFilterResult.getRes());
         }
 
-        return filtered;
+        return noRowFiltered;
     }
 }
