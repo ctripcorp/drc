@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.monitor;
 
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
@@ -32,7 +33,7 @@ public class RAStarter {
     public void doTest() throws Exception {
 
         //启动双向RA
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(destMySQLPort, srcMySQLPort, repPort + 1, AbstractConfigTest.DESTINATION_REVERSE);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(destMySQLPort, srcMySQLPort, repPort + 1, AbstractConfigTest.DESTINATION_REVERSE, RowFilterType.None, null);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();
 

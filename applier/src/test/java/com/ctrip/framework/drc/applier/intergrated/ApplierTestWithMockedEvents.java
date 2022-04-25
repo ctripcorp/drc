@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.intergrated;
 
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
 import com.ctrip.framework.drc.applier.event.*;
@@ -81,7 +82,7 @@ public class ApplierTestWithMockedEvents implements ApplierColumnsRelatedTest {
 
     public class EmbeddedApplierServer extends LocalApplierServer {
         public EmbeddedApplierServer() throws Exception {
-            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet());
+            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), RowFilterType.None, null);
             MockEventActivity mock = new MockEventActivity();
             mock.setSystem(this);
             activities.put("DumpEventActivity", mock);

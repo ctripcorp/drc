@@ -4,15 +4,19 @@ import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
+import com.ctrip.xpipe.codec.JsonCodec;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
+import static com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RuleFactory.ROWS_FILTER_RULE;
 
 /**
  *  *  run doTest to start integrity test WITHOUT any interference
@@ -42,6 +46,8 @@ public class BidirectionalStarter extends AbstractTestStarter {
 
     private Set<String> includedDbs = Sets.newHashSet();   //inverse direction
 
+    private Map<String, String> table2Id = Maps.newHashMap();
+
     public boolean blockForManualTest = true;
     public boolean skipMonitor = false;
     public boolean startLocalSchemaManager = false;
@@ -53,6 +59,9 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (startLocalSchemaManager) {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
         }
+
+        table2Id.put("drc1.insert1", "id");
+        System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.monitor.replicator.EvenNumberRowsFilterRule");
     }
 
     @Test
@@ -65,7 +74,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, RowFilterType.IT);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, RowFilterType.IT, JsonCodec.INSTANCE.encode(table2Id));
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();

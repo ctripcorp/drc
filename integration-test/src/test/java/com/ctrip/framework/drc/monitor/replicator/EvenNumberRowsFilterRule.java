@@ -65,6 +65,7 @@ public class EvenNumberRowsFilterRule implements RowsFilterRule<AbstractRowsEven
             }
         }
 
-        return new RowsFilterResult(true, res);
+        // build new event
+        return new RowsFilterResult(true, rowsEvent);
     }
 }
