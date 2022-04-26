@@ -5,12 +5,14 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +48,9 @@ public class BidirectionalStarter extends AbstractTestStarter {
 
     private Set<String> includedDbs = Sets.newHashSet();   //inverse direction
 
-    private Map<String, String> table2Id = Maps.newHashMap();
+    private Map<String, List<String>> table2Id = Maps.newHashMap();
+
+    private List<String> fields = Lists.newArrayList();
 
     public boolean blockForManualTest = true;
     public boolean skipMonitor = false;
@@ -60,7 +64,8 @@ public class BidirectionalStarter extends AbstractTestStarter {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
         }
 
-        table2Id.put("drc1.insert1", "[id]");
+        fields.add("id");
+        table2Id.put("drc1.insert1", fields);
         System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.monitor.replicator.EvenNumberRowsFilterRule");
     }
 
@@ -74,7 +79,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, RowFilterType.IT, JsonCodec.INSTANCE.encode(table2Id));
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, RowFilterType.Custom, JsonCodec.INSTANCE.encode(table2Id));
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();

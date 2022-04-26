@@ -25,7 +25,7 @@ public class DefaultRuleFactory implements RuleFactory {
             Class<? extends RowsFilterRule> rowsFilterRule;
             if (RowFilterType.Uid == rowFilterType) {
                 rowsFilterRule = UidRowsFilterRule.class;
-            } else if (RowFilterType.IT == rowFilterType) {
+            } else if (RowFilterType.Custom == rowFilterType) {
                 String clazz = System.getProperty(ROWS_FILTER_RULE);
                 rowsFilterRule = (Class<RowsFilterRule>) Class.forName(clazz);
             } else {

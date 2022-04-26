@@ -21,7 +21,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
     protected Map<String, List<String>> table2Fields; // table -> multi field
 
     public AbstractRowsFilterRule(String context) {
-        this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<>() {});
+        this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<Map<String, List<String>>>() {});
     }
 
     @Override
