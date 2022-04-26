@@ -82,6 +82,7 @@ public class TableFilterTest extends AbstractTransactionTest {
         Assert.assertTrue(skip);
         Assert.assertEquals(1, tableFilter.getDrcTableMap().size());
 
+        fileChannel.position(currentPosition);
         previousPosition = currentPosition;
 
         // table_map_log_event
@@ -99,6 +100,7 @@ public class TableFilterTest extends AbstractTransactionTest {
         Assert.assertTrue(skip);
         Assert.assertEquals(1, tableFilter.getTableMapWithinTransaction().size());
 
+        fileChannel.position(currentPosition);
         previousPosition = currentPosition;
 
         // rows_log_event
@@ -117,6 +119,7 @@ public class TableFilterTest extends AbstractTransactionTest {
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
 
+        fileChannel.position(currentPosition);
         previousPosition = currentPosition;
 
         // xid_log_event
