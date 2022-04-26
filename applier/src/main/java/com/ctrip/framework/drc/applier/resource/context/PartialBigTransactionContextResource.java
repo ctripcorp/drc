@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.applier.resource.context.savepoint.DefaultSavepointExecutor;
 import com.ctrip.framework.drc.applier.resource.context.savepoint.SavepointExecutor;
@@ -19,12 +20,13 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 1、execute batch using BatchPreparedStatementExecutor
  * 2、execute sql by sql after conflict because of batch execution using OneRowPreparedStatementExecutor
+ *
  * @Author limingdong
  * @create 2021/2/1
  */
 public class PartialBigTransactionContextResource extends PartialTransactionContextResource {
 
-    private static final int MAX_BATCH_EXECUTE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, "1000"));
+    protected static final int MAX_BATCH_EXECUTE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, "1000"));
 
     private static final Logger loggerBatch = LoggerFactory.getLogger("BATCH");
 
@@ -50,21 +52,33 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         super.insert(beforeRows, beforeBitmap, columns, preparedStatementExecutor);
-        writeEventWrappers.add(() -> super.insert(beforeRows, beforeBitmap, columns));
+        TableKey tableKey = fetchTableKey();
+        writeEventWrappers.add(() -> {
+            setTableKey(tableKey);
+            super.insert(beforeRows, beforeBitmap, columns);
+        });
         checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, preparedStatementExecutor);
-        writeEventWrappers.add(() -> super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns));
+        TableKey tableKey = fetchTableKey();
+        writeEventWrappers.add(() -> {
+            setTableKey(tableKey);
+            super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
+        });
         checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         super.delete(beforeRows, beforeBitmap, columns, preparedStatementExecutor);
-        writeEventWrappers.add(() -> super.delete(beforeRows, beforeBitmap, columns));
+        TableKey tableKey = fetchTableKey();
+        writeEventWrappers.add(() -> {
+            setTableKey(tableKey);
+            super.delete(beforeRows, beforeBitmap, columns);
+        });
         checkBatchExecuteSize(beforeRows.size());
     }
 
