@@ -6,5 +6,5 @@ package com.ctrip.framework.drc.core.server.common.filter;
  */
 public interface FilterChainFactory<C, V> {
 
-    Filter<V> createFilterChain(C context);
+    Filter<V> createFilterChain(C context) throws Exception;
 }

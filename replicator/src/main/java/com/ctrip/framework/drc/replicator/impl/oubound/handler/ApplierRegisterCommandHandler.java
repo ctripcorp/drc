@@ -99,8 +99,14 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         ApplierKey applierKey = new ApplierKey(applierName, ip);
         if (!applierKeys.containsKey(applierKey)) {
             applierKeys.putIfAbsent(applierKey, nettyClient);
-            dumpExecutorService.submit(new DumpTask(nettyClient.channel(), dumpCommandPacket, ip));
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
+            try {
+                DumpTask dumpTask = new DumpTask(nettyClient.channel(), dumpCommandPacket, ip);
+                dumpExecutorService.submit(dumpTask);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
+            } catch (Exception e) {
+                logger.info("[DumpTask] error for applier {} and close channel {}", applierName, channel, e);
+                channel.close();
+            }
         } else {
             logger.info("[Duplicate] request for applier {} and close channel {}", applierName, channel);
             channel.close();
@@ -170,7 +176,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private Filter<OutboundLogEventContext> filterChain;
 
-        public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) {
+        public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();

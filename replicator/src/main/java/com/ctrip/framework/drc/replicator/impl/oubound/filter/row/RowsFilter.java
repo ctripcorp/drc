@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
@@ -27,7 +26,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private RowsFilterRule<List<List<Object>>> rowsFilterRule;
 
-    public RowsFilter(RowsFilterContext filterContext) {
+    public RowsFilter(RowsFilterContext filterContext) throws Exception {
         rowsFilterRule = ruleFactory.createRowsFilterRule(filterContext);
     }
 
@@ -58,8 +57,8 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
         if (!noRowFiltered) {
             List<List<Object>> rows = rowsFilterResult.getRes();
-            // TODO build event
-            value.setRowsEvent((LogEvent) rows);
+            // TODO build event with rows
+            value.setRowsEvent(rowsEvent);
         }
 
         return noRowFiltered;

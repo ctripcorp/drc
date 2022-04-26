@@ -30,7 +30,7 @@ public class DefaultRuleFactoryTest {
     private RowsFilterContext rowsFilterContext;
 
     @Test
-    public void createRowsFilterRule() {
+    public void createRowsFilterRule() throws Exception {
         fields.add("id");
         table2Id.put("drc1.insert1", fields);
         rowsFilterContext = RowsFilterContext.from(RowFilterType.Uid, JsonCodec.INSTANCE.encode(table2Id));

@@ -18,10 +18,10 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.u
  */
 public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>> > {
 
-    protected Map<String, List<String>> table2Fields; // table -> multi field
+    protected Map<String, List<String>> table2Fields; // table -> multi fields
 
     public AbstractRowsFilterRule(String context) {
-        this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<Map<String, List<String>>>() {});
+        this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<>() {});
     }
 
     @Override
@@ -56,7 +56,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return values;
     }
 
-    private List<Integer> indices(Columns columns, List<String> fields) {
+    protected List<Integer> indices(Columns columns, List<String> fields) {
         List<Integer> indices = Lists.newArrayList(fields.size());
 
         int found = 0;
