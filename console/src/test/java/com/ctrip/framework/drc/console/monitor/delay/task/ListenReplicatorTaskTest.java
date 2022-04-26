@@ -173,10 +173,10 @@ public class ListenReplicatorTaskTest extends MockTest {
         executor.submit(() -> listenReplicatorTask.switchListenReplicator("dbcluster1.mha2dc2", "10.1.3.2", 8383));
 
         Thread.sleep(200);
-        verify(delayMonitorServer, times(3)).initialize();
-        verify(delayMonitorServer, times(3)).start();
-        verify(delayMonitorServer, times(3)).stop();
-        verify(delayMonitorServer, times(3)).dispose();
+        verify(delayMonitorServer, atMost(4)).initialize();
+        verify(delayMonitorServer, atMost(4)).start();
+        verify(delayMonitorServer, atMost(4)).stop();
+        verify(delayMonitorServer, atMost(4)).dispose();
     }
 
     private Map<String, ReplicatorWrapper> initReplicatorWrappers(Drc drc) {
