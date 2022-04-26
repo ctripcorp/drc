@@ -332,7 +332,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
-                logger.error("dump thread error", e);
+                logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
+                channel.close();
             }
         }
 
@@ -433,7 +434,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return Pair.from(null, null);
         }
 
-        private String handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf) throws IOException {
+        private String handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf) throws Exception {
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();

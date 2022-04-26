@@ -49,7 +49,7 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
     }
 
     @Test
-    public void filterRow() {
+    public void filterRow() throws Exception {
         RowsFilterResult<List<List<Object>>> res = rowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
         Assert.assertFalse(res.isNoRowFiltered());
         Assert.assertEquals(res.getRes(), result);

@@ -28,7 +28,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
     }
 
     @Override
-    public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) {
+    public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
         String table = drcTableMapLogEvent.getSchemaNameDotTableName();
         if (table2Fields == null || table2Fields.get(table) == null) {
             return new RowsFilterResult(true);
@@ -78,5 +78,5 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return found == fieldSize ? integerMap : null;
     }
 
-    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices);
+    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) throws Exception;
 }

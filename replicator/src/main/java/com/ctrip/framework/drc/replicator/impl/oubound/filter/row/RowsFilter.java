@@ -37,24 +37,28 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         boolean noRowFiltered = true;
-        if (LogEventUtils.isRowsEvent(value.getEventType())) {
-            switch (value.getEventType()) {
-                case write_rows_event_v2:
-                    noRowFiltered = handRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
-                    break;
-                case update_rows_event_v2:
-                    noRowFiltered = handRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
-                    break;
-                case delete_rows_event_v2:
-                    noRowFiltered = handRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
-                    break;
+        try {
+            if (LogEventUtils.isRowsEvent(value.getEventType())) {
+                switch (value.getEventType()) {
+                    case write_rows_event_v2:
+                        noRowFiltered = handRowsEvent(value.getFileChannel(), new WriteRowsEvent(), value);
+                        break;
+                    case update_rows_event_v2:
+                        noRowFiltered = handRowsEvent(value.getFileChannel(), new UpdateRowsEvent(), value);
+                        break;
+                    case delete_rows_event_v2:
+                        noRowFiltered = handRowsEvent(value.getFileChannel(), new DeleteRowsEvent(), value);
+                        break;
+                }
             }
+        } catch (Exception e) {
+            value.setCause(e);
         }
         value.setNoRowFiltered(noRowFiltered);
         return doNext(value, value.isNoRowFiltered());
     }
 
-    private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
+    private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
         int beforeSize = rowsEvent.getRows().size();
         RowsFilterResult<List<List<Object>>> rowsFilterResult = rowsFilterRule.filterRows(rowsEvent, drcTableMap);

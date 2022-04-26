@@ -32,7 +32,7 @@ public class OutboundLogEventContext {
 
     private boolean noRowFiltered = false;
 
-    private IOException cause;
+    private Exception cause;
 
     private String gtid;
 
@@ -89,7 +89,7 @@ public class OutboundLogEventContext {
         return drcTableMap.get(tableName);
     }
 
-    public IOException getCause() {
+    public Exception getCause() {
         return cause;
     }
 
@@ -110,11 +110,15 @@ public class OutboundLogEventContext {
         this.rowsEvent = rowsEvent;
     }
 
+    public void setCause(Exception cause) {
+        this.cause = cause;
+    }
+
     public void backToHeader() {
         try {
             this.fileChannel.position(fileChannelPos - eventHeaderLengthVersionGt1);
         } catch (IOException e) {
-            this.cause = e;
+            setCause(e);
         }
     }
 
@@ -122,7 +126,7 @@ public class OutboundLogEventContext {
         try {
             this.fileChannel.position(fileChannelPos);
         } catch (IOException e) {
-            this.cause = e;
+            setCause(e);
         }
     }
 }

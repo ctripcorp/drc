@@ -18,7 +18,7 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) throws Exception {
         // TODO
         return null;
     }

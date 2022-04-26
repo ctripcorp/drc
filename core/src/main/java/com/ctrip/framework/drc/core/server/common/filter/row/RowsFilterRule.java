@@ -9,5 +9,5 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
  */
 public interface RowsFilterRule<V> {
 
-    RowsFilterResult<V> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent);
+    RowsFilterResult<V> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception;
 }
