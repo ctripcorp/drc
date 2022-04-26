@@ -327,6 +327,7 @@ public class ListenReplicatorTask {
             StaticDelayMonitorServer newDelayMonitorServer = createDelayMonitorServer(newConfig);
             newDelayMonitorServer.initialize();
             newDelayMonitorServer.start();
+            delayMonitorServerMap.put(clusterId, newDelayMonitorServer);
             logger.info("[[monitor=delaylisten]] restart replicator listen success for cluster: {},", clusterId);
         } catch (Exception e) {
             logger.error("[[monitor=delaylisten]] restart replicator listen error for cluster: {},", clusterId, e);
