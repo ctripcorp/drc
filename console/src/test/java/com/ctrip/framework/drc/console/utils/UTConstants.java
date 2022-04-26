@@ -19,6 +19,8 @@ public class UTConstants {
     public static final String XML_COMPLICATED = "meta_complicated.xml";
     public static final String XML_OLD_ROUTE_DRC = "old_route_drc.xml";
     public static final String XML_NEW_ROUTE_DRC = "new_route_drc.xml";
+    public static final String XML_DELAY_MONITOR_DRC_OLD = "delay_monitor_drc_old.xml";
+    public static final String XML_DELAY_MONITOR_DRC_NEW = "delay_monitor_drc_new.xml";
 
     // dc names
     public static final String DC1 = "dc1";

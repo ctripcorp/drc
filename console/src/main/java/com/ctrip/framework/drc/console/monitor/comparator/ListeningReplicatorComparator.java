@@ -48,11 +48,10 @@ public class ListeningReplicatorComparator extends AbstractMetaComparator<String
                 addDcRoutes(futureDc, futureReplicatorWrapper.getRoutes());
                 DcRouteComparator dcRouteComparator = new DcRouteComparator(currentDc, futureDc, Route.TAG_CONSOLE);
                 dcRouteComparator.compare();
-                Set<Route> addedRoutes = dcRouteComparator.getAdded();
                 Set<Route> removedRoutes = dcRouteComparator.getRemoved();
                 Set<MetaComparator> modifiedRoutesComparator = dcRouteComparator.getMofified();
 
-                if(!addedRoutes.isEmpty() || !removedRoutes.isEmpty() || !modifiedRoutesComparator.isEmpty()) {
+                if(!removedRoutes.isEmpty() || !modifiedRoutesComparator.isEmpty()) {
                     modified.add(new ReplicatorWrapperComparator(dbClusterId));
                 }
             } else {

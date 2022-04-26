@@ -1,15 +1,19 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.AllTests;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.monitor.MockTest;
 import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
+import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Maps;
 import org.assertj.core.util.Lists;
@@ -21,22 +25,20 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.util.ClassUtils;
-import org.xml.sax.SAXException;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.console.utils.UTConstants.XML_OLD_ROUTE_DRC;
-import static com.ctrip.framework.drc.console.utils.UTConstants.XML_NEW_ROUTE_DRC;
+import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
 /**
  * @author shenhaibo
  * @version 1.0
  * date: 2020-07-03
  */
-public class ListenReplicatorTaskTest {
+public class ListenReplicatorTaskTest extends MockTest {
 
     @InjectMocks
     private ListenReplicatorTask task = new ListenReplicatorTask();
@@ -56,8 +58,20 @@ public class ListenReplicatorTaskTest {
     @Mock
     private MonitorService monitorService;
 
+    @Mock
+    private StaticDelayMonitorServer delayMonitorServer;
+
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
+
+    private Map<String, ReplicatorWrapper> oldReplicatorWrappers;
+
+    private Map<String, ReplicatorWrapper> newReplicatorWrappers;
+
+    private ListenReplicatorTask listenReplicatorTask;
+
     @Before
-    public void setUp() throws IOException, SAXException {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
 
         String drcXmlStr = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
@@ -97,108 +111,103 @@ public class ListenReplicatorTaskTest {
                 "</drc>";
         drc = DefaultSaxParser.parse(drcXmlStr);
 
-        String oldFile = ClassUtils.getDefaultClassLoader().getResource(XML_OLD_ROUTE_DRC).getPath();
+        String oldFile = ClassUtils.getDefaultClassLoader().getResource(XML_DELAY_MONITOR_DRC_OLD).getPath();
         String oldRouteDrcXmlStr = AllTests.readFileContent(oldFile);
         oldDrc = DefaultSaxParser.parse(oldRouteDrcXmlStr);
 
-        String newFile = ClassUtils.getDefaultClassLoader().getResource(XML_NEW_ROUTE_DRC).getPath();
+        String newFile = ClassUtils.getDefaultClassLoader().getResource(XML_DELAY_MONITOR_DRC_NEW).getPath();
         String newRouteDrcXmlStr = AllTests.readFileContent(newFile);
         newDrc = DefaultSaxParser.parse(newRouteDrcXmlStr);
+
+
+        DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
+        config.setEndpoint(new DefaultEndPoint("10.1.3.4", 8383));
+        Mockito.when(delayMonitorServer.getConfig()).thenReturn(config);
+        listenReplicatorTask = Mockito.spy(task);
+        oldReplicatorWrappers = initReplicatorWrappers(oldDrc);
+        newReplicatorWrappers = initReplicatorWrappers(newDrc);
+        Mockito.doReturn(delayMonitorServer).when(listenReplicatorTask).createDelayMonitorServer(Mockito.any(DelayMonitorSlaveConfig.class));
+        Mockito.when(consoleConfig.getDelayExceptionTime()).thenReturn(1000L);
+        Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
+        Mockito.when(dbClusterSourceProvider.getReplicatorsNotInLocalDc(Mockito.anyList())).thenReturn(newReplicatorWrappers);
+        listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
+        Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
+        delayMonitorServerMap.put("dbcluster3.mha3dc2", delayMonitorServer);
+        delayMonitorServerMap.put("dbcluster2.mha3dc2", delayMonitorServer);
+        delayMonitorServerMap.put("dbcluster1.mha1dc2", delayMonitorServer);
+        delayMonitorServerMap.put("dbcluster1.mha2dc2", delayMonitorServer);
+        listenReplicatorTask.setDelayMonitorServerMap(delayMonitorServerMap);
     }
 
-//    @Test
-//    public void testUpdateMasterReplicator() {
-//        DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
-//        config.setDestMha("");
-//        config.setEndpoint(new DefaultEndPoint("", 3306));
-//        task.updateMasterReplicator(config, "ip:3336");
-//        Assert.assertTrue(true);
-//    }
+    @Test
+    public void testListeningReplicatorComparator() {
+        ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(oldReplicatorWrappers, newReplicatorWrappers);
+        comparator.compare();
+        Assert.assertEquals(1, comparator.getAdded().size());
+        Assert.assertEquals(1, comparator.getRemoved().size());
+        Assert.assertEquals(2, comparator.getMofified().size());
+    }
 
-//    @Test
-//    public void testCheckMaster() {
-//        Replicator replicator105 = drc.getDcs().get("shaoy").getDbClusters().get("integration-test.drcOy").getReplicators().get(0);
-//        Replicator replicator130 = drc.getDcs().get("shaoy").getDbClusters().get("integration-test.drcOy").getReplicators().get(1);
-//        DbClusterSourceProvider.ReplicatorWrapper replicatorWrapper105 = new DbClusterSourceProvider.ReplicatorWrapper(replicator105, "sharb", "shaoy", "integration-test", "drcRb", "drcOy");
-//        DbClusterSourceProvider.ReplicatorWrapper replicatorWrapper130 = new DbClusterSourceProvider.ReplicatorWrapper(replicator130, "sharb", "shaoy", "integration-test", "drcRb", "drcOy");
-//
-//        task.setReplicatorWrappers(new HashMap<>() {{
-//            put("integration-test.drcOy", replicatorWrapper105);
-//        }});
-//        boolean b = task.checkMaster("integration-test.drcOy", replicatorWrapper105);
-//        logger.info("{}:{} master:{}", replicatorWrapper105.getIp(), replicatorWrapper105.getPort(), b);
-////        // manual test
-////        Assert.assertEquals(replicatorWrapper105.getIp(), task.getReplicatorWrappers().get("integration-test.drcOy").getIp());
-////        Assert.assertEquals(replicatorWrapper105.getPort(), task.getReplicatorWrappers().get("integration-test.drcOy").getPort());
-////        Assert.assertTrue(task.checkMaster("integration-test.drcOy", replicatorWrapper105));
-////        Assert.assertEquals(replicatorWrapper105.getIp(), task.getReplicatorWrappers().get("integration-test.drcOy").getIp());
-////        Assert.assertEquals(replicatorWrapper105.getPort(), task.getReplicatorWrappers().get("integration-test.drcOy").getPort());
-//
-//        task.setReplicatorWrappers(new HashMap<>() {{
-//            put("integration-test.drcOy", replicatorWrapper130);
-//        }});
-//        boolean b1 = task.checkMaster("integration-test.drcOy", replicatorWrapper130);
-//        logger.info("{}:{} master:{}", replicatorWrapper130.getIp(), replicatorWrapper130.getPort(), b);
-////        // manual test
-////        Assert.assertEquals(replicatorWrapper130.getIp(), task.getReplicatorWrappers().get("integration-test.drcOy").getIp());
-////        Assert.assertEquals(replicatorWrapper130.getPort(), task.getReplicatorWrappers().get("integration-test.drcOy").getPort());
-////        Assert.assertFalse(task.checkMaster("integration-test.drcOy", replicatorWrapper130));
-////        Assert.assertEquals(replicatorWrapper105.getIp(), task.getReplicatorWrappers().get("integration-test.drcOy").getIp());
-////        Assert.assertEquals(replicatorWrapper105.getPort(), task.getReplicatorWrappers().get("integration-test.drcOy").getPort());
-//    }
+    @Test
+    public void testUpdateListenReplicator() throws Exception {
+        listenReplicatorTask.updateListenReplicators();
+        Thread.sleep(100);
+        listenReplicatorTask.switchListenReplicator("dbcluster1.mha2dc2", "10.1.3.9", 8383);
 
-//    @Test
-//    public void testUpdateListenReplicator() throws SQLException {
-//        Map<String, ReplicatorWrapper> oldReplicatorWrappers = Maps.newHashMap();
-//        Map<String, ReplicatorWrapper> newReplicatorWrappers = Maps.newHashMap();
-//
-//        initReplicatorWrappers(oldDrc, oldReplicatorWrappers);
-//        initReplicatorWrappers(newDrc, newReplicatorWrappers);
-//
-//        ListenReplicatorTask listenReplicatorTask = Mockito.spy(task);
-//        Mockito.doNothing().when(listenReplicatorTask).startListenServer(Mockito.anyString(), Mockito.any(ReplicatorWrapper.class));
-//        Mockito.doNothing().when(listenReplicatorTask).stopListenServer(Mockito.anyString());
-//
-//        Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
-//        Mockito.when(dbClusterSourceProvider.getReplicatorsNotInLocalDc(Mockito.anyList())).thenReturn(newReplicatorWrappers);
-//        listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
-//
-//        listenReplicatorTask.updateListenReplicators();
-//
-//        ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(oldReplicatorWrappers, newReplicatorWrappers);
-//        comparator.compare();
-//        Assert.assertEquals(1, comparator.getAdded().size());
-//        Assert.assertEquals(1, comparator.getRemoved().size());
-//        Assert.assertEquals(3, comparator.getMofified().size());
-//    }
+        Thread.sleep(200);
+        verify(delayMonitorServer, times(4)).initialize();
+        verify(delayMonitorServer, times(4)).start();
+        verify(delayMonitorServer, times(4)).stop();
+        verify(delayMonitorServer, times(4)).dispose();
+    }
 
-//    private void initReplicatorWrappers(Drc drc, Map<String, ReplicatorWrapper> replicatorWrappers) {
-//        Dc dc1 = drc.getDcs().get("dc1");
-//        Dc dc2 = drc.getDcs().get("dc2");
-//        Map<String, DbCluster> dbClusters = dc2.getDbClusters();
-//        for(Map.Entry<String, DbCluster> entry : dbClusters.entrySet()) {
-//            String dbClusterId = entry.getKey();
-//            DbCluster dbCluster = entry.getValue();
-//            List<Applier> appliers = dbCluster.getAppliers();
-//            Applier applierChoose = null;
-//            for(Applier applier : appliers) {
-//                if(applier.getTargetIdc().equalsIgnoreCase("dc1")) {
-//                    applierChoose = applier;
-//                    break;
-//                }
-//            }
-//
-//            List<Route> routes = RouteUtils.filterRoutes("dc1", Route.TAG_CONSOLE, dbCluster.getOrgId(), "dc2", dc1);
-//            replicatorWrappers.put(dbClusterId,
-//                    new ReplicatorWrapper(dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
-//                            "dc1",
-//                            "dc2",
-//                            dbCluster.getName(),
-//                            applierChoose.getTargetMhaName(),
-//                            dbCluster.getMhaName(),
-//                            routes
-//                    )
-//            );
-//        }
-//    }
+    @Test
+    public void testScheduleAndSwitchSimultaneously() throws Exception {
+        ExecutorService executor = ThreadUtils.newFixedThreadPool(2, "executor");
+        executor.submit(() -> {
+            try {
+                listenReplicatorTask.updateListenReplicators();
+            } catch (SQLException e) {
+            }
+        });
+        executor.submit(() -> listenReplicatorTask.switchListenReplicator("dbcluster1.mha2dc2", "10.1.3.2", 8383));
+
+        Thread.sleep(200);
+        verify(delayMonitorServer, times(3)).initialize();
+        verify(delayMonitorServer, times(3)).start();
+        verify(delayMonitorServer, times(3)).stop();
+        verify(delayMonitorServer, times(3)).dispose();
+    }
+
+    private Map<String, ReplicatorWrapper> initReplicatorWrappers(Drc drc) {
+        Map<String, ReplicatorWrapper> replicatorWrappers = Maps.newHashMap();
+        Dc dc1 = drc.getDcs().get("dc1");
+        Dc dc2 = drc.getDcs().get("dc2");
+        Map<String, DbCluster> dbClusters = dc2.getDbClusters();
+        for(Map.Entry<String, DbCluster> entry : dbClusters.entrySet()) {
+            String dbClusterId = entry.getKey();
+            DbCluster dbCluster = entry.getValue();
+            List<Applier> appliers = dbCluster.getAppliers();
+            Applier applierChoose = null;
+            for(Applier applier : appliers) {
+                if(applier.getTargetIdc().equalsIgnoreCase("dc1")) {
+                    applierChoose = applier;
+                    break;
+                }
+            }
+
+            List<Route> routes = RouteUtils.filterRoutes("dc1", Route.TAG_CONSOLE, dbCluster.getOrgId(), "dc2", dc1);
+            replicatorWrappers.put(dbClusterId,
+                    new ReplicatorWrapper(dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
+                            "dc1",
+                            "dc2",
+                            dbCluster.getName(),
+                            applierChoose.getTargetMhaName(),
+                            dbCluster.getMhaName(),
+                            routes
+                    )
+            );
+        }
+        return replicatorWrappers;
+    }
 }

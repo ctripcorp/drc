@@ -21,7 +21,9 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.google.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +103,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private static final String INFO= "info";
 
     private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={}]]";
+
+    public void setConfig(DelayMonitorSlaveConfig config) {
+        this.config = config;
+    }
 
     /**
      * Lambda expression function: LogEventHandler for StaticDelayMonitor
@@ -219,6 +225,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
+        String routeInfo = config.getRouteInfo();
+        if (StringUtils.isNotBlank(routeInfo)) {
+            ProxyRegistry.registerProxy(config.getIp(), config.getPort(), routeInfo);
+        }
+        log("initialized server success", INFO, null);
     }
 
     @Override
@@ -251,6 +262,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                 }
             }
         }, INITIAL_DELAY, PERIOD, TimeUnit.SECONDS);
+        log("started server success", INFO, null);
     }
 
     @Override
@@ -266,6 +278,16 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         if (unidirectionalEntity != null) {
             DefaultReporterHolder.getInstance().removeRegister(unidirectionalEntity.getTags(), config.getMeasurement());
         }
+        log("stopped server success", INFO, null);
+    }
+
+    @Override
+    protected void doDispose() throws Exception {
+        super.doDispose();
+        if (StringUtils.isNotBlank(config.getRouteInfo())) {
+            ProxyRegistry.unregisterProxy(config.getIp(), config.getPort());
+        }
+        log("disposed server success", INFO, null);
     }
 
     private UnidirectionalEntity getUnidirectionalEntity(String mhaString) {
