@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 
 import java.util.List;
 import java.util.Map;
@@ -11,8 +12,8 @@ import java.util.Map;
  */
 public class CustomRowsFilterRule extends AbstractRowsFilterRule {
 
-    public CustomRowsFilterRule(String registryKey, String context) {
-        super(registryKey, context);
+    public CustomRowsFilterRule(RowsFilterContext rowsFilterContext) {
+        super(rowsFilterContext);
     }
 
     @Override

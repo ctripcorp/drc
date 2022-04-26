@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import org.junit.Assert;
@@ -21,7 +22,7 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
-    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule("registryKey","{\"drc1.insert1\":[\"id\", \"one\"]}");
+    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule(RowsFilterContext.from("registryKey",RowFilterType.Custom, "{\"drc1.insert1\":[\"id\", \"one\"]}"));
 
     private TableMapLogEvent tableMapLogEvent;
 
@@ -56,8 +57,8 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
     class TestRowsFilterRule extends AbstractRowsFilterRule {
 
-        public TestRowsFilterRule(String registryKey, String context) {
-            super(registryKey, context);
+        public TestRowsFilterRule(RowsFilterContext rowsFilterContext) {
+            super(rowsFilterContext);
         }
 
         @Override

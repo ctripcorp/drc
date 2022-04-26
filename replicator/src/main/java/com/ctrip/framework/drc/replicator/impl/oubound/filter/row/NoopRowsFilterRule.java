@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 
@@ -11,7 +12,8 @@ import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
  */
 public class NoopRowsFilterRule implements RowsFilterRule<Void> {
 
-    public NoopRowsFilterRule(String context) {
+    public NoopRowsFilterRule(RowsFilterContext rowsFilterContext) {
+
     }
 
     @Override

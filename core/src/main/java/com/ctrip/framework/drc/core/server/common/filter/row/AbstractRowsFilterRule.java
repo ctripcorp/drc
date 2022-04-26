@@ -22,9 +22,9 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     protected Map<String, List<String>> table2Fields; // table -> multi fields
 
-    public AbstractRowsFilterRule(String keyName, String context) {
-        this.registryKey = keyName;
-        this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<>() {});
+    public AbstractRowsFilterRule(RowsFilterContext rowsFilterContext) {
+        this.registryKey = rowsFilterContext.getRegistryKey();
+        this.table2Fields = JsonCodec.INSTANCE.decode(rowsFilterContext.getFilterContext(), new GenericTypeReference<>() {});
     }
 
     @Override

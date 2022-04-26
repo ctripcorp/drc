@@ -17,7 +17,6 @@ public class DefaultRuleFactory implements RuleFactory {
     public RowsFilterRule createRowsFilterRule(RowsFilterContext context) throws Exception {
 
         RowFilterType rowFilterType = context.getFilterType();
-        String filterContext = context.getFilterContext();
         Class<? extends RowsFilterRule> rowsFilterRule;
 
         if (RowFilterType.Uid == rowFilterType) {
@@ -29,7 +28,7 @@ public class DefaultRuleFactory implements RuleFactory {
             rowsFilterRule = NoopRowsFilterRule.class;
         }
 
-        Constructor constructor = rowsFilterRule.getConstructor(new Class[]{String.class, String.class});
-        return (RowsFilterRule) constructor.newInstance(filterContext);
+        Constructor constructor = rowsFilterRule.getConstructor(new Class[]{RowsFilterContext.class});
+        return (RowsFilterRule) constructor.newInstance(context);
     }
 }
