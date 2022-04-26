@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
         List<List<Object>> values = getValues(rowsEvent);
 
-        List<Integer> indices = getIndices(columns, fields);
+        Map<String, Integer> indices = getIndices(columns, fields);
         if (indices == null) {
             return new RowsFilterResult(true);
         }
@@ -56,23 +56,24 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return values;
     }
 
-    protected List<Integer> getIndices(Columns columns, List<String> fields) {
+    protected Map<String, Integer> getIndices(Columns columns, List<String> fields) {
         final int fieldSize = fields.size();
-        List<Integer> indices = Lists.newArrayList();
+        Map<String, Integer> integerMap = Maps.newHashMap();
 
         int found = 0;
         for (int i = 0; i < fieldSize; ++i) {
             for (int j = 0; j < columns.size(); ++j) {
-                if (columns.get(j).getName().equalsIgnoreCase(fields.get(i))) {
-                    indices.add(j);
+                String colName = columns.get(j).getName();
+                if (colName.equalsIgnoreCase(fields.get(i))) {
+                    integerMap.put(colName, j);
                     found++;
                     break;
                 }
             }
         }
 
-        return found == fieldSize ? indices : null;
+        return found == fieldSize ? integerMap : null;
     }
 
-    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices);
+    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices);
 }

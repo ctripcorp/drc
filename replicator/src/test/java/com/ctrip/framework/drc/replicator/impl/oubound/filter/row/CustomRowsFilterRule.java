@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author limingdong
@@ -15,7 +16,7 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) {
         return null;
     }
 }

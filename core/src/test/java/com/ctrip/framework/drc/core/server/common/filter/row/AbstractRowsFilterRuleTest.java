@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
@@ -60,10 +61,11 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
         }
 
         @Override
-        protected List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices) {
+        protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) {
             Assert.assertEquals(3, values.size());
             Assert.assertEquals(2, indices.size());  // id、one
-            Assert.assertEquals(0, indices.get(0).intValue());  // id in index 0
+            Assert.assertEquals(0, indices.get("id").intValue());  // id in index 0
+            Assert.assertEquals(1, indices.get("one").intValue());  // one in index 1
             return result;
         }
     }
