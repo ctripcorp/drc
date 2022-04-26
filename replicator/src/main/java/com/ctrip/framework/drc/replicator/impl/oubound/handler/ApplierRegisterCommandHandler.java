@@ -183,7 +183,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
             this.filterType = RowFilterType.getType(dumpCommandPacket.getRowFilterType());
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
-            logger.info("[ConsumeType] is {}, [filterType] is {},  for {}", consumeType.name(), filterType, applierName);
+            logger.info("[ConsumeType] is {}, [filterType] is {}, [rowFilterContext] is {}, for {}", consumeType.name(), filterType, dumpCommandPacket.getRowFilterContext(), applierName);
             this.ip = ip;
             ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {

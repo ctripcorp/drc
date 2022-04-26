@@ -29,6 +29,7 @@ import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRuleTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -50,6 +51,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        AbstractRowsFilterRuleTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
