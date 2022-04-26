@@ -29,7 +29,7 @@ public class DefaultRuleFactory implements RuleFactory {
             rowsFilterRule = NoopRowsFilterRule.class;
         }
 
-        Constructor constructor = rowsFilterRule.getConstructor(new Class[]{String.class});
+        Constructor constructor = rowsFilterRule.getConstructor(new Class[]{String.class, String.class});
         return (RowsFilterRule) constructor.newInstance(filterContext);
     }
 }

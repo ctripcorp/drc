@@ -21,7 +21,7 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
-    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule("{\"drc1.insert1\":[\"id\", \"one\"]}");
+    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule("registryKey","{\"drc1.insert1\":[\"id\", \"one\"]}");
 
     private TableMapLogEvent tableMapLogEvent;
 
@@ -56,8 +56,8 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
     class TestRowsFilterRule extends AbstractRowsFilterRule {
 
-        public TestRowsFilterRule(String context) {
-            super(context);
+        public TestRowsFilterRule(String registryKey, String context) {
+            super(registryKey, context);
         }
 
         @Override

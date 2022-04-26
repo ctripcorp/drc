@@ -204,6 +204,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                             this.channel,
                             this.consumeType,
                             RowsFilterContext.from(
+                                    applierName,
                                     filterType,
                                     dumpCommandPacket.getRowFilterContext()
                             )
@@ -449,7 +450,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 logGtid(previousGtidLogEvent, eventType);
                 // read header already
-                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize);
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
                 filterChain.doFilter(logEventContext);
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();

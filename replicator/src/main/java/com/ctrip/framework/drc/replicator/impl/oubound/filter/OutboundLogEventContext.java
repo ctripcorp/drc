@@ -34,14 +34,17 @@ public class OutboundLogEventContext {
 
     private IOException cause;
 
+    private String gtid;
+
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
         this.eventType = eventType;
         this.eventSize = eventSize;
+        this.gtid = gtid;
     }
 
     public FileChannel getFileChannel() {
@@ -66,6 +69,10 @@ public class OutboundLogEventContext {
 
     public LogEvent getRowsEvent() {
         return rowsEvent;
+    }
+
+    public String getGtid() {
+        return gtid;
     }
 
     public TableMapLogEvent getTableMapWithinTransaction(Long tableId) {

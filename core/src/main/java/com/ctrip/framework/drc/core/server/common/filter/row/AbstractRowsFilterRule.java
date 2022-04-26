@@ -18,9 +18,12 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.u
  */
 public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>> > {
 
+    protected String registryKey;
+
     protected Map<String, List<String>> table2Fields; // table -> multi fields
 
-    public AbstractRowsFilterRule(String context) {
+    public AbstractRowsFilterRule(String keyName, String context) {
+        this.registryKey = keyName;
         this.table2Fields = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<>() {});
     }
 

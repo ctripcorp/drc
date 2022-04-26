@@ -12,8 +12,8 @@ import java.util.Map;
  */
 public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>>> {
 
-    public UidRowsFilterRule(String context) {
-        super(context);
+    public UidRowsFilterRule(String registryKey, String context) {
+        super(registryKey, context);
     }
 
     @Override

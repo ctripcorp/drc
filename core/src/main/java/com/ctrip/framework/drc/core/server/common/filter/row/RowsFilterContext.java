@@ -8,11 +8,14 @@ import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
  */
 public class RowsFilterContext {
 
+    private String registryKey;
+
     private RowFilterType filterType;
 
     private String filterContext;
 
-    public RowsFilterContext(RowFilterType filterType, String filterContext) {
+    public RowsFilterContext(String registryKey, RowFilterType filterType, String filterContext) {
+        this.registryKey = registryKey;
         this.filterType = filterType;
         this.filterContext = filterContext;
     }
@@ -25,7 +28,11 @@ public class RowsFilterContext {
         return filterContext;
     }
 
-    public static RowsFilterContext from(RowFilterType filterType, String filterContext) {
-        return new RowsFilterContext(filterType, filterContext);
+    public String getRegistryKey() {
+        return registryKey;
+    }
+
+    public static RowsFilterContext from(String registryKey, RowFilterType filterType, String filterContext) {
+        return new RowsFilterContext(registryKey, filterType, filterContext);
     }
 }

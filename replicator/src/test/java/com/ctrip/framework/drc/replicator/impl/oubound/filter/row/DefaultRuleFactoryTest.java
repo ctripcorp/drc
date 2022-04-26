@@ -21,6 +21,8 @@ import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.
  */
 public class DefaultRuleFactoryTest {
 
+    private static final String registryKey = "ut_key";
+
     private RuleFactory ruleFactory = new DefaultRuleFactory();
 
     private Map<String, List<String>> table2Id = Maps.newHashMap();
@@ -33,16 +35,16 @@ public class DefaultRuleFactoryTest {
     public void createRowsFilterRule() throws Exception {
         fields.add("id");
         table2Id.put("drc1.insert1", fields);
-        rowsFilterContext = RowsFilterContext.from(RowFilterType.Uid, JsonCodec.INSTANCE.encode(table2Id));
+        rowsFilterContext = RowsFilterContext.from(registryKey, RowFilterType.Uid, JsonCodec.INSTANCE.encode(table2Id));
         RowsFilterRule rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterContext);
         Assert.assertTrue(rowsFilterRule instanceof UidRowsFilterRule);
 
-        rowsFilterContext = RowsFilterContext.from(RowFilterType.None, JsonCodec.INSTANCE.encode(table2Id));
+        rowsFilterContext = RowsFilterContext.from(registryKey, RowFilterType.None, JsonCodec.INSTANCE.encode(table2Id));
         rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterContext);
         Assert.assertTrue(rowsFilterRule instanceof NoopRowsFilterRule);
 
         System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.replicator.impl.oubound.filter.row.CustomRowsFilterRule");
-        rowsFilterContext = RowsFilterContext.from(RowFilterType.Custom, JsonCodec.INSTANCE.encode(table2Id));
+        rowsFilterContext = RowsFilterContext.from(registryKey, RowFilterType.Custom, JsonCodec.INSTANCE.encode(table2Id));
         rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterContext);
         Assert.assertTrue(rowsFilterRule instanceof CustomRowsFilterRule);
     }

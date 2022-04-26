@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
@@ -24,9 +25,12 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private RuleFactory ruleFactory = new DefaultRuleFactory();
 
+    private String registryKey;
+
     private RowsFilterRule<List<List<Object>>> rowsFilterRule;
 
     public RowsFilter(RowsFilterContext filterContext) throws Exception {
+        this.registryKey = filterContext.getRegistryKey();
         rowsFilterRule = ruleFactory.createRowsFilterRule(filterContext);
     }
 
@@ -52,11 +56,20 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
+        int beforeSize = rowsEvent.getRows().size();
         RowsFilterResult<List<List<Object>>> rowsFilterResult = rowsFilterRule.filterRows(rowsEvent, drcTableMap);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {
+            int afterSize;
             List<List<Object>> rows = rowsFilterResult.getRes();
+            if (rows != null) {
+                afterSize = rows.size();
+                int filterNum = beforeSize - afterSize;
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", registryKey);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", registryKey, filterNum);
+                logger.info("[Filter] {} rows within {} for {}", filterNum, value.getGtid(), registryKey);
+            }
             // TODO build event with rows
             value.setRowsEvent(rowsEvent);
         }

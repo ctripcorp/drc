@@ -16,8 +16,8 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
 
     public static final String ID = "id";
 
-    public EvenNumberRowsFilterRule(String context) {
-        super(context);
+    public EvenNumberRowsFilterRule(String registryKey, String context) {
+        super(registryKey, context);
     }
 
     @Override

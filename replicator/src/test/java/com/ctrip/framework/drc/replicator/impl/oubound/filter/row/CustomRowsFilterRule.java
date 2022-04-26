@@ -11,8 +11,8 @@ import java.util.Map;
  */
 public class CustomRowsFilterRule extends AbstractRowsFilterRule {
 
-    public CustomRowsFilterRule(String context) {
-        super(context);
+    public CustomRowsFilterRule(String registryKey, String context) {
+        super(registryKey, context);
     }
 
     @Override
