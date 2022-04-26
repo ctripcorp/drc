@@ -266,8 +266,7 @@ public class ListenReplicatorTask {
                     if (newConfig.equals(oldConfig)) {
                         logger.info("[[monitor=delaylisten]] modify replicator listen fail for cluster: {} for same config,", clusterId);
                     } else {
-                        delayMonitorServer.setConfig(newConfig);
-                        restartListenServer(clusterId);
+                        restartListenServer(clusterId, newConfig);
                         logger.info("[[monitor=delaylisten]] modify replicator listen success for cluster: {},", clusterId);
                     }
                     replicatorWrappers.put(clusterId, newReplicatorWrapper);
@@ -296,8 +295,9 @@ public class ListenReplicatorTask {
                         logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, for old endpoint({}:{}),", clusterId, oldConfig.getIp(), oldConfig.getPort());
                         Endpoint endpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
                         logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, for new endpoint({}:{}),", clusterId, endpoint.getHost(), endpoint.getPort());
-                        oldConfig.setEndpoint(endpoint);
-                        restartListenServer(clusterId);
+                        DelayMonitorSlaveConfig newConfig = oldConfig.clone();
+                        newConfig.setEndpoint(endpoint);
+                        restartListenServer(clusterId, newConfig);
                         updateMasterReplicatorInDb(delayMonitorServer.getConfig(), newReplicatorIp);
                         logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},", clusterId);
                     } else {
@@ -314,18 +314,22 @@ public class ListenReplicatorTask {
         }
     }
 
-    public void restartListenServer(String clusterId) {
-        StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
-        if (delayMonitorServer != null) {
-            try {
-                delayMonitorServer.stop();
-                delayMonitorServer.dispose();
-                delayMonitorServer.initialize();
-                delayMonitorServer.start();
-                logger.info("[[monitor=delaylisten]] restart replicator listen success for cluster: {},", clusterId);
-            } catch (Exception e) {
-                logger.error("[[monitor=delaylisten]] restart replicator listen error for cluster: {},", clusterId, e);
-            }
+    public void restartListenServer(String clusterId, DelayMonitorSlaveConfig newConfig) {
+        StaticDelayMonitorServer oldDelayMonitorServer = delayMonitorServerMap.get(clusterId);
+        if (oldDelayMonitorServer == null) {
+            logger.error("[[monitor=delaylisten]] restart replicator listen error for cluster: {} because old delay monitor server not exist", clusterId);
+            return;
+        }
+        try {
+            oldDelayMonitorServer.stop();
+            oldDelayMonitorServer.dispose();
+
+            StaticDelayMonitorServer newDelayMonitorServer = createDelayMonitorServer(newConfig);
+            newDelayMonitorServer.initialize();
+            newDelayMonitorServer.start();
+            logger.info("[[monitor=delaylisten]] restart replicator listen success for cluster: {},", clusterId);
+        } catch (Exception e) {
+            logger.error("[[monitor=delaylisten]] restart replicator listen error for cluster: {},", clusterId, e);
         }
     }
 

@@ -1,8 +1,16 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
+import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.utils.RouteUtils;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.proxy.ProxyEndpoint;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -108,5 +116,20 @@ public class DelayMonitorSlaveConfig extends MySQLSlaveConfig implements GlobalC
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), dc, destDc, cluster, mha, destMha, measurement, routeInfo);
+    }
+
+    public DelayMonitorSlaveConfig clone() {
+        DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
+        config.setDc(this.dc);
+        config.setDestDc(this.destDc);
+        config.setCluster(this.cluster);
+        config.setMha(this.mha);
+        config.setDestMha(this.destMha);
+        config.setRegistryKey(getRegistryKey());
+        Endpoint endpoint = new DefaultEndPoint(getIp(), getPort());
+        config.setEndpoint(endpoint);
+        config.setMeasurement(this.measurement);
+        config.setRouteInfo(this.routeInfo);
+        return config;
     }
 }
