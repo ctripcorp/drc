@@ -15,7 +15,7 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<List<Object>> doRowsFilter(List<List<Object>> values, List<Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices) {
         return null;
     }
 }

@@ -23,10 +23,6 @@ public class RowsFilterResult<V> {
         return noRowFiltered;
     }
 
-    public void setNoRowFiltered(boolean noRowFiltered) {
-        this.noRowFiltered = noRowFiltered;
-    }
-
     public V getRes() {
         return res;
     }

@@ -15,7 +15,7 @@ public class NoopRowsFilterRule implements RowsFilterRule<Void> {
     }
 
     @Override
-    public RowsFilterResult<Void> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) {
+    public RowsFilterResult<Void> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) {
         return new RowsFilterResult(false);
     }
 }

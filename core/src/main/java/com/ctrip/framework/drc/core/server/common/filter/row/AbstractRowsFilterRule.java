@@ -25,7 +25,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
     }
 
     @Override
-    public RowsFilterResult<List<List<Object>>> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) {
+    public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) {
         String table = drcTableMapLogEvent.getSchemaNameDotTableName();
         if (table2Fields == null || table2Fields.get(table) == null) {
             return new RowsFilterResult(true);
@@ -35,12 +35,12 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
         List<List<Object>> values = getValues(rowsEvent);
 
-        List<Integer> indices = indices(columns, fields);
+        List<Integer> indices = getIndices(columns, fields);
         if (indices == null) {
             return new RowsFilterResult(true);
         }
 
-        List<List<Object>> filteredRow = doRowsFilter(values, indices);
+        List<List<Object>> filteredRow = doFilterRows(values, indices);
 
         return new RowsFilterResult(false, filteredRow);
     }
@@ -56,15 +56,15 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return values;
     }
 
-    protected List<Integer> indices(Columns columns, List<String> fields) {
+    protected List<Integer> getIndices(Columns columns, List<String> fields) {
         final int fieldSize = fields.size();
-        List<Integer> indices = Lists.newArrayList(fieldSize);
+        List<Integer> indices = Lists.newArrayList();
 
         int found = 0;
         for (int i = 0; i < fieldSize; ++i) {
             for (int j = 0; j < columns.size(); ++j) {
                 if (columns.get(j).getName().equalsIgnoreCase(fields.get(i))) {
-                    indices.set(i, j);
+                    indices.add(j);
                     found++;
                     break;
                 }
@@ -74,5 +74,5 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return found == fieldSize ? indices : null;
     }
 
-    protected abstract List<List<Object>> doRowsFilter(List<List<Object>> values, List<Integer> indices);
+    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices);
 }

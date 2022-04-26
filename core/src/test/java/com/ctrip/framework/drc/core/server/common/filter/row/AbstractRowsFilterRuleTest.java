@@ -20,7 +20,7 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
-    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule("{\"drc1.insert1\":[\"id\"]}");
+    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule("{\"drc1.insert1\":[\"id\", \"one\"]}");
 
     private TableMapLogEvent tableMapLogEvent;
 
@@ -48,7 +48,7 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
     @Test
     public void filterRow() {
-        RowsFilterResult<List<List<Object>>> res = rowsFilterRule.filterRow(writeRowsEvent, drcTableMapLogEvent);
+        RowsFilterResult<List<List<Object>>> res = rowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
         Assert.assertFalse(res.isNoRowFiltered());
         Assert.assertEquals(res.getRes(), result);
     }
@@ -60,9 +60,9 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
         }
 
         @Override
-        protected List<List<Object>> doRowsFilter(List<List<Object>> values, List<Integer> indices) {
+        protected List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices) {
             Assert.assertEquals(3, values.size());
-            Assert.assertEquals(1, indices.size());
+            Assert.assertEquals(2, indices.size());  // id、one
             Assert.assertEquals(0, indices.get(0).intValue());  // id in index 0
             return result;
         }

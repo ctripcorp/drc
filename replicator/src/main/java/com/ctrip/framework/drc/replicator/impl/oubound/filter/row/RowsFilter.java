@@ -52,7 +52,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
-        RowsFilterResult<List<List<Object>>> rowsFilterResult = rowsFilterRule.filterRow(rowsEvent, drcTableMap);
+        RowsFilterResult<List<List<Object>>> rowsFilterResult = rowsFilterRule.filterRows(rowsEvent, drcTableMap);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {

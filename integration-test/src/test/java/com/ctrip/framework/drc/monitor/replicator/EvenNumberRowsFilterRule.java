@@ -18,7 +18,7 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
     }
 
     @Override
-    protected List<List<Object>> doRowsFilter(List<List<Object>> values, List<Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, List<Integer> indices) {
         List<List<Object>> res = Lists.newArrayList();
         for (int i = 0; i < values.size(); ++i) {
                 int idValue = (int) values.get(i).get(indices.get(0));  // indices.size == 1
