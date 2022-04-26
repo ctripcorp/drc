@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.fetcher.event;
 
-import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
@@ -10,7 +9,6 @@ import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
-import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
  * @Author Slight
@@ -116,35 +116,6 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
     @Override
     public void setDirectMemory(DirectMemory directMemory) {
         this.directMemory = directMemory;
-    }
-
-    /**
-     * transform outside load() for multi rows event
-     */
-    public static void transformMetaAndType(Columns originColumns, Columns columns) {
-        for (int i = 0; i < originColumns.size(); ++i) {
-            MysqlFieldType type = MysqlFieldType.getMysqlFieldType(originColumns.get(i).getType());
-            if (MysqlFieldType.mysql_type_string.equals(type)) {
-                int meta = originColumns.get(i).getMeta();
-                if (meta >= 256) {
-                    final Pair<Integer, Integer> realMetaAndType = getRealMetaAndType(meta);
-                    // meta
-                    columns.get(i).setMeta(realMetaAndType.getKey());
-
-                    // type
-                    int typeInt = realMetaAndType.getValue();
-                    if (!type.equals(MysqlFieldType.mysql_type_set)
-                            && !type.equals(MysqlFieldType.mysql_type_enum)
-                            && !type.equals(MysqlFieldType.mysql_type_string)) {
-                        throw new IllegalStateException("MySQL binlog string type can only be converted into string, enum, set types.");
-                    }
-                    columns.get(i).setType(typeInt);
-                }
-            } else {
-                columns.get(i).setMeta(originColumns.get(i).getMeta());  //update meta
-                columns.get(i).setType(originColumns.get(i).getType());  //update type
-            }
-        }
     }
 
     private void beforeDoApply(T context) {

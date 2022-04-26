@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
-import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 
@@ -222,19 +221,6 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         }
 
         return values;
-    }
-
-    public static Pair<Integer, Integer> getRealMetaAndType(final int meta) {
-        int byte0 = meta >> 8;
-        int byte1 = meta & 0xff;
-        if ((byte0 & 0x30) != 0x30) { // 0x30 = 0011 0000
-            return new Pair<>(
-                    byte1 | (((byte0 & 0x30) ^ 0x30) << 4),
-                    byte0 | 0x30
-            );
-        } else {
-            return new Pair<>(byte1, byte0);
-        }
     }
 
     // see log_event.cc#log_event_print_value

@@ -27,7 +27,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeK
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilterContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;

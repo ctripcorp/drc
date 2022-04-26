@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
+package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
@@ -9,5 +9,5 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
  */
 public interface RowsFilterRule<V> {
 
-    RowsFilterResult<V> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent tableMapLogEvent, TableMapLogEvent drcTableMapLogEvent);
+    RowsFilterResult<V> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent);
 }

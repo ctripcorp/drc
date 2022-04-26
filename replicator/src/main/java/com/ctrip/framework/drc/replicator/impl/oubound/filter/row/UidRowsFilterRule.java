@@ -1,28 +1,22 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
-import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.xpipe.api.codec.GenericTypeReference;
-import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * @Author limingdong
  * @create 2022/4/22
  */
-public class UidRowsFilterRule implements RowsFilterRule<AbstractRowsEvent> {
-
-    private Map<String, String> table2Uid;
+public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>>> {
 
     public UidRowsFilterRule(String context) {
-        this.table2Uid = JsonCodec.INSTANCE.decode(context, new GenericTypeReference<>() {});
+        super(context);
     }
 
     @Override
-    public RowsFilterResult<AbstractRowsEvent> filterRow(AbstractRowsEvent rowsEvent, TableMapLogEvent tableMapLogEvent, TableMapLogEvent drcTableMapLogEvent) {
-        // TODO
-        return new RowsFilterResult(false);
-
+    protected List<List<Object>> doRowsFilter(List<List<Object>> values, List<Integer> indices) {
+        return null;
     }
 }

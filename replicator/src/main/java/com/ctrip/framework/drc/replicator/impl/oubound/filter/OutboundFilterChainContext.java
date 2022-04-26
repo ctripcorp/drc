@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RowsFilterContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import io.netty.channel.Channel;
 
 /**

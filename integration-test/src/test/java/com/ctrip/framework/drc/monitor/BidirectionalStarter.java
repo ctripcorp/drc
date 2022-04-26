@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
-import static com.ctrip.framework.drc.replicator.impl.oubound.filter.row.RuleFactory.ROWS_FILTER_RULE;
+import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
 
 /**
  *  *  run doTest to start integrity test WITHOUT any interference
@@ -60,7 +60,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
         }
 
-        table2Id.put("drc1.insert1", "id");
+        table2Id.put("drc1.insert1", "[id]");
         System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.monitor.replicator.EvenNumberRowsFilterRule");
     }
 

@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
+import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
