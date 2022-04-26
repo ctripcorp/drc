@@ -23,7 +23,7 @@ import java.util.Map;
 @Service
 public class SwitchServiceImpl implements SwitchService {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
     @Autowired
     private DefaultCurrentMetaManager currentMetaManager;
@@ -43,11 +43,11 @@ public class SwitchServiceImpl implements SwitchService {
     @Async
     @Override
     public void switchListenReplicator(String clusterId, String endpoint) {
-        logger.info("start switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
+        logger.info("[HTTP] start switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
         String[] split = endpoint.split(":");
         if (split.length == 2) {
             listenReplicatorTask.switchListenReplicator(clusterId, split[0], Integer.parseInt(split[1]));
         }
-        logger.info("end switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
+        logger.info("[HTTP] end switch listen replicator for clusterId: {} with endpoint: {}", clusterId, endpoint);
     }
 }

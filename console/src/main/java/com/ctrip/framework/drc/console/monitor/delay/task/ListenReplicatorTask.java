@@ -194,6 +194,7 @@ public class ListenReplicatorTask {
         if (!delayMonitorServerMap.containsKey(clusterId)) {
             handleChangeExecutor.submit(() -> {
                 try {
+                    logger.info("[[monitor=delaylisten]] add replicator listen start for cluster: {},", clusterId);
                     DelayMonitorSlaveConfig config = generateConfig(replicatorWrapper, DRC_DELAY_MESUREMENT);
                     StaticDelayMonitorServer delayMonitorServer = createDelayMonitorServer(config);
                     delayMonitorServer.initialize();
@@ -229,6 +230,7 @@ public class ListenReplicatorTask {
         if (delayMonitorServerMap.containsKey(clusterId)) {
             handleChangeExecutor.submit(() -> {
                 try {
+                    logger.info("[[monitor=delaylisten]] remove replicator listen start for cluster: {},", clusterId);
                     StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
                     if (delayMonitorServer != null) {
                         delayMonitorServer.stop();
@@ -260,6 +262,7 @@ public class ListenReplicatorTask {
         if (delayMonitorServerMap.containsKey(clusterId)) {
             handleChangeExecutor.submit(() -> {
                 try {
+                    logger.info("[[monitor=delaylisten]] modify replicator listen start for cluster: {},", clusterId);
                     StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
                     DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
                     DelayMonitorSlaveConfig newConfig = generateConfig(newReplicatorWrapper, DRC_DELAY_MESUREMENT);
@@ -367,6 +370,7 @@ public class ListenReplicatorTask {
     private void handleReplicatorWrapperChange(ListeningReplicatorComparator comparator,
                                                Map<String, ReplicatorWrapper> future) {
 
+        logger.info("handle change for added size: {}, removed size: {}, modified size: {}", comparator.getAdded().size(), comparator.getRemoved().size(), comparator.getMofified().size());
         for (String added : comparator.getAdded()) {
             ReplicatorWrapper replicatorWrapperToAdd = future.get(added);
             addListenServer(added, replicatorWrapperToAdd);
