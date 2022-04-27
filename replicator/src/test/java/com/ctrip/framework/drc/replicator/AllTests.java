@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlInd
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
@@ -44,6 +45,7 @@ import org.junit.runners.Suite;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.HashMap;
 
 /**
  * Created by @author zhuYongMing on 2019/9/18.
@@ -97,7 +99,7 @@ import java.sql.Statement;
         // ddl
         DdlParserTest.class,
         RetryTaskTest.class,
-//        DbInitTaskTest.class,
+        DbInitTaskTest.class,
         SchemeApplyTaskTest.class,
 
         DefaultMonitorManagerTest.class,
@@ -200,7 +202,7 @@ public class AllTests {
             server = new TestingServer(12181, true);
 
             //for db
-            srcDb = new EmbeddedDb().mysqlServer(SRC_PORT);
+            srcDb = new EmbeddedDb().mysqlServer(SRC_PORT, new HashMap<>());
             DataSource dataSource = DataSourceManager.getInstance().getDataSource(new DefaultEndPoint(SRC_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD));
             try (Connection connection = dataSource.getConnection()) {
                 try (Statement statement = connection.createStatement()) {

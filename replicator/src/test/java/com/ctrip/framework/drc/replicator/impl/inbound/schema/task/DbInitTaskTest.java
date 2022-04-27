@@ -2,11 +2,8 @@ package com.ctrip.framework.drc.replicator.impl.inbound.schema.task;
 
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.wix.mysql.EmbeddedMysql;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.net.ServerSocket;
 
 
 /**
@@ -17,18 +14,18 @@ public class DbInitTaskTest {
 
     private int PORT = 8989;
 
+    private EmbeddedMysql embeddedMysql;
+
     @Test
     public void testDbInitTask() {
-        EmbeddedMysql embeddedMysql = new RetryTask<>(new DbInitTask(PORT)).call();
-        Assert.assertTrue(isUsed( PORT));
-        embeddedMysql.stop();
+        embeddedMysql = new RetryTask<>(new DbInitTask(PORT, "ut_cluster")).call();
     }
 
-    private static boolean isUsed(int port) {
-        try (ServerSocket ignored = new ServerSocket(port)) {
-            return false;
-        } catch (IOException e) {
-            return true;
+    @After
+    public void tearDown() {
+        try {
+            embeddedMysql.stop();
+        } catch (Exception e) {
         }
     }
 }
