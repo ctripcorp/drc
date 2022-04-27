@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlInd
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
@@ -91,7 +92,7 @@ import java.util.HashMap;
         // ddl
         DdlParserTest.class,
         RetryTaskTest.class,
-//        DbInitTaskTest.class,
+        DbInitTaskTest.class,
         SchemeApplyTaskTest.class,
 
         DefaultMonitorManagerTest.class,
