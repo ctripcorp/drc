@@ -80,7 +80,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     protected void doInitialize() {
-        embeddedDb = new RetryTask<>(new DbInitTask(port)).call();
+        embeddedDb = new RetryTask<>(new DbInitTask(port, clusterName)).call();
         if (embeddedDb == null) {
             throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", clusterName));
         }
