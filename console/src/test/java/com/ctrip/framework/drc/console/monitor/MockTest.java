@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.monitor;
 
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.internal.verification.VerificationModeFactory;
 import org.mockito.stubbing.OngoingStubbing;
 import org.mockito.stubbing.Stubber;
 import org.mockito.verification.VerificationMode;
@@ -42,6 +43,9 @@ public abstract class MockTest {
         return Mockito.times(wantedNumberOfInvocations);
     }
 
+    public static VerificationMode atMost(int maxNumberOfInvocations) {
+        return Mockito.atMost(maxNumberOfInvocations);
+    }
 
     protected <T> T mock(Class<T> t) {
         return Mockito.mock(t);
