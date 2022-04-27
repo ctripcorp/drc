@@ -152,7 +152,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         if (null != targetDbCluster) {
                             Mha localMha = new Mha(dcName, dbCluster);
                             Mha targetMha = new Mha(targetDcName, targetDbCluster);
-                            if (!mhaGroupPairsMap.containsKey(mhaName+"."+targetMhaName) && 
+                            if (!mhaGroupPairsMap.containsKey(mhaName+"."+targetMhaName) &&
                                     !mhaGroupPairsMap.containsKey(targetMhaName+"."+mhaName)) {
                                 mhaGroupPairsMap.put(mhaName+"."+targetMhaName,Lists.newArrayList(localMha,targetMha));
                             }
@@ -258,6 +258,9 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                                 break;
                             }
 
+                            if (dbCluster.getReplicators().isEmpty()) {
+                                break;
+                            }
                             List<Route> routes = RouteUtils.filterRoutes(localDcName, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(localDcName));
                             replicators.put(
                                     dbCluster.getId(),
@@ -414,7 +417,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         }
         return allMhaCombinationList;
     }
-    
+
 
     @Override
     public int getOrder() {

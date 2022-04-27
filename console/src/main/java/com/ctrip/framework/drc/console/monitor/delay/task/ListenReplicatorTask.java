@@ -295,11 +295,10 @@ public class ListenReplicatorTask {
                     StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
                     DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
                     if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp) || oldConfig.getPort() != newReplicatorPort) {
-                        logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, for old endpoint({}:{}),", clusterId, oldConfig.getIp(), oldConfig.getPort());
-                        Endpoint endpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
-                        logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, for new endpoint({}:{}),", clusterId, endpoint.getHost(), endpoint.getPort());
+                        logger.info("[[monitor=delaylisten]] switch replicator listen for cluster: {}, old endpoint({}:{}), new endpoint({}:{})", clusterId, oldConfig.getIp(), oldConfig.getPort(), newReplicatorIp, newReplicatorPort);
                         DelayMonitorSlaveConfig newConfig = oldConfig.clone();
-                        newConfig.setEndpoint(endpoint);
+                        Endpoint newEndpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
+                        newConfig.setEndpoint(newEndpoint);
                         restartListenServer(clusterId, newConfig);
                         updateMasterReplicatorInDb(delayMonitorServer.getConfig(), newReplicatorIp);
                         logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},", clusterId);
