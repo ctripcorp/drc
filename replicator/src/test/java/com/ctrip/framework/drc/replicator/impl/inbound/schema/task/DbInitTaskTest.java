@@ -19,7 +19,7 @@ public class DbInitTaskTest {
 
     @Test
     public void testDbInitTask() {
-        EmbeddedMysql embeddedMysql = new RetryTask<>(new DbInitTask(PORT)).call();
+        EmbeddedMysql embeddedMysql = new RetryTask<>(new DbInitTask(PORT, "ut_cluster")).call();
         Assert.assertTrue(isUsed( PORT));
         embeddedMysql.stop();
     }

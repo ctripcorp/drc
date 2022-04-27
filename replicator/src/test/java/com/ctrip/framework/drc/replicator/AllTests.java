@@ -41,6 +41,7 @@ import org.junit.runners.Suite;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.HashMap;
 
 /**
  * Created by @author zhuYongMing on 2019/9/18.
@@ -193,7 +194,7 @@ public class AllTests {
             server = new TestingServer(12181, true);
 
             //for db
-            srcDb = new EmbeddedDb().mysqlServer(SRC_PORT);
+            srcDb = new EmbeddedDb().mysqlServer(SRC_PORT, new HashMap<>());
             DataSource dataSource = DataSourceManager.getInstance().getDataSource(new DefaultEndPoint(SRC_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD));
             try (Connection connection = dataSource.getConnection()) {
                 try (Statement statement = connection.createStatement()) {
