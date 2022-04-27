@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -54,33 +56,35 @@ public class EmbeddedDb {
     private String tmpPath = "/data/drc/mysql";
 
     public EmbeddedMysql mysqlServer() {
-        return mysqlServer(port);
+        return mysqlServer(port, new HashMap<>());
     }
 
-    public EmbeddedMysql mysqlServer(int mySQLPort) {
-        return mysqlServer(mySQLPort, removeFile, tmpPath);
+    public EmbeddedMysql mysqlServer(int mySQLPort, Map<String, Object> variables) {
+        return mysqlServer(mySQLPort, removeFile, tmpPath, variables);
     }
 
-    public EmbeddedMysql mysqlServer(int mySQLPort, String filePath) {
-        return mysqlServer(mySQLPort, removeFile, filePath);
-    }
-
-    public EmbeddedMysql mysqlServer(int mySQLPort, boolean removeOldFile) {
-        return mysqlServer(mySQLPort, removeOldFile, tmpPath);
-    }
-
-    public EmbeddedMysql mysqlServer(int mySQLPort, boolean removeOldFile, String filePath) {
+    public EmbeddedMysql mysqlServer(int mySQLPort, boolean removeOldFile, String filePath, Map<String, Object> variables) {
         initParam(mySQLPort, removeOldFile, filePath);
 
-        MysqldConfig config = MysqldConfig.aMysqldConfig(v5_7_23)
+        MysqldConfig.Builder configBuilder = MysqldConfig.aMysqldConfig(v5_7_23)
                 .withPort(port)
                 .withCharset(Charset.UTF8)
                 .withUser(user, password)
                 .withServerVariable("lower_case_table_names", 1)
                 .withServerVariable("character_set_server", "utf8mb4")
-                .withServerVariable("collation_server", "utf8mb4_general_ci")
-                .build();
+                .withServerVariable("collation_server", "utf8mb4_general_ci");
 
+        variables.forEach((key, value) -> {
+            if (value instanceof String) {
+                configBuilder.withServerVariable(key, (String) value);
+            } else if (value instanceof Boolean) {
+                configBuilder.withServerVariable(key, (Boolean) value);
+            } else if (value instanceof Integer) {
+                configBuilder.withServerVariable(key, (int) value);
+            }
+        });
+
+        MysqldConfig config = configBuilder.build();
         String path = ClassUtils.getDefaultClassLoader().getResource(src_path).getPath();
         logger.info("[Resource] path is {}, port:{}", path, port);
 
