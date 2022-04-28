@@ -146,6 +146,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         // config
         DefaultConsoleConfigTest.class,
+        DelayMonitorSlaveConfigTest.class,
 
         // utils
         JacksonUtilsTest.class,
@@ -185,7 +186,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 public class AllTests {
 
     private static Logger logger = LoggerFactory.getLogger(AllTests.class);
-    
+
     public static String DRC_XML_one2many;
 
     public static String DRC_XML;
