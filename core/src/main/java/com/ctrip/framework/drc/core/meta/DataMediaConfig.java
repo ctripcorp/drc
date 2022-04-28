@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.core.meta;
 
 import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactory;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRuleWrapper;
 import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -11,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -34,7 +34,7 @@ public class DataMediaConfig {
     private Map<String, RowsFilterRule> table2Rule = Maps.newHashMap();  // regex : RowsFilterRule
 
     @JsonIgnore
-    private Map<String, RowsFilterRuleWrapper> matchResult = Maps.newHashMap();  // tableName : RowsFilterRuleWrapper
+    private Map<String, Optional<RowsFilterRule>> matchResult = Maps.newHashMap();  // tableName : RowsFilterRuleWrapper
 
     public List<RowsFilterConfig> getRowsFilters() {
         return rowsFilters;
@@ -85,26 +85,24 @@ public class DataMediaConfig {
      * @param tableName
      * @return
      */
-    public RowsFilterRuleWrapper getRowsFilterRule(String tableName) {
-        RowsFilterRuleWrapper wrapper = null;
+    public Optional<RowsFilterRule>  getRowsFilterRule(String tableName) {
+        Optional<RowsFilterRule> optional = Optional.empty();
         if (valid()) {
-            wrapper = matchResult.get(tableName);
-            if (wrapper == null) {
-                boolean match = false;
+            optional = matchResult.get(tableName);
+            if (optional == null) {
                 RowsFilterRule rowsFilterRule = null;
                 for (Map.Entry<String, RowsFilterConfig> entry : table2Fields.entrySet()) {
                     if (entry.getValue().shouldFilterRows() && Pattern.matches(entry.getKey(), tableName)) {
                         rowsFilterRule = table2Rule.get(entry.getKey());
-                        match = true;
                         break;
                     }
                 }
-                wrapper = new RowsFilterRuleWrapper(match, rowsFilterRule);
-                matchResult.put(tableName, wrapper);
+                optional = Optional.ofNullable(rowsFilterRule);
+                matchResult.put(tableName, optional);
             }
         }
 
-        return wrapper;
+        return optional;
     }
 
     private boolean valid() {

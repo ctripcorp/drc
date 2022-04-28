@@ -5,9 +5,9 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRuleWrapper;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @Author limingdong
@@ -24,11 +24,11 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
     @Override
     public RowsFilterResult filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
         String tableName = drcTableMapLogEvent.getSchemaNameDotTableName();
-        RowsFilterRuleWrapper wrapper = dataMediaConfig.getRowsFilterRule(tableName);
-        if (wrapper == null || !wrapper.isMatch()) {
+        Optional<RowsFilterRule> optional = dataMediaConfig.getRowsFilterRule(tableName);
+        if (!optional.isPresent()) {
             return new RowsFilterResult(true);
         }
-        RowsFilterRule rowsFilterRule = wrapper.getRowsFilterRule();
+        RowsFilterRule rowsFilterRule = optional.get();
         return rowsFilterRule.filterRows(rowsEvent, drcTableMapLogEvent);
     }
 }

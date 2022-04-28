@@ -100,8 +100,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             try {
                 DumpTask dumpTask = new DumpTask(nettyClient.channel(), dumpCommandPacket, ip);
                 dumpExecutorService.submit(dumpTask);
-                applierKeys.putIfAbsent(applierKey, nettyClient);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
+                applierKeys.putIfAbsent(applierKey, nettyClient);
             } catch (Exception e) {
                 logger.info("[DumpTask] error for applier {} and close channel {}", applierName, channel, e);
                 channel.close();
@@ -168,9 +168,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ResultCode resultCode;
 
-        // row filter
-        private DataMediaConfig dataMediaConfig;
-
         private ConsumeType consumeType;
 
         private Filter<OutboundLogEventContext> filterChain;
@@ -181,10 +178,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
             String properties = dumpCommandPacket.getProperties();
-            this.dataMediaConfig = DataMediaConfig.from(applierName, properties);
+            DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
-            logger.info("[ConsumeType] is {}, [properties] is {}, for {}", consumeType.name(), properties, applierName);
             this.ip = ip;
+            logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
             ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
@@ -203,7 +200,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     OutboundFilterChainContext.from(
                             this.channel,
                             this.consumeType,
-                            this.dataMediaConfig
+                            dataMediaConfig
                     )
             );
         }
@@ -329,7 +326,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
-//                channel.close();
             }
         }
 

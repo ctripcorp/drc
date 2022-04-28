@@ -1,11 +1,12 @@
 package com.ctrip.framework.drc.core.meta;
 
-import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @Author limingdong
@@ -54,13 +55,25 @@ public class DataMediaConfigTest {
 
     @Before
     public void setUp() throws Exception {
-        rowsFilterConfigs = JsonCodec.INSTANCE.decode(MEDIA_CONFIG, DataMediaConfig.class);
+        rowsFilterConfigs = DataMediaConfig.from("ut_test", MEDIA_CONFIG);
     }
 
     @Test
-    public void getRowsFilterType() {
+    public void getRowsFilterRule() {
         List<RowsFilterConfig> rowsFilters = rowsFilterConfigs.getRowsFilters();
         Assert.assertEquals(2, rowsFilters.size());
         Assert.assertTrue(rowsFilterConfigs.shouldFilterRows());
+
+        Optional<RowsFilterRule> optional = rowsFilterConfigs.getRowsFilterRule("table1");
+        Assert.assertTrue(optional.isPresent());
+        Assert.assertNotNull(optional.get());
+
+        // cache
+        optional = rowsFilterConfigs.getRowsFilterRule("table1");
+        Assert.assertTrue(optional.isPresent());
+        Assert.assertNotNull(optional.get());
+
+        optional = rowsFilterConfigs.getRowsFilterRule("table1_wrong");
+        Assert.assertFalse(optional.isPresent());
     }
 }
