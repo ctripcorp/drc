@@ -48,6 +48,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 }
             }
         } catch (Exception e) {
+            logger.error("[RowsFilter] error", e);
             value.setCause(e);
         }
         value.setNoRowFiltered(noRowFiltered);

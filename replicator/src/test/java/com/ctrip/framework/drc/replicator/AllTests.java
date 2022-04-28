@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
@@ -53,6 +54,7 @@ import java.util.HashMap;
 @Suite.SuiteClasses({
         TableFilterTest.class,
         TypeFilterTest.class,
+        OutboundFilterChainFactoryTest.class,
 
         DefaultGtidManagerTest.class,
         DefaultUuidOperatorTest.class,

@@ -2,36 +2,49 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import io.netty.buffer.ByteBuf;
-import org.junit.After;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
+import static com.ctrip.framework.drc.replicator.AllTests.ROW_FILTER_PROPERTIES;
 
 /**
  * @Author limingdong
- * @create 2022/4/23
+ * @create 2022/4/28
  */
-public class  TableFilterTest extends AbstractRowsFilterTest {
+public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
 
-    private TableFilter tableFilter = new TableFilter();
+    private OutboundFilterChainFactory filterChainFactory;
+
+    private OutboundFilterChainContext filterChainContext;
+
+    @Mock
+    private Channel channel;
+
+    @Mock
+    private ChannelFuture channelFuture;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        fileChannel.close();
-        rbinlog.delete();
+        when(channel.writeAndFlush(any(ByteBuf.class))).thenReturn(channelFuture);
+        String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName());
+        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties));
+        filterChainFactory = new OutboundFilterChainFactory();
     }
 
     @Override
@@ -41,7 +54,23 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
     }
 
     @Test
-    public void doFilter() throws IOException {
+    public void createFilterChain() {
+        Filter<OutboundLogEventContext> filter = filterChainFactory.createFilterChain(filterChainContext);
+        Assert.assertTrue(filter instanceof SendFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof TypeFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof TableFilter);
+        filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof RowsFilter);
+        filter = filter.getSuccessor();
+        Assert.assertNull(filter);
+    }
+
+    @Test
+    public void testDoFilter() throws IOException {
+        Filter<OutboundLogEventContext> filterChain = filterChainFactory.createFilterChain(filterChainContext);
+
         // drc_table_map_log_event
         TableMapLogEvent tableMapLogEvent = drcTableMapEvent();
         String tableName = tableMapLogEvent.getSchemaNameDotTableName();
@@ -61,9 +90,22 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
 
         logEventType = LogEventType.drc_table_map_log_event;
         outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
-        boolean skip = tableFilter.doFilter(outboundLogEventContext);
-        Assert.assertTrue(skip);
-        Assert.assertEquals(1, tableFilter.getDrcTableMap().size());
+        boolean noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRowsFilter);
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // gtid_log_event
+        byteBuf = getGtidEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        logEventType = LogEventType.gtid_log_event;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRowsFilter);
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;
@@ -74,14 +116,10 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
         fileChannel.write(byteBuffer);
 
-        currentPosition = fileChannel.position();
-        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
-
         logEventType = LogEventType.table_map_log_event;
         outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
-        skip = tableFilter.doFilter(outboundLogEventContext);
-        Assert.assertTrue(skip);
-        Assert.assertEquals(1, tableFilter.getTableMapWithinTransaction().size());
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRowsFilter);
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;
@@ -97,10 +135,11 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
 
         logEventType = LogEventType.write_rows_event_v2;
         outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
-        skip = tableFilter.doFilter(outboundLogEventContext);
-        Assert.assertFalse(skip);
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+        verify(channelFuture, times(2)).addListener(any(GenericFutureListener.class)); // header and payload
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;
@@ -116,13 +155,11 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
 
         logEventType = LogEventType.xid_log_event;
         outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
-        skip = tableFilter.doFilter(outboundLogEventContext);
-        Assert.assertTrue(skip);
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRowsFilter);
 
         Assert.assertNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
-        Assert.assertEquals(1, tableFilter.getDrcTableMap().size());
-        Assert.assertEquals(0, tableFilter.getTableMapWithinTransaction().size());  // clear
-
     }
+
 }
