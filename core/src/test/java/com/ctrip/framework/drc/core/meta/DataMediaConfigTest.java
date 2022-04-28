@@ -76,4 +76,18 @@ public class DataMediaConfigTest {
         optional = rowsFilterConfigs.getRowsFilterRule("table1_wrong");
         Assert.assertFalse(optional.isPresent());
     }
+
+    @Test
+    public void getBlank() throws Exception {
+        DataMediaConfig blank = DataMediaConfig.from("ut_test", "");
+        List<RowsFilterConfig> rowsFilters = blank.getRowsFilters();
+        Assert.assertNull(rowsFilters);
+        Assert.assertFalse(blank.shouldFilterRows());
+
+        Optional<RowsFilterRule> optional = blank.getRowsFilterRule("table1");
+        Assert.assertFalse(optional.isPresent());
+
+        optional = blank.getRowsFilterRule("table1_wrong");
+        Assert.assertFalse(optional.isPresent());
+    }
 }

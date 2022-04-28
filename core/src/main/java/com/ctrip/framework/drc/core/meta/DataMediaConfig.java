@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.meta;
 
+import com.ctrip.framework.drc.core.monitor.util.IsolateHashCache;
 import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactory;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
@@ -28,13 +29,13 @@ public class DataMediaConfig {
     private String registryKey;
 
     @JsonIgnore
-    private Map<String, RowsFilterConfig> table2Fields = Maps.newHashMap();  // regex : RowsFilterConfig
+    private Map<String, RowsFilterConfig> table2Config = Maps.newHashMap();  // regex : RowsFilterConfig
 
     @JsonIgnore
     private Map<String, RowsFilterRule> table2Rule = Maps.newHashMap();  // regex : RowsFilterRule
 
     @JsonIgnore
-    private Map<String, Optional<RowsFilterRule>> matchResult = Maps.newHashMap();  // tableName : RowsFilterRuleWrapper
+    private IsolateHashCache<String, Optional<RowsFilterRule>> matchResult = new IsolateHashCache<>(5000, 16, 4);  // tableName : RowsFilterRuleWrapper
 
     public List<RowsFilterConfig> getRowsFilters() {
         return rowsFilters;
@@ -50,6 +51,9 @@ public class DataMediaConfig {
 
     public String getRegistryKey() {
         return registryKey;
+    }
+
+    private DataMediaConfig() {
     }
 
     public static DataMediaConfig from(String registryKey, String properties) throws Exception {
@@ -69,7 +73,7 @@ public class DataMediaConfig {
             for (RowsFilterConfig rowsFilterConfig : rowsFilters) {
                 rowsFilterConfig.setRegistryKey(registryKey);
                 String tableRegex = rowsFilterConfig.getTables();
-                table2Fields.put(tableRegex, rowsFilterConfig);
+                table2Config.put(tableRegex, rowsFilterConfig);
                 RowsFilterRule<List<List<Object>>> rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterConfig);
                 table2Rule.put(tableRegex, rowsFilterRule);
             }
@@ -88,10 +92,10 @@ public class DataMediaConfig {
     public Optional<RowsFilterRule>  getRowsFilterRule(String tableName) {
         Optional<RowsFilterRule> optional = Optional.empty();
         if (valid()) {
-            optional = matchResult.get(tableName);
+            optional = matchResult.getIfPresent(tableName);
             if (optional == null) {
                 RowsFilterRule rowsFilterRule = null;
-                for (Map.Entry<String, RowsFilterConfig> entry : table2Fields.entrySet()) {
+                for (Map.Entry<String, RowsFilterConfig> entry : table2Config.entrySet()) {
                     if (entry.getValue().shouldFilterRows() && Pattern.matches(entry.getKey(), tableName)) {
                         rowsFilterRule = table2Rule.get(entry.getKey());
                         break;
