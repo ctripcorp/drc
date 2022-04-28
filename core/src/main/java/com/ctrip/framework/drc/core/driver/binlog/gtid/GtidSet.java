@@ -237,6 +237,7 @@ public class GtidSet {
                     if (intervals.get(index).end < other.end) {
                         intervals.get(index).end = other.end;
                     }
+                    uuidSet.joinAdjacentIntervals(index);
                     return;
                 }
             }

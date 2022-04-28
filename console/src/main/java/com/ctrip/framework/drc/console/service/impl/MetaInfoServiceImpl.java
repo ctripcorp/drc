@@ -44,11 +44,11 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Service
 public class
 MetaInfoServiceImpl implements MetaInfoService {
-    
+
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";
     public static final String NULL_STRING = "null";
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -300,7 +300,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return mhaGroupPairVoSort(mhaGroupPairVos);
     }
-    
+
     public String getXmlConfiguration(String srcMha, String dstMha) throws Exception {
         Long mhaGroupId = getMhaGroupId(srcMha, dstMha);
         return getXmlConfiguration(mhaGroupId);
@@ -450,13 +450,13 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return Lists.newArrayList();
     }
-    
+
     public String getApplierFilter(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
         if (null == applierGroupTbl) {
             return NO_MATCH;
         } else if (null == dalUtils.getApplierTblDao().queryAll().stream().
-                    filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
+                filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
             return NO_MATCH;
         }
         String includedDbs = getIncludedDbs(mha, remoteMha);
@@ -475,7 +475,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return applierFilter;
     }
-    
+
     public String getUnionApplierFilter(String mha, String remoteMha) throws SQLException {
         String applierFilter1 = getApplierFilter(mha, remoteMha);
         String applierFilter2 = getApplierFilter(remoteMha, mha);
@@ -492,7 +492,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             return StringUtils.join(filters,",");
         }
     }
-    
+
     @Override
     public String getTargetName(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
@@ -523,11 +523,11 @@ MetaInfoServiceImpl implements MetaInfoService {
         List<ReplicatorGroupTbl> replicatorGroupTbls = dalUtils.getReplicatorGroupTblDao().queryByMhaIds(Lists.newArrayList(remoteMhaTbl.getId()), BooleanEnum.FALSE.getCode());
         if (replicatorGroupTbls.isEmpty()) {
             return null;
-        } 
+        }
         ReplicatorGroupTbl remoteReplicatorGroupTbl = replicatorGroupTbls.get(0);
         return dalUtils.getApplierGroupTblDao().queryByMhaIdAndReplicatorGroupId(mhaTbl.getId(),remoteReplicatorGroupTbl.getId(),BooleanEnum.FALSE.getCode());
     }
-    
+
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
@@ -1174,7 +1174,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return mhaGroupPairVoSort(pairVos);
 
     }
-    
+
     public String getMhaGroupTransmissionType(MhaTbl mhaTbl0, MhaTbl mhaTbl1) throws SQLException {
         ApplierGroupTbl applierGroupTbl0 = getApplierGroupTbl(mhaTbl0, mhaTbl1);
         ApplierGroupTbl applierGroupTbl1 = getApplierGroupTbl(mhaTbl1, mhaTbl0);
@@ -1205,7 +1205,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return mhaTbls;
     }
-    
+
     public List<MhaGroupPairVo> mhaGroupPairVoSort(List<MhaGroupPairVo> pairVos) {
         List<MhaGroupPairVo> sortedPairVos = Lists.newArrayList();
         HashMap<String, Integer> srcNameNumMap = new HashMap<>();
@@ -1239,5 +1239,5 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return sortedPairVos;
     }
-    
+
 }

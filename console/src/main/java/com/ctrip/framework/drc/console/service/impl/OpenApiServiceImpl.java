@@ -6,15 +6,11 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.service.OpenApiService;
 import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
-import com.ctrip.xpipe.utils.StringUtil;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,7 +26,7 @@ import java.util.stream.Collectors;
 @Service
 public class OpenApiServiceImpl implements OpenApiService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     
     @Autowired
     private MetaGenerator metaGenerator;
@@ -50,7 +46,7 @@ public class OpenApiServiceImpl implements OpenApiService {
 
         for (MhaGroupTbl mhaGroupTbl : mhaGroupTbls) {
             MhaGroupFilterVo mhaGroupFilterVo = new MhaGroupFilterVo();
-            
+
             Long mhaGroupTblId = mhaGroupTbl.getId();
             List<MhaTbl> twoMha = Lists.newArrayList();
             groupMappingTbls.stream().filter(p -> p.getMhaGroupId().equals(mhaGroupTblId)).forEach(groupMappingTbl -> {
@@ -60,7 +56,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             if (twoMha.size() != 2) {
                 logger.warn("get twoMhaListSize error group is {}",mhaGroupTbl.getId() );
             }
-            
+
             int i = 0;
             for (MhaTbl mhaTbl : twoMha) {
                 String anotherMhaName = twoMha.stream().filter(p -> !p.getId().equals(mhaTbl.getId())).findFirst().get().getMhaName();
@@ -83,7 +79,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             }
             allDrcMhaDbFilters.add(mhaGroupFilterVo);
         }
-        
+
         return allDrcMhaDbFilters;
     }
 }
