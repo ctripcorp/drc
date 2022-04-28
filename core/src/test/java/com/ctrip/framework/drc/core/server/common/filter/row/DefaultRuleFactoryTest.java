@@ -41,6 +41,11 @@ public class DefaultRuleFactoryTest {
         rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
         Assert.assertTrue(rowsFilterRule instanceof NoopRowsFilterRule);
 
+        properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.AviatorRegex.getName());
+        dataMediaConfig = DataMediaConfig.from(registryKey, properties);
+        rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        Assert.assertTrue(rowsFilterRule instanceof AbstractRowsFilterRule);
+
         System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.core.server.common.filter.row.CustomRowsFilterRule");
         properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName());
         dataMediaConfig = DataMediaConfig.from(registryKey, properties);

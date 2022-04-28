@@ -38,6 +38,7 @@ import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDtoTest;
 import com.ctrip.framework.drc.core.server.config.cm.dto.SchemasHistoryDeltaDtoTest;
 import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
+import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import org.apache.curator.test.TestingServer;
@@ -54,6 +55,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         DefaultRuleFactoryTest.class,
+        DataMediaManagerTest.class,
         RowsFilterConfigsTest.class,
         AbstractRowsFilterRuleTest.class,
         //schema

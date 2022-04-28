@@ -1,16 +1,25 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.ctrip.framework.drc.core.AllTests.ROW_FILTER_PROPERTIES;
+import static com.ctrip.framework.drc.core.meta.DataMediaConfig.from;
+import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
  * Created by mingdongli
@@ -25,6 +34,34 @@ public abstract class AbstractEventTest {
     protected static final String tableName = "insert1";
 
     protected static final String GTID = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+
+    protected DataMediaConfig dataMediaConfig;
+
+    protected TableMapLogEvent tableMapLogEvent;
+
+    protected TableMapLogEvent drcTableMapLogEvent;
+
+    protected WriteRowsEvent writeRowsEvent;
+
+    public static List<List<Object>> result = Lists.newArrayList();
+
+    @Before
+    public void setUp() throws Exception {
+        result.add(Lists.newArrayList("1", "2"));
+        dataMediaConfig = from("registryKey", String.format(ROW_FILTER_PROPERTIES, getRowsFilterType().getName()));
+        ByteBuf tByteBuf = tableMapEvent();
+        tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
+        ByteBuf wByteBuf = writeRowsEvent();
+        writeRowsEvent = new WriteRowsEvent().read(wByteBuf);
+        drcTableMapLogEvent = drcTableMapEvent();
+
+        Columns originColumns = Columns.from(tableMapLogEvent.getColumns());
+        Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
+        transformMetaAndType(originColumns, columns);
+        writeRowsEvent.load(columns);
+    }
+
+    protected abstract RowsFilterType getRowsFilterType();
 
     /*
     *  SELECT COLUMN_NAME,IS_NULLABLE,DATA_TYPE,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_TYPE,COLUMN_KEY,EXTRA,COLUMN_DEFAULT FROM information_schema.columns WHERE TABLE_NAME IN  ('insert1') and TABLE_SCHEMA in ("drc1") ORDER BY table_schema;

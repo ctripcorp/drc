@@ -99,7 +99,8 @@ public class DataMediaConfig {
                         break;
                     }
                 }
-                matchResult.put(tableName, new RowsFilterRuleWrapper(match, rowsFilterRule));
+                wrapper = new RowsFilterRuleWrapper(match, rowsFilterRule);
+                matchResult.put(tableName, wrapper);
             }
         }
 

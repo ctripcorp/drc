@@ -1,6 +1,8 @@
-package com.ctrip.framework.drc.core.server.common.filter.row;
+package com.ctrip.framework.drc.core.server.manager;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,16 +13,16 @@ import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.
 
 /**
  * @Author limingdong
- * @create 2022/4/26
+ * @create 2022/4/28
  */
-public class AbstractRowsFilterRuleTest extends AbstractEventTest {
+public class DataMediaManagerTest extends AbstractEventTest {
 
-    private AbstractRowsFilterRule rowsFilterRule;
+    private DataMediaManager dataMediaManager;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        rowsFilterRule = new CustomRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+        dataMediaManager = new DataMediaManager(dataMediaConfig);
     }
 
     @Override
@@ -30,10 +32,9 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
     }
 
     @Test
-    public void filterRow() throws Exception {
-        RowsFilterResult<List<List<Object>>> res = rowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+    public void filterRows() throws Exception {
+        RowsFilterResult<List<List<Object>>> res = dataMediaManager.filterRows(writeRowsEvent, drcTableMapLogEvent);
         Assert.assertFalse(res.isNoRowFiltered());
         Assert.assertEquals(res.getRes(), result);
     }
-
 }
