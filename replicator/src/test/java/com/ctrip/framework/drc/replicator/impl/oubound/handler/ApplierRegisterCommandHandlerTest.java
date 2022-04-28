@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
@@ -126,7 +127,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
         when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Slave.getCode());
-        when(dumpCommandPacket.getProperties()).thenReturn(ROW_FILTER_PROPERTIES);
+        when(dumpCommandPacket.getProperties()).thenReturn(String.format(ROW_FILTER_PROPERTIES, RowsFilterType.None.getName()));
         when(dumpCommandPacket.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);
