@@ -27,7 +27,6 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionT
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.row.DefaultRuleFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
@@ -52,7 +51,6 @@ import java.util.HashMap;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        DefaultRuleFactoryTest.class,
         TableFilterTest.class,
         TypeFilterTest.class,
 
@@ -111,6 +109,32 @@ import java.util.HashMap;
 
 })
 public class AllTests {
+
+    public static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"%s\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"one\"" +
+            "        ]," +
+            "        \"expression\": \"regre2\"" +
+            "      }" +
+            "    }" +
+            "  ]," +
+            "  \"talbePairs\": [" +
+            "    {" +
+            "      \"source\": \"sourceTableName1\"," +
+            "      \"target\": \"targetTableName1\"" +
+            "    }," +
+            "    {" +
+            "      \"source\": \"sourceTableName2\"," +
+            "      \"target\": \"targetTableName2\"" +
+            "    }" +
+            "  ]" +
+            "}";
 
     public static final int SRC_PORT = 13309;
 

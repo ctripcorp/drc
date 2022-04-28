@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
@@ -16,7 +17,6 @@ import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
@@ -27,7 +27,6 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeK
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -98,10 +97,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         String ip = remoteAddress.getAddress().getHostAddress();
         ApplierKey applierKey = new ApplierKey(applierName, ip);
         if (!applierKeys.containsKey(applierKey)) {
-            applierKeys.putIfAbsent(applierKey, nettyClient);
             try {
                 DumpTask dumpTask = new DumpTask(nettyClient.channel(), dumpCommandPacket, ip);
                 dumpExecutorService.submit(dumpTask);
+                applierKeys.putIfAbsent(applierKey, nettyClient);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
             } catch (Exception e) {
                 logger.info("[DumpTask] error for applier {} and close channel {}", applierName, channel, e);
@@ -169,8 +168,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ResultCode resultCode;
 
-        // line filter
-        private RowFilterType filterType;
+        // row filter
+        private DataMediaConfig dataMediaConfig;
 
         private ConsumeType consumeType;
 
@@ -181,9 +180,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.filterType = RowFilterType.getType(dumpCommandPacket.getRowFilterType());
+            String properties = dumpCommandPacket.getProperties();
+            this.dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
-            logger.info("[ConsumeType] is {}, [filterType] is {}, [rowFilterContext] is {}, for {}", consumeType.name(), filterType, dumpCommandPacket.getRowFilterContext(), applierName);
+            logger.info("[ConsumeType] is {}, [properties] is {}, for {}", consumeType.name(), properties, applierName);
             this.ip = ip;
             ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
@@ -203,11 +203,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     OutboundFilterChainContext.from(
                             this.channel,
                             this.consumeType,
-                            RowsFilterContext.from(
-                                    applierName,
-                                    filterType,
-                                    dumpCommandPacket.getRowFilterContext()
-                            )
+                            this.dataMediaConfig
                     )
             );
         }
@@ -333,7 +329,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
-                channel.close();
+//                channel.close();
             }
         }
 

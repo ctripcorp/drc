@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.monitor.replicator;
 
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import com.google.common.collect.Lists;
 
@@ -17,8 +17,8 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
 
     public static final String ID = "id";
 
-    public EvenNumberRowsFilterRule(RowsFilterContext rowsFilterContext) {
-        super(rowsFilterContext);
+    public EvenNumberRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
+        super(rowsFilterConfig);
     }
 
     @Override

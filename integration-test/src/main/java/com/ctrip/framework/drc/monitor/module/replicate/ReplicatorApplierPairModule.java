@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.monitor.module.replicate;
 
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.monitor.module.DrcModule;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
@@ -37,22 +36,19 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private Set<String> includedDb = Sets.newHashSet();
 
-    private RowFilterType rowFilterType;
-
-    private String rowFilterContext;
+    private String properties;
 
     public ReplicatorApplierPairModule() {
-        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, RowFilterType.None, null);
+        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, null);
     }
 
-    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, RowFilterType rowFilterType, String rowFilterContext) {
+    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, String properties) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
         this.repPort = repPort;
         this.destination = destination;
-        this.rowFilterType = rowFilterType;
-        this.rowFilterContext = rowFilterContext;
-        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], rowFilterType [{}], rowFilterContext [{}]", srcMySQLPort, destMySQLPort, repPort, destination, rowFilterType, rowFilterContext);
+        this.properties = properties;
+        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], properties [{}]", srcMySQLPort, destMySQLPort, repPort, destination, properties);
     }
 
     @Override
@@ -69,7 +65,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
             }
         });
-        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, rowFilterType, rowFilterContext);
+        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, properties);
         replicatorServer.initialize();
         localApplierServer.initialize();
     }

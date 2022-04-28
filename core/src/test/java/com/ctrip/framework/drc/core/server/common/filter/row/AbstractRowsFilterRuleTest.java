@@ -2,18 +2,21 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.AllTests.ROW_FILTER_PROPERTIES;
+import static com.ctrip.framework.drc.core.meta.DataMediaConfig.from;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
@@ -22,7 +25,9 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
-    private AbstractRowsFilterRule rowsFilterRule = new TestRowsFilterRule(RowsFilterContext.from("registryKey",RowFilterType.Custom, "{\"drc1.insert1\":[\"id\", \"one\"]}"));
+    private DataMediaConfig dataMediaConfig;
+
+    private AbstractRowsFilterRule rowsFilterRule;
 
     private TableMapLogEvent tableMapLogEvent;
 
@@ -34,7 +39,10 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws Exception {
+        dataMediaConfig = from("registryKey", String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUid.getName()));
+        rowsFilterRule = new TestRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
+
         result.add(Lists.newArrayList("1", "2"));
         ByteBuf tByteBuf = tableMapEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
@@ -57,8 +65,8 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
     class TestRowsFilterRule extends AbstractRowsFilterRule {
 
-        public TestRowsFilterRule(RowsFilterContext rowsFilterContext) {
-            super(rowsFilterContext);
+        public TestRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
+            super(rowsFilterConfig);
         }
 
         @Override

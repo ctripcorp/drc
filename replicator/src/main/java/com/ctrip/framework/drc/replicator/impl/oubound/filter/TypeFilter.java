@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 
 /**
@@ -14,16 +13,16 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private ConsumeType consumeType;
 
-    private RowFilterType filterType;
+    private boolean shouldFilterRows;
 
-    public TypeFilter(ConsumeType consumeType, RowFilterType filterType) {
+    public TypeFilter(ConsumeType consumeType, boolean shouldFilterRows) {
         this.consumeType = consumeType;
-        this.filterType = filterType;
+        this.shouldFilterRows = shouldFilterRows;
     }
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        if (ConsumeType.Applier != consumeType || RowFilterType.None == filterType) {
+        if (ConsumeType.Applier != consumeType || !shouldFilterRows) {
             value.setNoRowFiltered(true);
         }
         return doNext(value, value.isNoRowFiltered());

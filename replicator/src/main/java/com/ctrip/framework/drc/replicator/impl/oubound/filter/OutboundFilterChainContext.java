@@ -1,8 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import io.netty.channel.Channel;
 
 /**
@@ -15,16 +14,12 @@ public class OutboundFilterChainContext {
 
     private ConsumeType consumeType;
 
-    private RowsFilterContext filterContext;
+    private DataMediaConfig dataMediaConfig;
 
-    public OutboundFilterChainContext(Channel channel, ConsumeType consumeType, RowsFilterContext filterContext) {
+    public OutboundFilterChainContext(Channel channel, ConsumeType consumeType, DataMediaConfig dataMediaConfig) {
         this.channel = channel;
         this.consumeType = consumeType;
-        this.filterContext = filterContext;
-    }
-
-    public RowsFilterContext getFilterContext() {
-        return filterContext;
+        this.dataMediaConfig = dataMediaConfig;
     }
 
     public Channel getChannel() {
@@ -35,12 +30,19 @@ public class OutboundFilterChainContext {
         return consumeType;
     }
 
-    public RowFilterType getRowFilterType() {
-        return filterContext.getFilterType();
+    public boolean shouldFilterRows() {
+        if (dataMediaConfig == null) {
+            return false;
+        }
+        return dataMediaConfig.shouldFilterRows();
     }
 
-    public static OutboundFilterChainContext from(Channel channel, ConsumeType consumeType, RowsFilterContext filterContext) {
-        return new OutboundFilterChainContext(channel, consumeType, filterContext);
+    public DataMediaConfig getDataMediaConfig() {
+        return dataMediaConfig;
+    }
+
+    public static OutboundFilterChainContext from(Channel channel, ConsumeType consumeType, DataMediaConfig dataMediaConfig) {
+        return new OutboundFilterChainContext(channel, consumeType, dataMediaConfig);
     }
 
 }

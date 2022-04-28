@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.monitor.module.replicate;
 
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.monitor.DrcMonitorModule;
 import com.ctrip.framework.drc.monitor.module.ReplicateModule;
 import com.ctrip.framework.drc.monitor.module.mysql.SrcDstMySQLModule;
@@ -111,7 +110,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     @Override
     public void startRAModule() {
         try {
-            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, RowFilterType.None, null);
+            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, null);
             replicatorApplierPairModule.initialize();
             replicatorApplierPairModule.start();
         } catch (Exception e) {

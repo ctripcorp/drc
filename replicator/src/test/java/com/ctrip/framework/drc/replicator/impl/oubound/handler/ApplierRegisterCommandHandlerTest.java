@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
@@ -40,6 +39,8 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.UUID;
+
+import static com.ctrip.framework.drc.replicator.AllTests.ROW_FILTER_PROPERTIES;
 
 /**
  * @Author limingdong
@@ -125,7 +126,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
         when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Slave.getCode());
-        when(dumpCommandPacket.getRowFilterType()).thenReturn(RowFilterType.None.getCode());
+        when(dumpCommandPacket.getProperties()).thenReturn(ROW_FILTER_PROPERTIES);
         when(dumpCommandPacket.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
         when(channel.attr(ReplicatorMasterHandler.KEY_CLIENT)).thenReturn(attribute);

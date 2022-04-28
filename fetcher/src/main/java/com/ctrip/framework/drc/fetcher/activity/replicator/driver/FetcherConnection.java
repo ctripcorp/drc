@@ -76,9 +76,8 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
         commandPacket.setNameFilter(slaveConfig.getNameFilter());
         commandPacket.setConsumeType(ConsumeType.Applier.getCode());
         commandPacket.setApplyMode(slaveConfig.getApplyMode());
-        commandPacket.setRowFilterType(slaveConfig.getRowFilterType());
-        commandPacket.setRowFilterContext(slaveConfig.getRowFilterContext());
-        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}, applyMode is: {}, rowFilterType is: {}, rowFilterContext is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter(), slaveConfig.getApplyMode(), slaveConfig.getRowFilterType(), slaveConfig.getRowFilterContext());
+        commandPacket.setProperties(slaveConfig.getProperties());
+        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}, applyMode is: {}, properties is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter(), slaveConfig.getApplyMode(), slaveConfig.getProperties());
         CommandFuture<ResultCode> commandFuture = dumpGtidCommandHandler.handle(commandPacket, simpleObjectPool);
         return commandFuture;
     }

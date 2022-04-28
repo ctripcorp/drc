@@ -3,8 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
-import com.ctrip.xpipe.api.codec.GenericTypeReference;
-import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.google.common.collect.Maps;
 
 import java.util.List;
@@ -20,21 +19,18 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     protected String registryKey;
 
-    protected Map<String, List<String>> table2Fields; // table -> multi fields
+    protected List<String> fields;
 
-    public AbstractRowsFilterRule(RowsFilterContext rowsFilterContext) {
-        this.registryKey = rowsFilterContext.getRegistryKey();
-        this.table2Fields = JsonCodec.INSTANCE.decode(rowsFilterContext.getFilterContext(), new GenericTypeReference<>() {});
+    protected String expression;
+
+    public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
+        this.registryKey = rowsFilterConfig.getRegistryKey();
+        this.expression = rowsFilterConfig.getExpression();
+        this.fields = rowsFilterConfig.getParameters().getColumns();
     }
 
     @Override
     public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
-        String table = drcTableMapLogEvent.getSchemaNameDotTableName();
-        if (table2Fields == null || table2Fields.get(table) == null) {
-            return new RowsFilterResult(true);
-        }
-        List<String> fields = table2Fields.get(table);
-
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
         List<List<Object>> values = getValues(rowsEvent);
 

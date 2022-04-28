@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHeadPacket;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,9 +40,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     private int applyMode = ApplyMode.set_gtid.getType();
 
-    private int rowFilterType = RowFilterType.None.getCode();
-
-    private String rowFilterContext = StringUtils.EMPTY;
+    private String properties = StringUtils.EMPTY;
 
     public ApplierDumpCommandPacket(byte command) {
         super(command);
@@ -123,11 +120,8 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         // applyMode
         ByteHelper.writeUnsignedShortLittleEndian(applyMode, out);
 
-        // rowFilterType
-        ByteHelper.writeUnsignedShortLittleEndian(rowFilterType, out);
-
-        // rowFilterContext
-        ByteHelper.writeNullTerminatedString(rowFilterContext, out);
+        // properties
+        ByteHelper.writeNullTerminatedString(properties, out);
 
         return out.toByteArray();
     }
@@ -188,13 +182,10 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
             applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
             index += 2;
 
-            rowFilterType = ByteHelper.readUnsignedShortLittleEndian(data, index);
-            index += 2;
-
             // 2. read rowFilterContext
-            byte[] rowFilterContextBytes = ByteHelper.readNullTerminatedBytes(data, index);
-            rowFilterContext = new String(rowFilterContextBytes);
-            index += (rowFilterContextBytes.length + 1);
+            byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
+            properties = new String(propertiesBytes);
+            index += (propertiesBytes.length + 1);
         }
 
         // end read
@@ -248,19 +239,11 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         this.applyMode = applyMode;
     }
 
-    public int getRowFilterType() {
-        return rowFilterType;
+    public String getProperties() {
+        return properties;
     }
 
-    public void setRowFilterType(int rowFilterType) {
-        this.rowFilterType = rowFilterType;
-    }
-
-    public String getRowFilterContext() {
-        return rowFilterContext;
-    }
-
-    public void setRowFilterContext(String rowFilterContext) {
-        this.rowFilterContext = rowFilterContext;
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 }

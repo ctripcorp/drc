@@ -24,8 +24,7 @@ public class ApplierConfigDto extends ApplierMeta {
     private String routeInfo;
     private String skipEvent;
     private int applyMode;
-    private int rowFilterType;
-    private String rowFilterContext;
+    private String properties;
 
     public String getManagerIp() {
         return managerIp;
@@ -123,20 +122,12 @@ public class ApplierConfigDto extends ApplierMeta {
         this.applyMode = applyMode;
     }
 
-    public int getRowFilterType() {
-        return rowFilterType;
+    public String getProperties() {
+        return properties;
     }
 
-    public void setRowFilterType(int rowFilterType) {
-        this.rowFilterType = rowFilterType;
-    }
-
-    public String getRowFilterContext() {
-        return rowFilterContext;
-    }
-
-    public void setRowFilterContext(String rowFilterContext) {
-        this.rowFilterContext = rowFilterContext;
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 
     @JsonIgnore
@@ -165,8 +156,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 ", idc='" + idc + '\'' +
                 ", cluster='" + cluster + '\'' +
                 ", applyMode='" + applyMode + '\'' +
-                ", rowFilterType='" + rowFilterType + '\'' +
-                ", rowFilterContext='" + rowFilterContext + '\'' +
+                ", properties='" + properties + '\'' +
                 '}';
     }
 
@@ -189,12 +179,11 @@ public class ApplierConfigDto extends ApplierMeta {
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
                 applyMode == that.applyMode &&
-                rowFilterType == that.rowFilterType &&
-                rowFilterContext == that.rowFilterContext;
+                Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, rowFilterType, rowFilterContext);
+        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, properties);
     }
 }

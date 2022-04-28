@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.packet.AbstractCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
@@ -18,6 +18,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Set;
 
+import static com.ctrip.framework.drc.core.AllTests.ROW_FILTER_PROPERTIES;
+
 /**
  * Created by mingdongli
  * 2019/9/24 上午8:58.
@@ -26,9 +28,9 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
 
     private static final String APPLIER_NAME = "test_applier";
 
-    private static final String ROW_FILTER_CONTEXT = "ut_filter_context";
-
     private ApplierDumpCommandPacket packet;
+
+    private String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUid.getName());
 
     @Before
     public void setUp() {
@@ -39,8 +41,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
 
         packet.setApplyMode(ApplyMode.transaction_table.getType());
         packet.setConsumeType(ConsumeType.Slave.getCode());
-        packet.setRowFilterType(RowFilterType.Uid.getCode());
-        packet.setRowFilterContext(ROW_FILTER_CONTEXT);
+        packet.setProperties(properties);
     }
 
     @Test
@@ -52,8 +53,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
         Assert.assertEquals(packet.getGtidSet(), clone.getGtidSet());
         Assert.assertEquals(packet.getConsumeType(), ConsumeType.Slave.getCode());
         Assert.assertEquals(packet.getApplyMode(), ApplyMode.transaction_table.getType());
-        Assert.assertEquals(packet.getRowFilterType(), RowFilterType.Uid.getCode());
-        Assert.assertEquals(packet.getRowFilterContext(), ROW_FILTER_CONTEXT);
+        Assert.assertEquals(packet.getProperties(), properties);
     }
 
     @Test

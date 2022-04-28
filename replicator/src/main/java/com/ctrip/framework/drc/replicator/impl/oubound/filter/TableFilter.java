@@ -14,6 +14,7 @@ import java.util.Map;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 
 /**
+ * gtid、query、tablemap1、tablemap2、rows1、rows2、xid
  * @Author limingdong
  * @create 2022/4/22
  */

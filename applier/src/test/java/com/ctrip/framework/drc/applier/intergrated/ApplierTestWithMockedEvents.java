@@ -1,12 +1,11 @@
 package com.ctrip.framework.drc.applier.intergrated;
 
-import com.ctrip.framework.drc.core.server.common.enums.RowFilterType;
-import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
-import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
 import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
-import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
+import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
+import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.junit.Test;
@@ -82,7 +81,7 @@ public class ApplierTestWithMockedEvents implements ApplierColumnsRelatedTest {
 
     public class EmbeddedApplierServer extends LocalApplierServer {
         public EmbeddedApplierServer() throws Exception {
-            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), RowFilterType.None, null);
+            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), null);
             MockEventActivity mock = new MockEventActivity();
             mock.setSystem(this);
             activities.put("DumpEventActivity", mock);

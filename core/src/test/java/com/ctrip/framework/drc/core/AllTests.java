@@ -30,6 +30,8 @@ import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRuleTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactoryTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterConfigsTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -51,6 +53,8 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        DefaultRuleFactoryTest.class,
+        RowsFilterConfigsTest.class,
         AbstractRowsFilterRuleTest.class,
         //schema
         SchemeCloneTaskTest.class,
@@ -160,6 +164,32 @@ import org.junit.runners.Suite;
         ExecutedGtidQueryTaskTest.class
 })
 public class AllTests {
+
+    public static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"%s\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"one\"" +
+            "        ]," +
+            "        \"expression\": \"regre2\"" +
+            "      }" +
+            "    }" +
+            "  ]," +
+            "  \"talbePairs\": [" +
+            "    {" +
+            "      \"source\": \"sourceTableName1\"," +
+            "      \"target\": \"targetTableName1\"" +
+            "    }," +
+            "    {" +
+            "      \"source\": \"sourceTableName2\"," +
+            "      \"target\": \"targetTableName2\"" +
+            "    }" +
+            "  ]" +
+            "}";
 
     public static int ZK_PORT = 2182;
 

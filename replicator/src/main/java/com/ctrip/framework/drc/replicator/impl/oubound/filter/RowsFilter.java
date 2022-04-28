@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.impl.oubound.filter.row;
+package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
@@ -6,11 +6,9 @@ import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
-import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 
 import java.nio.channels.FileChannel;
 import java.util.List;
@@ -23,15 +21,13 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    private RuleFactory ruleFactory = new DefaultRuleFactory();
-
     private String registryKey;
 
-    private RowsFilterRule<List<List<Object>>> rowsFilterRule;
+    private DataMediaManager dataMediaManager;
 
-    public RowsFilter(RowsFilterContext filterContext) throws Exception {
-        this.registryKey = filterContext.getRegistryKey();
-        rowsFilterRule = ruleFactory.createRowsFilterRule(filterContext);
+    public RowsFilter(DataMediaConfig dataMediaConfig) {
+        this.registryKey = dataMediaConfig.getRegistryKey();
+        this.dataMediaManager = new DataMediaManager(dataMediaConfig);
     }
 
     @Override
@@ -61,7 +57,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
         int beforeSize = rowsEvent.getRows().size();
-        RowsFilterResult<List<List<Object>>> rowsFilterResult = rowsFilterRule.filterRows(rowsEvent, drcTableMap);
+        RowsFilterResult<List<List<Object>>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, drcTableMap);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {
@@ -70,9 +66,10 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             if (rows != null) {
                 afterSize = rows.size();
                 int filterNum = beforeSize - afterSize;
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", registryKey);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", registryKey, filterNum);
-                logger.info("[Filter] {} rows within {} for {}", filterNum, value.getGtid(), registryKey);
+                String table = drcTableMap.getSchemaNameDotTableName();
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", table);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", table, filterNum);
+                logger.info("[Filter] {} rows of table {} within transaction {} for {}", filterNum, table, value.getGtid(), registryKey);
             }
             // TODO build event with rows
             value.setRowsEvent(rowsEvent);
