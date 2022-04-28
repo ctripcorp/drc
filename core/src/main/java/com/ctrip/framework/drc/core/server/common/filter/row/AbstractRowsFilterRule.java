@@ -25,8 +25,11 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
-        this.expression = rowsFilterConfig.getExpression();
-        this.fields = rowsFilterConfig.getParameters().getColumns();
+        RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
+        if (parameters != null) {
+            this.expression = parameters.getExpression();
+            this.fields = parameters.getColumns();
+        }
     }
 
     @Override

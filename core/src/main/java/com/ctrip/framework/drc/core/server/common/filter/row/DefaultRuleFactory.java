@@ -17,15 +17,22 @@ public class DefaultRuleFactory implements RuleFactory {
         RowsFilterType rowFilterType = config.getRowsFilterType();
         Class<? extends RowsFilterRule> rowsFilterRule;
 
-        if (RowsFilterType.TripUid == rowFilterType) {
-            rowsFilterRule = UidRowsFilterRule.class;
-        } else if (RowsFilterType.AviatorRegex == rowFilterType) {
-            rowsFilterRule = AbstractRowsFilterRule.class;
-        } else if (RowsFilterType.Custom == rowFilterType) {
-            String clazz = System.getProperty(ROWS_FILTER_RULE);
-            rowsFilterRule = (Class<RowsFilterRule>) Class.forName(clazz);
-        } else {
-            rowsFilterRule = NoopRowsFilterRule.class;
+        switch (rowFilterType) {
+            case TripUid:
+                rowsFilterRule = UidRowsFilterRule.class;
+                break;
+            case AviatorRegex:
+                rowsFilterRule = AviatorRegexRowsFilterRule.class;
+                break;
+            case JavaRegex:
+                rowsFilterRule = JavaRegexRowsFilterRule.class;
+                break;
+            case Custom:
+                String clazz = System.getProperty(ROWS_FILTER_RULE);
+                rowsFilterRule = (Class<RowsFilterRule>) Class.forName(clazz);
+                break;
+            default:
+                rowsFilterRule = NoopRowsFilterRule.class;
         }
 
         Constructor constructor = rowsFilterRule.getConstructor(new Class[]{RowsFilterConfig.class});

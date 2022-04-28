@@ -1,7 +1,5 @@
-package com.ctrip.framework.drc.core.server.common.filter.row;
+package com.ctrip.framework.drc.core.meta;
 
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.xpipe.codec.JsonCodec;
 import org.junit.Assert;
 import org.junit.Before;
@@ -13,7 +11,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2022/4/27
  */
-public class RowsFilterConfigsTest {
+public class DataMediaConfigTest {
 
     public static final String MEDIA_CONFIG = "{\n" +
             "  \"rowsFilters\": [\n" +

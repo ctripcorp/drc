@@ -18,9 +18,7 @@ public class RowsFilterConfig {
 
     private String tables;
 
-    private Fields parameters;
-
-    private String expression;
+    private Parameters parameters;
 
     public String getMode() {
         return mode;
@@ -38,20 +36,12 @@ public class RowsFilterConfig {
         this.tables = tables;
     }
 
-    public Fields getParameters() {
+    public Parameters getParameters() {
         return parameters;
     }
 
-    public void setParameters(Fields parameters) {
+    public void setParameters(Parameters parameters) {
         this.parameters = parameters;
-    }
-
-    public String getExpression() {
-        return expression;
-    }
-
-    public void setExpression(String expression) {
-        this.expression = expression;
     }
 
     public boolean shouldFilterRows() {
@@ -73,16 +63,18 @@ public class RowsFilterConfig {
     @Override
     public String toString() {
         return "RowsFilterConfig{" +
-                "mode='" + mode + '\'' +
+                "registryKey='" + registryKey + '\'' +
+                ", mode='" + mode + '\'' +
                 ", tables='" + tables + '\'' +
                 ", parameters=" + parameters +
-                ", expression='" + expression + '\'' +
                 '}';
     }
 
-    public static class Fields {
+    public static class Parameters {
 
         private List<String> columns;
+
+        private String expression;
 
         public List<String> getColumns() {
             return columns;
@@ -92,10 +84,19 @@ public class RowsFilterConfig {
             this.columns = columns;
         }
 
+        public String getExpression() {
+            return expression;
+        }
+
+        public void setExpression(String expression) {
+            this.expression = expression;
+        }
+
         @Override
         public String toString() {
             return "Fields{" +
                     "columns=" + columns +
+                    ", expression='" + expression + '\'' +
                     '}';
         }
     }
