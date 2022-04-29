@@ -30,7 +30,7 @@ public class DdlParserTest {
         Assert.assertEquals("test_db", result.getSchemaName());
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "CREATE TABLE  `test_db`.`test_table` (\n  `ID` int(10) unsigned NOT NULL )";
+        queryString = "CREATE TABLE  `test_db`.`test_table` (  `ID` int(10) unsigned NOT NULL )";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_db", result.getSchemaName());
@@ -82,13 +82,13 @@ public class DdlParserTest {
         Assert.assertEquals("test", result.getSchemaName());
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "DROP TABLE IF EXISTS \n \"test\".`test_table`;";
+        queryString = "DROP TABLE IF EXISTS  \"test\".`test_table`;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test", result.getSchemaName());
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "DROP TABLE IF EXISTS \n test_db.test_table , test_db_test";
+        queryString = "DROP TABLE IF EXISTS  test_db.test_table , test_db_test";
         result = DdlParser.parse(queryString, "test").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_db", result.getSchemaName());
@@ -117,7 +117,7 @@ public class DdlParserTest {
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "alter table \n test_db.`test_table` drop index emp_name;";
+        queryString = "alter table  test_db.`test_table` drop index emp_name;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
@@ -146,12 +146,12 @@ public class DdlParserTest {
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "truncate \n  test_db.`test_table` ";
+        queryString = "truncate   test_db.`test_table` ";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
 
-        queryString = "truncate \n  test_db.test_table , test_db_test ";
+        queryString = "truncate   test_db.test_table , test_db_test ";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_table", result.getTableName());
@@ -178,7 +178,7 @@ public class DdlParserTest {
         Assert.assertEquals("test_table", result.getOriTableName());
         Assert.assertEquals("test_table2", result.getTableName());
 
-        queryString = "rename \n table \n `test_db`.`test_table` to `test_db2`.`test_table2`;";
+        queryString = "rename  table  `test_db`.`test_table` to `test_db2`.`test_table2`;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_db", result.getOriSchemaName());
@@ -186,7 +186,7 @@ public class DdlParserTest {
         Assert.assertEquals("test_table", result.getOriTableName());
         Assert.assertEquals("test_table2", result.getTableName());
 
-        queryString = "rename \n table \n `test_db`.`test_table` to `test_db2`.`test_table2` , `test_db1`.`test_table1` to `test_db3`.`test_table3`;";
+        queryString = "rename  table  `test_db`.`test_table` to `test_db2`.`test_table2` , `test_db1`.`test_table1` to `test_db3`.`test_table3`;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("test_db", result.getOriSchemaName());
@@ -218,7 +218,7 @@ public class DdlParserTest {
         Assert.assertEquals("test_table", result.getOriTableName());
         Assert.assertEquals("test_table2", result.getTableName());
 
-        queryString = "rename \n table \n `totl`.`test_table` to `totl2`.`test_table2`;";
+        queryString = "rename  table  `totl`.`test_table` to `totl2`.`test_table2`;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("totl", result.getOriSchemaName());
@@ -226,7 +226,7 @@ public class DdlParserTest {
         Assert.assertEquals("test_table", result.getOriTableName());
         Assert.assertEquals("test_table2", result.getTableName());
 
-        queryString = "rename \n table \n `totl`.`test_table` to `totl2`.`test_table2` , `totl1`.`test_table1` to `totl3`.`test_table3`;";
+        queryString = "rename  table  `totl`.`test_table` to `totl2`.`test_table2` , `totl1`.`test_table1` to `totl3`.`test_table3`;";
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("totl", result.getOriSchemaName());
@@ -288,5 +288,33 @@ public class DdlParserTest {
         result = DdlParser.parse(queryString, "test_db").get(0);
         Assert.assertNotNull(result);
         Assert.assertEquals("db1", result.getSchemaName());
+    }
+
+    /**
+     *  use drc4;
+     *  CREATE TABLE drc1.test_identity (
+     * `id` int(11) NOT NULL AUTO_INCREMENT,
+     * `one` varchar(30) DEFAULT 'one',
+     * `two` varchar(1000) DEFAULT 'two',
+     * `three` char(30) DEFAULT NULL,
+     * `four` char(255) DEFAULT NULL,
+     * `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',
+     * PRIMARY KEY (`id`)
+     * );
+     */
+    @Test
+    public void testWrongSchema() {
+        String queryString = "CREATE TABLE drc1.test_identity (" +
+                "`id` int(11) NOT NULL AUTO_INCREMENT," +
+                "`one` varchar(30) DEFAULT 'one'," +
+                "`two` varchar(1000) DEFAULT 'two'," +
+                "`three` char(30) DEFAULT NULL," +
+                "`four` char(255) DEFAULT NULL," +
+                "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time'," +
+                "PRIMARY KEY (`id`)" +
+                ");";
+        DdlResult result = DdlParser.parse(queryString, "drc4").get(0);
+        Assert.assertNotNull(result);
+        Assert.assertEquals("drc1", result.getSchemaName());
     }
 }
