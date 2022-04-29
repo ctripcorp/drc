@@ -167,4 +167,42 @@ public class DdlFilterTest extends MockTest {
         LogEventWithGroupFlag logEventWithGroupFlag = new LogEventWithGroupFlag(drcDdlLogEvent, null,false, false, false, "");
         Assert.assertFalse(ddlFilter.doFilter(logEventWithGroupFlag));
     }
+
+    /**
+     *  use drc4;
+     *  CREATE TABLE drc1.test_identity (
+     * `id` int(11) NOT NULL AUTO_INCREMENT,
+     * `one` varchar(30) DEFAULT 'one',
+     * `two` varchar(1000) DEFAULT 'two',
+     * `three` char(30) DEFAULT NULL,
+     * `four` char(255) DEFAULT NULL,
+     * `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time',
+     * PRIMARY KEY (`id`)
+     * );
+     */
+    @Test
+    public void testWrongNameLogEvent() {
+        String wrongDbName = "drc4";
+        String CREATE_TABLE = "CREATE TABLE drc1.test_identity (" +
+                "`id` int(11) NOT NULL AUTO_INCREMENT," +
+                "`one` varchar(30) DEFAULT 'one'," +
+                "`two` varchar(1000) DEFAULT 'two'," +
+                "`three` char(30) DEFAULT NULL," +
+                "`four` char(255) DEFAULT NULL," +
+                "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT 'time'," +
+                "PRIMARY KEY (`id`)" +
+                ");";
+
+        String dbName = "drc1";
+        String tableName = "test_identity";
+        TableInfo tableInfo = new TableInfo();
+        tableInfo.setDbName(dbName);
+        tableInfo.setTableName(tableName);
+        when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
+        when(queryLogEvent.getSchemaName()).thenReturn(wrongDbName);
+        when(schemaManager.find(dbName, tableName)).thenReturn(tableInfo);
+        Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
+        verify(schemaManager, times(1)).apply(dbName, CREATE_TABLE);
+        verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
+    }
 }
