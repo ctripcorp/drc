@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
+import com.google.common.collect.Lists;
+import org.springframework.http.*;
 import org.springframework.web.client.RestOperations;
 
 import java.util.ArrayList;
@@ -33,7 +35,11 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
-        restTemplate.postForObject(conflictLogUploadUrl, taskList, ApiResult.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
+        restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
     }
 
     @Override

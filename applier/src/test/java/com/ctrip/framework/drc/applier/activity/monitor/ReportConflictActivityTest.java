@@ -31,6 +31,7 @@ public class ReportConflictActivityTest {
         Assert.assertTrue(report);
         report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertFalse(report);
+        Thread.sleep(200);
         reportConflictActivity.stop();
         reportConflictActivity.dispose();
     }
