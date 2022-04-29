@@ -80,8 +80,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         }
 
         QueryType type = results.get(0).getType();
-        if (StringUtils.isBlank(schemaName) && StringUtils.isNotBlank(results.get(0).getSchemaName())) {
+        String parsedSchemaName = results.get(0).getSchemaName();
+        if (StringUtils.isBlank(schemaName) && StringUtils.isNotBlank(parsedSchemaName)) {
             schemaName = results.get(0).getSchemaName().toLowerCase();
+        } else if (StringUtils.isNotBlank(schemaName) && StringUtils.isNotBlank(parsedSchemaName) && !schemaName.equalsIgnoreCase(parsedSchemaName)) {
+            schemaName = parsedSchemaName;
         }
 
         String tableCharset = results.get(0).getTableCharset();
