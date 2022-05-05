@@ -196,6 +196,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
                     }
                     if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                        ((DelayMonitorLogEvent) logEvent).releaseOnce();
                         return;
                     }
                     delayMonitorLogEvent.setNeedReleased(false);
