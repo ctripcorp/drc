@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.monitor;
 
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
-import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
@@ -78,6 +76,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
     @Before
     public void setUp() {
         System.setProperty(SystemConfig.KEY_REPLICATOR_PATH, REPLICATOR_PATH);
+        System.setProperty("cat.client.enabled", "false");
         super.setUp();
         if (startLocalSchemaManager) {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
@@ -88,8 +87,6 @@ public class BidirectionalStarter extends AbstractTestStarter {
 
     @Test
     public void doTest() throws Exception {
-        DataMediaConfig dataMediaConfig = JsonCodec.INSTANCE.decode(ROW_FILTER_PROPERTIES, DataMediaConfig.class);
-
         //启动单向MySQL、初试化表、RA
         unidirectionalReplicateModule.startMySQLModule();
         unidirectionalReplicateModule.startRAModule();
