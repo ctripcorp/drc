@@ -139,17 +139,15 @@ public class DelayMonitorLogEvent extends AbstractRowsEvent {
         getPayloadBuf().retain();
     }
 
-    public void releaseOnce() {
-        // if can release, only release once
+    public void release(int decrement) {
         ByteBuf headerBuf = getLogEventHeader().getHeaderBuf();
-        if (null != headerBuf && headerBuf.refCnt() > 0) {
-            headerBuf.release();
+        if (null != headerBuf && headerBuf.refCnt() > decrement - 1) {
+            headerBuf.release(decrement);
         }
 
-        // if can release, only release once
         ByteBuf payloadBuf = getPayloadBuf();
-        if (null != payloadBuf && payloadBuf.refCnt() > 0) {
-            payloadBuf.release();
+        if (null != payloadBuf && payloadBuf.refCnt() > decrement - 1) {
+            payloadBuf.release(decrement);
         }
     }
 
