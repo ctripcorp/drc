@@ -453,14 +453,12 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public String getApplierFilter(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
-        if (null == applierGroupTbl) {
-            return NO_MATCH;
-        } else if (null == dalUtils.getApplierTblDao().queryAll().stream().
-                filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
+        List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        if (null == applierGroupTbl || applierTbls.isEmpty()) {
             return NO_MATCH;
         }
-        String includedDbs = getIncludedDbs(mha, remoteMha);
-        String nameFilter = getNameFilter(mha, remoteMha);
+        String includedDbs = applierGroupTbl.getIncludedDbs();
+        String nameFilter = applierGroupTbl.getNameFilter();
         String applierFilter = ALLMATCH;
         if (StringUtils.isNotBlank(nameFilter)) {
             applierFilter = nameFilter;
@@ -487,8 +485,8 @@ MetaInfoServiceImpl implements MetaInfoService {
             return applierFilter1;
         } else {
             HashSet<String> filters = Sets.newHashSet();
-            filters.addAll(List.of(getApplierFilter(mha,remoteMha).split(",")));
-            filters.addAll(List.of(getApplierFilter(remoteMha,mha).split(",")));
+            filters.addAll(List.of(applierFilter1.split(",")));
+            filters.addAll(List.of(applierFilter2.split(",")));
             return StringUtils.join(filters,",");
         }
     }
@@ -529,8 +527,8 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
-        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
-        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha,BooleanEnum.FALSE.getCode());
+        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryByMhaName(remoteMha,BooleanEnum.FALSE.getCode());
         return getApplierGroupTbl(mhaTbl,remoteMhaTbl);
     }
 
