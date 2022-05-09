@@ -61,29 +61,7 @@ public class MetaController {
     
     @Autowired
     private DataMediaService dataMediaService;
-
-
-//    @GetMapping("groups/all")
-//    public ApiResult getAllMhaGroups() {
-//        logger.info("[meta] get all mha groups info");
-//        try {
-//            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
-//        } catch (Exception e) {
-//            logger.error("[meta] get all mha groups info", e);
-//            return ApiResult.getFailInstance(null);
-//        }
-//    }
-
-//    @GetMapping("orderedGroups/all")
-//    public ApiResult getAllOrderedGroups() {
-//        logger.info("[meta] get all mha groups info");
-//        try {
-//            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedGroupPairs());
-//        } catch (Exception e) {
-//            logger.error("[meta] get all mha groups info", e);
-//            return ApiResult.getFailInstance(null);
-//        }
-//    }
+    
     
     @GetMapping("orderedGroups/all")
     public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "mhas", required = false) String mhas,

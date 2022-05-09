@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -248,7 +249,7 @@ public class MetaGenerator {
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
-        String rowsFilterConfig = JsonUtils.toJson(rowsFilterConfigs);
+        String rowsFilterConfig = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonUtils.toJson(rowsFilterConfigs);
         for(ApplierTbl applierTbl : curMhaAppliers) {
             ResourceTbl resourceTbl = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.debug("generate applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -262,7 +263,8 @@ public class MetaGenerator {
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
-                    .setApplyMode(applierGroupTbl.getApplyMode());
+                    .setApplyMode(applierGroupTbl.getApplyMode())
+                    .setProperties(rowsFilterConfig);
             dbCluster.addApplier(applier);
         }
     }
