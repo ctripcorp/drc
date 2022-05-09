@@ -316,3 +316,49 @@ PRIMARY KEY (`id`),
 KEY `mha_group_id` (`mha_group_id`),
 KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9127 DEFAULT CHARSET=utf8 COMMENT='单元化路由校验不一致表';
+
+CREATE TABLE `rows_filter_mapping_tbl`
+(
+    id                  bigint       NOT NULL AUTO_INCREMENT COMMENT 'pk',
+    data_media_id       bigint       NOT NULL default '-1' COMMENT 'data_media_index',
+    rows_filter_id      bigint       NOT NULL default '-1' COMMENT 'rows_filter_index',
+    deleted             tinyint      NOT NULL default '0' COMMENT '是否删除, 0:否; 1:是',
+    create_time         timestamp(3) NOT NULL default CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    datachange_lasttime timestamp(3) NOT NULL default CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    applier_group_id    bigint       NOT NULL default '-1' COMMENT 'applier_group_id_index',
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_mapping (applier_group_id,data_media_id,rows_filter_id),
+    KEY                 rows_filter_index (rows_filter_id),
+    KEY                 ix_DataChange_LastTime (datachange_lasttime),
+    KEY                 data_media_index (data_media_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='rows_filter 和 data_media 映射表';
+
+CREATE TABLE `rows_filter_tbl`
+(
+    id                  bigint                                                  NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    name                varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL default '' COMMENT '行过滤规则名',
+    mode                tinyint unsigned NOT NULL default '0' COMMENT '行过滤配置 模式 regex, trip_uid,customed',
+    parameters          text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'json 保存 columns,expresssion属性',
+    deleted             tinyint                                                 NOT NULL default '0' COMMENT '是否删除, 0:否; 1:是',
+    create_time         timestamp(3)                                            NOT NULL default CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    datachange_lasttime timestamp(3)                                            NOT NULL default CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY name_unique (name),
+    KEY                 ix_DataChange_LastTime (datachange_lasttime)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='行过滤配置表';
+
+CREATE TABLE `data_media_tbl`
+(
+    id                   bigint                                                        NOT NULL AUTO_INCREMENT COMMENT 'pk',
+    namespcae            varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL default '' COMMENT 'schema,topic等，逻辑概念',
+    name                 varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL default '' COMMENT '表名，逻辑概念',
+    type                 tinyint unsigned NOT NULL default '0' COMMENT '0 正则逻辑表，1 映射逻辑表',
+    data_media_source_id bigint                                                        NOT NULL default '-1' COMMENT 'mysql 使用mha_id,索引列',
+    deleted              tinyint                                                       NOT NULL default '0' COMMENT '是否删除, 0:否; 1:是',
+    create_time          timestamp(3)                                                  NOT NULL default CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    datachange_lasttime  timestamp(3)                                                  NOT NULL default CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY data_media_name_unique (namespcae, name),
+    KEY                  source_id_index (data_media_source_id),
+    KEY                  ix_DataChange_LastTime (datachange_lasttime)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='data_media 逻辑表';

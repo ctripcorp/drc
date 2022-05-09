@@ -26,7 +26,7 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 	public ApplierGroupTbl queryByMhaIdAndReplicatorGroupId(Long mhaId, Long replicatorGroupId,Integer deleted) throws SQLException {
 		if (null == mhaId || null == replicatorGroupId) {
 			throw new IllegalArgumentException("build sql: query ApplierGroupTbl ByMhaIdAndReplicatorGroupId, " +
-					"but one is empty mhaId:{},replicatorGroupId:{}");
+					"but one is empty mhaId,replicatorGroupId");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT,false)

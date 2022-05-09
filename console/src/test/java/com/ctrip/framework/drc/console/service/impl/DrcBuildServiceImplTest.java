@@ -2,11 +2,13 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RouteTbl;
 import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
@@ -46,6 +48,9 @@ public class DrcBuildServiceImplTest extends AbstractTest {
 
     @Mock
     private DataCenterService dataCenterService;
+    
+    @Mock
+    private RowsFilterService rowsFilterService;
 
     @InjectMocks
     private MetaGenerator metaService = new MetaGenerator();
@@ -69,6 +74,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.findAvailableApplierPort(any())).thenReturn(8888);
         Mockito.when(metaInfoService.getXmlConfiguration(anyLong())).thenReturn("xml");
         Mockito.when(consoleConfig.getPublicCloudDc()).thenReturn(Sets.newHashSet("shali"));
+        Mockito.when(rowsFilterService.generateRowsFiltersConfig(anyLong())).thenReturn(null);
     }
 
     @Test

@@ -81,6 +81,7 @@
     <attribute name="applyMode" value-type="int" />
     <attribute name="nameFilter" value-type="String" />
     <attribute name="nameMapping" value-type="String" />
+    <attribute name="properties" value-type="String" />
   </entity>
 </model>
 
