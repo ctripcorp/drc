@@ -460,8 +460,11 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public String getApplierFilter(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
+        if (null == applierGroupTbl) {
+            return NO_MATCH;
+        }
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
-        if (null == applierGroupTbl || applierTbls.isEmpty()) {
+        if (applierTbls.isEmpty()) {
             return NO_MATCH;
         }
         String includedDbs = applierGroupTbl.getIncludedDbs();
