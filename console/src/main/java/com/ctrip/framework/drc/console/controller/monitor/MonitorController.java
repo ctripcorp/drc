@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.controller.monitor;
 
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.service.monitor.ConsistencyMonitorService;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.request.MonitorSwitchRequest;

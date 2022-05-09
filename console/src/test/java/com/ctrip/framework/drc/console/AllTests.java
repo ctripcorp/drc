@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ClassUtils;
 
+import javax.xml.crypto.Data;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -113,7 +114,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
-
+        DataMediaServiceImplTest.class,
+        RowsFilterServiceImplTest.class,
         // controller
         AccessControllerTest.class,
         MhaControllerTest.class,
