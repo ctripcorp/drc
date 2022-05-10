@@ -14,10 +14,10 @@ public class TripUidService implements UidService {
 
     @Override
     public boolean filterUid(String uid, Set<String> locations) throws Exception {
-        UDL udl = AccountUidRoute.udlForDRC(uid);
         if (locations == null || locations.isEmpty()) {
             return false;
         }
+        UDL udl = AccountUidRoute.udlForDRC(uid);
         return locations.contains(udl.name().toUpperCase());
     }
 
