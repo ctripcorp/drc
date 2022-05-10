@@ -10,6 +10,7 @@ import java.util.List;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
+import com.google.common.collect.Lists;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -20,12 +21,12 @@ import org.springframework.util.CollectionUtils;
 @Repository
 public class RowsFilterTblDao extends AbstractDao<RowsFilterTbl>{
 
-    public RowsFilterTblDao(Class<RowsFilterTbl> clazz) throws SQLException {
+    public RowsFilterTblDao() throws SQLException {
         super(RowsFilterTbl.class);
     }
 
     public RowsFilterTbl queryById(Long rowsFilterIds, Integer deleted) throws SQLException {
-        List<RowsFilterTbl> rowsFilterTbls = queryByIds(List.of(rowsFilterIds), deleted);
+        List<RowsFilterTbl> rowsFilterTbls = queryByIds(Lists.newArrayList(rowsFilterIds), deleted);
         if (CollectionUtils.isEmpty(rowsFilterTbls) || rowsFilterTbls.size() != 1) {
             throw new SQLException("sql result error in queryRowsFilterTblById: " + rowsFilterTbls);
         }

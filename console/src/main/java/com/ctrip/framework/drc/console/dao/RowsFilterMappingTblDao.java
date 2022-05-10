@@ -20,7 +20,7 @@ import org.springframework.util.CollectionUtils;
 @Repository
 public class RowsFilterMappingTblDao extends AbstractDao<RowsFilterMappingTbl> {
 
-	public RowsFilterMappingTblDao(Class<RowsFilterMappingTbl> clazz) throws SQLException {
+	public RowsFilterMappingTblDao() throws SQLException {
 		super(RowsFilterMappingTbl.class);
 	}
 

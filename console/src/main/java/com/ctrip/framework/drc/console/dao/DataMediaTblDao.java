@@ -20,7 +20,7 @@ import org.springframework.util.CollectionUtils;
 @Repository
 public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 
-	public DataMediaTblDao(Class<DataMediaTbl> clazz) throws SQLException {
+	public DataMediaTblDao() throws SQLException {
 		super(DataMediaTbl.class);
 	}
 	

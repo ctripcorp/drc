@@ -48,7 +48,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException {
         ArrayList<RowsFilterConfig> configs = Lists.newArrayList();
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
-                rowsFilterMappingTblDao.queryByApplierGroupIds(List.of(applierGroupId), BooleanEnum.FALSE.getCode());
+                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
         Map<Long, List<RowsFilterMappingTbl>> mapGroupByRowsFilterId = 
                 rowsFilterMappingTbls.stream().collect(Collectors.groupingBy(RowsFilterMappingTbl::getRowsFilterId));
         for (Map.Entry<Long, List<RowsFilterMappingTbl>> entry :mapGroupByRowsFilterId.entrySet()) {
