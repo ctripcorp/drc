@@ -1,14 +1,11 @@
 package com.ctrip.framework.drc.console.dto;
 
-import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -39,7 +36,7 @@ public class RowsFilterDto {
         rowsFilterTbl.setMode(mode);
         RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
         parameters.setColumns(columns);
-        parameters.setExpression(expression);
+        parameters.setContext(expression);
         rowsFilterTbl.setParameters(JsonUtils.toJson(parameters));
         if (id != null) {
             rowsFilterTbl.setId(id);

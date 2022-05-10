@@ -48,7 +48,7 @@ public abstract class AbstractEventTest {
     @Before
     public void setUp() throws Exception {
         result.add(Lists.newArrayList("1", "2"));
-        dataMediaConfig = from("registryKey", String.format(ROW_FILTER_PROPERTIES, getRowsFilterType().getName()));
+        dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName()));
         ByteBuf tByteBuf = tableMapEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();
@@ -62,6 +62,10 @@ public abstract class AbstractEventTest {
     }
 
     protected abstract RowsFilterType getRowsFilterType();
+
+    protected String getProperties() {
+        return ROW_FILTER_PROPERTIES;
+    }
 
     /*
     *  SELECT COLUMN_NAME,IS_NULLABLE,DATA_TYPE,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,COLUMN_TYPE,COLUMN_KEY,EXTRA,COLUMN_DEFAULT FROM information_schema.columns WHERE TABLE_NAME IN  ('insert1') and TABLE_SCHEMA in ("drc1") ORDER BY table_schema;

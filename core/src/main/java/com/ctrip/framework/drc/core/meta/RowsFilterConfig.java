@@ -74,7 +74,7 @@ public class RowsFilterConfig {
 
         private List<String> columns;
 
-        private String expression;
+        private String context;
 
         public List<String> getColumns() {
             return columns;
@@ -84,19 +84,19 @@ public class RowsFilterConfig {
             this.columns = columns;
         }
 
-        public String getExpression() {
-            return expression;
+        public String getContext() {
+            return context;
         }
 
-        public void setExpression(String expression) {
-            this.expression = expression;
+        public void setContext(String context) {
+            this.context = context;
         }
 
         @Override
         public String toString() {
             return "Fields{" +
                     "columns=" + columns +
-                    ", expression='" + expression + '\'' +
+                    ", context='" + context + '\'' +
                     '}';
         }
     }

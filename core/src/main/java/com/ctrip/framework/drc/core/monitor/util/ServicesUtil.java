@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.config.ConfigSource;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 
 /**
  * @Author limingdong
@@ -25,5 +26,9 @@ public class ServicesUtil extends com.ctrip.xpipe.utils.ServicesUtil {
 
     public static ConfigSource getConfigSourceService(){
         return load(ConfigSource.class);
+    }
+
+    public static UidService getUidService(){
+        return load(UidService.class);
     }
 }

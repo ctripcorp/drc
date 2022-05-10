@@ -2,8 +2,8 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -16,11 +16,11 @@ public class JavaRegexRowsFilterRule extends AbstractRowsFilterRule implements R
 
     public JavaRegexRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
-        pattern = Pattern.compile(expression);
+        pattern = Pattern.compile(context);
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) throws Exception {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) throws Exception {
         // TODO
         return null;
     }

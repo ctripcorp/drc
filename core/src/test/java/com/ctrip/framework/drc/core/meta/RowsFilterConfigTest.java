@@ -22,7 +22,7 @@ public class RowsFilterConfigTest {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
-            "        \"expression\": \"regre2\"" +
+            "        \"context\": \"regre2\"" +
             "      }" +
             "    }";
 
@@ -39,7 +39,7 @@ public class RowsFilterConfigTest {
         Assert.assertEquals(2, columns.size());
         RowsFilterType type = rowsFilterConfig.getRowsFilterType();
         Assert.assertEquals(RowsFilterType.JavaRegex, type);
-        String expression = rowsFilterConfig.getParameters().getExpression();
+        String expression = rowsFilterConfig.getParameters().getContext();
         Assert.assertEquals("regre2", expression);
         String tables = rowsFilterConfig.getTables();
         Assert.assertEquals("drc1.insert1", tables);

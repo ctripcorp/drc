@@ -5,8 +5,8 @@ import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterR
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @Author limingdong
@@ -19,7 +19,7 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) {
         Assert.assertEquals(3, values.size());
         Assert.assertEquals(2, indices.size());  // id、one
         Assert.assertEquals(0, indices.get("id").intValue());  // id in index 0
