@@ -44,6 +44,9 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
         List<List<Object>> filteredRow = doFilterRows(values, indices);
 
+        if (filteredRow != null && values.size() == filteredRow.size()) {
+            return new RowsFilterResult(true);
+        }
         return new RowsFilterResult(false, filteredRow);
     }
 

@@ -30,7 +30,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
 
     private ApplierDumpCommandPacket packet;
 
-    private String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUid.getName());
+    private String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUid.getName(), "CN");
 
     @Before
     public void setUp() {

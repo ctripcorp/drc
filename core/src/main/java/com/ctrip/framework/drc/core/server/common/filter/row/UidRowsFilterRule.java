@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 import com.google.common.collect.Lists;
@@ -39,9 +40,12 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
         int index = indices.values().iterator().next(); // only one field
         for (List<Object> row : values) {
             Object uid = row.get(index);
-            if (uidService.filterUid(String.valueOf(uid), dstLocation)) {
-                result.add(row);
-            }
+            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> {
+                if (uidService.filterUid(String.valueOf(uid), dstLocation)) {
+                    result.add(row);
+                }
+            });
+
         }
         return result;
     }

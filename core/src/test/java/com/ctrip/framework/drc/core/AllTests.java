@@ -181,7 +181,7 @@ public class AllTests {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
-            "        \"context\": \"SG,FR\"" +
+            "        \"context\": \"%s\"" +
             "      }" +
             "    }" +
             "  ]," +
