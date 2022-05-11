@@ -81,11 +81,18 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONSOLE_GRAY_MHA_SWITCH = "console.gray.mha.switch";
     private static String DEFAULT_CONSOLE_GRAY_MHA_SWITCH = "on";
 
+    private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
+    private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
+
     public DefaultConsoleConfig(Config config) {
         super(config);
     }
 
     public DefaultConsoleConfig() {
+    }
+    
+    public int getConflictMhaRecordSearchTime() {
+        return getIntProperty(CONFLICT_RECORD_SEARCH_TIME,DEFAULT_CONFLICT_RECORD_SEARCH_TIME);
     }
 
     public long getDelayExceptionTime() {

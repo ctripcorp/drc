@@ -113,4 +113,10 @@ public class DefaultConsoleConfigTest {
         Assert.assertNotNull(localConfigMhasMap);
         Assert.assertEquals(0,localConfigMhasMap.size());
     }
+    
+    @Test
+    public void testGetConflictMhaRecordSearchTime() {
+        int conflictMhaRecordSearchTime = config.getConflictMhaRecordSearchTime();
+        Assert.assertEquals(120,conflictMhaRecordSearchTime);
+    }
 }
