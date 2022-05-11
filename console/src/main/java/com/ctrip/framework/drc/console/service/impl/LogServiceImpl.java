@@ -230,7 +230,7 @@ public class LogServiceImpl implements LogService {
             srcTableItems.add(srcTableItem);
 
             Map<String, Object> destTableItem = new HashMap<>();
-            Map destMap = selectRecord(srcMhaName, destMhaName, sql);
+            Map destMap = selectRecord(destMhaName, srcMhaName, sql);
             if (destMap == null) {
                 continue;
             }
