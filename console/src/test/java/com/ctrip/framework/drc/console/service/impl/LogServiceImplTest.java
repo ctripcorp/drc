@@ -46,6 +46,9 @@ public class LogServiceImplTest {
 
     @Mock
     private MachineTblDao machineTblDao;
+    
+    @Mock
+    private MetaInfoServiceImpl metaInfoService;
 
     @InjectMocks
     private LogServiceImpl logServiceImpl;
@@ -140,7 +143,7 @@ public class LogServiceImplTest {
         srcMap.put("column", "column");
         srcMap.put("record", "record");
         LogServiceImpl serviceImpl = Mockito.spy(logServiceImpl);
-        Mockito.doReturn(srcMap).when(serviceImpl).selectRecord(Mockito.anyString(), Mockito.anyString());
+        Mockito.doReturn(srcMap).when(serviceImpl).selectRecord(Mockito.anyString(), Mockito.anyString(),Mockito.anyString());
         Mockito.doReturn(true).when(serviceImpl).markTableDataDiff(Mockito.anyMap(), Mockito.anyMap());
         Mockito.doReturn("dcName").when(serviceImpl).getDcNameByMhaName(Mockito.anyString());
         Mockito.when(conflictLogDao.queryByPk(Mockito.anyLong())).thenReturn(conflictLog);
@@ -187,7 +190,8 @@ public class LogServiceImplTest {
         machineTblList.add(machineTbl);
         Mockito.when(machineTblDao.queryBy(Mockito.any(MachineTbl.class))).thenReturn(machineTblList);
 
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = logServiceImpl.initSqlOperator("testMhaName");
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = 
+                logServiceImpl.initSqlOperator("testMhaName","testMhaName");
         Assert.assertNotNull(writeSqlOperatorWrapper);
     }
 

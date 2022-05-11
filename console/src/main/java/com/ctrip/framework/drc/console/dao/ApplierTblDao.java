@@ -25,8 +25,8 @@ public class ApplierTblDao extends AbstractDao<ApplierTbl> {
 			throw new IllegalArgumentException("build sql: query ApplierTbl ByApplierGroupIds, but applierGroupIds is empty.");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
-		builder.selectAll().equal("deleted", deleted, Types.TINYINT, false).
-				and().in("applier_group_id", applierGroupIds, Types.BIGINT,false);
+		builder.selectAll().in("applier_group_id", applierGroupIds, Types.BIGINT, false)
+				.and().equal("deleted", deleted, Types.TINYINT, false);
 		return client.query(builder,new DalHints());
 	}
 }

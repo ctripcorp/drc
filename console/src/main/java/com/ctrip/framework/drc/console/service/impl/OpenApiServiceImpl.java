@@ -36,7 +36,6 @@ public class OpenApiServiceImpl implements OpenApiService {
     
     @Override
     public List<MhaGroupFilterVo> getAllDrcMhaDbFilters() throws SQLException {
-        
         ArrayList<MhaGroupFilterVo> allDrcMhaDbFilters = Lists.newArrayList();
         List<MhaGroupTbl> mhaGroupTbls = metaGenerator.getMhaGroupTbls().stream().filter(p -> p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode())).collect(Collectors.toList());
         List<GroupMappingTbl> groupMappingTbls = metaGenerator.getGroupMappingTbls();

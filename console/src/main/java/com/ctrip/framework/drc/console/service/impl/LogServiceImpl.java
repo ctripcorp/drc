@@ -68,6 +68,9 @@ public class LogServiceImpl implements LogService {
 
     @Autowired
     private MachineTblDao machineTblDao;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
 
     @Override
     public void uploadConflictLog(List<ConflictTransactionLog> conflictTransactionLogList) {
@@ -207,7 +210,7 @@ public class LogServiceImpl implements LogService {
         List<Map> destTableItems = new ArrayList<>();
         for (String sql : conflictLogs) {
             Map<String, Object> srcTableItem = new HashMap<>();
-            Map srcMap = selectRecord(srcMhaName, sql);
+            Map srcMap = selectRecord(srcMhaName, destMhaName, sql);
             if (srcMap == null) {
                 continue;
             }
@@ -216,7 +219,7 @@ public class LogServiceImpl implements LogService {
             srcTableItems.add(srcTableItem);
 
             Map<String, Object> destTableItem = new HashMap<>();
-            Map destMap = selectRecord(destMhaName, sql);
+            Map destMap = selectRecord(srcMhaName, destMhaName, sql);
             if (destMap == null) {
                 continue;
             }
@@ -303,19 +306,9 @@ public class LogServiceImpl implements LogService {
             return null;
         }
     }
+    
 
-    public Map<String, Object> getTableItems(String mhaName, String sql) {
-        Map<String, Object> tableItem = new HashMap<>();
-        Map srcMap = selectRecord(mhaName, sql);
-        if (srcMap == null) {
-            return null;
-        }
-        tableItem.put("column", srcMap.get("column"));
-        tableItem.put("record", srcMap.get("record"));
-        return tableItem;
-    }
-
-    public Map selectRecord(String mhaName, String rawSql) {
+    public Map selectRecord(String mhaName0, String mhaName1,String rawSql) {
         try {
             Map<String, String> parseResult = parseSql(rawSql);
             String manipulation = parseResult.get("manipulation");
@@ -323,7 +316,7 @@ public class LogServiceImpl implements LogService {
                 logger.info("select Record could get condition from insert and delete");
                 return null;
             }
-            WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName);
+            WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName0,mhaName1);
             String sql = String.format(SELECT_SQL, parseResult.get("tableName"), parseResult.get("equalConditionStr"));
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             ReadResource readResource = writeSqlOperatorWrapper.select(execution);
@@ -337,11 +330,12 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public void updateRecord(Map<String, String> updateInfo) throws Exception {
-        String mhaName = updateInfo.get("mhaName");
+        String mhaName0 = updateInfo.get("mhaName0");
+        String mhaName1 = updateInfo.get("mhaName1");
         String sql = updateInfo.get("sql");
 
         Map<String, String> parseResult = parseSql(sql);
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName);
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName0,mhaName1);
         String manipulation = parseResult.get("manipulation");
         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
         if ("update".equalsIgnoreCase(manipulation)) {
@@ -379,14 +373,15 @@ public class LogServiceImpl implements LogService {
         return dc.getDcName();
     }
 
-    public WriteSqlOperatorWrapper initSqlOperator(String mhaName) throws Exception {
+    public WriteSqlOperatorWrapper initSqlOperator(String mhaName,String anOtherMhaName) throws Exception {
         MhaTbl mhaSample = new MhaTbl();
         mhaSample.setMhaName(mhaName);
         List<MhaTbl> mhaList = mhaTblDao.queryBy(mhaSample);
         if (null == mhaList || mhaList.size() == 0) throw new SQLException("mhaTbl not exist mhaName is " + mhaName);
         MhaTbl mha = mhaList.get(0);
         long mhaId = mha.getId();
-        long mhaGroupId = mha.getMhaGroupId();
+        long mhaGroupId = mha.getMhaGroupId() != null ?
+                mha.getMhaGroupId() : metaInfoService.getMhaGroupId(mhaName,anOtherMhaName,BooleanEnum.FALSE);
 
         MhaGroupTbl mhaGroupSample = new MhaGroupTbl();
         mhaGroupSample.setId(mhaGroupId);
