@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.ConflictTransactionLog;
@@ -71,6 +72,9 @@ public class LogServiceImpl implements LogService {
     
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+    
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @Override
     public void uploadConflictLog(List<ConflictTransactionLog> conflictTransactionLogList) {
@@ -121,8 +125,8 @@ public class LogServiceImpl implements LogService {
                         submit(new RecordReader(latch, task, srcMhaName, destMhaName));
                 futures.add(recordFuture);
             }
-
-            boolean await = latch.await(30, TimeUnit.SECONDS);
+            
+            boolean await = latch.await(defaultConsoleConfig.getConflictMhaRecordSearchTime(), TimeUnit.SECONDS);
             if (!await) {
                 logger.warn("[[tag=conflictLog]] latch await timeout,something fail in readRecord");
             }
