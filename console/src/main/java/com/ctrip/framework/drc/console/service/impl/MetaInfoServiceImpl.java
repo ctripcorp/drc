@@ -136,14 +136,8 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         Long srcMhaId = mhaTbls.get(0).getId();
         Long dstMhaId = mhaTbls1.get(0).getId();
-        Set<Long> srcMhaGroupIds = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(p -> isDeleted.getCode().equals(p.getDeleted()) && p.getMhaId().equals(srcMhaId)).map(GroupMappingTbl::getMhaGroupId).collect(Collectors.toSet());
-        Set<Long> dstMhaGroupIds = dalUtils.getGroupMappingTblDao().queryAll().stream().filter(p -> isDeleted.getCode().equals(p.getDeleted()) && p.getMhaId().equals(dstMhaId)).map(GroupMappingTbl::getMhaGroupId).collect(Collectors.toSet());
-        srcMhaGroupIds.retainAll(dstMhaGroupIds);
-        if (srcMhaGroupIds.size() == 1) {
-            return srcMhaGroupIds.iterator().next();
-        }
-        logger.warn("group for {}-{} find not one but {}",srcMha,dstMha,srcMhaGroupIds.size());
-        return null;
+        return dalUtils.getGroupMappingTblDao().
+                queryMhaGroupIdByTwoMhaIds(srcMhaId, dstMhaId, isDeleted.getCode());
     }
 
     public MhaGroupTbl getMhaGroup(String srcMha, String dstMha) throws SQLException {
@@ -463,7 +457,8 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (null == applierGroupTbl) {
             return NO_MATCH;
         }
-        List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().
+                queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
         if (applierTbls.isEmpty()) {
             return NO_MATCH;
         }
