@@ -5,8 +5,11 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.monitor.Task;
@@ -16,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -34,6 +38,9 @@ public class MetaGenerator {
 
     @Autowired
     private DataCenterService dataCenterService;
+    
+    @Autowired
+    private RowsFilterService rowsFilterService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -228,19 +235,21 @@ public class MetaGenerator {
         }
     }
 
-    private void generateAppliers(DbCluster dbCluster, MhaTbl mhaTbl) {
+    private void generateAppliers(DbCluster dbCluster, MhaTbl mhaTbl) throws SQLException {
         List<ApplierGroupTbl> applierGroupTblList = applierGroupTbls.stream().filter(predicate -> predicate.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
         for (ApplierGroupTbl applierGroupTbl : applierGroupTblList) {
             generateApplierInstances(dbCluster, mhaTbl, applierGroupTbl);
         }
     }
 
-    private void generateApplierInstances(DbCluster dbCluster, MhaTbl mhaTbl, ApplierGroupTbl applierGroupTbl) {
+    private void generateApplierInstances(DbCluster dbCluster, MhaTbl mhaTbl, ApplierGroupTbl applierGroupTbl) throws SQLException {
         // simple implementation, duo repl only
         ReplicatorGroupTbl targetReplicatorGroupTbl = replicatorGroupTbls.stream().filter(predicate -> predicate.getId().equals(applierGroupTbl.getReplicatorGroupId())).findFirst().get();
         MhaTbl targetMhaTbl = mhaTbls.stream().filter(predicate -> predicate.getId().equals(targetReplicatorGroupTbl.getMhaId())).findFirst().get();
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
+        String rowsFilterConfig = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonUtils.toJson(rowsFilterConfigs);
         for(ApplierTbl applierTbl : curMhaAppliers) {
             ResourceTbl resourceTbl = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.debug("generate applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -254,12 +263,13 @@ public class MetaGenerator {
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
-                    .setApplyMode(applierGroupTbl.getApplyMode());
+                    .setApplyMode(applierGroupTbl.getApplyMode())
+                    .setProperties(rowsFilterConfig);
             dbCluster.addApplier(applier);
         }
     }
 
-    private void generateDbClusters(Dc dc, Long dcId) {
+    private void generateDbClusters(Dc dc, Long dcId) throws SQLException {
         List<MhaTbl> localMhaTbls = mhaTbls.stream().filter(mhaTbl -> (mhaTbl.getDcId().equals(dcId))).collect(Collectors.toList());
         for(MhaTbl mhaTbl : localMhaTbls) {
             Set<Long> mhaGroupIds = groupMappingTbls.stream().filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && p.getMhaId().equals(mhaTbl.getId())).map(GroupMappingTbl::getMhaGroupId).collect(Collectors.toSet());

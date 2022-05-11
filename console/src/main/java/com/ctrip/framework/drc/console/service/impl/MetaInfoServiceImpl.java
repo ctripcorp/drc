@@ -10,7 +10,9 @@ import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
@@ -18,6 +20,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
@@ -32,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -65,6 +69,9 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+    
+    @Autowired
+    private RowsFilterService rowsFilterService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -455,12 +462,13 @@ MetaInfoServiceImpl implements MetaInfoService {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
         if (null == applierGroupTbl) {
             return NO_MATCH;
-        } else if (null == dalUtils.getApplierTblDao().queryAll().stream().
-                filter(p -> p.getApplierGroupId().equals(applierGroupTbl.getId())).findFirst().orElse(null)) {
+        }
+        List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        if (applierTbls.isEmpty()) {
             return NO_MATCH;
         }
-        String includedDbs = getIncludedDbs(mha, remoteMha);
-        String nameFilter = getNameFilter(mha, remoteMha);
+        String includedDbs = applierGroupTbl.getIncludedDbs();
+        String nameFilter = applierGroupTbl.getNameFilter();
         String applierFilter = ALLMATCH;
         if (StringUtils.isNotBlank(nameFilter)) {
             applierFilter = nameFilter;
@@ -487,8 +495,8 @@ MetaInfoServiceImpl implements MetaInfoService {
             return applierFilter1;
         } else {
             HashSet<String> filters = Sets.newHashSet();
-            filters.addAll(List.of(getApplierFilter(mha,remoteMha).split(",")));
-            filters.addAll(List.of(getApplierFilter(remoteMha,mha).split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter1.split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter2.split(",")));
             return StringUtils.join(filters,",");
         }
     }
@@ -529,8 +537,8 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
-        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (mha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
-        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryAll().stream().filter(p -> (remoteMha.equalsIgnoreCase(p.getMhaName()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode()))).findFirst().orElse(null);
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha,BooleanEnum.FALSE.getCode());
+        MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryByMhaName(remoteMha,BooleanEnum.FALSE.getCode());
         return getApplierGroupTbl(mhaTbl,remoteMhaTbl);
     }
 
@@ -678,6 +686,8 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
+        String rowsFilterConfig = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonUtils.toJson(rowsFilterConfigs);
         for(ApplierTbl applierTbl : applierTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.info("generate view applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -692,7 +702,8 @@ MetaInfoServiceImpl implements MetaInfoService {
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
-                    .setApplyMode(applierGroupTbl.getApplyMode());
+                    .setApplyMode(applierGroupTbl.getApplyMode())
+                    .setProperties(rowsFilterConfig);
             dbCluster.addApplier(applier);
         }
     }

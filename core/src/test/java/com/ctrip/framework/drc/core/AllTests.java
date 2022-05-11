@@ -33,6 +33,7 @@ import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRuleTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactoryTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.UidRowsFilterRuleTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -55,6 +56,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        UidRowsFilterRuleTest.class,
         DefaultRuleFactoryTest.class,
         DataMediaManagerTest.class,
         RowsFilterConfigTest.class,
@@ -179,7 +181,7 @@ public class AllTests {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
-            "        \"expression\": \"regre2\"" +
+            "        \"context\": \"%s\"" +
             "      }" +
             "    }" +
             "  ]," +

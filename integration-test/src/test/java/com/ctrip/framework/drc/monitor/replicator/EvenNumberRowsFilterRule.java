@@ -1,12 +1,12 @@
 package com.ctrip.framework.drc.monitor.replicator;
 
-import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import com.google.common.collect.Lists;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -22,7 +22,7 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) {
+    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) {
         List<List<Object>> res = Lists.newArrayList();
         for (int i = 0; i < values.size(); ++i) {
                 int idValue = (int) values.get(i).get(indices.get(ID));  // indices.size == 1

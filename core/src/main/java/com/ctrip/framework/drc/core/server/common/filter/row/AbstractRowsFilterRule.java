@@ -6,8 +6,8 @@ import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.google.common.collect.Maps;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
 
@@ -21,13 +21,13 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     protected List<String> fields;
 
-    protected String expression;
+    protected String context;
 
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
         RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
         if (parameters != null) {
-            this.expression = parameters.getExpression();
+            this.context = parameters.getContext();
             this.fields = parameters.getColumns();
         }
     }
@@ -37,13 +37,16 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
         List<List<Object>> values = getValues(rowsEvent);
 
-        Map<String, Integer> indices = getIndices(columns, fields);
+        LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
         if (indices == null) {
             return new RowsFilterResult(true);
         }
 
         List<List<Object>> filteredRow = doFilterRows(values, indices);
 
+        if (filteredRow != null && values.size() == filteredRow.size()) {
+            return new RowsFilterResult(true);
+        }
         return new RowsFilterResult(false, filteredRow);
     }
 
@@ -58,9 +61,9 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return values;
     }
 
-    protected Map<String, Integer> getIndices(Columns columns, List<String> fields) {
+    protected LinkedHashMap<String, Integer> getIndices(Columns columns, List<String> fields) {
         final int fieldSize = fields.size();
-        Map<String, Integer> integerMap = Maps.newHashMap();
+        LinkedHashMap<String, Integer> integerMap = Maps.newLinkedHashMap();
 
         int found = 0;
         for (int i = 0; i < fieldSize; ++i) {
@@ -77,5 +80,12 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
         return found == fieldSize ? integerMap : null;
     }
 
-    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, Map<String, Integer> indices) throws Exception;
+    /**
+     *
+     * @param values column values in binlog
+     * @param indices column name to its index in values
+     * @return
+     * @throws Exception
+     */
+    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) throws Exception;
 }

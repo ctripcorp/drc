@@ -53,7 +53,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
-            "        \"expression\": \"regre2\"" +
+            "        \"context\": \"regre2\"" +
             "      }" +
             "    }" +
             "  ]," +
