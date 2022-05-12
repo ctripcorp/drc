@@ -189,13 +189,13 @@ public abstract class AbstractLogEvent implements LogEvent {
         for (int bit = 0; bit < length; bit += 8) {
             short flag = 0;
             if (bitSet.get(bit))     flag |= 0x01;
-            if (bitSet.get(bit + 1)) flag |= 0x01;
-            if (bitSet.get(bit + 2)) flag |= 0x01;
-            if (bitSet.get(bit + 3)) flag |= 0x01;
-            if (bitSet.get(bit + 4)) flag |= 0x01;
-            if (bitSet.get(bit + 5)) flag |= 0x01;
-            if (bitSet.get(bit + 6)) flag |= 0x01;
-            if (bitSet.get(bit + 7)) flag |= 0x01;
+            if (bitSet.get(bit + 1)) flag |= 0x02;
+            if (bitSet.get(bit + 2)) flag |= 0x04;
+            if (bitSet.get(bit + 3)) flag |= 0x08;
+            if (bitSet.get(bit + 4)) flag |= 0x10;
+            if (bitSet.get(bit + 5)) flag |= 0x20;
+            if (bitSet.get(bit + 6)) flag |= 0x40;
+            if (bitSet.get(bit + 7)) flag |= 0x80;
             ByteHelper.writeUnsignedByte(flag, out);
         }
     }

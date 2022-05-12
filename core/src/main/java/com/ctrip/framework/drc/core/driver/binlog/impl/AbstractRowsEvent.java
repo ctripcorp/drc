@@ -11,7 +11,9 @@ import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayOutputStream;
@@ -64,25 +66,24 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     public AbstractRowsEvent() {
     }
 
-    public AbstractRowsEvent(long serverId, final long currentEventStartPosition, RowsEventPostHeader rowsEventPostHeader,
-                             long numberOfColumns, BitSet beforePresentBitMap, BitSet afterPresentBitMap, List<Row> rows,
-                             List<TableMapLogEvent.Column> columns, Long checksum, LogEventType logEventType, int flags) throws IOException {
-        this.rowsEventPostHeader = rowsEventPostHeader;
-        this.numberOfColumns = numberOfColumns;
-        this.beforePresentBitMap = beforePresentBitMap;
-        this.afterPresentBitMap = afterPresentBitMap;
-        this.rows = rows;
-        this.checksum = checksum;
+    public AbstractRowsEvent(AbstractRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+        LogEventHeader logEventHeader = rowsEvent.getLogEventHeader();
+        this.rowsEventPostHeader = rowsEvent.getRowsEventPostHeader();
+        this.numberOfColumns = rowsEvent.getNumberOfColumns();
+        this.beforePresentBitMap = rowsEvent.getBeforePresentBitMap();
+        this.afterPresentBitMap = rowsEvent.getAfterPresentBitMap();
+        this.rows = rowsEvent.getRows();
+        this.checksum = rowsEvent.getChecksum();
 
-        final byte[] payloadBytes = payloadToBytes(columns, logEventType);
+        final byte[] payloadBytes = payloadToBytes(columns, logEventHeader.getEventType());
         final int payloadLength = payloadBytes.length;
 
         // set logEventHeader
         int eventSize = eventHeaderLengthVersionGt1 + payloadLength;
         setLogEventHeader(
                 new LogEventHeader(
-                        logEventType.getType(), serverId, eventSize,
-                        currentEventStartPosition + eventSize, flags
+                        logEventHeader.getEventType(), logEventHeader.getServerId(), eventSize,
+                        logEventHeader.getNextEventStartPosition() + eventSize, logEventHeader.getFlags()
                 )
         );
 
@@ -104,7 +105,16 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return this;
     }
 
-    public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, LogEventType logEventType) throws IOException {
+    // for local debug
+    public String printByte(ByteArrayOutputStream out) {
+        byte[] bytes = out.toByteArray();
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        String str = ByteBufUtil.hexDump(buf);
+        System.out.println("bytes string: " + str);
+        return str;
+    }
+
+    public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, int eventType) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         // do write row event payload post-header
         rowsEventPostHeader.payloadToBytes(out);
@@ -113,7 +123,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         ByteHelper.writeLengthEncodeInt(numberOfColumns, out);
         writeBitSet(beforePresentBitMap, numberOfColumns, out);
 
-        if (update_rows_event_v2 == logEventType) {
+        if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
             writeBitSet(afterPresentBitMap, numberOfColumns, out);
         }
 
@@ -122,7 +132,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             writeValues(row.beforeValues, out, beforePresentBitMap, row.beforeNullBitMap, numberOfColumns, columns);
         }
 
-        ByteHelper.writeUnsignedIntLittleEndian(checksum, out);
+        ByteHelper.writeUnsignedIntLittleEndian(checksum, out);  // 4bytes
         return out.toByteArray();
     }
 
@@ -442,32 +452,33 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             }
 
             case mysql_type_timestamp2: {
+                final int meta = column.getMeta();
                 Timestamp timestamp = Timestamp.valueOf(String.valueOf(value));
-                long time = timestamp.getTime();
-                ByteHelper.writeUnsignedIntBigEndian(time, out);
+                long time = timestamp.getTime() / 1000;
+                ByteHelper.writeUnsignedIntBigEndian(time, out); // unsigned big-endian
                 int microsecond = 0;
                 String[] strings = StringUtils.split((String) value, '.');
                 if (strings.length > 1) {
-                    microsecond = Integer.parseInt(strings[1]);
+                    microsecond = stringToMicroseconds(strings[1], meta);
                 }
 
-                final int meta = column.getMeta();
                 switch (meta) {
                     case 1:
                     case 2:
-                        ByteHelper.writeUnsignedByte(microsecond / 10000, out);
+                        ByteHelper.writeByte(microsecond / 10000, out); // signed big-endian
                         break;
                     case 3:
                     case 4:
-                        ByteHelper.writeUnsignedShortBigEndian(microsecond / 100, out);
+                        ByteHelper.writeShortBigEndian(microsecond / 100, out); // signed big-endian
                         break;
                     case 5:
                     case 6:
-                        ByteHelper.writeUnsignedMediumBigEndian(microsecond, out);
+                        ByteHelper.writeMediumBigEndian(microsecond, out); // signed big-endian
                         break;
                     default:
                         break;
                 }
+                return;
             }
 
             case mysql_type_datetime2: {
@@ -479,15 +490,15 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if ("1000-01-01 00:00:00".equalsIgnoreCase(value.toString())) {
                     intPart = 0;
                 } else {
-                    String[] dateAndTime = value.toString().split(" ");
+                    String[] dateAndTime = StringUtils.split(value.toString(), ' ');
 
-                    String[] date = dateAndTime[0].split("-");
+                    String[] date = StringUtils.split(dateAndTime[0], '-');
                     long ym = Integer.parseInt(date[0]) * 13 + Integer.parseInt(date[1]);
                     long ymd = ym << 5 + Integer.parseInt(date[2]);
 
-                    String[] time = dateAndTime[1].split(":");
-                    String[] secondStrings = time[2].split(".");
-                    long hms = Integer.parseInt(time[0]) << 12 | Integer.parseInt(time[1]) << 6 | Integer.parseInt(time[2]);
+                    String[] time = StringUtils.split(dateAndTime[1], ':');
+                    String[] secondStrings = StringUtils.split(time[2], '.');
+                    long hms = Integer.parseInt(time[0]) << 12 | Integer.parseInt(time[1]) << 6 | Integer.parseInt(secondStrings[0]);
                     intPart = ymd << 17 | hms;
 
                     if (secondStrings.length > 1 && meta >= 1) {
@@ -516,6 +527,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     default:
                         break;
                 }
+                return;
             }
 
             //TODO: need to rewrite
@@ -1257,5 +1269,13 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
     public Long getChecksum() {
         return checksum;
+    }
+
+    public void setChecksum(Long checksum) {
+        this.checksum = checksum;
+    }
+
+    public void setRowsEventPostHeader(RowsEventPostHeader rowsEventPostHeader) {
+        this.rowsEventPostHeader = rowsEventPostHeader;
     }
 }
