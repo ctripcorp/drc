@@ -1,12 +1,19 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 
@@ -15,7 +22,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.w
 /**
  * Created by @author zhuYongMing on 2019/9/15.
  */
-public class WriteRowsEventTest {
+public class WriteRowsEventTest extends AbstractEventTest {
 
     @Test
     public void readMinimalRowsEventTest() {
@@ -229,5 +236,46 @@ public class WriteRowsEventTest {
         byteBuf.writeBytes(bytes);
 
         return byteBuf;
+    }
+
+    @Test
+    public void testFilter() throws IOException {
+        List<List<Object>> before = writeRowsEvent.getBeforePresentRowsValues();
+        List<List<Object>> filtered = Lists.newArrayList();
+        for (List<Object> row : before) {
+            int id = (int) row.get(0);
+            if (id % 2 == 0) {
+                filtered.add(row);
+            }
+        }
+
+        LogEventHeader logEventHeader = writeRowsEvent.getLogEventHeader();
+        RowsEventPostHeader rowsEventPostHeader = writeRowsEvent.getRowsEventPostHeader();
+        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(logEventHeader.getServerId()
+                , logEventHeader.getNextEventStartPosition()
+                ,rowsEventPostHeader
+                ,writeRowsEvent.getNumberOfColumns()
+                ,writeRowsEvent.getBeforePresentBitMap()
+                ,writeRowsEvent.getAfterPresentBitMap()
+                ,writeRowsEvent.getRows()
+                ,tableMapLogEvent.getColumns()
+                ,writeRowsEvent.getChecksum()
+                ,LogEventType.getLogEventType(logEventHeader.getEventType())
+                ,logEventHeader.getFlags());
+
+
+        ByteBuf header = newWriteRowsEvent.getLogEventHeader().getHeaderBuf();
+        ByteBuf payload = newWriteRowsEvent.getPayloadBuf();
+        CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+        compositeByteBuf.addComponents(true, header, payload);
+        WriteRowsEvent readFromByteBuf = new WriteRowsEvent().read(compositeByteBuf);
+        readFromByteBuf.load(columns);
+
+        Assert.assertEquals(readFromByteBuf.getChecksum(), writeRowsEvent.getChecksum());
+    }
+
+    @Override
+    protected RowsFilterType getRowsFilterType() {
+        return RowsFilterType.JavaRegex;
     }
 }

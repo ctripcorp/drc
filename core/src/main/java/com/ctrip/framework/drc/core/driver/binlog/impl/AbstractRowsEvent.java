@@ -74,7 +74,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         this.rows = rows;
         this.checksum = checksum;
 
-        final byte[] payloadBytes = payloadToBytes(columns);
+        final byte[] payloadBytes = payloadToBytes(columns, logEventType);
         final int payloadLength = payloadBytes.length;
 
         // set logEventHeader
@@ -104,7 +104,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return this;
     }
 
-    public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns) throws IOException {
+    public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, LogEventType logEventType) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         // do write row event payload post-header
         rowsEventPostHeader.payloadToBytes(out);
@@ -113,7 +113,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         ByteHelper.writeLengthEncodeInt(numberOfColumns, out);
         writeBitSet(beforePresentBitMap, numberOfColumns, out);
 
-        if (update_rows_event_v2 == LogEventType.getLogEventType(super.getLogEventHeader().getEventType())) {
+        if (update_rows_event_v2 == logEventType) {
             writeBitSet(afterPresentBitMap, numberOfColumns, out);
         }
 

@@ -43,6 +43,8 @@ public abstract class AbstractEventTest {
 
     protected WriteRowsEvent writeRowsEvent;
 
+    protected Columns columns;
+
     public static List<List<Object>> result = Lists.newArrayList();
 
     @Before
@@ -58,7 +60,7 @@ public abstract class AbstractEventTest {
         drcTableMapLogEvent = drcTableMapEvent();
 
         Columns originColumns = Columns.from(tableMapLogEvent.getColumns());
-        Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
+        columns = Columns.from(drcTableMapLogEvent.getColumns());
         transformMetaAndType(originColumns, columns);
         writeRowsEvent.load(columns);
     }
