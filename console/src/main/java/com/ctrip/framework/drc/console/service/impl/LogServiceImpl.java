@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.util.JdbcConstants;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.ConflictTransactionLog;
@@ -68,6 +69,12 @@ public class LogServiceImpl implements LogService {
 
     @Autowired
     private MachineTblDao machineTblDao;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
+    
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @Override
     public void uploadConflictLog(List<ConflictTransactionLog> conflictTransactionLogList) {
@@ -113,19 +120,26 @@ public class LogServiceImpl implements LogService {
             List<Future<Map<String, Object>>> futures = new ArrayList<>();
             List<List<String>> tasks = nDivide(arr, 3);
             for (List<String> task : tasks) {
-                Future<Map<String, Object>> recordFuture = readerPool.submit(new RecordReader(latch, task, srcMhaName, destMhaName));
+                logger.info("[[tag=conflictLog]] submit task srcMhaName:{},destMhaName:{}",srcMhaName,destMhaName);
+                Future<Map<String, Object>> recordFuture = readerPool.
+                        submit(new RecordReader(latch, task, srcMhaName, destMhaName));
                 futures.add(recordFuture);
             }
-
-            boolean await = latch.await(20, TimeUnit.SECONDS);
+            
+            boolean await = latch.await(defaultConsoleConfig.getConflictMhaRecordSearchTime(), TimeUnit.SECONDS);
             if (!await) {
-                logger.error("latch await timeout,something fail in readRecord");
+                logger.warn("[[tag=conflictLog]] latch await timeout,something fail in readRecord");
             }
 
             for (Future<Map<String, Object>> future : futures) {
-                Map<String, Object> subResult = future.get();
-                srcTableItems.addAll((List<Map>) subResult.get("srcTableItems"));
-                destTableItems.addAll((List<Map>) subResult.get("destTableItems"));
+                Map<String, Object> subResult = future.get(5,TimeUnit.SECONDS);
+                if (subResult == null) {
+                    future.cancel(true);
+                    logger.warn("[[tag=conflictLog]] task execute timeout,cancel");
+                } else {
+                    srcTableItems.addAll((List<Map>) subResult.get("srcTableItems"));
+                    destTableItems.addAll((List<Map>) subResult.get("destTableItems"));
+                }
                 if (!diffTransaction) diffTransaction = (boolean) subResult.get("diffTransaction");
             }
 
@@ -193,10 +207,10 @@ public class LogServiceImpl implements LogService {
 
         @Override
         public Map<String, Object> call() {
-            logger.info("call start");
+            logger.info("[[tag=conflictLog]] call start");
             Map<String, Object> result = readRecord(conflictLogs, srcMhaName, destMhaName);
             countDownLatch.countDown();
-            logger.info("countDownLath countDown one " + Thread.currentThread().getName());
+            logger.info("[[tag=conflictLog]] countDownLath countDown one " + Thread.currentThread().getName());
             return result;
         }
     }
@@ -207,7 +221,7 @@ public class LogServiceImpl implements LogService {
         List<Map> destTableItems = new ArrayList<>();
         for (String sql : conflictLogs) {
             Map<String, Object> srcTableItem = new HashMap<>();
-            Map srcMap = selectRecord(srcMhaName, sql);
+            Map srcMap = selectRecord(srcMhaName, destMhaName, sql);
             if (srcMap == null) {
                 continue;
             }
@@ -216,7 +230,7 @@ public class LogServiceImpl implements LogService {
             srcTableItems.add(srcTableItem);
 
             Map<String, Object> destTableItem = new HashMap<>();
-            Map destMap = selectRecord(destMhaName, sql);
+            Map destMap = selectRecord(destMhaName, srcMhaName, sql);
             if (destMap == null) {
                 continue;
             }
@@ -303,55 +317,68 @@ public class LogServiceImpl implements LogService {
             return null;
         }
     }
+    
 
-    public Map<String, Object> getTableItems(String mhaName, String sql) {
-        Map<String, Object> tableItem = new HashMap<>();
-        Map srcMap = selectRecord(mhaName, sql);
-        if (srcMap == null) {
-            return null;
-        }
-        tableItem.put("column", srcMap.get("column"));
-        tableItem.put("record", srcMap.get("record"));
-        return tableItem;
-    }
-
-    public Map selectRecord(String mhaName, String rawSql) {
+    public Map selectRecord(String mhaName0, String mhaName1,String rawSql) {
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = null;
         try {
             Map<String, String> parseResult = parseSql(rawSql);
             String manipulation = parseResult.get("manipulation");
             if ("insert".equalsIgnoreCase(manipulation) || "delete".equalsIgnoreCase(manipulation)) {
-                logger.info("select Record could get condition from insert and delete");
+                logger.info("[[tag=conflictLog]] select Record could get condition from insert and delete");
                 return null;
             }
-            WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName);
+            writeSqlOperatorWrapper = initSqlOperator(mhaName0,mhaName1);
             String sql = String.format(SELECT_SQL, parseResult.get("tableName"), parseResult.get("equalConditionStr"));
+            logger.info("[[tag=conflictLog]] sql:{}",sql);
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             ReadResource readResource = writeSqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
             return resultSetConvertList(rs);
         } catch (Exception e) {
-            logger.error("selectRecord fail", e);
+            logger.error("[[tag=conflictLog]] selectRecord fail", e);
             return null;
+        } finally {
+            releaseSqlOperator(writeSqlOperatorWrapper);
+        }
+    }
+    
+    private void releaseSqlOperator(WriteSqlOperatorWrapper writeSqlOperatorWrapper) {
+        if (writeSqlOperatorWrapper != null) {
+            try {
+                writeSqlOperatorWrapper.stop();
+                writeSqlOperatorWrapper.dispose();
+            } catch (Exception e) {
+                logger.warn("[[tag=conflictLog]] writeSqlOperatorWrapper stop error", e);
+            }
         }
     }
 
     @Override
     public void updateRecord(Map<String, String> updateInfo) throws Exception {
-        String mhaName = updateInfo.get("mhaName");
-        String sql = updateInfo.get("sql");
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = null;
+        try {
+            String mhaName0 = updateInfo.get("mhaName0");
+            String mhaName1 = updateInfo.get("mhaName1");
+            String sql = updateInfo.get("sql");
 
-        Map<String, String> parseResult = parseSql(sql);
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = initSqlOperator(mhaName);
-        String manipulation = parseResult.get("manipulation");
-        GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-        if ("update".equalsIgnoreCase(manipulation)) {
-            writeSqlOperatorWrapper.update(execution);
-        }
-        if ("insert".equalsIgnoreCase(manipulation)) {
-            writeSqlOperatorWrapper.insert(execution);
-        }
-        if ("delete".equalsIgnoreCase(manipulation)) {
-            writeSqlOperatorWrapper.delete(execution);
+            Map<String, String> parseResult = parseSql(sql);
+            writeSqlOperatorWrapper = initSqlOperator(mhaName0,mhaName1);
+            String manipulation = parseResult.get("manipulation");
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            if ("update".equalsIgnoreCase(manipulation)) {
+                writeSqlOperatorWrapper.update(execution);
+            }
+            if ("insert".equalsIgnoreCase(manipulation)) {
+                writeSqlOperatorWrapper.insert(execution);
+            }
+            if ("delete".equalsIgnoreCase(manipulation)) {
+                writeSqlOperatorWrapper.delete(execution);
+            }
+        } catch (Exception e) {
+            logger.error("[[tag=conflictLog]] selectRecord fail", e);
+        } finally {
+            releaseSqlOperator(writeSqlOperatorWrapper);
         }
     }
 
@@ -379,19 +406,22 @@ public class LogServiceImpl implements LogService {
         return dc.getDcName();
     }
 
-    public WriteSqlOperatorWrapper initSqlOperator(String mhaName) throws Exception {
+    public WriteSqlOperatorWrapper initSqlOperator(String mhaName,String anOtherMhaName) throws Exception {
         MhaTbl mhaSample = new MhaTbl();
         mhaSample.setMhaName(mhaName);
         List<MhaTbl> mhaList = mhaTblDao.queryBy(mhaSample);
-        if (null == mhaList || mhaList.size() == 0) throw new SQLException("mhaTbl not exist mhaName is " + mhaName);
+        if (null == mhaList || mhaList.size() == 0) 
+            throw new SQLException("[[tag=conflictLog]] mhaTbl not exist mhaName is " + mhaName);
         MhaTbl mha = mhaList.get(0);
-        long mhaId = mha.getId();
-        long mhaGroupId = mha.getMhaGroupId();
-
-        MhaGroupTbl mhaGroupSample = new MhaGroupTbl();
-        mhaGroupSample.setId(mhaGroupId);
-        List<MhaGroupTbl> mhaGroupList = mhaGroupTblDao.queryBy(mhaGroupSample);
-        MhaGroupTbl mhaGroup = mhaGroupList.get(0);
+        Long mhaId = mha.getId();
+        Long mhaGroupId = metaInfoService.getMhaGroupId(mhaName,anOtherMhaName,BooleanEnum.FALSE);
+        if (mhaGroupId == null) {
+            mhaGroupId = mha.getMhaGroupId();
+        }
+        if (mhaGroupId == null) {
+            logger.warn("[[tag=conflictLog]] cannt find mhaGroupId for" + mhaName + "-" + anOtherMhaName);
+        }
+        MhaGroupTbl mhaGroup = mhaGroupTblDao.queryByPk(mhaGroupId);
         String monitorUser = mhaGroup.getMonitorUser();
         String monitorPassword = mhaGroup.getMonitorPassword();
 

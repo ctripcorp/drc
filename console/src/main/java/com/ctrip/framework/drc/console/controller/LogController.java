@@ -68,6 +68,7 @@ public class LogController {
             Map<String, Object> ret = logService.getCurrentRecord(primaryKey);
             return ApiResult.getSuccessInstance(ret);
         } catch (Exception e) {
+            logger.error("[[tag=conflictLog]] error occur",e);
             return ApiResult.getFailInstance(e);
         }
     }
