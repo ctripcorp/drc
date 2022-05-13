@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
@@ -78,5 +79,20 @@ public class UpdateRowsEventTest extends AbstractEventTest {
     @Override
     protected RowsFilterType getRowsFilterType() {
         return RowsFilterType.JavaRegex;
+    }
+
+    @Test
+    public void testUpdateRowsEventConstruction() throws IOException {
+        String oldPayloadBuf = ByteBufUtil.hexDump(updateRowsEvent.getPayloadBuf().resetReaderIndex());
+        String oldHeaderBuf = ByteBufUtil.hexDump(updateRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
+//        System.out.println("oldHeaderBuf: " + oldHeaderBuf);
+//        System.out.println("oldPayloadBuf: " + oldPayloadBuf);
+
+        UpdateRowsEvent newUpdateRowsEvent1 = new UpdateRowsEvent(updateRowsEvent, drcTableMapLogEvent.getColumns());
+        String newPayloadBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getPayloadBuf().resetReaderIndex());
+        String newHeaderBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
+//        System.out.println("newHeaderBuf: " + newHeaderBuf);
+//        System.out.println("newPayloadBuf: " + newPayloadBuf);
+        Assert.assertEquals(oldPayloadBuf, newPayloadBuf);
     }
 }
