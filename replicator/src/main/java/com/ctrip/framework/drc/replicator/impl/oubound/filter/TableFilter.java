@@ -15,6 +15,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
 
 /**
  * gtid、query、tablemap1、tablemap2、rows1、rows2、xid
+ *
  * @Author limingdong
  * @create 2022/4/22
  */
@@ -40,10 +41,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             }
             value.restorePosition();
         } else if (xid_log_event == eventType) {
-            for (TableMapLogEvent tableMapLogEvent : tableMapWithinTransaction.values()) {
-                tableMapLogEvent.release();
-            }
-            this.tableMapWithinTransaction.clear();
+            releaseTableMapEvent();
             value.setNoRowFiltered(true);
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
@@ -61,5 +59,32 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
     @VisibleForTesting
     public Map<String, TableMapLogEvent> getDrcTableMap() {
         return drcTableMap;
+    }
+
+    @Override
+    public void release() {
+        releaseTableMapEvent();
+        releaseDrcTableMapEvent();
+        logger.info("[Release] TableMapLogEvent within {}", getClass().getSimpleName());
+    }
+
+    private void releaseTableMapEvent() {
+        try {
+            for (TableMapLogEvent tableMapLogEvent : tableMapWithinTransaction.values()) {
+                tableMapLogEvent.release();
+            }
+            this.tableMapWithinTransaction.clear();
+        } catch (Exception e) {
+        }
+    }
+
+    private void releaseDrcTableMapEvent() {
+        try {
+            for (TableMapLogEvent tableMapLogEvent : drcTableMap.values()) {
+                tableMapLogEvent.release();
+            }
+            this.drcTableMap.clear();
+        } catch (Exception e) {
+        }
     }
 }

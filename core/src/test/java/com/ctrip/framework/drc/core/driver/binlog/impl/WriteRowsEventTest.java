@@ -300,14 +300,11 @@ public class WriteRowsEventTest extends AbstractEventTest {
     public void testWriteRowsEventConstruction() throws IOException {
         String oldPayloadBuf = ByteBufUtil.hexDump(writeRowsEvent.getPayloadBuf().resetReaderIndex());
         String oldHeaderBuf = ByteBufUtil.hexDump(writeRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
-//        System.out.println("oldHeaderBuf: " + oldHeaderBuf);
-//        System.out.println("oldPayloadBuf: " + oldPayloadBuf);
 
         WriteRowsEvent newWriteRowsEvent1 = new WriteRowsEvent(writeRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
-//        System.out.println("newHeaderBuf: " + newHeaderBuf);
-//        System.out.println("newPayloadBuf: " + newPayloadBuf);
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);
+        Assert.assertNotEquals(oldHeaderBuf, newHeaderBuf); // diff eventTimestamp
     }
 }

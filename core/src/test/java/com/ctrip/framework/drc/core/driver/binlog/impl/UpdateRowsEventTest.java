@@ -85,14 +85,11 @@ public class UpdateRowsEventTest extends AbstractEventTest {
     public void testUpdateRowsEventConstruction() throws IOException {
         String oldPayloadBuf = ByteBufUtil.hexDump(updateRowsEvent.getPayloadBuf().resetReaderIndex());
         String oldHeaderBuf = ByteBufUtil.hexDump(updateRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
-//        System.out.println("oldHeaderBuf: " + oldHeaderBuf);
-//        System.out.println("oldPayloadBuf: " + oldPayloadBuf);
 
         UpdateRowsEvent newUpdateRowsEvent1 = new UpdateRowsEvent(updateRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
-//        System.out.println("newHeaderBuf: " + newHeaderBuf);
-//        System.out.println("newPayloadBuf: " + newPayloadBuf);
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);
+        Assert.assertNotEquals(oldHeaderBuf, newHeaderBuf); // diff eventTimestamp
     }
 }

@@ -246,6 +246,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (nettyClient != null) {
                 nettyClient.channel().close();
             }
+            filterChain.release();
         }
 
         private File blankUuidSets() {
