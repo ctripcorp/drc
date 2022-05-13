@@ -4,11 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
 import com.google.common.collect.Lists;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.*;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -238,17 +234,20 @@ public class WriteRowsEventTest extends AbstractEventTest {
     }
 
     @Test
-    public void testFilter() throws IOException {
-        List<List<Object>> before = writeRowsEvent.getBeforePresentRowsValues();
-        List<List<Object>> filtered = Lists.newArrayList();
-        for (List<Object> row : before) {
-            int id = (int) row.get(0);
-            if (id % 2 == 0) {
+    public void testFilterRow() throws IOException {
+        int FILTER_IS_NUM = 20;
+        WriteRowsEvent localWriteRowsEvent = getWriteRowsEvent();
+        List<AbstractRowsEvent.Row> before = localWriteRowsEvent.getRows();
+        List<AbstractRowsEvent.Row> filtered = Lists.newArrayList();
+        for (AbstractRowsEvent.Row row : before) {
+            int id = (int) row.getBeforeValues().get(0);
+            if (id == FILTER_IS_NUM) {  // （18、20、22）filter one row
                 filtered.add(row);
             }
         }
+        localWriteRowsEvent.setRows(filtered);
 
-        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(writeRowsEvent, drcTableMapLogEvent.getColumns());
+        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(localWriteRowsEvent, drcTableMapLogEvent.getColumns());
 
         ByteBuf header = newWriteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
         ByteBuf payload = newWriteRowsEvent.getPayloadBuf().resetReaderIndex();
@@ -257,7 +256,39 @@ public class WriteRowsEventTest extends AbstractEventTest {
         WriteRowsEvent readFromByteBuf = new WriteRowsEvent().read(compositeByteBuf);
         readFromByteBuf.load(columns);
 
+        // header
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getFlags(), writeRowsEvent.getLogEventHeader().getFlags());
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getServerId(), writeRowsEvent.getLogEventHeader().getServerId());
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getEventType(), writeRowsEvent.getLogEventHeader().getEventType());
+
+        // post header
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getTableId(), writeRowsEvent.getRowsEventPostHeader().getTableId());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getFlags(), writeRowsEvent.getRowsEventPostHeader().getFlags());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getExtraDataLength(), writeRowsEvent.getRowsEventPostHeader().getExtraDataLength());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getExtraData(), writeRowsEvent.getRowsEventPostHeader().getExtraData());
+
+        // payload
+        Assert.assertEquals(readFromByteBuf.getNumberOfColumns(), writeRowsEvent.getNumberOfColumns());
+        Assert.assertEquals(readFromByteBuf.getBeforePresentBitMap(), writeRowsEvent.getBeforePresentBitMap());
+        Assert.assertEquals(readFromByteBuf.getAfterPresentBitMap(), writeRowsEvent.getAfterPresentBitMap());
         Assert.assertEquals(readFromByteBuf.getChecksum(), writeRowsEvent.getChecksum());
+
+        // rows
+        List<AbstractRowsEvent.Row> beforeRows = writeRowsEvent.getRows();
+        List<AbstractRowsEvent.Row> afterRows = readFromByteBuf.getRows();
+        Assert.assertNotEquals(beforeRows, afterRows);
+        Assert.assertEquals(beforeRows.size(), 3);
+        Assert.assertEquals(afterRows.size(), 1);
+
+        List<AbstractRowsEvent.Row> filteredBeforeRows = Lists.newArrayList();
+        for (AbstractRowsEvent.Row row : beforeRows) {
+            int id = (int) row.getBeforeValues().get(0);
+            if (id == FILTER_IS_NUM) {
+                filteredBeforeRows.add(row);
+            }
+        }
+        Assert.assertEquals(filteredBeforeRows.get(0).getBeforeValues(), afterRows.get(0).getBeforeValues());
+        Assert.assertEquals(filteredBeforeRows.get(0).getAfterValues(), afterRows.get(0).getAfterValues());
     }
 
     @Override

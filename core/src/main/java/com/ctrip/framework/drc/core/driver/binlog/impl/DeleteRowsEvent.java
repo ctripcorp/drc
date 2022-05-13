@@ -25,7 +25,7 @@ public class DeleteRowsEvent extends AbstractRowsEvent {
     public DeleteRowsEvent() {
     }
 
-    public DeleteRowsEvent(WriteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+    public DeleteRowsEvent(DeleteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
         super(rowsEvent, columns);
     }
 

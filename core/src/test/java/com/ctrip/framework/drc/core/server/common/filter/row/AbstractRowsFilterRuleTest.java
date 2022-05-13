@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +32,7 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
 
     @Test
     public void filterRow() throws Exception {
-        RowsFilterResult<List<List<Object>>> res = rowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = rowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
         Assert.assertFalse(res.isNoRowFiltered());
         Assert.assertEquals(res.getRes(), result);
     }

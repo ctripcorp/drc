@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import org.junit.Assert;
 
@@ -17,8 +18,8 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) {
-        Assert.assertEquals(3, values.size());
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) {
+        Assert.assertEquals(3, rowsEvent.getRows().size());
         Assert.assertEquals(2, indices.size());  // id、one
         Assert.assertEquals(0, indices.get("id").intValue());  // id in index 0
         Assert.assertEquals(1, indices.get("one").intValue());  // one in index 1

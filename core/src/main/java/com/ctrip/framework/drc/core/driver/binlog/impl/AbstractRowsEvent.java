@@ -1278,4 +1278,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     public void setRowsEventPostHeader(RowsEventPostHeader rowsEventPostHeader) {
         this.rowsEventPostHeader = rowsEventPostHeader;
     }
+
+    public void setRows(List<Row> rows) {
+        this.rows = rows;
+    }
 }

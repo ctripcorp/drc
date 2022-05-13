@@ -28,7 +28,7 @@ public class UpdateRowsEvent extends AbstractRowsEvent {
     public UpdateRowsEvent() {
     }
 
-    public UpdateRowsEvent(WriteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+    public UpdateRowsEvent(UpdateRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
         super(rowsEvent, columns);
     }
 

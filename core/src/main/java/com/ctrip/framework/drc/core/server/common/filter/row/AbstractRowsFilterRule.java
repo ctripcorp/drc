@@ -15,7 +15,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.u
  * @Author limingdong
  * @create 2022/4/26
  */
-public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>> > {
+public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
 
     protected String registryKey;
 
@@ -33,18 +33,18 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
     }
 
     @Override
-    public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
+    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
-        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
 
         LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
         if (indices == null) {
             return new RowsFilterResult(true);
         }
 
-        List<List<Object>> filteredRow = doFilterRows(values, indices);
+        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, indices);
 
-        if (filteredRow != null && values.size() == filteredRow.size()) {
+        if (filteredRow != null && rows.size() == filteredRow.size()) {
             return new RowsFilterResult(true);
         }
         return new RowsFilterResult(false, filteredRow);
@@ -82,10 +82,10 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     /**
      *
-     * @param values column values in binlog
+     * @param rowsEvent rows event in binlog
      * @param indices column name to its index in values
      * @return
      * @throws Exception
      */
-    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) throws Exception;
+    protected abstract List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception;
 }

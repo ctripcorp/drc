@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
@@ -18,7 +19,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.COMMA;
  * @Author limingdong
  * @create 2022/4/22
  */
-public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>>> {
+public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
 
     private UidService uidService = ServicesUtil.getUidService();
 
@@ -35,14 +36,17 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) throws Exception {
-        List<List<Object>> result = Lists.newArrayList();
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
+        List<AbstractRowsEvent.Row> result = Lists.newArrayList();
+        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
         int index = indices.values().iterator().next(); // only one field
-        for (List<Object> row : values) {
-            Object uid = row.get(index);
+        for (int i = 0; i < values.size(); ++i) {
+            Object uid = values.get(i).get(index);
+            int finalI = i;
             DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> {
                 if (uidService.filterUid(String.valueOf(uid), dstLocation)) {
-                    result.add(row);
+                    result.add(rows.get(finalI));
                 }
             });
 

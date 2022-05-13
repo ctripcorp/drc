@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
@@ -45,13 +46,10 @@ public abstract class AbstractEventTest {
 
     protected Columns columns;
 
-    public static List<List<Object>> result = Lists.newArrayList();
+    public static List<AbstractRowsEvent.Row> result = Lists.newArrayList();
 
     @Before
     public void setUp() throws Exception {
-        if (result.isEmpty()) {
-            result.add(Lists.newArrayList("1", "2", "3", "4"));
-        }
         dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getLocations()));
         ByteBuf tByteBuf = tableMapEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
@@ -63,6 +61,25 @@ public abstract class AbstractEventTest {
         columns = Columns.from(drcTableMapLogEvent.getColumns());
         transformMetaAndType(originColumns, columns);
         writeRowsEvent.load(columns);
+
+        if (result.isEmpty()) {
+            result.add(writeRowsEvent.getRows().get(0));
+            result.add(writeRowsEvent.getRows().get(2));
+        }
+    }
+
+    protected WriteRowsEvent getWriteRowsEvent() throws IOException {
+        ByteBuf tByteBuf = tableMapEvent();
+        TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
+        ByteBuf wByteBuf = writeRowsEvent();
+        WriteRowsEvent writeRowsEvent = new WriteRowsEvent().read(wByteBuf);
+        TableMapLogEvent drcTableMapLogEvent = drcTableMapEvent();
+
+        Columns originColumns = Columns.from(tableMapLogEvent.getColumns());
+        Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
+        transformMetaAndType(originColumns, columns);
+        writeRowsEvent.load(columns);
+        return writeRowsEvent;
     }
 
     protected abstract RowsFilterType getRowsFilterType();
@@ -118,7 +135,7 @@ public abstract class AbstractEventTest {
     }
 
     /*
-     * insert into insert1(`three`,`four`) values("1","2"),("3","4"),("5","6");
+     * insert into insert1(`three`,`four`) values("1","2"),("3","4"),("5","6");  id is (18, 20, 22)
      */
     protected ByteBuf writeRowsEvent() {
         String hexString = "45 8d 67 62 1e 64 00 00 00 6e 00 00 00 c6 53 00 00 00 00" +
