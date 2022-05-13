@@ -34,9 +34,9 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     public boolean doFilter(OutboundLogEventContext value) {
         boolean noRowFiltered = true;
         AbstractRowsEvent afterRowsEvent = null;
+        AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(value.getEventType())) {
-                AbstractRowsEvent beforeRowsEvent;
                 switch (value.getEventType()) {
                     case write_rows_event_v2:
                         beforeRowsEvent = new WriteRowsEvent();
@@ -71,6 +71,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         value.setNoRowFiltered(noRowFiltered);
         if (!noRowFiltered) {
             value.setRowsEvent(afterRowsEvent);
+            beforeRowsEvent.release();
         }
         return doNext(value, value.isNoRowFiltered());
     }
