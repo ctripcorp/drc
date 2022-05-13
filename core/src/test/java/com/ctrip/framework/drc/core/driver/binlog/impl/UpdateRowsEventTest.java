@@ -88,7 +88,7 @@ public class UpdateRowsEventTest extends AbstractEventTest {
 //        System.out.println("oldHeaderBuf: " + oldHeaderBuf);
 //        System.out.println("oldPayloadBuf: " + oldPayloadBuf);
 
-        UpdateRowsEvent newUpdateRowsEvent1 = new UpdateRowsEvent(updateRowsEvent, drcTableMapLogEvent.getColumns());
+        UpdateRowsEvent newUpdateRowsEvent1 = new UpdateRowsEvent(updateRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
 //        System.out.println("newHeaderBuf: " + newHeaderBuf);

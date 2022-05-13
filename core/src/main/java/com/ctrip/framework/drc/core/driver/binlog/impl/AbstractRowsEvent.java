@@ -130,6 +130,11 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         for (Row row : rows) {
             writeBitSet(row.beforeNullBitMap, readNullBitSetLength(beforePresentBitMap, numberOfColumns), out);
             writeValues(row.beforeValues, out, beforePresentBitMap, row.beforeNullBitMap, numberOfColumns, columns);
+
+            if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                writeBitSet(row.afterNullBitMap, readNullBitSetLength(afterPresentBitMap, numberOfColumns), out);
+                writeValues(row.afterValues, out, afterPresentBitMap, row.afterNullBitMap, numberOfColumns, columns);
+            }
         }
 
         ByteHelper.writeUnsignedIntLittleEndian(checksum, out);  // 4bytes
@@ -427,16 +432,20 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 switch (column.getMeta()) {
                     case 1: {
                         ByteHelper.writeUnsignedByte(valueLength, out);
+                        return;
                     }
                     case 2: {
                         ByteHelper.writeUnsignedShortLittleEndian(valueLength, out);
+                        return;
                     }
                     case 3: {
                         ByteHelper.writeUnsignedMediumLittleEndian(valueLength, out);
+                        return;
                     }
 
                     case 4: {
                         ByteHelper.writeUnsignedIntLittleEndian(valueLength, out);
+                        return;
                     }
                 }
                 ByteHelper.writeFixedLengthBytes(bytes, 0, valueLength, out);

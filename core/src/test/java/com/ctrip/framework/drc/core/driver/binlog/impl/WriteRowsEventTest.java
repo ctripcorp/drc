@@ -303,7 +303,7 @@ public class WriteRowsEventTest extends AbstractEventTest {
 //        System.out.println("oldHeaderBuf: " + oldHeaderBuf);
 //        System.out.println("oldPayloadBuf: " + oldPayloadBuf);
 
-        WriteRowsEvent newWriteRowsEvent1 = new WriteRowsEvent(writeRowsEvent, drcTableMapLogEvent.getColumns());
+        WriteRowsEvent newWriteRowsEvent1 = new WriteRowsEvent(writeRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
 //        System.out.println("newHeaderBuf: " + newHeaderBuf);
