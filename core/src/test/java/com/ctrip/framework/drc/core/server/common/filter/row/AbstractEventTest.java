@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -44,6 +45,8 @@ public abstract class AbstractEventTest {
 
     protected WriteRowsEvent writeRowsEvent;
 
+    protected UpdateRowsEvent updateRowsEvent;
+
     protected Columns columns;
 
     public static List<AbstractRowsEvent.Row> result = Lists.newArrayList();
@@ -51,7 +54,7 @@ public abstract class AbstractEventTest {
     @Before
     public void setUp() throws Exception {
         dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getLocations()));
-        ByteBuf tByteBuf = tableMapEvent();
+        ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();
         writeRowsEvent = new WriteRowsEvent().read(wByteBuf);
@@ -62,6 +65,8 @@ public abstract class AbstractEventTest {
         transformMetaAndType(originColumns, columns);
         writeRowsEvent.load(columns);
 
+        updateRowsEvent = getUpdateRowsEvent();
+
         if (result.isEmpty()) {
             result.add(writeRowsEvent.getRows().get(0));
             result.add(writeRowsEvent.getRows().get(2));
@@ -69,7 +74,7 @@ public abstract class AbstractEventTest {
     }
 
     protected WriteRowsEvent getWriteRowsEvent() throws IOException {
-        ByteBuf tByteBuf = tableMapEvent();
+        ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();
         WriteRowsEvent writeRowsEvent = new WriteRowsEvent().read(wByteBuf);
@@ -80,6 +85,20 @@ public abstract class AbstractEventTest {
         transformMetaAndType(originColumns, columns);
         writeRowsEvent.load(columns);
         return writeRowsEvent;
+    }
+
+    protected UpdateRowsEvent getUpdateRowsEvent() throws IOException {
+        ByteBuf tByteBuf = tableMapEventForUpdateRowsEvent();
+        TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
+        ByteBuf wByteBuf = updateRowsEvent();
+        UpdateRowsEvent updateRowsEvent = new UpdateRowsEvent().read(wByteBuf);
+        TableMapLogEvent drcTableMapLogEvent = drcTableMapEvent();
+
+        Columns originColumns = Columns.from(tableMapLogEvent.getColumns());
+        Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
+        transformMetaAndType(originColumns, columns);
+        updateRowsEvent.load(columns);
+        return updateRowsEvent;
     }
 
     protected abstract RowsFilterType getRowsFilterType();
@@ -122,7 +141,11 @@ public abstract class AbstractEventTest {
         return new TableMapLogEvent(0, 0, 0, schemaName, tableName, sourceColumns, identifiers);
     }
 
-    protected ByteBuf tableMapEvent() {
+    /**
+     * for method writeRowsEvent()
+     * @return
+     */
+    protected ByteBuf tableMapEventForWriteRowsEvent() {
         String hexString = "45 8d 67 62 13 64 00 00 00 40 00 00 00 58 53 00 00 00 00" +
                 "6c 00 00 00 00 00 01 00 04 64 72 63 31 00 07 69" +
                 "6e 73 65 72 74 31 00 06 03 0f 0f fe fe 11 09 5a" +
@@ -135,7 +158,7 @@ public abstract class AbstractEventTest {
     }
 
     /*
-     * insert into insert1(`three`,`four`) values("1","2"),("3","4"),("5","6");  id is (18, 20, 22)
+     * insert into drc1.insert1(`three`,`four`) values("1","2"),("3","4"),("5","6");  id is (18, 20, 22)
      */
     protected ByteBuf writeRowsEvent() {
         String hexString = "45 8d 67 62 1e 64 00 00 00 6e 00 00 00 c6 53 00 00 00 00" +
@@ -146,6 +169,46 @@ public abstract class AbstractEventTest {
                 "00 00 00 03 6f 6e 65 03 00 74 77 6f 01 35 01 00" +
                 "36 62 67 8d 45 15 ea f6 b7 7d bb";
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(200);
+        final byte[] bytes = toBytesFromHexString(hexString);
+        byteBuf.writeBytes(bytes);
+
+        return byteBuf;
+    }
+
+    /**
+     * for method writeRowsEvent()
+     * @return
+     */
+    protected ByteBuf tableMapEventForUpdateRowsEvent() {
+        String hexString = "30 ca 7d 62 13 65 00 00 00 40 00 00 00 b9 5f 00 00 00 00" +
+                "6d 00 00 00 00 00 01 00  04 64 72 63 31 00 07 69" +
+                "6e 73 65 72 74 31 00 06  03 0f 0f fe fe 11 09 5a" +
+                "00 b8 0b fe 5a de fd 03  1e cc ff a2 13";
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(200);
+        final byte[] bytes = toBytesFromHexString(hexString);
+        byteBuf.writeBytes(bytes);
+
+        return byteBuf;
+    }
+
+    /*
+     * update drc1.insert1 set `three`="12321" where id in (11,12,13);
+     */
+    protected ByteBuf updateRowsEvent() {
+        String hexString = "30 ca 7d 62 1f 65 00 00 00 cc 00 00 00 85 60 00 00 00 00" +
+                "6d 00 00 00 00 00 01 00  02 00 06 ff ff c0 0b 00" +
+                "00 00 03 6f 6e 65 03 00  74 77 6f 03 31 32 33 01" +
+                "00 32 62 7d ca 11 1d d8  c0 0b 00 00 00 03 6f 6e" +
+                "65 03 00 74 77 6f 05 31  32 33 32 31 01 00 32 62" +
+                "7d ca 30 01 ae c0 0c 00  00 00 03 6f 6e 65 03 00" +
+                "74 77 6f 03 31 32 33 01  00 32 62 7d ca 11 1d d8" +
+                "c0 0c 00 00 00 03 6f 6e  65 03 00 74 77 6f 05 31" +
+                "32 33 32 31 01 00 32 62  7d ca 30 01 ae c0 0d 00" +
+                "00 00 03 6f 6e 65 03 00  74 77 6f 03 31 32 33 01" +
+                "00 32 62 7d ca 11 1d d8  c0 0d 00 00 00 03 6f 6e" +
+                "65 03 00 74 77 6f 05 31  32 33 32 31 01 00 32 62" +
+                "7d ca 30 01 ae d5 fd 15  03";
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(400);
         final byte[] bytes = toBytesFromHexString(hexString);
         byteBuf.writeBytes(bytes);
 
