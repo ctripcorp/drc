@@ -42,24 +42,24 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         beforeRowsEvent = new WriteRowsEvent();
                         noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         if (!noRowFiltered) {
-                            TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(beforeRowsEvent, value);
-                            afterRowsEvent = new WriteRowsEvent((WriteRowsEvent) beforeRowsEvent, tableMapLogEvent.getColumns());
+                            Columns columns = getColumns(beforeRowsEvent, value);
+                            afterRowsEvent = new WriteRowsEvent((WriteRowsEvent) beforeRowsEvent, columns);
                         }
                         break;
                     case update_rows_event_v2:
                         beforeRowsEvent = new UpdateRowsEvent();
                         noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         if (!noRowFiltered) {
-                            TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(beforeRowsEvent, value);
-                            afterRowsEvent = new UpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, tableMapLogEvent.getColumns());
+                            Columns columns = getColumns(beforeRowsEvent, value);
+                            afterRowsEvent = new UpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, columns);
                         }
                         break;
                     case delete_rows_event_v2:
                         beforeRowsEvent = new DeleteRowsEvent();
                         noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         if (!noRowFiltered) {
-                            TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(beforeRowsEvent, value);
-                            afterRowsEvent = new DeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, tableMapLogEvent.getColumns());
+                            Columns columns = getColumns(beforeRowsEvent, value);
+                            afterRowsEvent = new DeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, columns);
                         }
                         break;
                 }
@@ -106,8 +106,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         rowsEvent.loadPostHeader();
 
         TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(rowsEvent, value);
-        String tableName = tableMapLogEvent.getSchemaNameDotTableName();
-        TableMapLogEvent drcTableMap = value.getDrcTableMap(tableName);
+        TableMapLogEvent drcTableMap = getDrcTableMapLogEvent(tableMapLogEvent, value);
 
         // load payload
         Columns originColumns = Columns.from(tableMapLogEvent.getColumns());
@@ -118,8 +117,20 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         return drcTableMap;
     }
 
+    private Columns getColumns(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
+        TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(rowsEvent, value);
+        TableMapLogEvent drcTableMapLogEvent = getDrcTableMapLogEvent(tableMapLogEvent, value);
+        return Columns.from(drcTableMapLogEvent.getColumns());
+    }
+
     private TableMapLogEvent getTableMapLogEvent(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
         return value.getTableMapWithinTransaction(tableId);
+
+    }
+
+    private TableMapLogEvent getDrcTableMapLogEvent(TableMapLogEvent tableMapLogEvent, OutboundLogEventContext value) {
+        String tableName = tableMapLogEvent.getSchemaNameDotTableName();
+        return value.getDrcTableMap(tableName);
     }
 }

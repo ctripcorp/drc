@@ -247,7 +247,7 @@ public class WriteRowsEventTest extends AbstractEventTest {
         }
         localWriteRowsEvent.setRows(filtered);
 
-        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(localWriteRowsEvent, drcTableMapLogEvent.getColumns());
+        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(localWriteRowsEvent, columns);
 
         ByteBuf header = newWriteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
         ByteBuf payload = newWriteRowsEvent.getPayloadBuf().resetReaderIndex();
