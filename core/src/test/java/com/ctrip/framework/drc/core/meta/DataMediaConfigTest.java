@@ -25,7 +25,7 @@ public class DataMediaConfigTest {
             "          \"columnB\",\n" +
             "          \"cloumnC\"\n" +
             "        ],\n" +
-            "        \"expression\": \"regre1\"\n" +
+            "        \"context\": \"regre1\"\n" +
             "      }\n" +
             "    },\n" +
             "    {\n" +
@@ -35,7 +35,7 @@ public class DataMediaConfigTest {
             "        \"columns\": [\n" +
             "          \"cloumnA\"\n" +
             "        ],\n" +
-            "        \"expression\": \"regre2\"\n" +
+            "        \"context\": \"regre2\"\n" +
             "      }\n" +
             "    }\n" +
             "  ],\n" +

@@ -56,6 +56,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
     @Test
     public void createFilterChain() {
         Filter<OutboundLogEventContext> filter = filterChainFactory.createFilterChain(filterChainContext);
+        Filter first = filter;
         Assert.assertTrue(filter instanceof SendFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
@@ -65,7 +66,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertTrue(filter instanceof RowsFilter);
         filter = filter.getSuccessor();
         Assert.assertNull(filter);
-        filter.release();
+        first.release();
     }
 
     @Test

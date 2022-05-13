@@ -31,9 +31,7 @@ import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
-import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRuleTest;
-import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactoryTest;
-import com.ctrip.framework.drc.core.server.common.filter.row.UidRowsFilterRuleTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
@@ -56,6 +54,8 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        JavaRegexRowsFilterRuleTest.class,
+        AviatorRegexRowsFilterRuleTest.class,
         UidRowsFilterRuleTest.class,
         DefaultRuleFactoryTest.class,
         DataMediaManagerTest.class,
@@ -88,7 +88,7 @@ import org.junit.runners.Suite;
         // impl package
         AbstractLogEventTest.class,
         AbstractRowsEventTest.class,
-//        DeleteRowsEventTest.class,
+        DeleteRowsEventTest.class,
         DrcErrorLogEventTest.class,
         DrcHeartbeatLogEventTest.class,
         FormatDescriptionLogEventTest.class,
@@ -106,7 +106,7 @@ import org.junit.runners.Suite;
         RowsQueryLogEventTest.class,
         StopLogEventTest.class,
         TableMapLogEventTest.class,
-//        UpdateRowsEventTest.class,
+        UpdateRowsEventTest.class,
         WriteRowsEventTest.class,
         XidLogEventTest.class,
         DrcSchemaSnapshotLogEventTest.class,

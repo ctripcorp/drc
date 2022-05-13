@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
@@ -87,5 +88,21 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
      * @return
      * @throws Exception
      */
-    protected abstract List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception;
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
+        List<AbstractRowsEvent.Row> result = Lists.newArrayList();
+        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
+        int index = indices.values().iterator().next(); // only one field
+        for (int i = 0; i < values.size(); ++i) {
+            Object field = values.get(i).get(index);
+            if (doFilterRows(field)) {
+                result.add(rows.get(i));
+            }
+        }
+        return result;
+    }
+
+    protected boolean doFilterRows(Object field) throws Exception {
+        return true;
+    }
 }

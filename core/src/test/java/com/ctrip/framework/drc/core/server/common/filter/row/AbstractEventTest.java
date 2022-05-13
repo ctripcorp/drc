@@ -52,7 +52,7 @@ public abstract class AbstractEventTest {
 
     @Before
     public void setUp() throws Exception {
-        dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getLocations()));
+        dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getContext()));
         ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();
@@ -121,7 +121,7 @@ public abstract class AbstractEventTest {
         return ROW_FILTER_PROPERTIES;
     }
 
-    protected String getLocations() {
+    protected String getContext() {
         return "SG,FRA";
     }
 

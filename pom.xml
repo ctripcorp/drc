@@ -58,7 +58,7 @@
         <fastsql.version>2.0.0_preview_973</fastsql.version>
         <mockito-core.version>3.4.0</mockito-core.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <aviator.version>2.2.1</aviator.version>
+        <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
     </properties>
 

@@ -3,8 +3,8 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -20,8 +20,9 @@ public class JavaRegexRowsFilterRule extends AbstractRowsFilterRule implements R
         pattern = Pattern.compile(context);
     }
 
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
-        // TODO
-        return null;
+    @Override
+    protected boolean doFilterRows(Object field) throws Exception {
+        Matcher matcher =  pattern.matcher(String.valueOf(field));
+        return matcher.find();
     }
 }
