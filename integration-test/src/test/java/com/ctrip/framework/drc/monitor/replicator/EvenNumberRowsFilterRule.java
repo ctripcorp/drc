@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.monitor.replicator;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
@@ -13,7 +14,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2022/4/24
  */
-public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>> > {
+public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row> > {
 
     public static final String ID = "id";
 
@@ -22,14 +23,16 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) {
-        List<List<Object>> res = Lists.newArrayList();
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) {
+        List<AbstractRowsEvent.Row> result = Lists.newArrayList();
+        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
         for (int i = 0; i < values.size(); ++i) {
-                int idValue = (int) values.get(i).get(indices.get(ID));  // indices.size == 1
-                if (idValue % 2 == 0) {
-                    res.add(values.get(i));
-                }
+            int idValue = (int) values.get(i).get(indices.get(ID));  // indices.size == 1
+            if (idValue % 2 == 0) {
+                result.add(rows.get(i));
+            }
         }
-        return res;
+        return result;
     }
 }

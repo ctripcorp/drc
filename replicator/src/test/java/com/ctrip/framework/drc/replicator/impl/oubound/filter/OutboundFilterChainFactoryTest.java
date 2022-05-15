@@ -56,6 +56,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
     @Test
     public void createFilterChain() {
         Filter<OutboundLogEventContext> filter = filterChainFactory.createFilterChain(filterChainContext);
+        Filter first = filter;
         Assert.assertTrue(filter instanceof SendFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
@@ -65,6 +66,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertTrue(filter instanceof RowsFilter);
         filter = filter.getSuccessor();
         Assert.assertNull(filter);
+        first.release();
     }
 
     @Test
@@ -160,6 +162,18 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
 
         Assert.assertNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+
+        // test release
+        Filter successor = filterChain.getSuccessor();
+        while (successor != null) {
+            if (successor instanceof TableFilter) {
+                TableFilter filter = (TableFilter) successor;
+                Assert.assertFalse(filter.getDrcTableMap().isEmpty());
+                filterChain.release();
+                Assert.assertTrue(filter.getDrcTableMap().isEmpty());
+            }
+            successor = successor.getSuccessor();
+        }
     }
 
 }

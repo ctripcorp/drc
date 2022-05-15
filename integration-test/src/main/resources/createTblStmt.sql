@@ -336,7 +336,7 @@ CREATE DATABASE IF NOT EXISTS drcmonitordb;
 CREATE TABLE IF NOT EXISTS `drcmonitordb`.`delaymonitor` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `src_ip` varchar(15) NOT NULL,
-  `dest_ip` varchar(15) NOT NULL,
+  `dest_ip` varchar(256) NOT NULL,
   `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY(`id`)
 ) ENGINE=InnoDB;

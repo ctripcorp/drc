@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -12,7 +11,6 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;

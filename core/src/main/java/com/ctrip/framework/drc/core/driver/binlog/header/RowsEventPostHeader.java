@@ -2,8 +2,10 @@ package com.ctrip.framework.drc.core.driver.binlog.header;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.Packet;
+import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import io.netty.buffer.ByteBuf;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -49,6 +51,22 @@ public class RowsEventPostHeader implements Packet<RowsEventPostHeader> {
     @Override
     public void write(ByteBuf byteBuf) throws IOException {
 
+    }
+
+    public void payloadToBytes(ByteArrayOutputStream out) {
+        // tableId, 6 bytes
+        ByteHelper.writeUnsignedInt48LittleEndian(tableId, out);
+
+        // flag, 2 bytes
+        ByteHelper.writeUnsignedShortLittleEndian(flags, out);
+
+        // data length, 2 bytes
+        ByteHelper.writeUnsignedShortLittleEndian(extraDataLength, out);
+
+        // extra data
+        if (extraDataLength > 2) {
+            out.writeBytes(extraData.array());
+        }
     }
 
     @Override

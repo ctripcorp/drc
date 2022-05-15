@@ -11,30 +11,35 @@ import java.util.List;
 
 /**
  * @Author limingdong
- * @create 2022/5/10
+ * @create 2022/5/13
  */
-public class UidRowsFilterRuleTest extends AbstractEventTest {
+public class AviatorRegexRowsFilterRuleTest extends AbstractEventTest {
 
-    private UidRowsFilterRule uidRowsFilterRule;
+    private AviatorRegexRowsFilterRule aviatorRegexRowsFilterRule;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         List<RowsFilterConfig> rowsFilterConfigList = dataMediaConfig.getRowsFilters();
         RowsFilterConfig rowsFilterConfig = rowsFilterConfigList.get(0);
-        uidRowsFilterRule = new UidRowsFilterRule(rowsFilterConfig);
+        aviatorRegexRowsFilterRule = new AviatorRegexRowsFilterRule(rowsFilterConfig);
     }
 
     @Override
     protected RowsFilterType getRowsFilterType() {
-        return RowsFilterType.TripUid;
+        return RowsFilterType.AviatorRegex;
     }
 
     @Test
     public void filterRows() throws Exception {
-        // LocalUidService
-        RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
-        Assert.assertTrue(res.isNoRowFiltered());
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = aviatorRegexRowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        Assert.assertFalse(res.isNoRowFiltered());
+        List<AbstractRowsEvent.Row> filteredRow = res.getRes();
+        Assert.assertTrue(filteredRow.size() == 1);
+    }
+
+    protected String getContext() {
+        return "string.startsWith(one,'one') && math.abs(id) % 5 == 0"; // match one row
     }
 
 }

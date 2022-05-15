@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractRowsFilterRule;
 import com.google.common.collect.Lists;
@@ -19,15 +20,15 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) {
-        Assert.assertEquals(3, values.size());
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) {
+        Assert.assertEquals(3, rowsEvent.getRows().size());
         Assert.assertEquals(2, indices.size());  // id、one
         Assert.assertEquals(0, indices.get("id").intValue());  // id in index 0
         Assert.assertEquals(1, indices.get("one").intValue());  // one in index 1
 
-        List<List<Object>> res = Lists.newArrayList();
-        List<Object> data = Lists.newArrayList(1,2);
-        res.add(data);
+        List<AbstractRowsEvent.Row> res = Lists.newArrayList();
+        res.add(rowsEvent.getRows().get(0));
+        res.add(rowsEvent.getRows().get(2));
         return res;
     }
 }

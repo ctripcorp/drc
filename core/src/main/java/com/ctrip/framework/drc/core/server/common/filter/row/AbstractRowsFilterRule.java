@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
@@ -15,7 +16,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.u
  * @Author limingdong
  * @create 2022/4/26
  */
-public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List<Object>> > {
+public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
 
     protected String registryKey;
 
@@ -33,18 +34,18 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
     }
 
     @Override
-    public RowsFilterResult<List<List<Object>>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
+    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
         Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
-        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
 
         LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
         if (indices == null) {
             return new RowsFilterResult(true);
         }
 
-        List<List<Object>> filteredRow = doFilterRows(values, indices);
+        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, indices);
 
-        if (filteredRow != null && values.size() == filteredRow.size()) {
+        if (filteredRow != null && rows.size() == filteredRow.size()) {
             return new RowsFilterResult(true);
         }
         return new RowsFilterResult(false, filteredRow);
@@ -82,10 +83,26 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<List
 
     /**
      *
-     * @param values column values in binlog
+     * @param rowsEvent rows event in binlog
      * @param indices column name to its index in values
      * @return
      * @throws Exception
      */
-    protected abstract List<List<Object>> doFilterRows(List<List<Object>> values, LinkedHashMap<String, Integer> indices) throws Exception;
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
+        List<AbstractRowsEvent.Row> result = Lists.newArrayList();
+        List<List<Object>> values = getValues(rowsEvent);
+        List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
+        int index = indices.values().iterator().next(); // only one field
+        for (int i = 0; i < values.size(); ++i) {
+            Object field = values.get(i).get(index);
+            if (doFilterRows(field)) {
+                result.add(rows.get(i));
+            }
+        }
+        return result;
+    }
+
+    protected boolean doFilterRows(Object field) throws Exception {
+        return true;
+    }
 }

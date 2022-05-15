@@ -2,13 +2,10 @@ package com.ctrip.framework.drc.core.driver.binlog.impl;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 
-import java.util.ArrayList;
-import java.util.BitSet;
+import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by @author zhuYongMing on 2019/9/6.
@@ -25,6 +22,12 @@ public class WriteRowsEvent extends AbstractRowsEvent {
         return this;
     }
 
+    public WriteRowsEvent() {
+    }
+
+    public WriteRowsEvent(WriteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+        super(rowsEvent, columns);
+    }
 
     @Override
     public void write(IoCache ioCache) {
