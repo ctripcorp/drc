@@ -55,7 +55,7 @@ public class TransformerHelper {
             }
             return values;
         } else {
-            return Lists.newArrayList();
+            return Lists.newArrayList(value);
         }
     }
 }
