@@ -115,6 +115,14 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return str;
     }
 
+    // for local debug
+    public String printByte(byte[] bytes) {
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        String str = ByteBufUtil.hexDump(buf);
+        System.out.println("bytes string: " + str);
+        return str;
+    }
+
     public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, int eventType) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         // do write row event payload post-header
@@ -393,7 +401,6 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 return;
             }
 
-            //TODO: decimal
             case mysql_type_newdecimal: {
                 // decimal[M, D] default M = 10, unpack float type, The number is stored as a string, one byte per number,
                 // max M = 65, e.g: decimal[4, 2] = [-99.99, 99.99]
@@ -401,54 +408,52 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 final int meta = column.getMeta();
                 final int precision = meta >> 8;
                 final int scale = meta & 0xff;
-
                 final int decimalLength = getDecimalBinarySize(precision, scale);
-                byte[] decimalBytes = new byte[decimalLength];
-
-                BigDecimal decimal = (BigDecimal) value;
-                String decimalStr = decimal.toPlainString();
-                boolean positive = decimal.signum() == 1;
-
                 final int x = precision - scale;
                 final int ipDigits = x / DIGITS_PER_4BYTES;
                 final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
                 final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
                 int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
 
+                byte[] decimalBytes = new byte[decimalLength];
+                BigDecimal decimal = (BigDecimal) value;
+                String decimalStr = decimal.toPlainString();
+
+                boolean positive = true;
                 String[] values = StringUtils.split(decimalStr, '.');
-
                 String intPart = values[0];
+                if (intPart.startsWith("-")){
+                    intPart = intPart.substring(1);
+                    positive = false;
+                }
                 String fracPart = values.length > 1 ? values[1] : StringUtils.EMPTY;
-
-                String intPart1 = complementLeftDigit(intPart, ipSize);
+                String intPart1 = complementLeftDigit(intPart, x);
                 String fracPart1 = complementRightDigit(fracPart, scale);
 
-                long ipDigitsX2 = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                // write offset value
+                long offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
                 switch (offset) {
                     case 1:
-                        toBytes(ipDigitsX2, 1, decimalBytes, 0);
-                        offset += 1;
+                        toBytes(offsetValue, 1, decimalBytes, 0);
                         break;
                     case 2:
-                        toBytes(ipDigitsX2, 2, decimalBytes, 0);
-                        offset += 2;
+                        toBytes(offsetValue, 2, decimalBytes, 0);
                         break;
                     case 3:
-                        toBytes(ipDigitsX2, 3, decimalBytes, 0);
-                        offset += 3;
+                        toBytes(offsetValue, 3, decimalBytes, 0);
                         break;
                     case 4:
-                        toBytes(ipDigitsX2, 4, decimalBytes, 0);
-                        offset += 4;
+                        toBytes(offsetValue, 4, decimalBytes, 0);
                         break;
                 }
 
-                for (int i = ipDigitsX; i < intPart1.length(); i += DIGITS_PER_4BYTES) {
-                    long result = Long.parseLong(intPart1.substring(offset, offset + DIGITS_PER_4BYTES));
+                // write int part
+                for (int shift = ipDigitsX; offset < ipSize; shift += DIGITS_PER_4BYTES, offset += 4) {
+                    long result = Long.parseLong(intPart1.substring(shift, shift + DIGITS_PER_4BYTES));
                     toBytes(result, 4, decimalBytes, offset);
-                    offset += 4;
                 }
 
+                // write frac part
                 int shift = 0;
                 for (; shift + DIGITS_PER_4BYTES <= scale; shift += DIGITS_PER_4BYTES, offset += 4) {
                     long result = Long.parseLong(fracPart1.substring(shift, shift + DIGITS_PER_4BYTES));
@@ -456,21 +461,17 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 }
                 if (shift < scale) {
                     long result = Long.parseLong(fracPart1.substring(shift, scale - shift));
-                    toBytes(result, scale - shift, decimalBytes, offset);
-                }
-
-                if (!positive) {
-                    for (int i = 0; i < decimalBytes.length; i++) {
-                        decimalBytes[i] ^= 0xFF;
-                    }
+                    toBytes(result, DECIMAL_BINARY_SIZE[scale - shift], decimalBytes, offset);
                 }
 
                 if (positive) {
                     decimalBytes[0] |= 0x80;
                 } else {
+                    for (int i = 0; i < decimalBytes.length; i++) {
+                        decimalBytes[i] ^= 0xFF;
+                    }
                     decimalBytes[0] &= 0x7F;
                 }
-
                 out.write(decimalBytes);
                 return;
             }
