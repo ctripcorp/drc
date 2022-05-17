@@ -460,7 +460,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     toBytes(result, 4, decimalBytes, offset);
                 }
                 if (shift < scale) {
-                    long result = Long.parseLong(fracPart1.substring(shift, scale - shift));
+                    long result = Long.parseLong(fracPart1.substring(shift, scale));
                     toBytes(result, DECIMAL_BINARY_SIZE[scale - shift], decimalBytes, offset);
                 }
 
@@ -682,11 +682,10 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 return;
             }
 
-            //TODO: test
             case mysql_type_time2: {
                 // document show range '-838:59:59.000000' to '838:59:59.000000'
                 long intPart = 0;
-                int frac = 0;
+                int frac = 0; //0
                 long ltime = 0;
                 boolean positive = true;
                 final int meta = column.getMeta();
@@ -695,7 +694,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     String[] time = StringUtils.split(value.toString(), ':');
                     String[] secondStrings = StringUtils.split(time[2], '.');
                     if (secondStrings.length > 1 && meta >= 1) {
-                        frac = stringToMicroseconds(secondStrings[1], meta);
+                        frac = stringToMicroseconds(secondStrings[1], meta); //567000
                     }
 
                     String hourString = time[0];
@@ -709,6 +708,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     ltime = intPart << 24;
                     if (!positive) {
                         ltime = -ltime;
+                        frac = - frac;
                     }
                 }
 
@@ -721,7 +721,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 2:
                         intPart = ltime >> 24;
                         frac /= 10000;
-                        if (intPart < 1 && frac > 0) {
+                        if (!positive && frac <0) {
                             intPart--;
                             frac += 0x100;
                         }
@@ -732,7 +732,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 4:
                         intPart = ltime >> 24;
                         frac /= 100;
-                        if (intPart < 1 && frac > 0) {
+                        if (!positive && frac < 0) {
                             intPart--;
                             frac += 0x10000;
                         }
@@ -743,14 +743,14 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 6:
                         intPart = ltime;
                         intPart |= frac % (1L << 24);
-                        ByteHelper.writeUnsignedInt48BigEndian(intPart, out); // unsigned big-endian
+                        ByteHelper.writeUnsignedInt48BigEndian(intPart + time_ofs, out); // unsigned big-endian
                         break;
                     default:
                         break;
                 }
+                return;
             }
 
-            //TODO: test
             case mysql_type_year: {
                 // '1901' to '2155'
                 int year = Integer.parseInt((String) value) - 1900;
@@ -1205,7 +1205,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         fracture = byteBuf.readUnsignedShort(); // unsigned bit-endian
                         if (intPart < 0 && fracture > 0) {
                             intPart++;
-                            fracture -= 0x100;
+                            fracture -= 0x10000;
                         }
 
                         fracture = fracture * 100;
