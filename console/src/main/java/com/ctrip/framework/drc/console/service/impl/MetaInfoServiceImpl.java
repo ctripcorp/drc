@@ -490,8 +490,8 @@ MetaInfoServiceImpl implements MetaInfoService {
             return applierFilter1;
         } else {
             HashSet<String> filters = Sets.newHashSet();
-            filters.addAll(List.of(applierFilter1.split(",")));
-            filters.addAll(List.of(applierFilter2.split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter1.split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter2.split(",")));
             return StringUtils.join(filters,",");
         }
     }
