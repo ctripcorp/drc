@@ -53,7 +53,7 @@ public class DataMediaConfig {
         return registryKey;
     }
 
-    private DataMediaConfig() {
+    public DataMediaConfig() {
     }
 
     public static DataMediaConfig from(String registryKey, String properties) throws Exception {
