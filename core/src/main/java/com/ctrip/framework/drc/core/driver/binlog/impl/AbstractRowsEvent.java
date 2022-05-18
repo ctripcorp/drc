@@ -45,6 +45,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     private static final long time_ofs = 0x800000000000L;
 
     // decimal constant
+    public static final BigDecimal long63Max = new BigDecimal("9223372036854775807");
     public static final BigDecimal long64Max = new BigDecimal("18446744073709551615");
     private static final int DIGITS_PER_4BYTES = 9;
     private static final BigDecimal POSITIVE_ONE = BigDecimal.ONE;
@@ -114,6 +115,14 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return str;
     }
 
+    // for local debug
+    public String printByte(byte[] bytes) {
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        String str = ByteBufUtil.hexDump(buf);
+        System.out.println("bytes string: " + str);
+        return str;
+    }
+
     public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, int eventType) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         // do write row event payload post-header
@@ -140,7 +149,6 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         ByteHelper.writeUnsignedIntLittleEndian(checksum, out);  // 4bytes
         return out.toByteArray();
     }
-
 
 
     @Override
@@ -302,7 +310,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     }
 
     private void writeValues(List<Object> values, final ByteArrayOutputStream out, final BitSet presentBitMap, final BitSet nullBitMap,
-                                    final long numberOfColumns, final List<TableMapLogEvent.Column> columns) throws IOException {
+                             final long numberOfColumns, final List<TableMapLogEvent.Column> columns) throws IOException {
 
         int nullIndex = 0;
         for (int i = 0; i < numberOfColumns; i++) {
@@ -322,46 +330,161 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
         switch (type) {
             case mysql_type_tiny: {
-                ByteHelper.writeUnsignedByte((int) value, out);
+                // 1byte
+                // [-2^7，2^7 -1], [-128, 127]
+                // unsigned [0, 2^8 - 1], [0, 255]
+                // mysql literal is tinyint
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedByte((int) value, out);
+                } else {
+                    ByteHelper.writeByte((byte) value, out);
+                }
                 return;
             }
 
             case mysql_type_short: {
-                ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                // 2bytes
+                // [-2^15, 2^15-1], [-32,768, 32,767]
+                // unsigned [0, 2^16 - 1], [0, 65535]
+                // mysql literal is smallint
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                } else {
+                    ByteHelper.writeShortLittleEndian((int) value, out);
+                }
                 return;
             }
 
             case mysql_type_int24: {
-                ByteHelper.writeUnsignedMediumLittleEndian((int) value, out);
+                // 3bytes
+                // [-2^23, 2^23 - 1], [-8388608, 8388607]
+                // unsigned [0, 2^24 - 1], [0, 16777215]
+                // mysql literal is int, integer
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedMediumLittleEndian((int) value, out);
+                } else {
+                    ByteHelper.writeMediumLittleEndian((int) value, out);
+                }
                 return;
             }
 
             case mysql_type_long: {
                 // 4bytes
-                ByteHelper.writeUnsignedIntLittleEndian((int) value, out);
+                // [-2^31, 2^31 - 1], [-2,147,483,648, 2,147,483,647]
+                // unsigned [0, 2^32 - 1], [0, 4294967295]
+                // mysql literal is int
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedIntLittleEndian((long) value, out);
+                } else {
+                    ByteHelper.writeIntLittleEndian((long) value, out);
+                }
                 return;
+
             }
 
             case mysql_type_longlong: {
                 // 8bytes
-                ByteHelper.writeUnsignedInt64LittleEndian((long) value, out);
+                // [-2^63, 2^63 - 1], [-9223372036854775808, 9223372036854775807],
+                // unsigned [0, 2^64 - 1], [0, 18446744073709551615]
+                // mysql literal is bigint
+                if (column.isUnsigned()) {
+                    BigDecimal decimalValue = (BigDecimal) value;
+                    if (decimalValue.compareTo(long63Max) > 0) {
+                        BigDecimal realValue = decimalValue.subtract(long64Max);
+                        ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
+                    } else {
+                        ByteHelper.writeInt64LittleEndian((long) value, out);
+                    }
+                } else {
+                    ByteHelper.writeInt64LittleEndian((long) value, out);
+                }
                 return;
             }
 
-            //TODO: decimal
             case mysql_type_newdecimal: {
+                // decimal[M, D] default M = 10, unpack float type, The number is stored as a string, one byte per number,
+                // max M = 65, e.g: decimal[4, 2] = [-99.99, 99.99]
+                // mysql literal is decimal, numeric
+                final int meta = column.getMeta();
+                final int precision = meta >> 8;
+                final int scale = meta & 0xff;
+                final int decimalLength = getDecimalBinarySize(precision, scale);
+                final int x = precision - scale;
+                final int ipDigits = x / DIGITS_PER_4BYTES;
+                final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
+                final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
+                int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
+
+                byte[] decimalBytes = new byte[decimalLength];
+                BigDecimal decimal = (BigDecimal) value;
+                String decimalStr = decimal.toPlainString();
+
+                boolean positive = true;
+                String[] values = StringUtils.split(decimalStr, '.');
+                String intPart = values[0];
+                if (intPart.startsWith("-")){
+                    intPart = intPart.substring(1);
+                    positive = false;
+                }
+                String fracPart = values.length > 1 ? values[1] : StringUtils.EMPTY;
+                String intPart1 = complementLeftDigit(intPart, x);
+                String fracPart1 = complementRightDigit(fracPart, scale);
+
+                // write offset value
+                long offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                switch (offset) {
+                    case 1:
+                        toBytes(offsetValue, 1, decimalBytes, 0);
+                        break;
+                    case 2:
+                        toBytes(offsetValue, 2, decimalBytes, 0);
+                        break;
+                    case 3:
+                        toBytes(offsetValue, 3, decimalBytes, 0);
+                        break;
+                    case 4:
+                        toBytes(offsetValue, 4, decimalBytes, 0);
+                        break;
+                }
+
+                // write int part
+                for (int shift = ipDigitsX; offset < ipSize; shift += DIGITS_PER_4BYTES, offset += 4) {
+                    long result = Long.parseLong(intPart1.substring(shift, shift + DIGITS_PER_4BYTES));
+                    toBytes(result, 4, decimalBytes, offset);
+                }
+
+                // write frac part
+                int shift = 0;
+                for (; shift + DIGITS_PER_4BYTES <= scale; shift += DIGITS_PER_4BYTES, offset += 4) {
+                    long result = Long.parseLong(fracPart1.substring(shift, shift + DIGITS_PER_4BYTES));
+                    toBytes(result, 4, decimalBytes, offset);
+                }
+                if (shift < scale) {
+                    long result = Long.parseLong(fracPart1.substring(shift, scale));
+                    toBytes(result, DECIMAL_BINARY_SIZE[scale - shift], decimalBytes, offset);
+                }
+
+                if (positive) {
+                    decimalBytes[0] |= 0x80;
+                } else {
+                    for (int i = 0; i < decimalBytes.length; i++) {
+                        decimalBytes[i] ^= 0xFF;
+                    }
+                    decimalBytes[0] &= 0x7F;
+                }
+                out.write(decimalBytes);
                 return;
             }
 
             case mysql_type_float: {
                 // 4bytes
-                ByteHelper.writeUnsignedIntLittleEndian(Float.floatToRawIntBits((float) value), out);
+                ByteHelper.writeIntLittleEndian(Float.floatToIntBits((float) value), out);
                 return;
             }
 
             case mysql_type_double: {
                 // 8bytes
-                ByteHelper.writeUnsignedInt64LittleEndian(Double.doubleToRawLongBits((long) value), out);
+                ByteHelper.writeInt64LittleEndian(Double.doubleToLongBits((double) value), out);
                 return;
             }
 
@@ -398,13 +521,19 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                             ByteHelper.writeUnsignedInt56BigEndian((long) value, out);
                             return;
                         }
-                        //TODO: need to rewrite
-//                        case 8:
-//                            final long long64 = byteBuf.readLong();
-//                            return long64 >= 0 ? BigDecimal.valueOf(long64) : long64Max.add(BigDecimal.valueOf(1 + long64));
+                        //TODO: need to test
+                        case 8:
+                            BigDecimal decimalValue = (BigDecimal) value;
+                            if (decimalValue.compareTo(long63Max) > 0) {
+                                BigDecimal realValue = decimalValue.subtract(long64Max);
+                                ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
+                            } else {
+                                ByteHelper.writeInt64LittleEndian((long) value, out);
+                            }
+                            return;
                         default:
                             // ignore, can't more than 8 bytes
-                            throw new UnsupportedOperationException(String.format("parse mysql field type bit error, bit(%d)", column.getMeta()));
+                            throw new UnsupportedOperationException(String.format("write mysql field type bit error, bit(%d)", column.getMeta()));
                     }
                 } else {
                     ByteHelper.writeUnsignedByte((int) value, out);
@@ -413,8 +542,19 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             }
 
             case mysql_type_string:
+                // include binary, char
+                // char存储字符数[0-255], 无论何种字符集; binary没有字符集
             case mysql_type_varchar: {
-                byte[] bytes = ((String) value).getBytes();
+                // include varbinary, varchar;
+                // varchar[M], M=[0-65535], 存储字符数取值要看字符集
+                byte[] bytes;
+                if (column.isBinary()) {
+                    // binary or varbinary
+                    bytes = (byte[]) value;
+                } else {
+                    bytes = ((String) value).getBytes(getCharset(column));
+                }
+
                 int valueLength = bytes.length;
                 if (column.getMeta() < 256) {
                     ByteHelper.writeUnsignedByte(valueLength, out);
@@ -427,25 +567,25 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
             case mysql_type_blob: {
                 // include all blob and text
-                byte[] bytes = ((String) value).getBytes();
+                byte[] bytes = (byte[]) value;
                 int valueLength = bytes.length;
                 switch (column.getMeta()) {
                     case 1: {
                         ByteHelper.writeUnsignedByte(valueLength, out);
-                        return;
+                        break;
                     }
                     case 2: {
                         ByteHelper.writeUnsignedShortLittleEndian(valueLength, out);
-                        return;
+                        break;
                     }
                     case 3: {
                         ByteHelper.writeUnsignedMediumLittleEndian(valueLength, out);
-                        return;
+                        break;
                     }
 
                     case 4: {
                         ByteHelper.writeUnsignedIntLittleEndian(valueLength, out);
-                        return;
+                        break;
                     }
                 }
                 ByteHelper.writeFixedLengthBytes(bytes, 0, valueLength, out);
@@ -453,6 +593,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             }
 
             case mysql_type_date: {
+                // document show range : '1000-01-01' to '9999-12-31'
+                // real range : '0000-01-01' to '9999-12-31'
                 // day(bit 1-5), month(bit 6-9), year(bit 10-24)
                 String[] strings = StringUtils.split((String) value, '-');
                 int date = (Integer.parseInt(strings[0]) << 9) | (Integer.parseInt(strings[0]) << 5) | Integer.parseInt(strings[0]);
@@ -461,6 +603,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             }
 
             case mysql_type_timestamp2: {
+                // '1970-01-01 00:00:01.000000' to '2038-01-19 03:14:07.999999'
                 final int meta = column.getMeta();
                 Timestamp timestamp = Timestamp.valueOf(String.valueOf(value));
                 long time = timestamp.getTime() / 1000;
@@ -517,8 +660,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
                 long high1 = (intPart + datetime_int_ofs) >>> 32;
                 long low4 = intPart % (1L << 32);
-                ByteHelper.writeUnsignedByte((int) high1, out);
-                ByteHelper.writeUnsignedIntBigEndian(low4, out);
+                ByteHelper.writeUnsignedByte((int) high1, out);  // unsigned big-endian
+                ByteHelper.writeUnsignedIntBigEndian(low4, out); // unsigned big-endian
 
                 switch (meta) {
                     case 1:
@@ -539,78 +682,73 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 return;
             }
 
-            //TODO: need to rewrite
             case mysql_type_time2: {
                 // document show range '-838:59:59.000000' to '838:59:59.000000'
                 long intPart = 0;
-                int fracture = 0;
+                int frac = 0; //0
                 long ltime = 0;
                 boolean positive = true;
                 final int meta = column.getMeta();
-                if (!"00:00:00".equalsIgnoreCase(value.toString())) {
+
+                if (!value.toString().startsWith("00:00:00")) {
                     String[] time = StringUtils.split(value.toString(), ':');
                     String[] secondStrings = StringUtils.split(time[2], '.');
                     if (secondStrings.length > 1 && meta >= 1) {
-                        fracture = stringToMicroseconds(secondStrings[1], meta);
+                        frac = stringToMicroseconds(secondStrings[1], meta); //567000
                     }
 
-                    long hour = Integer.parseInt(time[0]);
-                    if (hour < 0) {
-                        hour = -hour;
+                    String hourString = time[0];
+                    if (hourString.startsWith("-")){
+                        hourString = hourString.substring(1);
                         positive = false;
                     }
-
-                    long minuteAndSecond = Integer.parseInt(time[1]) << 6 | (Integer.parseInt(secondStrings[0]) % (1 << 6));
+                    long hour = Integer.parseInt(hourString);
+                    long minuteAndSecond = Integer.parseInt(time[1]) << 6 | (Integer.parseInt(secondStrings[0]));
                     intPart = hour << 12 | minuteAndSecond;
                     ltime = intPart << 24;
-                    if (positive) {
-
+                    if (!positive) {
+                        ltime = -ltime;
+                        frac = - frac;
                     }
-                    ltime = intPart << 24;
                 }
 
                 switch (meta) {
                     case 0:
                         intPart = ltime >> 24;
                         ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out);
-//                        intPart = byteBuf.readUnsignedMedium() - time_int_ofs; // unsigned big-endian
-//                        ltime = intPart << 24;
                         break;
-
                     case 1:
                     case 2:
                         intPart = ltime >> 24;
-                        fracture = fracture / 10000;
-                        //TODO: 负数需要处理
-//                        if (intPart < 0 && fracture > 0) {
-//                            intPart++;
-//                            fracture -= 0x100;
-//                        }
+                        frac /= 10000;
+                        if (!positive && frac <0) {
+                            intPart--;
+                            frac += 0x100;
+                        }
                         ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out); // unsigned big-endian
-                        ByteHelper.writeUnsignedByte(fracture, out); // unsigned bit-endian
+                        ByteHelper.writeUnsignedByte(frac, out); // unsigned bit-endian
                         break;
                     case 3:
                     case 4:
                         intPart = ltime >> 24;
-                        fracture = fracture / 100;
-                        //TODO: 负数需要处理
-//                        if (intPart < 0 && fracture > 0) {
-//                            intPart++;
-//                            fracture -= 0x100;
-//                        }
+                        frac /= 100;
+                        if (!positive && frac < 0) {
+                            intPart--;
+                            frac += 0x10000;
+                        }
                         ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out); // unsigned big-endian
-                        ByteHelper.writeUnsignedShortBigEndian(fracture, out); // unsigned bit-endian
+                        ByteHelper.writeUnsignedShortBigEndian(frac, out); // unsigned bit-endian
                         break;
-
                     case 5:
                     case 6:
                         intPart = ltime;
-                        ByteHelper.writeUnsignedShortBigEndian((int)((intPart + time_ofs) >> 32), out); // unsigned big-endian
-                        ByteHelper.writeUnsignedIntBigEndian(intPart % (1L << 32), out); // unsigned bit-endian
+                        intPart |= frac % (1L << 24);
+                        ByteHelper.writeUnsignedInt48BigEndian(intPart + time_ofs, out); // unsigned big-endian
                         break;
                     default:
                         break;
                 }
+                return;
             }
 
             case mysql_type_year: {
@@ -633,7 +771,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             }
 
             default:
-                throw new UnsupportedOperationException(String.format("unsupported parse field value, column type is %d", type.getType()));
+                throw new UnsupportedOperationException(String.format("unsupported write field value, column type is %d", type.getType()));
         }
     }
 
@@ -760,7 +898,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
                 int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
                 BigDecimal ip = offset > 0 ? BigDecimal.valueOf(toInt(decimalBytes, 0, offset)) : BigDecimal.ZERO;
-                for(; offset < ipSize; offset += 4) {
+                for (; offset < ipSize; offset += 4) {
                     final int i = toInt(decimalBytes, offset, 4);
                     ip = ip.movePointRight(DIGITS_PER_4BYTES).add(BigDecimal.valueOf(i));
                 }
@@ -771,7 +909,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     final int i = toInt(decimalBytes, offset, 4);
                     fp = fp.add(BigDecimal.valueOf(i).movePointLeft(shift + DIGITS_PER_4BYTES));
                 }
-                if(shift < scale) {
+                if (shift < scale) {
                     final int i = toInt(decimalBytes, offset, DECIMAL_BINARY_SIZE[scale - shift]);
                     fp = fp.add(BigDecimal.valueOf(i).movePointLeft(scale));
                 }
@@ -1067,7 +1205,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         fracture = byteBuf.readUnsignedShort(); // unsigned bit-endian
                         if (intPart < 0 && fracture > 0) {
                             intPart++;
-                            fracture -= 0x100;
+                            fracture -= 0x10000;
                         }
 
                         fracture = fracture * 100;
@@ -1238,6 +1376,32 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return Integer.parseInt(sec);
     }
 
+    private String complementLeftDigit(String decimalStr, int length) {
+        if (decimalStr.length() < length) {
+            StringBuilder result = new StringBuilder(length);
+            int len = length - decimalStr.length();
+            for (; len > 0; len--) {
+                result.append('0');
+            }
+            result.append(decimalStr);
+            return result.toString();
+        }
+        return decimalStr;
+    }
+
+    private String complementRightDigit(String decimalStr, int length) {
+        if (decimalStr.length() < length) {
+            StringBuilder result = new StringBuilder(length);
+            int len = length - decimalStr.length();
+            result.append(decimalStr);
+            for (; len > 0; len--) {
+                result.append('0');
+            }
+            return result.toString();
+        }
+        return decimalStr;
+    }
+
     private int getDecimalBinarySize(int precision, int scale) {
         final int x = precision - scale;
         final int ipDigits = x / DIGITS_PER_4BYTES;
@@ -1251,9 +1415,16 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         int r = 0;
         for (int i = offset; i < (offset + length); i++) {
             final byte b = data[i];
-            r = (r << 8) | (b >= 0 ? (int)b : (b + 256));
+            r = (r << 8) | (b >= 0 ? (int) b : (b + 256));
         }
         return r;
+    }
+
+    private void toBytes(long val, int length, byte[] data, int offset) {
+        for (int i = length; i > 0; i--) {
+            data[offset + i - 1] = (byte) (val & 0xFF);
+            val = val >>> 8;
+        }
     }
 
     public RowsEventPostHeader getRowsEventPostHeader() {

@@ -151,7 +151,7 @@ import org.junit.runners.Suite;
         DefaultFileConfigTest.class,
         RegistryKeyTest.class,
         ApplierRegistryKeyTest.class,
-        
+
         //Http response test
         AppNodeTest.class,
 
@@ -167,7 +167,11 @@ import org.junit.runners.Suite;
         AviatorRegexFilterTest.class,
 
         // QueryTask
-        ExecutedGtidQueryTaskTest.class
+        ExecutedGtidQueryTaskTest.class,
+
+        // Write row field with different MySQL type
+        WriteFieldNewdecimalTypeTest.class,
+        WriteFieldTime2TypeTest.class
 })
 public class AllTests {
 
