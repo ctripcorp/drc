@@ -376,7 +376,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if (column.isUnsigned()) {
                     ByteHelper.writeUnsignedIntLittleEndian((long) value, out);
                 } else {
-                    ByteHelper.writeIntLittleEndian((long) value, out);
+                    ByteHelper.writeIntLittleEndian((int) value, out);
                 }
                 return;
 
