@@ -751,7 +751,7 @@ public class MetaControllerTest extends AbstractControllerTest {
                 when(rowsFilterService).addRowsFilter(Mockito.any(RowsFilterDto.class));
         RowsFilterDto rowsFilterDto = new RowsFilterDto();
         rowsFilterDto.setName("name");
-        rowsFilterDto.setMode(1);
+        rowsFilterDto.setMode("java_regex");
         rowsFilterDto.setColumns(com.google.common.collect.Lists.newArrayList("column"));
         MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilter",rowsFilterDto);
         assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);

@@ -43,8 +43,8 @@ public class RowsFilterTbl implements DalPojo {
      * 行过滤配置 模式 regex, trip_uid,customed
      */
 	@Column(name = "mode")
-	@Type(value = Types.TINYINT)
-	private Integer mode;
+	@Type(value = Types.VARCHAR)
+	private String mode;
 
     /**
      * json 保存 columns,expresssion属性
@@ -90,11 +90,11 @@ public class RowsFilterTbl implements DalPojo {
 		this.name = name;
 	}
 
-	public Integer getMode() {
+	public String getMode() {
 		return mode;
 	}
 
-	public void setMode(Integer mode) {
+	public void setMode(String mode) {
 		this.mode = mode;
 	}
 

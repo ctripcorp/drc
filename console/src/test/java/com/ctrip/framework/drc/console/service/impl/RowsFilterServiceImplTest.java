@@ -10,8 +10,8 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.RowsFilterDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
-import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,7 +57,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
                 thenReturn(rowsFilterMappingTbls);
         
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
-        rowsFilterTbl.setMode(RowsFilterModeEnum.TRIP_UID.getMode());
+        rowsFilterTbl.setMode(RowsFilterType.TripUid.getName());
         rowsFilterTbl.setParameters("{\n" +
                 "                    \"columns\": [\n" +
                 "                        \"columnA\",\n" +
@@ -88,7 +88,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
     public void testAddRowsFilter() throws SQLException {
         RowsFilterDto rowsFilterDto = new RowsFilterDto();
         rowsFilterDto.setName("rowsFilterName");
-        rowsFilterDto.setMode(RowsFilterModeEnum.TRIP_UID.getMode());
+        rowsFilterDto.setMode(RowsFilterType.TripUid.getName());
         rowsFilterDto.setColumns(Lists.newArrayList("columnA"));
         rowsFilterDto.setExpression("expression content");
         Mockito.when(rowsFilterTblDao.insert(Mockito.any(RowsFilterTbl.class))).thenReturn(1);
