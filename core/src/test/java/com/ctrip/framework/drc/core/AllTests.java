@@ -171,7 +171,9 @@ import org.junit.runners.Suite;
 
         // Write row field with different MySQL type
         WriteFieldNewdecimalTypeTest.class,
-        WriteFieldTime2TypeTest.class
+        WriteFieldTime2Meta2TypeTest.class,
+        WriteFieldTime2Meta4TypeTest.class,
+        WriteFieldTime2Meta6TypeTest.class
 })
 public class AllTests {
 

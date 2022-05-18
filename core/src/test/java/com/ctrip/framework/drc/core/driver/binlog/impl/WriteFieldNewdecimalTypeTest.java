@@ -18,7 +18,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "b4 29 83 62   1e   ea 0c 00 00   30 00 00 00   eb 11 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
                 "00 00 7b 1b 2e 02 00 00  00 5c b9 d8 f5";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "123.456000000000");
     }
 
     // insert into drc1.newdecimal(amount) values(-123.456);
@@ -27,7 +27,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "61 2a 83 62   1e   ea 0c 00 00   30 00 00 00   fb 12 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 7f ff ff" +
                 "ff ff 84 e4 d1 fd ff ff  ff e6 21 76 5f";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "-123.456000000000");
     }
 
     // insert into drc1.newdecimal(amount) values(9999999999999.999999999999);
@@ -36,7 +36,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "c3 2a 83 62   1e   ea 0c 00 00   30 00 00 00   0b 14 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe a7 0f 3b" +
                 "9a c9 ff 3b 9a c9 ff 03  e7 29 aa a6 f0";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "9999999999999.999999999999");
     }
 
     // insert into drc1.newdecimal(amount) values(-9999999999999.999999999999);
@@ -45,7 +45,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "0c 2b 83 62   1e   ea 0c 00 00   30 00 00 00   1b 15 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 58 f0 c4" +
                 "65 36 00 c4 65 36 00 fc  18 03 20 9e bd";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "-9999999999999.999999999999");
     }
 
     // insert into drc1.newdecimal(amount) values(999999999.999);
@@ -54,7 +54,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "5b 2b 83 62   1e   ea 0c 00 00   30 00 00 00   2b 16 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 3b" +
                 "9a c9 ff 3b 8b 87 c0 00  00 74 66 87 a0";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "999999999.999000000000");
     }
 
     // insert into drc1.newdecimal(amount) values(0.1);
@@ -63,7 +63,7 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "8d 2b 83 62   1e   ea 0c 00 00   30 00 00 00   3b 17 00 00   00 00" +
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
                 "00 00 00 05 f5 e1 00 00  00 3f f3 ef ca";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "0.100000000000");
     }
 
     /*

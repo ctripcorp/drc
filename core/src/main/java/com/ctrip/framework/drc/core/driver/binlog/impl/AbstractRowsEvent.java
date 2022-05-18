@@ -422,7 +422,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 boolean positive = true;
                 String[] values = StringUtils.split(decimalStr, '.');
                 String intPart = values[0];
-                if (intPart.startsWith("-")){
+                if (intPart.startsWith("-")) {
                     intPart = intPart.substring(1);
                     positive = false;
                 }
@@ -685,31 +685,29 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             case mysql_type_time2: {
                 // document show range '-838:59:59.000000' to '838:59:59.000000'
                 long intPart = 0;
-                int frac = 0; //0
+                int frac = 0;
                 long ltime = 0;
                 boolean positive = true;
                 final int meta = column.getMeta();
 
-                if (!value.toString().startsWith("00:00:00")) {
-                    String[] time = StringUtils.split(value.toString(), ':');
-                    String[] secondStrings = StringUtils.split(time[2], '.');
-                    if (secondStrings.length > 1 && meta >= 1) {
-                        frac = stringToMicroseconds(secondStrings[1], meta); //567000
-                    }
+                String[] time = StringUtils.split(value.toString(), ':');
+                String[] secondStrings = StringUtils.split(time[2], '.');
+                if (secondStrings.length > 1 && meta >= 1) {
+                    frac = stringToMicroseconds(secondStrings[1], meta);
+                }
 
-                    String hourString = time[0];
-                    if (hourString.startsWith("-")){
-                        hourString = hourString.substring(1);
-                        positive = false;
-                    }
-                    long hour = Integer.parseInt(hourString);
-                    long minuteAndSecond = Integer.parseInt(time[1]) << 6 | (Integer.parseInt(secondStrings[0]));
-                    intPart = hour << 12 | minuteAndSecond;
-                    ltime = intPart << 24;
-                    if (!positive) {
-                        ltime = -ltime;
-                        frac = - frac;
-                    }
+                String hourString = time[0];
+                if (hourString.startsWith("-")) {
+                    hourString = hourString.substring(1);
+                    positive = false;
+                }
+                long hour = Integer.parseInt(hourString);
+                long minuteAndSecond = Integer.parseInt(time[1]) << 6 | (Integer.parseInt(secondStrings[0]));
+                intPart = hour << 12 | minuteAndSecond;
+                ltime = intPart << 24;
+                if (!positive) {
+                    ltime = -ltime;
+                    frac = -frac;
                 }
 
                 switch (meta) {
@@ -721,7 +719,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 2:
                         intPart = ltime >> 24;
                         frac /= 10000;
-                        if (!positive && frac <0) {
+                        if (!positive && frac < 0) {
                             intPart--;
                             frac += 0x100;
                         }
@@ -742,7 +740,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 5:
                     case 6:
                         intPart = ltime;
-                        intPart |= frac % (1L << 24);
+                        intPart += frac;
                         ByteHelper.writeUnsignedInt48BigEndian(intPart + time_ofs, out); // unsigned big-endian
                         break;
                     default:
@@ -1226,7 +1224,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
                 String secondString;
                 if (intPart == 0) {
-                    secondString = "00:00:00";
+                    secondString = fracture < 0 ? "-00:00:00" : "00:00:00";
                 } else {
                     long ultime = Math.abs(ltime);
                     intPart = ultime >> 24;
