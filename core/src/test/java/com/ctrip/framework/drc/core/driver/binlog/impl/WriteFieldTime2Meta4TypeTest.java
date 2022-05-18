@@ -11,7 +11,7 @@ import java.util.List;
  * Created by jixinwang on 2022/5/17
  */
 // document show range '-838:59:59.000000' to '838:59:59.000000'
-public class WriteFieldTime2TypeTest extends AbstractWriteFieldTypeTest {
+public class WriteFieldTime2Meta4TypeTest extends AbstractWriteFieldTypeTest {
 
     // insert into drc1.time2(start_at) values('12:13:14.567');
     @Test
@@ -19,7 +19,7 @@ public class WriteFieldTime2TypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "34 4e 83 62   1e   ea 0c 00 00   29 00 00 00   1a 1b 00 00   00 00" +
                 "6f 00 00 00 00 00 01 00  02 00 01 ff fe 80 c3 4e" +
                 "16 26 53 a5 b6 fd";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "12:13:14.5670");
     }
 
     // insert into drc1.time2(start_at) values('-12:13:14.567');
@@ -28,7 +28,7 @@ public class WriteFieldTime2TypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "8e 51 83 62   1e   ea 0c 00 00   29 00 00 00   1d 1c 00 00   00 00" +
                 "6f 00 00 00 00 00 01 00  02 00 01 ff fe 7f 3c b1" +
                 "e9 da e8 c5 e3 fd";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "-12:13:14.5670");
     }
 
     // insert into drc1.time2(start_at) values('838:59:59.0000');
@@ -37,7 +37,7 @@ public class WriteFieldTime2TypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "e4 b8 83 62   1e   ea 0c 00 00   29 00 00 00   20 1d 00 00   00 00" +
                 "6f 00 00 00 00 00 01 00  02 00 01 ff fe b4 6e fb" +
                 "00 00 bd 6d b1 8f";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "838:59:59.0000");
     }
 
     // insert into drc1.time2(start_at) values('-838:59:59.0000');
@@ -46,16 +46,34 @@ public class WriteFieldTime2TypeTest extends AbstractWriteFieldTypeTest {
         String rowsHexString = "8f b9 83 62   1e   ea 0c 00 00   29 00 00 00   23 1e 00 00   00 00" +
                 "6f 00 00 00 00 00 01 00  02 00 01 ff fe 4b 91 05" +
                 "00 00 4b e9 3e 8e";
-        testWriteValue(rowsHexString);
+        testWriteValue(rowsHexString, "-838:59:59.0000");
+    }
+
+    // insert into drc1.time2(start_at) values('00:00:00.0000');
+    @Test
+    public void testZero() throws IOException {
+        String rowsHexString = "7b 4e 84 62   1e   ea 0c 00 00   29 00 00 00   65 2f 00 00   00 00" +
+                "71 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
+                "00 00 19 bc b3 e5";
+        testWriteValue(rowsHexString, "00:00:00.0000");
+    }
+
+    // insert into drc1.time2(start_at) values('00:00:00.1234');
+    @Test
+    public void testPositiveMillSecond() throws IOException {
+        String rowsHexString = "9c cb 83 62   1e   ea 0c 00 00   29 00 00 00   29 20 00 00   00 00" +
+                "6f 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
+                "04 d2 8f a0 37 f8";
+        testWriteValue(rowsHexString, "00:00:00.1234");
     }
 
     // insert into drc1.time2(start_at) values('-00:00:00.0100');
     @Test
     public void testNegativeMillSecond() throws IOException {
-        String rowsHexString = "8f b9 83 62   1e   ea 0c 00 00   29 00 00 00   23 1e 00 00   00 00" +
-                "6f 00 00 00 00 00 01 00  02 00 01 ff fe 4b 91 05" +
-                "00 00 4b e9 3e 8e";
-        testWriteValue(rowsHexString);
+        String rowsHexString = "b3 68 84 62   1e   ea 0c 00 00   29 00 00 00   2c 3d 00 00   00 00" +
+                "73 00 00 00 00 00 01 00  02 00 01 ff fe 7f ff ff" +
+                "ff 9c 3a f3 06 41";
+        testWriteValue(rowsHexString, "-00:00:00.0100");
     }
 
     /*

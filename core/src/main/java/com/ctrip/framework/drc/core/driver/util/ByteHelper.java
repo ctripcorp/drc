@@ -181,7 +181,7 @@ public abstract class ByteHelper {
         out.write((byte) (data >>> 24));
     }
 
-    public static void writeIntLittleEndian(long data, ByteArrayOutputStream out) {
+    public static void writeIntLittleEndian(int data, ByteArrayOutputStream out) {
         out.write((byte) (data & 0xFF));
         out.write((byte) (data >> 8));
         out.write((byte) (data >> 16));
