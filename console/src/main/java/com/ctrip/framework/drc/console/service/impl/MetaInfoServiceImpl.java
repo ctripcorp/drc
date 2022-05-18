@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -26,6 +27,7 @@ import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -682,7 +684,9 @@ MetaInfoServiceImpl implements MetaInfoService {
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
-        String rowsFilterConfig = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonUtils.toJson(rowsFilterConfigs);
+        DataMediaConfig properties = new DataMediaConfig();
+        properties.setRowsFilters(rowsFilterConfigs);
+        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
         for(ApplierTbl applierTbl : applierTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.info("generate view applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -698,7 +702,7 @@ MetaInfoServiceImpl implements MetaInfoService {
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode())
-                    .setProperties(rowsFilterConfig);
+                    .setProperties(propertiesJson);
             dbCluster.addApplier(applier);
         }
     }

@@ -20,7 +20,7 @@ public class RowsFilterDto {
     
     private String name;
     
-    private Integer mode;
+    private String mode;
     
     private List<String> columns;
     
@@ -40,6 +40,7 @@ public class RowsFilterDto {
         rowsFilterTbl.setParameters(JsonUtils.toJson(parameters));
         if (id != null) {
             rowsFilterTbl.setId(id);
+            String a = "^\\d*[02468]$";
         }
         return rowsFilterTbl;
     }
@@ -77,11 +78,11 @@ public class RowsFilterDto {
         this.name = name;
     }
 
-    public int getMode() {
+    public String getMode() {
         return mode;
     }
 
-    public void setMode(Integer mode) {
+    public void setMode(String mode) {
         this.mode = mode;
     }
 
