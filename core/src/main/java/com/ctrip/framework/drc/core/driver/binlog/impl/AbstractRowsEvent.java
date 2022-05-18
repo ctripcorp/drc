@@ -521,14 +521,13 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                             ByteHelper.writeUnsignedInt56BigEndian((long) value, out);
                             return;
                         }
-                        //TODO: need to test
                         case 8:
                             BigDecimal decimalValue = (BigDecimal) value;
                             if (decimalValue.compareTo(long63Max) > 0) {
                                 BigDecimal realValue = decimalValue.subtract(long64Max);
-                                ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
+                                ByteHelper.writeInt64BigEndian(realValue.longValue() - 1, out);
                             } else {
-                                ByteHelper.writeInt64LittleEndian((long) value, out);
+                                ByteHelper.writeInt64BigEndian(decimalValue.longValue(), out);
                             }
                             return;
                         default:
@@ -636,29 +635,24 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             case mysql_type_datetime2: {
                 // document show range : '1000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
                 // real range : '0000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
-                long intPart;
+                long intPart = 0;
                 int fracture = 0;
-                final int meta = column.getMeta();
-                if ("1000-01-01 00:00:00".equalsIgnoreCase(value.toString())) {
-                    intPart = 0;
-                } else {
-                    String[] dateAndTime = StringUtils.split(value.toString(), ' ');
+                int meta = column.getMeta();
+                String[] dateAndTime = StringUtils.split(value.toString(), ' ');
+                String[] time = StringUtils.split(dateAndTime[1], ':');
+                String[] secondStrings = StringUtils.split(time[2], '.');
+                long hms = Integer.parseInt(time[0]) << 12 | Integer.parseInt(time[1]) << 6 | Integer.parseInt(secondStrings[0]);
 
-                    String[] date = StringUtils.split(dateAndTime[0], '-');
-                    long ym = Integer.parseInt(date[0]) * 13 + Integer.parseInt(date[1]);
-                    long ymd = ym << 5 + Integer.parseInt(date[2]);
+                String[] date = StringUtils.split(dateAndTime[0], '-');
+                long ym = Integer.parseInt(date[0]) * 13 + Integer.parseInt(date[1]); //129999
+                long ymd = (ym << 5) + Integer.parseInt(date[2]);
+                intPart = ymd << 17 | hms; //545259486971
 
-                    String[] time = StringUtils.split(dateAndTime[1], ':');
-                    String[] secondStrings = StringUtils.split(time[2], '.');
-                    long hms = Integer.parseInt(time[0]) << 12 | Integer.parseInt(time[1]) << 6 | Integer.parseInt(secondStrings[0]);
-                    intPart = ymd << 17 | hms;
-
-                    if (secondStrings.length > 1 && meta >= 1) {
-                        fracture = stringToMicroseconds(secondStrings[1], meta);
-                    }
+                if (secondStrings.length > 1 && meta >= 1) {
+                    fracture = stringToMicroseconds(secondStrings[1], meta);
                 }
 
-                long high1 = (intPart + datetime_int_ofs) >>> 32;
+                long high1 = (intPart + datetime_int_ofs) >> 32;
                 long low4 = intPart % (1L << 32);
                 ByteHelper.writeUnsignedByte((int) high1, out);  // unsigned big-endian
                 ByteHelper.writeUnsignedIntBigEndian(low4, out); // unsigned big-endian
@@ -674,7 +668,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         break;
                     case 5:
                     case 6:
-                        ByteHelper.writeMediumBigEndian(fracture / 100, out); // signed big-endian
+                        ByteHelper.writeMediumBigEndian(fracture, out); // signed big-endian
                         break;
                     default:
                         break;
@@ -740,7 +734,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     case 5:
                     case 6:
                         intPart = ltime;
-                        intPart += frac;
+                        intPart += frac % (1 << 24);
                         ByteHelper.writeUnsignedInt48BigEndian(intPart + time_ofs, out); // unsigned big-endian
                         break;
                     default:
