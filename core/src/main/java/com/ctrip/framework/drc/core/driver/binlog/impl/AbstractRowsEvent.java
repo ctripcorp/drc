@@ -335,7 +335,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 // unsigned [0, 2^8 - 1], [0, 255]
                 // mysql literal is tinyint
                 if (column.isUnsigned()) {
-                    ByteHelper.writeUnsignedByte((int) value, out);
+                    ByteHelper.writeUnsignedByte((short) value, out);
                 } else {
                     ByteHelper.writeByte((byte) value, out);
                 }
@@ -350,7 +350,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if (column.isUnsigned()) {
                     ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
                 } else {
-                    ByteHelper.writeShortLittleEndian((int) value, out);
+                    ByteHelper.writeShortLittleEndian((short) value, out);
                 }
                 return;
             }
@@ -393,7 +393,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         BigDecimal realValue = decimalValue.subtract(long64Max);
                         ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
                     } else {
-                        ByteHelper.writeInt64LittleEndian((long) value, out);
+                        ByteHelper.writeInt64LittleEndian(decimalValue.longValue(), out);
                     }
                 } else {
                     ByteHelper.writeInt64LittleEndian((long) value, out);

@@ -169,22 +169,29 @@ import org.junit.runners.Suite;
         // QueryTask
         ExecutedGtidQueryTaskTest.class,
 
-        // Write row field with different MySQL type
-        WriteFieldFloatTypeTest.class,
-        WriteFieldFloatUnsignedTypeTest.class,
-
+        // Write row field with MySQL number type
+        WriteFieldTinyTypeTest.class,
+        WriteFieldTinyUnsignedTypeTest.class,
+        WriteFieldShortTypeTest.class,
+        WriteFieldShortUnsignedTypeTest.class,
+        WriteFieldInt24TypeTest.class,
+        WriteFieldInt24UnsignedTypeTest.class,
         WriteFieldLongTypeTest.class,
         WriteFieldLongUnsignedTypeTest.class,
+        WriteFieldLongLongTypeTest.class,
+        WriteFieldLongLongUnsignedTypeTest.class,
+        WriteFieldBitMeta8TypeTest.class,
 
+        WriteFieldFloatTypeTest.class,
+        WriteFieldFloatUnsignedTypeTest.class,
         WriteFieldNewdecimalTypeTest.class,
 
+        WriteFieldDatetime2TypeTest.class,
         WriteFieldTime2Meta0TypeTest.class,
         WriteFieldTime2Meta2TypeTest.class,
         WriteFieldTime2Meta4TypeTest.class,
-        WriteFieldTime2Meta6TypeTest.class,
+        WriteFieldTime2Meta6TypeTest.class
 
-        WriteFieldBitMeta8TypeTest.class,
-        WriteFieldDatetime2TypeTest.class
 })
 public class AllTests {
 

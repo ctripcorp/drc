@@ -50,6 +50,15 @@ public class WriteFieldDatetime2TypeTest extends AbstractWriteFieldTypeTest {
         testWriteValue(rowsHexString, "1000-01-01 00:00:00.000000");
     }
 
+    // insert into drc1.datetime(date) values('2022-05-18 22:28:54.198');
+    @Test
+    public void testNow() throws IOException {
+        String rowsHexString = "5a 1a 85 62   1e   ea 0c 00 00   2c 00 00 00   7a 07 00 00   00 00" +
+                "7b 00 00 00 00 00 01 00  02 00 01 ff fe 99 ac e5" +
+                "67 36 03 05 70 d8 dc 65  ee";
+        testWriteValue(rowsHexString, "2022-05-18 22:28:54.198000");
+    }
+
     /*
      * CREATE DATABASE if not exists drc1;
      * CREATE TABLE `drc1`.`datetime` (
