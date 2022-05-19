@@ -9,10 +9,12 @@ import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.monitor.Task;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -247,9 +249,12 @@ public class MetaGenerator {
         ReplicatorGroupTbl targetReplicatorGroupTbl = replicatorGroupTbls.stream().filter(predicate -> predicate.getId().equals(applierGroupTbl.getReplicatorGroupId())).findFirst().get();
         MhaTbl targetMhaTbl = mhaTbls.stream().filter(predicate -> predicate.getId().equals(targetReplicatorGroupTbl.getMhaId())).findFirst().get();
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
-        List<ApplierTbl> curMhaAppliers = applierTbls.stream().filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
+        List<ApplierTbl> curMhaAppliers = applierTbls.stream().
+                filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
-        String rowsFilterConfig = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonUtils.toJson(rowsFilterConfigs);
+        DataMediaConfig properties = new DataMediaConfig();
+        properties.setRowsFilters(rowsFilterConfigs);
+        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
         for(ApplierTbl applierTbl : curMhaAppliers) {
             ResourceTbl resourceTbl = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.debug("generate applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -264,7 +269,7 @@ public class MetaGenerator {
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode())
-                    .setProperties(rowsFilterConfig);
+                    .setProperties(propertiesJson);
             dbCluster.addApplier(applier);
         }
     }
