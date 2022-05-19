@@ -55,9 +55,9 @@ public class WriteFieldShortTypeTest extends AbstractWriteFieldTypeTest {
     // insert into drc1.short(id) values(0);
     @Test
     public void testZero() throws IOException {
-        String rowsHexString = "80 f2 85 62   1e   ea 0c 00 00   25 00 00 00   5c 14 00 00   00 00" +
-                "7e 00 00 00 00 00 01 00  02 00 01 ff fe 00 4c b8" +
-                "97 7b";
+        String rowsHexString = "6c 04 86 62   1e   ea 0c 00 00   26 00 00 00   de 08 00 00   00 00" +
+                "84 00 00 00 00 00 01 00  02 00 01 ff fe 00 00 eb" +
+                "a3 8d 73";
         testWriteValue(rowsHexString, "0");
     }
 
