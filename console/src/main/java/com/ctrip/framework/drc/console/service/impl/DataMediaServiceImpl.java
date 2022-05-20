@@ -2,16 +2,29 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
+import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.DataMediaDto;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
+import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.DataMediaService;
+import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.console.vo.DataMediaVo;
+import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName DataMediaServiceImpl
@@ -29,9 +42,16 @@ public class DataMediaServiceImpl implements DataMediaService {
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
     
+    @Autowired
+    private RowsFilterTblDao rowsFilterTblDao;
+    
+    private DalUtils dalUtils = DalUtils.getInstance();
+    
     @Override
     public String addDataMedia(DataMediaDto dataMediaDto) throws SQLException {
         try {
+            Long mhaId = dalUtils.getId(TableEnum.MHA_TABLE, dataMediaDto.getDataMediaSourceName());
+            dataMediaDto.setDataMediaSourceId(mhaId);
             DataMediaTbl dataMediaTbl = dataMediaDto.toDataMediaTbl();
             dataMediaTblDao.insert(dataMediaTbl);
             return "add DataMedia success";
@@ -50,6 +70,53 @@ public class DataMediaServiceImpl implements DataMediaService {
         int insert = rowsFilterMappingTblDao.insert(rowsFilterMappingTbl);
         return "add DataMediaMapping success";
     }
+
+    @Override
+    public List<DataMediaVo> getDataMediaVos(Long applierGroupId,String srcMha) throws SQLException {
+        List<DataMediaVo> dataMediaVos = Lists.newArrayList();
+        if (applierGroupId == null) {
+            return dataMediaVos;
+        }
+        Long srcMhaId = dalUtils.getId(TableEnum.MHA_TABLE, srcMha);
+        List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByDataSourceId(srcMhaId,
+                DataMediaTypeEnum.REGEX_LOGIC.getType(),
+                BooleanEnum.FALSE.getCode());
+        for (DataMediaTbl dataMediaTbl : dataMediaTbls) {
+            dataMediaVos.add(new DataMediaVo(dataMediaTbl));
+        }
+        return dataMediaVos;
+    }
+
+    @Override
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException {
+        List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
+        if (applierGroupId == null) {
+            return mappingVos;
+        }
+        List<RowsFilterMappingTbl> rowsFilterMappingTbls = rowsFilterMappingTblDao.queryByApplierGroupIds(
+                Lists.newArrayList(applierGroupId),
+                BooleanEnum.FALSE.getCode());
+       for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
+           RowsFilterMappingVo rowsFilterMappingVo = new RowsFilterMappingVo();
+           rowsFilterMappingVo.setId(mapping.getId());
+           List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByIdsAndType(
+                   Lists.newArrayList(mapping.getDataMediaId()),
+                   DataMediaTypeEnum.REGEX_LOGIC.getType(),
+                   BooleanEnum.FALSE.getCode());
+           if (!CollectionUtils.isEmpty(dataMediaTbls)) {
+               rowsFilterMappingVo.setDataMediaVo(new DataMediaVo(dataMediaTbls.get(0)));
+           }
+           RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
+           if (rowsFilterTbl != null) {
+               rowsFilterMappingVo.setRowsFilterId(rowsFilterTbl.getId());
+               rowsFilterMappingVo.setRowsFilterName(rowsFilterTbl.getName());
+           }
+           mappingVos.add(rowsFilterMappingVo);
+       }
+        return mappingVos;
+    }
     
     
+
+
 }

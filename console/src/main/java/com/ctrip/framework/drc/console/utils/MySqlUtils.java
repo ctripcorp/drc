@@ -10,15 +10,15 @@ import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -110,7 +110,16 @@ public class MySqlUtils {
      */
     public static Map<String, String> getDefaultCreateTblStmts(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
-        return getCreateTblStmts(endpoint, tables.stream().filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).map(TableSchemaName::toString).collect(Collectors.toList()), false);
+        return getCreateTblStmts(endpoint,
+                tables.stream().
+                        filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
+                        map(TableSchemaName::toString).collect(Collectors.toList()), false);
+    }
+    public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        return tables.stream().
+                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
+                collect(Collectors.toList());
     }
 
     /**
@@ -196,6 +205,58 @@ public class MySqlUtils {
             removeSqlOperator(endpoint);
         }
         return stmts;
+    }
+
+    public static Map<String, Set<String>> getAllColumnsByTable(Endpoint endpoint, List<TableSchemaName> tables, Boolean removeSqlOperator) {
+
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        ReadResource readResource = null;
+        for(TableSchemaName table : tables) {
+            try {
+                String sql = String.format(GET_COLUMN_PREFIX, table.getSchema(),table.getName());
+                GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+                readResource = sqlOperatorWrapper.select(execution);
+                ResultSet rs = readResource.getResultSet();
+                int index = 1;
+                HashSet<String> columns = Sets.newHashSet();
+                while (rs.next()) {
+                    String column = rs.getString(index++);
+                    columns.add(column);
+                }
+                table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
+            } catch (Throwable t) {
+                logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+                removeSqlOperator(endpoint);
+            } finally {
+                if (readResource != null) {
+                    readResource.close();
+                }
+            }
+        }
+        if (removeSqlOperator) {
+            removeSqlOperator(endpoint);
+        }
+        return table2ColumnsMap;
+    }
+    
+    public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        List<TableSchemaName> tablesAfterFilter = tables.stream().
+                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).collect(Collectors.toList());
+        Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, true);
+        HashSet<String> commonColumns = Sets.newHashSet();
+        for (Set<String> columns : allColumnsByTable.values()) {
+            if (commonColumns.isEmpty()) {
+                commonColumns.addAll(columns);
+            } else {
+                commonColumns.retainAll(columns);
+                if (commonColumns.isEmpty()) {
+                    break;
+                }
+            }
+        }
+        return commonColumns;
     }
 
     protected static String filterStmt(String roughStmt, Endpoint endpoint, String table) {

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.RowsFilterDto;
+import com.ctrip.framework.drc.console.dto.RowsFilterMappingDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -90,7 +91,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         rowsFilterDto.setName("rowsFilterName");
         rowsFilterDto.setMode(RowsFilterType.TripUid.getName());
         rowsFilterDto.setColumns(Lists.newArrayList("columnA"));
-        rowsFilterDto.setExpression("expression content");
+        rowsFilterDto.setContent("expression content");
         Mockito.when(rowsFilterTblDao.insert(Mockito.any(RowsFilterTbl.class))).thenReturn(1);
 
         String result = rowsFilterService.addRowsFilter(new RowsFilterDto());
@@ -105,6 +106,6 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Mockito.when(rowsFilterMappingTblDao.insert(Mockito.any(RowsFilterMappingTbl.class))).thenReturn(1);
         Assert.assertEquals(
                 "add RowsFilterMapping success",
-                rowsFilterService.addRowsFilterMapping(1L,1L,1L));
+                rowsFilterService.addRowsFilterMapping(new RowsFilterMappingDto()));
     }
 }

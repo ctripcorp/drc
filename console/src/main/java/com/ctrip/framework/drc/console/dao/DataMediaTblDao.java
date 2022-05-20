@@ -34,5 +34,15 @@ public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 				.and().equal("deleted", deleted, Types.TINYINT);
 		return client.query(builder,new DalHints());
 	}
-	
+
+    public List<DataMediaTbl> queryByDataSourceId(Long srcMhaId, Integer type, Integer deleted) throws SQLException {
+		if (srcMhaId == null) {
+			throw new IllegalArgumentException("build sql: query DataMediaTbl By ByDataSourceId ,but its is empty");
+		}
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("data_media_source_id", srcMhaId, Types.BIGINT)
+				.and().equal("type",type, Types.TINYINT)
+				.and().equal("deleted", deleted, Types.TINYINT);
+		return client.query(builder,new DalHints());
+    }
 }

@@ -1,21 +1,18 @@
-package com.ctrip.framework.drc.console.dto;
+package com.ctrip.framework.drc.console.vo;
 
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.CollectionUtils;
+import com.ctrip.xpipe.codec.JsonCodec;
 
 import java.util.List;
 
 /**
- * @ClassName RowsFilterDto
+ * @ClassName RowsFilterVo
  * @Author haodongPan
- * @Date 2022/5/6 11:15
+ * @Date 2022/5/19 14:20
  * @Version: $
  */
-public class RowsFilterDto {
-    
+public class RowsFilterVo {
     private Long id;
     
     private String name;
@@ -25,38 +22,24 @@ public class RowsFilterDto {
     private List<String> columns;
     
     private String content;
-
-    public RowsFilterTbl toRowsFilterTbl() throws IllegalArgumentException {
-
-        if(!prerequisite()) {
-            throw new IllegalArgumentException("some args should be not null: " + this);
-        }
-        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
-        rowsFilterTbl.setName(name);
-        rowsFilterTbl.setMode(mode);
-        RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
-        parameters.setColumns(columns);
-        parameters.setContext(content);
-        rowsFilterTbl.setParameters(JsonUtils.toJson(parameters));
-        if (id != null) {
-            rowsFilterTbl.setId(id);
-            String a = "^\\d*[02468]$";
-        }
-        return rowsFilterTbl;
-    }
-
-    private boolean prerequisite() {
-        return StringUtils.isNotBlank(this.name)
-                && !CollectionUtils.isEmpty(columns)
-                && mode != null;
+    
+    public RowsFilterVo (RowsFilterTbl rowsFilterTbl) {
+        this.id = rowsFilterTbl.getId();
+        this.name = rowsFilterTbl.getName();
+        this.mode = rowsFilterTbl.getMode();
+        String parametersJson = rowsFilterTbl.getParameters();
+        RowsFilterConfig.Parameters parameters = 
+                JsonCodec.INSTANCE.decode(parametersJson, RowsFilterConfig.Parameters.class);
+        this.columns = parameters.getColumns();
+        this.content = parameters.getContext();
     }
     
     @Override
     public String toString() {
-        return "RowsFilterDto{" +
+        return "RowsFilterVo{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", mode=" + mode +
+                ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", content='" + content + '\'' +
                 '}';

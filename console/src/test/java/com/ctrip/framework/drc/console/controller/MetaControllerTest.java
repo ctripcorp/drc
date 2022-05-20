@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
-import com.ctrip.framework.drc.console.dto.DataMediaDto;
-import com.ctrip.framework.drc.console.dto.MetaProposalDto;
-import com.ctrip.framework.drc.console.dto.ProxyDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterDto;
+import com.ctrip.framework.drc.console.dto.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -765,13 +762,13 @@ public class MetaControllerTest extends AbstractControllerTest {
     @Test
     public void testAddRowsFilter2ApplierMapping() throws Exception {
         Mockito.doReturn("add RowsFilterMapping success").
-                when(rowsFilterService).addRowsFilterMapping(Mockito.anyLong(),Mockito.anyLong(),Mockito.anyLong());
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilter/applierGroupMapping/1/1/1");
+                when(rowsFilterService).addRowsFilterMapping(Mockito.any(RowsFilterMappingDto.class));
+        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilterMapping",new RowsFilterMappingDto());
         assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
 
         Mockito.doThrow(new SQLException()).
-                when(rowsFilterService).addRowsFilterMapping(Mockito.anyLong(),Mockito.anyLong(),Mockito.anyLong());
-        mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilter/applierGroupMapping/1/1/1");
+                when(rowsFilterService).addRowsFilterMapping(Mockito.any(RowsFilterMappingDto.class));
+        mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilterMapping",new RowsFilterMappingDto());
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
     }
     

@@ -25,8 +25,8 @@ public class RowsFilterTblDao extends AbstractDao<RowsFilterTbl>{
         super(RowsFilterTbl.class);
     }
 
-    public RowsFilterTbl queryById(Long rowsFilterIds, Integer deleted) throws SQLException {
-        List<RowsFilterTbl> rowsFilterTbls = queryByIds(Lists.newArrayList(rowsFilterIds), deleted);
+    public RowsFilterTbl queryById(Long rowsFilterId, Integer deleted) throws SQLException {
+        List<RowsFilterTbl> rowsFilterTbls = queryByIds(Lists.newArrayList(rowsFilterId), deleted);
         if (CollectionUtils.isEmpty(rowsFilterTbls) || rowsFilterTbls.size() != 1) {
             throw new SQLException("sql result error in queryRowsFilterTblById: " + rowsFilterTbls);
         }

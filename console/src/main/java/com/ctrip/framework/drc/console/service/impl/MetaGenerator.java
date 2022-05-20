@@ -282,7 +282,7 @@ public class MetaGenerator {
                     .filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && mhaGroupIds.contains(p.getId()) && p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode()))
                     .collect(Collectors.toList());
 
-            if(mhaGroupTblList.size() == 0) {
+            if (mhaGroupTblList.size() == 0) {
                 logger.debug("skip, mha group for {} is not established yet", mhaTbl.getMhaName());
                 continue;
             }

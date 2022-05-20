@@ -1,18 +1,14 @@
-package com.ctrip.framework.drc.console.dto;
+package com.ctrip.framework.drc.console.vo;
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
-import org.apache.commons.lang3.StringUtils;
-
-
 
 /**
- * @ClassName DataMediaDto
+ * @ClassName DataMediaVo
  * @Author haodongPan
- * @Date 2022/5/6 20:59
+ * @Date 2022/5/17 15:01
  * @Version: $
  */
-public class DataMediaDto {
-
+public class DataMediaVo {
     private Long id;
 
     private String namespace;
@@ -25,32 +21,10 @@ public class DataMediaDto {
     
     private String dataMediaSourceName;
 
-    public DataMediaTbl toDataMediaTbl() throws IllegalArgumentException {
-
-        if(!prerequisite()) {
-            throw new IllegalArgumentException("some args should be not null: " + this);
-        }
-        DataMediaTbl dataMediaTbl = new DataMediaTbl();
-        dataMediaTbl.setNamespcae(namespace);
-        dataMediaTbl.setName(name);
-        dataMediaTbl.setType(type);
-        dataMediaTbl.setDataMediaSourceId(dataMediaSourceId);
-        if (id != null) {
-            dataMediaTbl.setId(id);
-        }
-        return dataMediaTbl;
-    }
-
-    private boolean prerequisite() {
-        return StringUtils.isNotBlank(this.name)
-                && StringUtils.isNotBlank(this.namespace)
-                && type != null
-                && dataMediaSourceId != null;
-    }
 
     @Override
     public String toString() {
-        return "DataMediaDto{" +
+        return "DataMediaVo{" +
                 "id=" + id +
                 ", namespace='" + namespace + '\'' +
                 ", name='" + name + '\'' +
@@ -60,6 +34,16 @@ public class DataMediaDto {
                 '}';
     }
 
+    public DataMediaVo(DataMediaTbl dataMediaTbl) {
+        this.id  = dataMediaTbl.getId();
+        this.namespace = dataMediaTbl.getNamespcae();
+        this.name = dataMediaTbl.getName();
+        this.type = dataMediaTbl.getType();
+        this.dataMediaSourceId = dataMediaTbl.getDataMediaSourceId();
+    }
+    
+    public DataMediaVo() {}
+    
     public Long getId() {
         return id;
     }
@@ -107,4 +91,5 @@ public class DataMediaDto {
     public void setDataMediaSourceName(String dataMediaSourceName) {
         this.dataMediaSourceName = dataMediaSourceName;
     }
+
 }
