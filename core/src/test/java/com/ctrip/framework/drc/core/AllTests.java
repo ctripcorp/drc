@@ -180,11 +180,22 @@ import org.junit.runners.Suite;
         WriteFieldLongUnsignedTypeTest.class,
         WriteFieldLongLongTypeTest.class,
         WriteFieldLongLongUnsignedTypeTest.class,
+        WriteFieldBitMeta1TypeTest.class,
+        WriteFieldBitMeta2TypeTest.class,
+        WriteFieldBitMeta3TypeTest.class,
+        WriteFieldBitMeta4TypeTest.class,
+        WriteFieldBitMeta5TypeTest.class,
+        WriteFieldBitMeta6TypeTest.class,
+        WriteFieldBitMeta7TypeTest.class,
         WriteFieldBitMeta8TypeTest.class,
 
+        // Write row field with MySQL float type
         WriteFieldFloatTypeTest.class,
         WriteFieldFloatUnsignedTypeTest.class,
         WriteFieldNewdecimalTypeTest.class,
+
+        // Write row field with MySQL character type
+
 
         WriteFieldDatetime2TypeTest.class,
         WriteFieldTime2Meta0TypeTest.class,

@@ -35,19 +35,27 @@ public abstract class AbstractWriteFieldTypeTest {
         transformMetaAndType(originColumns, columns);
     }
 
-    protected void testWriteValue(String rowsHexString, String expected) throws IOException {
+    protected void testWriteValue(String rowsHexString, boolean hasExpected, String expected) throws IOException {
         ByteBuf wByteBuf = writeRowsEvent(rowsHexString);
         writeRowsEvent = new WriteRowsEvent().read(wByteBuf);
         writeRowsEvent.load(columns);
-
         String actual = writeRowsEvent.getRows().get(0).getBeforeValues().get(0).toString();
 //        System.out.println("actual row value is: " + actual);
-        Assert.assertEquals(expected, actual);
-
+        if (hasExpected) {
+            Assert.assertEquals(expected, actual);
+        }
         String oldPayloadBuf = ByteBufUtil.hexDump(writeRowsEvent.getPayloadBuf().resetReaderIndex());
         WriteRowsEvent newWriteRowsEvent1 = new WriteRowsEvent(writeRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getPayloadBuf().resetReaderIndex());
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);
+    }
+
+    protected void testWriteValue(String rowsHexString, String expected) throws IOException {
+        testWriteValue(rowsHexString, true, expected);
+    }
+
+    protected void testWriteValue(String rowsHexString) throws IOException {
+        testWriteValue(rowsHexString, false, null);
     }
 
     protected ByteBuf tableMapEventForWriteRowsEvent() {

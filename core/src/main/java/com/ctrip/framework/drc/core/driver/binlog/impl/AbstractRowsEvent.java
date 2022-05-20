@@ -498,7 +498,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if (nbits > 1) {
                     switch (byteCount) {
                         case 1:
-                            ByteHelper.writeUnsignedByte((int) value, out);
+                            ByteHelper.writeUnsignedByte((short) value, out);
                             return;
                         case 2:
                             ByteHelper.writeUnsignedShortBigEndian((int) value, out);

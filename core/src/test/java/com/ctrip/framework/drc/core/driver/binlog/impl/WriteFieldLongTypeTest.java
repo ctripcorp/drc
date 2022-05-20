@@ -11,7 +11,7 @@ import java.util.List;
  * Created by jixinwang on 2022/5/18
  */
 // 4bytes
-// [-2^31, 2^31 - 1], [-2,147,483,648, 2,147,483,647]
+// [-2^31, 2^31 - 1], [-2147483648, 2147483647]
 // unsigned [0, 2^32 - 1], [0, 4294967295]
 // mysql literal is int
 public class WriteFieldLongTypeTest extends AbstractWriteFieldTypeTest {
