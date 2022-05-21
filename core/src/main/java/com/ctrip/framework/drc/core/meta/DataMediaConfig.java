@@ -72,7 +72,7 @@ public class DataMediaConfig {
         if (valid()) {
             for (RowsFilterConfig rowsFilterConfig : rowsFilters) {
                 rowsFilterConfig.setRegistryKey(registryKey);
-                String tableRegex = rowsFilterConfig.getTables();
+                String tableRegex = rowsFilterConfig.getTables().trim().toLowerCase();
                 table2Config.put(tableRegex, rowsFilterConfig);
                 RowsFilterRule<List<List<Object>>> rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterConfig);
                 table2Rule.put(tableRegex, rowsFilterRule);
