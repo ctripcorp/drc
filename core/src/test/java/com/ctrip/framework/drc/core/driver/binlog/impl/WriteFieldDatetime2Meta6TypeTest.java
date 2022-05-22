@@ -12,7 +12,7 @@ import java.util.List;
  */
 // document show range : '1000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
 // real range : '0000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
-public class WriteFieldDatetime2TypeTest extends AbstractWriteFieldTypeTest {
+public class WriteFieldDatetime2Meta6TypeTest extends AbstractWriteFieldTypeTest {
 
     // insert into drc1.datetime(date) values('1000-01-01 00:00:00.000000');
     @Test
