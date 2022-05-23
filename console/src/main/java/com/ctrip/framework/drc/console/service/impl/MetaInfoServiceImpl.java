@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
@@ -533,6 +532,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return dalUtils.getApplierGroupTblDao().queryByMhaIdAndReplicatorGroupId(mhaTbl.getId(),remoteReplicatorGroupTbl.getId(),BooleanEnum.FALSE.getCode());
     }
 
+    // direction: remoteMha -> mha
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha,BooleanEnum.FALSE.getCode());
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryByMhaName(remoteMha,BooleanEnum.FALSE.getCode());
@@ -1250,4 +1250,9 @@ MetaInfoServiceImpl implements MetaInfoService {
         return sortedPairVos;
     }
 
+    public String getDc(String mhaName) throws SQLException {
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        DcTbl dcTbl = dalUtils.getDcTblDao().queryByPk(mhaTbl.getDcId());
+        return dcTbl.getDcName();
+    }
 }

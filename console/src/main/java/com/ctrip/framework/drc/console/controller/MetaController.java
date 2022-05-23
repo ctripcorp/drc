@@ -580,30 +580,40 @@ public class MetaController {
 //        return ApiResult.getSuccessInstance(null);
 //    }
     
-    @PostMapping("dataMedia/applierGroupMapping/{applierGroupId}/{dataMediaId}")
-    public ApiResult addDataMedia2ApplierMapping(@PathVariable Long applierGroupId, @PathVariable Long dataMediaId) {
-        logger.info("[[meta=dataMedia]] load dataMedia2ApplierMapping: " + applierGroupId + "-" + dataMediaId);
+//    @PostMapping("dataMedia/applierGroupMapping/{applierGroupId}/{dataMediaId}")
+//    public ApiResult addDataMedia2ApplierMapping(@PathVariable Long applierGroupId, @PathVariable Long dataMediaId) {
+//        logger.info("[[meta=dataMedia]] load dataMedia2ApplierMapping: " + applierGroupId + "-" + dataMediaId);
+//        try {
+//            return ApiResult.getSuccessInstance(
+//                    dataMediaService.addDataMediaMapping(applierGroupId,dataMediaId));
+//        } catch (SQLException e) {
+//            logger.error("[[meta=dataMedia]] load dataMedia2ApplierMapping fail with: " + applierGroupId + "-" + dataMediaId);
+//            return ApiResult.getFailInstance("sql error in addDataMediaMapping");
+//        }
+//    }
+
+    @PostMapping("rowsFilterMapping")
+    public ApiResult addOrUpdateRowsFilter2ApplierMapping(@RequestBody RowsFilterMappingDto mappingDto) {
+        logger.info("[[meta=rowsFilter]] load RowsFilterMappingDto: {} ", mappingDto);
         try {
-            return ApiResult.getSuccessInstance(
-                    dataMediaService.addDataMediaMapping(applierGroupId,dataMediaId));
+            if (mappingDto.getId() != null) {
+                return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterMapping(mappingDto));
+            } else {
+                return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterMapping(mappingDto));
+            }
         } catch (SQLException e) {
-            logger.error("[[meta=dataMedia]] load dataMedia2ApplierMapping fail with: " + applierGroupId + "-" + dataMediaId);
-            return ApiResult.getFailInstance("sql error in addDataMediaMapping");
+            logger.error("[[meta=rowsFilter]] fail load RowsFilterMappingDto: {} ", mappingDto,e);
+            return ApiResult.getFailInstance("sql error in  addRowsFilterMapping");
         }
     }
 
-    @PostMapping("rowsFilter/applierGroupMapping/{applierGroupId}/{dataMediaId}/{rowsFilterId}")
-    public ApiResult addRowsFilter2ApplierMapping(@PathVariable Long applierGroupId, 
-                                                       @PathVariable Long dataMediaId,
-                                                       @PathVariable Long rowsFilterId) {
-        logger.info("[[meta=rowsFilter]] load RowsFilter2ApplierMapping: " + 
-                applierGroupId + "-" + dataMediaId + "-" + rowsFilterId);
+    @PostMapping ("rowsFilterMapping/delete")
+    public ApiResult deleteRowsFilter2ApplierMapping(@RequestBody RowsFilterMappingDto mappingDto) {
+        logger.info("[[meta=rowsFilter]] delete RowsFilterMappingDto: {} ", mappingDto);
         try {
-            return ApiResult.getSuccessInstance(
-                    rowsFilterService.addRowsFilterMapping(applierGroupId,dataMediaId,rowsFilterId));
+            return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilterMapping(mappingDto));
         } catch (SQLException e) {
-            logger.error("[[meta=rowsFilter]] load RowsFilter2ApplierMapping fail with: " +
-                    applierGroupId + "-" + dataMediaId + "-" + rowsFilterId);
+            logger.error("[[meta=rowsFilter]] fail load RowsFilterMappingDto: {} ", mappingDto,e);
             return ApiResult.getFailInstance("sql error in  addRowsFilterMapping");
         }
     }

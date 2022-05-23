@@ -10,6 +10,9 @@ import java.util.List;
 /**
  * Created by jixinwang on 2022/5/18
  */
+// bit(M), M=[1-64], default M = 1
+// 1-8bytes
+// big-endian, unsigned
 public class WriteFieldBitMeta8TypeTest extends AbstractWriteFieldTypeTest {
 
     // insert into drc1.bit(bit_column) values(5);
@@ -41,9 +44,9 @@ public class WriteFieldBitMeta8TypeTest extends AbstractWriteFieldTypeTest {
 
     /*
      * CREATE DATABASE if not exists drc1;
-     * CREATE TABLE `drc1`.`float` (
-     *  `amount` float NOT NULL COMMENT '价格'
-     * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='float测试表';
+     * CREATE TABLE `drc1`.`bit` (
+     *   `bit_column` bit(64) NOT NULL COMMENT 'bit位'
+     * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='bit测试表';
      */
     @Override
     protected String getTableMapEventHexString() {

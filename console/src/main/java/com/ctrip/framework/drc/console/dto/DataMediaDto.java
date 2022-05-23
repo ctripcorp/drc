@@ -15,13 +15,15 @@ public class DataMediaDto {
 
     private Long id;
 
-    private String Namespace;
+    private String namespace;
 
     private String name;
 
     private Integer type;
 
     private Long dataMediaSourceId;
+    
+    private String dataMediaSourceName;
 
     public DataMediaTbl toDataMediaTbl() throws IllegalArgumentException {
 
@@ -29,7 +31,7 @@ public class DataMediaDto {
             throw new IllegalArgumentException("some args should be not null: " + this);
         }
         DataMediaTbl dataMediaTbl = new DataMediaTbl();
-        dataMediaTbl.setNamespcae(Namespace);
+        dataMediaTbl.setNamespcae(namespace);
         dataMediaTbl.setName(name);
         dataMediaTbl.setType(type);
         dataMediaTbl.setDataMediaSourceId(dataMediaSourceId);
@@ -41,7 +43,7 @@ public class DataMediaDto {
 
     private boolean prerequisite() {
         return StringUtils.isNotBlank(this.name)
-                && StringUtils.isNotBlank(this.Namespace)
+                && StringUtils.isNotBlank(this.namespace)
                 && type != null
                 && dataMediaSourceId != null;
     }
@@ -50,10 +52,11 @@ public class DataMediaDto {
     public String toString() {
         return "DataMediaDto{" +
                 "id=" + id +
-                ", Namespace='" + Namespace + '\'' +
+                ", namespace='" + namespace + '\'' +
                 ", name='" + name + '\'' +
                 ", type=" + type +
                 ", dataMediaSourceId=" + dataMediaSourceId +
+                ", dataMediaSourceName='" + dataMediaSourceName + '\'' +
                 '}';
     }
 
@@ -66,11 +69,11 @@ public class DataMediaDto {
     }
 
     public String getNamespace() {
-        return Namespace;
+        return namespace;
     }
 
-    public void setNamespace(String Namespace) {
-        this.Namespace = Namespace;
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
     }
 
     public String getName() {
@@ -95,5 +98,13 @@ public class DataMediaDto {
 
     public void setDataMediaSourceId(Long dataMediaSourceId) {
         this.dataMediaSourceId = dataMediaSourceId;
+    }
+
+    public String getDataMediaSourceName() {
+        return dataMediaSourceName;
+    }
+
+    public void setDataMediaSourceName(String dataMediaSourceName) {
+        this.dataMediaSourceName = dataMediaSourceName;
     }
 }

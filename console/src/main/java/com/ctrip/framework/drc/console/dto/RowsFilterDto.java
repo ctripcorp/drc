@@ -24,7 +24,7 @@ public class RowsFilterDto {
     
     private List<String> columns;
     
-    private String expression;
+    private String content;
 
     public RowsFilterTbl toRowsFilterTbl() throws IllegalArgumentException {
 
@@ -36,7 +36,7 @@ public class RowsFilterDto {
         rowsFilterTbl.setMode(mode);
         RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
         parameters.setColumns(columns);
-        parameters.setContext(expression);
+        parameters.setContext(content);
         rowsFilterTbl.setParameters(JsonUtils.toJson(parameters));
         if (id != null) {
             rowsFilterTbl.setId(id);
@@ -58,7 +58,7 @@ public class RowsFilterDto {
                 ", name='" + name + '\'' +
                 ", mode=" + mode +
                 ", columns=" + columns +
-                ", expression='" + expression + '\'' +
+                ", content='" + content + '\'' +
                 '}';
     }
 
@@ -94,11 +94,11 @@ public class RowsFilterDto {
         this.columns = columns;
     }
 
-    public String getExpression() {
-        return expression;
+    public String getContent() {
+        return content;
     }
 
-    public void setExpression(String expression) {
-        this.expression = expression;
+    public void setContent(String content) {
+        this.content = content;
     }
 }

@@ -6,17 +6,20 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
-import com.ctrip.framework.drc.console.utils.DalUtils;
+
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.sql.SQLException;
+
 
 /**
  * @author maojiawei
@@ -107,4 +110,37 @@ public class MhaController {
         
         return ApiResult.getFailInstance(null);
     }
+
+    @GetMapping("tables/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
+    public ApiResult getMatchTable (@PathVariable String namespace,
+                                    @PathVariable String name,
+                                    @PathVariable String srcDc,
+                                    @PathVariable String dataMediaSourceName,
+                                    @PathVariable Integer type) {
+        try {
+            logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,dataMediaSourceName);
+            MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
+            MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
+                    .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
+            if (machineTbl != null) {
+                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
+                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
+                return ApiResult.getSuccessInstance(MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint,aviatorRegexFilter));
+            }
+            return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
+        } catch (Exception e) {
+            logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name,dataMediaSourceName,e);
+            if (e instanceof SQLException) {
+                return ApiResult.getFailInstance("sql error");
+            } else if (e  instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
+            }
+        }
+    }
+    
+    
+    
+    
 }

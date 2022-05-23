@@ -53,9 +53,10 @@ public class DataMediaConfigTest {
 
     private DataMediaConfig rowsFilterConfigs;
 
+    private String properties= "[{\"mode\":\"java_regex\",\"tables\":\"fltbackendservicetestdb\\\\.drcdemo\",\"parameters\":{\"columns\":[\"id\"],\"context\":\"^\\\\d*[02468]$\"}}]";
     @Before
     public void setUp() throws Exception {
-        rowsFilterConfigs = DataMediaConfig.from("ut_test", MEDIA_CONFIG);
+        rowsFilterConfigs = DataMediaConfig.from("ut_test", properties);
     }
 
     @Test

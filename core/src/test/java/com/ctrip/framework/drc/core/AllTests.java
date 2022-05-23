@@ -169,22 +169,69 @@ import org.junit.runners.Suite;
         // QueryTask
         ExecutedGtidQueryTaskTest.class,
 
-        // Write row field with different MySQL type
-        WriteFieldFloatTypeTest.class,
-        WriteFieldFloatUnsignedTypeTest.class,
-
+        // Write row field with MySQL number type
+        WriteFieldTinyTypeTest.class,
+        WriteFieldTinyUnsignedTypeTest.class,
+        WriteFieldShortTypeTest.class,
+        WriteFieldShortUnsignedTypeTest.class,
+        WriteFieldInt24TypeTest.class,
+        WriteFieldInt24UnsignedTypeTest.class,
         WriteFieldLongTypeTest.class,
         WriteFieldLongUnsignedTypeTest.class,
+        WriteFieldLongLongTypeTest.class,
+        WriteFieldLongLongUnsignedTypeTest.class,
+        WriteFieldBitMeta1TypeTest.class,
+        WriteFieldBitMeta2TypeTest.class,
+        WriteFieldBitMeta3TypeTest.class,
+        WriteFieldBitMeta4TypeTest.class,
+        WriteFieldBitMeta5TypeTest.class,
+        WriteFieldBitMeta6TypeTest.class,
+        WriteFieldBitMeta7TypeTest.class,
+        WriteFieldBitMeta8TypeTest.class,
 
-        WriteFieldNewdecimalTypeTest.class,
+        // Write row field with MySQL float type
+        WriteFieldFloatTypeTest.class,
+        WriteFieldFloatUnsignedTypeTest.class,
+        WriteFieldDoubleTypeTest.class,
+        WriteFieldDoubleUnsignedTypeTest.class,
+        WriteFieldNewdecimalOffset0TypeTest.class,
+        WriteFieldNewdecimalOffset1TypeTest.class,
+        WriteFieldNewdecimalOffset2TypeTest.class,
+        WriteFieldNewdecimalOffset3TypeTest.class,
+        WriteFieldNewdecimalOffset4TypeTest.class,
 
+        // Write row field with MySQL character type
+        WriteFieldCharVarTypeTest.class,
+        WriteFieldCharTypeTest.class,
+        WriteFieldBinaryVarTypeTest.class,
+        WriteFieldBinaryTypeTest.class,
+        WriteFieldBlobTinyTypeTest.class,
+        WriteFieldBlobTypeTest.class,
+        WriteFieldBlobMediumTypeTest.class,
+        WriteFieldBlobLongTypeTest.class,
+        WriteFieldTextTinyTypeTest.class,
+        WriteFieldTextTypeTest.class,
+        WriteFieldTextMediumTypeTest.class,
+        WriteFieldTextLongTypeTest.class,
+
+        // Write row field with MySQL time type
+        WriteFieldDatetime2Meta0TypeTest.class,
+        WriteFieldDatetime2Meta2TypeTest.class,
+        WriteFieldDatetime2Meta4TypeTest.class,
+        WriteFieldDatetime2Meta6TypeTest.class,
         WriteFieldTime2Meta0TypeTest.class,
         WriteFieldTime2Meta2TypeTest.class,
         WriteFieldTime2Meta4TypeTest.class,
         WriteFieldTime2Meta6TypeTest.class,
+        WriteFieldTimestamp2Meta0TypeTest.class,
+        WriteFieldTimestamp2Meta2TypeTest.class,
+        WriteFieldTimestamp2Meta4TypeTest.class,
+        WriteFieldTimestamp2Meta6TypeTest.class,
+        WriteFieldYearTypeTest.class,
+        WriteFieldDateTypeTest.class,
+        WriteFieldEnumMeta1TypeTest.class,
+        WriteFieldEnumMeta2TypeTest.class
 
-        WriteFieldBitMeta8TypeTest.class,
-        WriteFieldDatetime2TypeTest.class
 })
 public class AllTests {
 

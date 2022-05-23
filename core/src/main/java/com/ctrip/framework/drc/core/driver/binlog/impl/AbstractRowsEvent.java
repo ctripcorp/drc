@@ -335,7 +335,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 // unsigned [0, 2^8 - 1], [0, 255]
                 // mysql literal is tinyint
                 if (column.isUnsigned()) {
-                    ByteHelper.writeUnsignedByte((int) value, out);
+                    ByteHelper.writeUnsignedByte((short) value, out);
                 } else {
                     ByteHelper.writeByte((byte) value, out);
                 }
@@ -350,7 +350,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if (column.isUnsigned()) {
                     ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
                 } else {
-                    ByteHelper.writeShortLittleEndian((int) value, out);
+                    ByteHelper.writeShortLittleEndian((short) value, out);
                 }
                 return;
             }
@@ -393,7 +393,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         BigDecimal realValue = decimalValue.subtract(long64Max);
                         ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
                     } else {
-                        ByteHelper.writeInt64LittleEndian((long) value, out);
+                        ByteHelper.writeInt64LittleEndian(decimalValue.longValue(), out);
                     }
                 } else {
                     ByteHelper.writeInt64LittleEndian((long) value, out);
@@ -431,18 +431,24 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 String fracPart1 = complementRightDigit(fracPart, scale);
 
                 // write offset value
-                long offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                long offsetValue;
                 switch (offset) {
+                    case 0:
+                        break;
                     case 1:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
                         toBytes(offsetValue, 1, decimalBytes, 0);
                         break;
                     case 2:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
                         toBytes(offsetValue, 2, decimalBytes, 0);
                         break;
                     case 3:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
                         toBytes(offsetValue, 3, decimalBytes, 0);
                         break;
                     case 4:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
                         toBytes(offsetValue, 4, decimalBytes, 0);
                         break;
                 }
@@ -498,7 +504,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 if (nbits > 1) {
                     switch (byteCount) {
                         case 1:
-                            ByteHelper.writeUnsignedByte((int) value, out);
+                            ByteHelper.writeUnsignedByte((short) value, out);
                             return;
                         case 2:
                             ByteHelper.writeUnsignedShortBigEndian((int) value, out);
@@ -535,7 +541,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                             throw new UnsupportedOperationException(String.format("write mysql field type bit error, bit(%d)", column.getMeta()));
                     }
                 } else {
-                    ByteHelper.writeUnsignedByte((int) value, out);
+                    ByteHelper.writeUnsignedByte((short) value, out);
                     return;
                 }
             }
@@ -596,7 +602,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 // real range : '0000-01-01' to '9999-12-31'
                 // day(bit 1-5), month(bit 6-9), year(bit 10-24)
                 String[] strings = StringUtils.split((String) value, '-');
-                int date = (Integer.parseInt(strings[0]) << 9) | (Integer.parseInt(strings[0]) << 5) | Integer.parseInt(strings[0]);
+                int date = (Integer.parseInt(strings[0]) << 9) | (Integer.parseInt(strings[1]) << 5) | Integer.parseInt(strings[2]);
                 ByteHelper.writeUnsignedMediumLittleEndian(date, out);
                 return;
             }
@@ -753,10 +759,11 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             case mysql_type_enum: {
                 switch (column.getMeta()) {
                     case 1:
-                        ByteHelper.writeUnsignedByte((int) value, out);
+                        ByteHelper.writeUnsignedByte((short) value, out);
                         return;
                     case 2:
                         ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                        return;
                     default:
                         throw new IllegalStateException("enum type meta only be 1 or 2.");
                 }

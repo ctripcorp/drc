@@ -582,7 +582,7 @@ public class TableMapLogEvent extends AbstractLogEvent {
                 final String[] enums = columnType
                         .replace("enum('", "").replace("')", "")
                         .split("','");
-                this.meta = enums.length;
+                this.meta = enums.length < 256 ? 1 : 2;
             }
         }
 
