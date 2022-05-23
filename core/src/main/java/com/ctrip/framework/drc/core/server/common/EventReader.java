@@ -23,6 +23,11 @@ public class EventReader {
 
     private static final Logger logger = LoggerFactory.getLogger(EventReader.class);
 
+    /**
+     * should release logEvent by invoker
+     * @param fileChannel
+     * @param logEvent
+     */
     public static void readEvent(FileChannel fileChannel, LogEvent logEvent) {
         CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
         try {
@@ -36,6 +41,14 @@ public class EventReader {
         }
     }
 
+    /**
+     * should release CompositeByteBuf by invoker
+     * @param fileChannel
+     * @param eventSize
+     * @param logEvent
+     * @param headByteBuf
+     * @return
+     */
     public static CompositeByteBuf readEvent(FileChannel fileChannel, long eventSize, LogEvent logEvent, ByteBuf headByteBuf) {
         ByteBuf bodyByteBuf = readBody(fileChannel, eventSize); //read all eventSize
         CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();

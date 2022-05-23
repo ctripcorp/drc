@@ -36,9 +36,13 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             value.setNoRowFiltered(true);
             if (table_map_log_event == eventType) {
                 tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
-                logger.info("[TableMapLogEvent] put for {}", tableMapLogEvent.getTableId());
             } else {
-                drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
+                TableMapLogEvent previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
+                if (previousTableMapLogEvent != null) {
+                    String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
+                    previousTableMapLogEvent.release();
+                    logger.info("[Release] DrcTableMapLogEvent for {}", tableName);
+                }
             }
             value.restorePosition();
         } else if (xid_log_event == eventType) {

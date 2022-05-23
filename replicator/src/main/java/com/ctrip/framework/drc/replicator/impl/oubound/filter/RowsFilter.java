@@ -126,7 +126,6 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private TableMapLogEvent getTableMapLogEvent(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
-        logger.info("[TableMapLogEvent] fetch for {}", tableId);
         return value.getTableMapWithinTransaction(tableId);
 
     }
