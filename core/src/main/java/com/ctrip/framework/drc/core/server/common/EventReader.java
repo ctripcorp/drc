@@ -32,7 +32,7 @@ public class EventReader {
             compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
             logEvent.read(compositeByteBuf);
         } finally {
-            releaseCompositeByteBuf(compositeByteBuf);
+            compositeByteBuf.release();
         }
     }
 
