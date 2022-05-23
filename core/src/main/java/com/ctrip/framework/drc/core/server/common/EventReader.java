@@ -32,7 +32,7 @@ public class EventReader {
             compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
             logEvent.read(compositeByteBuf);
         } finally {
-            compositeByteBuf.release();
+            releaseCompositeByteBuf(compositeByteBuf);
         }
     }
 
@@ -94,5 +94,11 @@ public class EventReader {
             logger.error("readFixSize error with size {}, remind size {}", size, remindSize, e);
         }
         return false;
+    }
+
+    public static void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
+        if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
+            compositeByteBuf.release(compositeByteBuf.refCnt());
+        }
     }
 }
