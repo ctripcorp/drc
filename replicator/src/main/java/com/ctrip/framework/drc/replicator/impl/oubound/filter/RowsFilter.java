@@ -3,11 +3,12 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 
 import java.nio.channels.FileChannel;
@@ -24,6 +25,8 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     private String registryKey;
 
     private DataMediaManager dataMediaManager;
+
+    private RowFilterContext rowFilterContext = new RowFilterContext();
 
     public RowsFilter(DataMediaConfig dataMediaConfig) {
         this.registryKey = dataMediaConfig.getRegistryKey();
