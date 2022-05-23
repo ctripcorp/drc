@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowFilterContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 
@@ -26,7 +26,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private DataMediaManager dataMediaManager;
 
-    private RowFilterContext rowFilterContext = new RowFilterContext();
+    private RowsFilterContext rowFilterContext = new RowsFilterContext();
 
     public RowsFilter(DataMediaConfig dataMediaConfig) {
         this.registryKey = dataMediaConfig.getRegistryKey();

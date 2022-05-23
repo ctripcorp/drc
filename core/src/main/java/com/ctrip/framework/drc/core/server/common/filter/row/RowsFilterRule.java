@@ -8,5 +8,5 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
  */
 public interface RowsFilterRule<V> {
 
-    RowsFilterResult<V> filterRows(AbstractRowsEvent rowsEvent, RowFilterContext rowFilterContext) throws Exception;
+    RowsFilterResult<V> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext) throws Exception;
 }
