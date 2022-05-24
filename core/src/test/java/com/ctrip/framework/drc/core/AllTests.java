@@ -192,16 +192,45 @@ import org.junit.runners.Suite;
         // Write row field with MySQL float type
         WriteFieldFloatTypeTest.class,
         WriteFieldFloatUnsignedTypeTest.class,
-        WriteFieldNewdecimalTypeTest.class,
+        WriteFieldDoubleTypeTest.class,
+        WriteFieldDoubleUnsignedTypeTest.class,
+        WriteFieldNewdecimalOffset0TypeTest.class,
+        WriteFieldNewdecimalOffset1TypeTest.class,
+        WriteFieldNewdecimalOffset2TypeTest.class,
+        WriteFieldNewdecimalOffset3TypeTest.class,
+        WriteFieldNewdecimalOffset4TypeTest.class,
 
         // Write row field with MySQL character type
+        WriteFieldCharVarTypeTest.class,
+        WriteFieldCharTypeTest.class,
+        WriteFieldBinaryVarTypeTest.class,
+        WriteFieldBinaryTypeTest.class,
+        WriteFieldBlobTinyTypeTest.class,
+        WriteFieldBlobTypeTest.class,
+        WriteFieldBlobMediumTypeTest.class,
+        WriteFieldBlobLongTypeTest.class,
+        WriteFieldTextTinyTypeTest.class,
+        WriteFieldTextTypeTest.class,
+        WriteFieldTextMediumTypeTest.class,
+        WriteFieldTextLongTypeTest.class,
 
-
-        WriteFieldDatetime2TypeTest.class,
+        // Write row field with MySQL time type
+        WriteFieldDatetime2Meta0TypeTest.class,
+        WriteFieldDatetime2Meta2TypeTest.class,
+        WriteFieldDatetime2Meta4TypeTest.class,
+        WriteFieldDatetime2Meta6TypeTest.class,
         WriteFieldTime2Meta0TypeTest.class,
         WriteFieldTime2Meta2TypeTest.class,
         WriteFieldTime2Meta4TypeTest.class,
-        WriteFieldTime2Meta6TypeTest.class
+        WriteFieldTime2Meta6TypeTest.class,
+        WriteFieldTimestamp2Meta0TypeTest.class,
+        WriteFieldTimestamp2Meta2TypeTest.class,
+        WriteFieldTimestamp2Meta4TypeTest.class,
+        WriteFieldTimestamp2Meta6TypeTest.class,
+        WriteFieldYearTypeTest.class,
+        WriteFieldDateTypeTest.class,
+        WriteFieldEnumMeta1TypeTest.class,
+        WriteFieldEnumMeta2TypeTest.class
 
 })
 public class AllTests {

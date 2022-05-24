@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.manager;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +34,8 @@ public class DataMediaManagerTest extends AbstractEventTest {
 
     @Test
     public void filterRows() throws Exception {
-        RowsFilterResult<List<List<Object>>> res = dataMediaManager.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<List<Object>>> res = dataMediaManager.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered());
         Assert.assertEquals(res.getRes(), result);
     }

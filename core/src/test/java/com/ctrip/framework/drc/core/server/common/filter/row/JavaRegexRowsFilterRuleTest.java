@@ -34,7 +34,8 @@ public class JavaRegexRowsFilterRuleTest extends AbstractEventTest {
 
     @Test
     public void filterRows() throws Exception {
-        RowsFilterResult<List<AbstractRowsEvent.Row>> res = javaRegexRowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = javaRegexRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered());
         List<AbstractRowsEvent.Row> filteredRow = res.getRes();
         Assert.assertTrue(filteredRow.size() == 1);

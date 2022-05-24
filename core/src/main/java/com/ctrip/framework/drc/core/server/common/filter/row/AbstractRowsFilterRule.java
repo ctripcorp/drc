@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.google.common.collect.Lists;
@@ -34,8 +33,8 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
     }
 
     @Override
-    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, TableMapLogEvent drcTableMapLogEvent) throws Exception {
-        Columns columns = Columns.from(drcTableMapLogEvent.getColumns());
+    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext) throws Exception {
+        Columns columns = Columns.from(rowsFilterContext.getDrcTableMapLogEvent().getColumns());
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
 
         LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
@@ -43,7 +42,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             return new RowsFilterResult(true);
         }
 
-        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, indices);
+        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, rowsFilterContext, indices);
 
         if (filteredRow != null && rows.size() == filteredRow.size()) {
             return new RowsFilterResult(true);
@@ -82,20 +81,24 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
     }
 
     /**
-     *
      * @param rowsEvent rows event in binlog
-     * @param indices column name to its index in values
+     * @param indices   column name to its index in values
      * @return
      * @throws Exception
      */
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
         List<AbstractRowsEvent.Row> result = Lists.newArrayList();
         List<List<Object>> values = getValues(rowsEvent);
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
         int index = indices.values().iterator().next(); // only one field
         for (int i = 0; i < values.size(); ++i) {
             Object field = values.get(i).get(index);
-            if (doFilterRows(field)) {
+            Boolean cache = rowsFilterContext.get(field);
+            if (cache == null) {
+                cache = doFilterRows(field);
+                rowsFilterContext.putIfAbsent(field, cache);
+            }
+            if (cache) {
                 result.add(rows.get(i));
             }
         }

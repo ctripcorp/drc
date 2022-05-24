@@ -55,6 +55,7 @@ import java.util.concurrent.ExecutorService;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
+import static com.ctrip.framework.drc.core.server.common.EventReader.releaseCompositeByteBuf;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
@@ -592,12 +593,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             outboundMonitorReport.addOutboundGtid(applierName, previousGtidLogEvent);
             outboundMonitorReport.addOneCount();
             outboundMonitorReport.addSize(eventSize);
-        }
-
-        private void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
-            if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
-                compositeByteBuf.release(compositeByteBuf.refCnt());
-            }
         }
 
         private void trySkip(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, GtidSet excludedSet) throws IOException {

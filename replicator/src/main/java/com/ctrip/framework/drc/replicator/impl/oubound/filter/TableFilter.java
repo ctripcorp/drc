@@ -37,18 +37,28 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             if (table_map_log_event == eventType) {
                 tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
-                drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
+                TableMapLogEvent previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
+                if (previousTableMapLogEvent != null) {
+                    String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
+                    previousTableMapLogEvent.release();
+                    logger.info("[Release] DrcTableMapLogEvent for {}", tableName);
+                }
             }
             value.restorePosition();
-        } else if (xid_log_event == eventType) {
-            releaseTableMapEvent();
-            value.setNoRowFiltered(true);
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
         }
 
-        return doNext(value, value.isNoRowFiltered());
+        boolean res =  doNext(value, value.isNoRowFiltered());
+
+        if (xid_log_event == eventType) {
+            releaseTableMapEvent();  // clear TableMapLogEvent in transaction
+            res = true;
+            value.setNoRowFiltered(true);
+        }
+
+        return res;
     }
 
     @VisibleForTesting

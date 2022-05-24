@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Created by jixinwang on 2022/5/16
  */
-public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
+public class WriteFieldNewdecimalOffset2TypeTest extends AbstractWriteFieldTypeTest {
 
     // insert into drc1.newdecimal(amount) values(123.456);
     @Test
@@ -64,6 +64,15 @@ public class WriteFieldNewdecimalTypeTest extends AbstractWriteFieldTypeTest {
                 "6e 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
                 "00 00 00 05 f5 e1 00 00  00 3f f3 ef ca";
         testWriteValue(rowsHexString, "0.100000000000");
+    }
+
+    // insert into drc1.newdecimal(amount) values(0);
+    @Test
+    public void testZero() throws IOException {
+        String rowsHexString = "c2 f2 89 62   1e   ea 0c 00 00   30 00 00 00   c9 13 00 00   00 00" +
+                "6e 00 00 00 00 00 01 00  02 00 01 ff fe 80 00 00" +
+                "00 00 00 00 00 00 00 00  00 a8 67 1e 0b";
+        testWriteValue(rowsHexString, "0E-12");
     }
 
     /*

@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.service.uid;
 
 import com.ctrip.basebiz.tripaccount.region.route.sdk.AccountUidRoute;
-import com.ctrip.basebiz.tripaccount.region.route.sdk.UDL;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
+import com.ctrip.soa.platform.accountregionroute.v1.Region;
 
 import java.util.Set;
 
@@ -17,8 +17,8 @@ public class TripUidService implements UidService {
         if (locations == null || locations.isEmpty()) {
             return false;
         }
-        UDL udl = AccountUidRoute.udlForDRC(uid);
-        return locations.contains(udl.name().toUpperCase());
+        Region region = AccountUidRoute.regionForUid(uid);
+        return locations.contains(region.name().toUpperCase());
     }
 
     @Override
