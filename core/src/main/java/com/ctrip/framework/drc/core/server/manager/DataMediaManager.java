@@ -22,13 +22,13 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
     }
 
     @Override
-    public RowsFilterResult filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext) throws Exception {
-        String tableName = rowFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName();
+    public RowsFilterResult filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext) throws Exception {
+        String tableName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName();
         Optional<RowsFilterRule> optional = dataMediaConfig.getRowsFilterRule(tableName);
         if (optional.isEmpty()) {
             return new RowsFilterResult(true);
         }
         RowsFilterRule rowsFilterRule = optional.get();
-        return rowsFilterRule.filterRows(rowsEvent, rowFilterContext);
+        return rowsFilterRule.filterRows(rowsEvent, rowsFilterContext);
     }
 }

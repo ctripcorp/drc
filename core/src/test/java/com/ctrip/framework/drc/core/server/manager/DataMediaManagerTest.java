@@ -34,7 +34,6 @@ public class DataMediaManagerTest extends AbstractEventTest {
 
     @Test
     public void filterRows() throws Exception {
-        RowsFilterContext rowsFilterContext = new RowsFilterContext();
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<List<Object>>> res = dataMediaManager.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered());

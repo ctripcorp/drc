@@ -24,7 +24,7 @@ public class EvenNumberRowsFilterRule extends AbstractRowsFilterRule implements 
     }
 
     @Override
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices, RowsFilterContext rowFilterContext) {
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext, LinkedHashMap<String, Integer> indices) {
         List<AbstractRowsEvent.Row> result = Lists.newArrayList();
         List<List<Object>> values = getValues(rowsEvent);
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();

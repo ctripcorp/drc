@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class AviatorRegexRowsFilterRule extends AbstractRowsFilterRule implement
         expression = AviatorEvaluator.compile(context, true);
     }
 
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) throws Exception {
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
         List<AbstractRowsEvent.Row> result = Lists.newArrayList();
         List<List<Object>> values = getValues(rowsEvent);
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
@@ -36,10 +37,37 @@ public class AviatorRegexRowsFilterRule extends AbstractRowsFilterRule implement
                 array[2 * j + 1] = values.get(i).get(entry.getValue());
                 j++;
             }
-            if ((boolean)expression.execute(expression.newEnv(array))) {
+            ArrayWrapper wrapper = new ArrayWrapper(array);
+            Boolean cache = rowFilterContext.get(wrapper);
+            if (cache == null) {
+                cache = (boolean)expression.execute(expression.newEnv(array));
+                rowFilterContext.putIfAbsent(wrapper, cache);
+            }
+            if (cache) {
                 result.add(rows.get(i));
             }
         }
         return result;
+    }
+
+    public static class ArrayWrapper {
+        private Object[] array;
+
+        public ArrayWrapper(Object[] array) {
+            this.array = array;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ArrayWrapper)) return false;
+            ArrayWrapper that = (ArrayWrapper) o;
+            return Arrays.equals(array, that.array);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(array);
+        }
     }
 }

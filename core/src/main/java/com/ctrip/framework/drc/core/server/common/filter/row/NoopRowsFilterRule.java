@@ -14,7 +14,7 @@ public class NoopRowsFilterRule implements RowsFilterRule<Void> {
     }
 
     @Override
-    public RowsFilterResult<Void> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext) {
+    public RowsFilterResult<Void> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext) {
         return new RowsFilterResult(false);
     }
 }

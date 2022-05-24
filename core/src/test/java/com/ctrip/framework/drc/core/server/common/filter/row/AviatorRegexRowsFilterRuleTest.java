@@ -32,12 +32,26 @@ public class AviatorRegexRowsFilterRuleTest extends AbstractEventTest {
 
     @Test
     public void filterRows() throws Exception {
-        RowsFilterContext rowsFilterContext = new RowsFilterContext();
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = aviatorRegexRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered());
         List<AbstractRowsEvent.Row> filteredRow = res.getRes();
         Assert.assertTrue(filteredRow.size() == 1);
+    }
+
+    @Test
+    public void testArrayWrapper() {
+        Object[] array = new Object[2];
+        array[0] = "test";
+        array[1] = Boolean.TRUE;
+        AviatorRegexRowsFilterRule.ArrayWrapper arrayWrapper = new AviatorRegexRowsFilterRule.ArrayWrapper(array);
+        rowsFilterContext.putIfAbsent(arrayWrapper, false);
+
+        Object[] array2 = new Object[2];
+        array2[0] = "test";
+        array2[1] = Boolean.TRUE;
+        boolean res = rowsFilterContext.get(new AviatorRegexRowsFilterRule.ArrayWrapper(array2));
+        Assert.assertFalse(res);
     }
 
     protected String getContext() {

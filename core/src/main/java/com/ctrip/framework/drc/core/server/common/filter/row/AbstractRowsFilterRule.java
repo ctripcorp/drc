@@ -8,7 +8,6 @@ import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
 
@@ -34,8 +33,8 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
     }
 
     @Override
-    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext) throws Exception {
-        Columns columns = Columns.from(rowFilterContext.getDrcTableMapLogEvent().getColumns());
+    public RowsFilterResult<List<AbstractRowsEvent.Row>> filterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext) throws Exception {
+        Columns columns = Columns.from(rowsFilterContext.getDrcTableMapLogEvent().getColumns());
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
 
         LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
@@ -43,7 +42,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             return new RowsFilterResult(true);
         }
 
-        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, indices, rowFilterContext);
+        List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, rowsFilterContext, indices);
 
         if (filteredRow != null && rows.size() == filteredRow.size()) {
             return new RowsFilterResult(true);
@@ -87,26 +86,19 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
      * @return
      * @throws Exception
      */
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices, RowsFilterContext rowFilterContext) throws Exception {
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowsFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
         List<AbstractRowsEvent.Row> result = Lists.newArrayList();
         List<List<Object>> values = getValues(rowsEvent);
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
         int index = indices.values().iterator().next(); // only one field
         for (int i = 0; i < values.size(); ++i) {
             Object field = values.get(i).get(index);
-            Boolean filtered = rowFilterContext.get(String.valueOf(field).toLowerCase());
-
-            if (Objects.isNull(filtered)) {
-                if (doFilterRows(field)) {
-                    result.add(rows.get(i));
-                    rowFilterContext.put(String.valueOf(field).toLowerCase(), true);
-                } else {
-                    rowFilterContext.put(String.valueOf(field).toLowerCase(), false);
-                }
-                continue;
+            Boolean cache = rowsFilterContext.get(field);
+            if (cache == null) {
+                cache = doFilterRows(field);
+                rowsFilterContext.putIfAbsent(field, cache);
             }
-
-            if (filtered) {
+            if (cache) {
                 result.add(rows.get(i));
             }
         }

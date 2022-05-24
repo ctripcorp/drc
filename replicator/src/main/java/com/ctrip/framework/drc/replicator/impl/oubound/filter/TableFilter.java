@@ -45,15 +45,20 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
                 }
             }
             value.restorePosition();
-        } else if (xid_log_event == eventType) {
-            releaseTableMapEvent();
-            value.setNoRowFiltered(true);
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
         }
 
-        return doNext(value, value.isNoRowFiltered());
+        boolean res =  doNext(value, value.isNoRowFiltered());
+
+        if (xid_log_event == eventType) {
+            releaseTableMapEvent();  // clear TableMapLogEvent in transaction
+            res = true;
+            value.setNoRowFiltered(true);
+        }
+
+        return res;
     }
 
     @VisibleForTesting

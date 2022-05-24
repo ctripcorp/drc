@@ -50,6 +50,8 @@ public abstract class AbstractEventTest {
 
     public static List<AbstractRowsEvent.Row> result = Lists.newArrayList();
 
+    protected RowsFilterContext rowsFilterContext = new RowsFilterContext();
+
     @Before
     public void setUp() throws Exception {
         dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getContext()));
