@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 import java.nio.channels.FileChannel;
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
@@ -66,6 +67,8 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         }
                         break;
                 }
+            } else if (xid_log_event == value.getEventType()) {
+                rowFilterContext.clear();
             }
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
@@ -81,8 +84,9 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
+        rowFilterContext.setDrcTableMapLogEvent(drcTableMap);
         int beforeSize = rowsEvent.getRows().size();
-        RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, drcTableMap);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, rowFilterContext);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {

@@ -32,7 +32,9 @@ public class AviatorRegexRowsFilterRuleTest extends AbstractEventTest {
 
     @Test
     public void filterRows() throws Exception {
-        RowsFilterResult<List<AbstractRowsEvent.Row>> res = aviatorRegexRowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        RowsFilterContext rowsFilterContext = new RowsFilterContext();
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = aviatorRegexRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered());
         List<AbstractRowsEvent.Row> filteredRow = res.getRes();
         Assert.assertTrue(filteredRow.size() == 1);

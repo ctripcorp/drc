@@ -18,7 +18,7 @@ public class CustomRowsFilterRule extends AbstractRowsFilterRule {
     }
 
     @Override
-    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices) {
+    protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, LinkedHashMap<String, Integer> indices, RowsFilterContext rowFilterContext) {
         Assert.assertEquals(3, rowsEvent.getRows().size());
         Assert.assertEquals(2, indices.size());  // id、one
         Assert.assertEquals(0, indices.get("id").intValue());  // id in index 0

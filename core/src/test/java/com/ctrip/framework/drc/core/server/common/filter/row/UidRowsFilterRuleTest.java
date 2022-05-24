@@ -33,7 +33,9 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
     @Test
     public void filterRows() throws Exception {
         // LocalUidService
-        RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, drcTableMapLogEvent);
+        RowsFilterContext rowsFilterContext = new RowsFilterContext();
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertTrue(res.isNoRowFiltered());
     }
 
