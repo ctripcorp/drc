@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.DataMediaDto;
@@ -88,6 +89,19 @@ public class DataMediaServiceImpl implements DataMediaService {
     }
 
     @Override
+    public List<DataMediaVo> getAllDataMediaVos() throws SQLException {
+        List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryAllByDeleted(BooleanEnum.FALSE.getCode());
+        List<DataMediaVo> vos = Lists.newArrayList();
+        for (DataMediaTbl dataMediaTbl : dataMediaTbls) {
+            DataMediaVo dataMediaVo = new DataMediaVo(dataMediaTbl);
+            MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByPk(dataMediaTbl.getDataMediaSourceId());
+            dataMediaVo.setDataMediaSourceName(mhaTbl.getMhaName());
+            vos.add(dataMediaVo);
+        }
+        return vos;
+    }
+
+    @Override
     public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException {
         List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
         if (applierGroupId == null) {
@@ -115,8 +129,36 @@ public class DataMediaServiceImpl implements DataMediaService {
        }
         return mappingVos;
     }
-    
-    
 
+    @Override
+    public String updateDataMedia(DataMediaDto dataMediaDto) throws SQLException {
+        try {
+            Long mhaId = dalUtils.getId(TableEnum.MHA_TABLE, dataMediaDto.getDataMediaSourceName());
+            dataMediaDto.setDataMediaSourceId(mhaId);
+            DataMediaTbl dataMediaTbl = dataMediaDto.toDataMediaTbl();
+            int update = dataMediaTblDao.update(dataMediaTbl);
+            return update == 1 ?  "update DataMedia success" : "update DataMedia fail";
+        } catch (IllegalArgumentException e) {
+            logger.error("[[meta=dataMedia]] update DataMedia error, DataMediaDto:{}",dataMediaDto,e);
+            return "illegal argument for DataMedia";
+        }
+    }
+
+    @Override
+    public String deleteDataMedia(Long id) throws SQLException {
+        try {
+            if (id == null) {
+                return "pk is null, cannot delete";
+            }
+            DataMediaTbl dataMediaTbl = new DataMediaTbl();
+            dataMediaTbl.setId(id);
+            dataMediaTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            int update = dataMediaTblDao.update(dataMediaTbl);
+            return update == 1 ?  "delete DataMedia success" : "delete DataMedia fail";
+        } catch (IllegalArgumentException e) {
+            logger.error("[[meta=dataMedia]] delete DataMedia error, id is :{}",id,e);
+            return "illegal argument for DataMedia";
+        }
+    }
 
 }

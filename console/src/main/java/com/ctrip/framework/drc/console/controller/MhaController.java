@@ -1,17 +1,22 @@
 package com.ctrip.framework.drc.console.controller;
 
+import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
+import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -39,6 +46,10 @@ public class MhaController {
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
 
+    @Autowired
+    private DataMediaTblDao dataMediaTblDao;
+
+    private DalUtils dalUtils = DalUtils.getInstance();
     /**
      * Get all the mha names
      *
@@ -72,6 +83,7 @@ public class MhaController {
     @GetMapping("dbnames/dalnames/cluster/{clusterName}/env/{env}")
     public ApiResult getAllDbsAndDals(@PathVariable String clusterName, @PathVariable String env){
         logger.info("Getting all the db names and dal names...clusterName:" + clusterName + ";env=" + env);
+        String p = "{\"columns\":[\"UID\"],\"context\":\"SIN\"}";
         return ApiResult.getSuccessInstance(mhaService.getAllDbsAndDals(clusterName, env));
     }
     
@@ -139,7 +151,43 @@ public class MhaController {
             }
         }
     }
-    
+
+
+    @GetMapping("rowsFilter/commonColumns/{srcDc}/{dataMediaIdString}")
+    public ApiResult getCommonColumnInDataMedias (
+            @PathVariable String srcDc,
+            @PathVariable String dataMediaIdString) {
+        Long dataMediaId = Long.valueOf(dataMediaIdString);
+        
+        try {
+                logger.info("[[tag=commonColumns]] get columns from dataMedia{} ",dataMediaId);
+                DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByPk(dataMediaId);
+                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByPk(dataMediaTbl.getDataMediaSourceId());
+                String dataMediaSourceName = mhaTbl.getMhaName();
+                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
+                MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
+                        .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
+                String namespace = dataMediaTbl.getNamespcae();
+                String name = dataMediaTbl.getName();
+                if (machineTbl != null) {
+                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
+                    AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
+                    Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
+                    return ApiResult.getSuccessInstance(allCommonColumns);
+                }
+                return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
+            } catch (Exception e) {
+                logger.warn("[[tag=commonColumns]] get columns from dataMedia{} error ",dataMediaId,e);
+                if (e instanceof SQLException) {
+                    return ApiResult.getFailInstance("sql error");
+                } else if (e  instanceof CompileExpressionErrorException) {
+                    return ApiResult.getFailInstance("expression error");
+                } else {
+                    return ApiResult.getFailInstance("other error");
+                }
+            }
+        
+    }
     
     
     

@@ -1,15 +1,15 @@
 <template  v-if="current === 0" :key="0">
   <div>
     <template v-if="display.applierGroupTables">
-      <span style="margin-right: 5px">同步链路</span>
-      <Button type="primary" @click="goToCreateApplierGroup">添加</Button>
+      <span style="margin-right: 5px;color:black;font-weight:600">同步链路</span>
+      <Button v-if="applierGroupsData.length < 2" type="primary" @click="goToCreateApplierGroup">添加</Button>
       <br/>
       <br/>
       <Table stripe :columns="columns" :data="applierGroupsData" border >
-        <template slot-scope="{ row, index }" slot="action">
-          <Button type="primary" size="small" style="margin-right: 5px" @click="goToUpdateApplierGroup(row, index)">修改</Button>
-<!--          <Button type="error" size="small" style="margin-right: 5px" @click="removeApplierGroup(row, index)">删除</Button>-->
-        </template>
+<!--        <template slot-scope="{ row, index }" slot="action">-->
+<!--          <Button type="primary" size="small" style="margin-right: 5px" @click="goToUpdateApplierGroup(row, index)">修改</Button>-->
+<!--&lt;!&ndash;          <Button type="error" size="small" style="margin-right: 5px" @click="removeApplierGroup(row, index)">删除</Button>&ndash;&gt;-->
+<!--        </template>-->
         <template slot-scope="{ row, index }" slot="rowsFilterMappings">
           <Button type="success" size="small" style="margin-right: 5px" @click="goToShowRowsFilterMappings(row, index)">详情</Button>
         </template>
@@ -61,10 +61,21 @@ export default {
         rowsFilterMap: false
       },
       columns: [
+        // {
+        //   title: '序号',
+        //   key: 'applierGroupId',
+        //   width: 60
+        // },
         {
           title: '序号',
-          key: 'applierGroupId',
-          width: 60
+          width: 75,
+          align: 'center',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
         },
         {
           title: '源集群',
@@ -94,12 +105,12 @@ export default {
           title: '行过滤',
           slot: 'rowsFilterMappings',
           align: 'center'
-        },
-        {
-          title: '操作',
-          slot: 'action',
-          align: 'center'
         }
+        // {
+        //   title: '操作',
+        //   slot: 'action',
+        //   align: 'center'
+        // }
       ],
       applierGroupsData: [],
       applierGroupConfig: {

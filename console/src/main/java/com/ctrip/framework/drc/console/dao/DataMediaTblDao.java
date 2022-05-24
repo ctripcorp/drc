@@ -8,6 +8,7 @@ import java.util.List;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 
 
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
@@ -45,4 +46,11 @@ public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 				.and().equal("deleted", deleted, Types.TINYINT);
 		return client.query(builder,new DalHints());
     }
+
+
+	public List<DataMediaTbl> queryAllByDeleted(Integer deleted) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("deleted", deleted, Types.TINYINT);
+		return client.query(builder,new DalHints());
+	}
 }

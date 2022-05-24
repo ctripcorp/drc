@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dao;
 
+import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.platform.dal.dao.*;
 import com.ctrip.platform.dal.dao.sqlbuilder.*;
@@ -40,6 +41,13 @@ public class RowsFilterTblDao extends AbstractDao<RowsFilterTbl>{
         SelectSqlBuilder builder = new SelectSqlBuilder();
         builder.selectAll().in("id", rowsFilterIds, Types.BIGINT)
                 .and().equal("deleted", deleted, Types.TINYINT);
+        return client.query(builder,new DalHints());
+    }
+
+
+    public List<RowsFilterTbl> queryAllByDeleted(Integer deleted) throws SQLException {
+        SelectSqlBuilder builder = new SelectSqlBuilder();
+        builder.selectAll().equal("deleted", deleted, Types.TINYINT);
         return client.query(builder,new DalHints());
     }
 }

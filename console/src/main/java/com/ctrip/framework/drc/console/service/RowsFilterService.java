@@ -14,6 +14,10 @@ public interface RowsFilterService {
     List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException;
 
     String addRowsFilter(RowsFilterDto rowsFilterDto) throws SQLException;
+    
+    String updateRowsFilter(RowsFilterDto rowsFilterDto) throws SQLException;
+
+    String deleteRowsFilter(Long id) throws SQLException;
 
     String addRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException;
 
@@ -22,4 +26,5 @@ public interface RowsFilterService {
     String updateRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException;
 
     String deleteRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException;
+
 }

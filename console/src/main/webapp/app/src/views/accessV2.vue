@@ -7,10 +7,10 @@
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
       <template>
         <Steps :current="current" style="width: 90%; margin-left: 50px; margin-bottom: 15px; margin-top: 50px">
-          <Step title="新建DRC集群" content="新建复制集群" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="mha配置" content="mha添加db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="同步链路配置" content="单双向链路" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="建立双向复制" content="配置Replicator和Applier建立集群双向复制" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="新建DRC集群" content="新建同步DRC" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="mha配置" content="mha录入db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="同步配置" content="单双像同步参数配置" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="建立同步" content="配置Replicator和Applier实例" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
           <Step title="完成" content="已完成DRC接入" @click.native="jumpTo(4)" :style="{cursor: 'pointer'}"></Step>
         </Steps>
       </template>

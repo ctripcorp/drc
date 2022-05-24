@@ -1,7 +1,7 @@
 <template v-if="current === 0" :key="0">
   <div>
     <template v-if="display.dataMediasTable">
-      <span style="margin-right: 5px">同步链路>行过滤>datMedia</span>
+      <span style="margin-right: 5px;color:black;font-weight:600">同步链路>行过滤>datMedia</span>
       <Button  type="primary" @click="goToCreateDataMedia" style="margin-right: 5px">创建</Button>
       <Button  @click="returnToMapping" style="margin-right: 5px">返回</Button>
       <br/>
@@ -27,7 +27,7 @@
           <Input v-model="dataMediaForSubmit.name" placeholder="请输入逻辑表名，支持正则"/>
           </Col>
           <Col span="4">
-          <Button  type="primary" @click="checkTable" style="margin-left: 50px" >匹配校验</Button>
+          <Button  type="primary" @click="checkTable" style="margin-left: 50px" >匹配相关表</Button>
           </Col>
         </Row>
       </FormItem>
@@ -35,7 +35,7 @@
         <Input v-model="dataMediaForSubmit.dataMediaSourceName" readonly/>
       </FormItem>
       <FormItem>
-        <Button v-if="display.checkBeforeSubmit " type="primary" @click="submitDataMediaConfig" >提交</Button>
+        <Button v-if="display.checkBeforeSubmit" type="primary" @click="submitDataMediaConfig" >提交</Button>
         <Button  @click="cancelSubmit" style="margin-left: 50px">返回</Button>
       </FormItem>
     </Form>
@@ -64,21 +64,32 @@ export default {
       },
       dataMediasData: [],
       columns: [
+        // {
+        //   title: '序号',
+        //   key: 'id',
+        //   width: 60
+        // },
         {
           title: '序号',
-          key: 'id',
-          width: 60
+          width: 75,
+          align: 'center',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
         },
         {
           title: '数据源',
           key: 'dataMediaSourceName'
         },
         {
-          title: '逻辑库',
+          title: '库名',
           key: 'namespace'
         },
         {
-          title: '逻辑表',
+          title: '表名',
           key: 'name'
         },
         {
@@ -109,8 +120,8 @@ export default {
         }
       ],
       dataMediaForSubmit: {
-        namespace: null,
-        name: null,
+        namespace: '.*',
+        name: '.*',
         type: null,
         dataMediaSourceId: null,
         dataMediaSourceName: null
@@ -139,7 +150,13 @@ export default {
     },
     goToCreateDataMedia () {
       console.log('创建')
-      this.dataMediaForSubmit.dataMediaSourceName = this.srcMha
+      this.dataMediaForSubmit = {
+        namespace: '.*',
+        name: '.*',
+        type: null,
+        dataMediaSourceId: null,
+        dataMediaSourceName: this.srcMha
+      }
       this.display = {
         dataMediasTable: false,
         dataMediaForm: true,
@@ -210,7 +227,7 @@ export default {
     },
     choseDataMedia (row, index) {
       this.resetDisplay()
-      this.$emit('dataMediaChose', row.id)
+      this.$emit('dataMediaChose', [row.id, row.namespace + '\\.' + row.name])
     },
     returnToMapping () {
       this.resetDisplay()
