@@ -81,9 +81,11 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         }
         boolean res = doNext(value, value.isNoRowFiltered());
         if (xid_log_event == eventType) {
+            logger.info("[RowsFilter] clear cached result begin: {}", rowsFilterContext.size());
             rowsFilterContext.clear(); // clear filter result
+            logger.info("[RowsFilter] clear cached result end: {}", rowsFilterContext.size());
             res = true;
-            value.setNoRowFiltered(res);
+            value.setNoRowFiltered(true);
         }
 
         return res;

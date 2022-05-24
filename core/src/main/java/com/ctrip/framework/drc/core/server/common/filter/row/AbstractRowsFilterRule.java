@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -97,6 +98,8 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             if (cache == null) {
                 cache = doFilterRows(field);
                 rowsFilterContext.putIfAbsent(field, cache);
+            } else {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.cache", registryKey);
             }
             if (cache) {
                 result.add(rows.get(i));
