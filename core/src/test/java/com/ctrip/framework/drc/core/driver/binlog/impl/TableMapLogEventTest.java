@@ -639,6 +639,24 @@ public class TableMapLogEventTest {
     }
 
     /**
+     *  CREATE TABLE `table_json` (
+     *   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键id',
+     *   `data` json DEFAULT NULL COMMENT 'json',
+     *   PRIMARY KEY (`id`)
+     * ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+     */
+    @Test
+    public void testJsonDdl() {
+        final ByteBuf byteBuf = initJsonTypeByteBuf();
+        final TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
+        final List<TableMapLogEvent.Column> columns = tableMapLogEvent.getColumns();
+
+        final TableMapLogEvent.Column column = columns.get(1);
+        Assert.assertEquals(mysql_type_json, MysqlFieldType.getMysqlFieldType(column.getType()));
+        Assert.assertEquals("data", column.getName());
+    }
+
+    /**
      * mysql> desc `drc4`.`enum`;
      * +-------+----------------------------------------------------+------+-----+---------+-------+
      * | Field | Type                                               | Null | Key | Default | Extra |
@@ -655,6 +673,20 @@ public class TableMapLogEventTest {
                 "4e fe 39 96";
 
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(200);
+        final byte[] bytes = BytesUtil.toBytesFromHexString(hexString);
+        byteBuf.writeBytes(bytes);
+
+        return byteBuf;
+    }
+
+    private ByteBuf initJsonTypeByteBuf() {
+        String hexString = "df 3f 8b 62   64   00 00 00 00   4a 00 00 00   4a 00 00 00   80 00" +
+                "00 00 00 00 00 00 80 00  04 64 72 63 31 00 08 74" +
+                "61 62 5f 6a 73 6f 6e 00  02 08 f5 01 00 02 02 69" +
+                "64 04 64 61 74 61 03 03  00 00 01 00 00 03 01 01" +
+                "02 69 64 00 00 00 00";
+
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(400);
         final byte[] bytes = BytesUtil.toBytesFromHexString(hexString);
         byteBuf.writeBytes(bytes);
 
