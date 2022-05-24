@@ -1,8 +1,8 @@
 <template>
   <div>
     <template v-if="display.rowsFiltersTable">
-      <span style="margin-right: 5px">同步链路>行过滤>RowsFilter</span>
-      <Button type="primary" @click="goToCreateRowsFiltersTable" style="margin-right: 5px">创建</Button>
+      <span style="margin-right: 5px;color:black;font-weight:600">同步链路>行过滤>RowsFilter</span>
+      <Button type="primary" @click="goToCreateRowsFilter" style="margin-right: 5px">创建</Button>
       <Button @click="returnToMapping" style="margin-right: 5px">返回</Button>
       <br/>
       <br/>
@@ -39,10 +39,13 @@
         </Row>
       </FormItem>
       <FormItem label="规则内容" style="width: 600px">
-        <Input type="textarea" v-model="rowsFilterForSubmit.content" style="width: 300px" placeholder="请输入行过滤内容"/>
+        <Input v-if="rowsFilterForSubmit.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterForSubmit.content" style="width: 300px" placeholder="请输入行过滤内容"/>
+        <Select v-if="rowsFilterForSubmit.mode === 'trip_uid'"  v-model="rowsFilterForSubmit.content" style="width: 300px" placeholder="Region 选择">
+          <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
+        </Select>
       </FormItem>
       <FormItem>
-        <Button type="primary" @click="submitRowsFilter">提交</Button>
+        <Button  v-if="display.submitButton" type="primary" @click="submitRowsFilter">提交</Button>
         <Button @click="cancelSubmit" style="margin-left: 50px">返回</Button>
       </FormItem>
     </Form>
@@ -52,18 +55,38 @@
 <script>
 export default {
   name: 'rowsFilter',
+  props: {
+    srcMha: String,
+    destMha: String,
+    srcDc: String,
+    destDc: String,
+    applierGroupId: String,
+    dataMediaId: String
+  },
   data () {
     return {
       display: {
         rowsFiltersTable: true,
-        rowsFilterForm: false
+        rowsFilterForm: false,
+        submitButton: false
       },
       rowsFiltersData: [],
       columns: [
+        // {
+        //   title: '序号',
+        //   key: 'id',
+        //   width: 60
+        // },
         {
           title: '序号',
-          key: 'id',
-          width: 60
+          width: 75,
+          align: 'center',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
         },
         {
           title: '规则名',
@@ -91,7 +114,7 @@ export default {
       rowsFilterForSubmit: {
         id: null,
         name: null,
-        mode: null,
+        mode: 'trip_uid',
         columns: [],
         content: null
       },
@@ -102,8 +125,11 @@ export default {
         'custom'
       ],
       columnsForChose: [
-        'columnA',
-        'columnB'
+        'UID'
+      ],
+      regionsForChose: [
+        'SIN',
+        'SH'
       ],
       columnForAdd: null
     }
@@ -120,18 +146,28 @@ export default {
           }
         })
     },
-    goToCreateRowsFiltersTable () {
-      console.log('创建')
+    goToCreateRowsFilter () {
+      console.log(this.dataMediaId)
+      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns/' + this.srcDc + '/' + this.dataMediaId)
+        .then(response => {
+          if (response.data.status === 1) {
+            window.alert('查询列名失败，请手动添加！')
+          } else {
+            console.log(response.data.data)
+            this.columnsForChose = response.data.data
+          }
+        })
       this.rowsFilterForSubmit = {
         id: null,
         name: null,
-        mode: null,
-        columns: [],
-        content: null
+        mode: 'trip_uid',
+        columns: ['UID'],
+        content: 'SIN'
       }
       this.display = {
         rowsFiltersTable: false,
-        rowsFilterForm: true
+        rowsFilterForm: true,
+        submitButton: true
       }
     },
     showRowsFilter (row, index) {
@@ -145,7 +181,8 @@ export default {
       }
       this.display = {
         rowsFiltersTable: false,
-        rowsFilterForm: true
+        rowsFilterForm: true,
+        submitButton: false
       }
     },
     addColumn () {
@@ -171,7 +208,8 @@ export default {
     cancelSubmit () {
       this.display = {
         rowsFiltersTable: true,
-        rowsFilterForm: false
+        rowsFilterForm: false,
+        submitButton: false
       }
     },
     choseRowsFilter (row, index) {
@@ -187,7 +225,8 @@ export default {
     resetDisplay () {
       this.display = {
         rowsFiltersTable: true,
-        rowsFilterForm: false
+        rowsFilterForm: false,
+        submitButton: false
       }
     }
   },

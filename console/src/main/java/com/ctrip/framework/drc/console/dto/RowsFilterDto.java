@@ -40,7 +40,6 @@ public class RowsFilterDto {
         rowsFilterTbl.setParameters(JsonUtils.toJson(parameters));
         if (id != null) {
             rowsFilterTbl.setId(id);
-            String a = "^\\d*[02468]$";
         }
         return rowsFilterTbl;
     }

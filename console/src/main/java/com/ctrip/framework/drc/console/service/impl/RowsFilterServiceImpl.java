@@ -82,6 +82,48 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             return "illegal argument for rowFilter";
         }
     }
+    
+    @Override
+    public String updateRowsFilter(RowsFilterDto rowsFilterDto) throws SQLException {
+        try {
+            RowsFilterTbl rowsFilterTbl = rowsFilterDto.toRowsFilterTbl();
+            int update = rowsFilterTblDao.update(rowsFilterTbl);
+            return update == 1 ? "update updateRowsFilter success" : "update updateRowsFilter fail";
+        } catch (IllegalArgumentException e) {
+            logger.error("[[meta=rowsFilter]] updateRowsFilter error, rowsFilterDto:{}",rowsFilterDto,e);
+            return "illegal argument for rowFilter";
+        }
+    }
+
+    @Override
+    public String deleteRowsFilter(Long id) throws SQLException {
+        try {
+            if (id == null) {
+                return "pk is null, cannot delete";
+            }
+            RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
+            rowsFilterTbl.setId(id);
+            rowsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
+            int update = rowsFilterTblDao.update(rowsFilterTbl);
+            return update == 1 ?  "delete rowsFilter success" : "delete rowsFilter fail";
+        } catch (IllegalArgumentException e) {
+            logger.error("[[meta=rowsFilter]] delete rowsFilter error, id is :{}",id,e);
+            return "illegal argument for rowsFilter";
+        }
+    }
+
+    @Override
+    public List<RowsFilterVo> getAllRowsFilterVos() throws SQLException {
+        List<RowsFilterVo> vos = Lists.newArrayList();
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(rowsFilterTbls)) {
+            return vos;
+        } else {
+            return rowsFilterTbls.stream().
+                    filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode())).
+                    map(RowsFilterVo::new).collect(Collectors.toList());
+        }
+    }
 
     @Override
     public String addRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException {
@@ -95,19 +137,6 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         int insert = rowsFilterMappingTblDao.insert(rowsFilterMappingTbl);
         return insert == 1 ? "add RowsFilterMapping success" : "add RowsFilterMapping fail";
-    }
-
-    @Override
-    public List<RowsFilterVo> getAllRowsFilterVos() throws SQLException {
-        List<RowsFilterVo> vos = Lists.newArrayList();
-        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAll();
-        if (CollectionUtils.isEmpty(rowsFilterTbls)) {
-            return vos;
-        } else {
-            return rowsFilterTbls.stream().
-                    filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode())).
-                    map(RowsFilterVo::new).collect(Collectors.toList());
-        }
     }
 
     @Override

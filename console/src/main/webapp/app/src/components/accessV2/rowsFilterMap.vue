@@ -1,7 +1,7 @@
 <template>
   <div>
     <template v-if="display.rowsFilterMapsTable">
-      <span style="margin-right: 5px">同步链路>行过滤</span>
+      <span style="margin-right: 5px;color:black;font-weight:600">同步链路>行过滤</span>
       <Button  type="primary" @click="goToAddMap" style="margin-right: 5px">添加</Button>
       <Button  @click="returnToApplierGroups" style="margin-right: 5px">返回</Button>
       <br/>
@@ -14,20 +14,20 @@
       </Table>
     </template>
     <Form v-if="display.rowsFilterMapForm" ref="mappingForSubmit" :model="mappingForSubmit" :label-width="250" style="margin-top: 50px">
-      <FormItem label="逻辑表" style="width: 600px">
+      <FormItem label="表名" style="width: 800px">
         <Row>
           <Col span="18">
-            <Input v-model="mappingForSubmit.dataMediaId" readonly placeholder="请选择逻辑表"/>
+            <Input type="textarea" v-model="mappingForSubmit.dataMediaFullName" readonly placeholder="请选择表，支持正则逻辑"/>
           </Col>
           <Col span="4">
             <Button type="primary" @click="goToChoseDataMedia" style="margin-left: 50px">选择</Button>
           </Col>
         </Row>
       </FormItem>
-      <FormItem label="行过滤规则"  style="width: 600px">
+      <FormItem label="行过滤规则"  style="width: 800px">
         <Row>
           <Col span="18">
-            <Input v-model="mappingForSubmit.rowsFilter.name"  readonly placeholder="请选择行过滤规则,不选默认无行过滤"/>
+            <Input v-model="mappingForSubmit.rowsFilter.name"  readonly placeholder="请选择行过滤规则"/>
           </Col>
           <Col span="4">
             <Button type="primary" @click="goToChoseRowsFilter" style="margin-left: 50px">选择</Button>
@@ -40,7 +40,7 @@
       </FormItem>
     </Form>
     <dataMedia v-if="display.dataMedia" v-bind="propsForDataMedia" v-on:dataMediaChose="dataMediaIdChose" v-on:closeDataMedia="closeDataMedia"></dataMedia>
-    <rowsFilter v-if="display.rowsFilter"  v-on:rowsFilterChose="rowsFilterChose" v-on:closeRowsFilter="closeRowsFilter"></rowsFilter>
+    <rowsFilter v-if="display.rowsFilter" v-bind="propsForRowsFilter" v-on:rowsFilterChose="rowsFilterChose" v-on:closeRowsFilter="closeRowsFilter"></rowsFilter>
   </div>
 </template>
 
@@ -70,10 +70,21 @@ export default {
       },
       rowsFilterMappingsData: [],
       columns: [
+        // {
+        //   title: '序号',
+        //   key: 'id',
+        //   width: '50'
+        // },
         {
           title: '序号',
-          key: 'id',
-          width: '50'
+          width: 75,
+          align: 'center',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
         },
         {
           title: '数据源',
@@ -87,11 +98,11 @@ export default {
           }
         },
         {
-          title: '逻辑库',
+          title: '库名',
           key: 'namespace'
         },
         {
-          title: '逻辑表',
+          title: '表名',
           key: 'name'
         },
         {
@@ -107,6 +118,7 @@ export default {
       mappingForSubmit: {
         id: null,
         dataMediaId: null,
+        dataMediaFullName: null,
         rowsFilter: {
           id: null,
           name: null
@@ -118,6 +130,15 @@ export default {
         srcDc: this.srcDc,
         destDc: this.destDc,
         applierGroupId: this.applierGroupId
+      },
+      propsForRowsFilter: {
+        srcMha: this.srcMha,
+        destMha: this.destMha,
+        srcDc: this.srcDc,
+        destDc: this.destDc,
+        applierGroupId: this.applierGroupId,
+        // dataMediaId: this.mappingForSubmit.dataMediaId()
+        dataMediaId: null
       }
     }
   },
@@ -157,11 +178,13 @@ export default {
       this.mappingForSubmit = {
         id: row.id,
         dataMediaId: row.dataMediaId,
+        dataMediaFullName: row.namespace + '\\.' + row.name,
         rowsFilter: {
           id: row.rowsFilterId,
           name: row.rowsFilterName
         }
       }
+      this.propsForRowsFilter.dataMediaId = row.dataMediaId.toString()
       this.display = {
         rowsFilterMapsTable: false,
         rowsFilterMapForm: true,
@@ -217,14 +240,15 @@ export default {
         rowsFilter: false
       }
     },
-    dataMediaIdChose (e) {
+    dataMediaIdChose (params) {
       this.display = {
         rowsFilterMapsTable: false,
         rowsFilterMapForm: true,
         dataMedia: false,
         rowsFilter: false
       }
-      this.mappingForSubmit.dataMediaId = e
+      this.mappingForSubmit.dataMediaId = params[0]
+      this.mappingForSubmit.dataMediaFullName = params[1]
     },
     closeDataMedia () {
       this.display = {
@@ -256,6 +280,7 @@ export default {
       console.log('map' + params)
       this.mappingForSubmit.rowsFilter.id = params[0]
       this.mappingForSubmit.rowsFilter.name = params[1]
+      this.propsForRowsFilter.dataMediaId = params[0].toString()
     },
     closeRowsFilter () {
       this.display = {

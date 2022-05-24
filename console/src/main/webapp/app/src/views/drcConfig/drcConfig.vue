@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/drcclusters">DRC集群</BreadcrumbItem>
+      <BreadcrumbItem to="/drcConfig">DRC集群</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
@@ -357,7 +357,7 @@ export default {
     goToLink (row, index) {
       console.log('go to change config for ' + row.srcMha + ' and ' + row.destMha)
       // this.$router.push({ path: '/access', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
-      this.$router.push({ path: '/accessV2', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
+      this.$router.push({ path: '/accessV2', query: { step: '2', clustername: row.srcMha, newclustername: row.destMha } })
     },
     checkConfig (row, index) {
       console.log(row.srcMha)

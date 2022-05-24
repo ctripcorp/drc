@@ -119,6 +119,21 @@ const routes = [
     component: () => import('../views/monitor/unitRouteVerificationResult.vue')
   },
   {
+    path: '/dataMedias',
+    name: 'dataMedias',
+    component: () => import('../views/drcConfig/dataMedias.vue')
+  },
+  {
+    path: '/rowsFilters',
+    name: 'rowsFilters',
+    component: () => import('../views/drcConfig/rowsFilters.vue')
+  },
+  {
+    path: '/drcConfig',
+    name: 'drcConfig',
+    component: () => import('../views/drcConfig/drcConfig.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

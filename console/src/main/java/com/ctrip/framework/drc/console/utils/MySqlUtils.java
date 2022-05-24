@@ -11,11 +11,13 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -60,6 +62,8 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
 
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
+    
+    private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
 
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
 
@@ -214,15 +218,17 @@ public class MySqlUtils {
         ReadResource readResource = null;
         for(TableSchemaName table : tables) {
             try {
-                String sql = String.format(GET_COLUMN_PREFIX, table.getSchema(),table.getName());
+                String sql = String.format(GET_ALL_COLUMN_PREFIX, table.getSchema(),table.getName());
                 GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                 readResource = sqlOperatorWrapper.select(execution);
                 ResultSet rs = readResource.getResultSet();
                 int index = 1;
                 HashSet<String> columns = Sets.newHashSet();
-                while (rs.next()) {
-                    String column = rs.getString(index++);
-                    columns.add(column);
+                if (rs.next()) {
+                    final String[] columnNames = rs.getString(1).split(",");
+                    for (String columnName : columnNames) {
+                        columns.add(columnName);
+                    }
                 }
                 table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
             } catch (Throwable t) {

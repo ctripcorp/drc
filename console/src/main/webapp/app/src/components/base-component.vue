@@ -53,11 +53,22 @@
               <span>单元化路由校验</span>
             </MenuItem>
           </Submenu>
-          <MenuItem name="/manage" to="/manage">
-            <Icon type="ios-paper"></Icon>
-            <span>审批管理</span>
-          </MenuItem>
           <Submenu name="2">
+            <template slot="title">
+              <Icon type="ios-paper"></Icon>
+              配置管理
+            </template>
+            <MenuItem name="/drcConfig" to="/drcConfig">
+              <span>同步配置</span>
+            </MenuItem>
+            <MenuItem name="/dataMedias" to="/dataMedias">
+              <span>数据源表</span>
+            </MenuItem>
+            <MenuItem name="/rowsFilters" to="/rowsFilters">
+              <span>行过滤规则</span>
+            </MenuItem>
+          </Submenu>
+          <Submenu name="3">
             <template slot="title">
               <Icon type="ios-paper"></Icon>
               资源管理
@@ -69,6 +80,10 @@
               <span>Proxy资源</span>
             </MenuItem>
           </Submenu>
+          <MenuItem name="/manage" to="/manage">
+            <Icon type="ios-paper"></Icon>
+            <span>审批管理</span>
+          </MenuItem>
         </Menu>
       </Sider>
       <Layout>

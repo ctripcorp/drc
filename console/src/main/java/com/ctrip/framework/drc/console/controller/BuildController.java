@@ -1,9 +1,8 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
+import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -22,10 +21,13 @@ import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.google.common.collect.Lists;
+import com.google.triplog.shaded.common.collect.Sets;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -74,6 +76,9 @@ public class BuildController {
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    
+    @Autowired
+    private DataMediaTblDao dataMediaTblDao;
     
     private DalUtils dalUtils = DalUtils.getInstance();
     
@@ -143,6 +148,17 @@ public class BuildController {
         }
     }
 
+    @GetMapping("allDataMedias")
+    public ApiResult getAllDataMediaVos () {
+        try {
+            List<DataMediaVo> dataMediaVos = dataMediaService.getAllDataMediaVos();
+            return ApiResult.getSuccessInstance(dataMediaVos);
+        } catch (SQLException e) {
+            logger.error("sql error",e);
+            return ApiResult.getFailInstance("sql error");
+        }
+    }
+
 
     @GetMapping("rowsFilters")
     public ApiResult getAllRowsFilterVos () {
@@ -162,6 +178,15 @@ public class BuildController {
                                     @PathVariable String srcDc,
                                     @PathVariable String dataMediaSourceName,
                                     @PathVariable Integer type) {
+        try {
+            if (StringUtils.isEmpty(srcDc)) {
+                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(dataMediaSourceName, BooleanEnum.FALSE.getCode());
+                srcDc = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
+            }
+        } catch (SQLException e) {
+            logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name,dataMediaSourceName,e);
+            return ApiResult.getFailInstance("sql error");
+        }
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
         if (publicCloudDc.contains(srcDc)) {
@@ -187,6 +212,50 @@ public class BuildController {
                 return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
             } catch (Exception e) {
                 logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name,dataMediaSourceName,e);
+                if (e instanceof SQLException) {
+                    return ApiResult.getFailInstance("sql error");
+                } else if (e  instanceof CompileExpressionErrorException) {
+                    return ApiResult.getFailInstance("expression error");
+                } else {
+                    return ApiResult.getFailInstance("other error");
+                }
+            }
+        }
+    }
+
+    @GetMapping("rowsFilter/commonColumns/{srcDc}/{dataMediaIdString}")
+    public ApiResult getCommonColumnInDataMedias (
+                                    @PathVariable String srcDc,
+                                    @PathVariable String dataMediaIdString) {
+        Long dataMediaId = Long.valueOf(dataMediaIdString);
+        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        if (publicCloudDc.contains(srcDc)) {
+            String dcDomain = consoleDcInfos.get(srcDc);
+            String url = dcDomain + "/api/drc/v1/mha/commonColumns/" +
+                    srcDc + "/" +
+                    dataMediaId;
+            return HttpUtils.get(url, ApiResult.class);
+        } else {
+            try {
+                logger.info("[[tag=commonColumns]] get columns from dataMedia{} ",dataMediaId);
+                DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByPk(dataMediaId);
+                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByPk(dataMediaTbl.getDataMediaSourceId());
+                String dataMediaSourceName = mhaTbl.getMhaName();
+                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
+                MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
+                        .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
+                String namespace = dataMediaTbl.getNamespcae();
+                String name = dataMediaTbl.getName();
+                if (machineTbl != null) {
+                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
+                    AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
+                    Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
+                    return ApiResult.getSuccessInstance(allCommonColumns);
+                }
+                return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
+            } catch (Exception e) {
+                logger.warn("[[tag=commonColumns]] get columns from dataMedia{} error ",dataMediaId,e);
                 if (e instanceof SQLException) {
                     return ApiResult.getFailInstance("sql error");
                 } else if (e  instanceof CompileExpressionErrorException) {

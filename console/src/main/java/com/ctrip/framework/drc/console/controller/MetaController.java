@@ -533,64 +533,61 @@ public class MetaController {
     //尽量不要提供修改接口，复用情况修改一个会影响 其他 同步 配置
     //使用新增替代修改，校验删除
     
-//    @GetMapping("rowsFilters")
-//    public ApiResult getRowsFilters(@PathVariable String dc) {
-//        // todo
-//        return ApiResult.getSuccessInstance(null);
-//    }
-    
     @PostMapping("rowsFilter")
     public ApiResult inputRowsFilter(@RequestBody RowsFilterDto rowsFilterDto) {
         logger.info("[[meta=rowsFilter]] load rowsFilter: {}", rowsFilterDto);
         try {
-            return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilter(rowsFilterDto));
+            if (rowsFilterDto.getId() != null) {
+                //todo 校验复用
+                return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilter(rowsFilterDto));
+            } else {
+                return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilter(rowsFilterDto));
+            }
         } catch (SQLException e) {
             logger.error("[[meta=rowsFilter]] load rowsFilter fail with {} ", rowsFilterDto, e);
-            return ApiResult.getFailInstance("sql error in add RowsFilter");
+            return ApiResult.getFailInstance("sql error in add or update RowsFilter");
         }
     }
     
-//    @DeleteMapping("rowsFilter")
-//    public ApiResult deleteRowsFilter() {
-//        // todo
-//        return ApiResult.getSuccessInstance(null);
-//    }
-
-
-//    @GetMapping("dataMedias")
-//    public ApiResult getDataMedias(@PathVariable String dc) {
-//        // todo
-//        return ApiResult.getSuccessInstance(null);
-//    }
+    @DeleteMapping("rowsFilter/{id}")
+    public ApiResult deleteRowsFilter(@PathVariable Long id) {
+        logger.info("[[meta=rowsFilter]] delete rowsFilter id: {}", id);
+        try {
+            return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilter(id));
+        } catch (SQLException e) {
+            logger.error("[[meta=rowsFilter]] delete rowsFilter fail with {} ", id, e);
+            return ApiResult.getFailInstance("sql error in delete rowsFilter");
+        }
+    }
+    
 
     @PostMapping("dataMedia")
     public ApiResult inputDataMedia(@RequestBody DataMediaDto dataMediaDto) {
         logger.info("[[meta=dataMedia]] load dataMedia: {}", dataMediaDto);
         try {
-            return ApiResult.getSuccessInstance(dataMediaService.addDataMedia(dataMediaDto));
+            if (dataMediaDto.getId() != null) {
+                //todo 校验复用
+                return ApiResult.getSuccessInstance(dataMediaService.updateDataMedia(dataMediaDto));
+            } else {
+                return ApiResult.getSuccessInstance(dataMediaService.addDataMedia(dataMediaDto));
+            }
         } catch (SQLException e) {
             logger.error("[[meta=dataMedia]] load dataMedia fail with {} ", dataMediaDto, e);
-            return ApiResult.getFailInstance("sql error in add dataMedia");
+            return ApiResult.getFailInstance("sql error in add or update dataMedia");
         }
     }
 
-//    @DeleteMapping("dataMedia")
-//    public ApiResult deleteDataMedia() {
-//        // todo
-//        return ApiResult.getSuccessInstance(null);
-//    }
+    @DeleteMapping("dataMedia/{id}")
+    public ApiResult deleteDataMedia(@PathVariable Long id) {
+        logger.info("[[meta=dataMedia]] delete dataMedia id: {}", id);
+        try {
+            return ApiResult.getSuccessInstance(dataMediaService.deleteDataMedia(id));
+        } catch (SQLException e) {
+            logger.error("[[meta=dataMedia]] delete dataMedia fail with {} ", id, e);
+            return ApiResult.getFailInstance("sql error in delete dataMedia");
+        }
+    }
     
-//    @PostMapping("dataMedia/applierGroupMapping/{applierGroupId}/{dataMediaId}")
-//    public ApiResult addDataMedia2ApplierMapping(@PathVariable Long applierGroupId, @PathVariable Long dataMediaId) {
-//        logger.info("[[meta=dataMedia]] load dataMedia2ApplierMapping: " + applierGroupId + "-" + dataMediaId);
-//        try {
-//            return ApiResult.getSuccessInstance(
-//                    dataMediaService.addDataMediaMapping(applierGroupId,dataMediaId));
-//        } catch (SQLException e) {
-//            logger.error("[[meta=dataMedia]] load dataMedia2ApplierMapping fail with: " + applierGroupId + "-" + dataMediaId);
-//            return ApiResult.getFailInstance("sql error in addDataMediaMapping");
-//        }
-//    }
 
     @PostMapping("rowsFilterMapping")
     public ApiResult addOrUpdateRowsFilter2ApplierMapping(@RequestBody RowsFilterMappingDto mappingDto) {
