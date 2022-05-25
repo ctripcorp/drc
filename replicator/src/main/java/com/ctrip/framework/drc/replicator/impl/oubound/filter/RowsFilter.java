@@ -77,7 +77,6 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         value.setNoRowFiltered(noRowFiltered);
         if (!noRowFiltered) {
             value.setRowsEvent(afterRowsEvent);
-            beforeRowsEvent.release();
         }
         boolean res = doNext(value, value.isNoRowFiltered());
         if (xid_log_event == eventType) {
