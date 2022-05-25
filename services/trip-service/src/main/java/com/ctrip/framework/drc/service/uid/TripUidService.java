@@ -1,10 +1,8 @@
 package com.ctrip.framework.drc.service.uid;
 
 import com.ctrip.basebiz.tripaccount.region.route.sdk.AccountUidRoute;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 import com.ctrip.soa.platform.accountregionroute.v1.Region;
 import org.slf4j.Logger;
