@@ -10,6 +10,6 @@ import java.util.Set;
  */
 public interface UidService extends Ordered {
 
-    boolean filterUid(String uid, Set<String> locations) throws Exception;
+    boolean filterUid(String uid, Set<String> locations, boolean illegalArgument) throws Exception;
 
 }

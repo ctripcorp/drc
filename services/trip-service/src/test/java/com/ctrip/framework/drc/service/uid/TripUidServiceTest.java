@@ -26,6 +26,6 @@ public class TripUidServiceTest {
 
     @Test
     public void filterUid() throws Exception {
-        Assert.assertTrue(uidService.filterUid("test_uid", locations));
+        Assert.assertTrue(uidService.filterUid("test_uid", locations, false));
     }
 }

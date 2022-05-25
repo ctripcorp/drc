@@ -24,12 +24,15 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
     protected String context;
 
+    protected boolean illegalArgument;
+
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
         RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
         if (parameters != null) {
             this.context = parameters.getContext();
             this.fields = parameters.getColumns();
+            this.illegalArgument = parameters.getIllegalArgument();
         }
     }
 

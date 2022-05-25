@@ -36,7 +36,7 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
     @Override
     protected boolean doFilterRows(Object field) throws Exception {
         return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> {
-            if (uidService.filterUid(String.valueOf(field), dstLocation)) {
+            if (uidService.filterUid(String.valueOf(field), dstLocation, illegalArgument)) {
                 return true;
             }
             return false;

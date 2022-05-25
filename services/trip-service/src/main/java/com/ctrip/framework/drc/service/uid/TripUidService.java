@@ -21,15 +21,13 @@ public class TripUidService implements UidService {
     private static final int RETRY_TIME = 2;
 
     @Override
-    public boolean filterUid(String uid, Set<String> locations) throws Exception {
-        if (locations == null || locations.isEmpty()) {
-            return false;
+    public boolean filterUid(String uid, Set<String> locations, boolean illegalArgument) throws Exception {
+        Boolean result = new RetryTask<>(new UidFilterTask(uid, locations, illegalArgument), RETRY_TIME).call();
+
+        if (result == null) {
+            throw new Exception("[RowsFilter] do UidFilterTask error, null result");
         }
-        Region region = new RetryTask<>(new RegionForUidTask(uid), RETRY_TIME).call();
-        if (region == null) {
-            throw new Exception("[RowsFilter] call sdk error, null region");
-        }
-        return locations.contains(region.name().toUpperCase());
+        return result;
     }
 
     @Override
@@ -37,23 +35,36 @@ public class TripUidService implements UidService {
         return 0;
     }
 
-    private class RegionForUidTask implements NamedCallable<Region> {
+    private class UidFilterTask implements NamedCallable<Boolean> {
 
         private String uid;
 
-        public RegionForUidTask(String uid) {
+        private Set<String> locations;
+
+        private boolean illegalArgument;
+
+        public UidFilterTask(String uid, Set<String> locations, boolean illegalArgument) {
             this.uid = uid;
+            this.locations = locations;
+            this.illegalArgument = illegalArgument;
         }
 
         @Override
-        public Region call() throws Exception {
-//            AccountUidRoute.checkUidInSG(uid);
-            return AccountUidRoute.regionForUid(uid);
+        public Boolean call() throws Exception {
+            try {
+                if (locations == null || locations.isEmpty()) {
+                    return false;
+                }
+                Region region = AccountUidRoute.regionForUid(uid);
+                return locations.contains(region.name().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return illegalArgument;
+            }
         }
 
         @Override
         public void afterException(Throwable t) {
-            logger.error("[RowsFilter] call sdk for region with uid({}) failed", uid, t);
+            logger.error("[RowsFilter] call sdk with uid({}) error", uid, t);
         }
     }
 }

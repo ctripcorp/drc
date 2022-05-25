@@ -74,6 +74,8 @@ public class RowsFilterConfig {
 
         private List<String> columns;
 
+        private boolean illegalArgument;
+
         private String context;
 
         public List<String> getColumns() {
@@ -92,10 +94,19 @@ public class RowsFilterConfig {
             this.context = context;
         }
 
+        public boolean getIllegalArgument() {
+            return illegalArgument;
+        }
+
+        public void setIllegalArgument(boolean illegalArgument) {
+            this.illegalArgument = illegalArgument;
+        }
+
         @Override
         public String toString() {
-            return "Fields{" +
+            return "Parameters{" +
                     "columns=" + columns +
+                    ", illegalArgument=" + illegalArgument +
                     ", context='" + context + '\'' +
                     '}';
         }

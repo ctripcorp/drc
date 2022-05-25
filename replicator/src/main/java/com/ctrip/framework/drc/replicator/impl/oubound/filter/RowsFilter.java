@@ -130,6 +130,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         Columns columns = Columns.from(drcTableMap.getColumns());
         transformMetaAndType(originColumns, columns);
         rowsEvent.load(columns);
+
         rowsEvent.release();
         return drcTableMap;
     }

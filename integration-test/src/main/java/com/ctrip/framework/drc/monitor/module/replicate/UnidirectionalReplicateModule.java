@@ -46,6 +46,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
             "        \"columns\": [" +
             "          \"UID\"" +
             "        ]," +
+            "        \"illegalArgument\": false," +
             "        \"context\": \"SIN\"" +
             "      }" +
             "    }" +

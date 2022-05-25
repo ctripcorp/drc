@@ -9,7 +9,7 @@ import java.util.Set;
 public class LocalUidService implements UidService {
 
     @Override
-    public boolean filterUid(String uid, Set<String> locations) throws Exception {
+    public boolean filterUid(String uid, Set<String> locations, boolean illegalArgument) throws Exception {
         return true;
     }
 
