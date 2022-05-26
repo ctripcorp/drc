@@ -42,6 +42,8 @@ public class RowsFilterConfigDto {
 
     private String context;
     
+    private boolean illegalArgument;
+    
     
 
     public RowsFilterMappingTbl getRowsFilterMappingTbl () {
@@ -71,10 +73,11 @@ public class RowsFilterConfigDto {
         RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
         parameters.setColumns(this.getColumns());
         parameters.setContext(this.getContext());
+        parameters.setIllegalArgument(this.getIllegalArgument());
         rowsFilterTbl.setParameters(JsonCodec.INSTANCE.encode(parameters));
         return rowsFilterTbl;
     }
-    
+
 
     @Override
     public String toString() {
@@ -92,6 +95,7 @@ public class RowsFilterConfigDto {
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
+                ", illegalArgument=" + illegalArgument +
                 '}';
     }
 
@@ -197,5 +201,13 @@ public class RowsFilterConfigDto {
 
     public void setApplierGroupId(Long applierGroupId) {
         this.applierGroupId = applierGroupId;
+    }
+
+    public boolean getIllegalArgument() {
+        return illegalArgument;
+    }
+
+    public void setIllegalArgument(boolean illegalArgument) {
+        this.illegalArgument = illegalArgument;
     }
 }

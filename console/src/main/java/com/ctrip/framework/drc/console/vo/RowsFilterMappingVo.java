@@ -42,6 +42,8 @@ public class RowsFilterMappingVo {
     private List<String> columns;
     
     private String context;
+    
+    private boolean illegalArgument;
 
     public RowsFilterMappingVo() {
     }
@@ -69,6 +71,7 @@ public class RowsFilterMappingVo {
                 JsonCodec.INSTANCE.decode(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class);
         this.columns = parameters.getColumns();
         this.context = parameters.getContext();
+        this.illegalArgument = parameters.getIllegalArgument();
     }
 
 
@@ -87,6 +90,7 @@ public class RowsFilterMappingVo {
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
+                ", illegalArgument=" + illegalArgument +
                 '}';
     }
 
@@ -184,5 +188,13 @@ public class RowsFilterMappingVo {
 
     public void setContext(String context) {
         this.context = context;
+    }
+
+    public boolean isIllegalArgument() {
+        return illegalArgument;
+    }
+
+    public void setIllegalArgument(boolean illegalArgument) {
+        this.illegalArgument = illegalArgument;
     }
 }

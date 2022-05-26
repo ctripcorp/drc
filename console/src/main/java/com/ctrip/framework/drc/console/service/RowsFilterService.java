@@ -2,10 +2,7 @@ package com.ctrip.framework.drc.console.service;
 
 
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterMappingDto;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
-import com.ctrip.framework.drc.console.vo.RowsFilterVo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 
 import java.sql.SQLException;
@@ -23,5 +20,5 @@ public interface RowsFilterService {
     
     List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException;
     
-
+    
 }

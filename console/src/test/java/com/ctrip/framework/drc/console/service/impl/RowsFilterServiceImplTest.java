@@ -7,8 +7,6 @@ import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.dto.RowsFilterDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterMappingDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;

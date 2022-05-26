@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -41,62 +43,22 @@ import java.util.Set;
 @RequestMapping("/api/drc/v1/build/")
 public class BuildController {
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-    @Autowired
-    private TransferServiceImpl transferService;
-
-    @Autowired
-    private DrcBuildServiceImpl drcBuildService;
-
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
-
+    
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
-
-    @Autowired
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
-
-    @Autowired
-    private MetaInfoServiceTwoImpl metaInfoServiceTwo;
-
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
-
+    
     @Autowired
     private RowsFilterService rowsFilterService;
-    
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     
-    @Autowired
-    private DataMediaTblDao dataMediaTblDao;
-    
     private DalUtils dalUtils = DalUtils.getInstance();
     
+    private ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
     
-    @GetMapping("applierGroups/{srcMha}/{destMha}")
-    public ApiResult getApplierGroupVos(@PathVariable String srcMha,
-                                      @PathVariable String destMha) {
-        try {
-            String srcDc = metaInfoService.getDc(srcMha);
-            String destDc = metaInfoService.getDc(destMha);
-            ArrayList<ApplierGroupVo>  applierGroupVos = Lists.newArrayList();
-            ApplierGroupTbl applierGroupTbl0 = metaInfoService.getApplierGroupTbl(destMha, srcMha);
-            if (applierGroupTbl0 != null) {
-                applierGroupVos.add(new ApplierGroupVo(srcMha,destMha,srcDc,destDc,applierGroupTbl0.getId()));
-            }
-            ApplierGroupTbl applierGroupTbl1 = metaInfoService.getApplierGroupTbl(srcMha, destMha);
-            if (applierGroupTbl1 != null ) {
-                applierGroupVos.add(new ApplierGroupVo(destMha,srcMha, destDc, srcDc,applierGroupTbl1.getId()));
-            }
-            return ApiResult.getSuccessInstance(applierGroupVos);
-        } catch (SQLException e) {
-            logger.error("sql error",e);
-            return ApiResult.getFailInstance("sql error");
-        }
-    }
+    private ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
+    
     
     @PostMapping("simplexDrc/{srcMha}/{destMha}") 
     public ApiResult getOrBuildSimplexDrc(@PathVariable String srcMha, @PathVariable String destMha) {
@@ -106,8 +68,8 @@ public class BuildController {
             Long destMhaId = dalUtils.getId(TableEnum.MHA_TABLE, destMha);
             String srcDc = metaInfoService.getDc(srcMha);
             String destDc = metaInfoService.getDc(destMha);
-            Long srcReplicatorGroupId = dalUtils.getReplicatorGroupTblDao().upsertIfNotExist(srcMhaId);
-            Long destApplierGroupId = dalUtils.getApplierGroupTblDao().upsertIfNotExist(srcReplicatorGroupId, destMhaId);
+            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaId);
+            Long destApplierGroupId = applierGroupTblDao.upsertIfNotExist(srcReplicatorGroupId, destMhaId);
             SimplexDrcBuildVo simplexDrcBuildVo = new SimplexDrcBuildVo(srcMha,
                     destMha,
                     srcDc,
@@ -121,7 +83,7 @@ public class BuildController {
         }
     }
 
-    @GetMapping("RowsFilterMappings/{applierGroupId}")
+    @GetMapping("rowsFilterMappings/{applierGroupId}")
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
         Long id = Long.valueOf(applierGroupId);
         try {
@@ -138,7 +100,7 @@ public class BuildController {
         logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
         try {
             if (rowsFilterConfigDto.getId() != null) {
-                // todo 校验是否存在一张表被多个表达式匹配
+                // todo check all dataMedia has common table or not
                 return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterConfig(rowsFilterConfigDto));
             } else {
                 return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterConfig(rowsFilterConfigDto));

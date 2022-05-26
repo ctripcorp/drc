@@ -72,6 +72,9 @@
                     </Col>
                   </Row>
                 </FormItem>
+                <FormItem label="默认过滤" >
+                  <Checkbox v-model="rowsFilterConfig.illegalArgument">过滤【字段为空时】</Checkbox>
+                </FormItem>
                 <FormItem label="规则内容" >
                   <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
                   <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="rowsFilterConfig.context" style="width: 200px" placeholder="Region 选择">
@@ -147,6 +150,11 @@ export default {
           title: '模式',
           key: 'mode',
           width: 120
+        },
+        {
+          title: '默认过滤',
+          key: 'illegalArgument',
+          width: 100
         },
         {
           title: '相关列',
@@ -238,7 +246,7 @@ export default {
     },
     getRowsFilterConfigs () {
       console.log(this.drc.applierGroupId)
-      this.axios.get('/api/drc/v1/build/RowsFilterMappings/' + this.drc.applierGroupId)
+      this.axios.get('/api/drc/v1/build/rowsFilterMappings/' + this.drc.applierGroupId)
         .then(response => {
           if (response.data.status === 1) {
             window.alert('查询行过滤配置失败!')
@@ -294,7 +302,7 @@ export default {
         mode: row.mode,
         columns: row.columns,
         context: row.context,
-        illegalArgument: false
+        illegalArgument: row.illegalArgument
       }
       this.tableData = []
     },
@@ -341,12 +349,14 @@ export default {
           rowsFilterName: this.rowsFilterConfig.rowsFilterName === '' ? null : this.rowsFilterConfig.rowsFilterName,
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
+          illegalArgument: this.rowsFilterConfig.illegalArgument,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
         }).then(response => {
           if (response.data.status === 1) {
             window.alert('提交失败!' + response.data.data)
           } else {
             window.alert('提交成功!' + response.data.data)
+            this.display.rowsFilterModal = false
             this.getRowsFilterConfigs()
           }
         })
@@ -393,6 +403,7 @@ export default {
     addColumn () {
       this.columnsForChose.push(this.columnForAdd)
       this.rowsFilterConfig.columns.push(this.columnForAdd)
+      this.columnForAdd = ''
     }
   },
   created () {
