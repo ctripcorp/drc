@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
@@ -81,7 +81,7 @@ public class MhaController {
         String p = "{\"columns\":[\"UID\"],\"context\":\"SIN\"}";
         return ApiResult.getSuccessInstance(mhaService.getAllDbsAndDals(clusterName, env));
     }
-    
+
     @GetMapping("{mhas}/uuid/{ip}/{port}/{master}")
     public ApiResult getRealUuid(@PathVariable String mhas,@PathVariable String ip,@PathVariable int port,@PathVariable boolean master){
         try {
@@ -114,7 +114,7 @@ public class MhaController {
         } catch (Throwable e) {
             logger.error("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas,e);
         }
-        
+
         return ApiResult.getFailInstance(null);
     }
 
@@ -190,7 +190,7 @@ public class MhaController {
             }
         }
     }
-    
-    
-    
+
+
+
 }

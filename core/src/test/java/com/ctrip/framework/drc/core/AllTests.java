@@ -24,7 +24,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;

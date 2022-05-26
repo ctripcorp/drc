@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.core.filter.exception;
+package com.ctrip.framework.drc.core.server.common.filter.table.exception;
 
 import org.apache.commons.lang.exception.NestableRuntimeException;
 

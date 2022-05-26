@@ -16,7 +16,7 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.google.common.collect.Lists;
@@ -78,10 +78,11 @@ public class BuildController {
                     srcReplicatorGroupId);
             return ApiResult.getSuccessInstance(simplexDrcBuildVo);
         } catch (SQLException e) {
-            logger.error("sql error",e);
+            logger.error("sql error", e);
             return ApiResult.getFailInstance("sql error");
         }
     }
+
 
     @GetMapping("rowsFilterMappings/{applierGroupId}")
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
@@ -94,6 +95,7 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error");
         }
     }
+
     
     @PostMapping("rowsFilterConfig")
     public ApiResult inputRowsFilter(@RequestBody RowsFilterConfigDto rowsFilterConfigDto) {
@@ -121,8 +123,8 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
-    
-    
+
+
     @GetMapping("dataMedia/check/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
     public ApiResult getMatchTable (@PathVariable String namespace,
                                     @PathVariable String name,
@@ -226,6 +228,6 @@ public class BuildController {
             }
         }
     }
-    
-    
+
+
 }

@@ -5,19 +5,16 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
-import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -64,7 +61,7 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
 
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
-    
+
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
 
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
@@ -248,7 +245,7 @@ public class MySqlUtils {
         }
         return table2ColumnsMap;
     }
-    
+
     public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint,aviatorRegexFilter);
         Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, true);
@@ -547,10 +544,10 @@ public class MySqlUtils {
         public String toString() {
             return String.format("`%s`.`%s`", schema, name);
         }
-        
+
         public String getDirectSchemaTableName() {
             return String.format("%s.%s", schema, name);
         }
-        
+
     }
 }

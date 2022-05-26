@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.monitor.function.cases.InsertCase;
 import com.ctrip.framework.drc.monitor.function.execution.insert.SingleInsertExecution;
 import com.ctrip.framework.drc.monitor.function.operator.ReadWriteSqlOperator;
 import com.ctrip.xpipe.api.monitor.Task;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,6 +56,11 @@ public class QPSTestPairCase extends AbstractBenchmarkCase implements PairCase<R
             INSERT_SQL = INSERT1B;
         } else {
             INSERT_SQL = INSERT10k;
+        }
+        String qpsSqlFromQConfig = ConfigService.getInstance().getDrcMonitorQpsSql();
+        if (StringUtils.isNotBlank(qpsSqlFromQConfig)) {
+            INSERT_SQL = qpsSqlFromQConfig;
+            logger.info("[Init] qps sql from qconfig: {}", INSERT_SQL);
         }
         logger.info("[Init] INSERT_SQL to {}", INSERT_SQL);
     }

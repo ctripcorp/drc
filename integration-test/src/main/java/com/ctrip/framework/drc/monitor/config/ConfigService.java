@@ -35,6 +35,7 @@ public class ConfigService extends AbstractConfigBean {
     private static final String UCS_UNIT_ROUTE = "ucs.unit.route";
     private static final String BI_LATERAL_SCHEDULE_PERIOD = "bi.lateral.schedule.period";
     private static final String KEY_DRC_MONITOR_QPS_ROUND = "drc.monitor.qps.round";
+    private static final String KEY_DRC_MONITOR_QPS_SQL = "drc.monitor.qps.sql";
     private static final String KEY_DRC_MONITOR_QPS_DELETE = "drc.monitor.qps.delete";
     private static final String KEY_DRC_MONITOR_QPS_INSERT = "drc.monitor.qps.insert";
     private static final String KEY_DRC_MONITOR_GRAND_TRANSACTION_ROWS = "drc.monitor.grand.transaction.rows";
@@ -71,6 +72,7 @@ public class ConfigService extends AbstractConfigBean {
     private static final boolean DEFAULT_AUTO_UNI_SWITCH = false;
     private static final boolean DEFAULT_AUTO_BI_SWITCH = false;
     private static final int DEFAULT_DRC_MONITOR_QPS_ROUND = 1;
+    private static final String DEFAULT_DRC_MONITOR_QPS_SQL = "";
     private static final int DEFAULT_DRC_MONITOR_QPS_DELETE = 0;
     private static final String DEFAULT_DRC_MONITOR_QPS_INSERT = "1k";
     private static final int DEFAULT_DRC_MONITOR_GRAND_TRANSACTION_ROWS = 20;
@@ -136,6 +138,10 @@ public class ConfigService extends AbstractConfigBean {
 
     public int getDrcMonitorQpsRound() {
         return getIntProperty(KEY_DRC_MONITOR_QPS_ROUND, DEFAULT_DRC_MONITOR_QPS_ROUND);
+    }
+
+    public String getDrcMonitorQpsSql() {
+        return getProperty(KEY_DRC_MONITOR_QPS_SQL, DEFAULT_DRC_MONITOR_QPS_SQL);
     }
 
     public String getDrcMonitorQpsInsert() {
