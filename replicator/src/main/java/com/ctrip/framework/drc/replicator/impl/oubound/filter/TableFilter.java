@@ -31,18 +31,19 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         FileChannel fileChannel = value.getFileChannel();
         if (table_map_log_event == eventType || drc_table_map_log_event == eventType) {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
+            TableMapLogEvent previousTableMapLogEvent;
             value.backToHeader();
             EventReader.readEvent(fileChannel, tableMapLogEvent);
             value.setNoRowFiltered(true);
             if (table_map_log_event == eventType) {
-                tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
+                previousTableMapLogEvent = tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
-                TableMapLogEvent previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
-                if (previousTableMapLogEvent != null) {
-                    String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
-                    previousTableMapLogEvent.release();
-                    logger.info("[Release] DrcTableMapLogEvent for {}", tableName);
-                }
+                previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
+            }
+            if (previousTableMapLogEvent != null) {
+                String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
+                previousTableMapLogEvent.release();
+                logger.info("[Release] TableMapLogEvent for {} of type {}", tableName, previousTableMapLogEvent.getLogEventType());
             }
             value.restorePosition();
         } else if (LogEventUtils.isRowsEvent(eventType)) {

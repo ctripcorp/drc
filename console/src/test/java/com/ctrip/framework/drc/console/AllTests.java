@@ -132,7 +132,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ExecutedGtidQueryTaskTest.class,
         // monitor
         ConsistentMonitorContainerTest.class,
-        StaticDelayMonitorServerTest.class,
+//        StaticDelayMonitorServerTest.class,
         MySqlUtilsTest.class,
         JsonUtilsTest.class,
         CheckGtidTest.class,

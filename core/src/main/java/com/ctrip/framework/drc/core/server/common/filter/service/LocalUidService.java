@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.core.server.common.filter.service;
 
-import java.util.Set;
+import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
 
 /**
  * @Author limingdong
@@ -9,7 +9,7 @@ import java.util.Set;
 public class LocalUidService implements UidService {
 
     @Override
-    public boolean filterUid(String uid, Set<String> locations) throws Exception {
+    public boolean filterUid(UidContext uidContext) throws Exception {
         return true;
     }
 

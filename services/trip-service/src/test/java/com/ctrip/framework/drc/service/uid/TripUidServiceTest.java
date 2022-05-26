@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.service.uid;
 
 import com.ctrip.basebiz.tripaccount.region.route.sdk.UDL;
+import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
@@ -26,6 +27,10 @@ public class TripUidServiceTest {
 
     @Test
     public void filterUid() throws Exception {
-        Assert.assertTrue(uidService.filterUid("test_uid", locations));
+        UidContext uidContext = new UidContext();
+        uidContext.setUid("test_uid");
+        uidContext.setLocations(locations);
+        uidContext.setIllegalArgument(false);
+        Assert.assertTrue(uidService.filterUid(uidContext));
     }
 }

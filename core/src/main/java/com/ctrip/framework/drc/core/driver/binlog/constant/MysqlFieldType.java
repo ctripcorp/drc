@@ -136,7 +136,7 @@ public enum MysqlFieldType {
     mysql_type_json(245) {
         @Override
         public String[] getLiterals() {
-            return new String[]{};
+            return new String[]{"json"};
         }
     },
     mysql_type_newdecimal(246) {
