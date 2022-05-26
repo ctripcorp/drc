@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
@@ -23,6 +24,12 @@ public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 
 	public DataMediaTblDao() throws SQLException {
 		super(DataMediaTbl.class);
+	}
+	
+	public Long insertReturnPk(DataMediaTbl dataMediaTbl) throws SQLException{
+		KeyHolder keyHolder = new KeyHolder();
+		insert(new DalHints(), keyHolder, dataMediaTbl);
+		return (Long) keyHolder.getKey();
 	}
 	
 	public List<DataMediaTbl> queryByIdsAndType (List<Long> dataMediaMappingIds,Integer type, Integer deleted) throws SQLException {

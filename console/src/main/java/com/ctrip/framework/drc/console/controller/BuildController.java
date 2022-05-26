@@ -3,19 +3,16 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.ApplierGroupVo;
-import com.ctrip.framework.drc.console.vo.DataMediaVo;
-import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
-import com.ctrip.framework.drc.console.vo.RowsFilterVo;
+import com.ctrip.framework.drc.console.vo.*;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -68,9 +65,7 @@ public class BuildController {
 
     @Autowired
     private RowsFilterService rowsFilterService;
-
-    @Autowired
-    private DataMediaService dataMediaService;
+    
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
@@ -104,28 +99,33 @@ public class BuildController {
     }
     
     @PostMapping("simplexDrc/{srcMha}/{destMha}") 
-    public ApiResult buildSimplexDrc(@PathVariable String srcMha, @PathVariable String destMha) {
-        // if not add replicatorGroup[srcMha] and applierGroup[srcMha->destMha]
+    public ApiResult getOrBuildSimplexDrc(@PathVariable String srcMha, @PathVariable String destMha) {
+        // if not exist add replicatorGroup[srcMha] and applierGroup[srcMha->destMha]
         try {
             Long srcMhaId = dalUtils.getId(TableEnum.MHA_TABLE, srcMha);
             Long destMhaId = dalUtils.getId(TableEnum.MHA_TABLE, destMha);
-            Long srcReplicatorGroupId = dalUtils.updateOrCreateRGroup(srcMhaId);
-            Long destApplierGroupId = dalUtils.updateOrCreateAGroup(srcReplicatorGroupId, destMhaId,
-                    null, 1, null, null, null);
-            return ApiResult.getSuccessInstance(destApplierGroupId);
+            String srcDc = metaInfoService.getDc(srcMha);
+            String destDc = metaInfoService.getDc(destMha);
+            Long srcReplicatorGroupId = dalUtils.getReplicatorGroupTblDao().upsertIfNotExist(srcMhaId);
+            Long destApplierGroupId = dalUtils.getApplierGroupTblDao().upsertIfNotExist(srcReplicatorGroupId, destMhaId);
+            SimplexDrcBuildVo simplexDrcBuildVo = new SimplexDrcBuildVo(srcMha,
+                    destMha,
+                    srcDc,
+                    destDc,
+                    destApplierGroupId,
+                    srcReplicatorGroupId);
+            return ApiResult.getSuccessInstance(simplexDrcBuildVo);
         } catch (SQLException e) {
             logger.error("sql error",e);
             return ApiResult.getFailInstance("sql error");
         }
-        
-        
     }
 
     @GetMapping("RowsFilterMappings/{applierGroupId}")
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
         Long id = Long.valueOf(applierGroupId);
         try {
-            List<RowsFilterMappingVo> dataMediaVos = dataMediaService.getRowsFilterMappingVos(id);
+            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id);
             return ApiResult.getSuccessInstance(dataMediaVos);
         } catch (SQLException e) {
             logger.error("sql error",e);
@@ -133,39 +133,30 @@ public class BuildController {
         }
     }
     
-    @GetMapping("dataMedias/{applierGroupId}/{srcMha}")
-    public ApiResult getDataMediaVos (@PathVariable String applierGroupId,@PathVariable String srcMha) {
-        Long id = Long.valueOf(applierGroupId);
+    @PostMapping("rowsFilterConfig")
+    public ApiResult inputRowsFilter(@RequestBody RowsFilterConfigDto rowsFilterConfigDto) {
+        logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
         try {
-            List<DataMediaVo> dataMediaVos = dataMediaService.getDataMediaVos(id,srcMha);
-            dataMediaVos.forEach(vo -> vo.setDataMediaSourceName(srcMha));
-            return ApiResult.getSuccessInstance(dataMediaVos);
+            if (rowsFilterConfigDto.getId() != null) {
+                // todo 校验是否存在一张表被多个表达式匹配
+                return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterConfig(rowsFilterConfigDto));
+            } else {
+                return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterConfig(rowsFilterConfigDto));
+            }
         } catch (SQLException e) {
-            logger.error("sql error",e);
-            return ApiResult.getFailInstance("sql error");
+            logger.error("[[meta=rowsFilterConfig]] load rowsFilterConfig fail with {} ", rowsFilterConfigDto, e);
+            return ApiResult.getFailInstance("sql error in add or update rowsFilterConfig");
         }
     }
 
-    @GetMapping("allDataMedias")
-    public ApiResult getAllDataMediaVos () {
+    @DeleteMapping("rowsFilterConfig/{rowsFilterMappingId}")
+    public ApiResult deleteRowsFilterConfig(@PathVariable Long rowsFilterMappingId) {
+        logger.info("[[meta=rowsFilterConfig]] delete rowsFilterConfig id: {}", rowsFilterMappingId);
         try {
-            List<DataMediaVo> dataMediaVos = dataMediaService.getAllDataMediaVos();
-            return ApiResult.getSuccessInstance(dataMediaVos);
+            return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilterConfig(rowsFilterMappingId));
         } catch (SQLException e) {
-            logger.error("sql error",e);
-            return ApiResult.getFailInstance("sql error");
-        }
-    }
-
-
-    @GetMapping("rowsFilters")
-    public ApiResult getAllRowsFilterVos () {
-        try {
-            List<RowsFilterVo> allRowsFilterVos = rowsFilterService.getAllRowsFilterVos();
-            return ApiResult.getSuccessInstance(allRowsFilterVos);
-        } catch (SQLException e) {
-            logger.error("sql error",e);
-            return ApiResult.getFailInstance("sql error");
+            logger.error("[[meta=rowsFilterConfig]] delete rowsFilterConfig fail with {} ", rowsFilterMappingId, e);
+            return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
     
@@ -189,11 +180,12 @@ public class BuildController {
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/mha/tables/" +
+            String url = dcDomain + "/api/drc/v1/mha/dataMedia/check/" +
                     namespace + "/" +
                     name + "/"+
                     srcDc + "/" +
-                    dataMediaSourceName + "/"  + type;
+                    dataMediaSourceName + "/"  + 
+                    type;
             return HttpUtils.get(url, ApiResult.class);
         } else {
             try {
@@ -202,7 +194,12 @@ public class BuildController {
                 MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
                         .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
                 if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
+                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
+                            machineTbl.getIp(),
+                            machineTbl.getPort(),
+                            mhaGroup.getMonitorUser(),
+                            mhaGroup.getMonitorPassword(),
+                            true);
                     AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
                     List<MySqlUtils.TableSchemaName> tables = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
                     return ApiResult.getSuccessInstance(tables);
@@ -221,39 +218,42 @@ public class BuildController {
         }
     }
 
-    @GetMapping("rowsFilter/commonColumns/{srcDc}/{dataMediaIdString}")
+    @GetMapping("rowsFilter/commonColumns/{srcDc}/{srcMha}/{namespace}/{name}")
     public ApiResult getCommonColumnInDataMedias (
                                     @PathVariable String srcDc,
-                                    @PathVariable String dataMediaIdString) {
-        Long dataMediaId = Long.valueOf(dataMediaIdString);
+                                    @PathVariable String srcMha,
+                                    @PathVariable String namespace,
+                                    @PathVariable String name) {
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/mha/commonColumns/" +
+            String url = dcDomain + "/api/drc/v1/mha/rowsFilter/commonColumns/" +
                     srcDc + "/" +
-                    dataMediaId;
+                    srcMha + "/" +
+                    namespace + "/" +
+                    name;
             return HttpUtils.get(url, ApiResult.class);
         } else {
             try {
-                logger.info("[[tag=commonColumns]] get columns from dataMedia{} ",dataMediaId);
-                DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByPk(dataMediaId);
-                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByPk(dataMediaTbl.getDataMediaSourceId());
-                String dataMediaSourceName = mhaTbl.getMhaName();
-                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
-                MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
+                logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name,srcMha);
+                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(srcMha);
+                MachineTbl machineTbl = metaInfoService.getMachineTbls(srcMha).stream()
                         .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-                String namespace = dataMediaTbl.getNamespcae();
-                String name = dataMediaTbl.getName();
                 if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
+                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
+                            machineTbl.getIp(),
+                            machineTbl.getPort(), 
+                            mhaGroup.getMonitorUser(), 
+                            mhaGroup.getMonitorPassword(), 
+                            true);
                     AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
                     Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
                     return ApiResult.getSuccessInstance(allCommonColumns);
                 }
-                return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
+                return ApiResult.getFailInstance("no machine find for " + srcMha);
             } catch (Exception e) {
-                logger.warn("[[tag=commonColumns]] get columns from dataMedia{} error ",dataMediaId,e);
+                logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name,srcMha,e);
                 if (e instanceof SQLException) {
                     return ApiResult.getFailInstance("sql error");
                 } else if (e  instanceof CompileExpressionErrorException) {

@@ -114,7 +114,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
-        DataMediaServiceImplTest.class,
         RowsFilterServiceImplTest.class,
         // controller
         AccessControllerTest.class,

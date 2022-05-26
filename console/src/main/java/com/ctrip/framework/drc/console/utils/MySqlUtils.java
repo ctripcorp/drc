@@ -42,6 +42,8 @@ public class MySqlUtils {
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
+    
+    public static final String DRC_MONITOR_DB = "drcmonitordb";
 
     private static final String GET_CREATE_TABLE_STMT = "SHOW CREATE TABLE %s";
 
@@ -122,7 +124,8 @@ public class MySqlUtils {
     public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
         return tables.stream().
-                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
+                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName()) 
+                        && !tableSchemaName.getSchema().equals(DRC_MONITOR_DB)).
                 collect(Collectors.toList());
     }
 
@@ -247,9 +250,7 @@ public class MySqlUtils {
     }
     
     public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
-        List<TableSchemaName> tables = getDefaultTables(endpoint);
-        List<TableSchemaName> tablesAfterFilter = tables.stream().
-                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).collect(Collectors.toList());
+        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint,aviatorRegexFilter);
         Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, true);
         HashSet<String> commonColumns = Sets.newHashSet();
         for (Set<String> columns : allColumnsByTable.values()) {

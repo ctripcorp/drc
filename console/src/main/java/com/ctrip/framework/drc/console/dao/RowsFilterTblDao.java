@@ -50,4 +50,10 @@ public class RowsFilterTblDao extends AbstractDao<RowsFilterTbl>{
         builder.selectAll().equal("deleted", deleted, Types.TINYINT);
         return client.query(builder,new DalHints());
     }
+
+    public Long insertReturnPk(RowsFilterTbl rowsFilterTbl) throws SQLException{
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, rowsFilterTbl);
+        return (Long) keyHolder.getKey();
+    }
 }

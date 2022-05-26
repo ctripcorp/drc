@@ -1,12 +1,9 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
@@ -16,15 +13,13 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.sql.SQLException;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 
@@ -123,70 +118,77 @@ public class MhaController {
         return ApiResult.getFailInstance(null);
     }
 
-    @GetMapping("tables/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
-    public ApiResult getMatchTable (@PathVariable String namespace,
-                                    @PathVariable String name,
-                                    @PathVariable String srcDc,
-                                    @PathVariable String dataMediaSourceName,
-                                    @PathVariable Integer type) {
+
+    @GetMapping("dataMedia/check/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
+    public ApiResult getMatchTable(@PathVariable String namespace,
+                                   @PathVariable String name,
+                                   @PathVariable String srcDc,
+                                   @PathVariable String dataMediaSourceName,
+                                   @PathVariable Integer type) {
+
         try {
-            logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,dataMediaSourceName);
+            logger.info("[[tag=matchTable]] get {}.{} from {} ", namespace, name, dataMediaSourceName);
             MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
             MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
                     .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
             if (machineTbl != null) {
-                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
-                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
-                return ApiResult.getSuccessInstance(MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint,aviatorRegexFilter));
+                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
+                        machineTbl.getIp(),
+                        machineTbl.getPort(),
+                        mhaGroup.getMonitorUser(),
+                        mhaGroup.getMonitorPassword(),
+                        true);
+                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
+                List<MySqlUtils.TableSchemaName> tables = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
+                return ApiResult.getSuccessInstance(tables);
             }
             return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
         } catch (Exception e) {
-            logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name,dataMediaSourceName,e);
+            logger.warn("[[tag=matchTable]] error when get {}.{} from {}", namespace, name, dataMediaSourceName, e);
             if (e instanceof SQLException) {
                 return ApiResult.getFailInstance("sql error");
-            } else if (e  instanceof CompileExpressionErrorException) {
+            } else if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else {
                 return ApiResult.getFailInstance("other error");
             }
         }
+
     }
 
-
-    @GetMapping("rowsFilter/commonColumns/{srcDc}/{dataMediaIdString}")
-    public ApiResult getCommonColumnInDataMedias (
+    @GetMapping("rowsFilter/commonColumns/{srcDc}/{srcMha}/{namespace}/{name}")
+    public ApiResult getCommonColumnInDataMedias(
             @PathVariable String srcDc,
-            @PathVariable String dataMediaIdString) {
-        Long dataMediaId = Long.valueOf(dataMediaIdString);
-        
+            @PathVariable String srcMha,
+            @PathVariable String namespace,
+            @PathVariable String name) {
         try {
-                logger.info("[[tag=commonColumns]] get columns from dataMedia{} ",dataMediaId);
-                DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByPk(dataMediaId);
-                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByPk(dataMediaTbl.getDataMediaSourceId());
-                String dataMediaSourceName = mhaTbl.getMhaName();
-                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
-                MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
-                        .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-                String namespace = dataMediaTbl.getNamespcae();
-                String name = dataMediaTbl.getName();
-                if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
-                    AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
-                    Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
-                    return ApiResult.getSuccessInstance(allCommonColumns);
-                }
-                return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
-            } catch (Exception e) {
-                logger.warn("[[tag=commonColumns]] get columns from dataMedia{} error ",dataMediaId,e);
-                if (e instanceof SQLException) {
-                    return ApiResult.getFailInstance("sql error");
-                } else if (e  instanceof CompileExpressionErrorException) {
-                    return ApiResult.getFailInstance("expression error");
-                } else {
-                    return ApiResult.getFailInstance("other error");
-                }
+            logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}", namespace, name, srcMha);
+            MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(srcMha);
+            MachineTbl machineTbl = metaInfoService.getMachineTbls(srcMha).stream()
+                    .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
+            if (machineTbl != null) {
+                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
+                        machineTbl.getIp(),
+                        machineTbl.getPort(),
+                        mhaGroup.getMonitorUser(),
+                        mhaGroup.getMonitorPassword(),
+                        true);
+                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
+                Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
+                return ApiResult.getSuccessInstance(allCommonColumns);
             }
-        
+            return ApiResult.getFailInstance("no machine find for " + srcMha);
+        } catch (Exception e) {
+            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, srcMha, e);
+            if (e instanceof SQLException) {
+                return ApiResult.getFailInstance("sql error");
+            } else if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
+            }
+        }
     }
     
     

@@ -56,21 +56,6 @@
           <Submenu name="2">
             <template slot="title">
               <Icon type="ios-paper"></Icon>
-              配置管理
-            </template>
-            <MenuItem name="/drcConfig" to="/drcConfig">
-              <span>同步配置</span>
-            </MenuItem>
-            <MenuItem name="/dataMedias" to="/dataMedias">
-              <span>数据源表</span>
-            </MenuItem>
-            <MenuItem name="/rowsFilters" to="/rowsFilters">
-              <span>行过滤规则</span>
-            </MenuItem>
-          </Submenu>
-          <Submenu name="3">
-            <template slot="title">
-              <Icon type="ios-paper"></Icon>
               资源管理
             </template>
             <MenuItem name="/drcResource" to="/drcResource">
@@ -156,6 +141,7 @@ export default {
       case '/proxyRouteCluster':
       case '/proxyRouteManagement':
       case '/access': this.openNames = ['0']; break
+      case '/accessV2': this.openNames = ['0']; break
       case '/incrementDataConsistencyResult':
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':
