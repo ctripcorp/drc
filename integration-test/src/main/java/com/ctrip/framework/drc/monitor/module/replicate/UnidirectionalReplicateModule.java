@@ -53,6 +53,22 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
             "  ]" +
             "}";
 
+
+    private static final String ROW_FILTER_PROPERTIES_REGEX = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"java_regex\"," +
+            "      \"tables\": \".*\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"id\"" +
+            "        ]," +
+            "        \"context\": \"^\\\\d*[02468]$\"" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}";
+
     public UnidirectionalReplicateModule() {
         this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, META_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
     }

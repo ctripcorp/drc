@@ -24,6 +24,8 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
+    private static final String DRC_INTERNAL_DB = "drcmonitordb";
+
     private String registryKey;
 
     private DataMediaManager dataMediaManager;
@@ -95,6 +97,12 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
         int beforeSize = rowsEvent.getRows().size();
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMap);
+
+        String schemaName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaName();
+        if (DRC_INTERNAL_DB.equalsIgnoreCase(schemaName)) {
+            return true;
+        }
+
         RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, rowsFilterContext);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 

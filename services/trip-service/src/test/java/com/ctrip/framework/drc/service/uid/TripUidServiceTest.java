@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.uid;
 import com.ctrip.basebiz.tripaccount.region.route.sdk.UDL;
 import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
+import com.ctrip.soa.platform.accountregionroute.v1.Region;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,7 +23,7 @@ public class TripUidServiceTest {
 
     @Before
     public void setUp() {
-        locations.add(UDL.CN.name());
+        locations.add(Region.SIN.name());
     }
 
     @Test
