@@ -1,10 +1,10 @@
-package com.ctrip.framework.drc.core.filter.aviator;
+package com.ctrip.framework.drc.core.server.common.filter.table.aviator;
 
 import java.util.Map;
 
 import org.apache.oro.text.regex.Perl5Matcher;
 
-import com.ctrip.framework.drc.core.filter.PatternUtils;
+import com.ctrip.framework.drc.core.server.common.filter.table.PatternUtils;
 import com.googlecode.aviator.runtime.function.AbstractFunction;
 import com.googlecode.aviator.runtime.function.FunctionUtils;
 import com.googlecode.aviator.runtime.type.AviatorBoolean;

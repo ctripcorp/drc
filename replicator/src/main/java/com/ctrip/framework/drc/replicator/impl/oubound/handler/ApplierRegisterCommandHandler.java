@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -450,7 +450,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();
                 }
-                
+
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 outboundMonitorReport.addSize(eventSize);
 

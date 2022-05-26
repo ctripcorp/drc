@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.core.filter;
+package com.ctrip.framework.drc.core.server.common.filter.table;
 
 import java.util.Collection;
 import java.util.Map;

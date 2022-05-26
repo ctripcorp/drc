@@ -17,7 +17,7 @@ import com.ctrip.framework.drc.console.vo.DataMediaVo;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
 import com.ctrip.framework.drc.console.vo.RowsFilterVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.google.common.collect.Lists;
@@ -71,16 +71,16 @@ public class BuildController {
 
     @Autowired
     private DataMediaService dataMediaService;
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
+
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
-    
+
     private DalUtils dalUtils = DalUtils.getInstance();
-    
-    
+
+
     @GetMapping("applierGroups/{srcMha}/{destMha}")
     public ApiResult getApplierGroupVos(@PathVariable String srcMha,
                                       @PathVariable String destMha) {
@@ -102,8 +102,8 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error");
         }
     }
-    
-    @PostMapping("simplexDrc/{srcMha}/{destMha}") 
+
+    @PostMapping("simplexDrc/{srcMha}/{destMha}")
     public ApiResult buildSimplexDrc(@PathVariable String srcMha, @PathVariable String destMha) {
         // if not add replicatorGroup[srcMha] and applierGroup[srcMha->destMha]
         try {
@@ -117,8 +117,8 @@ public class BuildController {
             logger.error("sql error",e);
             return ApiResult.getFailInstance("sql error");
         }
-        
-        
+
+
     }
 
     @GetMapping("RowsFilterMappings/{applierGroupId}")
@@ -132,7 +132,7 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error");
         }
     }
-    
+
     @GetMapping("dataMedias/{applierGroupId}/{srcMha}")
     public ApiResult getDataMediaVos (@PathVariable String applierGroupId,@PathVariable String srcMha) {
         Long id = Long.valueOf(applierGroupId);
@@ -168,8 +168,8 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error");
         }
     }
-    
-    
+
+
     @GetMapping("dataMedia/check/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
     public ApiResult getMatchTable (@PathVariable String namespace,
                                     @PathVariable String name,
@@ -264,6 +264,6 @@ public class BuildController {
             }
         }
     }
-    
-    
+
+
 }
