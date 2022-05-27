@@ -127,6 +127,8 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         res.addAll(initFloatPointType());
         res.addAll(initCharsetType());
         res.addAll(initTimeType());
+        res.addAll(initTypeModify());
+        res.addAll(initGrandTransaction());
         res.addAll(initForeignKey());
         res.addAll(initQps());
         res.addAll(initDelayMonitor());
@@ -253,43 +255,47 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
 
     private List<String> initMultiTypeNumber() {
         return Lists.newArrayList(
-                "CREATE TABLE `drc4`.`multi_type_number` (" +
-                "  `bit1` bit(8) unique," +
-                "  `bit2` bit(16)," +
-                "  `bit3` bit(24)," +
-                "  `bit4` bit(32)," +
-                "  `bit5` bit(40)," +
-                "  `bit6` bit(48)," +
-                "  `bit7` bit(56)," +
-                "  `bit8` bit(64)," +
-                "  `tinyint` tinyint(5)," +
-                "  `smallint` smallint(10)," +
-                "  `mediumint` mediumint(15)," +
-                "  `int` int(20)," +
-                "  `integer` int(20)," +
-                "  `bigint` bigint(100)," +
-                "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'" +
-                ") ENGINE=InnoDB;");
+                "CREATE TABLE `drc4`.`multi_type_number` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `bit1` bit(8) unique,\n" +
+                        "  `bit2` bit(16),\n" +
+                        "  `bit3` bit(24),\n" +
+                        "  `bit4` bit(32),\n" +
+                        "  `bit5` bit(40),\n" +
+                        "  `bit6` bit(48),\n" +
+                        "  `bit7` bit(56),\n" +
+                        "  `bit8` bit(64),\n" +
+                        "  `tinyint` tinyint(5),\n" +
+                        "  `smallint` smallint(10),\n" +
+                        "  `mediumint` mediumint(15),\n" +
+                        "  `int` int(20),\n" +
+                        "  `integer` int(20),\n" +
+                        "  `bigint` bigint(100),\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  PRIMARY KEY (`id`)\n" +
+                        ") ENGINE=InnoDB;");
     }
 
     private List<String> initMultiTypeNumberUnsigned() {
         return Lists.newArrayList(
-                "CREATE TABLE `drc4`.`multi_type_number_unsigned` (" +
-                        "  `bit1` bit(8) unique," +
-                        "  `bit2` bit(16)," +
-                        "  `bit3` bit(24)," +
-                        "  `bit4` bit(32)," +
-                        "  `bit5` bit(40)," +
-                        "  `bit6` bit(48)," +
-                        "  `bit7` bit(56)," +
-                        "  `bit8` bit(64)," +
-                        "  `tinyint` tinyint(5) UNSIGNED," +
-                        "  `smallint` smallint(10) UNSIGNED," +
-                        "  `mediumint` mediumint(15) UNSIGNED," +
-                        "  `int` int(20) UNSIGNED," +
-                        "  `integer` int(20) UNSIGNED," +
-                        "  `bigint` bigint(100) UNSIGNED," +
-                        "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'" +
+                "CREATE TABLE `drc4`.`multi_type_number_unsigned` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `bit1` bit(8) unique,\n" +
+                        "  `bit2` bit(16),\n" +
+                        "  `bit3` bit(24),\n" +
+                        "  `bit4` bit(32),\n" +
+                        "  `bit5` bit(40),\n" +
+                        "  `bit6` bit(48),\n" +
+                        "  `bit7` bit(56),\n" +
+                        "  `bit8` bit(64),\n" +
+                        "  `tinyint` tinyint(5) UNSIGNED,\n" +
+                        "  `smallint` smallint(10) UNSIGNED,\n" +
+                        "  `mediumint` mediumint(15) UNSIGNED,\n" +
+                        "  `int` int(20) UNSIGNED,\n" +
+                        "  `integer` int(20) UNSIGNED,\n" +
+                        "  `bigint` bigint(100) UNSIGNED,\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  PRIMARY KEY (`id`)\n" +
                         ") ENGINE=InnoDB;");
     }
 
@@ -322,73 +328,156 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
 
     private List<String> initCharsetType() {
         return Lists.newArrayList(
-                "CREATE TABLE `drc4`.`charset_type` (" +
-                        " `id` int(11) NOT NULL AUTO_INCREMENT," +
-                        "  `varchar4000` varchar(1000) CHARACTER SET utf8mb4," +
-                        "  `char1000` char(250) CHARACTER SET utf8mb4," +
-                        "  `varbinary1800` varbinary(1800)," +
-                        "  `binary200` binary(200)," +
-                        "  `tinyblob` tinyblob," +
-                        "  `mediumblob` mediumblob," +
-                        "  `blob` blob," +
-                        "  `longblob` longblob," +
-                        "  `tinytext` tinytext CHARACTER SET utf8mb4," +
-                        "  `mediumtext` mediumtext CHARACTER SET utf8mb4," +
-                        "  `text` text CHARACTER SET utf8mb4," +
-                        "  `longtext` longtext CHARACTER SET utf8mb4," +
-                        "  `longtextwithoutcharset` longtext," +
-                        "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'," +
-                        "   PRIMARY KEY (`id`)" +
-                        ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
+                "CREATE TABLE `drc4`.`charset_type` (\n" +
+                        "  `varchar4000` varchar(1000) CHARACTER SET utf8mb4,\n" +
+                        "  `char1000` char(250) CHARACTER SET utf8mb4,\n" +
+                        "  `varbinary1800` varbinary(1800),\n" +
+                        "  `binary200` binary(200),\n" +
+                        "  `tinyblob` tinyblob,\n" +
+                        "  `mediumblob` mediumblob,\n" +
+                        "  `blob` blob,\n" +
+                        "  `longblob` longblob,\n" +
+                        "  `tinytext` tinytext CHARACTER SET utf8mb4,\n" +
+                        "  `mediumtext` mediumtext CHARACTER SET utf8mb4,\n" +
+                        "  `text` text CHARACTER SET utf8mb4,\n" +
+                        "  `longtext` longtext CHARACTER SET utf8mb4,\n" +
+                        "  `longtextwithoutcharset` longtext CHARACTER SET latin1,\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  PRIMARY KEY (`id`)\n" +
+                        ") ENGINE=InnoDB;");
     }
 
     private List<String> initTimeType() {
         return Lists.newArrayList(
-                "CREATE TABLE `drc4`.`time_type` (" +
-                        "`date` date," +
-                        "`time` time," +
-                        "`time6` time(6)," +
-                        "`datetime` datetime DEFAULT CURRENT_TIMESTAMP," +
-                        "`datetime6` datetime(6)," +
-                        "`timestamp` timestamp DEFAULT CURRENT_TIMESTAMP," +
-                        "`timestamp6` timestamp(6) NULL," +
-                        "`year` year," +
-                        "`year4` year(4)," +
-	                    "`appid` int(20) not null unique," +
-                        "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'" +
+                "CREATE TABLE `drc4`.`time_type` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `date` date,\n" +
+                        "\t`time` time,\n" +
+                        "\t`time6` time(6),\n" +
+                        "\t`datetime` datetime DEFAULT CURRENT_TIMESTAMP,\n" +
+                        "\t`datetime6` datetime(6),\n" +
+                        "\t`timestamp` timestamp DEFAULT CURRENT_TIMESTAMP,\n" +
+                        "\t`timestamp6` timestamp(6) NULL,\n" +
+                        "\t`year` year,\n" +
+                        "\t`year4` year(4),\n" +
+                        "\t`appid` int(20) not null unique,\n" +
+                        "\t`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "\tPRIMARY KEY (`id`)\n" +
                         ") ENGINE=InnoDB;",
-                
-                "CREATE TABLE `drc4`.`time_type_boundary` (" +
-                        "`id` int(11) NOT NULL AUTO_INCREMENT," +
-                        "`date_min` date," +
-                        "`date_max` date," +
-                        "`time_min` time," +
-                        "`time_max` time," +
-                        "`time1` time(1)," +
-                        "`time3` time(3)," +
-                        "`time5` time(5)," +
-                        "`time6_min` time(6)," +
-                        "`time6_max` time(6)," +
-                        "`datetime_min` datetime," +
-                        "`datetime_max` datetime," +
-                        "`datetime1` datetime(1)," +
-                        "`datetime3` datetime(3)," +
-                        "`datetime5` datetime(5)," +
-                        "`datetime6_min` datetime(6)," +
-                        "`datetime6_max` datetime(6)," +
-                        "`timestamp_min` timestamp NULL," +
-                        "`timestamp_max` timestamp NULL," +
-                        "`timestamp1` timestamp(1) NULL," +
-                        "`timestamp3` timestamp(3) NULL," +
-                        "`timestamp5` timestamp(5) NULL," +
-                        "`timestamp6_min` timestamp(6) NULL," +
-                        "`timestamp6_max` timestamp(6) NULL," +
-                        "`year_min` year," +
-                        "`year_max` year," +
-                        "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'," +
-                        "PRIMARY KEY (`id`)" +
+
+                "CREATE TABLE `drc4`.`time_type_boundary` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                        "  `date_min` date,\n" +
+                        "  `date_max` date,\n" +
+                        "\t`time_min` time,\n" +
+                        "\t`time_max` time,\n" +
+                        "\t`time1` time(1),\n" +
+                        "\t`time3` time(3),\n" +
+                        "\t`time5` time(5),\n" +
+                        "\t`time6_min` time(6),\n" +
+                        "\t`time6_max` time(6),\n" +
+                        "\t`datetime_min` datetime,\n" +
+                        "\t`datetime_max` datetime,\n" +
+                        "\t`datetime1` datetime(1),\n" +
+                        "\t`datetime3` datetime(3),\n" +
+                        "\t`datetime5` datetime(5),\n" +
+                        "\t`datetime6_min` datetime(6),\n" +
+                        "\t`datetime6_max` datetime(6),\n" +
+                        "\t`timestamp_min` timestamp NULL,\n" +
+                        "\t`timestamp_max` timestamp NULL,\n" +
+                        "\t`timestamp1` timestamp(1) NULL,\n" +
+                        "\t`timestamp3` timestamp(3) NULL,\n" +
+                        "\t`timestamp5` timestamp(5) NULL,\n" +
+                        "\t`timestamp6_min` timestamp(6) NULL,\n" +
+                        "\t`timestamp6_max` timestamp(6) NULL,\n" +
+                        "\t`year_min` year,\n" +
+                        "\t`year_max` year,\n" +
+                        "\t`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "\tPRIMARY KEY (`id`)\n" +
                         ") ENGINE=InnoDB;"
                 );
+    }
+
+    private List<String> initTypeModify() {
+        return Lists.newArrayList(
+                "CREATE DATABASE IF NOT EXISTS drc4;",
+
+                "CREATE TABLE `drc4`.`table_map` (\n" +
+                        "  `id` int(11) not null AUTO_INCREMENT,\n" +
+                        "  `size` enum('x-small','small','medium','large','x-large','aaaaaaaaaaaa') DEFAULT 'x-small',\n" +
+                        "  `size_big` enum('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80','81','82','83','84','85','86','87','88','89','90','91','92','93','94','95','96','97','98','99','100','101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119','120','121','122','123','124','125','126','127','128','129','130','131','132','133','134','135','136','137','138','139','140','141','142','143','144','145','146','147','148','149','150','151','152','153','154','155','156','157','158','159','160','161','162','163','164','165','166','167','168','169','170','171','172','173','174','175','176','177','178','179','180','181','182','183','184','185','186','187','188','189','190','191','192','193','194','195','196','197','198','199','200','201','202','203','204','205','206','207','208','209','210','211','212','213','214','215','216','217','218','219','220','221','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239','240','241','242','243','244','245','246','247','248','249','250','251','252','253','254','255','256','257','258','259','260') DEFAULT '1',\n" +
+                        "  `decimal_max` decimal(65,30),\n" +
+                        "  `varcharlt256_utf8mb4` varchar(60) CHARACTER SET utf8mb4,\n" +
+                        "  `varchargt256_utf8mb4` varchar(65) CHARACTER SET utf8mb4,\n" +
+                        "  `char240_utf8mb4` char(60) CHARACTER SET utf8mb4,\n" +
+                        "  `varcharlt256_utf8` varchar(60) CHARACTER SET utf8,\n" +
+                        "  `varchargt256_utf8` varchar(65) CHARACTER SET utf8,\n" +
+                        "  `char240_utf8` char(60) CHARACTER SET utf8,\n" +
+                        "  `varcharlt256_cp932` varchar(120) CHARACTER SET cp932,\n" +
+                        "  `varchargt256_cp932` varchar(250) CHARACTER SET cp932,\n" +
+                        "  `char240_cp932` char(60) CHARACTER SET cp932,\n" +
+                        "  `varcharlt256_euckr` varchar(120) CHARACTER SET euckr,\n" +
+                        "  `varchargt256_euckr` varchar(250) CHARACTER SET euckr,\n" +
+                        "  `char240_euckr` char(60) CHARACTER SET euckr,\n" +
+                        "  `varbinarylt256` varbinary(240),\n" +
+                        "  `varbinarygt256` varbinary(260),\n" +
+                        "  `binary200` binary(200),\n" +
+                        "  `tinyintunsigned` tinyint(5) UNSIGNED,\n" +
+                        "  `smallintunsigned` smallint(10) UNSIGNED,\n" +
+                        "  `mediumintunsigned` mediumint(15) UNSIGNED,\n" +
+                        "  `intunsigned` int(20) UNSIGNED,\n" +
+                        "  `bigintunsigned` bigint(100) UNSIGNED,\n" +
+                        "  `tinyint` tinyint(5),\n" +
+                        "  `smallint` smallint(10),\n" +
+                        "  `mediumint` mediumint(15),\n" +
+                        "  `int` int(20),\n" +
+                        "  `bigint` bigint(100),\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  PRIMARY KEY (`id`)\n" +
+                        ") ENGINE=InnoDB;"
+        );
+    }
+
+    private List<String> initGrandTransaction() {
+        return Lists.newArrayList(
+                "CREATE DATABASE IF NOT EXISTS drc4;",
+
+                "CREATE TABLE `drc4`.`grand_transaction` (\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',\n" +
+                        "  `charlt256` char(30) DEFAULT NULL COMMENT '空',\n" +
+                        "  `chareq256` char(128) DEFAULT NULL COMMENT '空',\n" +
+                        "  `chargt256` char(255) DEFAULT NULL COMMENT '空',\n" +
+                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',\n" +
+                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',\n" +
+                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',\n" +
+                        "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
+                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',\n" +
+                        "  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',\n" +
+                        "  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',\n" +
+                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',\n" +
+                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',\n" +
+                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',\n" +
+                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',\n" +
+                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',\n" +
+                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',\n" +
+                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',\n" +
+                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',\n" +
+                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',\n" +
+                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',\n" +
+                        "  `drc_float_test` float DEFAULT '12' COMMENT '空',\n" +
+                        "  `drc_double_test` double DEFAULT '123' COMMENT '空',\n" +
+                        "  `drc_bit4_test` bit(1) DEFAULT b'1' COMMENT 'TEST',\n" +
+                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',\n" +
+                        "  `drc_real_test` double DEFAULT '234' COMMENT '空',\n" +
+                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',\n" +
+                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0' COMMENT '空',\n" +
+                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',\n" +
+                        "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
+                        "  PRIMARY KEY (`id`),\n" +
+                        "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='function_grand_transaction_test';"
+        );
     }
 
     private List<String> initQps() {

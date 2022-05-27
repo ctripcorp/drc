@@ -5,6 +5,10 @@ create database if not exists drc2;
 
 create database if not exists drc3;
 
+create database if not exists generic_ddl;
+
+create database if not exists ghost1_unitest;
+
 CREATE TABLE `drc1`.`insert1` (
                         `id` int(11) NOT NULL AUTO_INCREMENT,
                         `one` varchar(30) DEFAULT "one",
@@ -108,9 +112,40 @@ CREATE TABLE `drc4`.`component` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
+CREATE TABLE `drc4`.`binlog_minimal_row_image` (
+  `id` int(11) not null AUTO_INCREMENT,
+  `charlt256` char(30) CHARACTER SET gbk,
+  `chareq256` char(128) CHARACTER SET cp932,
+  `chargt256` char(255) CHARACTER SET euckr,
+  `varcharlt256` varchar(30) CHARACTER SET utf8mb4,
+  `varchareq256` varchar(256) CHARACTER SET latin1,
+  `varchargt256` varchar(2000) CHARACTER SET utf8,
+  `tinyint` tinyint(5),
+  `bigint` bigint(100),
+  `integer` integer(50),
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `drc4`.`binlog_noblob_row_image` (
+  `id` int(11) not null AUTO_INCREMENT,
+  `charlt256` char(30) CHARACTER SET gbk,
+  `chareq256` char(128) CHARACTER SET cp932,
+  `chargt256` char(255) CHARACTER SET euckr,
+  `varcharlt256` varchar(30) CHARACTER SET utf8mb4,
+  `varchareq256` varchar(256) CHARACTER SET latin1,
+  `varchargt256` varchar(2000) CHARACTER SET utf8,
+  `tinyint` tinyint(5),
+  `bigint` bigint(100),
+  `integer` integer(50),
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
 -- back: SELECT table_schema,table_name,ordinal_position,column_name,column_type,data_type,is_nullable,character_set_name,collation_name  FROM information_schema.columns WHERE table_name = 'charset_japan2';
 -- 场景5：多种数字数据类型signed
 CREATE TABLE `drc4`.`multi_type_number` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `bit1` bit(8) unique,
   `bit2` bit(16),
   `bit3` bit(24),
@@ -125,11 +160,13 @@ CREATE TABLE `drc4`.`multi_type_number` (
   `int` int(20),
   `integer` int(20),
   `bigint` bigint(100),
-  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
 -- 场景6：多种数字数据类型unsigned
 CREATE TABLE `drc4`.`multi_type_number_unsigned` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `bit1` bit(8) unique,
   `bit2` bit(16),
   `bit3` bit(24),
@@ -144,18 +181,19 @@ CREATE TABLE `drc4`.`multi_type_number_unsigned` (
   `int` int(20) UNSIGNED,
   `integer` int(20) UNSIGNED,
   `bigint` bigint(100) UNSIGNED,
-  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间'
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
 -- 场景7：浮点类型
 CREATE TABLE `drc4`.`float_type` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-	`real` real,
-	`real10_4` real(10,4),
-	`double` double,
-	`double10_4` double(10,4),
-	`float` float,
-	`float10_4` float(10,4),
+  `real` real,
+  `real10_4` real(10,4),
+  `double` double,
+  `double10_4` double(10,4),
+  `float` float,
+  `float10_4` float(10,4),
   `decimal_m_max_d_min_positive` decimal(65,0) DEFAULT NULL,
   `decimal_m_max_d_min_nagetive` decimal(65,0) DEFAULT NULL,
   `decimal_d_max_positive` decimal(30,30) DEFAULT NULL,
@@ -390,6 +428,41 @@ CREATE TABLE `bbzbbzdrcbenchmarktmpdb`.`benchmark2` (
   PRIMARY KEY (`id`),
   KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='test';
+
+CREATE TABLE `drc4`.`grand_transaction` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',
+  `charlt256` char(30) DEFAULT NULL COMMENT '空',
+  `chareq256` char(128) DEFAULT NULL COMMENT '空',
+  `chargt256` char(255) DEFAULT NULL COMMENT '空',
+  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',
+  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',
+  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',
+  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',
+  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',
+  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',
+  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',
+  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',
+  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',
+  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',
+  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',
+  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',
+  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',
+  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',
+  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',
+  `drc_float_test` float DEFAULT '12' COMMENT '空',
+  `drc_double_test` double DEFAULT '123' COMMENT '空',
+  `drc_bit4_test` bit(1) DEFAULT b'1' COMMENT 'TEST',
+  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',
+  `drc_real_test` double DEFAULT '234' COMMENT '空',
+  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',
+  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0' COMMENT '空',
+  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',
+  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',
+  PRIMARY KEY (`id`),
+  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='function_grand_transaction_test';
 
 CREATE TABLE `bbzbbzdrcbenchmarktmpdb`.`benchmark3` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',
