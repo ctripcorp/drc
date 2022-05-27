@@ -16,7 +16,7 @@
             </Select>
           </FormItem>
           <FormItem label="选择Applier" prop="applier">
-            <Select v-model="drc.appliers.old" multiple style="width: 200px" placeholder="选择源集群Applier">
+            <Select v-model="drc.appliers.old" multiple style="width: 200px" placeholder  ="选择源集群Applier">
               <Option v-for="item in drc.applierlist.old" :value="item" :key="item">{{ item }}</Option>
             </Select>
           </FormItem>
@@ -42,6 +42,9 @@
                         :color="testSuccess1 ? 'green' : 'red'"/>
                     {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
                 </span>
+          </FormItem>
+          <FormItem label="行过滤" style="width: 600px">
+            <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>
           </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.oldApplyMode" style="width:200px">
@@ -88,11 +91,13 @@
                     {{ testSuccess2 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
                 </span>
           </FormItem>
+          <FormItem label="行过滤" style="width: 600px">
+            <Button type="primary" ghost @click="goToConfigRowsFiltersInDestApplier">配置行过滤</Button>
+          </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.newApplyMode" style="width:200px">
               <Option v-for="item in applyModeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
             </Select>
-
           </FormItem>
         </Form>
       </i-col>
@@ -235,11 +240,11 @@ export default {
       applyModeList: [
         {
           value: 0,
-          label: 'SET_GTID (default)'
+          label: 'SET_GTID'
         },
         {
           value: 1,
-          label: 'TRANSACTION_TABLE'
+          label: 'TRANSACTION_TABLE (default)'
         }
       ],
       drc: {
@@ -258,8 +263,8 @@ export default {
         newNameMapping: '',
         oldExecutedGtid: '',
         newExecutedGtid: '',
-        oldApplyMode: 0,
-        newApplyMode: 0,
+        oldApplyMode: 1,
+        newApplyMode: 1,
         env: this.env,
         needread: false,
         columns: [
@@ -604,6 +609,14 @@ export default {
         that.drc.reviewModal = false
         that.drc.resultModal = true
       })
+    },
+    goToConfigRowsFiltersInSrcApplier () {
+      console.log('go to change rowsFilter config for ' + this.newClusterName + '-> ' + this.oldClusterName)
+      this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.newClusterName, destMha: this.oldClusterName } })
+    },
+    goToConfigRowsFiltersInDestApplier () {
+      console.log('go to change rowsFilter config for ' + this.oldClusterName + '-> ' + this.newClusterName)
+      this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.oldClusterName, destMha: this.newClusterName } })
     }
   },
   created () {

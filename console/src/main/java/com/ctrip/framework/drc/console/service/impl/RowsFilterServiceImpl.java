@@ -7,13 +7,12 @@ import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.dto.RowsFilterDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterMappingDto;
+import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.JsonUtils;
-import com.ctrip.framework.drc.console.vo.RowsFilterVo;
+import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -60,7 +59,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             config.setMode(String.valueOf(rowsFilterTbl.getMode()));
             List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByIdsAndType(
                     Lists.transform(entry.getValue(), RowsFilterMappingTbl::getDataMediaId),
-                    DataMediaTypeEnum.REGEX_LOGIC.getType(),
+                    DataMediaTypeEnum.ROWS_FILTER.getType(),
                     BooleanEnum.FALSE.getCode());
             config.setTables(
                     dataMediaTbls.stream().map(DataMediaTbl::getFullName).collect(Collectors.joining(",")));
@@ -72,85 +71,68 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
 
     @Override
-    public String addRowsFilter(RowsFilterDto rowsFilterDto) throws SQLException {
-        try {
-            RowsFilterTbl rowsFilterTbl = rowsFilterDto.toRowsFilterTbl();
-            rowsFilterTblDao.insert(rowsFilterTbl);
-            return "add RowsFilter success";
-        } catch (IllegalArgumentException e) {
-            logger.error("[[meta=rowsFilter]] addRowsFilter error, rowsFilterDto:{}",rowsFilterDto,e);
-            return "illegal argument for rowFilter";
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException {
+        List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
+        if (applierGroupId == null) {
+            return mappingVos;
         }
+        List<RowsFilterMappingTbl> rowsFilterMappingTbls =
+                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
+        for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
+            List<DataMediaTbl> dataMediaTbls =
+                    dataMediaTblDao.queryByIdsAndType(
+                            Lists.newArrayList(mapping.getDataMediaId()),
+                            DataMediaTypeEnum.ROWS_FILTER.getType(),
+                            BooleanEnum.FALSE.getCode());
+            RowsFilterTbl rowsFilterTbl =
+                    rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(dataMediaTbls) && rowsFilterTbl != null) {
+                mappingVos.add(new RowsFilterMappingVo(mapping, dataMediaTbls.get(0), rowsFilterTbl));
+            }
+        }
+        return mappingVos;
     }
     
     @Override
-    public String updateRowsFilter(RowsFilterDto rowsFilterDto) throws SQLException {
-        try {
-            RowsFilterTbl rowsFilterTbl = rowsFilterDto.toRowsFilterTbl();
-            int update = rowsFilterTblDao.update(rowsFilterTbl);
-            return update == 1 ? "update updateRowsFilter success" : "update updateRowsFilter fail";
-        } catch (IllegalArgumentException e) {
-            logger.error("[[meta=rowsFilter]] updateRowsFilter error, rowsFilterDto:{}",rowsFilterDto,e);
-            return "illegal argument for rowFilter";
-        }
+    public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
+        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
+        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
+        Long dataMediaId = dataMediaTblDao.insertReturnPk(dataMediaTbl);
+        Long rowsFilterId = rowsFilterTblDao.insertReturnPk(rowsFilterTbl);
+        RowsFilterMappingTbl mappingTbl = new RowsFilterMappingTbl();
+        mappingTbl.setApplierGroupId(rowsFilterConfigDto.getApplierGroupId());
+        mappingTbl.setDataMediaId(dataMediaId);
+        mappingTbl.setRowsFilterId(rowsFilterId);
+        int insert = rowsFilterMappingTblDao.insert(mappingTbl);
+        return insert == 1 ?  "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
     @Override
-    public String deleteRowsFilter(Long id) throws SQLException {
-        try {
-            if (id == null) {
-                return "pk is null, cannot delete";
-            }
-            RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
-            rowsFilterTbl.setId(id);
-            rowsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
-            int update = rowsFilterTblDao.update(rowsFilterTbl);
-            return update == 1 ?  "delete rowsFilter success" : "delete rowsFilter fail";
-        } catch (IllegalArgumentException e) {
-            logger.error("[[meta=rowsFilter]] delete rowsFilter error, id is :{}",id,e);
-            return "illegal argument for rowsFilter";
-        }
+    public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
+        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
+        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
+        int update0 = dataMediaTblDao.update(dataMediaTbl);
+        int update1 = rowsFilterTblDao.update(rowsFilterTbl);
+        return update0+update1 >= 1 ?  "update rowsFilterConfig success" : "update rowsFilterConfig fail";
     }
 
     @Override
-    public List<RowsFilterVo> getAllRowsFilterVos() throws SQLException {
-        List<RowsFilterVo> vos = Lists.newArrayList();
-        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.FALSE.getCode());
-        if (CollectionUtils.isEmpty(rowsFilterTbls)) {
-            return vos;
-        } else {
-            return rowsFilterTbls.stream().
-                    filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode())).
-                    map(RowsFilterVo::new).collect(Collectors.toList());
-        }
+    public String deleteRowsFilterConfig(Long id) throws SQLException {
+        RowsFilterMappingTbl mappingTbl = rowsFilterMappingTblDao.queryByPk(id);
+        mappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
+        rowsFilterTbl.setId(mappingTbl.getRowsFilterId());
+        rowsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        DataMediaTbl dataMediaTbl = new DataMediaTbl();
+        dataMediaTbl.setId(mappingTbl.getDataMediaId());
+        dataMediaTbl.setDeleted(BooleanEnum.TRUE.getCode());
+
+        int update0 = rowsFilterMappingTblDao.update(mappingTbl);
+        int update1 = dataMediaTblDao.update(dataMediaTbl);
+        int update2 = rowsFilterTblDao.update(rowsFilterTbl);
+        
+        return update0+update1+update2 == 3 ?  "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }
 
-    @Override
-    public String addRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException {
-        RowsFilterMappingTbl rowsFilterMappingTbl = mappingDto.transferToTbl();
-        List<RowsFilterMappingTbl> rowsFilterMappingTbls = rowsFilterMappingTblDao.queryBy(rowsFilterMappingTbl);
-        if (!CollectionUtils.isEmpty(rowsFilterMappingTbls)) {
-            rowsFilterMappingTbl = rowsFilterMappingTbls.get(0);
-            rowsFilterMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            int update = rowsFilterMappingTblDao.update(rowsFilterMappingTbl);
-            return update == 1 ? "update RowsFilterMapping success" : "update RowsFilterMapping fail";
-        }
-        int insert = rowsFilterMappingTblDao.insert(rowsFilterMappingTbl);
-        return insert == 1 ? "add RowsFilterMapping success" : "add RowsFilterMapping fail";
-    }
-
-    @Override
-    public String updateRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException {
-        RowsFilterMappingTbl rowsFilterMappingTbl = mappingDto.transferToTbl();
-        int update = rowsFilterMappingTblDao.update(rowsFilterMappingTbl);
-        return update == 1 ? "update RowsFilterMapping success" : "update RowsFilterMapping fail";
-    }
-
-    @Override
-    public String deleteRowsFilterMapping(RowsFilterMappingDto mappingDto) throws SQLException {
-        RowsFilterMappingTbl rowsFilterMappingTbl = mappingDto.transferToTbl();
-        rowsFilterMappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        int update = rowsFilterMappingTblDao.update(rowsFilterMappingTbl);
-        return update == 1 ? "delete RowsFilterMapping success" : "delete RowsFilterMapping fail";
-    }
+    
 }

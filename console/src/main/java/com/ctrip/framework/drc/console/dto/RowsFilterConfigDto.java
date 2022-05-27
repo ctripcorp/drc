@@ -1,5 +1,4 @@
-package com.ctrip.framework.drc.console.vo;
-
+package com.ctrip.framework.drc.console.dto;
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
@@ -10,15 +9,15 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import java.util.List;
 
 /**
- * @ClassName RowsFilterMappingVo
+ * @ClassName RowsFilterConfigDto
  * @Author haodongPan
- * @Date 2022/5/18 21:46
+ * @Date 2022/5/26 11:18
  * @Version: $
  */
-public class RowsFilterMappingVo {
-    
+public class RowsFilterConfigDto {
     private Long id ;
     
+    private Long applierGroupId;
     
     private Long dataMediaId;
 
@@ -27,58 +26,64 @@ public class RowsFilterMappingVo {
     private String name;
 
     private Integer type;
-    
+
     private Long dataMediaSourceId;
 
     private String dataMediaSourceName;
 
-    
+
     private Long rowsFilterId;
 
     private String rowsFilterName;
-    
+
     private String mode;
-    
+
     private List<String> columns;
-    
+
     private String context;
     
     private boolean illegalArgument;
-
-    public RowsFilterMappingVo() {
-    }
-
-    public RowsFilterMappingVo (RowsFilterMappingTbl mapping, DataMediaTbl dataMedia, RowsFilterTbl rowsFilterTbl) {
-        this.setId(mapping.getId());
-        this.setRowsFilter(rowsFilterTbl);
-        this.setDataMedia(dataMedia);
-    }
+    
     
 
-    public void setDataMedia(DataMediaTbl dataMedia) {
-        this.dataMediaId = dataMedia.getId();
-        this.namespace = dataMedia.getNamespcae();
-        this.name = dataMedia.getName();
-        this.type = dataMedia.getType();
-        this.dataMediaSourceId = dataMedia.getDataMediaSourceId();
+    public RowsFilterMappingTbl getRowsFilterMappingTbl () {
+        RowsFilterMappingTbl rowsFilterMappingTbl = new RowsFilterMappingTbl();
+        rowsFilterMappingTbl.setId(this.id);
+        rowsFilterMappingTbl.setApplierGroupId(this.applierGroupId);
+        rowsFilterMappingTbl.setDataMediaId(this.dataMediaId);
+        rowsFilterMappingTbl.setRowsFilterId(this.rowsFilterId);
+        return rowsFilterMappingTbl;
     }
     
-    public void setRowsFilter(RowsFilterTbl rowsFilterTbl) {
-        this.rowsFilterId = rowsFilterTbl.getId();
-        this.rowsFilterName = rowsFilterTbl.getName();
-        this.mode = rowsFilterTbl.getMode();
-        RowsFilterConfig.Parameters parameters = 
-                JsonCodec.INSTANCE.decode(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class);
-        this.columns = parameters.getColumns();
-        this.context = parameters.getContext();
-        this.illegalArgument = parameters.getIllegalArgument();
+    public DataMediaTbl getDataMediaTbl() {
+        DataMediaTbl dataMediaTbl = new DataMediaTbl();
+        dataMediaTbl.setId(this.dataMediaId);
+        dataMediaTbl.setNamespcae(this.namespace);
+        dataMediaTbl.setName(this.name);
+        dataMediaTbl.setType(this.type);
+        dataMediaTbl.setDataMediaSourceId(this.dataMediaSourceId);
+        return dataMediaTbl;
+    }
+
+    public RowsFilterTbl getRowsFilterTbl() {
+        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
+        rowsFilterTbl.setId(this.getRowsFilterId());
+        rowsFilterTbl.setName(this.getRowsFilterName());
+        rowsFilterTbl.setMode(this.getMode());
+        RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
+        parameters.setColumns(this.getColumns());
+        parameters.setContext(this.getContext());
+        parameters.setIllegalArgument(this.getIllegalArgument());
+        rowsFilterTbl.setParameters(JsonCodec.INSTANCE.encode(parameters));
+        return rowsFilterTbl;
     }
 
 
     @Override
     public String toString() {
-        return "RowsFilterMappingVo{" +
+        return "RowsFilterConfigDto{" +
                 "id=" + id +
+                ", applierGroupId=" + applierGroupId +
                 ", dataMediaId=" + dataMediaId +
                 ", namespace='" + namespace + '\'' +
                 ", name='" + name + '\'' +
@@ -190,7 +195,15 @@ public class RowsFilterMappingVo {
         this.context = context;
     }
 
-    public boolean isIllegalArgument() {
+    public Long getApplierGroupId() {
+        return applierGroupId;
+    }
+
+    public void setApplierGroupId(Long applierGroupId) {
+        this.applierGroupId = applierGroupId;
+    }
+
+    public boolean getIllegalArgument() {
         return illegalArgument;
     }
 

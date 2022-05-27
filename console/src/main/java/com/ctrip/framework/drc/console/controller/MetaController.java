@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
@@ -56,8 +55,6 @@ public class MetaController {
     @Autowired
     private RowsFilterService rowsFilterService;
     
-    @Autowired
-    private DataMediaService dataMediaService;
     
     
     @GetMapping("orderedGroups/all")
@@ -530,88 +527,4 @@ public class MetaController {
         }
     }
     
-    //尽量不要提供修改接口，复用情况修改一个会影响 其他 同步 配置
-    //使用新增替代修改，校验删除
-    
-    @PostMapping("rowsFilter")
-    public ApiResult inputRowsFilter(@RequestBody RowsFilterDto rowsFilterDto) {
-        logger.info("[[meta=rowsFilter]] load rowsFilter: {}", rowsFilterDto);
-        try {
-            if (rowsFilterDto.getId() != null) {
-                //todo 校验复用
-                return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilter(rowsFilterDto));
-            } else {
-                return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilter(rowsFilterDto));
-            }
-        } catch (SQLException e) {
-            logger.error("[[meta=rowsFilter]] load rowsFilter fail with {} ", rowsFilterDto, e);
-            return ApiResult.getFailInstance("sql error in add or update RowsFilter");
-        }
-    }
-    
-    @DeleteMapping("rowsFilter/{id}")
-    public ApiResult deleteRowsFilter(@PathVariable Long id) {
-        logger.info("[[meta=rowsFilter]] delete rowsFilter id: {}", id);
-        try {
-            return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilter(id));
-        } catch (SQLException e) {
-            logger.error("[[meta=rowsFilter]] delete rowsFilter fail with {} ", id, e);
-            return ApiResult.getFailInstance("sql error in delete rowsFilter");
-        }
-    }
-    
-
-    @PostMapping("dataMedia")
-    public ApiResult inputDataMedia(@RequestBody DataMediaDto dataMediaDto) {
-        logger.info("[[meta=dataMedia]] load dataMedia: {}", dataMediaDto);
-        try {
-            if (dataMediaDto.getId() != null) {
-                //todo 校验复用
-                return ApiResult.getSuccessInstance(dataMediaService.updateDataMedia(dataMediaDto));
-            } else {
-                return ApiResult.getSuccessInstance(dataMediaService.addDataMedia(dataMediaDto));
-            }
-        } catch (SQLException e) {
-            logger.error("[[meta=dataMedia]] load dataMedia fail with {} ", dataMediaDto, e);
-            return ApiResult.getFailInstance("sql error in add or update dataMedia");
-        }
-    }
-
-    @DeleteMapping("dataMedia/{id}")
-    public ApiResult deleteDataMedia(@PathVariable Long id) {
-        logger.info("[[meta=dataMedia]] delete dataMedia id: {}", id);
-        try {
-            return ApiResult.getSuccessInstance(dataMediaService.deleteDataMedia(id));
-        } catch (SQLException e) {
-            logger.error("[[meta=dataMedia]] delete dataMedia fail with {} ", id, e);
-            return ApiResult.getFailInstance("sql error in delete dataMedia");
-        }
-    }
-    
-
-    @PostMapping("rowsFilterMapping")
-    public ApiResult addOrUpdateRowsFilter2ApplierMapping(@RequestBody RowsFilterMappingDto mappingDto) {
-        logger.info("[[meta=rowsFilter]] load RowsFilterMappingDto: {} ", mappingDto);
-        try {
-            if (mappingDto.getId() != null) {
-                return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterMapping(mappingDto));
-            } else {
-                return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterMapping(mappingDto));
-            }
-        } catch (SQLException e) {
-            logger.error("[[meta=rowsFilter]] fail load RowsFilterMappingDto: {} ", mappingDto,e);
-            return ApiResult.getFailInstance("sql error in  addRowsFilterMapping");
-        }
-    }
-
-    @PostMapping ("rowsFilterMapping/delete")
-    public ApiResult deleteRowsFilter2ApplierMapping(@RequestBody RowsFilterMappingDto mappingDto) {
-        logger.info("[[meta=rowsFilter]] delete RowsFilterMappingDto: {} ", mappingDto);
-        try {
-            return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilterMapping(mappingDto));
-        } catch (SQLException e) {
-            logger.error("[[meta=rowsFilter]] fail load RowsFilterMappingDto: {} ", mappingDto,e);
-            return ApiResult.getFailInstance("sql error in  addRowsFilterMapping");
-        }
-    }
 }

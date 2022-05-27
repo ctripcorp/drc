@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
@@ -76,8 +75,6 @@ public class MetaControllerTest extends AbstractControllerTest {
     @Mock
     private DbClusterSourceProvider sourceProvider;
     
-    @Mock
-    private DataMediaService dataMediaService;
     
     @Mock
     private RowsFilterService rowsFilterService;
@@ -742,65 +739,5 @@ public class MetaControllerTest extends AbstractControllerTest {
     public void tearDown() throws Exception {
     }
     
-    @Test
-    public void testInputRowsFilter() throws Exception {
-        Mockito.doReturn("add RowsFilter success").
-                when(rowsFilterService).addRowsFilter(Mockito.any(RowsFilterDto.class));
-        RowsFilterDto rowsFilterDto = new RowsFilterDto();
-        rowsFilterDto.setName("name");
-        rowsFilterDto.setMode("java_regex");
-        rowsFilterDto.setColumns(com.google.common.collect.Lists.newArrayList("column"));
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilter",rowsFilterDto);
-        assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
-
-        Mockito.doThrow(new SQLException()).
-                when(rowsFilterService).addRowsFilter(Mockito.any(RowsFilterDto.class));
-        mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilter",rowsFilterDto);
-        assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
-    }
-
-    @Test
-    public void testAddRowsFilter2ApplierMapping() throws Exception {
-        Mockito.doReturn("add RowsFilterMapping success").
-                when(rowsFilterService).addRowsFilterMapping(Mockito.any(RowsFilterMappingDto.class));
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilterMapping",new RowsFilterMappingDto());
-        assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
-
-        Mockito.doThrow(new SQLException()).
-                when(rowsFilterService).addRowsFilterMapping(Mockito.any(RowsFilterMappingDto.class));
-        mvcResult = doNormalPost("/api/drc/v1/meta/rowsFilterMapping",new RowsFilterMappingDto());
-        assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
-    }
-    
-    @Test
-    public void testInputDataMedia() throws Exception {
-        Mockito.doReturn("add DataMedia success").
-                when(dataMediaService).addDataMedia(Mockito.any(DataMediaDto.class));
-        DataMediaDto dataMediaDto = new DataMediaDto();
-        dataMediaDto.setName("name");
-        dataMediaDto.setNamespace("namespace");
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/dataMedia",new DataMediaDto());
-        assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
-
-        Mockito.doThrow(new SQLException()).
-                when(dataMediaService).addDataMedia(Mockito.any(DataMediaDto.class));
-        mvcResult = doNormalPost("/api/drc/v1/meta/dataMedia",new DataMediaDto());
-        assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
-    }
-
-    @Test
-    public void testAddDataMedia2ApplierMapping() throws Exception {
-        Mockito.doReturn("add DataMediaMapping success").
-                when(dataMediaService).addDataMediaMapping(Mockito.anyLong(),Mockito.anyLong());
-        MvcResult mvcResult = doNormalPost("/api/drc/v1/meta/dataMedia/applierGroupMapping/1/1");
-        assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
-
-        Mockito.doThrow(new SQLException()).
-                when(dataMediaService).addDataMediaMapping(Mockito.anyLong(),Mockito.anyLong());
-        mvcResult = doNormalPost("/api/drc/v1/meta/dataMedia/applierGroupMapping/1/1");
-        assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_FAIL);
-    }
-    
-
 
 }

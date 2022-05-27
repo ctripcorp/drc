@@ -7,8 +7,8 @@ package com.ctrip.framework.drc.console.enums;
  * @Version: $
  */
 public enum DataMediaTypeEnum {
-    REGEX_LOGIC(0,"for tableFilter and rowsFilter"),
-    LOGIC(1,"for tableMapping");
+    ROWS_FILTER(0,"for rows Filter"),
+    NAME_MAPPING(1,"for table Mapping");
 
     private Integer type;
     private String comment;
