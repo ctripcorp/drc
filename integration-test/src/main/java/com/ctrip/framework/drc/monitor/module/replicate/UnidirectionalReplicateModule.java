@@ -35,8 +35,6 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
 
     private String image = "mysql:5.7";
 
-    private boolean needRowFilter = false;
-
     private static final String ROW_FILTER_PROPERTIES = "{" +
             "  \"rowsFilters\": [" +
             "    {" +
@@ -58,12 +56,12 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
             "  \"rowsFilters\": [" +
             "    {" +
             "      \"mode\": \"java_regex\"," +
-            "      \"tables\": \".*\"," +
+            "      \"tables\": \"drc4.row_filter\"," +
             "      \"parameters\": {" +
             "        \"columns\": [" +
-            "          \"id\"" +
+            "          \"uid\"" +
             "        ]," +
-            "        \"context\": \"^\\\\d*[02468]$\"" +
+            "        \"context\": \"trip.*\"" +
             "      }" +
             "    }" +
             "  ]" +
@@ -144,7 +142,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     @Override
     public void startRAModule() {
         try {
-            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, needRowFilter ? ROW_FILTER_PROPERTIES : null);
+            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, ROW_FILTER_PROPERTIES_REGEX);
             replicatorApplierPairModule.initialize();
             replicatorApplierPairModule.start();
         } catch (Exception e) {
