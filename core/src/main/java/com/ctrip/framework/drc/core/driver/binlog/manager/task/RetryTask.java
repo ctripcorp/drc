@@ -31,7 +31,7 @@ public class RetryTask<V> implements Callable {
         do {
             try {
                 V res =  callable.call();
-                DDL_LOGGER.info("{} success with retryTime {}", callable.name(), retryTime);
+                callable.afterSuccess(retryTime);
                 return res;
             } catch (Throwable t) {
                 retryTime++;

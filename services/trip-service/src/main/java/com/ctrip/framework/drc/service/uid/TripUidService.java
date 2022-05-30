@@ -67,5 +67,9 @@ public class TripUidService implements UidService {
         public void afterException(Throwable t) {
             logger.error("[RowsFilter] call sdk with uid({}) error", uid, t);
         }
+
+        @Override
+        public void afterSuccess(int retryTime) {
+        }
     }
 }

@@ -314,9 +314,6 @@
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
             <AppenderRef ref="Warn"/>
         </Logger>
-        <Logger name="com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter" additivity="false">
-            <AppenderRef ref="transaction.table"/>
-        </Logger>
         <Logger name="ROWS" additivity="false">
             <AppenderRef ref="rows"/>
         </Logger>
