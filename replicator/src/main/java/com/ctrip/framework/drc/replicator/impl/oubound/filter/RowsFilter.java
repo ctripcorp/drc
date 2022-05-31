@@ -42,7 +42,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         boolean noRowFiltered = true;
         LogEventType eventType = value.getEventType();
         AbstractRowsEvent afterRowsEvent = null;
-        AbstractRowsEvent beforeRowsEvent = null;
+        AbstractRowsEvent beforeRowsEvent;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (value.getEventType()) {
@@ -82,9 +82,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         }
         boolean res = doNext(value, value.isNoRowFiltered());
         if (xid_log_event == eventType) {
-            logger.info("[RowsFilter] clear cached result begin: {}", rowsFilterContext.size());
             rowsFilterContext.clear(); // clear filter result
-            logger.info("[RowsFilter] clear cached result end: {}", rowsFilterContext.size());
             res = true;
             value.setNoRowFiltered(true);
         }

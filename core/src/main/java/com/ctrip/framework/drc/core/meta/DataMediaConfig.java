@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.monitor.util.IsolateHashCache;
 import com.ctrip.framework.drc.core.server.common.filter.row.DefaultRuleFactory;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
@@ -12,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * @Author limingdong
@@ -30,6 +30,9 @@ public class DataMediaConfig {
 
     @JsonIgnore
     private Map<String, RowsFilterConfig> table2Config = Maps.newHashMap();  // regex : RowsFilterConfig
+
+    @JsonIgnore
+    private Map<String, AviatorRegexFilter> table2Filter = Maps.newHashMap();  // regex : AviatorRegexFilter
 
     @JsonIgnore
     private Map<String, RowsFilterRule> table2Rule = Maps.newHashMap();  // regex : RowsFilterRule
@@ -74,6 +77,7 @@ public class DataMediaConfig {
                 rowsFilterConfig.setRegistryKey(registryKey);
                 String tableRegex = rowsFilterConfig.getTables().trim().toLowerCase();
                 table2Config.put(tableRegex, rowsFilterConfig);
+                table2Filter.put(tableRegex, new AviatorRegexFilter(tableRegex));
                 RowsFilterRule<List<List<Object>>> rowsFilterRule = ruleFactory.createRowsFilterRule(rowsFilterConfig);
                 table2Rule.put(tableRegex, rowsFilterRule);
             }
@@ -96,7 +100,7 @@ public class DataMediaConfig {
             if (optional == null) {
                 RowsFilterRule rowsFilterRule = null;
                 for (Map.Entry<String, RowsFilterConfig> entry : table2Config.entrySet()) {
-                    if (entry.getValue().shouldFilterRows() && Pattern.matches(entry.getKey(), tableName)) {
+                    if (entry.getValue().shouldFilterRows() && table2Filter.get(entry.getKey()).filter(tableName)) {
                         rowsFilterRule = table2Rule.get(entry.getKey());
                         break;
                     }

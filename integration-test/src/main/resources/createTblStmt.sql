@@ -331,6 +331,43 @@ CREATE TABLE `drc4`.`table_map` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
+-- 行过滤表
+CREATE TABLE `drc4`.`row_filter` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',
+  `uid` char(30) DEFAULT NULL COMMENT '空',
+  `charlt256` char(30) DEFAULT NULL COMMENT '空',
+  `chareq256` char(128) DEFAULT NULL COMMENT '空',
+  `chargt256` char(255) DEFAULT NULL COMMENT '空',
+  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',
+  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',
+  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',
+  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',
+  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',
+  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',
+  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',
+  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',
+  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',
+  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',
+  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',
+  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',
+  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',
+  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',
+  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',
+  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',
+  `drc_float_test` float DEFAULT '12' COMMENT '空',
+  `drc_double_test` double DEFAULT '123' COMMENT '空',
+  `drc_bit4_test` bit(4) DEFAULT b'11' COMMENT 'TEST',
+  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',
+  `drc_real_test` double DEFAULT '234' COMMENT '空',
+  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',
+  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '空',
+  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',
+  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',
+  PRIMARY KEY (`id`),
+  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='test';
+
 -- 延时监控表
 CREATE DATABASE IF NOT EXISTS drcmonitordb;
 CREATE TABLE IF NOT EXISTS `drcmonitordb`.`delaymonitor` (

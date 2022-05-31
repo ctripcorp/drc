@@ -25,4 +25,8 @@ public interface NamedCallable<V> extends Callable<V> {
     default void afterFail() {
         DefaultEventMonitorHolder.getInstance().logEvent("RetryTask", name());
     }
+
+    default void afterSuccess(int retryTime) {
+        DDL_LOGGER.info("{} success with retryTime {}", name(), retryTime);
+    }
 }
