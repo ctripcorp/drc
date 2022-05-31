@@ -15,6 +15,6 @@ public interface GtidSetContext extends GtidContext {
     }
 
     default GtidSet fetchGtidSet() {
-        return ((GtidSet) fetch(KEY_NAME)).clone();
+        return (GtidSet) fetch(KEY_NAME);
     }
 }
