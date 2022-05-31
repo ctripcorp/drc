@@ -19,7 +19,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.google.common.collect.Lists;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +51,9 @@ public class BuildController {
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
     
     private DalUtils dalUtils = DalUtils.getInstance();
     
@@ -98,7 +100,7 @@ public class BuildController {
 
     
     @PostMapping("rowsFilterConfig")
-    public ApiResult inputRowsFilter(@RequestBody RowsFilterConfigDto rowsFilterConfigDto) {
+    public ApiResult inputRowsFilterConfig(@RequestBody RowsFilterConfigDto rowsFilterConfigDto) {
         logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
         try {
             if (rowsFilterConfigDto.getId() != null) {
@@ -125,12 +127,12 @@ public class BuildController {
     }
 
 
-    @GetMapping("dataMedia/check/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
-    public ApiResult getMatchTable (@PathVariable String namespace,
-                                    @PathVariable String name,
-                                    @PathVariable String srcDc,
-                                    @PathVariable String dataMediaSourceName,
-                                    @PathVariable Integer type) {
+    @GetMapping("dataMedia/check")
+    public ApiResult getMatchTable (@RequestParam String namespace,
+                                    @RequestParam String name,
+                                    @RequestParam String srcDc,
+                                    @RequestParam String dataMediaSourceName,
+                                    @RequestParam Integer type) {
         try {
             if (StringUtils.isEmpty(srcDc)) {
                 MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(dataMediaSourceName, BooleanEnum.FALSE.getCode());
@@ -144,26 +146,18 @@ public class BuildController {
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/mha/dataMedia/check/" +
-                    namespace + "/" +
-                    name + "/"+
-                    srcDc + "/" +
-                    dataMediaSourceName + "/"  + 
-                    type;
+            String url = dcDomain + "/api/drc/v1/local/dataMedia/check?" +
+                    "namespace=" + namespace +
+                    "&name=" + name +
+                    "&srcDc=" + srcDc +
+                    "&dataMediaSourceName=" + dataMediaSourceName +
+                    "&type=" + type;
             return HttpUtils.get(url, ApiResult.class);
         } else {
             try {
                 logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,dataMediaSourceName);
-                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
-                MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
-                        .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-                if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
-                            machineTbl.getIp(),
-                            machineTbl.getPort(),
-                            mhaGroup.getMonitorUser(),
-                            mhaGroup.getMonitorPassword(),
-                            true);
+                Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(dataMediaSourceName);
+                if (mySqlEndpoint != null) {
                     AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
                     List<MySqlUtils.TableSchemaName> tables = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
                     return ApiResult.getSuccessInstance(tables);
@@ -171,9 +165,7 @@ public class BuildController {
                 return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
             } catch (Exception e) {
                 logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name,dataMediaSourceName,e);
-                if (e instanceof SQLException) {
-                    return ApiResult.getFailInstance("sql error");
-                } else if (e  instanceof CompileExpressionErrorException) {
+                if (e  instanceof CompileExpressionErrorException) {
                     return ApiResult.getFailInstance("expression error");
                 } else {
                     return ApiResult.getFailInstance("other error");
@@ -182,35 +174,27 @@ public class BuildController {
         }
     }
 
-    @GetMapping("rowsFilter/commonColumns/{srcDc}/{srcMha}/{namespace}/{name}")
+    @GetMapping("rowsFilter/commonColumns")
     public ApiResult getCommonColumnInDataMedias (
-                                    @PathVariable String srcDc,
-                                    @PathVariable String srcMha,
-                                    @PathVariable String namespace,
-                                    @PathVariable String name) {
+                                    @RequestParam String srcDc,
+                                    @RequestParam String srcMha,
+                                    @RequestParam String namespace,
+                                    @RequestParam String name) {
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/mha/rowsFilter/commonColumns/" +
-                    srcDc + "/" +
-                    srcMha + "/" +
-                    namespace + "/" +
-                    name;
+            String url = dcDomain + "/api/drc/v1/local/rowsFilter/commonColumns?" +
+                    "srcDc=" + srcDc +
+                    "&srcMha=" + srcMha +
+                    "&namespace=" + namespace +
+                    "&name=" + name;
             return HttpUtils.get(url, ApiResult.class);
         } else {
             try {
                 logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name,srcMha);
-                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(srcMha);
-                MachineTbl machineTbl = metaInfoService.getMachineTbls(srcMha).stream()
-                        .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-                if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
-                            machineTbl.getIp(),
-                            machineTbl.getPort(), 
-                            mhaGroup.getMonitorUser(), 
-                            mhaGroup.getMonitorPassword(), 
-                            true);
+                Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(srcMha);
+                if (mySqlEndpoint != null) {
                     AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
                     Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
                     return ApiResult.getSuccessInstance(allCommonColumns);
@@ -218,9 +202,7 @@ public class BuildController {
                 return ApiResult.getFailInstance("no machine find for " + srcMha);
             } catch (Exception e) {
                 logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name,srcMha,e);
-                if (e instanceof SQLException) {
-                    return ApiResult.getFailInstance("sql error");
-                } else if (e  instanceof CompileExpressionErrorException) {
+                if (e  instanceof CompileExpressionErrorException) {
                     return ApiResult.getFailInstance("expression error");
                 } else {
                     return ApiResult.getFailInstance("other error");
@@ -228,6 +210,79 @@ public class BuildController {
             }
         }
     }
+
+
+    @GetMapping("dataMedia/conflictCheck")
+    public ApiResult getConflictTables(
+            @RequestParam Long applierGroupId,
+            @RequestParam Long dataMediaId,
+            @RequestParam String srcDc,
+            @RequestParam String mhaName,
+            @RequestParam String namespace,
+            @RequestParam String name) {
+        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        if (publicCloudDc.contains(srcDc)) {
+            String dcDomain = consoleDcInfos.get(srcDc);
+            String url = dcDomain + "/api/drc/v1/local/dataMedia/conflictCheck?" +
+                    "applierGroupId=" + applierGroupId +
+                    "&dataMediaId=" + dataMediaId +
+                    "&srcDc=" + srcDc +
+                    "&mhaName=" + mhaName +
+                    "&namespace=" + namespace +
+                    "&name=" + name ;
+            return HttpUtils.get(url, ApiResult.class);
+        } else {
+            try {
+                logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}",namespace,name,mhaName);
+                List<String> conflictTables =
+                        rowsFilterService.checkTableConflict(applierGroupId, dataMediaId, namespace, name, mhaName);
+                return ApiResult.getSuccessInstance(conflictTables);
+            } catch (Exception e) {
+                logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name,mhaName,e);
+                if (e  instanceof CompileExpressionErrorException) {
+                    return ApiResult.getFailInstance("expression error");
+                } else {
+                    return ApiResult.getFailInstance("other error");
+                }
+            }
+        }
+    }
+
+    @GetMapping("dataMedia/columnCheck")
+    public ApiResult getTablesWithoutColumn(
+            @RequestParam String srcDc,
+            @RequestParam String mhaName,
+            @RequestParam String namespace,
+            @RequestParam String name,
+            @RequestParam String column) {
+        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        if (publicCloudDc.contains(srcDc)) {
+            String dcDomain = consoleDcInfos.get(srcDc);
+            String url = dcDomain + "/api/drc/v1/local/dataMedia/columnCheck?" +
+                    "srcDc=" + srcDc +
+                    "&mhaName=" + mhaName +
+                    "&namespace=" + namespace +
+                    "&name=" + name +
+                    "&column=" + column;
+            return HttpUtils.get(url, ApiResult.class);
+        } else {
+            try {
+                logger.info("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName);
+                return ApiResult.getSuccessInstance(rowsFilterService.getTablesWithoutColumn(column, namespace, name, mhaName));
+            } catch (Exception e) {
+                logger.error("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName, e);
+                if (e instanceof CompileExpressionErrorException) {
+                    return ApiResult.getFailInstance("expression error");
+                } else {
+                    return ApiResult.getFailInstance("other error");
+                }
+            }
+        }
+    }
+    
+    
 
 
 }

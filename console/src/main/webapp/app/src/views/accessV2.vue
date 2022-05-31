@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/accessV2">出海DRC</BreadcrumbItem>
+      <BreadcrumbItem to="/accessV2">DRC配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
       <template>

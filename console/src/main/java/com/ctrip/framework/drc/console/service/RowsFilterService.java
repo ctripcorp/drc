@@ -19,6 +19,13 @@ public interface RowsFilterService {
     String deleteRowsFilterConfig(Long id) throws SQLException;
     
     List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException;
-    
-    
+
+    List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName);
+
+    List<String> checkTableConflict(
+            Long applierGroupId,
+            Long dataMediaId,
+            String namespace,
+            String name,
+            String mhaName) throws SQLException;
 }

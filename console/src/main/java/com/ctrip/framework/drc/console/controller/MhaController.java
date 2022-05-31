@@ -1,25 +1,27 @@
 package com.ctrip.framework.drc.console.controller;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.googlecode.aviator.exception.CompileExpressionErrorException;
+import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.sql.SQLException;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -44,6 +46,12 @@ public class MhaController {
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
 
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
+    
     private DalUtils dalUtils = DalUtils.getInstance();
     /**
      * Get all the mha names
@@ -98,18 +106,39 @@ public class MhaController {
     }
 
     @GetMapping("{mhas}/gtid/{mha}")
-    public ApiResult getReaExecutedGtid(@PathVariable String mhas,@PathVariable String mha){
+    public ApiResult getRealExecutedGtid(@PathVariable String mhas,@PathVariable String mha){
         try {
-            logger.info("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas);
-            String[] mhaArrs = mhas.split(",");
-            if (mhaArrs.length == 2) {
-                MhaGroupTbl mhaGroup = metaInfoService.getMhaGroup(mhaArrs[0], mhaArrs[1]);
-                MachineTbl machineTbl = metaInfoService.getMachineTbls(mha).stream().filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-                if (machineTbl != null) {
-                    MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroup.getReadUser(), mhaGroup.getReadPassword(), true);
-                    return ApiResult.getSuccessInstance(new ExecutedGtidQueryTask(mySqlEndpoint).call());
+            String srcDc = null;
+            try {
+                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha, BooleanEnum.FALSE.getCode());
+                srcDc = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
+            } catch (SQLException e) {
+                logger.warn("[[tag=gtidQuery]] error when get dc from {}",mha,e);
+                return ApiResult.getFailInstance("sql error");
+            }
+            Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+            if (publicCloudDc.contains(srcDc)) {
+                String dcDomain = consoleDcInfos.get(srcDc);
+                String url = dcDomain + "/api/drc/v1/local/" +
+                        mhas + "/" +
+                        "gtid/"+
+                        mha;
+                return HttpUtils.get(url, ApiResult.class);
+            } else {
+                try {
+                    logger.info("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas);
+                    String[] mhaArrs = mhas.split(",");
+                    if (mhaArrs.length == 2) {
+                        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+                        if (endpoint != null) {
+                            return ApiResult.getSuccessInstance(new ExecutedGtidQueryTask(endpoint).call());
+                        }
+                        logger.error("Getting getReaExecutedGtid from {} master in mhas:{},machine not exist",mha,mhas);
+                    }
+                } catch (Throwable e) {
+                    logger.error("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas,e);
                 }
-                logger.error("Getting getReaExecutedGtid from {} master in mhas:{},machine not exist",mha,mhas);
             }
         } catch (Throwable e) {
             logger.error("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas,e);
@@ -117,80 +146,7 @@ public class MhaController {
 
         return ApiResult.getFailInstance(null);
     }
-
-
-    @GetMapping("dataMedia/check/{namespace}/{name}/{srcDc}/{dataMediaSourceName}/{type}")
-    public ApiResult getMatchTable(@PathVariable String namespace,
-                                   @PathVariable String name,
-                                   @PathVariable String srcDc,
-                                   @PathVariable String dataMediaSourceName,
-                                   @PathVariable Integer type) {
-
-        try {
-            logger.info("[[tag=matchTable]] get {}.{} from {} ", namespace, name, dataMediaSourceName);
-            MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(dataMediaSourceName);
-            MachineTbl machineTbl = metaInfoService.getMachineTbls(dataMediaSourceName).stream()
-                    .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-            if (machineTbl != null) {
-                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
-                        machineTbl.getIp(),
-                        machineTbl.getPort(),
-                        mhaGroup.getMonitorUser(),
-                        mhaGroup.getMonitorPassword(),
-                        true);
-                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
-                List<MySqlUtils.TableSchemaName> tables = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
-                return ApiResult.getSuccessInstance(tables);
-            }
-            return ApiResult.getFailInstance("no machine find for " + dataMediaSourceName);
-        } catch (Exception e) {
-            logger.warn("[[tag=matchTable]] error when get {}.{} from {}", namespace, name, dataMediaSourceName, e);
-            if (e instanceof SQLException) {
-                return ApiResult.getFailInstance("sql error");
-            } else if (e instanceof CompileExpressionErrorException) {
-                return ApiResult.getFailInstance("expression error");
-            } else {
-                return ApiResult.getFailInstance("other error");
-            }
-        }
-
-    }
-
-    @GetMapping("rowsFilter/commonColumns/{srcDc}/{srcMha}/{namespace}/{name}")
-    public ApiResult getCommonColumnInDataMedias(
-            @PathVariable String srcDc,
-            @PathVariable String srcMha,
-            @PathVariable String namespace,
-            @PathVariable String name) {
-        try {
-            logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}", namespace, name, srcMha);
-            MhaGroupTbl mhaGroup = metaInfoService.getMhaGroupForMha(srcMha);
-            MachineTbl machineTbl = metaInfoService.getMachineTbls(srcMha).stream()
-                    .filter(p -> BooleanEnum.TRUE.getCode().equals(p.getMaster())).findFirst().orElse(null);
-            if (machineTbl != null) {
-                MySqlEndpoint mySqlEndpoint = new MySqlEndpoint(
-                        machineTbl.getIp(),
-                        machineTbl.getPort(),
-                        mhaGroup.getMonitorUser(),
-                        mhaGroup.getMonitorPassword(),
-                        true);
-                AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
-                Set<String> allCommonColumns = MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
-                return ApiResult.getSuccessInstance(allCommonColumns);
-            }
-            return ApiResult.getFailInstance("no machine find for " + srcMha);
-        } catch (Exception e) {
-            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, srcMha, e);
-            if (e instanceof SQLException) {
-                return ApiResult.getFailInstance("sql error");
-            } else if (e instanceof CompileExpressionErrorException) {
-                return ApiResult.getFailInstance("expression error");
-            } else {
-                return ApiResult.getFailInstance("other error");
-            }
-        }
-    }
-
+    
 
 
 }

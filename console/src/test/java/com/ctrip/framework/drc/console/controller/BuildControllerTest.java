@@ -113,7 +113,7 @@ public class BuildControllerTest extends AbstractControllerTest {
     public void testInputRowsFilter() throws Exception {
         RowsFilterConfigDto dto = new RowsFilterConfigDto();
         dto.setId(1L);
-        dto.setRowsFilterName("ruleName");
+        dto.setContext("context");
         Mockito.when(rowsFilterService.updateRowsFilterConfig(Mockito.any(RowsFilterConfigDto.class))).thenReturn(null);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/rowsFilterConfig").
                 contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).

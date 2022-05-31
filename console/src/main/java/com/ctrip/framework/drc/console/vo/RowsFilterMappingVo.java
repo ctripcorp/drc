@@ -34,8 +34,6 @@ public class RowsFilterMappingVo {
 
     
     private Long rowsFilterId;
-
-    private String rowsFilterName;
     
     private String mode;
     
@@ -65,7 +63,6 @@ public class RowsFilterMappingVo {
     
     public void setRowsFilter(RowsFilterTbl rowsFilterTbl) {
         this.rowsFilterId = rowsFilterTbl.getId();
-        this.rowsFilterName = rowsFilterTbl.getName();
         this.mode = rowsFilterTbl.getMode();
         RowsFilterConfig.Parameters parameters = 
                 JsonCodec.INSTANCE.decode(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class);
@@ -86,7 +83,6 @@ public class RowsFilterMappingVo {
                 ", dataMediaSourceId=" + dataMediaSourceId +
                 ", dataMediaSourceName='" + dataMediaSourceName + '\'' +
                 ", rowsFilterId=" + rowsFilterId +
-                ", rowsFilterName='" + rowsFilterName + '\'' +
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
@@ -157,15 +153,7 @@ public class RowsFilterMappingVo {
     public void setRowsFilterId(Long rowsFilterId) {
         this.rowsFilterId = rowsFilterId;
     }
-
-    public String getRowsFilterName() {
-        return rowsFilterName;
-    }
-
-    public void setRowsFilterName(String rowsFilterName) {
-        this.rowsFilterName = rowsFilterName;
-    }
-
+    
     public String getMode() {
         return mode;
     }

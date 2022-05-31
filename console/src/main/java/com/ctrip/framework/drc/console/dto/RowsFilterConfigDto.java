@@ -34,8 +34,6 @@ public class RowsFilterConfigDto {
 
     private Long rowsFilterId;
 
-    private String rowsFilterName;
-
     private String mode;
 
     private List<String> columns;
@@ -68,7 +66,6 @@ public class RowsFilterConfigDto {
     public RowsFilterTbl getRowsFilterTbl() {
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
         rowsFilterTbl.setId(this.getRowsFilterId());
-        rowsFilterTbl.setName(this.getRowsFilterName());
         rowsFilterTbl.setMode(this.getMode());
         RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
         parameters.setColumns(this.getColumns());
@@ -91,7 +88,6 @@ public class RowsFilterConfigDto {
                 ", dataMediaSourceId=" + dataMediaSourceId +
                 ", dataMediaSourceName='" + dataMediaSourceName + '\'' +
                 ", rowsFilterId=" + rowsFilterId +
-                ", rowsFilterName='" + rowsFilterName + '\'' +
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
@@ -162,14 +158,7 @@ public class RowsFilterConfigDto {
     public void setRowsFilterId(Long rowsFilterId) {
         this.rowsFilterId = rowsFilterId;
     }
-
-    public String getRowsFilterName() {
-        return rowsFilterName;
-    }
-
-    public void setRowsFilterName(String rowsFilterName) {
-        this.rowsFilterName = rowsFilterName;
-    }
+    
 
     public String getMode() {
         return mode;

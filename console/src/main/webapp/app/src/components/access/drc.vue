@@ -473,9 +473,9 @@ export default {
     },
     queryNewMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
+      console.log('/api/drc/v1/local/' + this.drc.oldClusterName +
         ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
-      that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
+      that.axios.get('/api/drc/v1/local/' + this.drc.oldClusterName +
         ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
         .then(response => {
           this.hasTest1 = true

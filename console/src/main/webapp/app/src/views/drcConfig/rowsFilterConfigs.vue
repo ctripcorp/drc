@@ -6,7 +6,14 @@
         <BreadcrumbItem to="/rowsFilterConfigs">行过滤配置</BreadcrumbItem>
       </Breadcrumb>
       <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
-        <span style="margin-right: 5px;color:#464c5b;font-weight:600">{{drc.srcMha}}({{drc.srcDc}})==>{{drc.destMha}}({{drc.destDc}})</span>
+        <Row>
+          <Col span="22">
+            <span style="margin-top: 10px;color:#464c5b;font-weight:600">{{drc.srcMha}}({{drc.srcDc}})==>{{drc.destMha}}({{drc.destDc}})</span>
+          </Col>
+          <Col span="2">
+            <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToAddRowsFilter">添加</Button>
+          </Col>
+        </Row>
         <div :style="{padding: '1px 1px',height: '100%'}">
           <template v-if="display.rowsFilterConfigs">
             <Table style="margin-top: 20px" stripe :columns="columns" :data="rowsFilterConfigsData" border>
@@ -16,7 +23,6 @@
                 <Button type="error" size="small" style="margin-right: 10px" @click="deleteConfig(row, index)">删除</Button>
               </template>
             </Table>
-            <Button style="margin-top: 10px" type="primary" ghost @click="goToAddRowsFilter">添加</Button>
           </template>
         </div>
       </Content>
@@ -37,43 +43,33 @@
                   <Input v-model="rowsFilterConfig.dataMediaSourceName" readonly style="width: 200px"/>
                 </FormItem>
                 <FormItem label="库名">
-                  <Input v-model="rowsFilterConfig.namespace" style="width:200px" placeholder="支持正则"/>
+                  <Input v-model="rowsFilterConfig.namespace" style="width:200px" placeholder="支持正则  .*匹配全部"/>
                 </FormItem>
                 <FormItem label="表名">
                   <Row>
                     <Col span="16">
-                      <Input v-model="rowsFilterConfig.name" style="width:200px" placeholder="请输入逻辑表名，支持正则"/>
+                      <Input v-model="rowsFilterConfig.name" style="width:200px" placeholder="支持正则  .*匹配全部"/>
                     </Col>
                     <Col span="4">
                       <Button  type="primary" @click="checkTable" ghost style="margin-left: 10px">匹配</Button>
                     </Col>
                   </Row>
                 </FormItem>
-                <FormItem label="规则名">
-                  <Input v-model="rowsFilterConfig.rowsFilterName" style="width: 200px" placeholder="行过滤规则名"/>
-                </FormItem>
+<!--                <FormItem label="规则名">-->
+<!--                  <Input v-model="rowsFilterConfig.rowsFilterName" style="width: 200px" placeholder="行过滤规则名"/>-->
+<!--                </FormItem>-->
                 <FormItem label="模式">
                   <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
                     <Option v-for="item in modesForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
                 <FormItem label="选择列名">
-                  <Select v-model="rowsFilterConfig.columns" multiple style="width: 200px" placeholder="选择相关列">
+                  <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关列">
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="添加列名">
-                  <Row>
-                    <Col span="16">
-                      <Input v-model="columnForAdd" style="width:200px" placeholder="手动添加列名"/>
-                    </Col>
-                    <Col span="4">
-                      <Button  type="primary" @click="addColumn" ghost style="margin-left: 10px">添加</Button>
-                    </Col>
-                  </Row>
-                </FormItem>
-                <FormItem label="默认过滤" >
-                  <Checkbox v-model="rowsFilterConfig.illegalArgument">过滤【字段为空时】</Checkbox>
+                <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
+                  <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
                 <FormItem label="规则内容" >
                   <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
@@ -89,7 +85,19 @@
               <div slot="title">
                 <span>相关表</span>
               </div>
-              <Table stripe :columns="columnsForTableCheck" :data="tableData" border ></Table>
+              <Table stripe :columns="columnsForTableCheck" :data="dataWithPage" border ></Table>
+              <div style="text-align: center;margin: 16px 0">
+                <Page
+                  :transfer="true"
+                  :total="tableData.length"
+                  :current.sync="current"
+                  :page-size-opts="pageSizeOpts"
+                  :page-size="this.size"
+                  show-total
+                  show-sizer
+                  show-elevator
+                  @on-page-size-change="handleChangeSize"></Page>
+              </div>
             </Card>
           </Col>
         </Row>
@@ -141,20 +149,15 @@ export default {
           key: 'name',
           width: 300
         },
-        {
-          title: '规则名',
-          key: 'rowsFilterName',
-          width: 200
-        },
+        // {
+        //   title: '规则名',
+        //   key: 'rowsFilterName',
+        //   width: 200
+        // },
         {
           title: '模式',
           key: 'mode',
           width: 120
-        },
-        {
-          title: '默认过滤',
-          key: 'illegalArgument',
-          width: 100
         },
         {
           title: '相关列',
@@ -167,6 +170,11 @@ export default {
           width: 300
         },
         {
+          title: '默认同步（trip_uid专用)',
+          key: 'illegalArgument',
+          width: 100
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
@@ -176,6 +184,10 @@ export default {
       ],
       rowsFilterConfigsData: [],
       tableData: [],
+      total: 0,
+      current: 1,
+      size: 5,
+      pageSizeOpts: [5, 10, 20, 100],
       columnsForTableCheck: [
         {
           title: '序号',
@@ -184,7 +196,7 @@ export default {
           render: (h, params) => {
             return h(
               'span',
-              params.index + 1
+              params.index + 1 + (this.current - 1) * this.size
             )
           }
         },
@@ -205,7 +217,7 @@ export default {
         dataMediaSourceId: 0,
         dataMediaSourceName: '',
         rowsFilterId: 0,
-        rowsFilterName: '',
+        // rowsFilterName: '',
         mode: 'trip_uid',
         columns: [],
         context: '',
@@ -217,15 +229,22 @@ export default {
         'trip_uid',
         'custom'
       ],
-      columnsForChose: [
-        'UID'
-      ],
+      columnsForChose: [],
       regionsForChose: [
         'SIN',
         'SH'
       ],
       columnForAdd: '',
-      forceCommit: false
+      forceCommit: false,
+      conflictTables: []
+    }
+  },
+  computed: {
+    dataWithPage () {
+      const data = this.tableData
+      const start = this.current * this.size - this.size
+      const end = start + this.size
+      return [...data].slice(start, end)
     }
   },
   methods: {
@@ -257,7 +276,7 @@ export default {
     },
     goToShowConfig (row, index) {
       this.rowsFilterConfigInitFormRow(row, index)
-      this.checkTable()
+      this.showMatchTables()
       this.columnsForChose = row.columns
       this.display.rowsFilterModal = true
       this.display.showOnly = true
@@ -283,8 +302,8 @@ export default {
     },
     goToAddRowsFilter () {
       this.rowsFilterConfigInit()
+      this.columnsForChose = []
       this.checkTable()
-      this.columnsForChose = ['UID']
       this.forceCommit = false
       this.display.showOnly = false
       this.display.rowsFilterModal = true
@@ -298,7 +317,7 @@ export default {
         dataMediaSourceId: row.dataMediaSourceId,
         dataMediaSourceName: this.drc.srcMha,
         rowsFilterId: row.rowsFilterId,
-        rowsFilterName: row.rowsFilterName,
+        // rowsFilterName: row.rowsFilterName,
         mode: row.mode,
         columns: row.columns,
         context: row.context,
@@ -315,7 +334,7 @@ export default {
         dataMediaSourceId: 0,
         dataMediaSourceName: this.drc.srcMha,
         rowsFilterId: 0,
-        rowsFilterName: '',
+        // rowsFilterName: '',
         mode: 'trip_uid',
         columns: [],
         context: '',
@@ -329,10 +348,12 @@ export default {
       } else if (this.rowsFilterConfig.namespace === '' ||
       this.rowsFilterConfig.name === '' ||
       this.rowsFilterConfig.mode === '' ||
-      this.rowsFilterConfig.rowsFilterName === '' ||
+      // this.rowsFilterConfig.rowsFilterName === '' ||
       this.rowsFilterConfig.columns.length === 0 ||
       this.rowsFilterConfig.context === '') {
         alert('缺少配置 禁止提交！')
+      } else if (this.conflictTables.length !== 0) {
+        alert('存在匹配表已经了行过滤，禁止提交')
       } else if (this.tableData.length === 0 && !this.forceCommit) {
         this.forceCommit = true
         alert('无匹配表 下一次提交将强制执行！！')
@@ -346,7 +367,7 @@ export default {
           dataMediaSourceId: this.rowsFilterConfig.dataMediaSourceId === 0 ? null : this.rowsFilterConfig.dataMediaSourceId,
           dataMediaSourceName: this.drc.srcMha,
           rowsFilterId: this.rowsFilterConfig.rowsFilterId === 0 ? null : this.rowsFilterConfig.rowsFilterId,
-          rowsFilterName: this.rowsFilterConfig.rowsFilterName === '' ? null : this.rowsFilterConfig.rowsFilterName,
+          // rowsFilterName: this.rowsFilterConfig.rowsFilterName === '' ? null : this.rowsFilterConfig.rowsFilterName,
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
@@ -365,16 +386,19 @@ export default {
     cancelSubmit () {
       this.display.rowsFilterModal = false
     },
-    checkTable () {
-      if (this.rowsFilterConfig.namespace === '' || this.rowsFilterConfig.name === '') {
-        window.alert('库名表名不能为空！')
-        return
-      }
-      this.axios.get('/api/drc/v1/build/dataMedia/check/' +
-        this.rowsFilterConfig.namespace + '/' +
-        this.rowsFilterConfig.name + '/' +
-        this.drc.srcDc + '/' +
-        this.drc.srcMha + '/0')
+    showMatchTables () {
+      console.log('/api/drc/v1/build/dataMedia/check?' +
+        'namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&srcDc=' + this.drc.srcDc +
+        '&dataMediaSourceName=' + this.drc.srcMha +
+        '&type=' + 0)
+      this.axios.get('/api/drc/v1/build/dataMedia/check?' +
+        'namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&srcDc=' + this.drc.srcDc +
+        '&dataMediaSourceName=' + this.drc.srcMha +
+        '&type=' + 0)
         .then(response => {
           if (response.data.status === 1) {
             window.alert('查询匹配表失败')
@@ -386,24 +410,104 @@ export default {
             }
           }
         })
-      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns/' +
-        this.drc.srcDc + '/' +
-        this.drc.srcMha + '/' +
-        this.rowsFilterConfig.namespace + '/' +
-        this.rowsFilterConfig.name)
+    },
+    conflictCheck () {
+      console.log('/api/drc/v1/build/dataMedia/conflictCheck?' +
+        'applierGroupId=' + this.drc.applierGroupId +
+        '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
+        '&srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/conflictCheck?' +
+        'applierGroupId=' + this.drc.applierGroupId +
+        '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
+        '&srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('查询公共列名失败，请手动添加！')
+            window.alert('表匹配冲突校验失败，请手动添加！')
           } else {
             console.log(response.data.data)
-            this.columnsForChose = response.data.data
+            this.conflictTables = response.data.data
+            if (this.conflictTables.length !== 0) {
+              window.alert('存在表已经配置行过滤规则,如下:' +
+                this.conflictTables)
+            }
           }
         })
     },
-    addColumn () {
-      this.columnsForChose.push(this.columnForAdd)
-      this.rowsFilterConfig.columns.push(this.columnForAdd)
-      this.columnForAdd = ''
+    getCommonColumns () {
+      console.log('/api/drc/v1/build/rowsFilter/commonColumns?' +
+        'srcDc=' + this.drc.srcDc +
+        '&srcMha=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name)
+      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
+        'srcDc=' + this.drc.srcDc +
+        '&srcMha=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询公共列名失败，请手动添加！' + response.data.data)
+            this.columnsForChose = []
+          } else {
+            console.log(response.data.data)
+            this.columnsForChose = response.data.data
+            if (this.columnsForChose.length === 0) {
+              alert('查询无公共字段！')
+            }
+          }
+        })
+    },
+    checkTable () {
+      if (this.rowsFilterConfig.namespace === '' || this.rowsFilterConfig.name === '') {
+        window.alert('库名表名不能为空！')
+        return
+      }
+      console.log('showMatchTables')
+      this.showMatchTables()
+      console.log('conflictCheck')
+      this.conflictCheck()
+      console.log('getCommonColumns')
+      this.getCommonColumns()
+    },
+    handleChangeSize (val) {
+      this.size = val
+    },
+    handleCreateColumn (val) {
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.rowsFilterConfig.columns.push(val)
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' +
+                tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.rowsFilterConfig.columns.push(val)
+          }
+        })
     }
   },
   created () {

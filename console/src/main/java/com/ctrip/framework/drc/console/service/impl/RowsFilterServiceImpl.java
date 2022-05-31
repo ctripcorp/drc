@@ -10,11 +10,18 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.JsonUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.checkerframework.triplog.shaded.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -38,13 +43,19 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     public static final Logger logger = LoggerFactory.getLogger(RowsFilterServiceImpl.class);
     
     @Autowired
-    DataMediaTblDao dataMediaTblDao;
+    private DataMediaTblDao dataMediaTblDao;
     
     @Autowired
-    RowsFilterMappingTblDao rowsFilterMappingTblDao;
+    private RowsFilterMappingTblDao rowsFilterMappingTblDao;
     
     @Autowired
-    RowsFilterTblDao rowsFilterTblDao;
+    private RowsFilterTblDao rowsFilterTblDao;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
+    
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
     
     @Override
     public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException {
@@ -132,6 +143,62 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
         
         return update0+update1+update2 == 3 ?  "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
+    }
+    
+    @Override
+    public List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName) {
+        List<String> tables = Lists.newArrayList();
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = 
+                MySqlUtils.getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(namespace + "\\." + name));
+        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(endpoint, tablesAfterRegexFilter, true);
+        for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
+            String tableName = entry.getKey();
+            if (!entry.getValue().contains(column)) {
+                tables.add(tableName);
+            }
+        }
+        return tables;
+    }
+    @Override
+    public List<String> checkTableConflict(
+            Long applierGroupId,
+            Long dataMediaId,
+            String namespace,
+            String name,
+            String mhaName) throws SQLException {
+        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId);
+        List<String> logicalTables = Lists.newArrayList();
+        if (dataMediaId== 0) { // add
+            logicalTables = rowsFilterMappingVos.stream().
+                    map(mappingVo -> mappingVo.getNamespace() + "\\." + mappingVo.getName()).collect(Collectors.toList());
+        } else { // update
+            logicalTables= rowsFilterMappingVos.stream().
+                    filter(p -> !p.getDataMediaId().equals(dataMediaId)).
+                    map(mappingVo -> mappingVo.getNamespace() + "\\." + mappingVo.getName()).collect(Collectors.toList());
+        }
+        logicalTables.add(namespace + "\\." + name);
+        return getConflictTables(mhaName, logicalTables);
+    }
+
+    public List<String> getConflictTables(String mhaName,List<String> logicalTables)  {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        HashSet<String> allTable = Sets.newHashSet();
+        ArrayList<String> conflictTables = Lists.newArrayList();
+        for (String logicalTable : logicalTables) {
+            AviatorRegexFilter filter = new AviatorRegexFilter(logicalTable);
+            List<String> tablesAfterFilter = MySqlUtils.getTablesAfterRegexFilter(endpoint, filter).stream().
+                    map(MySqlUtils.TableSchemaName ::getDirectSchemaTableName).collect(Collectors.toList());
+            for (String table : tablesAfterFilter) {
+                if (allTable.contains(table)) {
+                    logger.warn("[[tag=checkTable]] contain common table: {}",table);
+                    conflictTables.add(table);
+                } else {
+                    allTable.add(table);
+                }
+            }
+        }
+        return conflictTables;
     }
 
     
