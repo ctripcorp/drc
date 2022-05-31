@@ -77,7 +77,8 @@ public class BuildController {
                     srcDc,
                     destDc,
                     destApplierGroupId,
-                    srcReplicatorGroupId);
+                    srcReplicatorGroupId,
+                    srcMhaId);
             return ApiResult.getSuccessInstance(simplexDrcBuildVo);
         } catch (SQLException e) {
             logger.error("sql error", e);

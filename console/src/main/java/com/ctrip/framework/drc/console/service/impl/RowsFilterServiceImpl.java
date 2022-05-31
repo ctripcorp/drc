@@ -122,7 +122,15 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
         int update0 = dataMediaTblDao.update(dataMediaTbl);
         int update1 = rowsFilterTblDao.update(rowsFilterTbl);
-        return update0+update1 >= 1 ?  "update rowsFilterConfig success" : "update rowsFilterConfig fail";
+        if (update0 + update1 == 2) {
+            return "update rowsFilterConfig success";
+        } else if (update0 == 1) {
+            return "update dateMedia success";
+        } else if (update1 == 1) {
+            return "update rowsFilter success";
+        } else {
+            return "update rowsFilterConfig fail";
+        }
     }
 
     @Override

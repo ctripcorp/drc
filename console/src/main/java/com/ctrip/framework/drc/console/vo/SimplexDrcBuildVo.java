@@ -13,17 +13,17 @@ public class SimplexDrcBuildVo {
     private String destDc;
     private Long destApplierGroupId;
     private Long srcReplicatorGroupId;
+    private Long srcMhaId;
 
-    public SimplexDrcBuildVo(String srcMha, String destMha, String srcDc, String destDc, Long destApplierGroupId, Long srcReplicatorGroupId) {
+    public SimplexDrcBuildVo(String srcMha, String destMha, String srcDc, String destDc, 
+                             Long destApplierGroupId, Long srcReplicatorGroupId,Long srcMhaId) {
         this.srcMha = srcMha;
         this.destMha = destMha;
         this.srcDc = srcDc;
         this.destDc = destDc;
+        this.srcMhaId = srcMhaId;
         this.destApplierGroupId = destApplierGroupId;
         this.srcReplicatorGroupId = srcReplicatorGroupId;
-    }
-
-    public SimplexDrcBuildVo() {
     }
 
     @Override
@@ -35,7 +35,19 @@ public class SimplexDrcBuildVo {
                 ", destDc='" + destDc + '\'' +
                 ", destApplierGroupId=" + destApplierGroupId +
                 ", srcReplicatorGroupId=" + srcReplicatorGroupId +
+                ", srcMhaId=" + srcMhaId +
                 '}';
+    }
+
+    public SimplexDrcBuildVo() {
+    }
+
+    public Long getSrcMhaId() {
+        return srcMhaId;
+    }
+
+    public void setSrcMhaId(Long srcMhaId) {
+        this.srcMhaId = srcMhaId;
     }
 
     public String getSrcMha() {

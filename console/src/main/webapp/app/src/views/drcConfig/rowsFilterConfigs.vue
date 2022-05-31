@@ -124,7 +124,8 @@ export default {
         destMha: this.$route.query.destMha,
         srcDc: '',
         destDc: '',
-        applierGroupId: 0
+        applierGroupId: 0,
+        srcMhaId: 0
       },
       columns: [
         {
@@ -259,6 +260,7 @@ export default {
             this.drc.srcDc = vo.srcDc
             this.drc.destDc = vo.destDc
             this.drc.applierGroupId = vo.destApplierGroupId
+            this.drc.srcMhaId = vo.srcMhaId
             this.getRowsFilterConfigs()
           }
         })
@@ -358,13 +360,14 @@ export default {
         this.forceCommit = true
         alert('无匹配表 下一次提交将强制执行！！')
       } else {
-        this.axios.post('/api/drc/v1/build/rowsFilterConfig', {
+        const dto = {
           id: this.rowsFilterConfig.mappingId === 0 ? null : this.rowsFilterConfig.mappingId,
           applierGroupId: this.drc.applierGroupId,
+          dataMediaId: this.rowsFilterConfig.dataMediaId === 0 ? null : this.rowsFilterConfig.dataMediaId,
           namespace: this.rowsFilterConfig.namespace === '' ? null : this.rowsFilterConfig.namespace,
           name: this.rowsFilterConfig.name === '' ? null : this.rowsFilterConfig.name,
           type: 0,
-          dataMediaSourceId: this.rowsFilterConfig.dataMediaSourceId === 0 ? null : this.rowsFilterConfig.dataMediaSourceId,
+          dataMediaSourceId: this.drc.srcMhaId,
           dataMediaSourceName: this.drc.srcMha,
           rowsFilterId: this.rowsFilterConfig.rowsFilterId === 0 ? null : this.rowsFilterConfig.rowsFilterId,
           // rowsFilterName: this.rowsFilterConfig.rowsFilterName === '' ? null : this.rowsFilterConfig.rowsFilterName,
@@ -372,7 +375,9 @@ export default {
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
-        }).then(response => {
+        }
+        console.log(dto)
+        this.axios.post('/api/drc/v1/build/rowsFilterConfig', dto).then(response => {
           if (response.data.status === 1) {
             window.alert('提交失败!' + response.data.data)
           } else {

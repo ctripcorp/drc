@@ -14,7 +14,9 @@ public class SimplexDrcBuildVoTest {
                 "srcDc",
                 "destDc",
                 0L,
+                0L,
                 0L);
+        
         System.out.println(simplexDrcBuildVo.toString());
 
     }
