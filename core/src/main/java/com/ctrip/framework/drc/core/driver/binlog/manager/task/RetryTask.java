@@ -2,8 +2,6 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import java.util.concurrent.Callable;
 
-import static com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable.DDL_LOGGER;
-
 /**
  * @Author limingdong
  * @create 2021/4/7
