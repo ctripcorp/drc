@@ -33,13 +33,6 @@ public class RowsFilterTbl implements DalPojo {
 	private Long id;
 
     /**
-     * 行过滤规则名
-     */
-	@Column(name = "name")
-	@Type(value = Types.VARCHAR)
-	private String name;
-
-    /**
      * 行过滤配置 模式 regex, trip_uid,customed
      */
 	@Column(name = "mode")
@@ -81,14 +74,7 @@ public class RowsFilterTbl implements DalPojo {
 	public void setId(Long id) {
 		this.id = id;
 	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
+	
 
 	public String getMode() {
 		return mode;

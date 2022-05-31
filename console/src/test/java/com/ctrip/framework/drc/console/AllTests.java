@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
+import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -44,6 +45,8 @@ import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.PeriodicalUpdateMhasTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
+import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
+import com.ctrip.framework.drc.console.vo.SimplexDrcBuildVoTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -118,6 +121,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         // controller
         AccessControllerTest.class,
         BuildControllerTest.class,
+        LocalControllerTest.class,
         MhaControllerTest.class,
         SwitchControllerTest.class,
         ClusterControllerTest.class,
@@ -183,7 +187,11 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ListenReplicatorTaskTest.class,
 
         //entity
-        MhaInstanceGroupDtoTest.class
+        MhaInstanceGroupDtoTest.class,
+        RowsFilterConfigDtoTest.class,
+        RowsFilterMappingVoTest.class,
+        SimplexDrcBuildVoTest.class
+        
 })
 public class AllTests {
 
