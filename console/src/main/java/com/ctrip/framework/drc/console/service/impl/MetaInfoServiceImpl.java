@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
@@ -17,12 +18,15 @@ import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -32,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -65,6 +70,9 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+    
+    @Autowired
+    private RowsFilterService rowsFilterService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -483,8 +491,8 @@ MetaInfoServiceImpl implements MetaInfoService {
             return applierFilter1;
         } else {
             HashSet<String> filters = Sets.newHashSet();
-            filters.addAll(List.of(applierFilter1.split(",")));
-            filters.addAll(List.of(applierFilter2.split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter1.split(",")));
+            filters.addAll(Lists.newArrayList(applierFilter2.split(",")));
             return StringUtils.join(filters,",");
         }
     }
@@ -524,6 +532,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return dalUtils.getApplierGroupTblDao().queryByMhaIdAndReplicatorGroupId(mhaTbl.getId(),remoteReplicatorGroupTbl.getId(),BooleanEnum.FALSE.getCode());
     }
 
+    // direction: remoteMha -> mha
     public ApplierGroupTbl getApplierGroupTbl(String mha, String remoteMha) throws SQLException {
         MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha,BooleanEnum.FALSE.getCode());
         MhaTbl remoteMhaTbl = dalUtils.getMhaTblDao().queryByMhaName(remoteMha,BooleanEnum.FALSE.getCode());
@@ -674,6 +683,10 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
+        DataMediaConfig properties = new DataMediaConfig();
+        properties.setRowsFilters(rowsFilterConfigs);
+        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
         for(ApplierTbl applierTbl : applierTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.info("generate view applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());
@@ -688,7 +701,8 @@ MetaInfoServiceImpl implements MetaInfoService {
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
                     .setTargetName(applierGroupTbl.getTargetName())
-                    .setApplyMode(applierGroupTbl.getApplyMode());
+                    .setApplyMode(applierGroupTbl.getApplyMode())
+                    .setProperties(propertiesJson);
             dbCluster.addApplier(applier);
         }
     }
@@ -1236,4 +1250,9 @@ MetaInfoServiceImpl implements MetaInfoService {
         return sortedPairVos;
     }
 
+    public String getDc(String mhaName) throws SQLException {
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        DcTbl dcTbl = dalUtils.getDcTblDao().queryByPk(mhaTbl.getDcId());
+        return dcTbl.getDcName();
+    }
 }

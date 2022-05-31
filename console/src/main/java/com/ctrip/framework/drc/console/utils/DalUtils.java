@@ -156,7 +156,9 @@ public class DalUtils {
     }
 
     public Long updateOrCreateGroupMapping(Long mhaGroupId, Long mhaId) throws SQLException {
-        GroupMappingTbl groupMappingTbl = groupMappingTblDao.queryAll().stream().filter(p -> (mhaGroupId.equals(p.getMhaGroupId()) && mhaId.equals(p.getMhaId()))).findFirst().orElse(null);
+        GroupMappingTbl groupMappingTbl = groupMappingTblDao.queryAll().stream().
+                filter(p -> (mhaGroupId.equals(p.getMhaGroupId()) && mhaId.equals(p.getMhaId()))).
+                findFirst().orElse(null);
         if (null == groupMappingTbl) {
             return insertGroupMapping(mhaGroupId, mhaId);
         } else if (BooleanEnum.TRUE.getCode().equals(groupMappingTbl.getDeleted())) {
@@ -174,7 +176,8 @@ public class DalUtils {
     }
 
     public Long updateOrCreateDc(String dc) throws SQLException {
-        DcTbl dcTbl = dcTblDao.queryAll().stream().filter(p -> p.getDcName().equalsIgnoreCase(dc)).findFirst().orElse(null);
+        DcTbl dcTbl = dcTblDao.queryAll().stream().
+                filter(p -> p.getDcName().equalsIgnoreCase(dc)).findFirst().orElse(null);
         if (null == dcTbl) {
             return insertDc(dc);
         } else if (BooleanEnum.TRUE.getCode().equals(dcTbl.getDeleted())){

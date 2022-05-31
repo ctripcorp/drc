@@ -56,6 +56,11 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
         }
     }
 
+    @Override
+    public void afterSuccess(int retryTime) {
+        loggerTT.info("{} success with retryTime {}", name(), retryTime);
+    }
+
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean updateGtidSetRecord(GtidSet gtidSet) throws SQLException {
         loggerTT.info("[TT] use the gtid set: {} to union the old gtid set record", gtidSet.toString());

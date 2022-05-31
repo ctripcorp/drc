@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.exception.dump.BinlogDumpGtidException;
 import com.ctrip.framework.drc.core.exception.dump.EventConvertException;
 import com.ctrip.framework.drc.core.monitor.log.Accumulation;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
@@ -76,6 +77,12 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @InstanceConfig(path = "routeInfo")
     public String routeInfo;
 
+    @InstanceConfig(path = "applyMode")
+    public int applyMode = ApplyMode.set_gtid.getType();
+
+    @InstanceConfig(path = "properties")
+    public String properties;
+
     @Override
     public void doStart() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
@@ -87,6 +94,10 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
         config.setRegistryKey(registryKey);
         config.setGtidSet(context.fetchGtidSet());
         config.setApplierName(registryKey);
+        config.setApplyMode(applyMode);
+        if (StringUtils.isNotBlank(properties)) {
+            config.setProperties(properties);
+        }
         if (StringUtils.isNotBlank(includedDbs)) {
             config.setIncludedDbs(Sets.newHashSet(StringUtils.split(includedDbs, COMMA)));
         }

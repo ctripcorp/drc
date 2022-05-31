@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.entity.ConsistencyEntity;
 import com.ctrip.framework.drc.core.monitor.enums.ConsistencyEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -25,9 +25,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl.ALLMATCH;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_TABLE_LOGGER;
 
 /**
@@ -63,13 +61,13 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
     protected Map<String, Boolean> getConsistencyMapper() {
         return Collections.unmodifiableMap(consistencyMapper);
     }
-    
+
     public  final int INITIAL_DELAY = 30;
 
     public  final int PERIOD = MonitorTableSourceProvider.getInstance().getTableConsistencyMonitorPeriod();
 
     public  final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    
+
     @Override
     public void initialize() {
         setInitialDelay(INITIAL_DELAY);
@@ -127,7 +125,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         Map<String, String> srcStmts = MySqlUtils.getDefaultCreateTblStmts(srcEndpoint,aviatorRegexFilter);
         Map<String, String> destStmts = MySqlUtils.getDefaultCreateTblStmts(destEndpoint,aviatorRegexFilter);
 
-        
+
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
             CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]]" +

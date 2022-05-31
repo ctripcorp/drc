@@ -12,6 +12,10 @@
     <artifactId>integration-test</artifactId>
 
     <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.framework.drc</groupId>-->
+<!--            <artifactId>trip-service</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-jdbc</artifactId>

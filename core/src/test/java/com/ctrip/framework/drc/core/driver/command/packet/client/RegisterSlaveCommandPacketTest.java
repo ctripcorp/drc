@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.*;
+import static com.ctrip.framework.drc.core.driver.command.packet.client.RegisterSlaveCommandPacket.HOSTNAME_LENGTH;
 
 /**
  * Created by mingdongli
@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  */
 public class RegisterSlaveCommandPacketTest extends AbstractCommandPacketTest {
 
-    public static final String REPORT_HOST = "reportHost";
+    public static final String REPORT_HOST = "reportHostreportHostreportHostreportHostreportHostreportHostreportHostreportHost";
 
     public static final int REPORT_PORT = 1222;
 
@@ -38,5 +38,9 @@ public class RegisterSlaveCommandPacketTest extends AbstractCommandPacketTest {
         RegisterSlaveCommandPacket clone = new RegisterSlaveCommandPacket();
         clone.read(byteBuf);
         Assert.assertArrayEquals(registerSlaveCommandPacket.getBody(), clone.getBody());
+
+        String reportHost = clone.getReportHost();
+        Assert.assertEquals(reportHost.length(), HOSTNAME_LENGTH);
+        Assert.assertEquals(reportHost, REPORT_HOST.substring(0, HOSTNAME_LENGTH));
     }
 }

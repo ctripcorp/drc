@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.mock.helpers.DcComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -43,6 +44,9 @@ public class TransferServiceImplTest extends AbstractTest {
     @Mock
     private MetaInfoServiceImpl metaInfoService = new MetaInfoServiceImpl();
 
+    @Mock
+    private RowsFilterService rowsFilterService;
+
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
 
@@ -55,6 +59,7 @@ public class TransferServiceImplTest extends AbstractTest {
         MockitoAnnotations.openMocks(this);
         Mockito.doReturn(IDC).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
+        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong());
         AllTests.truncateAllMetaDb();
 
         /**

@@ -62,7 +62,6 @@ public class PeriodicalUpdateMhasTask extends AbstractMonitor {
                 List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryAll();
                 Set<String> allMhaNamesFromMeta = Sets.newHashSet();
                 mhaTbls.forEach(mhaTbl -> allMhaNamesFromMeta.add(mhaTbl.getMhaName()));
-
                 List<Map<String, String>> allMhaMapsFromDba = mhaService.getAllClusterNames();
 
                 List<MhaTbl> mhaTblList = getNewMhas(allMhaNamesFromMeta, allMhaMapsFromDba);

@@ -62,7 +62,7 @@ public class TripBidirectionalStarter extends AbstractTestStarter {
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, null);
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();

@@ -24,17 +24,21 @@ import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilterTest;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
+import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.DefaultFileConfigTest;
 import com.ctrip.framework.drc.core.server.config.RegistryKeyTest;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDtoTest;
 import com.ctrip.framework.drc.core.server.config.cm.dto.SchemasHistoryDeltaDtoTest;
 import com.ctrip.framework.drc.core.server.ha.zookeeper.DrcLeaderElectorTest;
+import com.ctrip.framework.drc.core.server.manager.DataMediaManagerTest;
 import com.ctrip.framework.drc.core.server.utils.FileUtilTest;
 import com.ctrip.framework.drc.core.service.ops.AppNodeTest;
 import org.apache.curator.test.TestingServer;
@@ -50,6 +54,14 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        JavaRegexRowsFilterRuleTest.class,
+        AviatorRegexRowsFilterRuleTest.class,
+        UidRowsFilterRuleTest.class,
+        DefaultRuleFactoryTest.class,
+        DataMediaManagerTest.class,
+        RowsFilterConfigTest.class,
+        DataMediaConfigTest.class,
+        AbstractRowsFilterRuleTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
@@ -76,7 +88,7 @@ import org.junit.runners.Suite;
         // impl package
         AbstractLogEventTest.class,
         AbstractRowsEventTest.class,
-//        DeleteRowsEventTest.class,
+        DeleteRowsEventTest.class,
         DrcErrorLogEventTest.class,
         DrcHeartbeatLogEventTest.class,
         FormatDescriptionLogEventTest.class,
@@ -94,7 +106,7 @@ import org.junit.runners.Suite;
         RowsQueryLogEventTest.class,
         StopLogEventTest.class,
         TableMapLogEventTest.class,
-//        UpdateRowsEventTest.class,
+        UpdateRowsEventTest.class,
         WriteRowsEventTest.class,
         XidLogEventTest.class,
         DrcSchemaSnapshotLogEventTest.class,
@@ -139,7 +151,7 @@ import org.junit.runners.Suite;
         DefaultFileConfigTest.class,
         RegistryKeyTest.class,
         ApplierRegistryKeyTest.class,
-        
+
         //Http response test
         AppNodeTest.class,
 
@@ -155,9 +167,99 @@ import org.junit.runners.Suite;
         AviatorRegexFilterTest.class,
 
         // QueryTask
-        ExecutedGtidQueryTaskTest.class
+        ExecutedGtidQueryTaskTest.class,
+
+        // Write row field with MySQL number type
+        WriteFieldTinyTypeTest.class,
+        WriteFieldTinyUnsignedTypeTest.class,
+        WriteFieldShortTypeTest.class,
+        WriteFieldShortUnsignedTypeTest.class,
+        WriteFieldInt24TypeTest.class,
+        WriteFieldInt24UnsignedTypeTest.class,
+        WriteFieldLongTypeTest.class,
+        WriteFieldLongUnsignedTypeTest.class,
+        WriteFieldLongLongTypeTest.class,
+        WriteFieldLongLongUnsignedTypeTest.class,
+        WriteFieldBitMeta1TypeTest.class,
+        WriteFieldBitMeta2TypeTest.class,
+        WriteFieldBitMeta3TypeTest.class,
+        WriteFieldBitMeta4TypeTest.class,
+        WriteFieldBitMeta5TypeTest.class,
+        WriteFieldBitMeta6TypeTest.class,
+        WriteFieldBitMeta7TypeTest.class,
+        WriteFieldBitMeta8TypeTest.class,
+
+        // Write row field with MySQL float type
+        WriteFieldFloatTypeTest.class,
+        WriteFieldFloatUnsignedTypeTest.class,
+        WriteFieldDoubleTypeTest.class,
+        WriteFieldDoubleUnsignedTypeTest.class,
+        WriteFieldNewdecimalOffset0TypeTest.class,
+        WriteFieldNewdecimalOffset1TypeTest.class,
+        WriteFieldNewdecimalOffset2TypeTest.class,
+        WriteFieldNewdecimalOffset3TypeTest.class,
+        WriteFieldNewdecimalOffset4TypeTest.class,
+
+        // Write row field with MySQL character type
+        WriteFieldCharVarTypeTest.class,
+        WriteFieldCharTypeTest.class,
+        WriteFieldBinaryVarTypeTest.class,
+        WriteFieldBinaryTypeTest.class,
+        WriteFieldBlobTinyTypeTest.class,
+        WriteFieldBlobTypeTest.class,
+        WriteFieldBlobMediumTypeTest.class,
+        WriteFieldBlobLongTypeTest.class,
+        WriteFieldTextTinyTypeTest.class,
+        WriteFieldTextTypeTest.class,
+        WriteFieldTextMediumTypeTest.class,
+        WriteFieldTextLongTypeTest.class,
+
+        // Write row field with MySQL time type
+        WriteFieldDatetime2Meta0TypeTest.class,
+        WriteFieldDatetime2Meta2TypeTest.class,
+        WriteFieldDatetime2Meta4TypeTest.class,
+        WriteFieldDatetime2Meta6TypeTest.class,
+        WriteFieldTime2Meta0TypeTest.class,
+        WriteFieldTime2Meta2TypeTest.class,
+        WriteFieldTime2Meta4TypeTest.class,
+        WriteFieldTime2Meta6TypeTest.class,
+        WriteFieldTimestamp2Meta0TypeTest.class,
+        WriteFieldTimestamp2Meta2TypeTest.class,
+        WriteFieldTimestamp2Meta4TypeTest.class,
+        WriteFieldTimestamp2Meta6TypeTest.class,
+        WriteFieldYearTypeTest.class,
+        WriteFieldDateTypeTest.class,
+        WriteFieldEnumMeta1TypeTest.class,
+        WriteFieldEnumMeta2TypeTest.class
+
 })
 public class AllTests {
+
+    public static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"%s\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"one\"" +
+            "        ]," +
+            "        \"context\": \"%s\"" +
+            "      }" +
+            "    }" +
+            "  ]," +
+            "  \"talbePairs\": [" +
+            "    {" +
+            "      \"source\": \"sourceTableName1\"," +
+            "      \"target\": \"targetTableName1\"" +
+            "    }," +
+            "    {" +
+            "      \"source\": \"sourceTableName2\"," +
+            "      \"target\": \"targetTableName2\"" +
+            "    }" +
+            "  ]" +
+            "}";
 
     public static int ZK_PORT = 2182;
 

@@ -2,14 +2,14 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/access">搭建DRC</BreadcrumbItem>
+      <BreadcrumbItem to="/accessV2">DRC配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
       <template>
         <Steps :current="current" style="width: 90%; margin-left: 50px; margin-bottom: 15px; margin-top: 50px">
-          <Step title="新建DRC集群" content="新建复制集群" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="mha配置" content="mha添加db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="建立双向复制" content="配置Replicator和Applier建立集群双向复制" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="新建DRC集群" content="新建同步DRC" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="mha配置" content="mha录入db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="建立同步" content="配置Replicator和Applier实例" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
           <Step title="完成" content="已完成DRC接入" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
         </Steps>
       </template>
@@ -20,10 +20,10 @@
       <Divider/>
       <div style="padding: 1px 1px; height: 100px; margin-top: 75px">
         <div>
-          <Button type="primary" @click="prev" style="position: absolute; left: 465px" v-if="current > 0">
+          <Button type="primary" @click="prev" style="position: absolute; left: 465px" v-if="current > 0 && subCurrent === 2.1">
             上一步
           </Button>
-          <Button type="primary" @click="next" style="position: absolute; left: 790px" v-if="current < 3">
+          <Button type="primary" @click="next" style="position: absolute; left: 790px" v-if="current < 3 && subCurrent === 2.1">
             下一步
           </Button>
         </div>
@@ -48,12 +48,13 @@ export default {
     return {
       current: 0,
       clusterPair: {
-        oldClusterName: '',
-        newClusterName: '',
+        oldClusterName: this.$route.query.clustername,
+        newClusterName: this.$route.query.newclustername,
         env: '',
         oldDrcZone: '',
         newDrcZone: ''
-      }
+      },
+      subCurrent: 2.1
     }
   },
   methods: {
@@ -83,6 +84,9 @@ export default {
     },
     updateEnv (e) {
       this.clusterPair.env = e
+    },
+    updateSubCurrent (e) {
+      this.subCurrent = e
     }
   },
   created () {
@@ -90,6 +94,7 @@ export default {
     if (typeof (curStep) === 'undefined') {
       console.log('curStep undefined, do nothing')
     } else {
+      // this.getDcName()
       this.jumpTo(Number(curStep))
     }
   }

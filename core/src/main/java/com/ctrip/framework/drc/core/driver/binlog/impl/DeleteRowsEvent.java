@@ -4,10 +4,8 @@ import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import io.netty.buffer.ByteBuf;
 
-import java.util.ArrayList;
-import java.util.BitSet;
+import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by @author zhuYongMing on 2019/9/15.
@@ -22,6 +20,13 @@ public class DeleteRowsEvent extends AbstractRowsEvent {
         }
 
         return this;
+    }
+
+    public DeleteRowsEvent() {
+    }
+
+    public DeleteRowsEvent(DeleteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+        super(rowsEvent, columns);
     }
 
     @Override

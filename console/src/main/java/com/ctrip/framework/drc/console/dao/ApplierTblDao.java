@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ApplierTbl;
-import com.ctrip.framework.drc.console.dao.entity.GroupMappingTbl;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;

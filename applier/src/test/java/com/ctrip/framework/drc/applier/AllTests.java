@@ -90,8 +90,7 @@ import org.junit.runners.Suite;
         ApplierServerControllerTest.class,
 
         //activity
-        TransactionTableApplierDumpEventActivityTest.class,
-        ReportConflictActivityTest.class
+        TransactionTableApplierDumpEventActivityTest.class
 })
 public class AllTests {
 

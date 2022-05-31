@@ -25,11 +25,11 @@
             <MenuItem name="/apply" to="/apply">
               <span>DAL集群</span>
             </MenuItem>
-            <MenuItem name="/access" to="/access">
-              <span>搭建DRC</span>
-            </MenuItem>
+<!--            <MenuItem name="/access" to="/access">-->
+<!--              <span>搭建DRC</span>-->
+<!--            </MenuItem>-->
             <MenuItem name="/accessV2" to="/accessV2">
-              <span>出海DRC</span>
+              <span>DRC配置</span>
             </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
@@ -53,10 +53,6 @@
               <span>单元化路由校验</span>
             </MenuItem>
           </Submenu>
-          <MenuItem name="/manage" to="/manage">
-            <Icon type="ios-paper"></Icon>
-            <span>审批管理</span>
-          </MenuItem>
           <Submenu name="2">
             <template slot="title">
               <Icon type="ios-paper"></Icon>
@@ -69,6 +65,10 @@
               <span>Proxy资源</span>
             </MenuItem>
           </Submenu>
+          <MenuItem name="/manage" to="/manage">
+            <Icon type="ios-paper"></Icon>
+            <span>审批管理</span>
+          </MenuItem>
         </Menu>
       </Sider>
       <Layout>
@@ -141,6 +141,7 @@ export default {
       case '/proxyRouteCluster':
       case '/proxyRouteManagement':
       case '/access': this.openNames = ['0']; break
+      case '/accessV2': this.openNames = ['0']; break
       case '/incrementDataConsistencyResult':
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':

@@ -18,7 +18,7 @@
                     <artifactId>redis-proxy-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
+        </dependency> 
         <dependency>
             <groupId>qunar.common</groupId>
             <artifactId>common-api</artifactId>
@@ -84,6 +84,11 @@
             <groupId>com.ctrip.infosec</groupId>
             <artifactId>sso-client-new</artifactId>
             <version>0.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.basebiz.account</groupId>
+            <artifactId>tripaccount-udl-route-sdk</artifactId>
+            <version>1.0.3-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

@@ -148,9 +148,18 @@ public abstract class ByteHelper {
         out.write((byte) (data & 0xFF));
     }
 
+    public static void writeByte(int data, ByteArrayOutputStream out) {
+        out.write((byte) (data & 0xFF));
+    }
+
     public static void writeUnsignedShortLittleEndian(int data, ByteArrayOutputStream out) {
         out.write((byte) (data & 0xFF));
         out.write((byte) ((data >>> 8) & 0xFF));
+    }
+
+    public static void writeShortLittleEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) (data & 0xFF));
+        out.write((byte) ((data >> 8) & 0xFF));
     }
 
     public static void writeUnsignedMediumLittleEndian(int data, ByteArrayOutputStream out) {
@@ -159,11 +168,24 @@ public abstract class ByteHelper {
         out.write((byte) ((data >>> 16) & 0xFF));
     }
 
+    public static void writeMediumLittleEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) (data & 0xFF));
+        out.write((byte) ((data >> 8) & 0xFF));
+        out.write((byte) ((data >> 16) & 0xFF));
+    }
+
     public static void writeUnsignedIntLittleEndian(long data, ByteArrayOutputStream out) {
         out.write((byte) (data & 0xFF));
         out.write((byte) (data >>> 8));
         out.write((byte) (data >>> 16));
         out.write((byte) (data >>> 24));
+    }
+
+    public static void writeIntLittleEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) (data & 0xFF));
+        out.write((byte) (data >> 8));
+        out.write((byte) (data >> 16));
+        out.write((byte) (data >> 24));
     }
 
     public static void writeUnsignedInt48LittleEndian(long data, ByteArrayOutputStream out) {
@@ -186,8 +208,81 @@ public abstract class ByteHelper {
         out.write((byte) (data >>> 56));
     }
 
+    public static void writeInt64LittleEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data & 0xFF));
+        out.write((byte) (data >> 8));
+        out.write((byte) (data >> 16));
+        out.write((byte) (data >> 24));
+        out.write((byte) (data >> 32));
+        out.write((byte) (data >> 40));
+        out.write((byte) (data >> 48));
+        out.write((byte) (data >> 56));
+    }
+
     public static void writeUnsignedShortBigEndian(int data, ByteArrayOutputStream out) {
         out.write((byte) ((data >>> 8) & 0xFF));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeShortBigEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) ((data >> 8) & 0xFF));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeUnsignedMediumBigEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) ((data >>> 16) & 0xFF));
+        out.write((byte) ((data >>> 8) & 0xFF));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeMediumBigEndian(int data, ByteArrayOutputStream out) {
+        out.write((byte) ((data >> 16) & 0xFF));
+        out.write((byte) ((data >> 8) & 0xFF));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeUnsignedIntBigEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data >>> 24));
+        out.write((byte) (data >>> 16));
+        out.write((byte) (data >>> 8));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeUnsignedInt40BigEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data >>> 32));
+        out.write((byte) (data >>> 24));
+        out.write((byte) (data >>> 16));
+        out.write((byte) (data >>> 8));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeUnsignedInt48BigEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data >>> 40));
+        out.write((byte) (data >>> 32));
+        out.write((byte) (data >>> 24));
+        out.write((byte) (data >>> 16));
+        out.write((byte) (data >>> 8));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeUnsignedInt56BigEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data >>> 48));
+        out.write((byte) (data >>> 40));
+        out.write((byte) (data >>> 32));
+        out.write((byte) (data >>> 24));
+        out.write((byte) (data >>> 16));
+        out.write((byte) (data >>> 8));
+        out.write((byte) (data & 0xFF));
+    }
+
+    public static void writeInt64BigEndian(long data, ByteArrayOutputStream out) {
+        out.write((byte) (data >> 56));
+        out.write((byte) (data >> 48));
+        out.write((byte) (data >> 40));
+        out.write((byte) (data >> 32));
+        out.write((byte) (data >> 24));
+        out.write((byte) (data >> 16));
+        out.write((byte) (data >> 8));
         out.write((byte) (data & 0xFF));
     }
 

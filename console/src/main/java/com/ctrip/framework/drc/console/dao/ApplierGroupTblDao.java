@@ -3,7 +3,9 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;
 
@@ -37,4 +39,28 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 		return applierGroupTbl.isEmpty() ? null : applierGroupTbl.get(0);
 	}
 
+    public Long upsertIfNotExist(Long srcReplicatorGroupId, Long destMhaId) throws SQLException {
+		ApplierGroupTbl aGroupTbl = 
+				queryByMhaIdAndReplicatorGroupId(destMhaId, srcReplicatorGroupId, BooleanEnum.FALSE.getCode());
+		if (aGroupTbl != null) {
+			return aGroupTbl.getId();
+		} else {
+			ApplierGroupTbl aGroupTblDeleted =
+					queryByMhaIdAndReplicatorGroupId(destMhaId, srcReplicatorGroupId, BooleanEnum.TRUE.getCode());
+			if (aGroupTblDeleted != null) {
+				aGroupTblDeleted.setDeleted(BooleanEnum.FALSE.getCode());
+				update(aGroupTblDeleted);
+				return aGroupTblDeleted.getId();
+			} else {
+				KeyHolder keyHolder = new KeyHolder();
+				ApplierGroupTbl applierGroupTbl = new ApplierGroupTbl();
+				applierGroupTbl.setReplicatorGroupId(srcReplicatorGroupId);
+				applierGroupTbl.setMhaId(destMhaId);
+				insert(new DalHints(), keyHolder, applierGroupTbl);
+				return (Long) keyHolder.getKey();
+			}
+		}
+	}
+	
+	
 }

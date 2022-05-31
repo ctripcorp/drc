@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.monitor;
 
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
 import com.ctrip.framework.drc.monitor.module.replicate.ReplicatorApplierPairModule;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
 import static com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest.*;
 
 /**
@@ -41,6 +43,32 @@ public class BidirectionalStarter extends AbstractTestStarter {
 
     private Set<String> includedDbs = Sets.newHashSet();   //inverse direction
 
+    public static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"%s\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"one\"" +
+            "        ]," +
+            "        \"context\": \"regre2\"" +
+            "      }" +
+            "    }" +
+            "  ]," +
+            "  \"talbePairs\": [" +
+            "    {" +
+            "      \"source\": \"sourceTableName1\"," +
+            "      \"target\": \"targetTableName1\"" +
+            "    }," +
+            "    {" +
+            "      \"source\": \"sourceTableName2\"," +
+            "      \"target\": \"targetTableName2\"" +
+            "    }" +
+            "  ]" +
+            "}";
+
     public boolean blockForManualTest = true;
     public boolean skipMonitor = false;
     public boolean startLocalSchemaManager = false;
@@ -48,10 +76,13 @@ public class BidirectionalStarter extends AbstractTestStarter {
     @Before
     public void setUp() {
         System.setProperty(SystemConfig.KEY_REPLICATOR_PATH, REPLICATOR_PATH);
+        System.setProperty("cat.client.enabled", "false");
         super.setUp();
         if (startLocalSchemaManager) {
             System.setProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER, String.valueOf(true));
         }
+
+        System.setProperty(ROWS_FILTER_RULE, "com.ctrip.framework.drc.monitor.replicator.EvenNumberRowsFilterRule");
     }
 
     @Test
@@ -64,7 +95,7 @@ public class BidirectionalStarter extends AbstractTestStarter {
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName()));
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();

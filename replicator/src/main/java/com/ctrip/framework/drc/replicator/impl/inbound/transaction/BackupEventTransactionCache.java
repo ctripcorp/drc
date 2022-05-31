@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.transaction;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionEvent;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 /**
  * @Author limingdong

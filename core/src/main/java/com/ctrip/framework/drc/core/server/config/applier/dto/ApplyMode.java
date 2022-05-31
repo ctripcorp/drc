@@ -27,6 +27,10 @@ public enum ApplyMode {
         return name;
     }
 
+    public int getType() {
+        return type;
+    }
+
     private int type;
     private String name;
 }

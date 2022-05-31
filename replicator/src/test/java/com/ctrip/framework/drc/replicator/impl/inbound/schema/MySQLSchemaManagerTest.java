@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.AllTests;
 import com.ctrip.framework.drc.replicator.MockTest;

@@ -399,7 +399,15 @@ public class AccessServiceImpl implements AccessService {
         Long originalDcId = dalUtils.updateOrCreateDc(dc);
         Long newBuiltDcId = dalUtils.updateOrCreateDc(newBuiltMhaDc);
             // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
-        Long mhaGroupId = dalUtils.insertMhaGroup(BooleanEnum.FALSE, EstablishStatusEnum.BUILT_NEW_MHA, usersAndPasswords.get(READ_USER_KEY), usersAndPasswords.get(READ_PASSWORD_KEY), usersAndPasswords.get(WRITE_USER_KEY), usersAndPasswords.get(WRITE_PASSWORD_KEY), usersAndPasswords.get(MONITOR_USER_KEY), usersAndPasswords.get(MONITOR_PASSWORD_KEY));
+        Long mhaGroupId = dalUtils.insertMhaGroup(
+                BooleanEnum.FALSE,
+                EstablishStatusEnum.BUILT_NEW_MHA, 
+                usersAndPasswords.get(READ_USER_KEY), 
+                usersAndPasswords.get(READ_PASSWORD_KEY), 
+                usersAndPasswords.get(WRITE_USER_KEY), 
+                usersAndPasswords.get(WRITE_PASSWORD_KEY), 
+                usersAndPasswords.get(MONITOR_USER_KEY), 
+                usersAndPasswords.get(MONITOR_PASSWORD_KEY));
         Long originalMhaId = dalUtils.updateOrCreateMha(originalMha, originalDcId);
         Long newBuiltMhaId = dalUtils.updateOrCreateMha(newBuiltMha, newBuiltDcId);
 

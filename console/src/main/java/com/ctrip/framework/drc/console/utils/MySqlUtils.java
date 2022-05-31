@@ -5,20 +5,19 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,6 +39,8 @@ public class MySqlUtils {
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
+    
+    public static final String DRC_MONITOR_DB = "drcmonitordb";
 
     private static final String GET_CREATE_TABLE_STMT = "SHOW CREATE TABLE %s";
 
@@ -60,6 +61,8 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
 
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
+
+    private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
 
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
 
@@ -110,7 +113,17 @@ public class MySqlUtils {
      */
     public static Map<String, String> getDefaultCreateTblStmts(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
-        return getCreateTblStmts(endpoint, tables.stream().filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).map(TableSchemaName::toString).collect(Collectors.toList()), false);
+        return getCreateTblStmts(endpoint,
+                tables.stream().
+                        filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
+                        map(TableSchemaName::toString).collect(Collectors.toList()), false);
+    }
+    public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        return tables.stream().
+                filter(tableSchemaName -> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName()) 
+                        && !tableSchemaName.getSchema().equals(DRC_MONITOR_DB)).
+                collect(Collectors.toList());
     }
 
     /**
@@ -196,6 +209,58 @@ public class MySqlUtils {
             removeSqlOperator(endpoint);
         }
         return stmts;
+    }
+
+    public static Map<String, Set<String>> getAllColumnsByTable(Endpoint endpoint, List<TableSchemaName> tables, Boolean removeSqlOperator) {
+
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
+        ReadResource readResource = null;
+        for(TableSchemaName table : tables) {
+            try {
+                String sql = String.format(GET_ALL_COLUMN_PREFIX, table.getSchema(),table.getName());
+                GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+                readResource = sqlOperatorWrapper.select(execution);
+                ResultSet rs = readResource.getResultSet();
+                int index = 1;
+                HashSet<String> columns = Sets.newHashSet();
+                if (rs.next()) {
+                    final String[] columnNames = rs.getString(1).split(",");
+                    for (String columnName : columnNames) {
+                        columns.add(columnName);
+                    }
+                }
+                table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
+            } catch (Throwable t) {
+                logger.error("[[monitor=table,endpoint={}:{}]] getAllColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+                removeSqlOperator(endpoint);
+            } finally {
+                if (readResource != null) {
+                    readResource.close();
+                }
+            }
+        }
+        if (removeSqlOperator) {
+            removeSqlOperator(endpoint);
+        }
+        return table2ColumnsMap;
+    }
+
+    public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
+        List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint,aviatorRegexFilter);
+        Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, true);
+        HashSet<String> commonColumns = Sets.newHashSet();
+        for (Set<String> columns : allColumnsByTable.values()) {
+            if (commonColumns.isEmpty()) {
+                commonColumns.addAll(columns);
+            } else {
+                commonColumns.retainAll(columns);
+                if (commonColumns.isEmpty()) {
+                    break;
+                }
+            }
+        }
+        return commonColumns;
     }
 
     protected static String filterStmt(String roughStmt, Endpoint endpoint, String table) {
@@ -479,10 +544,10 @@ public class MySqlUtils {
         public String toString() {
             return String.format("`%s`.`%s`", schema, name);
         }
-        
+
         public String getDirectSchemaTableName() {
             return String.format("%s.%s", schema, name);
         }
-        
+
     }
 }

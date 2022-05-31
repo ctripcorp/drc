@@ -14,6 +14,7 @@ import org.junit.Test;
  *
  *  docker ps -a | awk '{print $1}' | grep -v CONTAINER | grep -v 13306 | xargs docker rm -f
  *  to stop all containers
+ *  docker volume prune
  * Created by mingdongli
  * 2019/10/14 下午11:31.
  */

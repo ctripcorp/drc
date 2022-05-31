@@ -1,0 +1,95 @@
+package com.ctrip.framework.drc.core.meta;
+
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * @Author limingdong
+ * @create 2022/4/27
+ */
+public class DataMediaConfigTest {
+
+    public static final String MEDIA_CONFIG = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"trip_uid\",\n" +
+            "      \"tables\": \"table1\",\n" +
+            "      \"parameters\": {\n" +
+            "        \"columns\": [\n" +
+            "          \"columnA\",\n" +
+            "          \"columnB\",\n" +
+            "          \"cloumnC\"\n" +
+            "        ],\n" +
+            "        \"context\": \"regre1\"\n" +
+            "      }\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"mode\": \"aviator_regex\",\n" +
+            "      \"tables\": \"table2\",\n" +
+            "      \"parameters\": {\n" +
+            "        \"columns\": [\n" +
+            "          \"cloumnA\"\n" +
+            "        ],\n" +
+            "        \"context\": \"regre2\"\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"talbePairs\": [\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName1\",\n" +
+            "      \"target\": \"targetTableName1\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName2\",\n" +
+            "      \"target\": \"targetTableName2\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
+    private DataMediaConfig rowsFilterConfigs;
+
+//    private String properties= "[{\"mode\":\"java_regex\",\"tables\":\"fltbackendservicetestdb\\\\.drcdemo\",\"parameters\":{\"columns\":[\"id\"],\"context\":\"^\\\\d*[02468]$\"}}]";
+
+    @Before
+    public void setUp() throws Exception {
+        rowsFilterConfigs = DataMediaConfig.from("ut_test", MEDIA_CONFIG);
+    }
+
+    @Test
+    public void getRowsFilterRule() {
+        List<RowsFilterConfig> rowsFilters = rowsFilterConfigs.getRowsFilters();
+        Assert.assertEquals(2, rowsFilters.size());
+        Assert.assertTrue(rowsFilterConfigs.shouldFilterRows());
+
+        Optional<RowsFilterRule> optional = rowsFilterConfigs.getRowsFilterRule("table1");
+        Assert.assertTrue(optional.isPresent());
+        Assert.assertNotNull(optional.get());
+
+        // cache
+        optional = rowsFilterConfigs.getRowsFilterRule("table1");
+        Assert.assertTrue(optional.isPresent());
+        Assert.assertNotNull(optional.get());
+
+        optional = rowsFilterConfigs.getRowsFilterRule("table1_wrong");
+        Assert.assertFalse(optional.isPresent());
+    }
+
+    @Test
+    public void getBlank() throws Exception {
+        DataMediaConfig blank = DataMediaConfig.from("ut_test", "");
+        List<RowsFilterConfig> rowsFilters = blank.getRowsFilters();
+        Assert.assertNull(rowsFilters);
+        Assert.assertFalse(blank.shouldFilterRows());
+
+        Optional<RowsFilterRule> optional = blank.getRowsFilterRule("table1");
+        Assert.assertFalse(optional.isPresent());
+
+        optional = blank.getRowsFilterRule("table1_wrong");
+        Assert.assertFalse(optional.isPresent());
+    }
+}

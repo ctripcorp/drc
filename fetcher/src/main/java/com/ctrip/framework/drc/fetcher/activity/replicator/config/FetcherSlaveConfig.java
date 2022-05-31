@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.fetcher.activity.replicator.config;
 
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
@@ -18,6 +19,10 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
     private Set<String> includedDbs = Sets.newHashSet();
 
     private String nameFilter = StringUtils.EMPTY;
+
+    private int applyMode = ApplyMode.set_gtid.getType();
+
+    private String properties = StringUtils.EMPTY;
 
     public String getApplierName() {
         return applierName;
@@ -43,6 +48,22 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
         this.nameFilter = nameFilter;
     }
 
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
+    public String getProperties() {
+        return properties;
+    }
+
+    public void setProperties(String properties) {
+        this.properties = properties;
+    }
+
     @Override
     public String toString() {
         return "FetcherSlaveConfig{" +
@@ -56,6 +77,8 @@ public class FetcherSlaveConfig extends MySQLSlaveConfig implements GlobalConfig
                 ", includedDbs=" + getIncludedDbs() +
                 ", applierName=" + getApplierName() +
                 ", nameFilter=" + getNameFilter() +
+                ", applyMode=" + getApplyMode() +
+                ", properties=" + getProperties() +
                 '}';
     }
 }

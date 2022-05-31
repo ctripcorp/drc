@@ -3,7 +3,9 @@ package com.ctrip.framework.drc.core.driver.util;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import io.netty.buffer.ByteBuf;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.delete_rows_event_v2;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.write_rows_event_v2;
 
 /**
  * Created by @author zhuYongMing on 2019/9/27.
@@ -55,5 +57,9 @@ public class LogEventUtils {
 
     public static boolean isDrcEvent(LogEventType eventType) {
         return eventType.getType() >= drc_table_map_log_event.getType();
+    }
+
+    public static boolean isRowsEvent(LogEventType eventType) {
+        return !(eventType.getType() < write_rows_event_v2.getType() || eventType.getType() > delete_rows_event_v2.getType());
     }
 }

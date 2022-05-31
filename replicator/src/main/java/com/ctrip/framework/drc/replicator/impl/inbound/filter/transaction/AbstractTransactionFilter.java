@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 import java.util.List;
 

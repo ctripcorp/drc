@@ -5,6 +5,9 @@ import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import io.netty.buffer.ByteBuf;
 
+import java.io.IOException;
+import java.util.List;
+
 /**
  * @author wenchao.meng
  * <p>
@@ -20,6 +23,13 @@ public class UpdateRowsEvent extends AbstractRowsEvent {
         }
 
         return this;
+    }
+
+    public UpdateRowsEvent() {
+    }
+
+    public UpdateRowsEvent(UpdateRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+        super(rowsEvent, columns);
     }
 
     @Override

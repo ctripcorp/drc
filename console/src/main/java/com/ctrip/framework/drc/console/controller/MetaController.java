@@ -1,17 +1,15 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.dto.MetaProposalDto;
-import com.ctrip.framework.drc.console.dto.ProxyDto;
-import com.ctrip.framework.drc.console.dto.RouteDto;
+import com.ctrip.framework.drc.console.dto.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
@@ -54,29 +51,11 @@ public class MetaController {
 
     @Autowired
     private DbClusterSourceProvider sourceProvider;
-
-
-//    @GetMapping("groups/all")
-//    public ApiResult getAllMhaGroups() {
-//        logger.info("[meta] get all mha groups info");
-//        try {
-//            return ApiResult.getSuccessInstance(metaInfoService.getAllMhaGroups());
-//        } catch (Exception e) {
-//            logger.error("[meta] get all mha groups info", e);
-//            return ApiResult.getFailInstance(null);
-//        }
-//    }
-
-//    @GetMapping("orderedGroups/all")
-//    public ApiResult getAllOrderedGroups() {
-//        logger.info("[meta] get all mha groups info");
-//        try {
-//            return ApiResult.getSuccessInstance(metaInfoService.getAllOrderedGroupPairs());
-//        } catch (Exception e) {
-//            logger.error("[meta] get all mha groups info", e);
-//            return ApiResult.getFailInstance(null);
-//        }
-//    }
+    
+    @Autowired
+    private RowsFilterService rowsFilterService;
+    
+    
     
     @GetMapping("orderedGroups/all")
     public ApiResult getAllOrderedGroupsAfterFilter (@RequestParam(value = "mhas", required = false) String mhas,
@@ -547,4 +526,5 @@ public class MetaController {
             return ApiResult.getFailInstance(e);
         }
     }
+    
 }

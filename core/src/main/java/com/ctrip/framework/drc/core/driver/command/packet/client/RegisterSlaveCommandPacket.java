@@ -3,7 +3,9 @@ package com.ctrip.framework.drc.core.driver.command.packet.client;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHeadPacket;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -15,6 +17,8 @@ import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_REG
  * 2019/9/10 下午3:59.
  */
 public class RegisterSlaveCommandPacket extends AbstractServerCommandWithHeadPacket<RegisterSlaveCommandPacket> {
+
+    public static final int HOSTNAME_LENGTH = 60;
 
     public String reportHost;
 
@@ -32,6 +36,9 @@ public class RegisterSlaveCommandPacket extends AbstractServerCommandWithHeadPac
 
     public RegisterSlaveCommandPacket(String reportHost, int reportPort, String reportUser, String reportPasswd, long serverId) {
         super(COM_REGISTER_SLAVE.getCode());
+        if (StringUtils.isNotBlank(reportHost) && reportHost.length() > HOSTNAME_LENGTH) {
+            reportHost = reportHost.substring(0, HOSTNAME_LENGTH);
+        }
         this.reportHost = reportHost;
         this.reportPort = reportPort;
         this.reportUser = reportUser;
@@ -103,5 +110,10 @@ public class RegisterSlaveCommandPacket extends AbstractServerCommandWithHeadPac
         index += length;
 
         reportPort = ByteHelper.readUnsignedShortLittleEndian(data, index);
+    }
+
+    @VisibleForTesting
+    public String getReportHost() {
+        return reportHost;
     }
 }

@@ -43,6 +43,7 @@ public class DataCleanUpPairCase extends AbstractMultiWriteInTransactionPairCase
     public static final String TRUNCATE18 = "truncate table `drc4`.`grand_transaction`;";
     public static final String TRUNCATE19 = "truncate table `drc4`.`binlog_minimal_row_image`;";
     public static final String TRUNCATE20 = "truncate table `drc4`.`binlog_noblob_row_image`;";
+    public static final String TRUNCATE21 = "truncate table `drc4`.`row_filter`;";
 
 
     @Override
@@ -82,6 +83,7 @@ public class DataCleanUpPairCase extends AbstractMultiWriteInTransactionPairCase
         truncates.add(TRUNCATE18);
         truncates.add(TRUNCATE19);
         truncates.add(TRUNCATE20);
+        truncates.add(TRUNCATE21);
         for (String s : truncates) {
             //truncate 操作可以在checksum后执行，清除所有记录
             logger.info("[Truncate] {} begin", s);

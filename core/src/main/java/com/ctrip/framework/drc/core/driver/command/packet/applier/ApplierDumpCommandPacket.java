@@ -3,8 +3,9 @@ package com.ctrip.framework.drc.core.driver.command.packet.applier;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHeadPacket;
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
@@ -31,11 +32,15 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     private GtidSet gtidSet = new GtidSet(Maps.newLinkedHashMap());
 
-    private int replicatroBackup = InstanceStatus.ACTIVE.getStatus();
+    private int consumeType = ConsumeType.Applier.getCode();  // ConsumeType instance
 
     private Set<String> includedDbs = Sets.newHashSet();
 
     private String nameFilter = StringUtils.EMPTY;
+
+    private int applyMode = ApplyMode.set_gtid.getType();
+
+    private String properties = StringUtils.EMPTY;
 
     public ApplierDumpCommandPacket(byte command) {
         super(command);
@@ -98,7 +103,7 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         // }
         out.write(bs);
 
-        ByteHelper.writeUnsignedShortLittleEndian(replicatroBackup, out);
+        ByteHelper.writeUnsignedShortLittleEndian(consumeType, out);
 
         // includedDbs
         int dbSize = includedDbs.size();
@@ -111,6 +116,12 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
         // nameFilter
         ByteHelper.writeNullTerminatedString(nameFilter, out);
+
+        // applyMode
+        ByteHelper.writeUnsignedShortLittleEndian(applyMode, out);
+
+        // properties
+        ByteHelper.writeNullTerminatedString(properties, out);
 
         return out.toByteArray();
     }
@@ -146,27 +157,35 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         index += 8;
         byte[] gtidSetBytes = ByteHelper.readFixedLengthBytes(data, index, (int) length);
         gtidSet.decode(gtidSetBytes);
+        gtidSet = gtidSet.clone();
         index += gtidSetBytes.length;
 
-        replicatroBackup = ByteHelper.readUnsignedShortLittleEndian(data, index);
+        consumeType = ByteHelper.readUnsignedShortLittleEndian(data, index);
         index += 2;
 
-        if (data.length > index) {
-            long dbSize = ByteHelper.readUnsignedLongLittleEndian(data, index);
-            index += 8;
+        long dbSize = ByteHelper.readUnsignedLongLittleEndian(data, index);
+        index += 8;
 
-            if (dbSize > 0) {
-                for (int i = 0; i < dbSize; ++i) {
-                    byte[] dbNameBytes = ByteHelper.readNullTerminatedBytes(data, index);
-                    includedDbs.add(new String(dbNameBytes));
-                    index += dbNameBytes.length + 1;
-                }
+        if (dbSize > 0) {
+            for (int i = 0; i < dbSize; ++i) {
+                byte[] dbNameBytes = ByteHelper.readNullTerminatedBytes(data, index);
+                includedDbs.add(new String(dbNameBytes));
+                index += dbNameBytes.length + 1;
             }
         }
 
+        byte[] filterBytes = ByteHelper.readNullTerminatedBytes(data, index);
+        nameFilter = new String(filterBytes);
+        index += (filterBytes.length + 1);
+
         if (data.length > index) {
-            byte[] filterBytes = ByteHelper.readNullTerminatedBytes(data, index);
-            nameFilter = new String(filterBytes);
+            applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
+            index += 2;
+
+            // 2. read rowFilterContext
+            byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
+            properties = new String(propertiesBytes);
+            index += (propertiesBytes.length + 1);
         }
 
         // end read
@@ -188,12 +207,12 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         this.gtidSet = gtidSet;
     }
 
-    public int getReplicatroBackup() {
-        return replicatroBackup;
+    public int getConsumeType() {
+        return consumeType;
     }
 
-    public void setReplicatroBackup(int replicatroBackup) {
-        this.replicatroBackup = replicatroBackup;
+    public void setConsumeType(int consumeType) {
+        this.consumeType = consumeType;
     }
 
     public Set<String> getIncludedDbs() {
@@ -210,5 +229,21 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     public void setNameFilter(String nameFilter) {
         this.nameFilter = nameFilter;
+    }
+
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
+    public String getProperties() {
+        return properties;
+    }
+
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 }

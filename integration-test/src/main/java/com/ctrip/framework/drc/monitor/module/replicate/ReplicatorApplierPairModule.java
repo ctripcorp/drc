@@ -36,16 +36,19 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private Set<String> includedDb = Sets.newHashSet();
 
+    private String properties;
+
     public ReplicatorApplierPairModule() {
-        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
+        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, null);
     }
 
-    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination) {
+    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, String properties) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
         this.repPort = repPort;
         this.destination = destination;
-        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}]", srcMySQLPort, destMySQLPort, repPort, destination);
+        this.properties = properties;
+        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], properties [{}]", srcMySQLPort, destMySQLPort, repPort, destination, properties);
     }
 
     @Override
@@ -62,7 +65,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
             }
         });
-        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb);
+        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, properties);
         replicatorServer.initialize();
         localApplierServer.initialize();
     }

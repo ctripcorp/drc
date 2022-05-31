@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionEvent;
-import com.ctrip.framework.drc.core.server.common.Filter;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -137,11 +137,14 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             if (transactionTableRelated) {
                 convertToDrcGtidLogEvent(transaction);
             }
-            filterChain.doFilter(transaction);
-            transaction.write(ioCache);
-            notifyExecutedGtid();
-            transaction.release();
-            flushSequence.set(end);
+            try {
+                filterChain.doFilter(transaction);
+                transaction.write(ioCache);
+                notifyExecutedGtid();
+                flushSequence.set(end);
+            } finally {
+                transaction.release();
+            }
         }
     }
 
