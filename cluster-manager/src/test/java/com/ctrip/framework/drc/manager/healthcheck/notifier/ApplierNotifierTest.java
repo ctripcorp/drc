@@ -18,11 +18,12 @@ public class ApplierNotifierTest extends AbstractNotifierTest {
 
     private ApplierNotifier applierNotifier;
 
+    String propertiesJson = "[{\"mode\":\"0\",\"tables\":\"db[1-9]\\\\.table1|table2\",\"parameters\":{\"columns\":[\"columnA\",\"columnB\"],\"context\":\"content abc\"}}]";
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
         applierNotifier = ApplierNotifier.getInstance();
-
     }
 
     @Test
@@ -36,6 +37,8 @@ public class ApplierNotifierTest extends AbstractNotifierTest {
             Assert.assertEquals(config.getTarget().mhaName, OY_MHA_NAME);
             Assert.assertEquals(config.getIncludedDbs(), "db1,db2");
             Assert.assertEquals(config.getRegistryKey(), ApplierRegistryKey.from(OY_MHA_NAME, DAL_CLUSTER_NAME, RB_MHA_NAME));
+            Assert.assertEquals(propertiesJson,config.getProperties());
+            
         }
     }
 

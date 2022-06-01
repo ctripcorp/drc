@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * @ClassName OpenApiController
@@ -29,7 +28,7 @@ public class OpenApiController {
     private OpenApiService openApiService;
     
     
-    @GetMapping(value= "/info/mhas",produces={"application/json; charset=UTF-8"})
+    @GetMapping("/info/mhas")
     @ResponseBody
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {

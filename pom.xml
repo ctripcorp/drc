@@ -33,7 +33,7 @@
         <framework.bom.version>5.42.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
-        <dal.version>2.3.30</dal.version>
+        <dal.version>2.4.5</dal.version>
         <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
         <tomcat.version>8.0.33</tomcat.version>
@@ -58,7 +58,7 @@
         <fastsql.version>2.0.0_preview_973</fastsql.version>
         <mockito-core.version>3.4.0</mockito-core.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <aviator.version>2.2.1</aviator.version>
+        <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
     </properties>
 

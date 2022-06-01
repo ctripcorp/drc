@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.ConflictTransactionLog;
@@ -46,6 +47,12 @@ public class LogServiceImplTest {
 
     @Mock
     private MachineTblDao machineTblDao;
+    
+    @Mock
+    private MetaInfoServiceImpl metaInfoService;
+    
+    @Mock
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @InjectMocks
     private LogServiceImpl logServiceImpl;
@@ -53,6 +60,7 @@ public class LogServiceImplTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        Mockito.when(defaultConsoleConfig.getConflictMhaRecordSearchTime()).thenReturn(120);
     }
 
     @Test
@@ -140,7 +148,7 @@ public class LogServiceImplTest {
         srcMap.put("column", "column");
         srcMap.put("record", "record");
         LogServiceImpl serviceImpl = Mockito.spy(logServiceImpl);
-        Mockito.doReturn(srcMap).when(serviceImpl).selectRecord(Mockito.anyString(), Mockito.anyString());
+        Mockito.doReturn(srcMap).when(serviceImpl).selectRecord(Mockito.anyString(), Mockito.anyString(),Mockito.anyString());
         Mockito.doReturn(true).when(serviceImpl).markTableDataDiff(Mockito.anyMap(), Mockito.anyMap());
         Mockito.doReturn("dcName").when(serviceImpl).getDcNameByMhaName(Mockito.anyString());
         Mockito.when(conflictLogDao.queryByPk(Mockito.anyLong())).thenReturn(conflictLog);
@@ -172,13 +180,11 @@ public class LogServiceImplTest {
         mhaTbl.setMhaGroupId(2L);
         mhaList.add(mhaTbl);
         Mockito.when(mhaTblDao.queryBy(Mockito.any(MhaTbl.class))).thenReturn(mhaList);
-
-        List<MhaGroupTbl> mhaGroupTblList = new ArrayList<>();
+        
         MhaGroupTbl mhaGroupTbl = new MhaGroupTbl();
         mhaGroupTbl.setMonitorUser("testUser");
         mhaGroupTbl.setMonitorPassword("testPassword");
-        mhaGroupTblList.add(mhaGroupTbl);
-        Mockito.when(mhaGroupTblDao.queryBy(Mockito.any(MhaGroupTbl.class))).thenReturn(mhaGroupTblList);
+        Mockito.when(mhaGroupTblDao.queryByPk(Mockito.anyLong())).thenReturn(mhaGroupTbl);
 
         List<MachineTbl> machineTblList = new ArrayList<>();
         MachineTbl machineTbl = new MachineTbl();
@@ -187,7 +193,8 @@ public class LogServiceImplTest {
         machineTblList.add(machineTbl);
         Mockito.when(machineTblDao.queryBy(Mockito.any(MachineTbl.class))).thenReturn(machineTblList);
 
-        WriteSqlOperatorWrapper writeSqlOperatorWrapper = logServiceImpl.initSqlOperator("testMhaName");
+        WriteSqlOperatorWrapper writeSqlOperatorWrapper = 
+                logServiceImpl.initSqlOperator("testMhaName","testMhaName");
         Assert.assertNotNull(writeSqlOperatorWrapper);
     }
 

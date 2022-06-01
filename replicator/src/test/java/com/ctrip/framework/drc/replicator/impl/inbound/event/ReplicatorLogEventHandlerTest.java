@@ -4,19 +4,17 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
-import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
-import com.ctrip.framework.drc.core.server.common.Filter;
-import com.ctrip.framework.drc.core.server.config.MonitorConfig;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.DefaultFilterChainFactory;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.FilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.LogEventWithGroupFlag;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
@@ -41,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_SERVER_PARAM;
@@ -56,7 +53,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private ReplicatorLogEventHandler logEventHandler;
 
-    private Filter<LogEventWithGroupFlag> flagFilter;
+    private Filter<InboundLogEventContext> flagFilter;
 
     @Mock
     private SchemaManager schemaManager;
@@ -88,6 +85,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private String clusterName = "unitTest";
 
+    private String registerKey = RegistryKey.from(clusterName, SystemConfig.MHA_NAME_TEST);
+
     private static final int TABLE_MAP_EVENT_SIZE = 19 + 55 + 1;  //1 for identifier
 
     private  Set<UUID> uuidSet = Sets.newHashSet();
@@ -96,7 +95,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private static final String UUID_1 = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe";
 
-    private FilterChainContext filterChainContext;
+    private InboundFilterChainContext filterChainContext;
 
     private TableFilterConfiguration tableFilterConfiguration = new TableFilterConfiguration();
 
@@ -104,12 +103,11 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
     public void setUp() throws Exception {
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
-        when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(replicatorConfig.getRegistryKey()).thenReturn(registerKey);
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
 
         uuidSet.add(UUID.fromString(UUID_1));
-        initReplicatorConfig();
         filePersistenceEventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         filePersistenceEventStore.initialize();
         filePersistenceEventStore.start();
@@ -122,28 +120,16 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new FilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration);
-        flagFilter = DefaultFilterChainFactory.createFilterChain(filterChainContext);
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration);
+        flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
-    }
-
-    private void initReplicatorConfig() {
-        MonitorConfig monitorConfig = new MonitorConfig(100023928, BU, "SHAJQ");
-        replicatorConfig.setMonitorConfig(monitorConfig);
-        MySQLMasterConfig mySQLMasterConfig = new MySQLMasterConfig();
-        mySQLMasterConfig.setIp("127.0.0.1");
-        mySQLMasterConfig.setPort(1234);
-        replicatorConfig.setMySQLMasterConfig(mySQLMasterConfig);
-        MySQLSlaveConfig mySQLSlaveConfig = new MySQLSlaveConfig();
-        mySQLSlaveConfig.setRegistryKey(clusterName, SystemConfig.MHA_NAME_TEST);
-        replicatorConfig.setMySQLSlaveConfig(mySQLSlaveConfig);
     }
 
     @Test

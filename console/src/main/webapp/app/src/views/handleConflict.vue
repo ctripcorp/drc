@@ -235,7 +235,8 @@ export default {
       await this.$axios.post('/api/drc/v1/logs/record/conflicts/update',
         {
           userName: sessionStorage.getItem('userName'),
-          mhaName: this.srcMhaName,
+          mhaName0: this.srcMhaName,
+          mhaName1: this.destMhaName,
           sql: this.operateCode1
         })
         .then(res => {
@@ -269,7 +270,8 @@ export default {
       await this.$axios.post('/api/drc/v1/logs/record/conflicts/update',
         {
           userName: sessionStorage.getItem('userName'),
-          mhaName: this.destMhaName,
+          mhaName0: this.destMhaName,
+          mhaName1: this.srcMhaName,
           sql: this.operateCode2
         })
         .then(res => {

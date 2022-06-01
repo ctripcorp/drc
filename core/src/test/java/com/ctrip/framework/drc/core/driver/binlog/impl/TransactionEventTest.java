@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.core.MockTest;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
-import com.ctrip.framework.drc.core.server.common.Filter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;

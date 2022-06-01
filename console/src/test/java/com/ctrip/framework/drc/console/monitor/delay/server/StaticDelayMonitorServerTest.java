@@ -84,9 +84,7 @@ public class StaticDelayMonitorServerTest {
         Assert.assertTrue(System.currentTimeMillis() - heartbeatRequestHandler.testLastReadTime < 2000);
         nettyServer.stop();
         nettyServer.dispose();
-        logger.info("Sleep 3s...");
-        Thread.sleep(3000);
-        Assert.assertTrue(System.currentTimeMillis() - heartbeatRequestHandler.testLastReadTime > 3000);
+
         nettyServer = new NettyServer(mySQLMasterConfig);
         nettyServer.initialize();
         nettyServer.start();
@@ -98,8 +96,10 @@ public class StaticDelayMonitorServerTest {
     @After
     public void tearDown() throws Exception {
         staticDelayMonitorClient.stop();
-        nettyServer.stop();
-        nettyServer.dispose();
+        if (nettyServer != null) {
+            nettyServer.stop();
+            nettyServer.dispose();
+        }
     }
 
     class TestDelayMonitorPooledConnector extends DelayMonitorPooledConnector {

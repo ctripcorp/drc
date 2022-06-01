@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -10,18 +9,24 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.core.filter.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.EventReader;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -34,7 +39,6 @@ import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import org.apache.commons.lang3.StringUtils;
@@ -43,16 +47,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
+import static com.ctrip.framework.drc.core.server.common.EventReader.releaseCompositeByteBuf;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
@@ -66,8 +69,6 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  */
 public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler implements CommandHandler {
 
-    private static AtomicInteger threadNum = new AtomicInteger(1);
-
     private static final int END_OF_STATEMENT_FLAG = 1;
 
     private GtidManager gtidManager;
@@ -76,14 +77,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private ExecutorService dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + threadNum.getAndIncrement());
+    private ExecutorService dumpExecutorService;
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registreKey) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + registreKey);
     }
 
     @Override
@@ -96,9 +98,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         String ip = remoteAddress.getAddress().getHostAddress();
         ApplierKey applierKey = new ApplierKey(applierName, ip);
         if (!applierKeys.containsKey(applierKey)) {
-            applierKeys.putIfAbsent(applierKey, nettyClient);
-            dumpExecutorService.submit(new DumpTask(nettyClient.channel(), dumpCommandPacket, ip));
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
+            try {
+                DumpTask dumpTask = new DumpTask(nettyClient.channel(), dumpCommandPacket, ip);
+                dumpExecutorService.submit(dumpTask);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.applier.dump", applierName + ":" + ip);
+                applierKeys.putIfAbsent(applierKey, nettyClient);
+            } catch (Exception e) {
+                logger.info("[DumpTask] error for applier {} and close channel {}", applierName, channel, e);
+                channel.close();
+            }
         } else {
             logger.info("[Duplicate] request for applier {} and close channel {}", applierName, channel);
             channel.close();
@@ -133,8 +141,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
-        private boolean replicatorBackup;
-
         private Set<String> includedDbs = Sets.newHashSet();
 
         private boolean dbFiltering = false;
@@ -163,16 +169,22 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ResultCode resultCode;
 
-        public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) {
+        private ConsumeType consumeType;
+
+        private Filter<OutboundLogEventContext> filterChain;
+
+        public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
-            this.replicatorBackup = InstanceStatus.INACTIVE.getStatus() == dumpCommandPacket.getReplicatroBackup();
+            this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
+            String properties = dumpCommandPacket.getProperties();
+            DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
-            logger.info("[replicatorBackup] is {} for {}", replicatorBackup, applierName);
             this.ip = ip;
+            logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
             ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
-            if (replicatorBackup) {
+            if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
                 HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
             }
@@ -184,6 +196,14 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 this.aviatorFilter = new AviatorRegexFilter(filter);
                 logger.info("[Filter] init name filter, applier name is: {}, filter is: {}", applierName, filter);
             }
+
+            filterChain = new OutboundFilterChainFactory().createFilterChain(
+                    OutboundFilterChainContext.from(
+                            this.channel,
+                            this.consumeType,
+                            dataMediaConfig
+                    )
+            );
         }
 
         private boolean check(GtidSet excludedSet) {
@@ -227,6 +247,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (nettyClient != null) {
                 nettyClient.channel().close();
             }
+            filterChain.release();
         }
 
         private File blankUuidSets() {
@@ -253,7 +274,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             // 3、find first file
-            return replicatorBackup ? getFirstFile(clonedExcludedSet, !replicatorBackup) : getFirstFile(filteredExcludedSet, !replicatorBackup);
+            return consumeType.isSlave() ? getFirstFile(clonedExcludedSet, !consumeType.isSlave()) : getFirstFile(filteredExcludedSet, !consumeType.isSlave());
         }
 
         private File firstFileToSend() {
@@ -306,7 +327,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
-                logger.error("dump thread error", e);
+                logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
             }
         }
 
@@ -340,7 +361,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return false;
                 }
 
-                ByteBuf headByteBuf = readHeader(fileChannel);
+                ByteBuf headByteBuf = EventReader.readHeader(fileChannel);
                 long eventSize = LogEventUtils.parseNextLogEventSize(headByteBuf);
                 if (!checkEventSize(fileChannel, headByteBuf, eventSize)) {
                     continue;
@@ -401,13 +422,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (isGtidLogEvent) {
                 everSeeGtid = true;
                 GtidLogEvent gtidLogEvent = new GtidLogEvent();
-                CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, gtidLogEvent, headByteBuf);
+                CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, gtidLogEvent, headByteBuf);
                 return Pair.from(gtidLogEvent, compositeByteBuf);
             }
             return Pair.from(null, null);
         }
 
-        private String handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf) throws IOException {
+        private String handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf) throws Exception {
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
@@ -423,7 +444,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 logGtid(previousGtidLogEvent, eventType);
-                channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventHeaderLengthVersionGt1, eventSize).retain());
+                // read header already
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
+                filterChain.doFilter(logEventContext);
+                if (logEventContext.getCause() != null) {
+                    throw logEventContext.getCause();
+                }
+
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 outboundMonitorReport.addSize(eventSize);
 
@@ -449,7 +476,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private void handTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
-            CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
+            CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
             if (!includedDbs.contains(tableMapLogEvent.getSchemaName())) {
                 dbFiltering = true;
                 GTID_LOGGER.info("[Skip] {} for includedDbs:{}", tableMapLogEvent.getSchemaName(), includedDbs);
@@ -508,7 +535,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
-            CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
+            CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
             if (!aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
                 shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
@@ -520,7 +547,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private void handNameFilterRowsEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, AbstractRowsEvent rowsEvent) throws IOException {
-            CompositeByteBuf compositeByteBuf = readEvent(fileChannel, eventSize, rowsEvent, headByteBuf);
+            CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, rowsEvent, headByteBuf);
             rowsEvent.loadPostHeader();
             String tableName = skipTableNameMap.get(rowsEvent.getRowsEventPostHeader().getTableId());
 
@@ -536,14 +563,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 skipTableNameMap.clear();
             }
             releaseCompositeByteBuf(compositeByteBuf);
-        }
-
-        private CompositeByteBuf readEvent(FileChannel fileChannel, long eventSize, LogEvent logEvent, ByteBuf headByteBuf) {
-            ByteBuf bodyByteBuf = readBody(fileChannel, eventSize); //read all eventSize
-            CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
-            compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
-            logEvent.read(compositeByteBuf);
-            return compositeByteBuf;
         }
 
         private Pair<Boolean, String> handleNotSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, boolean in_exclude_group) throws IOException {
@@ -576,17 +595,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             outboundMonitorReport.addSize(eventSize);
         }
 
-        private void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
-            if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
-                compositeByteBuf.release(compositeByteBuf.refCnt());
-            }
-        }
-
         private void trySkip(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, GtidSet excludedSet) throws IOException {
             CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
             DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();
             try {
-                ByteBuf bodyByteBuf = readBody(fileChannel, eventSize);
+                ByteBuf bodyByteBuf = EventReader.readBody(fileChannel, eventSize);
                 long currentPosition = fileChannel.position();
                 compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
                 indexLogEvent.read(compositeByteBuf);
@@ -627,45 +640,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             try {
                 fileChannel.position(position);
                 logger.info("[Update] position of fileChannel to {}", position);
-                readEvent(fileChannel, previousGtidsLogEvent);
+                EventReader.readEvent(fileChannel, previousGtidsLogEvent);
                 return previousGtidsLogEvent.getGtidSet();
             } finally {
                 previousGtidsLogEvent.release();
-            }
-        }
-
-        private void readEvent(FileChannel fileChannel, LogEvent logEvent) throws IOException {
-            CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
-            try {
-                ByteBuf headByteBuf = readHeader(fileChannel);
-                long eventSize = LogEventUtils.parseNextLogEventSize(headByteBuf);
-                ByteBuf bodyByteBuf = readBody(fileChannel, eventSize);
-                compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
-                logEvent.read(compositeByteBuf);
-            } finally {
-                compositeByteBuf.release();
-            }
-        }
-
-        private ByteBuf readHeader(FileChannel fileChannel) {
-            return doRead(fileChannel, eventHeaderLengthVersionGt1);
-        }
-
-        private ByteBuf readBody(FileChannel fileChannel, long eventSize) {
-            int bodySize = (int) eventSize - eventHeaderLengthVersionGt1;
-            return doRead(fileChannel, bodySize);
-
-        }
-
-        private ByteBuf doRead(FileChannel fileChannel, int readSize) {
-            try {
-                ByteBuffer headBuffer = ByteBuffer.allocateDirect(readSize);
-                ByteBuf byteBuf = Unpooled.wrappedBuffer(headBuffer);
-                readFixSize(fileChannel, headBuffer, byteBuf, readSize);
-                return byteBuf;
-            } catch (Throwable t) {
-                logger.error("doRead error and readSize {}", readSize, t);
-                throw t;
             }
         }
 
@@ -755,36 +733,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
             }
             return 1;
-        }
-
-        private boolean readFixSize(FileChannel fileChannel, ByteBuffer byteBuffer, ByteBuf byteBuf, int expectedSize) {
-            int MAX_TIMES = 10;
-            int readTime = 0;
-            int remindSize = expectedSize;
-            int size = 0;
-            try {
-                do {
-                    size = fileChannel.read(byteBuffer);
-                    if (remindSize == size) {
-                        if (readTime > 0) {
-                            long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
-                            LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
-                            logger.warn("Event type is {} and size is {}", eventType, eventSize);
-                        }
-                        return true;
-                    }
-                    logger.warn("Event size {} less than {}", size, remindSize);
-                    if (size > 0) {
-                        remindSize -= size;
-                    }
-                    readTime++;
-                    Thread.sleep(1 << readTime);
-                } while (readTime < MAX_TIMES);
-                logger.error("Remind event size {} to be read", remindSize);
-            } catch (Exception e) {
-                logger.error("readFixSize error with size {}, remind size {}", size, remindSize, e);
-            }
-            return false;
         }
 
         private boolean loop() {

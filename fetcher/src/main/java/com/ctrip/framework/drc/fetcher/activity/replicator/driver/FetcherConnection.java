@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherBinlogDumpGtidCommandHandler;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
@@ -57,6 +58,7 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
 
         if (reconnection_code == null) {
             GtidSet gtidSet = networkContextResource.fetchGtidSet();
+            gtidSet = gtidSet.clone();
             logger.info("[Reconnect] using gtidset {}", gtidSet);
             mySQLSlaveConfig.setGtidSet(gtidSet);
         }
@@ -72,7 +74,10 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
         commandPacket.setGtidSet(slaveConfig.getGtidSet());
         commandPacket.setIncludedDbs(slaveConfig.getIncludedDbs());
         commandPacket.setNameFilter(slaveConfig.getNameFilter());
-        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter());
+        commandPacket.setConsumeType(ConsumeType.Applier.getCode());
+        commandPacket.setApplyMode(slaveConfig.getApplyMode());
+        commandPacket.setProperties(slaveConfig.getProperties());
+        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}, applyMode is: {}, properties is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter(), slaveConfig.getApplyMode(), slaveConfig.getProperties());
         CommandFuture<ResultCode> commandFuture = dumpGtidCommandHandler.handle(commandPacket, simpleObjectPool);
         return commandFuture;
     }

@@ -4,11 +4,13 @@ import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
+import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.util.AsciiString;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.util.BitSet;
 
@@ -181,6 +183,21 @@ public abstract class AbstractLogEvent implements LogEvent {
         }
 
         return bitSet;
+    }
+
+    protected void writeBitSet(BitSet bitSet, long length, ByteArrayOutputStream out) {
+        for (int bit = 0; bit < length; bit += 8) {
+            short flag = 0;
+            if (bitSet.get(bit))     flag |= 0x01;
+            if (bitSet.get(bit + 1)) flag |= 0x02;
+            if (bitSet.get(bit + 2)) flag |= 0x04;
+            if (bitSet.get(bit + 3)) flag |= 0x08;
+            if (bitSet.get(bit + 4)) flag |= 0x10;
+            if (bitSet.get(bit + 5)) flag |= 0x20;
+            if (bitSet.get(bit + 6)) flag |= 0x40;
+            if (bitSet.get(bit + 7)) flag |= 0x80;
+            ByteHelper.writeUnsignedByte(flag, out);
+        }
     }
 
     protected String readVariableLengthStringDefaultCharset(final ByteBuf byteBuf) {

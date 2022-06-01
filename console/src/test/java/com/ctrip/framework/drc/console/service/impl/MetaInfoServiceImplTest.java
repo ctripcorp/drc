@@ -64,6 +64,9 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Mock
     private DalServiceImpl dalService;
+    
+    @Mock
+    private RowsFilterServiceImpl rowsFilterService;
 
     @Mock
     private DefaultConsoleConfig defaultConsoleConfig;

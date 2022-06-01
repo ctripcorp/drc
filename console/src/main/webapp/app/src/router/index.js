@@ -119,6 +119,11 @@ const routes = [
     component: () => import('../views/monitor/unitRouteVerificationResult.vue')
   },
   {
+    path: '/rowsFilterConfigs',
+    name: 'rowsFilterConfigs',
+    component: () => import('../views/drcConfig/rowsFilterConfigs.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

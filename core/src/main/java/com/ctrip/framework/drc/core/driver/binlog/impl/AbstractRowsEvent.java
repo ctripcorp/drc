@@ -5,12 +5,19 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.RowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
+import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
+import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
-import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
+import org.apache.commons.lang3.StringUtils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -19,6 +26,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -37,6 +45,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     private static final long time_ofs = 0x800000000000L;
 
     // decimal constant
+    public static final BigDecimal long63Max = new BigDecimal("9223372036854775807");
     public static final BigDecimal long64Max = new BigDecimal("18446744073709551615");
     private static final int DIGITS_PER_4BYTES = 9;
     private static final BigDecimal POSITIVE_ONE = BigDecimal.ONE;
@@ -55,6 +64,37 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
     private Long checksum;
 
+    public AbstractRowsEvent() {
+    }
+
+    public AbstractRowsEvent(AbstractRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
+        LogEventHeader logEventHeader = rowsEvent.getLogEventHeader();
+        this.rowsEventPostHeader = rowsEvent.getRowsEventPostHeader();
+        this.numberOfColumns = rowsEvent.getNumberOfColumns();
+        this.beforePresentBitMap = rowsEvent.getBeforePresentBitMap();
+        this.afterPresentBitMap = rowsEvent.getAfterPresentBitMap();
+        this.rows = rowsEvent.getRows();
+        this.checksum = rowsEvent.getChecksum();
+
+        final byte[] payloadBytes = payloadToBytes(columns, logEventHeader.getEventType());
+        final int payloadLength = payloadBytes.length;
+
+        // set logEventHeader
+        int eventSize = eventHeaderLengthVersionGt1 + payloadLength;
+        setLogEventHeader(
+                new LogEventHeader(
+                        logEventHeader.getEventType(), logEventHeader.getServerId(), eventSize,
+                        logEventHeader.getNextEventStartPosition() + eventSize, logEventHeader.getFlags()
+                )
+        );
+
+        // set payload
+        final ByteBuf payloadByteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(payloadLength);
+        payloadByteBuf.writeBytes(payloadBytes);
+        payloadByteBuf.skipBytes(payloadLength);
+        setPayloadBuf(payloadByteBuf);
+    }
+
     @Override
     public LogEvent read(ByteBuf byteBuf) {
         // this logEvent only include header or null right now
@@ -65,6 +105,51 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
         return this;
     }
+
+    // for local debug
+    public String printByte(ByteArrayOutputStream out) {
+        byte[] bytes = out.toByteArray();
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        String str = ByteBufUtil.hexDump(buf);
+        System.out.println("bytes string: " + str);
+        return str;
+    }
+
+    // for local debug
+    public String printByte(byte[] bytes) {
+        ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+        String str = ByteBufUtil.hexDump(buf);
+        System.out.println("bytes string: " + str);
+        return str;
+    }
+
+    public byte[] payloadToBytes(List<TableMapLogEvent.Column> columns, int eventType) throws IOException {
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        // do write row event payload post-header
+        rowsEventPostHeader.payloadToBytes(out);
+
+        // do write payload body
+        ByteHelper.writeLengthEncodeInt(numberOfColumns, out);
+        writeBitSet(beforePresentBitMap, numberOfColumns, out);
+
+        if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+            writeBitSet(afterPresentBitMap, numberOfColumns, out);
+        }
+
+        for (Row row : rows) {
+            writeBitSet(row.beforeNullBitMap, readNullBitSetLength(beforePresentBitMap, numberOfColumns), out);
+            writeValues(row.beforeValues, out, beforePresentBitMap, row.beforeNullBitMap, numberOfColumns, columns);
+
+            if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                writeBitSet(row.afterNullBitMap, readNullBitSetLength(afterPresentBitMap, numberOfColumns), out);
+                writeValues(row.afterValues, out, afterPresentBitMap, row.afterNullBitMap, numberOfColumns, columns);
+            }
+        }
+
+        ByteHelper.writeUnsignedIntLittleEndian(checksum, out);  // 4bytes
+        return out.toByteArray();
+    }
+
 
     @Override
     public void write(IoCache ioCache) {
@@ -86,7 +171,9 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
         final ByteBuf payloadBuf = getPayloadBuf();
         // do read row event payload post-header
-        rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
+        if (rowsEventPostHeader == null) {
+            rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
+        }
 
         // do read payload body
         this.numberOfColumns = readLengthEncodeInt(payloadBuf);
@@ -155,7 +242,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return keysPresent;
     }
 
-    protected final class Row {
+    public final class Row {
 
         private BitSet beforeNullBitMap; // is it null now
 
@@ -222,16 +309,468 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return values;
     }
 
-    public Pair<Integer, Integer> getRealMetaAndType(final int meta) {
-        int byte0 = meta >> 8;
-        int byte1 = meta & 0xff;
-        if ((byte0 & 0x30) != 0x30) { // 0x30 = 0011 0000
-            return new Pair<>(
-                    byte1 | (((byte0 & 0x30) ^ 0x30) << 4),
-                    byte0 | 0x30
-            );
-        } else {
-            return new Pair<>(byte1, byte0);
+    private void writeValues(List<Object> values, final ByteArrayOutputStream out, final BitSet presentBitMap, final BitSet nullBitMap,
+                             final long numberOfColumns, final List<TableMapLogEvent.Column> columns) throws IOException {
+
+        int nullIndex = 0;
+        for (int i = 0; i < numberOfColumns; i++) {
+            final TableMapLogEvent.Column column = columns.get(i);
+            if (presentBitMap.get(i)) {
+                if (!nullBitMap.get(nullIndex)) {
+                    writeFieldValue(out, column, values.get(i));
+                }
+                nullIndex += 1;
+            }
+        }
+    }
+
+
+    private void writeFieldValue(ByteArrayOutputStream out, TableMapLogEvent.Column column, Object value) throws IOException {
+        MysqlFieldType type = MysqlFieldType.getMysqlFieldType(column.getType());
+
+        switch (type) {
+            case mysql_type_tiny: {
+                // 1byte
+                // [-2^7，2^7 -1], [-128, 127]
+                // unsigned [0, 2^8 - 1], [0, 255]
+                // mysql literal is tinyint
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedByte((short) value, out);
+                } else {
+                    ByteHelper.writeByte((byte) value, out);
+                }
+                return;
+            }
+
+            case mysql_type_short: {
+                // 2bytes
+                // [-2^15, 2^15-1], [-32,768, 32,767]
+                // unsigned [0, 2^16 - 1], [0, 65535]
+                // mysql literal is smallint
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                } else {
+                    ByteHelper.writeShortLittleEndian((short) value, out);
+                }
+                return;
+            }
+
+            case mysql_type_int24: {
+                // 3bytes
+                // [-2^23, 2^23 - 1], [-8388608, 8388607]
+                // unsigned [0, 2^24 - 1], [0, 16777215]
+                // mysql literal is int, integer
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedMediumLittleEndian((int) value, out);
+                } else {
+                    ByteHelper.writeMediumLittleEndian((int) value, out);
+                }
+                return;
+            }
+
+            case mysql_type_long: {
+                // 4bytes
+                // [-2^31, 2^31 - 1], [-2,147,483,648, 2,147,483,647]
+                // unsigned [0, 2^32 - 1], [0, 4294967295]
+                // mysql literal is int
+                if (column.isUnsigned()) {
+                    ByteHelper.writeUnsignedIntLittleEndian((long) value, out);
+                } else {
+                    ByteHelper.writeIntLittleEndian((int) value, out);
+                }
+                return;
+
+            }
+
+            case mysql_type_longlong: {
+                // 8bytes
+                // [-2^63, 2^63 - 1], [-9223372036854775808, 9223372036854775807],
+                // unsigned [0, 2^64 - 1], [0, 18446744073709551615]
+                // mysql literal is bigint
+                if (column.isUnsigned()) {
+                    BigDecimal decimalValue = (BigDecimal) value;
+                    if (decimalValue.compareTo(long63Max) > 0) {
+                        BigDecimal realValue = decimalValue.subtract(long64Max);
+                        ByteHelper.writeInt64LittleEndian(realValue.longValue() - 1, out);
+                    } else {
+                        ByteHelper.writeInt64LittleEndian(decimalValue.longValue(), out);
+                    }
+                } else {
+                    ByteHelper.writeInt64LittleEndian((long) value, out);
+                }
+                return;
+            }
+
+            case mysql_type_newdecimal: {
+                // decimal[M, D] default M = 10, unpack float type, The number is stored as a string, one byte per number,
+                // max M = 65, e.g: decimal[4, 2] = [-99.99, 99.99]
+                // mysql literal is decimal, numeric
+                final int meta = column.getMeta();
+                final int precision = meta >> 8;
+                final int scale = meta & 0xff;
+                final int decimalLength = getDecimalBinarySize(precision, scale);
+                final int x = precision - scale;
+                final int ipDigits = x / DIGITS_PER_4BYTES;
+                final int ipDigitsX = x - ipDigits * DIGITS_PER_4BYTES;
+                final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
+                int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
+
+                byte[] decimalBytes = new byte[decimalLength];
+                BigDecimal decimal = (BigDecimal) value;
+                String decimalStr = decimal.toPlainString();
+
+                boolean positive = true;
+                String[] values = StringUtils.split(decimalStr, '.');
+                String intPart = values[0];
+                if (intPart.startsWith("-")) {
+                    intPart = intPart.substring(1);
+                    positive = false;
+                }
+                String fracPart = values.length > 1 ? values[1] : StringUtils.EMPTY;
+                String intPart1 = complementLeftDigit(intPart, x);
+                String fracPart1 = complementRightDigit(fracPart, scale);
+
+                // write offset value
+                long offsetValue;
+                switch (offset) {
+                    case 0:
+                        break;
+                    case 1:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                        toBytes(offsetValue, 1, decimalBytes, 0);
+                        break;
+                    case 2:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                        toBytes(offsetValue, 2, decimalBytes, 0);
+                        break;
+                    case 3:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                        toBytes(offsetValue, 3, decimalBytes, 0);
+                        break;
+                    case 4:
+                        offsetValue = Long.parseLong(intPart1.substring(0, ipDigitsX));
+                        toBytes(offsetValue, 4, decimalBytes, 0);
+                        break;
+                }
+
+                // write int part
+                for (int shift = ipDigitsX; offset < ipSize; shift += DIGITS_PER_4BYTES, offset += 4) {
+                    long result = Long.parseLong(intPart1.substring(shift, shift + DIGITS_PER_4BYTES));
+                    toBytes(result, 4, decimalBytes, offset);
+                }
+
+                // write frac part
+                int shift = 0;
+                for (; shift + DIGITS_PER_4BYTES <= scale; shift += DIGITS_PER_4BYTES, offset += 4) {
+                    long result = Long.parseLong(fracPart1.substring(shift, shift + DIGITS_PER_4BYTES));
+                    toBytes(result, 4, decimalBytes, offset);
+                }
+                if (shift < scale) {
+                    long result = Long.parseLong(fracPart1.substring(shift, scale));
+                    toBytes(result, DECIMAL_BINARY_SIZE[scale - shift], decimalBytes, offset);
+                }
+
+                if (positive) {
+                    decimalBytes[0] |= 0x80;
+                } else {
+                    for (int i = 0; i < decimalBytes.length; i++) {
+                        decimalBytes[i] ^= 0xFF;
+                    }
+                    decimalBytes[0] &= 0x7F;
+                }
+                out.write(decimalBytes);
+                return;
+            }
+
+            case mysql_type_float: {
+                // 4bytes
+                ByteHelper.writeIntLittleEndian(Float.floatToIntBits((float) value), out);
+                return;
+            }
+
+            case mysql_type_double: {
+                // 8bytes
+                ByteHelper.writeInt64LittleEndian(Double.doubleToLongBits((double) value), out);
+                return;
+            }
+
+            case mysql_type_bit: {
+                // bit(M), M=[1-64], default M = 1
+                // 1-8bytes
+                // big-endian, unsigned
+                int meta = column.getMeta();
+                final int nbits = ((meta >> 8) * 8) + (meta & 0xff);
+                int byteCount = (nbits + 7) / 8;
+                if (nbits > 1) {
+                    switch (byteCount) {
+                        case 1:
+                            ByteHelper.writeUnsignedByte((short) value, out);
+                            return;
+                        case 2:
+                            ByteHelper.writeUnsignedShortBigEndian((int) value, out);
+                            return;
+                        case 3:
+                            ByteHelper.writeUnsignedMediumBigEndian((int) value, out);
+                            return;
+                        case 4:
+                            ByteHelper.writeUnsignedIntBigEndian((long) value, out);
+                            return;
+                        case 5: {
+                            ByteHelper.writeUnsignedInt40BigEndian((long) value, out);
+                            return;
+                        }
+                        case 6: {
+                            ByteHelper.writeUnsignedInt48BigEndian((long) value, out);
+                            return;
+                        }
+                        case 7: {
+                            ByteHelper.writeUnsignedInt56BigEndian((long) value, out);
+                            return;
+                        }
+                        case 8:
+                            BigDecimal decimalValue = (BigDecimal) value;
+                            if (decimalValue.compareTo(long63Max) > 0) {
+                                BigDecimal realValue = decimalValue.subtract(long64Max);
+                                ByteHelper.writeInt64BigEndian(realValue.longValue() - 1, out);
+                            } else {
+                                ByteHelper.writeInt64BigEndian(decimalValue.longValue(), out);
+                            }
+                            return;
+                        default:
+                            // ignore, can't more than 8 bytes
+                            throw new UnsupportedOperationException(String.format("write mysql field type bit error, bit(%d)", column.getMeta()));
+                    }
+                } else {
+                    ByteHelper.writeUnsignedByte((short) value, out);
+                    return;
+                }
+            }
+
+            case mysql_type_string:
+                // include binary, char
+                // char存储字符数[0-255], 无论何种字符集; binary没有字符集
+            case mysql_type_varchar: {
+                // include varbinary, varchar;
+                // varchar[M], M=[0-65535], 存储字符数取值要看字符集
+                byte[] bytes;
+                if (column.isBinary()) {
+                    // binary or varbinary
+                    bytes = (byte[]) value;
+                } else {
+                    bytes = ((String) value).getBytes(getCharset(column));
+                }
+
+                int valueLength = bytes.length;
+                if (column.getMeta() < 256) {
+                    ByteHelper.writeUnsignedByte(valueLength, out);
+                } else {
+                    ByteHelper.writeUnsignedShortLittleEndian(valueLength, out);
+                }
+                ByteHelper.writeFixedLengthBytes(bytes, 0, valueLength, out);
+                return;
+            }
+
+            case mysql_type_blob: {
+                // include all blob and text
+                byte[] bytes = (byte[]) value;
+                int valueLength = bytes.length;
+                switch (column.getMeta()) {
+                    case 1: {
+                        ByteHelper.writeUnsignedByte(valueLength, out);
+                        break;
+                    }
+                    case 2: {
+                        ByteHelper.writeUnsignedShortLittleEndian(valueLength, out);
+                        break;
+                    }
+                    case 3: {
+                        ByteHelper.writeUnsignedMediumLittleEndian(valueLength, out);
+                        break;
+                    }
+
+                    case 4: {
+                        ByteHelper.writeUnsignedIntLittleEndian(valueLength, out);
+                        break;
+                    }
+                }
+                ByteHelper.writeFixedLengthBytes(bytes, 0, valueLength, out);
+                return;
+            }
+
+            case mysql_type_date: {
+                // document show range : '1000-01-01' to '9999-12-31'
+                // real range : '0000-01-01' to '9999-12-31'
+                // day(bit 1-5), month(bit 6-9), year(bit 10-24)
+                String[] strings = StringUtils.split((String) value, '-');
+                int date = (Integer.parseInt(strings[0]) << 9) | (Integer.parseInt(strings[1]) << 5) | Integer.parseInt(strings[2]);
+                ByteHelper.writeUnsignedMediumLittleEndian(date, out);
+                return;
+            }
+
+            case mysql_type_timestamp2: {
+                // '1970-01-01 00:00:01.000000' to '2038-01-19 03:14:07.999999'
+                final int meta = column.getMeta();
+                Timestamp timestamp = Timestamp.valueOf(String.valueOf(value));
+                long time = timestamp.getTime() / 1000;
+                ByteHelper.writeUnsignedIntBigEndian(time, out); // unsigned big-endian
+                int microsecond = 0;
+                String[] strings = StringUtils.split((String) value, '.');
+                if (strings.length > 1) {
+                    microsecond = stringToMicroseconds(strings[1], meta);
+                }
+
+                switch (meta) {
+                    case 1:
+                    case 2:
+                        ByteHelper.writeByte(microsecond / 10000, out); // signed big-endian
+                        break;
+                    case 3:
+                    case 4:
+                        ByteHelper.writeShortBigEndian(microsecond / 100, out); // signed big-endian
+                        break;
+                    case 5:
+                    case 6:
+                        ByteHelper.writeMediumBigEndian(microsecond, out); // signed big-endian
+                        break;
+                    default:
+                        break;
+                }
+                return;
+            }
+
+            case mysql_type_datetime2: {
+                // document show range : '1000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
+                // real range : '0000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999'
+                long intPart = 0;
+                int fracture = 0;
+                int meta = column.getMeta();
+                String[] dateAndTime = StringUtils.split(value.toString(), ' ');
+                String[] time = StringUtils.split(dateAndTime[1], ':');
+                String[] secondStrings = StringUtils.split(time[2], '.');
+                long hms = Integer.parseInt(time[0]) << 12 | Integer.parseInt(time[1]) << 6 | Integer.parseInt(secondStrings[0]);
+
+                String[] date = StringUtils.split(dateAndTime[0], '-');
+                long ym = Integer.parseInt(date[0]) * 13 + Integer.parseInt(date[1]); //129999
+                long ymd = (ym << 5) + Integer.parseInt(date[2]);
+                intPart = ymd << 17 | hms; //545259486971
+
+                if (secondStrings.length > 1 && meta >= 1) {
+                    fracture = stringToMicroseconds(secondStrings[1], meta);
+                }
+
+                long high1 = (intPart + datetime_int_ofs) >> 32;
+                long low4 = intPart % (1L << 32);
+                ByteHelper.writeUnsignedByte((int) high1, out);  // unsigned big-endian
+                ByteHelper.writeUnsignedIntBigEndian(low4, out); // unsigned big-endian
+
+                switch (meta) {
+                    case 1:
+                    case 2:
+                        ByteHelper.writeByte(fracture / 10000, out); // signed big-endian
+                        break;
+                    case 3:
+                    case 4:
+                        ByteHelper.writeShortBigEndian(fracture / 100, out); // signed big-endian
+                        break;
+                    case 5:
+                    case 6:
+                        ByteHelper.writeMediumBigEndian(fracture, out); // signed big-endian
+                        break;
+                    default:
+                        break;
+                }
+                return;
+            }
+
+            case mysql_type_time2: {
+                // document show range '-838:59:59.000000' to '838:59:59.000000'
+                long intPart = 0;
+                int frac = 0;
+                long ltime = 0;
+                boolean positive = true;
+                final int meta = column.getMeta();
+
+                String[] time = StringUtils.split(value.toString(), ':');
+                String[] secondStrings = StringUtils.split(time[2], '.');
+                if (secondStrings.length > 1 && meta >= 1) {
+                    frac = stringToMicroseconds(secondStrings[1], meta);
+                }
+
+                String hourString = time[0];
+                if (hourString.startsWith("-")) {
+                    hourString = hourString.substring(1);
+                    positive = false;
+                }
+                long hour = Integer.parseInt(hourString);
+                long minuteAndSecond = Integer.parseInt(time[1]) << 6 | (Integer.parseInt(secondStrings[0]));
+                intPart = hour << 12 | minuteAndSecond;
+                ltime = intPart << 24;
+                if (!positive) {
+                    ltime = -ltime;
+                    frac = -frac;
+                }
+
+                switch (meta) {
+                    case 0:
+                        intPart = ltime >> 24;
+                        ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out);
+                        break;
+                    case 1:
+                    case 2:
+                        intPart = ltime >> 24;
+                        frac /= 10000;
+                        if (!positive && frac < 0) {
+                            intPart--;
+                            frac += 0x100;
+                        }
+                        ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out); // unsigned big-endian
+                        ByteHelper.writeUnsignedByte(frac, out); // unsigned bit-endian
+                        break;
+                    case 3:
+                    case 4:
+                        intPart = ltime >> 24;
+                        frac /= 100;
+                        if (!positive && frac < 0) {
+                            intPart--;
+                            frac += 0x10000;
+                        }
+                        ByteHelper.writeUnsignedMediumBigEndian((int) (intPart + time_int_ofs), out); // unsigned big-endian
+                        ByteHelper.writeUnsignedShortBigEndian(frac, out); // unsigned bit-endian
+                        break;
+                    case 5:
+                    case 6:
+                        intPart = ltime;
+                        intPart += frac % (1 << 24);
+                        ByteHelper.writeUnsignedInt48BigEndian(intPart + time_ofs, out); // unsigned big-endian
+                        break;
+                    default:
+                        break;
+                }
+                return;
+            }
+
+            case mysql_type_year: {
+                // '1901' to '2155'
+                int year = Integer.parseInt((String) value) - 1900;
+                ByteHelper.writeUnsignedByte(year, out);
+                return;
+            }
+
+            case mysql_type_enum: {
+                switch (column.getMeta()) {
+                    case 1:
+                        ByteHelper.writeUnsignedByte((short) value, out);
+                        return;
+                    case 2:
+                        ByteHelper.writeUnsignedShortLittleEndian((int) value, out);
+                        return;
+                    default:
+                        throw new IllegalStateException("enum type meta only be 1 or 2.");
+                }
+            }
+
+            default:
+                throw new UnsupportedOperationException(String.format("unsupported write field value, column type is %d", type.getType()));
         }
     }
 
@@ -358,7 +897,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 final int ipSize = (ipDigits << 2) + DECIMAL_BINARY_SIZE[ipDigitsX];
                 int offset = DECIMAL_BINARY_SIZE[ipDigitsX];
                 BigDecimal ip = offset > 0 ? BigDecimal.valueOf(toInt(decimalBytes, 0, offset)) : BigDecimal.ZERO;
-                for(; offset < ipSize; offset += 4) {
+                for (; offset < ipSize; offset += 4) {
                     final int i = toInt(decimalBytes, offset, 4);
                     ip = ip.movePointRight(DIGITS_PER_4BYTES).add(BigDecimal.valueOf(i));
                 }
@@ -369,7 +908,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                     final int i = toInt(decimalBytes, offset, 4);
                     fp = fp.add(BigDecimal.valueOf(i).movePointLeft(shift + DIGITS_PER_4BYTES));
                 }
-                if(shift < scale) {
+                if (shift < scale) {
                     final int i = toInt(decimalBytes, offset, DECIMAL_BINARY_SIZE[scale - shift]);
                     fp = fp.add(BigDecimal.valueOf(i).movePointLeft(scale));
                 }
@@ -665,7 +1204,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                         fracture = byteBuf.readUnsignedShort(); // unsigned bit-endian
                         if (intPart < 0 && fracture > 0) {
                             intPart++;
-                            fracture -= 0x100;
+                            fracture -= 0x10000;
                         }
 
                         fracture = fracture * 100;
@@ -686,7 +1225,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
                 String secondString;
                 if (intPart == 0) {
-                    secondString = "00:00:00";
+                    secondString = fracture < 0 ? "-00:00:00" : "00:00:00";
                 } else {
                     long ultime = Math.abs(ltime);
                     intPart = ultime >> 24;
@@ -820,6 +1359,48 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return sec.substring(0, meta);
     }
 
+    private int stringToMicroseconds(String sec, int meta) {
+        if (meta > 6) {
+            throw new IllegalArgumentException("datetime replicator can't gt 6 : " + meta);
+        }
+        if (sec.length() < 6) {
+            StringBuilder result = new StringBuilder(6);
+            result.append(sec);
+            int len = 6 - sec.length();
+            for (; len > 0; len--) {
+                result.append('0');
+            }
+            return Integer.parseInt(result.toString());
+        }
+        return Integer.parseInt(sec);
+    }
+
+    private String complementLeftDigit(String decimalStr, int length) {
+        if (decimalStr.length() < length) {
+            StringBuilder result = new StringBuilder(length);
+            int len = length - decimalStr.length();
+            for (; len > 0; len--) {
+                result.append('0');
+            }
+            result.append(decimalStr);
+            return result.toString();
+        }
+        return decimalStr;
+    }
+
+    private String complementRightDigit(String decimalStr, int length) {
+        if (decimalStr.length() < length) {
+            StringBuilder result = new StringBuilder(length);
+            int len = length - decimalStr.length();
+            result.append(decimalStr);
+            for (; len > 0; len--) {
+                result.append('0');
+            }
+            return result.toString();
+        }
+        return decimalStr;
+    }
+
     private int getDecimalBinarySize(int precision, int scale) {
         final int x = precision - scale;
         final int ipDigits = x / DIGITS_PER_4BYTES;
@@ -833,9 +1414,16 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         int r = 0;
         for (int i = offset; i < (offset + length); i++) {
             final byte b = data[i];
-            r = (r << 8) | (b >= 0 ? (int)b : (b + 256));
+            r = (r << 8) | (b >= 0 ? (int) b : (b + 256));
         }
         return r;
+    }
+
+    private void toBytes(long val, int length, byte[] data, int offset) {
+        for (int i = length; i > 0; i--) {
+            data[offset + i - 1] = (byte) (val & 0xFF);
+            val = val >>> 8;
+        }
     }
 
     public RowsEventPostHeader getRowsEventPostHeader() {
@@ -854,11 +1442,23 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return afterPresentBitMap;
     }
 
-    protected List<Row> getRows() {
+    public List<Row> getRows() {
         return rows;
     }
 
     public Long getChecksum() {
         return checksum;
+    }
+
+    public void setChecksum(Long checksum) {
+        this.checksum = checksum;
+    }
+
+    public void setRowsEventPostHeader(RowsEventPostHeader rowsEventPostHeader) {
+        this.rowsEventPostHeader = rowsEventPostHeader;
+    }
+
+    public void setRows(List<Row> rows) {
+        this.rows = rows;
     }
 }

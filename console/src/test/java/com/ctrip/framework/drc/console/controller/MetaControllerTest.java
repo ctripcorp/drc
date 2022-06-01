@@ -1,12 +1,12 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
-import com.ctrip.framework.drc.console.dto.MetaProposalDto;
-import com.ctrip.framework.drc.console.dto.ProxyDto;
+import com.ctrip.framework.drc.console.dto.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
@@ -29,7 +29,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -75,6 +74,10 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Mock
     private DbClusterSourceProvider sourceProvider;
+    
+    
+    @Mock
+    private RowsFilterService rowsFilterService;
 
     private static final String META_DATA = "{\"metaData\":\"data\"}";
 
@@ -722,7 +725,6 @@ public class MetaControllerTest extends AbstractControllerTest {
     }
 
     @Test
-    @GetMapping("orderedDeletedGroups/all")
     public void testGetAllDeletedMhaGroups() throws Exception {
         Mockito.doReturn(null).when(metaInfoService).getDeletedMhaGroupPairVos();
         MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/orderedDeletedGroups/all");
@@ -736,6 +738,6 @@ public class MetaControllerTest extends AbstractControllerTest {
     @After
     public void tearDown() throws Exception {
     }
-
+    
 
 }

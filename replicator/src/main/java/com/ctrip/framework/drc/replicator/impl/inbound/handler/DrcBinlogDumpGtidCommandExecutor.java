@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 
 /**
  * @Author limingdong
@@ -19,7 +19,7 @@ public class DrcBinlogDumpGtidCommandExecutor extends BinlogDumpGtidCommandExecu
     @Override
     protected ServerCommandPacket getPacket(String queryString) {
         ApplierDumpCommandPacket dumpCommandPacket = new ApplierDumpCommandPacket(String.valueOf(slaveId), gtidSet);
-        dumpCommandPacket.setReplicatroBackup(InstanceStatus.INACTIVE.getStatus());
+        dumpCommandPacket.setConsumeType(ConsumeType.Slave.getCode());
         return dumpCommandPacket;
     }
 }

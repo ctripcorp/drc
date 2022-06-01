@@ -269,6 +269,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         pairCaseManager.addPairCase(new CharsetTypePairCase());
         pairCaseManager.addPairCase(new TimeTypePairCase());
         pairCaseManager.addPairCase(new TypeModifyPairCase());
+        pairCaseManager.addPairCase(new RowsFilterCase());
         pairCaseManager.addPairCase(new GrandTransactionPairCase(TestTypeEnum.FUNCTION));
         pairCaseManager.addPairCase(new GrandEventPairCase(TestTypeEnum.FUNCTION));
         if (ConfigService.getInstance().getBinlogMinimalRowImageSwitch()) {

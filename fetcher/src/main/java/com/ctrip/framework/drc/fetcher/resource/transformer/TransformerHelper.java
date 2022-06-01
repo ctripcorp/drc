@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.fetcher.resource.transformer;
 
-import com.ctrip.framework.drc.core.filter.MigrateMap;
+import com.ctrip.framework.drc.core.server.common.filter.table.MigrateMap;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
@@ -55,7 +55,7 @@ public class TransformerHelper {
             }
             return values;
         } else {
-            return Lists.newArrayList();
+            return Lists.newArrayList(value);
         }
     }
 }

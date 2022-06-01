@@ -24,6 +24,7 @@ public class ApplierConfigDto extends ApplierMeta {
     private String routeInfo;
     private String skipEvent;
     private int applyMode;
+    private String properties;
 
     public String getManagerIp() {
         return managerIp;
@@ -121,6 +122,14 @@ public class ApplierConfigDto extends ApplierMeta {
         this.applyMode = applyMode;
     }
 
+    public String getProperties() {
+        return properties;
+    }
+
+    public void setProperties(String properties) {
+        this.properties = properties;
+    }
+
     @JsonIgnore
     public String getRegistryKey() {
         return ApplierRegistryKey.from(target.mhaName, super.getCluster(), replicator.mhaName);
@@ -147,6 +156,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 ", idc='" + idc + '\'' +
                 ", cluster='" + cluster + '\'' +
                 ", applyMode='" + applyMode + '\'' +
+                ", properties='" + properties + '\'' +
                 '}';
     }
 
@@ -168,11 +178,12 @@ public class ApplierConfigDto extends ApplierMeta {
                 Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
-                applyMode == that.applyMode;
+                applyMode == that.applyMode &&
+                Objects.equals(properties, that.properties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode);
+        return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, properties);
     }
 }

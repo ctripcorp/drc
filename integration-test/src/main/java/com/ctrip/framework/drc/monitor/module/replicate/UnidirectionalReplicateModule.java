@@ -35,6 +35,38 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
 
     private String image = "mysql:5.7";
 
+    private static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"trip_uid\"," +
+            "      \"tables\": \"(CommonOrderShard[1-9]DB|CommonOrderShard[1][0-2]DB)\\\\.(basicorder|basicorder_ext)\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"UID\"" +
+            "        ]," +
+            "        \"illegalArgument\": false," +
+            "        \"context\": \"SIN\"" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}";
+
+
+    private static final String ROW_FILTER_PROPERTIES_REGEX = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"java_regex\"," +
+            "      \"tables\": \"drc4.row_filter\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"uid\"" +
+            "        ]," +
+            "        \"context\": \"trip.*\"" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}";
+
     public UnidirectionalReplicateModule() {
         this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, META_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
     }
@@ -110,7 +142,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     @Override
     public void startRAModule() {
         try {
-            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey);
+            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, ROW_FILTER_PROPERTIES_REGEX);
             replicatorApplierPairModule.initialize();
             replicatorApplierPairModule.start();
         } catch (Exception e) {

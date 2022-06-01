@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcUuidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObservable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -21,12 +22,12 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.d
  * Created by mingdongli
  * 2019/10/9 上午10:17.
  */
-public class UuidFilter extends AbstractLogEventFilter implements UuidObserver {
+public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> implements UuidObserver {
 
     private Set<UUID> whiteList = Sets.newConcurrentHashSet();
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(InboundLogEventContext value) {
         LogEvent logEvent = value.getLogEvent();
         if (logEvent instanceof GtidLogEvent) {
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;

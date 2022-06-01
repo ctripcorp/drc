@@ -230,6 +230,10 @@ export default {
             key: 'IBU-VPC'
           },
           {
+            value: 'sinibualiyun',
+            label: 'IBU-VPC(aliyun)'
+          },
+          {
             value: 'sinaws',
             key: '新加坡AWS'
           }

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
+import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
@@ -15,7 +16,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGE
  * @Author limingdong
  * @create 2020/4/24
  */
-public class TransactionMonitorFilter extends AbstractPostLogEventFilter {
+public class TransactionMonitorFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     private Frequency frequencyReceive = new Frequency("FRE GTID RECEIVE");
 
@@ -28,7 +29,7 @@ public class TransactionMonitorFilter extends AbstractPostLogEventFilter {
     }
 
     @Override
-    public boolean doFilter(LogEventWithGroupFlag value) {
+    public boolean doFilter(InboundLogEventContext value) {
 
         LogEvent logEvent = value.getLogEvent();
 

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +36,9 @@ public class MetaGeneratorTest {
 
     @Mock
     private DataCenterService dataCenterService;
+    
+    @Mock
+    private RowsFilterService rowsFilterService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -62,10 +67,11 @@ public class MetaGeneratorTest {
 
 
     @Before
-    public void setUp() {
+    public void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         Mockito.doReturn(DC1).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
+        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong());
     }
 
     // this test needs to be run after TransferServiceImplTest

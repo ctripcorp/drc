@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
+import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -44,6 +45,8 @@ import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.PeriodicalUpdateMhasTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
+import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
+import com.ctrip.framework.drc.console.vo.SimplexDrcBuildVoTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.junit.AfterClass;
@@ -54,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.ClassUtils;
 
+import javax.xml.crypto.Data;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -113,9 +117,11 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
-
+        RowsFilterServiceImplTest.class,
         // controller
         AccessControllerTest.class,
+        BuildControllerTest.class,
+        LocalControllerTest.class,
         MhaControllerTest.class,
         SwitchControllerTest.class,
         ClusterControllerTest.class,
@@ -131,7 +137,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ExecutedGtidQueryTaskTest.class,
         // monitor
         ConsistentMonitorContainerTest.class,
-        StaticDelayMonitorServerTest.class,
+//        StaticDelayMonitorServerTest.class,
         MySqlUtilsTest.class,
         JsonUtilsTest.class,
         CheckGtidTest.class,
@@ -146,6 +152,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         // config
         DefaultConsoleConfigTest.class,
+        DelayMonitorSlaveConfigTest.class,
 
         // utils
         JacksonUtilsTest.class,
@@ -180,12 +187,16 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ListenReplicatorTaskTest.class,
 
         //entity
-        MhaInstanceGroupDtoTest.class
+        MhaInstanceGroupDtoTest.class,
+        RowsFilterConfigDtoTest.class,
+        RowsFilterMappingVoTest.class,
+        SimplexDrcBuildVoTest.class
+        
 })
 public class AllTests {
 
     private static Logger logger = LoggerFactory.getLogger(AllTests.class);
-    
+
     public static String DRC_XML_one2many;
 
     public static String DRC_XML;
