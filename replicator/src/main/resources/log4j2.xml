@@ -132,14 +132,14 @@
 		</RollingFile>
 
 		<RollingFile name="RollingFileFilterInfo" fileName="${baseDir}/filter.log"
-					 filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.filter.log.gz">
-			<PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
+					 filePattern="${baseDir}/filter-%i.log.gz">
+			<PatternLayout pattern="[%d][%t] - %m%n"/>
 			<Policies>
 				<SizeBasedTriggeringPolicy size="500 MB"/>
 			</Policies>
 			<DefaultRolloverStrategy max="5">
 				<Delete basePath="${baseDir}" maxDepth="2">
-					<IfFileName glob="${appName}*.filter.log.gz"/>
+					<IfFileName glob="filter-*.log.gz"/>
 					<IfLastModified age="7d"/>
 				</Delete>
 			</DefaultRolloverStrategy>
