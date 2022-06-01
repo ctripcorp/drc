@@ -11,6 +11,8 @@ import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.FileChannel;
 import java.util.List;
@@ -25,6 +27,8 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
     private static final String DRC_INTERNAL_DB = "drcmonitordb";
+
+    protected final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     private String registryKey;
 
@@ -114,7 +118,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 String table = drcTableMap.getSchemaNameDotTableName();
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", table);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", table, filterNum);
-                logger.info("[Filter] {} rows of table {} within transaction {} for {}", filterNum, table, value.getGtid(), registryKey);
+                ROWS_FILTER_LOGGER.info("[Filter] {} rows of table {} within transaction {} for {}", filterNum, table, value.getGtid(), registryKey);
             }
         }
 
