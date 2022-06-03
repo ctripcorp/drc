@@ -141,7 +141,46 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
-        verify(channelFuture, times(2)).addListener(any(GenericFutureListener.class)); // header and payload
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.write_rows_event_v2;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRowsFilter);
+        Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+        verify(channelFuture, times(4)).addListener(any(GenericFutureListener.class)); // header and payload
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.write_rows_event_v2;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRowsFilter = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRowsFilter);
+        Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+        verify(channelFuture, times(6)).addListener(any(GenericFutureListener.class)); // header and payload
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;
