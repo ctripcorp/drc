@@ -328,6 +328,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
+                channel.close();
             }
         }
 
@@ -448,7 +449,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
                 filterChain.doFilter(logEventContext);
                 if (logEventContext.getCause() != null) {
-                    channel.close();
                     throw logEventContext.getCause();
                 }
 
