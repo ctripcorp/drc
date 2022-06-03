@@ -448,6 +448,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
                 filterChain.doFilter(logEventContext);
                 if (logEventContext.getCause() != null) {
+                    channel.close();
                     throw logEventContext.getCause();
                 }
 
