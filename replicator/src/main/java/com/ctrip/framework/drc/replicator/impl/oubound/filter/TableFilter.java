@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.FileChannel;
 import java.util.Map;
@@ -20,6 +22,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  * @create 2022/4/22
  */
 public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
+
+    protected final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction = Maps.newHashMap();  // clear with xid
 
@@ -43,7 +47,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             if (previousTableMapLogEvent != null) {
                 String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
                 previousTableMapLogEvent.release();
-                logger.info("[Release] TableMapLogEvent for {} of type {}", tableName, previousTableMapLogEvent.getLogEventType());
+                ROWS_FILTER_LOGGER.info("[Release] TableMapLogEvent for {} of type {}", tableName, previousTableMapLogEvent.getLogEventType());
             }
             value.restorePosition();
         } else if (LogEventUtils.isRowsEvent(eventType)) {
@@ -76,7 +80,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
     public void release() {
         releaseTableMapEvent();
         releaseDrcTableMapEvent();
-        logger.info("[Release] TableMapLogEvent within {}", getClass().getSimpleName());
+        ROWS_FILTER_LOGGER.info("[Release] TableMapLogEvent within {}", getClass().getSimpleName());
     }
 
     private void releaseTableMapEvent() {

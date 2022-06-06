@@ -18,7 +18,7 @@
                     <artifactId>redis-proxy-client</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency> 
+        </dependency>
         <dependency>
             <groupId>qunar.common</groupId>
             <artifactId>common-api</artifactId>
@@ -88,7 +88,7 @@
         <dependency>
             <groupId>com.ctrip.basebiz.account</groupId>
             <artifactId>tripaccount-udl-route-sdk</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
+            <version>1.0.4</version>
         </dependency>
     </dependencies>
 

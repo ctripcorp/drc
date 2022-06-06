@@ -328,6 +328,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
+                channel.close();
             }
         }
 
