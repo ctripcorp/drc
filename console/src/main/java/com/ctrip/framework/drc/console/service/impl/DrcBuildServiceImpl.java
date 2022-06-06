@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -56,14 +58,38 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             logger.info("{} {} not same group", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
             return metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
         }
-
         MhaGroupTbl mhaGroupTbl = dalUtils.getMhaGroupTblDao().queryByPk(mhaGroupId);
-
+        
+        // get opposite clusterName as default value
+        if (StringUtils.isBlank(metaProposalDto.getSrcClusterName())) {
+            metaProposalDto.setSrcClusterName(getClusterName(destMhaTbl));
+        }
+        if (StringUtils.isBlank(metaProposalDto.getDestClusterName())) {
+            metaProposalDto.setDestClusterName(getClusterName(srcMhaTbl));
+        }
         // 2. configure and persistent in database
         long srcReplicatorGroupId = configureReplicators(srcMhaTbl, destMhaTbl, metaProposalDto.getSrcReplicatorIps(), metaProposalDto.getDestGtidExecuted());
         long destReplicatorGroupId = configureReplicators(destMhaTbl, srcMhaTbl, metaProposalDto.getDestReplicatorIps(), metaProposalDto.getSrcGtidExecuted());
-        configureAppliers(srcMhaTbl, metaProposalDto.getSrcApplierIps(), destReplicatorGroupId, metaProposalDto.getSrcApplierIncludedDbs(), metaProposalDto.getSrcApplierApplyMode(), metaProposalDto.getSrcGtidExecuted(), metaProposalDto.getSrcApplierNameFilter(), metaProposalDto.getSrcApplierNameMapping(), metaProposalDto.getSrcClusterName());
-        configureAppliers(destMhaTbl, metaProposalDto.getDestApplierIps(), srcReplicatorGroupId, metaProposalDto.getDestApplierIncludedDbs(), metaProposalDto.getDestApplierApplyMode(), metaProposalDto.getDestGtidExecuted(), metaProposalDto.getDestApplierNameFilter(), metaProposalDto.getDestApplierNameMapping(), metaProposalDto.getDestClusterName());
+        configureAppliers(
+                srcMhaTbl, 
+                metaProposalDto.getSrcApplierIps(), 
+                destReplicatorGroupId, 
+                metaProposalDto.getSrcApplierIncludedDbs(), 
+                metaProposalDto.getSrcApplierApplyMode(), 
+                metaProposalDto.getSrcGtidExecuted(), 
+                metaProposalDto.getSrcApplierNameFilter(),
+                metaProposalDto.getSrcApplierNameMapping(), 
+                metaProposalDto.getSrcClusterName());
+        configureAppliers(
+                destMhaTbl, 
+                metaProposalDto.getDestApplierIps(), 
+                srcReplicatorGroupId, 
+                metaProposalDto.getDestApplierIncludedDbs(), 
+                metaProposalDto.getDestApplierApplyMode(), 
+                metaProposalDto.getDestGtidExecuted(), 
+                metaProposalDto.getDestApplierNameFilter(), 
+                metaProposalDto.getDestApplierNameMapping(), 
+                metaProposalDto.getDestClusterName());
 
         // update status and return the configured xml from db
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
@@ -105,7 +131,21 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         }
         return new DrcBuildPreCheckVo(null,null,DrcBuildPreCheckVo.NO_CONFLICT);
     }
-
+    
+    private String getClusterName(MhaTbl mha) throws SQLException{
+        List<ClusterMhaMapTbl> clusterMhaMapTbls = dalUtils.getClusterMhaMapTblDao().
+                queryByMhaIds(Lists.newArrayList(mha.getId()), BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(clusterMhaMapTbls)) {
+            return null;
+        } else {
+            ClusterTbl clusterTbl = dalUtils.getClusterTblDao().queryByPk(clusterMhaMapTbls.get(0).getClusterId());
+            ClusterMhaMapTbl clusterMhaMapTbl = dalUtils.getClusterMhaMapTblDao().queryAll().stream().filter(p -> p.getMhaId().equals(mha.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
+            ClusterTbl clusterTbl1 = dalUtils.getClusterTblDao().queryAll().stream().filter(p -> p.getId().equals(clusterMhaMapTbl.getClusterId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
+            Assert.isTrue(clusterTbl1.getClusterName().equals(clusterTbl.getClusterName()));
+            return clusterTbl.getClusterName();
+        }
+    }
+    
     private boolean resourcesCompare(List<String> resourcesInUse,List<String> replicatorsToBeUpdated) {
         if (resourcesInUse == null) return replicatorsToBeUpdated == null;
         else if (replicatorsToBeUpdated == null) return false;
@@ -213,11 +253,6 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
 
     protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName) throws SQLException {
-        if (StringUtils.isBlank(targetName)) {
-            ClusterMhaMapTbl clusterMhaMapTbl = dalUtils.getClusterMhaMapTblDao().queryAll().stream().filter(p -> p.getMhaId().equals(mhaTbl.getId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
-            ClusterTbl clusterTbl = dalUtils.getClusterTblDao().queryAll().stream().filter(p -> p.getId().equals(clusterMhaMapTbl.getClusterId()) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).findFirst().get();
-            targetName = clusterTbl.getClusterName();
-        }
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={}, includedDbs={}, applyMode={}, nameFilter={}, nameMapping={}, targetName={}, replicatorGroupId={}]]configure or update applier group", mhaName, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName, replicatorGroupId);
