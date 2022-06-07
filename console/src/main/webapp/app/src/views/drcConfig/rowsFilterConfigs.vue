@@ -59,15 +59,19 @@
                     <Option v-for="item in modesForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="相关字段">
-                  <Select v-if="rowsFilterConfig.mode !== 'trip_uid'" v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关列">
+                <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_uid'">
+                  <Select v-if="rowsFilterConfig.mode !== 'trip_uid'" v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
-                  <Select label="uid" v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.uid" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UID相关列">
+                </FormItem>
+                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select  v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.uid" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UID相关字段">
                     <Option value="">无UID</Option>
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
-                  <Select label="udl" v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.udl" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UDL相关列">
+                </FormItem>
+                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select  v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.udl" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UDL相关字段">
                     <Option value="">无UDL</Option>
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
@@ -365,6 +369,10 @@ export default {
         }
         if (this.configInTripUid.udl === null || this.configInTripUid.udl === undefined) {
           this.configInTripUid.udl = ''
+        }
+        if (this.configInTripUid.uid === '' && this.configInTripUid.udl === '') {
+          alert('uid 与 udl 字段不能都为空！')
+          return
         }
         this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
         this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
