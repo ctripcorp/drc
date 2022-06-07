@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 @Service
 public class RowsFilterServiceImpl implements RowsFilterService {
     public static final Logger logger = LoggerFactory.getLogger(RowsFilterServiceImpl.class);
+    public static final String DB_NAME = "fxdrcmetadb_w";
     
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
@@ -103,6 +105,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
+    @DalTransactional(logicDbName = DB_NAME)
     public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
@@ -117,6 +120,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
 
     @Override
+    @DalTransactional(logicDbName = DB_NAME)
     public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
@@ -134,6 +138,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
 
     @Override
+    @DalTransactional(logicDbName = DB_NAME)
     public String deleteRowsFilterConfig(Long id) throws SQLException {
         RowsFilterMappingTbl mappingTbl = rowsFilterMappingTblDao.queryByPk(id);
         mappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
@@ -143,7 +148,6 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         DataMediaTbl dataMediaTbl = new DataMediaTbl();
         dataMediaTbl.setId(mappingTbl.getDataMediaId());
         dataMediaTbl.setDeleted(BooleanEnum.TRUE.getCode());
-
         int update0 = rowsFilterMappingTblDao.update(mappingTbl);
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
@@ -166,27 +170,30 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         return tables;
     }
+    
+    
     @Override
-    public List<String> checkTableConflict(
-            Long applierGroupId,
-            Long dataMediaId,
-            String namespace,
+    public List<String> getLogicalTables(
+            Long applierGroupId, 
+            Long dataMediaId, 
+            String namespace, 
             String name,
             String mhaName) throws SQLException {
         List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId);
         List<String> logicalTables = Lists.newArrayList();
-        if (dataMediaId== 0) { // add
+        if (dataMediaId == 0) { // add
             logicalTables = rowsFilterMappingVos.stream().
                     map(mappingVo -> mappingVo.getNamespace() + "\\." + mappingVo.getName()).collect(Collectors.toList());
         } else { // update
-            logicalTables= rowsFilterMappingVos.stream().
+            logicalTables = rowsFilterMappingVos.stream().
                     filter(p -> !p.getDataMediaId().equals(dataMediaId)).
                     map(mappingVo -> mappingVo.getNamespace() + "\\." + mappingVo.getName()).collect(Collectors.toList());
         }
         logicalTables.add(namespace + "\\." + name);
-        return getConflictTables(mhaName, logicalTables);
+        return logicalTables;
     }
-
+    
+    @Override
     public List<String> getConflictTables(String mhaName,List<String> logicalTables)  {
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();

@@ -1,28 +1,20 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -97,19 +89,15 @@ public class LocalController {
 
     @GetMapping("dataMedia/conflictCheck")
     public ApiResult getConflictTables(
-            @RequestParam Long applierGroupId,
-            @RequestParam Long dataMediaId,
-            @RequestParam String srcDc,
             @RequestParam String mhaName,
-            @RequestParam String namespace,
-            @RequestParam String name) {
+            @RequestParam String logicalTables) {
         try {
-            logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
+            logger.info("[[tag=conflictTables]] get conflictTables from {} in mha: {}",logicalTables, mhaName);
             List<String> conflictTables =
-                    rowsFilterService.checkTableConflict(applierGroupId, dataMediaId, namespace, name, mhaName);
+                    rowsFilterService.getConflictTables(mhaName,Lists.newArrayList(logicalTables.split(",")));
             return ApiResult.getSuccessInstance(conflictTables);
         } catch (Exception e) {
-            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
+            logger.warn("[[tag=conflictTables]] get conflictTables error from {} in mha: {}",logicalTables, mhaName);
             if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else {

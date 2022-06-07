@@ -105,7 +105,6 @@ public class BuildController {
         logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
         try {
             if (rowsFilterConfigDto.getId() != null) {
-                // todo check all dataMedia has common table or not
                 return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterConfig(rowsFilterConfigDto));
             } else {
                 return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterConfig(rowsFilterConfigDto));
@@ -221,31 +220,29 @@ public class BuildController {
             @RequestParam String mhaName,
             @RequestParam String namespace,
             @RequestParam String name) {
-        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-        if (publicCloudDc.contains(srcDc)) {
-            String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/local/dataMedia/conflictCheck?" +
-                    "applierGroupId=" + applierGroupId +
-                    "&dataMediaId=" + dataMediaId +
-                    "&srcDc=" + srcDc +
-                    "&mhaName=" + mhaName +
-                    "&namespace=" + namespace +
-                    "&name=" + name ;
-            return HttpUtils.get(url, ApiResult.class);
-        } else {
-            try {
-                logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}",namespace,name,mhaName);
-                List<String> conflictTables =
-                        rowsFilterService.checkTableConflict(applierGroupId, dataMediaId, namespace, name, mhaName);
+        
+        try {
+            List<String> logicalTables =
+                    rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);
+            Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+            if (publicCloudDc.contains(srcDc)) {
+                String dcDomain = consoleDcInfos.get(srcDc);
+                String url = dcDomain + "/api/drc/v1/local/dataMedia/conflictCheck?" +
+                        "mhaName=" + applierGroupId +
+                        "&logicalTables=" + String.join(",", logicalTables);
+                return HttpUtils.get(url, ApiResult.class);
+            } else {
+                logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
+                List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,logicalTables);
                 return ApiResult.getSuccessInstance(conflictTables);
-            } catch (Exception e) {
-                logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name,mhaName,e);
-                if (e  instanceof CompileExpressionErrorException) {
-                    return ApiResult.getFailInstance("expression error");
-                } else {
-                    return ApiResult.getFailInstance("other error");
-                }
+            }
+        } catch (Exception e) {
+            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
             }
         }
     }
@@ -284,6 +281,4 @@ public class BuildController {
     }
     
     
-
-
 }
