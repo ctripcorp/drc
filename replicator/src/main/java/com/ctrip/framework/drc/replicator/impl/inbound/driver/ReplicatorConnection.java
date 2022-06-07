@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.position.EntryPosition;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.handler.BinlogDumpGtidClientCommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ResultSetPacket;
@@ -66,7 +65,12 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
     @Override
     public void preDump() {
-        new RetryTask<>(new UuidFetchTask()).call();
+        NamedCallable namedCallable = new UuidFetchTask();
+        try {
+            namedCallable.call();
+        } catch (Exception e) {
+            namedCallable.afterException(e);
+        }
     }
 
     protected void doWithSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, DumpCallBack callBack, RECONNECTION_CODE reconnectionCode) {
