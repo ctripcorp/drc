@@ -65,7 +65,14 @@ public class RowsEventPostHeader implements Packet<RowsEventPostHeader> {
 
         // extra data
         if (extraDataLength > 2) {
-            out.writeBytes(extraData.array());
+            if (extraData.hasArray()) {
+                out.writeBytes(extraData.array());
+            } else {
+                int length = extraData.readableBytes();
+                byte[] bytes = new byte[length];
+                extraData.getBytes(extraData.readerIndex(), bytes);
+                out.writeBytes(bytes);
+            }
         }
     }
 
