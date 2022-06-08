@@ -63,7 +63,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
             } catch (Throwable t) {
                 ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
                 ByteBuf payloadByteBuf = getPayloadBuf();
-                logger.error("{}.tryLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf), ByteBufUtil.hexDump(payloadByteBuf), t);
+                logger.error("{}.tryLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
             } finally {
                 lock.unlock();
             }
@@ -82,7 +82,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         } catch (Throwable t) {
             ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
             ByteBuf payloadByteBuf = getPayloadBuf();
-            logger.error("{}.mustLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf), ByteBufUtil.hexDump(payloadByteBuf), t);
+            logger.error("{}.mustLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf, 0, headerByteBuf.writerIndex()), ByteBufUtil.hexDump(payloadByteBuf, 0, headerByteBuf.writerIndex()), t);
         } finally {
             lock.unlock();
         }
