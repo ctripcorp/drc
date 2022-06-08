@@ -162,8 +162,6 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         rowsEventPostHeader = new RowsEventPostHeader().read(payloadBuf);
     }
 
-    public static final int MAX_ROW_NUM = 50000;
-
     @Override
     public void load(final List<TableMapLogEvent.Column> columns) {
         if (checksum != null) {
@@ -197,10 +195,6 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 row.setAfterValues(readValues(payloadBuf, afterPresentBitMap, afterNullBitSet, numberOfColumns, columns));
             }
             rows.add(row);
-            if (rows.size() > MAX_ROW_NUM) {
-
-                System.out.println("numberOfColumns : " + numberOfColumns + ", beforePresentBitMap : " + beforePresentBitMap.length() + ", payload readableBytes : " + payloadBuf.readableBytes() + ", checksum : " + checksum);
-            }
         }
         this.rows = rows;
         this.checksum = payloadBuf.readUnsignedIntLE(); // 4bytes
