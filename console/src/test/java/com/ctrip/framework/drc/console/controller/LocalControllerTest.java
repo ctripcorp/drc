@@ -119,20 +119,11 @@ public class LocalControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetConflictTables() throws Exception {
-        Mockito.when(rowsFilterService.checkTableConflict(
-                        Mockito.anyLong(), 
-                        Mockito.anyLong(),
-                        Mockito.anyString(),
-                        Mockito.anyString(),
-                        Mockito.anyString())).thenReturn(Lists.newArrayList("conflictTable1"));
-
+        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(), Mockito.anyList())).
+                thenReturn(Lists.newArrayList("conflictTable1"));
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/conflictCheck?" +
-                                "applierGroupId=" + 0 +
-                                "&dataMediaId=" + 0 +
-                                "&srcDc=" + "srcDc" +
-                                "&mhaName=" + "mhaName" +
-                                "&namespace=" + "namespace" +
-                                "&name=" + "name")
+                                "mhaName=" + "mhaName" +
+                                "&logicalTables=" + "db1\\.t1,db2.t2")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -140,21 +131,7 @@ public class LocalControllerTest extends AbstractControllerTest {
         String response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
         System.out.println(response);
-
-        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/conflictCheck?" +
-                                "applierGroupId=" + 0 +
-                                "&dataMediaId=" + 0 +
-                                "&srcDc=" + "srcDc" +
-                                "&mhaName=" + "mhaName" +
-                                "&namespace=" + "；" +
-                                "&name=" + "name")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-        status = mvcResult.getResponse().getStatus();
-        response = mvcResult.getResponse().getContentAsString();
-        Assert.assertEquals(200, status);
-        System.out.println(response);
+        
       
     }
 
@@ -180,13 +157,12 @@ public class LocalControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
 
-        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/conflictCheck?" +
-                                "applierGroupId=" + 0 +
-                                "&dataMediaId=" + 0 +
-                                "&srcDc=" + "srcDc" +
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/columnCheck?" +
+                                "srcDc=" + "srcDc" +
                                 "&mhaName=" + "mhaName" +
                                 "&namespace=" + "；" +
-                                "&name=" + "name")
+                                "&name=" + "name" +
+                                "&column=" + "columnA")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();

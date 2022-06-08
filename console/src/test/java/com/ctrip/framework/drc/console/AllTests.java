@@ -117,7 +117,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
-        RowsFilterServiceImplTest.class,
         // controller
         AccessControllerTest.class,
         BuildControllerTest.class,
@@ -132,6 +131,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         HealthControllerTest.class,
         MonitorControllerTest.class,
         OpenApiControllerTest.class,
+        RowsFilterServiceImplTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,

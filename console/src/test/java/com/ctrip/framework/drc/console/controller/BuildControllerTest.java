@@ -8,13 +8,15 @@ import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -22,6 +24,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 
 
 public class BuildControllerTest extends AbstractControllerTest {
@@ -164,5 +169,58 @@ public class BuildControllerTest extends AbstractControllerTest {
         response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
         System.out.println(response);
+    }
+
+    @Test
+    public void testGetConflictTables() throws Exception {
+        Mockito.when(rowsFilterService.getLogicalTables(
+                Mockito.anyLong(),
+                Mockito.anyLong(),
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString())).thenReturn(Lists.newArrayList("db2\\..*","db1\\.*"));
+        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(),Mockito.anyList())).
+                thenReturn(Lists.newArrayList("conflictTable1"));
+        Map<String, String> consoleDcInfos = Maps.newHashMap();
+        HashSet<String> publicDc = Sets.newHashSet("publicDc");
+        consoleDcInfos.put("publicDc","domain");
+        Mockito.when(consoleConfig.getConsoleDcInfos()).thenReturn(consoleDcInfos);
+        Mockito.when(consoleConfig.getPublicCloudDc()).thenReturn(publicDc);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/dataMedia/conflictCheck?" +
+                                "applierGroupId=" + 0L +
+                                "&dataMediaId=" + 0L +
+                                "&srcDc=" + "notPulicDc" +
+                                "&mhaName=" + "mha1" +
+                                "&namespace=" + "db1" +
+                                "&name=" + ".*" )
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+
+        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.get(Mockito.anyString())).thenReturn(ApiResult.getSuccessInstance(null));
+             mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/dataMedia/conflictCheck?" +
+                                    "applierGroupId=" + 0L +
+                                    "&dataMediaId=" + 0L +
+                                    "&srcDc=" + "publicDc" +
+                                    "&mhaName=" + "mha1" +
+                                    "&namespace=" + "db1" +
+                                    "&name=" + ".*" )
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+             status = mvcResult.getResponse().getStatus();
+             response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        
     }
 }
