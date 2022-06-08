@@ -10,6 +10,8 @@ import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +61,9 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
                     isLoaded = true;
                 }
             } catch (Throwable t) {
-                logger.error("{}.tryLoad() - UNLIKELY for {}", getClass(), gtid, t);
+                ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
+                ByteBuf payloadByteBuf = getPayloadBuf();
+                logger.error("{}.tryLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf), ByteBufUtil.hexDump(payloadByteBuf), t);
             } finally {
                 lock.unlock();
             }
@@ -76,7 +80,9 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
                 isLoaded = true;
             }
         } catch (Throwable t) {
-            logger.error("{}.mustLoad() - UNLIKELY for {}", getClass(), gtid, t);
+            ByteBuf headerByteBuf = getLogEventHeader().getHeaderBuf();
+            ByteBuf payloadByteBuf = getPayloadBuf();
+            logger.error("{}.mustLoad() - UNLIKELY for {}, {}, {}", getClass(), gtid, ByteBufUtil.hexDump(headerByteBuf), ByteBufUtil.hexDump(payloadByteBuf), t);
         } finally {
             lock.unlock();
         }

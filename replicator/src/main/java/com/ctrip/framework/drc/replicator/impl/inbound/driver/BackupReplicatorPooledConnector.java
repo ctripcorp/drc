@@ -22,6 +22,6 @@ public class BackupReplicatorPooledConnector extends ReplicatorPooledConnector {
     }
 
     @Override
-    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) {
+    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, boolean notifyConnectionObserver) {
     }
 }
