@@ -78,7 +78,7 @@ public abstract class AbstractLogEvent implements LogEvent {
         }
 
         if (null != payloadBuf && null != headByteBuf) {
-            ioCache.write(Lists.newArrayList(PooledByteBufAllocator.DEFAULT.compositeDirectBuffer().addComponents(true, headByteBuf, payloadBuf))); // write header and payload
+            ioCache.write(Lists.newArrayList(headByteBuf, payloadBuf)); // write header and payload
         } else {
             throw new IllegalStateException("haven’t init this event, can’t start write.");
         }
