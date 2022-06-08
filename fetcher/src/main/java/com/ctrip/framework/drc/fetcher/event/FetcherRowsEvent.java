@@ -59,7 +59,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
                     isLoaded = true;
                 }
             } catch (Throwable t) {
-                logger.error(getClass() + ".tryLoad() - UNLIKELY", t);
+                logger.error(getClass() + ".tryLoad() - UNLIKELY for {}", gtid, t);
             } finally {
                 lock.unlock();
             }
@@ -76,7 +76,7 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
                 isLoaded = true;
             }
         } catch (Throwable t) {
-            logger.error(getClass() + ".mustLoad() - UNLIKELY", t);
+            logger.error(getClass() + ".mustLoad() - UNLIKELY for {}", gtid, t);
         } finally {
             lock.unlock();
         }
