@@ -48,7 +48,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         Pair<Boolean, Columns> pair;
         LogEventType eventType = value.getEventType();
         AbstractRowsEvent afterRowsEvent = null;
-        AbstractRowsEvent beforeRowsEvent;
+        AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (value.getEventType()) {
@@ -77,6 +77,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         }
                         break;
                 }
+                beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
             }
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
@@ -144,7 +145,6 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         transformMetaAndType(originColumns, columns);
         rowsEvent.load(columns);
 
-        rowsEvent.release();
         return Pair.from(drcTableMap, columns);
     }
 
