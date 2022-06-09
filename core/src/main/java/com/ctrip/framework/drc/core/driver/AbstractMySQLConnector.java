@@ -72,9 +72,14 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     @Override
     public ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool() {
+        return getConnectPool(true);
+    }
+
+    @Override
+    public ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool(boolean notifyConnectionObserver) {
         ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = executorService.submit(() -> {
             try {
-                postProcessSimpleObjectPool(objectPool);
+                postProcessSimpleObjectPool(objectPool, notifyConnectionObserver);
             } catch (Throwable t) {
                 throw t;
             }
@@ -85,7 +90,7 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     protected abstract ChannelHandlerFactory getChannelHandlerFactory();
 
-    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) throws Exception {
+    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, boolean notifyConnectionObserver) throws Exception {
         if (endpoint instanceof ProxyEnabled) {
             NettyClient nettyClient = simpleObjectPool.borrowObject();
             if (nettyClient instanceof AsyncNettyClientWithEndpoint) {

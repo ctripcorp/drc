@@ -32,7 +32,7 @@ public class DeleteRowsEventTest extends AbstractEventTest {
         }
         localDeleteRowsEvent.setRows(filtered);
 
-        DeleteRowsEvent newDeleteRowsEvent = new DeleteRowsEvent(localDeleteRowsEvent, columns);
+        DeleteRowsEvent newDeleteRowsEvent = new FilteredDeleteRowsEvent(localDeleteRowsEvent, columns);
 
         ByteBuf header = newDeleteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
         ByteBuf payload = newDeleteRowsEvent.getPayloadBuf().resetReaderIndex();
@@ -86,7 +86,7 @@ public class DeleteRowsEventTest extends AbstractEventTest {
         String oldPayloadBuf = ByteBufUtil.hexDump(deleteRowsEvent.getPayloadBuf().resetReaderIndex());
         String oldHeaderBuf = ByteBufUtil.hexDump(deleteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
 
-        DeleteRowsEvent newDeleteRowsEvent1 = new DeleteRowsEvent(deleteRowsEvent, columns);
+        DeleteRowsEvent newDeleteRowsEvent1 = new FilteredDeleteRowsEvent(deleteRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newDeleteRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newDeleteRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);

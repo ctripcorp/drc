@@ -117,7 +117,7 @@ public class ReplicatorMasterHandlerTest extends MockTest {
 
         when(channel.isWritable()).thenReturn(true);
         masterHandler.userEventTriggered(channelHandlerContext, idleStateEvent);
-        verify(channelHandlerContext, times(2)).writeAndFlush(any(ByteBuf.class));  // header and body
+        verify(channelHandlerContext, times(1)).writeAndFlush(any(ByteBuf.class));  // event
 
         masterHandler.userEventTriggered(channelHandlerContext, inputShutdownReadComplete);
         verify(channelHandlerContext, times(1)).close();

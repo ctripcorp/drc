@@ -75,6 +75,11 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     protected boolean heartBeat(LogEvent logEvent, LogEventCallBack logEventCallBack) {
         if (logEvent instanceof DrcHeartbeatLogEvent) {
             HEARTBEAT_LOGGER.info("{} - RECEIVED - {}", registryKey, logEvent.getClass().getSimpleName());
+            DrcHeartbeatLogEvent heartbeatLogEvent = (DrcHeartbeatLogEvent) logEvent;
+            if (heartbeatLogEvent.shouldTouchProgress()) {
+                progress.tick();
+                HEARTBEAT_LOGGER.info("{} - Tick - {}", registryKey, logEvent.getClass().getSimpleName());
+            }
             logEventCallBack.onHeartHeat();
             try {
                 logEvent.release();

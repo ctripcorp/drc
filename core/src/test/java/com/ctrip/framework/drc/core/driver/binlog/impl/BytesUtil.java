@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.core.driver.binlog.impl;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.junit.Assert;
 
-import java.util.Objects;
 import java.util.stream.IntStream;
 
 /**

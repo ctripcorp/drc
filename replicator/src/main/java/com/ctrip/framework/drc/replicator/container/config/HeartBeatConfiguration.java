@@ -43,6 +43,6 @@ public class HeartBeatConfiguration extends AbstractConfigBean {
     }
 
     public boolean getHeartBeatSwitch() {
-        return getBooleanProperty(HEARTBEAT_SWITCH, false);
+        return getBooleanProperty(HEARTBEAT_SWITCH, true);
     }
 }

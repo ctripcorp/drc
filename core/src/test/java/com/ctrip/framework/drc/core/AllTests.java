@@ -87,7 +87,6 @@ import org.junit.runners.Suite;
 
         // impl package
         AbstractLogEventTest.class,
-        AbstractRowsEventTest.class,
         DeleteRowsEventTest.class,
         DrcErrorLogEventTest.class,
         DrcHeartbeatLogEventTest.class,

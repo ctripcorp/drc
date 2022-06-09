@@ -89,7 +89,7 @@ public class ReplicatorPooledConnectorTest extends MockTest {
         when(channel.attr(NettyClientFactory.KEY_CLIENT)).thenReturn(attributeKey);
         when(attributeKey.get()).thenReturn(nettyClientWithEndpoint);
         when(nettyClientWithEndpoint.getCountDownLatch()).thenReturn(countDownLatch);
-        replicatorPooledConnector.postProcessSimpleObjectPool(simpleObjectPool);
+        replicatorPooledConnector.postProcessSimpleObjectPool(simpleObjectPool, true);
         verify(simpleObjectPool, times(1)).returnObject(nettyClient);
     }
 
@@ -102,7 +102,7 @@ public class ReplicatorPooledConnectorTest extends MockTest {
         when(channel.attr(NettyClientFactory.KEY_CLIENT)).thenReturn(attributeKey);
         when(attributeKey.get()).thenReturn(nettyClientWithEndpoint);
         when(nettyClientWithEndpoint.getCountDownLatch()).thenReturn(countDownLatch);
-        replicatorPooledConnector.postProcessSimpleObjectPool(simpleObjectPool);
+        replicatorPooledConnector.postProcessSimpleObjectPool(simpleObjectPool, true);
         verify(simpleObjectPool, times(1)).returnObject(nettyClient);
     }
 

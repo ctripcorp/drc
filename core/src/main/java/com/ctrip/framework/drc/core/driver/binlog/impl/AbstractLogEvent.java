@@ -13,6 +13,7 @@ import io.netty.util.AsciiString;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.util.BitSet;
+import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.NULL_TERMINATED_STRING_DELIMITER;
@@ -78,10 +79,14 @@ public abstract class AbstractLogEvent implements LogEvent {
         }
 
         if (null != payloadBuf && null != headByteBuf) {
-            ioCache.write(Lists.newArrayList(headByteBuf, payloadBuf)); // write header and payload
+            ioCache.write(getEventByteBuf(headByteBuf, payloadBuf)); // write header and payload
         } else {
             throw new IllegalStateException("haven’t init this event, can’t start write.");
         }
+    }
+
+    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
+        return Lists.newArrayList(headByteBuf, payloadBuf);
     }
 
     @Override

@@ -48,7 +48,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         Pair<Boolean, Columns> pair;
         LogEventType eventType = value.getEventType();
         AbstractRowsEvent afterRowsEvent = null;
-        AbstractRowsEvent beforeRowsEvent;
+        AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (value.getEventType()) {
@@ -57,7 +57,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new WriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case update_rows_event_v2:
@@ -65,7 +65,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new UpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case delete_rows_event_v2:
@@ -73,7 +73,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new DeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                 }
@@ -81,7 +81,12 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
             value.setCause(e);
+        } finally {
+            if (beforeRowsEvent != null) {
+                beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
+            }
         }
+        
         value.setNoRowFiltered(noRowFiltered);
         if (!noRowFiltered) {
             value.setRowsEvent(afterRowsEvent);
@@ -144,7 +149,6 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         transformMetaAndType(originColumns, columns);
         rowsEvent.load(columns);
 
-        rowsEvent.release();
         return Pair.from(drcTableMap, columns);
     }
 

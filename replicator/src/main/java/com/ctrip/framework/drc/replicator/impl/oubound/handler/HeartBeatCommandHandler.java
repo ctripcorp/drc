@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent.APPLIER_TOUCH_PROGRESS;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_IDLE_TIMEOUT_SECOND;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 
@@ -126,7 +127,9 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
             HEARTBEAT_LOGGER.info("[HeartBeat] shot cut for {}:{}", channel.remoteAddress(), registerKey);
             return;
         }
-        DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0);
+
+        int flags = shouldTouchProgress(channel) ? APPLIER_TOUCH_PROGRESS : 0;
+        DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0, flags);
         drcHeartbeatLogEvent.write(new IoCache() {
             @Override
             public void write(byte[] data) {
@@ -170,6 +173,10 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
     private boolean shouldHeartBeat(Channel channel) {
         return channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get().isHeartBeat();
+    }
+
+    private boolean shouldTouchProgress(Channel channel) {
+        return channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get().isTouchProgress();
     }
 
     private void removeHeartBeatContext(Channel channel) {

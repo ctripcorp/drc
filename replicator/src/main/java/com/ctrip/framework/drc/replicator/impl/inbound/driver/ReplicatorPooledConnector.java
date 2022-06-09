@@ -32,7 +32,7 @@ public class ReplicatorPooledConnector extends AbstractMySQLConnector implements
     }
 
     @Override
-    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) throws Exception {
+    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, boolean notifyConnectionObserver) throws Exception {
         NettyClient nettyClient = simpleObjectPool.borrowObject();
         NettyClientWithEndpoint nettyClientWithEndpoint = nettyClient.channel().attr(NettyClientFactory.KEY_CLIENT).get();
         CountDownLatch countDownLatch = nettyClientWithEndpoint.getCountDownLatch();
@@ -44,9 +44,11 @@ public class ReplicatorPooledConnector extends AbstractMySQLConnector implements
         }
         logger.info("Finish [AUTHENTICATION] for {}", endpoint);
         simpleObjectPool.returnObject(nettyClient);
-        for (Observer observer : connectionListeners) {
-            if (observer instanceof ConnectionObserver) {
-                observer.update(simpleObjectPool, this);
+        if (notifyConnectionObserver) {
+            for (Observer observer : connectionListeners) {
+                if (observer instanceof ConnectionObserver) {
+                    observer.update(simpleObjectPool, this);
+                }
             }
         }
     }

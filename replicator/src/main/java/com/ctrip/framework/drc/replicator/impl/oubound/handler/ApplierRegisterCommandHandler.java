@@ -171,6 +171,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
+        private ChannelAttributeKey channelAttributeKey;
+
         private Filter<OutboundLogEventContext> filterChain;
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
@@ -183,7 +185,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             this.ip = ip;
             logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
-            ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
                 HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
@@ -382,8 +384,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     Pair<Boolean, String> res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
                     in_exclude_group = res.getKey();
                     gtidForLog = res.getValue();
+                    channelAttributeKey.handleEvent(false);
                 } else {
                     gtidForLog = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf);
+                    channelAttributeKey.handleEvent(true);
                 }
 
                 releaseCompositeByteBuf(eventPair.getValue());

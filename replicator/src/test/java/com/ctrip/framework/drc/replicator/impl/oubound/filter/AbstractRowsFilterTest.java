@@ -53,7 +53,7 @@ public abstract class AbstractRowsFilterTest extends MockTest {
 
     protected File rbinlog;
 
-    protected OutboundLogEventContext outboundLogEventContext;
+    protected OutboundLogEventContext  outboundLogEventContext;
 
     protected LogEventType logEventType;
 
@@ -135,8 +135,8 @@ public abstract class AbstractRowsFilterTest extends MockTest {
      * insert into insert1(`three`,`four`) values("1","2"),("3","4"),("5","6");
      */
     protected ByteBuf writeRowsEvent() {
-        String hexString = "45 8d 67 62 1e 64 00 00 00 6e 00 00 00 c6 53 00 00 00 00" +
-                "6c 00 00 00 00 00 01 00 02 00 06 ff c0 12 00 00" +
+        String hexString = "45 8d 67 62 1e 64 00 00 00 6f 00 00 00 c6 53 00 00 00 00" +
+                "6c 00 00 00 00 00 01 00 03 00 00 06 ff c0 12 00 00" +
                 "00 03 6f 6e 65 03 00 74 77 6f 01 31 01 00 32 62" +
                 "67 8d 45 15 ea c0 14 00 00 00 03 6f 6e 65 03 00" +
                 "74 77 6f 01 33 01 00 34 62 67 8d 45 15 ea c0 16" +

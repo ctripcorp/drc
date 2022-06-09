@@ -313,7 +313,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(100);
-        verify(channel, Mockito.times(2)).writeAndFlush(any(ByteBuf.class)); //can not find first file and send DrcErrorLogEvent(header and body)
+        verify(channel, Mockito.times(1)).writeAndFlush(any(ByteBuf.class)); //can not find first file and send DrcErrorLogEvent(event)
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
