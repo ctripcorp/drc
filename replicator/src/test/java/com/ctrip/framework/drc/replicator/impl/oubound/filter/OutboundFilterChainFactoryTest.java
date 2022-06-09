@@ -160,7 +160,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
-        verify(channelFuture, times(4)).addListener(any(GenericFutureListener.class)); // header and payload
+        verify(channelFuture, times(2)).addListener(any(GenericFutureListener.class)); // event
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;
@@ -180,7 +180,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
         Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
-        verify(channelFuture, times(6)).addListener(any(GenericFutureListener.class)); // header and payload
+        verify(channelFuture, times(3)).addListener(any(GenericFutureListener.class)); // event
 
         fileChannel.position(currentPosition);
         previousPosition = currentPosition;

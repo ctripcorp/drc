@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBufAllocator;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_error_log_event;
@@ -18,7 +19,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
  * Created by mingdongli
  * 2019/10/23 上午9:27.
  */
-public class DrcErrorLogEvent extends AbstractLogEvent {
+public class DrcErrorLogEvent extends AbstractLogEvent implements LogEventMerger {
 
     public int errorNumber;
 
@@ -59,6 +60,11 @@ public class DrcErrorLogEvent extends AbstractLogEvent {
     @Override
     public void write(IoCache ioCache) {
         super.write(ioCache);
+    }
+
+    @Override
+    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
+        return mergeByteBuf(headByteBuf, payloadBuf);
     }
 
     private byte[] toBytes() {

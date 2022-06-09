@@ -57,7 +57,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new WriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case update_rows_event_v2:
@@ -65,7 +65,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new UpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case delete_rows_event_v2:
@@ -73,7 +73,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            afterRowsEvent = new DeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
+                            afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                 }

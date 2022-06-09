@@ -10,9 +10,15 @@ import java.util.Objects;
  */
 public class ChannelAttributeKey {
 
+    public static final long NO_SKIP_EVENT = 0;
+
     private Gate gate;
 
     private boolean heartBeat;
+
+    private long firstSkipEventTime;
+
+    private long skipCountInARow = 0;
 
     public ChannelAttributeKey(Gate gate) {
         this(gate, true);
@@ -21,6 +27,7 @@ public class ChannelAttributeKey {
     public ChannelAttributeKey(Gate gate, boolean heartBeat) {
         this.gate = gate;
         this.heartBeat = heartBeat;
+        this.firstSkipEventTime = NO_SKIP_EVENT;
     }
 
     public Gate getGate() {
@@ -37,6 +44,25 @@ public class ChannelAttributeKey {
 
     public void setHeartBeat(boolean heartBeat) {
         this.heartBeat = heartBeat;
+    }
+
+    public void handleEvent(boolean send) {
+        if (send) {
+            firstSkipEventTime = NO_SKIP_EVENT;
+            skipCountInARow = 0;
+        } else {
+            if (firstSkipEventTime == NO_SKIP_EVENT) {
+                firstSkipEventTime = System.currentTimeMillis();
+            }
+            skipCountInARow++;
+        }
+    }
+
+    public boolean isTouchProgress() {
+        if (firstSkipEventTime == NO_SKIP_EVENT) {
+            return false;
+        }
+        return skipCountInARow / ((System.currentTimeMillis() - firstSkipEventTime) / 1000 + 1) >= 1; // greater or equal than 1 count/s
     }
 
     @Override
@@ -59,6 +85,8 @@ public class ChannelAttributeKey {
         return "ChannelAttributeKey{" +
                 "gate=" + gate +
                 ", heartBeat=" + heartBeat +
+                ", firstSkipEventTime=" + firstSkipEventTime +
+                ", skipCountInARow=" + skipCountInARow +
                 '}';
     }
 }

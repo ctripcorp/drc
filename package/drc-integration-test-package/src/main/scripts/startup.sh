@@ -29,7 +29,7 @@ function getTotalMem() {
 function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=70
-    MAX_MEM=20
+    MAX_MEM=60
     result=`expr $total \* $SAFE_PERCENT / 100`
     if [ "$result" -gt "$MAX_MEM" ]
     then

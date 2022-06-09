@@ -32,7 +32,7 @@ public class UpdateRowsEventTest extends AbstractEventTest {
         }
         localUpdateRowsEvent.setRows(filtered);
 
-        UpdateRowsEvent newUpdateRowsEvent = new UpdateRowsEvent(localUpdateRowsEvent, columns);
+        UpdateRowsEvent newUpdateRowsEvent = new FilteredUpdateRowsEvent(localUpdateRowsEvent, columns);
 
         ByteBuf header = newUpdateRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
         ByteBuf payload = newUpdateRowsEvent.getPayloadBuf().resetReaderIndex();
@@ -86,7 +86,7 @@ public class UpdateRowsEventTest extends AbstractEventTest {
         String oldPayloadBuf = ByteBufUtil.hexDump(updateRowsEvent.getPayloadBuf().resetReaderIndex());
         String oldHeaderBuf = ByteBufUtil.hexDump(updateRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
 
-        UpdateRowsEvent newUpdateRowsEvent1 = new UpdateRowsEvent(updateRowsEvent, columns);
+        UpdateRowsEvent newUpdateRowsEvent1 = new FilteredUpdateRowsEvent(updateRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newUpdateRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);
