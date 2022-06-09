@@ -23,7 +23,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
     @Override
     public void dump(DumpCallBack callBack) {
 
-        ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool(false);
+        ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
         Futures.addCallback(listenableFuture, new FutureCallback<>() {
             @Override
             public void onSuccess(SimpleObjectPool<NettyClient> result) {
