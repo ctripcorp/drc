@@ -5,11 +5,13 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.GenericFutureListener;
 
 import java.util.Collection;
+import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 
@@ -48,9 +50,18 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
             @Override
             public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    byteBuf.readerIndex(0);
-                    ChannelFuture future = channel.writeAndFlush(byteBuf);
+                List<ByteBuf> bufs = (List<ByteBuf>) byteBufs;
+                int bufSize = bufs.size();
+                for (int i = 0; i < bufSize; i += 2) {
+                    bufs.get(i).readerIndex(0);
+                    ByteBuf send;
+                    if (i + 1 < bufSize) {
+                        bufs.get(i + 1).readerIndex(0);
+                        send = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer().addComponents(true, bufs.get(i), bufs.get(i + 1));
+                    } else {
+                        send = bufs.get(i);
+                    }
+                    ChannelFuture future = channel.writeAndFlush(send);
                     future.addListener((GenericFutureListener) f -> {
                         if (!f.isSuccess()) {
                             channel.close();
