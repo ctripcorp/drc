@@ -72,7 +72,7 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     @Override
     public ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool() {
-        return getConnectPool(false);
+        return getConnectPool(true);
     }
 
     @Override

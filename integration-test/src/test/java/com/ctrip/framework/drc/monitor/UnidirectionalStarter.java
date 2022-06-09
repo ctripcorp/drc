@@ -12,7 +12,7 @@ import org.junit.Test;
  *
  *  my.cnf is placed in src/my.cnf and dst/my.cnf respectively
  *
- *  docker ps -a | awk '{print $1}' | grep -v CONTAINER | grep -v 13306 | xargs docker rm -f
+ *  docker ps -a | grep mysql | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f
  *  to stop all containers
  *  docker volume prune
  * Created by mingdongli
@@ -24,7 +24,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
     @Before
     public void setUp() {
         super.setUp();
-        unidirectionalReplicateModule.setImage("mysql:5.7.22");
+//        unidirectionalReplicateModule.setImage("mysql:5.7.22");
     }
 
     @Test

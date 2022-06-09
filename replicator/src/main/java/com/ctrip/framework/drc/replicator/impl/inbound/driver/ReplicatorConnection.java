@@ -280,7 +280,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
 
         @Override
         public Boolean call() throws Exception {
-            ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
+            ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool(true);
             SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
             currentUuid = fetchServerUuid(simpleObjectPool);
             if (StringUtils.isNotBlank(currentUuid)) {
