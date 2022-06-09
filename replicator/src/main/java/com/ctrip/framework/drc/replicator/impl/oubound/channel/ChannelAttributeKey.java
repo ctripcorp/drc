@@ -62,7 +62,7 @@ public class ChannelAttributeKey {
         if (firstSkipEventTime == NO_SKIP_EVENT) {
             return false;
         }
-        return skipCountInARow / ((System.currentTimeMillis() - firstSkipEventTime) / 1000 + 1) >= 1; // greater or equal than 1 count/s
+        return skipCountInARow / ((System.currentTimeMillis() - firstSkipEventTime) / 1000 + 1) >= 1; // greater than or equal 1 count/s
     }
 
     @Override
