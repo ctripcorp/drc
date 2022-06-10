@@ -9,16 +9,15 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -56,8 +55,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
 import static com.ctrip.framework.drc.core.server.common.EventReader.releaseCompositeByteBuf;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_PREFIX;
 
@@ -253,7 +251,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File blankUuidSets() {
-            if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
+            if (INTEGRITY_TEST_BOOLEAN) {
                 return fileManager.getFirstLogFile();
             } else {
                 resultCode = ResultCode.APPLIER_GTID_ERROR;
