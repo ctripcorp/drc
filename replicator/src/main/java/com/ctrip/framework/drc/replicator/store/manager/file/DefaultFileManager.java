@@ -561,31 +561,27 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         }
     }
 
-    private void writeSchema() {
-        try {
-            Map<String, Map<String, String>> snapshot = schemaManager.snapshot();
-            if (snapshot.isEmpty()) {
-                logger.error("[Schema] is empty, fatal error");
-                DefaultEventMonitorHolder.getInstance().logAlertEvent("Empty Schema");
-                throw new IllegalStateException("Empty schema");
-            }
-            for (Map.Entry<String, Map<String, String>> entry : snapshot.entrySet()) {
-                String dbName = entry.getKey();
-                Map<String, String> tables = entry.getValue();
-                for (Map.Entry<String, String> table : tables.entrySet()) {
-                    TableInfo tableInfo = schemaManager.find(dbName, table.getKey());
-                    if (tableInfo != null) {
-                        schemaManager.persistColumnInfo(tableInfo, true);
-                    }
+    private void writeSchema() throws IOException {
+        Map<String, Map<String, String>> snapshot = schemaManager.snapshot();
+        if (snapshot.isEmpty()) {
+            logger.error("[Schema] is empty, fatal error for {}", registryKey);
+            DefaultEventMonitorHolder.getInstance().logAlertEvent("Empty Schema");
+            throw new IllegalStateException("Empty schema");
+        }
+        for (Map.Entry<String, Map<String, String>> entry : snapshot.entrySet()) {
+            String dbName = entry.getKey();
+            Map<String, String> tables = entry.getValue();
+            for (Map.Entry<String, String> table : tables.entrySet()) {
+                TableInfo tableInfo = schemaManager.find(dbName, table.getKey());
+                if (tableInfo != null) {
+                    schemaManager.persistColumnInfo(tableInfo, true);
                 }
             }
-
-            DrcSchemaSnapshotLogEvent schemaSnapshotLogEvent = new DrcSchemaSnapshotLogEvent(snapshot, 0 , logChannel.position());
-            doWriteLogEvent(schemaSnapshotLogEvent);
-            logger.info("[Persist] drc schema log event for {}", registryKey);
-        } catch (Exception e) {
-            logger.error("writeSchema error", e);
         }
+
+        DrcSchemaSnapshotLogEvent schemaSnapshotLogEvent = new DrcSchemaSnapshotLogEvent(snapshot, 0 , logChannel.position());
+        doWriteLogEvent(schemaSnapshotLogEvent);
+        logger.info("[Persist] drc schema log event for {}", registryKey);
     }
 
     private void checkIndices(boolean append, boolean bigTransaction) {  //write previous event and index event

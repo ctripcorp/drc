@@ -14,7 +14,8 @@ public class BackupMySQLSchemaManager extends MySQLSchemaManager {
     }
 
     @Override
-    public void clone(Endpoint endpoint) {
+    public boolean clone(Endpoint endpoint) {
         // nothing to be done
+        return true;
     }
 }

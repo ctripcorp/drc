@@ -5,10 +5,10 @@ import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPool;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ProxyEnabled;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
-import com.ctrip.xpipe.concurrent.NamedThreadFactory;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.netty.commands.NettyClient;
@@ -20,7 +20,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+
+import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
  * Created by mingdongli
@@ -28,20 +30,24 @@ import java.util.concurrent.Executors;
  */
 public abstract class AbstractMySQLConnector extends AbstractLifecycle implements MySQLConnector {
 
+    public static final String THREAD_NAME_PREFIX = "SimpleObjectPool-Connector";
+
     protected List<Observer> connectionListeners = Lists.newCopyOnWriteArrayList();
 
     protected Endpoint endpoint;
 
+    protected String threadNamePostfix;
+
     private SimpleObjectPool<NettyClient> objectPool;
 
-    private ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool(new NamedThreadFactory("SimpleObjectPool-Connector")));
+    private ListeningExecutorService executorService;
 
     public AbstractMySQLConnector(Endpoint endpoint) {
         this.endpoint = endpoint;
-        String dst = endpoint.getSocketAddress().toString();
-        NettyClientFactory nettyClientFactory = getNettyClientFactory(getModuleName() + "-" + dst.replaceAll("/", ""), autoRead());
+        this.threadNamePostfix = endpoint.getSocketAddress().toString().replaceAll("/", "");
+        NettyClientFactory nettyClientFactory = getNettyClientFactory(getThreadName(getModuleName(), threadNamePostfix), autoRead());
         nettyClientFactory.setHandlerFactory(getChannelHandlerFactory());
-        objectPool = new DrcNettyClientPool(endpoint, nettyClientFactory);
+        this.objectPool = new DrcNettyClientPool(endpoint, nettyClientFactory);
     }
 
     protected NettyClientFactory getNettyClientFactory(String threadPrefix, boolean autoRead) {
@@ -50,6 +56,7 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     @Override
     protected void doInitialize() throws Exception {
+        executorService = MoreExecutors.listeningDecorator(getExecutorService());
         LifecycleHelper.initializeIfPossible(objectPool);
     }
 
@@ -72,14 +79,9 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     @Override
     public ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool() {
-        return getConnectPool(true);
-    }
-
-    @Override
-    public ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool(boolean notifyConnectionObserver) {
         ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = executorService.submit(() -> {
             try {
-                postProcessSimpleObjectPool(objectPool, notifyConnectionObserver);
+                postProcessSimpleObjectPool(objectPool);
             } catch (Throwable t) {
                 throw t;
             }
@@ -90,7 +92,11 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     protected abstract ChannelHandlerFactory getChannelHandlerFactory();
 
-    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool, boolean notifyConnectionObserver) throws Exception {
+    protected ExecutorService getExecutorService() {
+        return ThreadUtils.newCachedThreadPool(getThreadName(THREAD_NAME_PREFIX, threadNamePostfix));
+    }
+
+    protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) throws Exception {
         if (endpoint instanceof ProxyEnabled) {
             NettyClient nettyClient = simpleObjectPool.borrowObject();
             if (nettyClient instanceof AsyncNettyClientWithEndpoint) {

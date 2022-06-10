@@ -30,6 +30,8 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang3.StringUtils;
 
@@ -279,35 +281,43 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
     class UuidFetchTask implements NamedCallable<Boolean> {
 
         @Override
-        public Boolean call() throws Exception {
+        public Boolean call() {
             ListenableFuture<SimpleObjectPool<NettyClient>> listenableFuture = connector.getConnectPool();
-            SimpleObjectPool<NettyClient> simpleObjectPool = listenableFuture.get(10, TimeUnit.SECONDS);
-            currentUuid = fetchServerUuid(simpleObjectPool);
-            if (StringUtils.isNotBlank(currentUuid)) {
-                Set<String> previousUuids = gtidManager.getUuids();
-                boolean added = previousUuids.add(currentUuid);
-                logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
-                if (added) {
-                    gtidManager.setUuids(previousUuids);
-                    Set<UUID> uuidSet = Sets.newHashSet();
-                    previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
-                    mySQLSlaveConfig.setUuidSet(uuidSet);
-                    for (Observer observer : observers) {
-                        if (observer instanceof UuidObserver) {
-                            observer.update(uuidSet, ReplicatorConnection.this);
+            Futures.addCallback(listenableFuture, new FutureCallback<>() {
+                @Override
+                public void onSuccess(SimpleObjectPool<NettyClient> simpleObjectPool) {
+                    currentUuid = fetchServerUuid(simpleObjectPool);
+                    if (StringUtils.isNotBlank(currentUuid)) {
+                        Set<String> previousUuids = gtidManager.getUuids();
+                        boolean added = previousUuids.add(currentUuid);
+                        logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);
+                        if (added) {
+                            gtidManager.setUuids(previousUuids);
+                            Set<UUID> uuidSet = Sets.newHashSet();
+                            previousUuids.stream().forEach(id -> uuidSet.add(UUID.fromString(id)));
+                            mySQLSlaveConfig.setUuidSet(uuidSet);
+                            for (Observer observer : observers) {
+                                if (observer instanceof UuidObserver) {
+                                    observer.update(uuidSet, ReplicatorConnection.this);
+                                }
+                            }
+                            logger.info("update [WHITE UUID] set to {}", uuidSet);
                         }
                     }
-                    logger.info("update [WHITE UUID] set to {}", uuidSet);
+
+                    if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
+                        EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
+                        GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
+                        mySQLSlaveConfig.setGtidSet(gtidSet);
+                        gtidManager.updateExecutedGtids(gtidSet);
+                    }
                 }
-            }
 
-            if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
-                EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
-                GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
-                mySQLSlaveConfig.setGtidSet(gtidSet);
-                gtidManager.updateExecutedGtids(gtidSet);
-            }
-
+                @Override
+                public void onFailure(Throwable t) {
+                    logger.error("[fetchServerUuid] fetchServerUuid error", t);
+                }
+            });
             return true;
         }
 
