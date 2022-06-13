@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
@@ -79,4 +80,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
         return trafficEntity.getClusterName();
     }
 
+    @VisibleForTesting
+    public Map<TableKey, RowsFilterEntity> getRowsFilterEntityMap() {
+        return rowsFilterEntityMap;
+    }
 }
