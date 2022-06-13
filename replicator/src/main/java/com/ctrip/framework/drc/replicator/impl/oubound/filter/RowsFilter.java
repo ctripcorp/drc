@@ -127,7 +127,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 rowsEvent.setRows(rows);
                 afterSize = rows.size();
                 int filterNum = beforeSize - afterSize;
-                ROWS_FILTER_LOGGER.info("[Filter] {} rows of table {}.{} within transaction {} for {}", filterNum, schemaName, table, value.getGtid(), registryKey);
+                ROWS_FILTER_LOGGER.info("[Filter] {}/{} rows of table {}.{} within transaction {} for {}", filterNum, beforeSize, schemaName, table, value.getGtid(), registryKey);
             }
         }
         outboundMonitorReport.updateFilteredRows(schemaName, table, beforeSize, afterSize);
