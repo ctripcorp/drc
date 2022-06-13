@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ResultSetPacket;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObservable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverter;
@@ -41,6 +40,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.INTEGRITY_TEST_BOOLEAN;
 
 /**
  * Created by mingdongli
@@ -305,7 +306,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
                         }
                     }
 
-                    if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
+                    if (INTEGRITY_TEST_BOOLEAN) {
                         EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
                         GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
                         mySQLSlaveConfig.setGtidSet(gtidSet);

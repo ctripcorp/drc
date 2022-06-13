@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.unknown_log_event;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.INTEGRITY_TEST_BOOLEAN;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.REPLICATOR_FILE_FIRST;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST;
 
@@ -566,6 +567,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         if (snapshot.isEmpty()) {
             logger.error("[Schema] is empty, fatal error for {}", registryKey);
             DefaultEventMonitorHolder.getInstance().logAlertEvent("Empty Schema");
+            if (INTEGRITY_TEST_BOOLEAN) {
+                return;
+            }
             throw new IllegalStateException("Empty schema");
         }
         for (Map.Entry<String, Map<String, String>> entry : snapshot.entrySet()) {
