@@ -340,14 +340,6 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         Assert.assertEquals(previousLength - currentLength, eventHeaderLengthVersionGt1);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testBrokenXidHeader() throws Exception {
-        writeTransactionThroughTransactionCache();
-        ByteBuf byteBuf = getBrokenXidEventHeader();
-        fileManager.append(byteBuf);
-        fileManager.getExecutedGtids();  //会truncate
-    }
-
     @Test
     public void testRowsEventHeader() throws Exception {
         writeTransactionThroughTransactionCache();
