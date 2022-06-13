@@ -98,6 +98,26 @@ public abstract class AbstractEventTest extends AbstractZkTest {
         return byteBuf;
     }
 
+    protected ByteBuf getPartialGtidEventHearder() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[] {
+                (byte) 0x7e, (byte) 0x6b, (byte) 0x78, (byte) 0x5d, (byte) 0x21, (byte) 0x01, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x41, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x9e, (byte) 0x2e, (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
+
+    protected ByteBuf getPartialMinimalRowsEventByteBuf() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(16);
+        byte[] bytes = new byte[]{
+                (byte) 0x91, (byte) 0x5d, (byte) 0x7e, (byte) 0x5d, (byte) 0x1e, (byte) 0x01, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x31, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xbd, (byte) 0x06, (byte) 0x00
+        };
+        byteBuf.writeBytes(bytes);
+        return byteBuf;
+    }
+
     protected ByteBuf getPartialGtidEvent() {  //0x43  67
         final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(65);
         byte[] bytes = new byte[] {

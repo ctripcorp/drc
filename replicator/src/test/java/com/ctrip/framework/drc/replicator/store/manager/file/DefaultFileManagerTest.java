@@ -76,6 +76,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
@@ -101,6 +102,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         fileManager.stop();
         fileManager.dispose();
         fileManager.destroy();
@@ -183,7 +185,7 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
     }
 
     @Test
-    public void testTruncate() throws Exception {
+    public void testTruncatePayload() throws Exception {
         List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
         if (files == null || files.isEmpty()) {
             writeTransactionThroughTransactionCache();
@@ -200,6 +202,84 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         writeTransactionThroughTransactionCache();
         writePartialTransactionThroughTransactionCache();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        File after = fileManager.getCurrentLogFile();
+        String afterName = "";
+        if (after != null) {
+            afterName = after.getName();
+        }
+
+        if (!afterName.equalsIgnoreCase(beforeName)) {
+            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
+        }
+
+        logger.info("after size is {} {}", afterSize,fileManager.getCurrentLogFile().getName());
+
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        Assert.assertEquals(gtidSet.add(GTID), false);
+        Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
+    }
+
+    @Test
+    public void testTruncateGtidHeader() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //会truncate
+        int beforeSize = getTotalSize();
+
+        File before = fileManager.getCurrentLogFile();
+        String beforeName = "";
+        if (before != null) {
+            beforeName = before.getName();
+        }
+
+        writeTransactionThroughTransactionCache();
+        writePartialGtidHeaderThroughFileManager();
+
+        GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
+        int afterSize = getTotalSize();
+
+        File after = fileManager.getCurrentLogFile();
+        String afterName = "";
+        if (after != null) {
+            afterName = after.getName();
+        }
+
+        if (!afterName.equalsIgnoreCase(beforeName)) {
+            beforeSize = beforeSize + LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE;
+        }
+
+        logger.info("after size is {} {}", afterSize,fileManager.getCurrentLogFile().getName());
+
+        Assert.assertEquals(beforeSize, afterSize - ((GTID_ZISE + 4) + TABLE_MAP_SIZE + WRITE_ROW_SIZE + XID_ZISE));
+        Assert.assertEquals(gtidSet.add(GTID), false);
+        Assert.assertEquals(gtidSet.add(TRUNCATED_GTID), true);
+    }
+
+    @Test
+    public void testTruncateNotGtidHeader() throws Exception {
+        List<File> files = FileUtil.sortDataDir(fileManager.getDataDir().listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        if (files == null || files.isEmpty()) {
+            writeTransactionThroughTransactionCache();
+        }
+
+        fileManager.getExecutedGtids();  //会truncate
+        int beforeSize = getTotalSize();
+
+        File before = fileManager.getCurrentLogFile();
+        String beforeName = "";
+        if (before != null) {
+            beforeName = before.getName();
+        }
+
+        writeTransactionThroughTransactionCache();
+        writePartialNotGtidHeaderThroughFileManager();
 
         GtidSet gtidSet = fileManager.getExecutedGtids();  //should truncate
         int afterSize = getTotalSize();
@@ -443,5 +523,25 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         transactionCache.add(tableMapLogEvent);
 
         transactionCache.flush();
+    }
+
+    private void writePartialGtidHeaderThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getPartialGtidEventHearder();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+    }
+
+    private void writePartialNotGtidHeaderThroughFileManager() throws Exception {
+        ByteBuf byteBuf = getGtidEvent();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+
+        byteBuf = getCharsetTypeTableMapEvent();
+        fileManager.append(byteBuf);
+        byteBuf.release();
+
+        byteBuf = getPartialMinimalRowsEventByteBuf();
+        fileManager.append(byteBuf);
+        byteBuf.release();
     }
 }

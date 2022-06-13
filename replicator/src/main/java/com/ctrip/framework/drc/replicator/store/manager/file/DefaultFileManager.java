@@ -332,7 +332,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 ByteBuf headerByteBuf = headerContent.getKey();
                 int headerSize = headerContent.getValue();
                 if (eventHeaderLengthVersionGt1 != headerSize) {
-                    throw new IllegalStateException("Header read size is " + headerSize);
+                    logger.error("Header read size is {} for {}", headerSize, registryKey);
+                    if (truncatePosition == TRUNCATE_FLAG) {
+                        truncatePosition = fileChannel.position() - headerSize;
+                        logger.info("[TruncatePosition] set to {} for {} due to corrupted gtid header", truncatePosition, file.getName(), truncatePosition);
+                    } else {
+                        logger.info("[TruncatePosition] set to {} for {} due to corrupted header", truncatePosition, file.getName(), truncatePosition);
+                    }
+                    break;
                 }
 
                 CompositeByteBuf compositeByteBuf;
