@@ -171,5 +171,45 @@ public class LocalControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
+
+
+    @Test
+    public void testGetRealExecutedGtid()  {
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            MySqlEndpoint mySqlEndpoint = new MySqlEndpoint("ip", 3306, "usr", "psw", true);
+            theMock.when(() -> MySqlUtils.getUnionExecutedGtid(Mockito.any())).thenReturn("GtidSetString");
+            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/gtid?" +
+                                    "mha=" + "mha1" +
+                                    "&ip=" + "ip1" +
+                                    "&port=" + 3306 +
+                                    "&user=" + "usr" +
+                                    "&psw=" + "psw")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            int status = mvcResult.getResponse().getStatus();
+            String response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+
+            theMock.when(() -> MySqlUtils.getUnionExecutedGtid(Mockito.any())).
+                    thenReturn(null);
+             mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/gtid?" +
+                                    "mha=" + "mha1" +
+                                    "&ip=" + "ip1" +
+                                    "&port=" + 3306 +
+                                    "&user=" + "usr" +
+                                    "&psw=" + "psw")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+             status = mvcResult.getResponse().getStatus();
+             response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     
 }

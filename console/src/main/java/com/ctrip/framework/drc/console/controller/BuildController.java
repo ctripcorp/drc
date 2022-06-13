@@ -2,20 +2,17 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
-import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -256,6 +253,7 @@ public class BuildController {
             @RequestParam String column) {
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        column = column.toLowerCase();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
             String url = dcDomain + "/api/drc/v1/local/dataMedia/columnCheck?" +
