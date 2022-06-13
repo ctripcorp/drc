@@ -201,7 +201,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     OutboundFilterChainContext.from(
                             this.channel,
                             this.consumeType,
-                            dataMediaConfig
+                            dataMediaConfig,
+                            outboundMonitorReport
                     )
             );
         }

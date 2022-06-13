@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
@@ -35,11 +35,14 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private DataMediaManager dataMediaManager;
 
+    private OutboundMonitorReport outboundMonitorReport;
+
     private RowsFilterContext rowsFilterContext = new RowsFilterContext();
 
-    public RowsFilter(DataMediaConfig dataMediaConfig) {
+    public RowsFilter(DataMediaConfig dataMediaConfig, OutboundMonitorReport outboundMonitorReport) {
         this.registryKey = dataMediaConfig.getRegistryKey();
         this.dataMediaManager = new DataMediaManager(dataMediaConfig);
+        this.outboundMonitorReport = outboundMonitorReport;
     }
 
     @Override
@@ -105,7 +108,9 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     private Pair<Boolean, Columns> handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
         Pair<TableMapLogEvent, Columns> pair = loadEvent(fileChannel, rowsEvent, value);
         int beforeSize = rowsEvent.getRows().size();
+        int afterSize = beforeSize;
         TableMapLogEvent drcTableMap = pair.getKey();
+        String table = drcTableMap.getTableName();
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMap);
 
         String schemaName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaName();
@@ -117,18 +122,15 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {
-            int afterSize;
             List<AbstractRowsEvent.Row> rows = rowsFilterResult.getRes();
             if (rows != null) {
                 rowsEvent.setRows(rows);
                 afterSize = rows.size();
                 int filterNum = beforeSize - afterSize;
-                String table = drcTableMap.getSchemaNameDotTableName();
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", table);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", table, filterNum);
-                ROWS_FILTER_LOGGER.info("[Filter] {} rows of table {} within transaction {} for {}", filterNum, table, value.getGtid(), registryKey);
+                ROWS_FILTER_LOGGER.info("[Filter] {} rows of table {}.{} within transaction {} for {}", filterNum, schemaName, table, value.getGtid(), registryKey);
             }
         }
+        outboundMonitorReport.updateFilteredRows(schemaName, table, beforeSize, afterSize);
 
         return Pair.from(noRowFiltered, pair.getValue());
     }
