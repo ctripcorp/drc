@@ -152,7 +152,9 @@ public class TransactionContextResource extends AbstractContext
                     + ((delayMs > 1000) ? "SUPER SLOW" : ""));
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", "", delayMs);
-                metricsActivity.report("transaction", tableKey != null ? tableKey.getDatabaseName() : "", 1);
+                if (!conflictMap.isEmpty()) {
+                    metricsActivity.report("transaction", tableKey != null ? tableKey.getDatabaseName() : "", 1);
+                }
                 if (getOverwriteMap().contains(false)) {
                     metricsActivity.report("trx.conflict.rollback", "", 1);
                 } else if (getConflictMap().contains(true)) {
