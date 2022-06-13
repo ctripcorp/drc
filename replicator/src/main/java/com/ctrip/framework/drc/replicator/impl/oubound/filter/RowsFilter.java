@@ -19,6 +19,7 @@ import java.nio.channels.FileChannel;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
@@ -27,9 +28,7 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    private static final String DRC_INTERNAL_DB = "drcmonitordb";
-
-    protected final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
+    private final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     private String registryKey;
 
@@ -114,7 +113,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMap);
 
         String schemaName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaName();
-        if (DRC_INTERNAL_DB.equalsIgnoreCase(schemaName)) {
+        if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
             return Pair.from(true, pair.getValue());
         }
 
