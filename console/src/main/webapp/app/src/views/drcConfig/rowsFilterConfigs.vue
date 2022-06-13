@@ -60,18 +60,18 @@
                   </Select>
                 </FormItem>
                 <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_uid'">
-                  <Select v-if="rowsFilterConfig.mode !== 'trip_uid'" v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
-                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                  <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
                   </Select>
                 </FormItem>
                 <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select  v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.uid" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UID相关字段">
+                  <Select  v-model="configInTripUid.uid"   style="width: 200px" placeholder="选择UID相关字段">
                     <Option value="">无UID</Option>
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
                 <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select  v-if="rowsFilterConfig.mode === 'trip_uid'" v-model="configInTripUid.udl" filterable allow-create @on-create="handleCreateColumn"  style="width: 200px" placeholder="选择UDL相关字段">
+                  <Select   v-model="configInTripUid.udl"   style="width: 200px" placeholder="选择UDL相关字段">
                     <Option value="">无UDL</Option>
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
@@ -318,6 +318,19 @@ export default {
       this.display.rowsFilterModal = true
     },
     rowsFilterConfigInitFormRow (row, index) {
+      if (row.mode === 'trip_uid') {
+        this.configInTripUid = {
+          uid: row.columns[0],
+          udl: row.columns.length === 2 ? row.columns[1] : '',
+          regionsChosen: row.context.split(',')
+        }
+      } else {
+        this.configInTripUid = {
+          uid: '',
+          udl: '',
+          regionsChosen: []
+        }
+      }
       this.rowsFilterConfig = {
         mappingId: row.id,
         dataMediaId: row.dataMediaId,
@@ -331,14 +344,14 @@ export default {
         context: row.context,
         illegalArgument: row.illegalArgument
       }
-      this.configInTripUid = {
-        uid: row.columns[0],
-        udl: row.columns.length === 2 ? row.columns[1] : '',
-        regionsChosen: row.context.split(',')
-      }
       this.tableData = []
     },
     rowsFilterConfigInit () {
+      this.configInTripUid = {
+        uid: '',
+        udl: '',
+        regionsChosen: []
+      }
       this.rowsFilterConfig = {
         mappingId: 0,
         dataMediaId: 0,
@@ -352,11 +365,6 @@ export default {
         columns: [],
         context: '',
         illegalArgument: false
-      }
-      this.configInTripUid = {
-        uid: '',
-        udl: '',
-        regionsChosen: []
       }
       this.tableData = []
     },
@@ -524,9 +532,87 @@ export default {
     handleChangeSize (val) {
       this.size = val
     },
-    handleCreateColumn (val) {
-      if (val === '无UID' || val === '无UDL' || this.contains(this.columnsForChose, val)) {
+    handleCreateUDLColumn (val) {
+      if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
         alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.configInTripUid.udl = val
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.configInTripUid.udl = val
+          }
+        })
+    },
+    handleCreateUIDColumn (val) {
+      if (val === '无UID' || this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.configInTripUid.uid = val
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.configInTripUid.uid = val
+          }
+        })
+    },
+    handleCreateColumn (val) {
+      if (this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
         return
       }
       console.log('/api/drc/v1/build/dataMedia/columnCheck?' +

@@ -3,12 +3,14 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,23 +130,22 @@ public class LocalController {
     }
 
 
-    @GetMapping("{mhas}/gtid/{mha}")
-    public ApiResult getRealExecutedGtid(@PathVariable String mhas, @PathVariable String mha) {
-        try {
-            logger.info("Getting getReaExecutedGtid from {} master in mhas:{}", mha, mhas);
-            String[] mhaArrs = mhas.split(",");
-            if (mhaArrs.length == 2) {
-                Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
-                if (endpoint != null) {
-                    return ApiResult.getSuccessInstance(new ExecutedGtidQueryTask(endpoint).call());
-                }
-                logger.error("Getting getReaExecutedGtid from {} master in mhas:{},machine not exist", mha, mhas);
-            }
-        } catch (Throwable e) {
-            logger.error("Getting getReaExecutedGtid from {} master in mhas:{}", mha, mhas, e);
+    @GetMapping("gtid")
+    public ApiResult getRealExecutedGtid(
+            @RequestParam String mha,
+            @RequestParam String ip,
+            @RequestParam Integer port,
+            @RequestParam String user,
+            @RequestParam String psw) {
+        logger.info("[[tag=gtidQuery]] getRealExecutedGtid fail from {}:{} in mha:{}",ip,port,mha);
+        MySqlEndpoint endpoint = new MySqlEndpoint(ip, port, user, psw, true);
+        String gtid = MySqlUtils.getUnionExecutedGtid(endpoint);
+        if (StringUtils.isEmpty(gtid)) {
+            logger.warn("[[tag=gtidQuery]] getRealExecutedGtid fail from {} in mha:{}",endpoint.getSocketAddress(),mha);
+            return ApiResult.getFailInstance(null);
         }
-
-        return ApiResult.getFailInstance(null);
+        return ApiResult.getSuccessInstance(gtid);
+        
     }
 
 }
