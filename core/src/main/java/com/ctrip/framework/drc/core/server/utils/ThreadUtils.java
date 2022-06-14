@@ -75,4 +75,8 @@ public class ThreadUtils {
             ThreadUtils.logger.info("{} is rejected", r.toString());
         }
     }
+
+    public static String getThreadName(String prefix, String postfix) {
+        return String.format("%s-%s", prefix, postfix);
+    }
 }

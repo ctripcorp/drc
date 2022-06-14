@@ -57,9 +57,7 @@ public class DrcHeartbeatLogEvent extends AbstractLogEvent implements LogEventMe
 
         final ByteBuf payloadBuf = getPayloadBuf();
         this.code = payloadBuf.readUnsignedShortLE();
-        if (payloadBuf.readableBytes() > 1) {
-            this.flags = payloadBuf.readUnsignedShortLE();
-        }
+        this.flags = payloadBuf.readUnsignedShortLE();
         return this;
     }
 

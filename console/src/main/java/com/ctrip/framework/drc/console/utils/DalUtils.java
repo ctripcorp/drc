@@ -55,6 +55,7 @@ public class DalUtils {
     private UnitRouteVerificationHistoryTblDao unitRouteVerificationHistoryTblDao;
     private DalQueryDao dalQueryDao;
 
+    
     private static class DalUtilsHolder {
         public static final DalUtils INSTANCE = new DalUtils();
     }
@@ -96,6 +97,10 @@ public class DalUtils {
         dalQueryDao = new DalQueryDao(DRC_TITAN_KEY);
     }
 
+    public MhaTbl queryByMhaName(String mha,Integer deleted) throws SQLException {
+        return mhaTblDao.queryByMhaName(mha,deleted);
+    }
+    
     public Long getId(TableEnum tableEnum, String value) throws SQLException {
         FreeSelectSqlBuilder<Long> builder = new FreeSelectSqlBuilder<>();
         builder.setTemplate(tableEnum.selectById());
@@ -105,7 +110,7 @@ public class DalUtils {
         builder.simpleType().requireSingle().nullable();
         return dalQueryDao.query(builder, parameters, new DalHints());
     }
-
+    
     public String getDcNameByDcId(Long dcId) throws SQLException {
         return dcTblDao.queryByPk(dcId).getDcName();
     }

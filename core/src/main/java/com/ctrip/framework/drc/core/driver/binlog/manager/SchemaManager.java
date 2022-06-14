@@ -26,7 +26,7 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent);
 
-    void clone(Endpoint endpoint);
+    boolean clone(Endpoint endpoint);
 
     TableInfo queryTableInfoByIS(DataSource dataSource, String schema, String table);
 

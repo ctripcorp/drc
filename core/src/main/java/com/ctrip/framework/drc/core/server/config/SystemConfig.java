@@ -151,10 +151,6 @@ public class SystemConfig {
 
     public static final String INTEGRITY_TEST_AUTO_WRITE = "drc.monitor.auto.write";
 
-    public static final long HICKWALL_CORRECT = 0L;
-
-    public static final long HICKWALL_ERROR = 1L;
-
     public static final int EMPTY_DRC_UUID_EVENT_SIZE = 21;
 
     public static final int EMPTY_PREVIOUS_GTID_EVENT_SIZE = 31;
@@ -170,5 +166,7 @@ public class SystemConfig {
     public static final String DEFAULT_TRANSACTION_TABLE_MERGE_SIZE = "10000";
 
     public static final String DEFAULT_CONFIG_FILE_NAME = "drc.properties";
+
+    public static final boolean INTEGRITY_TEST_BOOLEAN = "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
 
 }

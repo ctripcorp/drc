@@ -95,9 +95,17 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
                     MetaKey dstMetaKey = new MetaKey(destMha.getDc(), destDbCluster.getId(), destDbCluster.getName(), destDbCluster.getMhaName());
                     Endpoint srcEndpoint = masterMySQLEndpointMap.get(srcMetaKey);
                     Endpoint destEndpoint = masterMySQLEndpointMap.get(dstMetaKey);
+                    if (srcEndpoint == null || destEndpoint == null) {
+                        CONSOLE_TABLE_LOGGER.warn("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] mha has no mysql endpoint", 
+                                srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
+                        continue;
+                    }
                     boolean consistency = checkTableConsistency(srcEndpoint, destEndpoint, srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
                     if(consistency) {
-                        CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] Table is consistent between two DCs': {}:{} and {}:{}", srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
+                        CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] " +
+                                "Table is consistent between two DCs': {}:{} and {}:{}", 
+                                srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), 
+                                srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
                         DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.CONSISTENT);
                     } else {
                         DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.NON_CONSISTENT);

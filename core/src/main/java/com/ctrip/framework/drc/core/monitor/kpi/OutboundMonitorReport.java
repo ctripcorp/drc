@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
+import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
@@ -17,6 +20,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
 
     private Map<String, AtomicLong> outboundGtid = Maps.newConcurrentMap();
 
+    private Map<TableKey, RowsFilterEntity> rowsFilterEntityMap = Maps.newConcurrentMap();
+
     public OutboundMonitorReport(long domain, TrafficEntity trafficEntity) {
         super(domain, trafficEntity);
     }
@@ -27,6 +32,12 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
         for (Map.Entry<String, AtomicLong> entry : outboundGtid.entrySet()) {
             AtomicLong atomicLong = entry.getValue();
             DefaultEventMonitorHolder.getInstance().logEvent(OUTBOUND_GTID, entry.getKey(), atomicLong.getAndSet(0));
+        }
+
+        for (Map.Entry<TableKey, RowsFilterEntity> entry : rowsFilterEntityMap.entrySet()) {
+            RowsFilterEntity rowsFilterEntity = entry.getValue();
+            hickwallReporter.reportRowsFilter(rowsFilterEntity);
+            rowsFilterEntity.clearCount();
         }
     }
 
@@ -40,8 +51,37 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
         delayMonitorReport.sendGtid(gtid);
     }
 
+    public void updateFilteredRows(String dbName, String tableName, int beforeSize, int afterSize) {
+        RowsFilterEntity rowsFilterEntity = getRowsFilterEntity(dbName, tableName);
+        rowsFilterEntity.updateCount(beforeSize, afterSize);
+    }
+
+    private RowsFilterEntity getRowsFilterEntity(String dbName, String tableName) {
+        TableKey tableKey = TableKey.from(dbName, tableName);
+        RowsFilterEntity rowsFilterEntity = rowsFilterEntityMap.get(tableKey);
+        if (rowsFilterEntity == null) {
+            rowsFilterEntity = new RowsFilterEntity.Builder()
+                    .dcName(this.trafficEntity.getDcName())
+                    .buName(this.trafficEntity.getBuName())
+                    .mha(this.trafficEntity.getMhaName())
+                    .clusterAppId(this.trafficEntity.getClusterAppId())
+                    .registryKey(this.trafficEntity.getRegistryKey())
+                    .clusterName(this.trafficEntity.getClusterName())
+                    .mysqlIp(this.trafficEntity.getIp())
+                    .mysqlPort(this.trafficEntity.getPort())
+                    .dbName(dbName)
+                    .tableName(tableName).build();
+            rowsFilterEntityMap.put(tableKey, rowsFilterEntity);
+        }
+        return rowsFilterEntity;
+    }
+
     public String getClusterName() {
         return trafficEntity.getClusterName();
     }
 
+    @VisibleForTesting
+    public Map<TableKey, RowsFilterEntity> getRowsFilterEntityMap() {
+        return rowsFilterEntityMap;
+    }
 }

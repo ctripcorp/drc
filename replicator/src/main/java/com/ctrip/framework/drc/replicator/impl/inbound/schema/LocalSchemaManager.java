@@ -41,8 +41,9 @@ public class LocalSchemaManager extends MySQLSchemaManager {
     }
 
     @Override
-    public void clone(Endpoint endpoint) {
+    public boolean clone(Endpoint endpoint) {
         DDL_LOGGER.info("[clone] local schema manager, do nothing");
+        return true;
     }
 
     @Override

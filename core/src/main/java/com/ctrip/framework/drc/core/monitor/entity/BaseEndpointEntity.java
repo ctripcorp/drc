@@ -11,7 +11,7 @@ import java.util.Map;
  */
 public class BaseEndpointEntity extends BaseEntity {
 
-    private Map<String, String> tags;
+    protected Map<String, String> tags;
 
     @NotNull(message = "ip cannot be null")
     private String ip;
