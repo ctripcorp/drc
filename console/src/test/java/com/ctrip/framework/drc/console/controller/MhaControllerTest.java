@@ -90,7 +90,7 @@ public class MhaControllerTest {
     public void testGetRealUuid() throws Throwable {
         try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
             theMock.when(() ->MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.any(),Mockito.any(),Mockito.anyBoolean())).thenReturn("uuidA");
-            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/mhaA,mhaB/uuid/ip1/3306/true")
+            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/uuid/mhaA,mhaB/ip1/3306/true")
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();
@@ -102,7 +102,7 @@ public class MhaControllerTest {
             Assert.assertNotEquals("", response);
 
             Mockito.when(metaInfoService.getMhaGroup(Mockito.eq("mhaA"),Mockito.eq("mhaB"))).thenThrow(new SQLException("test"));
-            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/mhaA,mhaB/uuid/ip1/3306/true")
+            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/uuid/mhaA,mhaB/ip1/3306/true")
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();
@@ -111,16 +111,7 @@ public class MhaControllerTest {
             Assert.assertEquals(200, status);
             System.out.println(response);
             Assert.assertNotNull(response);
-
-            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/mhaA,mhaB/gtid/mhaA")
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            status = mvcResult.getResponse().getStatus();
-            response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-            Assert.assertNotNull(response);
+            
         } catch (Exception e) {
             e.printStackTrace();
         }

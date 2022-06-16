@@ -80,7 +80,7 @@ public class MhaController {
         return ApiResult.getSuccessInstance(mhaService.getAllDbsAndDals(clusterName, env));
     }
 
-    @GetMapping("{mhas}/uuid/{ip}/{port}/{master}")
+    @GetMapping("uuid/{mhas}/{ip}/{port}/{master}")
     public ApiResult getRealUuid(@PathVariable String mhas,@PathVariable String ip,@PathVariable int port,@PathVariable boolean master){
         try {
             logger.info("Getting getRealUuid from {}:{} in mhas:{}",ip,port,mhas);

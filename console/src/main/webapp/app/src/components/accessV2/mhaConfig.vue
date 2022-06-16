@@ -250,10 +250,10 @@ export default {
     },
     queryOldMhaMachineUuid () {
       const that = this
-      console.log('/api/drc/v1/mha/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/uuid/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
-      that.axios.get('/api/drc/v1/mha/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/uuid/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
+      console.log('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
+        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
+      that.axios.get('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
+        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
