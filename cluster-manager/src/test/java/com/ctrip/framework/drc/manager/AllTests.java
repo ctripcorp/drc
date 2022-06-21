@@ -5,6 +5,7 @@ import ch.vorburger.mariadb4j.DB;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.manager.config.DataCenterServiceTest;
 import com.ctrip.framework.drc.manager.config.DbClusterSourceProviderTest;
 import com.ctrip.framework.drc.manager.ha.DefaultStateChangeHandlerTest;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
@@ -68,6 +69,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 
         ConsoleNotifierTest.class,
+        DataCenterServiceTest.class,
 
         // for ha
         ClusterManagerLeaderElectorTest.class,
