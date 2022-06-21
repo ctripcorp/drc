@@ -22,10 +22,12 @@ public interface RowsFilterService {
 
     List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName);
 
-    List<String> checkTableConflict(
+    List<String> getLogicalTables(
             Long applierGroupId,
             Long dataMediaId,
             String namespace,
             String name,
             String mhaName) throws SQLException;
+
+    List<String> getConflictTables(String mhaName, List<String> logicalTables);
 }

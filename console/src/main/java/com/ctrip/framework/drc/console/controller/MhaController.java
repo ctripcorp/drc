@@ -1,17 +1,14 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -20,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,8 +31,7 @@ import java.util.Set;
 public class MhaController {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
-
+    
     @Autowired
     private MhaService mhaService;
 
@@ -44,13 +39,7 @@ public class MhaController {
     private MetaInfoServiceImpl metaInfoService;
 
     @Autowired
-    private DataMediaTblDao dataMediaTblDao;
-
-    @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
-    @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
     
     private DalUtils dalUtils = DalUtils.getInstance();
     /**
@@ -105,45 +94,33 @@ public class MhaController {
         return ApiResult.getFailInstance(null);
     }
 
-    @GetMapping("{mhas}/gtid/{mha}")
+    @GetMapping("gtid/{mhas}/{mha}")
     public ApiResult getRealExecutedGtid(@PathVariable String mhas,@PathVariable String mha){
         try {
-            String srcDc = null;
-            try {
-                MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mha, BooleanEnum.FALSE.getCode());
-                srcDc = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
-            } catch (SQLException e) {
-                logger.warn("[[tag=gtidQuery]] error when get dc from {}",mha,e);
-                return ApiResult.getFailInstance("sql error");
+            MhaTbl mhaTbl = dalUtils.queryByMhaName(mha,BooleanEnum.FALSE.getCode());
+            String srcDc  = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
+            Endpoint endpoint = metaInfoService.getMasterEndpoint(mhaTbl);
+            if (endpoint == null) {
+                logger.error("[[tag=gtidQuery]] getRealExecutedGtid from {} master in mhas:{},machine not exist",mha,mhas);
+                return ApiResult.getFailInstance(null);
             }
             Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
             Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
             if (publicCloudDc.contains(srcDc)) {
                 String dcDomain = consoleDcInfos.get(srcDc);
-                String url = dcDomain + "/api/drc/v1/local/" +
-                        mhas + "/" +
-                        "gtid/"+
-                        mha;
-                return HttpUtils.get(url, ApiResult.class);
+                String url = dcDomain + "/api/drc/v1/local/gtid?" +
+                        "mha=" + mha +
+                        "&ip=" + endpoint.getHost() +
+                        "&port=" + endpoint.getPort() +
+                        "&user=" + endpoint.getUser() +
+                        "&psw=" + endpoint.getPassword();
+                return HttpUtils.get(url,ApiResult.class);
             } else {
-                try {
-                    logger.info("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas);
-                    String[] mhaArrs = mhas.split(",");
-                    if (mhaArrs.length == 2) {
-                        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
-                        if (endpoint != null) {
-                            return ApiResult.getSuccessInstance(new ExecutedGtidQueryTask(endpoint).call());
-                        }
-                        logger.error("Getting getReaExecutedGtid from {} master in mhas:{},machine not exist",mha,mhas);
-                    }
-                } catch (Throwable e) {
-                    logger.error("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas,e);
-                }
+                return ApiResult.getSuccessInstance(MySqlUtils.getUnionExecutedGtid(endpoint));
             }
         } catch (Throwable e) {
-            logger.error("Getting getReaExecutedGtid from {} master in mhas:{}",mha,mhas,e);
+            logger.error("[[tag=gtidQuery]] getRealExecutedGtid from {} master in mhas:{}",mha,mhas,e);
         }
-
         return ApiResult.getFailInstance(null);
     }
     

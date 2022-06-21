@@ -457,10 +457,10 @@ export default {
     },
     queryOldMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
-      that.axios.get('/api/drc/v1/mha/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.oldClusterName)
+      console.log('/api/drc/v1/mha/gtid/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/' + this.drc.oldClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/' + this.drc.oldClusterName)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -473,10 +473,10 @@ export default {
     },
     queryNewMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/local/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
-      that.axios.get('/api/drc/v1/local/' + this.drc.oldClusterName +
-        ',' + this.drc.newClusterName + '/gtid/' + this.drc.newClusterName)
+      console.log('/api/drc/v1/mha/gtid/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/' + this.drc.newClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/' + this.drc.oldClusterName +
+        ',' + this.drc.newClusterName + '/' + this.drc.newClusterName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {

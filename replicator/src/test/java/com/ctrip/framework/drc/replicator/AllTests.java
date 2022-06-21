@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransac
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManagerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.MySQLMasterServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegionTest;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKeyTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.FileRegionMessageSizeEstimatorTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
@@ -107,6 +108,7 @@ import java.util.HashMap;
         ReplicatorMasterHandlerTest.class,
         DelayMonitorCommandHandlerTest.class,
         HeartBeatCommandHandlerTest.class,
+        ChannelAttributeKeyTest.class,
         CommandHandlerManagerTest.class
 
 })
@@ -223,6 +225,7 @@ public class AllTests {
 
     @BeforeClass
     public static void setUp() {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         System.setProperty(SystemConfig.PREVIOUS_GTID_INTERVAL, String.valueOf(previous_gtidset_interval));
         try {
             server = new TestingServer(12181, true);
@@ -252,6 +255,7 @@ public class AllTests {
     @AfterClass
     public static void tearDown()
     {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         try {
             srcDb.stop();
             server.stop();

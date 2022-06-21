@@ -41,8 +41,8 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     }
 
     @Override
-    public void clone(Endpoint endpoint) {
-
+    public boolean clone(Endpoint endpoint) {
+        return true;
     }
 
     @Override

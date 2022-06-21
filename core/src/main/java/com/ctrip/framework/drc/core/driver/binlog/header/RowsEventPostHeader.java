@@ -25,6 +25,7 @@ public class RowsEventPostHeader implements Packet<RowsEventPostHeader> {
     @Override
     public RowsEventPostHeader read(ByteBuf byteBuf) {
 
+        int previousReaderIndex = byteBuf.readerIndex();
         try {
             final long low4 = byteBuf.readUnsignedIntLE();
             final long high2 = byteBuf.readUnsignedShortLE();
@@ -42,7 +43,8 @@ public class RowsEventPostHeader implements Packet<RowsEventPostHeader> {
             validate();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            byteBuf.readerIndex(previousReaderIndex);
+            throw e;
         }
         return this;
 
@@ -65,7 +67,14 @@ public class RowsEventPostHeader implements Packet<RowsEventPostHeader> {
 
         // extra data
         if (extraDataLength > 2) {
-            out.writeBytes(extraData.array());
+            if (extraData.hasArray()) {
+                out.writeBytes(extraData.array());
+            } else {
+                int length = extraData.readableBytes();
+                byte[] bytes = new byte[length];
+                extraData.getBytes(extraData.readerIndex(), bytes);
+                out.writeBytes(bytes);
+            }
         }
     }
 

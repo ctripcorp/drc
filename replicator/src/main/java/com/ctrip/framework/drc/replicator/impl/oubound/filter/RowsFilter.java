@@ -5,17 +5,21 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
+import com.ctrip.xpipe.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.channels.FileChannel;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
@@ -24,50 +28,54 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  */
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    private static final String DRC_INTERNAL_DB = "drcmonitordb";
+    private final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     private String registryKey;
 
     private DataMediaManager dataMediaManager;
 
+    private OutboundMonitorReport outboundMonitorReport;
+
     private RowsFilterContext rowsFilterContext = new RowsFilterContext();
 
-    public RowsFilter(DataMediaConfig dataMediaConfig) {
+    public RowsFilter(DataMediaConfig dataMediaConfig, OutboundMonitorReport outboundMonitorReport) {
         this.registryKey = dataMediaConfig.getRegistryKey();
         this.dataMediaManager = new DataMediaManager(dataMediaConfig);
+        this.outboundMonitorReport = outboundMonitorReport;
     }
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         boolean noRowFiltered = true;
+        Pair<Boolean, Columns> pair;
         LogEventType eventType = value.getEventType();
         AbstractRowsEvent afterRowsEvent = null;
-        AbstractRowsEvent beforeRowsEvent;
+        AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (value.getEventType()) {
                     case write_rows_event_v2:
                         beforeRowsEvent = new WriteRowsEvent();
-                        noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            Columns columns = getColumns(beforeRowsEvent, value);
-                            afterRowsEvent = new WriteRowsEvent((WriteRowsEvent) beforeRowsEvent, columns);
+                            afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case update_rows_event_v2:
                         beforeRowsEvent = new UpdateRowsEvent();
-                        noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            Columns columns = getColumns(beforeRowsEvent, value);
-                            afterRowsEvent = new UpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, columns);
+                            afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                     case delete_rows_event_v2:
                         beforeRowsEvent = new DeleteRowsEvent();
-                        noRowFiltered = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
+                        noRowFiltered = pair.getKey();
                         if (!noRowFiltered) {
-                            Columns columns = getColumns(beforeRowsEvent, value);
-                            afterRowsEvent = new DeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, columns);
+                            afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
                         }
                         break;
                 }
@@ -75,7 +83,12 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
             value.setCause(e);
+        } finally {
+            if (beforeRowsEvent != null) {
+                beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
+            }
         }
+        
         value.setNoRowFiltered(noRowFiltered);
         if (!noRowFiltered) {
             value.setRowsEvent(afterRowsEvent);
@@ -91,37 +104,37 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     }
 
-    private boolean handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
-        TableMapLogEvent drcTableMap = loadEvent(fileChannel, rowsEvent, value);
+    private Pair<Boolean, Columns> handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {
+        Pair<TableMapLogEvent, Columns> pair = loadEvent(fileChannel, rowsEvent, value);
         int beforeSize = rowsEvent.getRows().size();
+        int afterSize = beforeSize;
+        TableMapLogEvent drcTableMap = pair.getKey();
+        String table = drcTableMap.getTableName();
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMap);
 
         String schemaName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaName();
-        if (DRC_INTERNAL_DB.equalsIgnoreCase(schemaName)) {
-            return true;
+        if (DRC_MONITOR_SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
+            return Pair.from(true, pair.getValue());
         }
 
         RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, rowsFilterContext);
         boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
 
         if (!noRowFiltered) {
-            int afterSize;
             List<AbstractRowsEvent.Row> rows = rowsFilterResult.getRes();
             if (rows != null) {
                 rowsEvent.setRows(rows);
                 afterSize = rows.size();
                 int filterNum = beforeSize - afterSize;
-                String table = drcTableMap.getSchemaNameDotTableName();
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.event", table);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.row", table, filterNum);
-                logger.info("[Filter] {} rows of table {} within transaction {} for {}", filterNum, table, value.getGtid(), registryKey);
+                ROWS_FILTER_LOGGER.info("[Filter] {}/{} rows of table {}.{} within transaction {} for {}", filterNum, beforeSize, schemaName, table, value.getGtid(), registryKey);
             }
         }
+        outboundMonitorReport.updateFilteredRows(schemaName, table, beforeSize, afterSize);
 
-        return noRowFiltered;
+        return Pair.from(noRowFiltered, pair.getValue());
     }
 
-    private TableMapLogEvent loadEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
+    private Pair<TableMapLogEvent, Columns> loadEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         // load header
         value.backToHeader();
         EventReader.readEvent(fileChannel, rowsEvent);
@@ -137,20 +150,16 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         transformMetaAndType(originColumns, columns);
         rowsEvent.load(columns);
 
-        rowsEvent.release();
-        return drcTableMap;
-    }
-
-    private Columns getColumns(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
-        TableMapLogEvent tableMapLogEvent = getTableMapLogEvent(rowsEvent, value);
-        TableMapLogEvent drcTableMapLogEvent = getDrcTableMapLogEvent(tableMapLogEvent, value);
-        return Columns.from(drcTableMapLogEvent.getColumns());
+        return Pair.from(drcTableMap, columns);
     }
 
     private TableMapLogEvent getTableMapLogEvent(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
-        return value.getTableMapWithinTransaction(tableId);
-
+        TableMapLogEvent tableMapLogEvent = value.getTableMapWithinTransaction(tableId);
+        if (tableMapLogEvent == null) {
+            ROWS_FILTER_LOGGER.error("[Filter] error for tableId {} within transaction {} for {}", tableId, value.getGtid(), registryKey);
+        }
+        return tableMapLogEvent;
     }
 
     private TableMapLogEvent getDrcTableMapLogEvent(TableMapLogEvent tableMapLogEvent, OutboundLogEventContext value) {

@@ -247,7 +247,7 @@ public class WriteRowsEventTest extends AbstractEventTest {
         }
         localWriteRowsEvent.setRows(filtered);
 
-        WriteRowsEvent newWriteRowsEvent = new WriteRowsEvent(localWriteRowsEvent, columns);
+        WriteRowsEvent newWriteRowsEvent = new FilteredWriteRowsEvent(localWriteRowsEvent, columns);
 
         ByteBuf header = newWriteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
         ByteBuf payload = newWriteRowsEvent.getPayloadBuf().resetReaderIndex();
@@ -301,7 +301,7 @@ public class WriteRowsEventTest extends AbstractEventTest {
         String oldPayloadBuf = ByteBufUtil.hexDump(writeRowsEvent.getPayloadBuf().resetReaderIndex());
         String oldHeaderBuf = ByteBufUtil.hexDump(writeRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex());
 
-        WriteRowsEvent newWriteRowsEvent1 = new WriteRowsEvent(writeRowsEvent, columns);
+        WriteRowsEvent newWriteRowsEvent1 = new FilteredWriteRowsEvent(writeRowsEvent, columns);
         String newPayloadBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getPayloadBuf().resetReaderIndex());
         String newHeaderBuf = ByteBufUtil.hexDump(newWriteRowsEvent1.getLogEventHeader().getHeaderBuf().resetReaderIndex());
         Assert.assertEquals(oldPayloadBuf, newPayloadBuf);

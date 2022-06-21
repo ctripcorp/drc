@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.NettyClientWithEndpoint;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.ReplicatorChannelHandlerFactory;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;
@@ -14,7 +15,10 @@ import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
  * Created by mingdongli
@@ -29,6 +33,11 @@ public class ReplicatorPooledConnector extends AbstractMySQLConnector implements
     @Override
     protected ChannelHandlerFactory getChannelHandlerFactory() {
         return new ReplicatorChannelHandlerFactory();
+    }
+
+    @Override
+    protected ExecutorService getExecutorService() {
+        return ThreadUtils.newSingleThreadExecutor(getThreadName(THREAD_NAME_PREFIX, threadNamePostfix));
     }
 
     @Override

@@ -9,16 +9,15 @@ import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
-import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -56,8 +55,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeader
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
 import static com.ctrip.framework.drc.core.server.common.EventReader.releaseCompositeByteBuf;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_FILE_PREFIX;
 
@@ -81,11 +79,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registreKey) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registryKey) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
-        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + registreKey);
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", registryKey));
     }
 
     @Override
@@ -171,6 +169,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
+        private ChannelAttributeKey channelAttributeKey;
+
         private Filter<OutboundLogEventContext> filterChain;
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
@@ -183,7 +183,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             this.ip = ip;
             logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
-            ChannelAttributeKey channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
+            channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
                 HEARTBEAT_LOGGER.info("[HeartBeat] stop due to replicator slave for {}:{}", applierName, channel.remoteAddress().toString());
@@ -201,7 +201,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     OutboundFilterChainContext.from(
                             this.channel,
                             this.consumeType,
-                            dataMediaConfig
+                            dataMediaConfig,
+                            outboundMonitorReport
                     )
             );
         }
@@ -251,7 +252,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File blankUuidSets() {
-            if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST))) {
+            if (INTEGRITY_TEST_BOOLEAN) {
                 return fileManager.getFirstLogFile();
             } else {
                 resultCode = ResultCode.APPLIER_GTID_ERROR;
@@ -328,6 +329,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 logger.info("{} exit loop with channelClosed {}", applierName, channelClosed);
             } catch (Throwable e) {
                 logger.error("dump thread error and close channel {}", channel.remoteAddress().toString(), e);
+                channel.close();
             }
         }
 
@@ -381,8 +383,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     Pair<Boolean, String> res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
                     in_exclude_group = res.getKey();
                     gtidForLog = res.getValue();
+                    channelAttributeKey.handleEvent(false);
                 } else {
                     gtidForLog = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf);
+                    channelAttributeKey.handleEvent(true);
                 }
 
                 releaseCompositeByteBuf(eventPair.getValue());
@@ -703,7 +707,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             boolean acquired = false;
             do {
                 try {
-                    acquired = offsetNotifier.await(waitEndPosition, 10);
+                    acquired = offsetNotifier.await(waitEndPosition, 500);
                     if (acquired) {
                         logger.debug("offsetNotifier acquired for {}", waitEndPosition);
                         return acquired;

@@ -8,6 +8,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_heartbeat_log_event;
@@ -16,15 +17,24 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.d
  * Created by mingdongli
  * 2019/11/25 下午10:34.
  */
-public class DrcHeartbeatLogEvent extends AbstractLogEvent {
+public class DrcHeartbeatLogEvent extends AbstractLogEvent implements LogEventMerger {
+
+    public static final int APPLIER_TOUCH_PROGRESS = 0x01;
 
     public int code;
+
+    private int flags;
 
     public DrcHeartbeatLogEvent() {
     }
 
     public DrcHeartbeatLogEvent(int code) {
+        this(code, 0);
+    }
+
+    public DrcHeartbeatLogEvent(int code, int flags) {
         this.code = code;
+        this.flags = flags;
         byte[] body = toBytes();
         int payloadLength = body.length;
         int eventSize = eventHeaderLengthVersionGt1 + payloadLength;
@@ -46,7 +56,8 @@ public class DrcHeartbeatLogEvent extends AbstractLogEvent {
         }
 
         final ByteBuf payloadBuf = getPayloadBuf();
-        this.code = payloadBuf.readUnsignedShortLE(); // 4bytes
+        this.code = payloadBuf.readUnsignedShortLE();
+        this.flags = payloadBuf.readUnsignedShortLE();
         return this;
     }
 
@@ -55,13 +66,23 @@ public class DrcHeartbeatLogEvent extends AbstractLogEvent {
         super.write(ioCache);
     }
 
+    @Override
+    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
+        return mergeByteBuf(headByteBuf, payloadBuf);
+    }
+
     private byte[] toBytes() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteHelper.writeUnsignedShortLittleEndian(code, out);
+        ByteHelper.writeUnsignedShortLittleEndian(flags, out);
         return out.toByteArray();
     }
 
     public int getCode() {
         return code;
+    }
+
+    public boolean shouldTouchProgress(){
+        return (this.flags & APPLIER_TOUCH_PROGRESS) == APPLIER_TOUCH_PROGRESS;
     }
 }

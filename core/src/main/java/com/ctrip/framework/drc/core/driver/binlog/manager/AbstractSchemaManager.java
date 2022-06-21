@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
+
 /**
  * Created by mingdongli
  * 2019/9/29 下午8:27.
@@ -32,7 +34,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected Endpoint endpoint;
 
-    protected String clusterName;
+    protected String registryKey;
 
     protected BaseEndpointEntity baseEndpointEntity;
 
@@ -42,12 +44,12 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected Endpoint inMemoryEndpoint;
 
-    public AbstractSchemaManager(Endpoint endpoint, int port, String clusterName) {
+    public AbstractSchemaManager(Endpoint endpoint, int port, String registryKey) {
         this.port = port + PORT_STEP;
         logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
-        this.clusterName = clusterName;
-        ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor("MySQLSchemaManager-" + clusterName);
+        this.registryKey = registryKey;
+        ddlMonitorExecutorService = ThreadUtils.newSingleThreadExecutor(getThreadName(getClass().getSimpleName(), registryKey));
     }
 
     @Override
@@ -57,7 +59,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             return true;
         }
         boolean res = doClone(future);
-        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", res, clusterName);
+        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", res, registryKey);
         return res;
     }
 
@@ -94,10 +96,10 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         Map<String, Map<String, String>> current = doSnapshot(inMemoryEndpoint);
         boolean same = current.equals(future);
         if (same) {
-            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", clusterName);
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to no change for {}, current : {}", clusterName, current);
+            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", registryKey);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to no change for {}, current : {}", registryKey, current);
         } else {
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", clusterName, current, future);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", registryKey, current, future);
         }
         return same;
     }

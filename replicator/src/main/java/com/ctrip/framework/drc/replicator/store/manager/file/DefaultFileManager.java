@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.unknown_log_event;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.INTEGRITY_TEST_BOOLEAN;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.REPLICATOR_FILE_FIRST;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST;
 
@@ -74,7 +75,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      */
     public static long BINLOG_SIZE_LIMIT = 1024 * 1024 * 512;
 
-    public static long BINLOG_PURGE_SCALE_OUT = 180 * 2;
+    public static long BINLOG_PURGE_SCALE_OUT = 120;
 
     private File logDir;
 
@@ -331,7 +332,14 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 ByteBuf headerByteBuf = headerContent.getKey();
                 int headerSize = headerContent.getValue();
                 if (eventHeaderLengthVersionGt1 != headerSize) {
-                    throw new IllegalStateException("Header read size is " + headerSize);
+                    logger.error("Header read size is {} for {}", headerSize, registryKey);
+                    if (truncatePosition == TRUNCATE_FLAG) {
+                        truncatePosition = fileChannel.position() - headerSize;
+                        logger.info("[TruncatePosition] set to {} for {} due to corrupted gtid header", truncatePosition, file.getName(), truncatePosition);
+                    } else {
+                        logger.info("[TruncatePosition] set to {} for {} due to corrupted header", truncatePosition, file.getName(), truncatePosition);
+                    }
+                    break;
                 }
 
                 CompositeByteBuf compositeByteBuf;
@@ -561,31 +569,30 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         }
     }
 
-    private void writeSchema() {
-        try {
-            Map<String, Map<String, String>> snapshot = schemaManager.snapshot();
-            if (snapshot.isEmpty()) {
-                logger.error("[Schema] is empty, fatal error");
-                DefaultEventMonitorHolder.getInstance().logAlertEvent("Empty Schema");
-                throw new IllegalStateException("Empty schema");
+    private void writeSchema() throws IOException {
+        Map<String, Map<String, String>> snapshot = schemaManager.snapshot();
+        if (snapshot.isEmpty()) {
+            logger.error("[Schema] is empty, fatal error for {}", registryKey);
+            DefaultEventMonitorHolder.getInstance().logAlertEvent("Empty Schema");
+            if (INTEGRITY_TEST_BOOLEAN) {
+                return;
             }
-            for (Map.Entry<String, Map<String, String>> entry : snapshot.entrySet()) {
-                String dbName = entry.getKey();
-                Map<String, String> tables = entry.getValue();
-                for (Map.Entry<String, String> table : tables.entrySet()) {
-                    TableInfo tableInfo = schemaManager.find(dbName, table.getKey());
-                    if (tableInfo != null) {
-                        schemaManager.persistColumnInfo(tableInfo, true);
-                    }
+            throw new IllegalStateException("Empty schema");
+        }
+        for (Map.Entry<String, Map<String, String>> entry : snapshot.entrySet()) {
+            String dbName = entry.getKey();
+            Map<String, String> tables = entry.getValue();
+            for (Map.Entry<String, String> table : tables.entrySet()) {
+                TableInfo tableInfo = schemaManager.find(dbName, table.getKey());
+                if (tableInfo != null) {
+                    schemaManager.persistColumnInfo(tableInfo, true);
                 }
             }
-
-            DrcSchemaSnapshotLogEvent schemaSnapshotLogEvent = new DrcSchemaSnapshotLogEvent(snapshot, 0 , logChannel.position());
-            doWriteLogEvent(schemaSnapshotLogEvent);
-            logger.info("[Persist] drc schema log event for {}", registryKey);
-        } catch (Exception e) {
-            logger.error("writeSchema error", e);
         }
+
+        DrcSchemaSnapshotLogEvent schemaSnapshotLogEvent = new DrcSchemaSnapshotLogEvent(snapshot, 0 , logChannel.position());
+        doWriteLogEvent(schemaSnapshotLogEvent);
+        logger.info("[Persist] drc schema log event for {}", registryKey);
     }
 
     private void checkIndices(boolean append, boolean bigTransaction) {  //write previous event and index event

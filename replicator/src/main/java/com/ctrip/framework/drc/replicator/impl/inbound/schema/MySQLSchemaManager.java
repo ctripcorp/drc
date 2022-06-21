@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractor;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTask;
@@ -22,7 +21,6 @@ import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCa
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Sets;
@@ -47,6 +45,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemaSnapshotTask.SHOW_TABLES_QUERY;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
+import static com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager.SchemaStatus.*;
 import static ctrip.framework.drc.mysql.EmbeddedDb.*;
 
 /**
@@ -63,15 +62,13 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
-    private boolean integrityTest = "true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_WHITE_LIST));
-
-    private boolean firstTimeIntegrityTest = false;
-
     private EmbeddedMysql embeddedDb;
 
     private TransactionCache transactionCache;
 
     protected EventStore eventStore;
+
+    private SchemaStatus schemaStatus = Uninitialized;
 
     public MySQLSchemaManager(Endpoint endpoint, int applierPort, String clusterName, BaseEndpointEntity baseEndpointEntity) {
         super(endpoint, applierPort, clusterName);
@@ -80,9 +77,9 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     protected void doInitialize() {
-        embeddedDb = new RetryTask<>(new DbInitTask(port, clusterName)).call();
+        embeddedDb = new RetryTask<>(new DbInitTask(port, registryKey)).call();
         if (embeddedDb == null) {
-            throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", clusterName));
+            throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
         }
         inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint);
@@ -129,10 +126,11 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
      * clear first, then apply
      */
     @Override
-    public void clone(Endpoint endpoint) {
+    public boolean clone(Endpoint endpoint) {
         Map<String, Map<String, String>> ddlSchemas = doSnapshot(endpoint);
-        doClone(ddlSchemas);
+        boolean res = doClone(ddlSchemas);
         DDL_LOGGER.info("[Dump] remote table info finished");
+        return res;
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
@@ -256,29 +254,26 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     }
 
     @Override
-    public void update(Object args, Observable observable) {
-        if (observable instanceof ConnectionObservable) {
-            initEmbeddedMySQL();
+    public synchronized void update(Object args, Observable observable) {
+        if (observable instanceof ConnectionObservable && schemaStatus == Uninitialized) {
+            if(initEmbeddedMySQL()) {
+                schemaStatus = Initialized;
+                DDL_LOGGER.info("[SchemaStatus] set to Initialized for {}", registryKey);
+            }
         }
 
     }
 
-    private void initEmbeddedMySQL() {
-        if (integrityTest && !firstTimeIntegrityTest) {
-            firstTimeIntegrityTest = true;
-            return;
-        }
+    private boolean initEmbeddedMySQL() {
         FileManager fileManager = eventStore.getFileManager();
         File logDir = fileManager.getDataDir();
         File[] files = logDir.listFiles();
         if (files == null || files.length == 0) {
-            DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.replicator.schema.remote.dump", clusterName, new Task() {
-                @Override
-                public void go() {
-                    MySQLSchemaManager.this.clone(endpoint);
-                }
-            });
+            schemaStatus = Initialing;
+            DDL_LOGGER.info("[SchemaStatus] set to Initialing for {}", registryKey);
+            return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.replicator.schema.remote.dump", registryKey, () -> MySQLSchemaManager.this.clone(endpoint));
         }
+        return true;
     }
 
     public void setEventStore(EventStore eventStore) {
@@ -287,5 +282,15 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     public void setTransactionCache(TransactionCache transactionCache) {
         this.transactionCache = transactionCache;
+    }
+
+    enum SchemaStatus {
+
+        Uninitialized,
+
+        Initialing,
+
+        Initialized,
+
     }
 }

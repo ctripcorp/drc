@@ -105,6 +105,11 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
+    public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
+
+    }
+
+    @Override
     public int getOrder() {
         return 1;
     }

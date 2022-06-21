@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -77,7 +78,7 @@ public class MySqlUtils {
     private static final String GTID_EXECUTED_COMMAND_V2 = "show global variables like \"gtid_executed\";";
 
     private static final int GTID_EXECUTED_INDEX_V2 = 2;
-
+    
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
     }
@@ -211,6 +212,7 @@ public class MySqlUtils {
         return stmts;
     }
 
+    // column use lowerCase
     public static Map<String, Set<String>> getAllColumnsByTable(Endpoint endpoint, List<TableSchemaName> tables, Boolean removeSqlOperator) {
 
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -227,7 +229,8 @@ public class MySqlUtils {
                 if (rs.next()) {
                     final String[] columnNames = rs.getString(1).split(",");
                     for (String columnName : columnNames) {
-                        columns.add(columnName);
+                        // column case insensitive
+                        columns.add(columnName.toLowerCase());
                     }
                 }
                 table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
@@ -448,6 +451,10 @@ public class MySqlUtils {
             removeSqlOperator(endpoint);
         }
         return new GtidSet(gtidExecuted).toString();
+    }
+    
+    public static String getUnionExecutedGtid(Endpoint endpoint) {
+        return new ExecutedGtidQueryTask(endpoint).call();
     }
 
     public static void removeSqlOperator(Endpoint endpoint) {

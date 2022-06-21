@@ -332,7 +332,6 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public String getXmlConfiguration(Long mhaGroupId) throws DocumentException {
         Drc drc = new Drc();
-
         try {
             List<MhaTbl> mhaTbls = getMhaTbls(mhaGroupId);
             if(MHA_GROUP_SIZE != mhaTbls.size()) {

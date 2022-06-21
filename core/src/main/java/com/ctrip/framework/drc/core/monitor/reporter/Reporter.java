@@ -50,4 +50,7 @@ public interface Reporter extends Ordered {
     void reportApplierTableConsistency(@Valid ConsistencyEntity consistencyEntity, ConsistencyEnum consistencyEnum);
 
     boolean removeRegister(Map<String, String> tags, String measurement);
+
+    void reportRowsFilter(@Valid RowsFilterEntity rowsFilterEntity);
+
 }

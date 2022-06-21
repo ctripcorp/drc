@@ -2,7 +2,6 @@
     <base-component>
       <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
         <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-<!--        <BreadcrumbItem to="/">DRC配置</BreadcrumbItem>-->
         <BreadcrumbItem to="/rowsFilterConfigs">行过滤配置</BreadcrumbItem>
       </Breadcrumb>
       <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
@@ -51,20 +50,29 @@
                       <Input v-model="rowsFilterConfig.name" style="width:200px" placeholder="支持正则  .*匹配全部"/>
                     </Col>
                     <Col span="4">
-                      <Button  type="primary" @click="checkTable" ghost style="margin-left: 10px">匹配</Button>
+                      <Button  type="success" @click="checkTable"  style="margin-left: 10px">校验</Button>
                     </Col>
                   </Row>
                 </FormItem>
-<!--                <FormItem label="规则名">-->
-<!--                  <Input v-model="rowsFilterConfig.rowsFilterName" style="width: 200px" placeholder="行过滤规则名"/>-->
-<!--                </FormItem>-->
                 <FormItem label="模式">
                   <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
                     <Option v-for="item in modesForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="选择列名">
-                  <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关列">
+                <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_uid'">
+                  <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select  v-model="configInTripUid.uid"   style="width: 200px" placeholder="选择UID相关字段">
+                    <Option value="">无UID</Option>
+                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select   v-model="configInTripUid.udl"   style="width: 200px" placeholder="选择UDL相关字段">
+                    <Option value="">无UDL</Option>
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
@@ -73,7 +81,7 @@
                 </FormItem>
                 <FormItem label="规则内容" >
                   <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                  <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="rowsFilterConfig.context" style="width: 200px" placeholder="Region 选择">
+                  <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
@@ -142,13 +150,11 @@ export default {
         },
         {
           title: '库名',
-          key: 'namespace',
-          width: 300
+          key: 'namespace'
         },
         {
           title: '表名',
-          key: 'name',
-          width: 300
+          key: 'name'
         },
         // {
         //   title: '规则名',
@@ -157,23 +163,19 @@ export default {
         // },
         {
           title: '模式',
-          key: 'mode',
-          width: 120
+          key: 'mode'
         },
         {
           title: '相关列',
-          key: 'columns',
-          width: 200
+          key: 'columns'
         },
         {
           title: '内容',
-          key: 'context',
-          width: 300
+          key: 'context'
         },
         {
           title: '默认同步（trip_uid专用)',
-          key: 'illegalArgument',
-          width: 100
+          key: 'illegalArgument'
         },
         {
           title: '操作',
@@ -223,6 +225,11 @@ export default {
         columns: [],
         context: '',
         illegalArgument: false
+      },
+      configInTripUid: {
+        uid: '',
+        udl: '',
+        regionsChosen: []
       },
       modesForChose: [
         'aviator_regex',
@@ -311,6 +318,19 @@ export default {
       this.display.rowsFilterModal = true
     },
     rowsFilterConfigInitFormRow (row, index) {
+      if (row.mode === 'trip_uid') {
+        this.configInTripUid = {
+          uid: row.columns[0],
+          udl: row.columns.length === 2 ? row.columns[1] : '',
+          regionsChosen: row.context.split(',')
+        }
+      } else {
+        this.configInTripUid = {
+          uid: '',
+          udl: '',
+          regionsChosen: []
+        }
+      }
       this.rowsFilterConfig = {
         mappingId: row.id,
         dataMediaId: row.dataMediaId,
@@ -319,7 +339,6 @@ export default {
         dataMediaSourceId: row.dataMediaSourceId,
         dataMediaSourceName: this.drc.srcMha,
         rowsFilterId: row.rowsFilterId,
-        // rowsFilterName: row.rowsFilterName,
         mode: row.mode,
         columns: row.columns,
         context: row.context,
@@ -328,6 +347,11 @@ export default {
       this.tableData = []
     },
     rowsFilterConfigInit () {
+      this.configInTripUid = {
+        uid: '',
+        udl: '',
+        regionsChosen: []
+      }
       this.rowsFilterConfig = {
         mappingId: 0,
         dataMediaId: 0,
@@ -345,15 +369,39 @@ export default {
       this.tableData = []
     },
     submitConfig () {
+      console.log('before:')
+      console.log(this.rowsFilterConfig)
+      if (this.rowsFilterConfig.mode === 'trip_uid') {
+        if (this.configInTripUid.uid === null || this.configInTripUid.uid === undefined) {
+          this.configInTripUid.uid = ''
+        }
+        if (this.configInTripUid.udl === null || this.configInTripUid.udl === undefined) {
+          this.configInTripUid.udl = ''
+        }
+        if (this.configInTripUid.uid === '' && this.configInTripUid.udl === '') {
+          alert('uid 与 udl 字段不能都为空！')
+          return
+        }
+        this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
+        this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+      }
+      console.log('after:')
+      console.log(this.rowsFilterConfig)
       if (this.display.showOnly) {
-        window.alert('查看时 禁止提交！')
-      } else if (this.rowsFilterConfig.namespace === '' ||
-      this.rowsFilterConfig.name === '' ||
-      this.rowsFilterConfig.mode === '' ||
-      // this.rowsFilterConfig.rowsFilterName === '' ||
-      this.rowsFilterConfig.columns.length === 0 ||
-      this.rowsFilterConfig.context === '') {
-        alert('缺少配置 禁止提交！')
+        window.alert('查看状态，禁止提交！')
+      } else if (
+        this.rowsFilterConfig.namespace === '' ||
+        this.rowsFilterConfig.namespace === undefined ||
+        this.rowsFilterConfig.name === '' ||
+        this.rowsFilterConfig.name === undefined) {
+        alert('缺少表配置 禁止提交！')
+      } else if (
+        this.rowsFilterConfig.mode === '' ||
+        this.rowsFilterConfig.mode === undefined ||
+        this.rowsFilterConfig.columns.length === 0 ||
+        this.rowsFilterConfig.context === '' ||
+        this.rowsFilterConfig.context === undefined) {
+        alert('缺少行过滤配置 禁止提交')
       } else if (this.conflictTables.length !== 0) {
         alert('存在匹配表已经了行过滤，禁止提交')
       } else if (this.tableData.length === 0 && !this.forceCommit) {
@@ -370,12 +418,12 @@ export default {
           dataMediaSourceId: this.drc.srcMhaId,
           dataMediaSourceName: this.drc.srcMha,
           rowsFilterId: this.rowsFilterConfig.rowsFilterId === 0 ? null : this.rowsFilterConfig.rowsFilterId,
-          // rowsFilterName: this.rowsFilterConfig.rowsFilterName === '' ? null : this.rowsFilterConfig.rowsFilterName,
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
         }
+        console.log('dto:')
         console.log(dto)
         this.axios.post('/api/drc/v1/build/rowsFilterConfig', dto).then(response => {
           if (response.data.status === 1) {
@@ -484,7 +532,89 @@ export default {
     handleChangeSize (val) {
       this.size = val
     },
+    handleCreateUDLColumn (val) {
+      if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.configInTripUid.udl = val
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.configInTripUid.udl = val
+          }
+        })
+    },
+    handleCreateUIDColumn (val) {
+      if (val === '无UID' || this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.configInTripUid.uid = val
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.configInTripUid.uid = val
+          }
+        })
+    },
     handleCreateColumn (val) {
+      if (this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
       console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
         'srcDc=' + this.drc.srcDc +
         '&mhaName=' + this.drc.srcMha +
@@ -513,6 +643,15 @@ export default {
             this.rowsFilterConfig.columns.push(val)
           }
         })
+    },
+    contains (a, obj) {
+      var i = a.length
+      while (i--) {
+        if (a[i] === obj) {
+          return true
+        }
+      }
+      return false
     }
   },
   created () {
@@ -524,6 +663,7 @@ export default {
   }
 
 }
+
 </script>
 
 <style scoped>

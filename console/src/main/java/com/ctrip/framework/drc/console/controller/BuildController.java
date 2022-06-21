@@ -2,20 +2,17 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
-import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -105,7 +102,6 @@ public class BuildController {
         logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
         try {
             if (rowsFilterConfigDto.getId() != null) {
-                // todo check all dataMedia has common table or not
                 return ApiResult.getSuccessInstance(rowsFilterService.updateRowsFilterConfig(rowsFilterConfigDto));
             } else {
                 return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterConfig(rowsFilterConfigDto));
@@ -221,31 +217,29 @@ public class BuildController {
             @RequestParam String mhaName,
             @RequestParam String namespace,
             @RequestParam String name) {
-        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-        if (publicCloudDc.contains(srcDc)) {
-            String dcDomain = consoleDcInfos.get(srcDc);
-            String url = dcDomain + "/api/drc/v1/local/dataMedia/conflictCheck?" +
-                    "applierGroupId=" + applierGroupId +
-                    "&dataMediaId=" + dataMediaId +
-                    "&srcDc=" + srcDc +
-                    "&mhaName=" + mhaName +
-                    "&namespace=" + namespace +
-                    "&name=" + name ;
-            return HttpUtils.get(url, ApiResult.class);
-        } else {
-            try {
-                logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}",namespace,name,mhaName);
-                List<String> conflictTables =
-                        rowsFilterService.checkTableConflict(applierGroupId, dataMediaId, namespace, name, mhaName);
+
+        try {
+            List<String> logicalTables =
+                    rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);
+            Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+            if (publicCloudDc.contains(srcDc)) {
+                String dcDomain = consoleDcInfos.get(srcDc);
+                String url = dcDomain + "/api/drc/v1/local/dataMedia/conflictCheck?" +
+                        "mhaName=" + applierGroupId +
+                        "&logicalTables=" + String.join(",", logicalTables);
+                return HttpUtils.get(url, ApiResult.class);
+            } else {
+                logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
+                List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,logicalTables);
                 return ApiResult.getSuccessInstance(conflictTables);
-            } catch (Exception e) {
-                logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name,mhaName,e);
-                if (e  instanceof CompileExpressionErrorException) {
-                    return ApiResult.getFailInstance("expression error");
-                } else {
-                    return ApiResult.getFailInstance("other error");
-                }
+            }
+        } catch (Exception e) {
+            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
             }
         }
     }
@@ -259,6 +253,7 @@ public class BuildController {
             @RequestParam String column) {
         Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
         Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        column = column.toLowerCase();
         if (publicCloudDc.contains(srcDc)) {
             String dcDomain = consoleDcInfos.get(srcDc);
             String url = dcDomain + "/api/drc/v1/local/dataMedia/columnCheck?" +
@@ -284,6 +279,4 @@ public class BuildController {
     }
     
     
-
-
 }
