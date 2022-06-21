@@ -61,6 +61,8 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     private String currentDc;
 
+    private String currentRegion;
+
     private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create("Meta-Refresher"));
 
     private ScheduledFuture<?> future;

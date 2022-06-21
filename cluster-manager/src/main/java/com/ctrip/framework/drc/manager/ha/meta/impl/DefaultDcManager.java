@@ -20,8 +20,6 @@ public class DefaultDcManager implements DcManager {
 
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public static final int BIDIRECTIONAL_REPL_TARGET_DC_COUNT = 1;
-
     private DrcManager drcManager;
 
     private String currentDc;
