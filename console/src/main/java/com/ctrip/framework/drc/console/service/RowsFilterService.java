@@ -21,7 +21,7 @@ public interface RowsFilterService {
     List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException;
 
     List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName);
-    
+
     List<String> getLogicalTables(
             Long applierGroupId,
             Long dataMediaId,

@@ -79,11 +79,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registreKey) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registryKey) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
-        this.dumpExecutorService = ThreadUtils.newCachedThreadPool("Gtid-Dump-" + registreKey);
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", registryKey));
     }
 
     @Override
@@ -707,7 +707,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             boolean acquired = false;
             do {
                 try {
-                    acquired = offsetNotifier.await(waitEndPosition, 10);
+                    acquired = offsetNotifier.await(waitEndPosition, 500);
                     if (acquired) {
                         logger.debug("offsetNotifier acquired for {}", waitEndPosition);
                         return acquired;

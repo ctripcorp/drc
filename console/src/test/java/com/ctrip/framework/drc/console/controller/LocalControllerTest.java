@@ -131,8 +131,8 @@ public class LocalControllerTest extends AbstractControllerTest {
         String response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
         System.out.println(response);
-        
-      
+
+
     }
 
     @Test
@@ -211,5 +211,5 @@ public class LocalControllerTest extends AbstractControllerTest {
             e.printStackTrace();
         }
     }
-    
+
 }
