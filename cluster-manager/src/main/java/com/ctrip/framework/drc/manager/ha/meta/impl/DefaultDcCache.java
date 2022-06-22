@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ReplicatorComparator;
 import com.ctrip.xpipe.api.lifecycle.Ordered;
-import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.observer.AbstractLifecycleObservable;
 import com.ctrip.xpipe.utils.StringUtil;
@@ -37,13 +36,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * @Author limingdong
  * @create 2020/4/21
  */
-public class DefaultDcCache extends AbstractLifecycleObservable implements DcCache, Runnable, TopElement {
+public class DefaultDcCache extends AbstractLifecycleObservable implements DcCache, Runnable {
 
     public static final String META_MODIFY_JUST_NOW_TEMPLATE = "current dc meta modifyTime {} larger than meta loadTime {}";
 
     public static String MEMORY_META_SERVER_DAO_KEY = "memory_meta_server_dao_file";
-
-    public static int META_MODIFY_PROTECT_COUNT = 20;
 
     public static double META_REMOVE_THRESHOLD = 0.5;
 
@@ -62,9 +59,6 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     private AtomicReference<DcManager> dcMetaManager = new AtomicReference<DcManager>(null);
 
     private AtomicLong metaModifyTime = new AtomicLong(System.currentTimeMillis());
-
-    public DefaultDcCache() {
-    }
 
     public DefaultDcCache(ClusterManagerConfig config, SourceProvider sourceProvider, String idc) {
         this.config = config;
