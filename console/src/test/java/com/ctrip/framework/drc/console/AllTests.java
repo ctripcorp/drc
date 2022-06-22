@@ -97,6 +97,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         TransferServiceImplTest.class,
         MetaGeneratorTest.class,
         DrcBuildServiceImplTest.class,
+        LocalServiceImplTest.class,
         DrcMaintenanceServiceImplTest.class,
         MetaInfoServiceImplTest.class,
         MetaInfoServiceTwoImplTest.class,

@@ -1,10 +1,11 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -16,7 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -36,6 +39,9 @@ public class LocalController {
 
     @Autowired
     private RowsFilterService rowsFilterService;
+    
+    @Autowired
+    private LocalService localService;
 
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable(@RequestParam String namespace,
@@ -145,7 +151,31 @@ public class LocalController {
             return ApiResult.getFailInstance(null);
         }
         return ApiResult.getSuccessInstance(gtid);
-        
     }
+    
+    @GetMapping("preCheckMySqlTables")
+    public ApiResult preCheckTables(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=preCheck,mha={}]] preCheckTables with nameFilter:{}",mha,nameFilter);
+            List<TableCheckVo> checkVos = localService.preCheckMySqlTables(mha, nameFilter);
+            return ApiResult.getSuccessInstance(checkVos);
+        } catch (Exception e) {
+            logger.error("[[tag=preCheck,mha={}]]  error in preCheckMySqlTables", mha, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("preCheckMySqlConfig")
+    public ApiResult preCheckConfig(@RequestParam String mha) {
+        try {
+            logger.info("[[tag=preCheck,mha={}]] preCheckConfig ",mha);
+            Map<String, Object> resMap = localService.preCheckMySqlConfig(mha);
+            return ApiResult.getSuccessInstance(resMap);
+        } catch (Exception e) {
+            logger.error("[[tag=preCheck,mha={}]]  error in preCheckMySqlConfig",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+    
 
 }

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.utils;
 
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
+import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
@@ -489,7 +490,7 @@ public class MySqlUtilsTest {
 
     @Test
     public void testCheckApprovedTruncateTableList() {
-        List<String> approvedTruncateTableList = MySqlUtils.checkApprovedTruncateTableList(endpointCi3306);
+        List<String> approvedTruncateTableList = MySqlUtils.checkApprovedTruncateTableList(endpointCi3306,true);
         Assert.assertNotNull(approvedTruncateTableList);
         System.out.println(approvedTruncateTableList);
         Assert.assertEquals(1, approvedTruncateTableList.size());
@@ -500,6 +501,50 @@ public class MySqlUtilsTest {
     public void testGetExecutedGtid() {
         String executedGtid = MySqlUtils.getExecutedGtid(endpointCi3306);
         System.out.println("executedGtid: " + executedGtid);
+    }
+    
+    @Test
+    public void testCheckBinlogMode() {
+        String binlogMode = MySqlUtils.checkBinlogMode(endpointCi3306);
+        System.out.println("binlogmode: " + binlogMode);
+    }
+    @Test
+    public void testCheckBinlogFormat() {
+        String binlogFormat = MySqlUtils.checkBinlogFormat(endpointCi3306);
+        System.out.println("binlogFormat: " + binlogFormat);
+    }
+    @Test
+    public void testCheckBinlogVersion() {
+        String binlogVersion1 = MySqlUtils.checkBinlogVersion(endpointCi3306);
+        System.out.println("binlogVersion1: " + binlogVersion1);
+    }
+    @Test
+    public void testCheckAutoIncrementStep() {
+        Integer autoIncrementStep = MySqlUtils.checkAutoIncrementStep(endpointCi3306);
+        System.out.println("autoIncrementStep: " + autoIncrementStep);
+    }
+    @Test
+    public void testCheckAutoIncrementOffset() {
+        Integer autoIncrementOffset = MySqlUtils.checkAutoIncrementOffset(endpointCi3306);
+        System.out.println("autoIncrementOffset: " + autoIncrementOffset);
+    }
+    @Test
+    public void testCheckDrcTables() {
+        Integer drcTables = MySqlUtils.checkDrcTables(endpointCi3306);
+        System.out.println("drcTables: " + drcTables);
+    }
+    @Test
+    public void testAccount() {
+        MySqlUtils.testAccount(endpointCi3306);
+    }
+
+    @Test
+    public void testCheckTablesWithFilter() {
+        doWrite(CREATE_EMPTYDB_TABLE);
+        List<TableCheckVo> checkVos = MySqlUtils.checkTablesWithFilter(endpointCi3306, ".*");
+        for (TableCheckVo vo: checkVos) {
+            System.out.println(vo);
+        }
     }
 
     @After
