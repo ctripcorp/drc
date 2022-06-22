@@ -426,19 +426,19 @@ public class MySqlUtilsTest {
         doWrite(CREATE_TABLE_WITHOUT_UPDATE);
         tables = MySqlUtils.checkOnUpdate(endpointCi3306, null);
         Assert.assertEquals(1, tables.size());
-        Assert.assertEquals("`drcmonitordb`.`delaymonitorno`", tables.get(0));
+        Assert.assertEquals("drcmonitordb.delaymonitorno", tables.get(0));
 
         doWrite(CREATE_EMPTYDB_TABLE);
         tables = MySqlUtils.checkOnUpdate(endpointCi3306, Arrays.asList("drcmonitordb"));
         Assert.assertEquals(1, tables.size());
-        Assert.assertEquals("`drcmonitordb`.`delaymonitorno`", tables.get(0));
+        Assert.assertEquals("drcmonitordb.delaymonitorno", tables.get(0));
 
         tables = MySqlUtils.checkOnUpdate(endpointCi3306, Arrays.asList("emptydb"));
         Assert.assertEquals(0, tables.size());
 
         tables = MySqlUtils.checkOnUpdate(endpointCi3306, Arrays.asList("drcmonitordb", "emptydb"));
         Assert.assertEquals(1, tables.size());
-        Assert.assertEquals("`drcmonitordb`.`delaymonitorno`", tables.get(0));
+        Assert.assertEquals("drcmonitordb.delaymonitorno", tables.get(0));
     }
 
     @Test
@@ -460,11 +460,11 @@ public class MySqlUtilsTest {
 
         tables = MySqlUtils.checkUniqOrPrimary(endpointCi3306, Arrays.asList("emptydb"));
         Assert.assertEquals(1, tables.size());
-        Assert.assertEquals("`emptydb`.`delaymonitornopkuk`", tables.get(0));
+        Assert.assertEquals("emptydb.delaymonitornopkuk", tables.get(0));
 
         tables = MySqlUtils.checkUniqOrPrimary(endpointCi3306, Arrays.asList("drcmonitordb", "emptydb"));
         Assert.assertEquals(1, tables.size());
-        Assert.assertEquals("`emptydb`.`delaymonitornopkuk`", tables.get(0));
+        Assert.assertEquals("emptydb.delaymonitornopkuk", tables.get(0));
     }
 
     @Test
