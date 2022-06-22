@@ -130,7 +130,7 @@ public class MySqlUtils {
         return getCreateTblStmts(endpoint,
                 tables.stream().
                         filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
-                        map(TableSchemaName::toString).collect(Collectors.toList()), false);
+                        map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
     public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
@@ -193,6 +193,7 @@ public class MySqlUtils {
 
     /**
      * @param endpoint
+     * @param tables tale without ``
      * @return key: database.table, value: createTblStmts
      */
     public static Map<String, String> getCreateTblStmts(Endpoint endpoint, List<String> tables, Boolean removeSqlOperator) {
@@ -522,7 +523,7 @@ public class MySqlUtils {
         }
 
         List<TableSchemaName> tables = getTables(endpoint, sql, true);
-        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::toString).collect(Collectors.toList()), true);
+        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), true);
     }
 
     @Deprecated
