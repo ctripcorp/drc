@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class RowsFilterServiceImpl implements RowsFilterService {
     public static final Logger logger = LoggerFactory.getLogger(RowsFilterServiceImpl.class);
     public static final String DB_NAME = "fxdrcmetadb_w";
-    
+
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
     
@@ -170,7 +170,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         return tables;
     }
-    
+
     
     @Override
     public List<String> getLogicalTables(

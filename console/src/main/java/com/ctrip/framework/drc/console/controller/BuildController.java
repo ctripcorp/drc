@@ -221,7 +221,7 @@ public class BuildController {
             @RequestParam String mhaName,
             @RequestParam String namespace,
             @RequestParam String name) {
-        
+
         try {
             List<String> logicalTables =
                     rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);

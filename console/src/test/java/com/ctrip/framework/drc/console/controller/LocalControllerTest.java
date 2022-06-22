@@ -216,7 +216,7 @@ public class LocalControllerTest extends AbstractControllerTest {
             e.printStackTrace();
         }
     }
-
+    
 
     @Test
     public void testPreCheckConfig() throws Exception {

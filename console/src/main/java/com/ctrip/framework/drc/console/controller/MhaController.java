@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -38,7 +37,7 @@ public class MhaController {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     

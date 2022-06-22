@@ -53,7 +53,7 @@ public abstract class AbstractRowsFilterTest extends MockTest {
 
     protected File rbinlog;
 
-    protected OutboundLogEventContext  outboundLogEventContext;
+    protected OutboundLogEventContext outboundLogEventContext;
 
     protected LogEventType logEventType;
 
