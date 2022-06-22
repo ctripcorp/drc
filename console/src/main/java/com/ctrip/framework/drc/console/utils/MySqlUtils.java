@@ -689,7 +689,7 @@ public class MySqlUtils {
             if (StringUtils.isEmpty(schemaName) || !schemaName.contains(".")) {
                 return null;
             }
-            String[] split = schemaName.split(".");
+            String[] split = schemaName.split("\\.");
             return new TableSchemaName(split[0],split[1]);
         }
         

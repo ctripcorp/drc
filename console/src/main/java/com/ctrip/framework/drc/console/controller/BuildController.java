@@ -56,11 +56,11 @@ public class BuildController {
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
-    private final DalUtils dalUtils = DalUtils.getInstance();
+    private  DalUtils dalUtils = DalUtils.getInstance();
     
-    private final ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
+    private  ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
     
-    private final ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
+    private  ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
     
     
     @PostMapping("simplexDrc/{srcMha}/{destMha}") 

@@ -51,7 +51,7 @@ public class BuildControllerTest extends AbstractControllerTest {
     private DalUtils dalUtils;
     
     @Mock
-    private ReplicatorGroupTblDao replicatorGroupTblDao ;
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
     
     @Mock
     private ApplierGroupTblDao applierGroupTblDao;
