@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 
 import java.util.List;
@@ -11,10 +10,6 @@ import java.util.List;
  * @Date: 2021/3/17
  */
 public class MonitoredDeleteRowsEvent<T extends BaseTransactionContext> extends FetcherRowsEvent<T> {
-
-    public MonitoredDeleteRowsEvent() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "delete rows", 1, 0);
-    }
 
     @Override
     public String identifier() {

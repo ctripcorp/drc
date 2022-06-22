@@ -10,8 +10,8 @@ import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
  */
 public class ApplierDrcGtidEvent extends MonitoredGtidLogEvent<TransactionContext> {
 
-    @Override
-    protected void logEvent() {
+    public ApplierDrcGtidEvent() {
+        super();
         DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "drc gtid", 1, 0);
     }
 }

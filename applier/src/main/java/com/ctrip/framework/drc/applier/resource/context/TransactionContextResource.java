@@ -152,9 +152,19 @@ public class TransactionContextResource extends AbstractContext
                     + ((delayMs > 1000) ? "SUPER SLOW" : ""));
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", "", delayMs);
-                if (!conflictMap.isEmpty()) {
+
+                if (conflictMap.isEmpty()) {
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty gtid", 1, 0);
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty xid", 1, 0);
+                } else {
+                    int rowsSize = conflictMap.size();
                     metricsActivity.report("transaction", tableKey != null ? tableKey.getDatabaseName() : "", 1);
+                    metricsActivity.report("rows", tableKey != null ? tableKey.getDatabaseName() : "", rowsSize);
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", rowsSize, 0);
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
+
                 if (getOverwriteMap().contains(false)) {
                     metricsActivity.report("trx.conflict.rollback", "", 1);
                 } else if (getConflictMap().contains(true)) {

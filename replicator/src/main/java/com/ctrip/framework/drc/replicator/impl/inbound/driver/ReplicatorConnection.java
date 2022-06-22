@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.INTEGRITY_TEST_BOOLEAN;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
 
 /**
  * Created by mingdongli
@@ -306,7 +306,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
                         }
                     }
 
-                    if (INTEGRITY_TEST_BOOLEAN) {
+                    if (isIntegrityTest()) {
                         EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
                         GtidSet gtidSet = new GtidSet(entryPosition.getGtid());
                         mySQLSlaveConfig.setGtidSet(gtidSet);

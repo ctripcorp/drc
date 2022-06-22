@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
@@ -29,20 +28,14 @@ public class MonitoredGtidLogEvent<T extends BaseTransactionContext> extends Gti
 
     private DirectMemory directMemory;
 
-    public MonitoredGtidLogEvent() {
-        logEvent();
-    }
-
-    protected void logEvent() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
-    }
-
-
     public MonitoredGtidLogEvent(String gtid) {
         super(gtid);
     }
 
     private AtomicBoolean released = new AtomicBoolean(false);
+
+    public MonitoredGtidLogEvent() {
+    }
 
     @Override
     public void release() {
