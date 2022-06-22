@@ -21,8 +21,6 @@ public interface DcCache extends Observable {
 
     Route randomRoute(String clusterId, String dstDc);
 
-    DcManager getDcMeta();
-
     void clusterAdded(DbCluster dbCluster);
 
     void clusterModified(DbCluster dbCluster);
