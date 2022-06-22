@@ -30,8 +30,13 @@ public class MonitoredGtidLogEvent<T extends BaseTransactionContext> extends Gti
     private DirectMemory directMemory;
 
     public MonitoredGtidLogEvent() {
+        logEvent();
+    }
+
+    protected void logEvent() {
         DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
     }
+
 
     public MonitoredGtidLogEvent(String gtid) {
         super(gtid);
