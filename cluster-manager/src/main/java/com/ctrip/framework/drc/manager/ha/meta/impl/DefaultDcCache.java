@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
@@ -52,7 +53,7 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     private String currentDc;
 
-    private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create("Meta-Refresher"));
+    private ScheduledExecutorService scheduled;
 
     private ScheduledFuture<?> future;
 
@@ -64,6 +65,7 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
         this.config = config;
         this.sourceProvider = sourceProvider;
         this.currentDc = idc;
+        scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create(ThreadUtils.getThreadName("Meta-Refresher", currentDc)));
         logger.info("[doInitialize][dc]{}", currentDc);
     }
 
