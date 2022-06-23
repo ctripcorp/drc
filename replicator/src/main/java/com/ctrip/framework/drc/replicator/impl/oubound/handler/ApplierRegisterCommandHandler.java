@@ -252,7 +252,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File blankUuidSets() {
-            if (INTEGRITY_TEST_BOOLEAN) {
+            if (isIntegrityTest()) {
                 return fileManager.getFirstLogFile();
             } else {
                 resultCode = ResultCode.APPLIER_GTID_ERROR;
