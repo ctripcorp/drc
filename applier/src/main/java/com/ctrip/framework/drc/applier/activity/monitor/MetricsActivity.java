@@ -70,7 +70,7 @@ public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Delay, Bo
         String measurement = "fx.drc.applier." + delay.name;
         if(measurement.contains("conflict")) {
             DefaultReporterHolder.getInstance().reportResetCounter(unidirectionalEntity.getTags(), delay.value, measurement);
-        } else if (measurement.contains("transaction")) {
+        } else if (measurement.contains("transaction") || measurement.contains("rows")) {
             Map<String, String> tags = unidirectionalEntity.getTags();
             tags.put("db", delay.dbName);
             DefaultReporterHolder.getInstance().reportResetCounter(tags, delay.value, measurement);
