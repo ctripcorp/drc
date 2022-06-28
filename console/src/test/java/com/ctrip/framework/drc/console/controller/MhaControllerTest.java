@@ -112,7 +112,7 @@ public class MhaControllerTest {
             System.out.println(response);
             Assert.assertNotNull(response);
 
-            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/mhaA,mhaB/gtid/mhaA")
+            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/mhaA,mhaB/uuid/ip1/3306/true")
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();
