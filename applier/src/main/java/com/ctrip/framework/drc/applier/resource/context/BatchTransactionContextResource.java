@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStatementExecutor;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult.BATCH_ERROR;
 
@@ -16,6 +19,10 @@ import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.
 public class BatchTransactionContextResource extends TransactionContextResource implements TransactionContext, BigTransactionAware {
 
     private PartialTransactionContextResource partialTransactionContextResource;
+
+    protected static final int MAX_BATCH_EXECUTE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, "1000"));
+
+    private AtomicLong batchRowsCount = new AtomicLong(0);
 
     private boolean bigTransaction;
 
@@ -32,16 +39,25 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         partialTransactionContextResource.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
+    }
+
+    private void checkBatchExecuteSize(int batchSize) {
+        if (batchRowsCount.addAndGet(batchSize) >= MAX_BATCH_EXECUTE_SIZE) {
+            partialTransactionContextResource.executeBatch();
+        }
     }
 
     @Override
@@ -100,5 +116,10 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     protected String contextDesc() {
         return bigTransaction ? " BIG" : " BATCH";
+    }
+
+    @VisibleForTesting
+    protected long getBatchRowsCount() {
+        return batchRowsCount.get();
     }
 }

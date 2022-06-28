@@ -1,15 +1,15 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
-import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.sql.SQLException;
 
-import static com.ctrip.framework.drc.applier.resource.context.PartialBigTransactionContextResource.MAX_BATCH_EXECUTE_SIZE;
+import static com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource.MAX_BATCH_EXECUTE_SIZE;
 
 /**
  * @Author limingdong
@@ -48,6 +48,7 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
          * delete ROW_SIZE, exec executeBath and return success
          */
         partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        partialTransactionContextResource.executeBatch();
         Mockito.verify(statement, Mockito.times(1)).executeBatch();
         Assert.assertEquals(((PartialBigTransactionContextResource)partialTransactionContextResource).getBatchRowsCount(), 0);
 
@@ -63,6 +64,7 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
          * insert ROW_SIZE, not exec executeBath
          */
         partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        partialTransactionContextResource.executeBatch();
         Mockito.verify(statement, Mockito.times(1)).executeBatch();
         Assert.assertEquals(((PartialBigTransactionContextResource)partialTransactionContextResource).getBatchRowsCount(), 0);
 
@@ -82,6 +84,7 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
          * insert ROW_SIZE, not exec executeBath
          */
         partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        partialTransactionContextResource.executeBatch();
         Mockito.verify(statement, Mockito.times(1)).executeBatch();
         Assert.assertEquals(((PartialBigTransactionContextResource)partialTransactionContextResource).getBatchRowsCount(), 0);
 
@@ -107,6 +110,8 @@ public class PartialBigTransactionContextResourceTest extends AbstractPartialTra
         tableKey = TableKey.from("2", "2");
         partialTransactionContextResource.setTableKey(tableKey);
         partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        partialTransactionContextResource.executeBatch();
+
         // batch and conflict,so * 2
         Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2 * 2 /*conflict*/)).prepareStatement(Mockito.anyString());
         Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2)).prepareStatement(Mockito.matches("DELETE FROM `1`.`1`"));

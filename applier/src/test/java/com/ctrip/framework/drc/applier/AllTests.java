@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.applier;
 
 import com.ctrip.framework.drc.applier.activity.event.TransactionTableApplierDumpEventActivityTest;
-import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivityTest;
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnectorTest;
 import com.ctrip.framework.drc.applier.confirmed.ConfirmedTests;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainerTest;
@@ -63,7 +62,7 @@ import org.junit.runners.Suite;
         StatementExecutorResultTest.class,
         //Those who needs MySQL instance.
         TransactionContextResourceTest.class,
-        BatchTransactionContextResource2Test.class,
+        BatchTransactionContextResourceTest.class,
         DefaultSavepointExecutorTest.class,
         BatchPreparedStatementExecutorTest.class,
         PartialTransactionContextResourceTest.class,
