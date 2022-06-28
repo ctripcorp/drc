@@ -75,7 +75,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      */
     public static long BINLOG_SIZE_LIMIT = 1024 * 1024 * 512;
 
-    public static long BINLOG_PURGE_SCALE_OUT = 120;
+    public static long BINLOG_PURGE_SCALE_OUT = 80;
 
     private File logDir;
 
