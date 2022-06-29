@@ -167,6 +167,8 @@ public class SystemConfig {
 
     public static final String DEFAULT_CONFIG_FILE_NAME = "drc.properties";
 
-    public static final boolean INTEGRITY_TEST_BOOLEAN = "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
+    public static boolean isIntegrityTest() {
+        return "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
+    }
 
 }
