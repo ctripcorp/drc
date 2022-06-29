@@ -41,6 +41,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
                 new PartialBigTransactionContextResource(this) :
                 new PartialTransactionContextResource(this, true);
         partialTransactionContextResource.initialize();
+        batchRowsCount.set(0);
     }
 
     @Override

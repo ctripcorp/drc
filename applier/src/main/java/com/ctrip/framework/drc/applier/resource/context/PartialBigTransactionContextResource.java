@@ -42,6 +42,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     public void doInitialize() {
         super.doInitialize();
         savepointExecutor = new DefaultSavepointExecutor(connection);
+        batchRowsCount.set(0);
     }
 
     @Override
