@@ -10,7 +10,7 @@ public class BigTransactionThreshold extends AbstractConfigBean {
 
     public static final String BIG_TRANSACTION_THRESHOLD = "big.transaction";
 
-    public static final int CAPACITY = 2;
+    public static final int CAPACITY = 1000;
 
     private static class BigTransactionThresholdHolder {
         public static final BigTransactionThreshold INSTANCE = new BigTransactionThreshold();

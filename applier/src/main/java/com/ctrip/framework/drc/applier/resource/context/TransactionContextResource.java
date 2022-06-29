@@ -539,15 +539,17 @@ public class TransactionContextResource extends AbstractContext
                 logSQL(statement, preparedStatementExecutor);
                 assert statement.execute();
                 try (ResultSet result = statement.getResultSet()) {
-                    while (result.next()) {
-                        rowCount += 1;
-                        String log = "|";
-                        for (String columnName : columns.getNames()) {
-                            log = log + result.getString(columnName) + "|";
+                    if (result != null) {
+                        while (result.next()) {
+                            rowCount += 1;
+                            String log = "|";
+                            for (String columnName : columns.getNames()) {
+                                log = log + result.getString(columnName) + "|";
+                            }
+                            addLogs(log);
+                            destCurrentRecord = log;
+                            loggerS.info("(" + fetchGtid() + ")" + log);
                         }
-                        addLogs(log);
-                        destCurrentRecord = log;
-                        loggerS.info("(" + fetchGtid() + ")" + log);
                     }
                 }
             } catch (Throwable t) {
