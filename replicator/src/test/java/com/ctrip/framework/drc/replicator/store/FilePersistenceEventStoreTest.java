@@ -46,6 +46,7 @@ public class FilePersistenceEventStoreTest extends AbstractTransactionTest{
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
@@ -66,6 +67,7 @@ public class FilePersistenceEventStoreTest extends AbstractTransactionTest{
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         eventStore.stop();
         eventStore.dispose();
     }
