@@ -63,7 +63,6 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     }
 
     private void checkBatchExecuteSize(int batchSize) {
-        loggerBatch.info("[executeBatch] for gtid {}, batchSize {}, size {}", fetchGtid(), batchSize, batchRowsCount.get());
         if (batchRowsCount.addAndGet(batchSize) >= MAX_BATCH_EXECUTE_SIZE) {
             try {
                 if (SUCCESS == applyResult) {
