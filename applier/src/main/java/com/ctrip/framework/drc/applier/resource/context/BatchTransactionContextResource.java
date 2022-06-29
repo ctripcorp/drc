@@ -62,6 +62,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             try {
                 if (SUCCESS == applyResult) {
                     applyResult = partialTransactionContextResource.executeBatch();
+                    logger.info("executeBatch for gtid {}, size {}", fetchGtid(), batchRowsCount.get());
                 } else {
                     logger.error("executeBatch skip for applyResult {}", applyResult);
                 }
