@@ -55,8 +55,8 @@ public class TransactionContextResource extends AbstractContext
     protected final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     private static final String SET_NEXT_GTID = "set gtid_next = '%s'";
-    private static final String COMMIT = "commit";
-    private static final String ROLLBACK = "rollback";
+    protected static final String COMMIT = "commit";
+    protected static final String ROLLBACK = "rollback";
 
     @InstanceActivity
     public MetricsActivity metricsActivity;

@@ -20,12 +20,15 @@ import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResourceTest;
 import com.ctrip.framework.drc.applier.server.ApplierServerInClusterTest;
 import com.ctrip.framework.drc.applier.server.ApplierWatcherTest;
 import com.ctrip.framework.drc.applier.server.LocalApplierServerTest;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+
+import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTransactionContextResource.ROW_SIZE;
 
 /**
  * @Author Slight
@@ -67,6 +70,8 @@ import org.junit.runners.Suite;
         BatchPreparedStatementExecutorTest.class,
         PartialTransactionContextResourceTest.class,
         PartialBigTransactionContextResourceTest.class,
+        BatchTransactionContextResourceWithBigTransactionTest.class,
+        BatchTransactionContextResourceWithNoBigTransactionTest.class,
         TransactionTableResourceTest.class,
         //SQL
         InsertBuilderTest.class,
@@ -99,6 +104,7 @@ public class AllTests {
 
     @BeforeClass
     public static void setUp() {
+        System.setProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, String.valueOf(ROW_SIZE * 2 + 1));
         //for http server
         wireMockServer = new WireMockServer();
         wireMockServer.start();

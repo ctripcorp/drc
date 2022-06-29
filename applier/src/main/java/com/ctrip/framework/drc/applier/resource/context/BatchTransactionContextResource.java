@@ -1,16 +1,17 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStatementExecutor;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult.BATCH_ERROR;
+import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult.*;
 
 /**
  * @Author Slight
@@ -24,13 +25,15 @@ public class BatchTransactionContextResource extends TransactionContextResource 
 
     private AtomicLong batchRowsCount = new AtomicLong(0);
 
+    private TransactionData.ApplyResult applyResult = SUCCESS;
+
     private boolean bigTransaction;
 
     @Override
     public void doInitialize() throws Exception {
         super.doInitialize();
         executor = new BatchPreparedStatementExecutor(connection.createStatement());
-        partialTransactionContextResource = bigTransaction ?
+        partialTransactionContextResource = isBigTransaction() ?
                 new PartialBigTransactionContextResource(this) :
                 new PartialTransactionContextResource(this, true);
         partialTransactionContextResource.initialize();
@@ -56,7 +59,15 @@ public class BatchTransactionContextResource extends TransactionContextResource 
 
     private void checkBatchExecuteSize(int batchSize) {
         if (batchRowsCount.addAndGet(batchSize) >= MAX_BATCH_EXECUTE_SIZE) {
-            partialTransactionContextResource.executeBatch();
+            try {
+                if (SUCCESS == applyResult) {
+                    applyResult = partialTransactionContextResource.executeBatch();
+                } else {
+                    logger.error("executeBatch skip for applyResult {}", applyResult);
+                }
+            } finally {
+                batchRowsCount.set(0);
+            }
         }
     }
 
@@ -68,7 +79,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     public ApplyResult complete() {
         boolean whateverGoesWrong = false;
-        if (BATCH_ERROR == partialTransactionContextResource.complete() || everWrong()) {
+        if (SUCCESS != applyResult || BATCH_ERROR == partialTransactionContextResource.complete() || everWrong()) {
             whateverGoesWrong = true;
         }
 
@@ -78,9 +89,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             rollback();
             conflictAndRollback();
             if (getLastUnbearable() != null) {
-                return ApplyResult.UNKNOWN;
+                return UNKNOWN;
             } else {
-                return ApplyResult.WHATEVER_ROLLBACK;
+                return SUCCESS != applyResult ? applyResult : WHATEVER_ROLLBACK;
             }
         }
         commit();
@@ -88,9 +99,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             conflictAndCommit();
         }
         if (getLastUnbearable() != null) {
-            return ApplyResult.UNKNOWN;
+            return UNKNOWN;
         } else {
-            return ApplyResult.SUCCESS;
+            return SUCCESS;
         }
     }
 
@@ -102,6 +113,10 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     public void setBigTransaction(boolean bigTransaction) {
         this.bigTransaction = bigTransaction;
+    }
+
+    public boolean isBigTransaction() {
+        return bigTransaction;
     }
 
     @Override
