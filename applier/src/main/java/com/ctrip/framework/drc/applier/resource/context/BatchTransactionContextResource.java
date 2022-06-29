@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,6 +20,8 @@ import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.
  * Apr 19, 2020
  */
 public class BatchTransactionContextResource extends TransactionContextResource implements TransactionContext, BigTransactionAware {
+
+    private static final Logger loggerBatch = LoggerFactory.getLogger("BATCH");
 
     private PartialTransactionContextResource partialTransactionContextResource;
 
@@ -62,9 +66,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             try {
                 if (SUCCESS == applyResult) {
                     applyResult = partialTransactionContextResource.executeBatch();
-                    logger.info("executeBatch for gtid {}, size {}", fetchGtid(), batchRowsCount.get());
+                    loggerBatch.info("[executeBatch] for gtid {}, size {}", fetchGtid(), batchRowsCount.get());
                 } else {
-                    logger.error("executeBatch skip for applyResult {}", applyResult);
+                    loggerBatch.error("[executeBatch] skip for applyResult {}", applyResult);
                 }
             } finally {
                 batchRowsCount.set(0);
