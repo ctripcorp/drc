@@ -101,6 +101,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn(registerKey);
@@ -128,6 +129,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }
