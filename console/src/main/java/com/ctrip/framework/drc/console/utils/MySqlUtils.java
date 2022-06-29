@@ -82,6 +82,7 @@ public class MySqlUtils {
     private static final String ON_UPDATE = "on update";
     private static final String PRIMARY_KEY = "primary key";
     private static final String UNIQUE_KEY = "unique key";
+    private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
@@ -614,7 +615,7 @@ public class MySqlUtils {
     }
     
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
-        List<TableCheckVo> checkTableVos = Lists.newArrayList();
+        List<TableCheckVo> checkTableVos = Lists.newLinkedList();
         try{
             if(StringUtils.isEmpty(nameFilter)) {
                 nameFilter = MATCH_ALL_FILTER;
@@ -635,10 +636,18 @@ public class MySqlUtils {
                         (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
                     tableVo.setNoPkUk(true);
                 }
+                if (StringUtils.isEmpty(createTblStmt) || createTblStmt.toLowerCase().contains(DEFAULT_ZERO_TIME)) {
+                    tableVo.setTimeDefaultZero(true);
+                }
                 if (tablesApprovedTruncate.contains(tableVo.getFullName())) {
                     tableVo.setApproveTruncate(true);
                 }
-                checkTableVos.add(tableVo);
+                
+                if (tableVo.hasProblem()) {
+                    checkTableVos.add(0,tableVo);
+                } else {
+                    checkTableVos.add(tableVo);
+                }
             }
         } finally {
             removeSqlOperator(endpoint);

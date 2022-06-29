@@ -182,6 +182,11 @@ export default {
           title: '支持Truncate',
           key: 'approveTruncate',
           sortable: true
+        },
+        {
+          title: '存在DefaultTime为0',
+          key: 'timeDefaultZero',
+          sortable: true
         }
       ],
       total: 0,

@@ -16,6 +16,7 @@ public class TableCheckVo {
     private boolean noOnUpdateKey;
     private boolean noPkUk;
     private boolean approveTruncate;
+    private boolean timeDefaultZero;
 
     public String getFullName() {
         return String.format("`%s`.`%s`", schema, table);
@@ -24,6 +25,10 @@ public class TableCheckVo {
     public TableCheckVo(MySqlUtils.TableSchemaName tableSchemaName) {
         this.schema = tableSchemaName.getSchema();
         this.table = tableSchemaName.getName();
+    }
+
+    public boolean hasProblem() {
+        return noOnUpdateColumn || noOnUpdateKey || noPkUk || approveTruncate || timeDefaultZero;
     }
     
     @Override
@@ -35,9 +40,18 @@ public class TableCheckVo {
                 ", noOnUpdateKey=" + noOnUpdateKey +
                 ", noPkUk=" + noPkUk +
                 ", approveTruncate=" + approveTruncate +
+                ", timeDefaultZero=" + timeDefaultZero +
                 '}';
     }
     
+    public boolean getTimeDefaultZero() {
+        return timeDefaultZero;
+    }
+
+    public void setTimeDefaultZero(boolean timeDefaultZero) {
+        this.timeDefaultZero = timeDefaultZero;
+    }
+
     public String getSchema() {
         return schema;
     }
