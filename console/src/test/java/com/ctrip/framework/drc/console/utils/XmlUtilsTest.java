@@ -81,4 +81,16 @@ public class XmlUtilsTest {
         }
         Assert.assertEquals(expected, res);
     }
+
+    @Test
+    public void testReplaceBlank() {
+        String src = "# 23bc012e-4b87-11ec-b4a8-08c0eb82cca8:1-3926038581,\n" +
+                "# 370d5056-9258-11e9-9d25-48df372cf4f4:1-10771403346,\n" +
+                "# 83371274-a6b5-11e9-a1ef-98039b7f5b9c:1-7586196,\n" +
+                "# 925f1e67-9250-11e9-9cf3-48df3728761a:1-11931122492 ";
+
+        String dest = XmlUtils.replaceBlank(src);
+        Assert.assertFalse(dest.contains("\n"));
+        Assert.assertFalse(dest.contains(" "));
+    }
 }

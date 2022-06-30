@@ -4,6 +4,9 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author shenhaibo
  * @version 1.0
@@ -19,5 +22,16 @@ public class XmlUtils {
         String result = document.asXML();
         int index = result.indexOf("\n");
         return result.substring(index+1);
+    }
+
+    public static String replaceBlank(String str) {
+        str = str.replace("#", "");
+        String dest = "";
+        if (str != null) {
+            Pattern p = Pattern.compile("\\s*|\t|\r|\n");
+            Matcher m = p.matcher(str);
+            dest = m.replaceAll("");
+        }
+        return dest;
     }
 }
