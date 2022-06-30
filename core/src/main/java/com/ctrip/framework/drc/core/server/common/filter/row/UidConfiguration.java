@@ -83,4 +83,10 @@ public class UidConfiguration extends AbstractConfigBean {
     protected IsolateHashCache<String, Set<String>> getWhiteListCache() {
         return whiteListCache;
     }
+
+    @VisibleForTesting
+    protected void clear() {
+        blackListCache.invalidateAll();
+        whiteListCache.invalidateAll();
+    }
 }

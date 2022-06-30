@@ -23,6 +23,11 @@ public class UidConfigurationTest {
     private UidConfiguration uidConfiguration = UidConfiguration.getInstance();
 
     @Test
+    public void tearDown() {
+        UidConfiguration.getInstance().clear();
+    }
+
+    @Test
     public void filterRowsWithBlackList() throws Exception {
         Assert.assertFalse(uidConfiguration.filterRowsWithBlackList("uid2", registryKey));
         Assert.assertTrue(uidConfiguration.filterRowsWithBlackList("uid2", registryKey + notExist));
