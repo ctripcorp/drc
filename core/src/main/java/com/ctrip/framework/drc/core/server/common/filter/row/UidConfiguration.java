@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCache;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Set;
 
@@ -13,9 +16,13 @@ public class UidConfiguration extends AbstractConfigBean {
 
     private static final String UID_FILTER = "uid.filter.";
 
-    private static final String UID_WHITELIST = UID_FILTER + "whitelist.%s";
+    private static final String WHITELIST = "whitelist.";
 
-    private static final String UID_BLACKLIST = UID_FILTER + "blacklist.%s";
+    private static final String BLACKLIST = "blacklist.";
+
+    protected static final String UID_WHITELIST = UID_FILTER + WHITELIST + "%s";
+
+    protected static final String UID_BLACKLIST = UID_FILTER + BLACKLIST + "%s";
 
     private IsolateHashCache<String, Set<String>> blackListCache = new IsolateHashCache<>(5000, 16, 4);
 
@@ -32,19 +39,21 @@ public class UidConfiguration extends AbstractConfigBean {
     }
 
     public boolean filterRowsWithBlackList(String uid, String registryKey) throws Exception {
-        Set<String> blackListUids = blackListCache.get(registryKey, () -> {
-            String blackList = String.format(UID_BLACKLIST, registryKey);
-            return getSplitStringSet(blackList);
-        });
+        Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
         return !blackListUids.contains(uid.trim());
     }
 
     public boolean filterRowsWithWhiteList(String uid, String registryKey) throws Exception {
-        Set<String> whiteListUids = whiteListCache.get(registryKey, () -> {
-            String whiteList = String.format(UID_WHITELIST, registryKey);
-            return getSplitStringSet(whiteList);
-        });
+        Set<String> whiteListUids = whiteListCache.get(registryKey, () -> getList(String.format(UID_WHITELIST, registryKey)));
         return whiteListUids.contains(uid.trim());
+    }
+
+    private Set<String> getList(String key) {
+        String value = getProperty(key);
+        if (StringUtils.isNotBlank(value)) {
+            return getSplitStringSet(value);
+        }
+        return Sets.newHashSet();
     }
 
     @Override
@@ -53,10 +62,25 @@ public class UidConfiguration extends AbstractConfigBean {
         logger.debug("[onChange] for key {}:{}:{}", key, oldValue, newValue);
         if (key != null && key.startsWith(UID_FILTER)) {
             String registryKey = key.substring(UID_FILTER.length());
-            blackListCache.invalidate(registryKey);
-            whiteListCache.invalidate(registryKey);
-            logger.info("[Invalidate] for key {}", registryKey);
+            if (registryKey.startsWith(BLACKLIST)) {
+                registryKey = registryKey.substring(BLACKLIST.length());
+                blackListCache.invalidate(registryKey);
+                logger.info("[Invalidate] blackListCache for key {}", registryKey);
+            } else if (registryKey.startsWith(WHITELIST)) {
+                registryKey = registryKey.substring(WHITELIST.length());
+                whiteListCache.invalidate(registryKey);
+                logger.info("[Invalidate] whiteListCache for key {}", registryKey);
+            }
         }
     }
 
+    @VisibleForTesting
+    protected IsolateHashCache<String, Set<String>> getBlackListCache() {
+        return blackListCache;
+    }
+
+    @VisibleForTesting
+    protected IsolateHashCache<String, Set<String>> getWhiteListCache() {
+        return whiteListCache;
+    }
 }
