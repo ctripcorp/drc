@@ -246,6 +246,7 @@ public class AllTests {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
+            "        \"fetchMode\": 0," +
             "        \"context\": \"%s\"" +
             "      }" +
             "    }" +
