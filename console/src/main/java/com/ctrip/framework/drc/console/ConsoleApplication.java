@@ -5,6 +5,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.web.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @ServletComponentScan
 @SpringBootApplication
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 @ComponentScan(basePackages = {"com.ctrip.framework.drc.console","com.ctrip.framework.drc.service.console"})
 public class ConsoleApplication extends SpringBootServletInitializer {
     @Override

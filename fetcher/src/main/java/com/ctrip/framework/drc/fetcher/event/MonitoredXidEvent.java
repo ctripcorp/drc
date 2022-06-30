@@ -26,7 +26,6 @@ public class MonitoredXidEvent<T extends BaseTransactionContext> extends XidLogE
 
     public MonitoredXidEvent() {
         createdTime = System.currentTimeMillis();
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
     }
 
     private AtomicBoolean released = new AtomicBoolean(false);

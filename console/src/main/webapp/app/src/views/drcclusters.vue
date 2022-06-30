@@ -357,7 +357,7 @@ export default {
     goToLink (row, index) {
       console.log('go to change config for ' + row.srcMha + ' and ' + row.destMha)
       // this.$router.push({ path: '/access', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
-      this.$router.push({ path: '/accessV2', query: { step: '2', clustername: row.srcMha, newclustername: row.destMha } })
+      this.$router.push({ path: '/accessV2', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
     },
     checkConfig (row, index) {
       console.log(row.srcMha)
