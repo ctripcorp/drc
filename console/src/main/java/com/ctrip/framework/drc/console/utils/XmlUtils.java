@@ -25,7 +25,6 @@ public class XmlUtils {
     }
 
     public static String replaceBlank(String str) {
-        str = str.replace("#", "");
         String dest = "";
         if (str != null) {
             Pattern p = Pattern.compile("\\s*|\t|\r|\n");
