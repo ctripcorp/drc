@@ -79,7 +79,7 @@ public class RowsFilterConfig {
 
         private String context;
 
-        private int fetchMode = FetchMode.Remote.getCode();
+        private int fetchMode = FetchMode.RPC.getCode();
 
         public List<String> getColumns() {
             return columns;

@@ -6,7 +6,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
  */
 public enum FetchMode {
 
-    Remote(0),
+    RPC(0),
 
     BlackList(1),
 
