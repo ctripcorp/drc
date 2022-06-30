@@ -45,8 +45,18 @@ public class RemoteHttpAspect {
     public Object aroundOperate(ProceedingJoinPoint point) {
         try {
             Map<String, Object> nameAndValue = getArguments(point);
-            if (nameAndValue.containsKey("mha")) {
-                String dcName = dalUtils.getDcName((String) nameAndValue.get("mha"), BooleanEnum.FALSE.getCode());
+            if (nameAndValue.containsKey("mha") || nameAndValue.containsKey("mhaName") || 
+                    nameAndValue.containsKey("dc") || nameAndValue.containsKey("dcName")) {
+                String dcName = null;
+                if (nameAndValue.containsKey("dc")) {
+                    dcName = (String) nameAndValue.get("dc");
+                } else if (nameAndValue.containsKey("dcName"))  {
+                    dcName = (String) nameAndValue.get("dcName");
+                } else if (nameAndValue.containsKey("mha")) {
+                    dcName = dalUtils.getDcName((String) nameAndValue.get("mha"), BooleanEnum.FALSE.getCode());
+                } else if (nameAndValue.containsKey("mhaName")) {
+                    dcName = dalUtils.getDcName((String) nameAndValue.get("mhaName"), BooleanEnum.FALSE.getCode());
+                }
                 Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
                 Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
                 if (publicCloudDc.contains(dcName)) {
