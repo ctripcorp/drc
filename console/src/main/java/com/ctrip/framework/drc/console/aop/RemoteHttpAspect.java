@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 
 import java.lang.reflect.Method;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -45,18 +46,8 @@ public class RemoteHttpAspect {
     public Object aroundOperate(ProceedingJoinPoint point) {
         try {
             Map<String, Object> nameAndValue = getArguments(point);
-            if (nameAndValue.containsKey("mha") || nameAndValue.containsKey("mhaName") || 
-                    nameAndValue.containsKey("dc") || nameAndValue.containsKey("dcName")) {
-                String dcName = null;
-                if (nameAndValue.containsKey("dc")) {
-                    dcName = (String) nameAndValue.get("dc");
-                } else if (nameAndValue.containsKey("dcName"))  {
-                    dcName = (String) nameAndValue.get("dcName");
-                } else if (nameAndValue.containsKey("mha")) {
-                    dcName = dalUtils.getDcName((String) nameAndValue.get("mha"), BooleanEnum.FALSE.getCode());
-                } else if (nameAndValue.containsKey("mhaName")) {
-                    dcName = dalUtils.getDcName((String) nameAndValue.get("mhaName"), BooleanEnum.FALSE.getCode());
-                }
+            String dcName = getDcNameByArgument(nameAndValue);
+            if (dcName != null) {
                 Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
                 Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
                 if (publicCloudDc.contains(dcName)) {
@@ -73,7 +64,24 @@ public class RemoteHttpAspect {
                         }
                     }
                     logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", url);
-                    ApiResult apiResult = HttpUtils.get(url.toString(), ApiResult.class);
+                    ApiResult apiResult;
+                    switch (annotation.httpType()) {
+                        case GET: 
+                            apiResult = HttpUtils.get(url.toString(), ApiResult.class);
+                            break;
+                        case PUT: 
+                            apiResult = HttpUtils.put(url.toString(), ApiResult.class);
+                            break;
+                        case POST: 
+                            apiResult = HttpUtils.post(url.toString(), ApiResult.class);
+                            break;
+                        case DELETE: 
+                            apiResult = HttpUtils.delete(url.toString(), ApiResult.class);
+                            break;
+                        default:
+                            logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + annotation.httpType().getDescription());
+                            return null;
+                    }
                     return apiResult.getData();
                 } else {
                     Object[] args = point.getArgs();
@@ -89,6 +97,28 @@ public class RemoteHttpAspect {
         }
     }
 
+    private String getDcNameByArgument(Map<String, Object> arguments) {
+        try {
+            String dcName = null;
+            if (arguments.containsKey("mha") || arguments.containsKey("mhaName") ||
+                    arguments.containsKey("dc") || arguments.containsKey("dcName")) {
+                if (arguments.containsKey("dc")) {
+                    dcName = (String) arguments.get("dc");
+                } else if (arguments.containsKey("dcName"))  {
+                    dcName = (String) arguments.get("dcName");
+                } else if (arguments.containsKey("mha")) {
+                    dcName = dalUtils.getDcName((String) arguments.get("mha"), BooleanEnum.FALSE.getCode());
+                } else if (arguments.containsKey("mhaName")) {
+                    dcName = dalUtils.getDcName((String) arguments.get("mhaName"), BooleanEnum.FALSE.getCode());
+                }
+            }
+            return dcName;
+        } catch (SQLException e) {
+            logger.error("[[tag=remoteHttpAop]] sql error", e);
+            return null;
+        }
+    }
+    
     /**
      * 获取参数Map集合
      * @param joinPoint
