@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_GTID_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * @author shenhaibo
@@ -35,7 +36,7 @@ public class CheckGtid extends AbstractConfigBean {
 
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
-    private ListeningExecutorService gtidCheckExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("PeriodicalCheckGtid"));
+    private ListeningExecutorService gtidCheckExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "PeriodicalCheckGtid"));
 
     private static final String MHA_FILTER_GTID = "filter.gtid.%s";
 

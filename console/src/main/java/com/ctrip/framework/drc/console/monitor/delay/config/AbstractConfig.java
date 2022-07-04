@@ -13,7 +13,7 @@ public abstract class AbstractConfig extends AbstractConfigBean implements Confi
 
     protected volatile String xml;
 
-    private ExecutorService executorService = ThreadUtils.newCachedThreadPool("persist-config");
+    private ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("persist-config");
 
     @Override
     public String getConfig() {
