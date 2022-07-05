@@ -2,8 +2,6 @@ package com.ctrip.framework.drc.applier.resource.position;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +31,11 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     private GtidSet gtidSet;
 
-    private Endpoint endpoint;
+    private DataSource dataSource;
 
-    public GtidMergeTask(GtidSet gtidSet, Endpoint endpoint) {
+    public GtidMergeTask(GtidSet gtidSet, DataSource dataSource) {
         this.gtidSet = gtidSet;
-        this.endpoint = endpoint;
+        this.dataSource = dataSource;
     }
 
     @Override
@@ -47,7 +45,6 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     @Override
     public void afterException(Throwable t) {
-        DataSourceManager.getInstance().clearDataSource(endpoint);
         loggerTT.error("[TT] call gtid merge task failed", t);
         try {
             TimeUnit.SECONDS.sleep(2);
@@ -64,7 +61,6 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean updateGtidSetRecord(GtidSet gtidSet) throws SQLException {
         loggerTT.info("[TT] use the gtid set: {} to union the old gtid set record", gtidSet.toString());
-        DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         try (Connection connection = dataSource.getConnection()){
             try (PreparedStatement statement = connection.prepareStatement(BEGIN)) {
                 statement.execute();
@@ -105,8 +101,7 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
                 statement.execute();
             }
         } catch (SQLException e) {
-            DataSourceManager.getInstance().clearDataSource(endpoint);
-            loggerTT.error("update gtid set of {}:{} error and clear from dataSourceManager", endpoint.getHost(), endpoint.getPort(), e);
+            loggerTT.error("update gtid set of {} error and clear from dataSourceManager", dataSource.getUrl(), e);
             throw e;
         }
         return true;

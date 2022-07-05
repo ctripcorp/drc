@@ -14,6 +14,7 @@ import com.ctrip.xpipe.concurrent.AbstractExceptionLogTask;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,10 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+
+import static com.ctrip.framework.drc.core.monitor.datasource.AbstractDataSource.setCommonProperty;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 
 /**
  * Created by jixinwang on 2021/8/23
@@ -44,6 +49,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
     private static final int MERGE_THRESHOLD = 60 * 5;
 
     private static final int PERIOD = 60;
+
+    private static final int SOCKET_TIMEOUT = 2000;
 
     private volatile int commitCount;
 
@@ -95,7 +102,11 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @Override
     protected void doInitialize() throws Exception {
         endpoint = new DefaultEndPoint(ip, port, username, password);
-        dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        setCommonProperty(poolProperties);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
+        poolProperties.setConnectionProperties(timeout);
+        dataSource = DataSourceManager.getInstance().getDataSource(endpoint, poolProperties);
 
         for (int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {
             beginState.put(i, false);
@@ -108,7 +119,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     public void mergeRecord(String uuid, boolean needRetry) {
-        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, endpoint), RETRY_TIME).call();
+        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT] query gtid set error, shutdown server, key is: {}", registryKey);
             setStatus(SystemStatus.STOPPED);
@@ -159,13 +170,13 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource), RETRY_TIME).call();
             if (res == null) {
                 loggerTT.error("[TT] merge gtid set error, shutdown server, key is: {}", registryKey);
                 setStatus(SystemStatus.STOPPED);
             }
         } else {
-            new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), 0).call();
+            new RetryTask<>(new GtidMergeTask(gtidSet, dataSource), 0).call();
         }
     }
 
