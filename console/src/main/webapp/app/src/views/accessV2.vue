@@ -17,7 +17,7 @@
       <buildV2 v-if="current === 0" v-bind="clusterPair" v-on:oldClusterChanged="updateOldCluster" v-on:newClusterChanged="updateNewCluster" v-on:newDrcZoneChanged="updateNewZone" v-on:oldDrcZoneChanged="updateOldZone"/>
       <mhaConfig v-if="current === 1" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:oldClusterChanged="updateOldCluster" v-on:newClusterChanged="updateNewCluster"/>
       <preCheck v-if="current === 2" v-bind="clusterPair" />
-      <drc v-if="current === 3" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:oldClusterChanged="updateOldCluster" v-on:newClusterChanged="updateNewCluster"/>
+      <drc v-if="current === 3" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:oldClusterChanged="updateOldCluster" v-on:newClusterChanged="updateNewCluster" />
       <complete v-if="current === 4"/>
       <Divider/>
       <div style="padding: 1px 1px; height: 100px; margin-top: 75px">
