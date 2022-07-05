@@ -3,8 +3,6 @@ package com.ctrip.framework.drc.applier.resource.position;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +20,16 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     private String uuid;
 
-    private Endpoint endpoint;
+    private DataSource dataSource;
 
-    public GtidQueryTask(String uuid, Endpoint endpoint) {
+    public GtidQueryTask(String uuid, DataSource dataSource) {
         this.uuid = uuid;
-        this.endpoint = endpoint;
+        this.dataSource = dataSource;
     }
 
     @Override
     public GtidSet call() throws SQLException {
         loggerTT.info("[TT] query gtid set in db start, uuid is: {}", uuid);
-        DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         GtidSet gtidSet;
         try (Connection connection = dataSource.getConnection()) {
             TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
@@ -47,7 +44,6 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     @Override
     public void afterException(Throwable t) {
-        DataSourceManager.getInstance().clearDataSource(endpoint);
         loggerTT.error("[TT] query gtid set task failed, uuid is: {}", uuid, t);
         try {
             TimeUnit.SECONDS.sleep(2);
