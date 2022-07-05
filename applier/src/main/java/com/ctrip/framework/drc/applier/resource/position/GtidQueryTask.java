@@ -22,21 +22,24 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     private DataSource dataSource;
 
-    public GtidQueryTask(String uuid, DataSource dataSource) {
+    private String registryKey;
+
+    public GtidQueryTask(String uuid, DataSource dataSource, String registryKey) {
         this.uuid = uuid;
         this.dataSource = dataSource;
+        this.registryKey = registryKey;
     }
 
     @Override
     public GtidSet call() throws SQLException {
-        loggerTT.info("[TT] query gtid set in db start, uuid is: {}", uuid);
+        loggerTT.info("[TT][{}] query gtid set in db start, uuid is: {}", registryKey, uuid);
         GtidSet gtidSet;
         try (Connection connection = dataSource.getConnection()) {
             TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
             gtidSet = gtidReader.getGtidSetByUuid(connection, uuid);
-            loggerTT.info("[TT] query gtid set in db success: {}", gtidSet.toString());
+            loggerTT.info("[TT][{}] query gtid set in db success: {}", registryKey, gtidSet.toString());
         } catch (SQLException e) {
-            loggerTT.error("[TT] query gtid set in db failed, uuid is: {}", uuid, e);
+            loggerTT.error("[TT][{}] query gtid set in db failed, uuid is: {}", registryKey, uuid, e);
             throw e;
         }
         return gtidSet;
@@ -44,11 +47,11 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     @Override
     public void afterException(Throwable t) {
-        loggerTT.error("[TT] query gtid set task failed, uuid is: {}", uuid, t);
+        loggerTT.error("[TT][{}] query gtid set task failed, uuid is: {}", registryKey, uuid, t);
         try {
             TimeUnit.SECONDS.sleep(2);
         } catch (InterruptedException e) {
-            loggerTT.error("[TT] sleep error when calling gtid query task, uuid is: {}", uuid, e);
+            loggerTT.error("[TT][{}] sleep error when calling gtid query task, uuid is: {}", registryKey, uuid, e);
         }
     }
 }
