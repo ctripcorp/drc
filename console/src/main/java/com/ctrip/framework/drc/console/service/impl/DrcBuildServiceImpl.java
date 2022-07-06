@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.MetaProposalDto;
@@ -8,10 +9,12 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
+import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
+import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.StringUtil;
@@ -26,6 +29,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +46,9 @@ public class DrcBuildServiceImpl implements DrcBuildService {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    
+    @Autowired
+    private LocalService localService;
 
     @Override
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
@@ -133,7 +140,19 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         }
         return new DrcBuildPreCheckVo(null,null,DrcBuildPreCheckVo.NO_CONFLICT);
     }
+    
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/local/preCheckMySqlConfig")
+    public Map<String, Object> preCheckMySqlConfig(String mha) {
+        return localService.preCheckMySqlConfig(mha);
+    }
 
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/local/preCheckMySqlTables")
+    public List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter) {
+        return localService.preCheckMySqlTables(mha,nameFilter);
+    }
+    
     private String getClusterName(MhaTbl mha) throws SQLException{
         List<ClusterMhaMapTbl> clusterMhaMapTbls = dalUtils.getClusterMhaMapTblDao().
                 queryByMhaIds(Lists.newArrayList(mha.getId()), BooleanEnum.FALSE.getCode());

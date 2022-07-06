@@ -389,6 +389,34 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     }
 
 
+    public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {
+        Dbs dbs = dbCluster.getDbs();
+        List<Db> dbList = dbs.getDbs();
+        List<Endpoint> endpoints = Lists.newArrayList();
+        for(Db db : dbList) {
+            if(db.isMaster()) {
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue())); 
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getReadUser(), dbs.getReadPassword(), BooleanEnum.TRUE.isValue())); 
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue())); 
+                return endpoints;
+            }
+        }
+        return null;
+    }
+    
+    public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
+        Map<String, Dc> dcs = getDcs();
+        for(Dc dc : dcs.values()) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
+            if(null != dbCluster) {
+                return getAllAccountsMaster(dbCluster);
+            }
+        }
+        return null;
+    }
+
+
     public List<List<Mha>> getCombinationListFromSet(Set<Mha> mhaGroup) {
         List<List<Mha>> mhaCombinationList = Lists.newArrayList();
         Set<Mha> traversed = new HashSet<>();

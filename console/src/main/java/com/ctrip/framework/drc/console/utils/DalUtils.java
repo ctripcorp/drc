@@ -111,6 +111,14 @@ public class DalUtils {
         return dalQueryDao.query(builder, parameters, new DalHints());
     }
     
+    public String getDcName(String mha,Integer deleted) throws SQLException {
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mha, deleted);
+        if (mhaTbl == null) {
+            return null;
+        }
+        return getDcNameByDcId(mhaTbl.getDcId());
+    }
+    
     public String getDcNameByDcId(Long dcId) throws SQLException {
         return dcTblDao.queryByPk(dcId).getDcName();
     }
