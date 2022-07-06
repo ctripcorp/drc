@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.config;
 
 import com.ctrip.framework.drc.core.server.utils.IpUtils;
+import com.ctrip.xpipe.utils.OsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,6 +167,8 @@ public class SystemConfig {
     public static final String DEFAULT_TRANSACTION_TABLE_MERGE_SIZE = "10000";
 
     public static final String DEFAULT_CONFIG_FILE_NAME = "drc.properties";
+
+    public static final int PROCESSORS_SIZE = OsUtils.getCpuCount();
 
     public static boolean isIntegrityTest() {
         return "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));

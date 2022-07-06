@@ -24,8 +24,7 @@ import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
  * Created by mingdongli
@@ -44,7 +43,7 @@ public abstract class AbstractNotifier implements Notifier {
     private static final String NOTIFY_URL = "http://%s/%s";
 
     protected AbstractNotifier() {
-        ExecutorService notifyExecutorService = ThreadUtils.newCachedThreadPool("CM-Notifier-Service");
+        ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "CM-Notifier-Service");
         notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);
     }
 

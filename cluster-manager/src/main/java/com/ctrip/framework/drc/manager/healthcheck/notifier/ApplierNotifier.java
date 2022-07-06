@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * Created by mingdongli
@@ -33,7 +34,7 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
 
     private CurrentMetaManager currentMetaManager;
 
-    private ListeningExecutorService gtidQueryExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("ApplierNotifier-ExecutedGtidQuery"));
+    private ListeningExecutorService gtidQueryExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "ApplierNotifier-ExecutedGtidQuery"));
 
     private ApplierNotifier() {
         super();

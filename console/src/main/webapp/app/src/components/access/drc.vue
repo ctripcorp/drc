@@ -27,8 +27,8 @@
             <Input v-model="drc.oldIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认为全部DB"/>
           </FormItem>
           <FormItem label="配置同步对象" prop="oldNameFilter" style="width: 600px">
-            <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true"
-                   placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Button @click="checkMysqlTablesInOldMha">同步表校验</Button>
           </FormItem>
           <FormItem label="配置表名映射" prop="oldNameMapping" style="width: 600px">
             <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true"
@@ -41,7 +41,7 @@
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess1 ? 'green' : 'red'"/>
                     {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-                </span>
+            </span>
           </FormItem>
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>
@@ -75,8 +75,8 @@
             <Input v-model="drc.newIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认全部DB"/>
           </FormItem>
           <FormItem label="配置同步对象" prop="newNameFilter" style="width: 600px">
-            <Input v-model="drc.newNameFilter" type="textarea" :autosize="true"
-                   placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
+            <Button @click="checkMysqlTablesInNewMha">同步表校验</Button>
           </FormItem>
           <FormItem label="配置表名映射" prop="newNameMapping" style="width: 600px">
             <Input v-model="drc.newNameMapping" type="textarea" :autosize="true"
@@ -216,6 +216,29 @@
         </div>
       </Modal>
     </Form>
+    <Modal
+      v-model="nameFilterCheck.modal"
+      title="表检验"
+      width="1000px">
+      <Card>
+        <div slot="title">
+          <span>相关表</span>
+        </div>
+        <Table stripe :columns="nameFilterCheck.columns" :data="dataWithPage" border ></Table>
+        <div style="text-align: center;margin: 16px 0">
+          <Page
+            :transfer="true"
+            :total="nameFilterCheck.tableData.length"
+            :current.sync="nameFilterCheck.current"
+            :page-size-opts="nameFilterCheck.pageSizeOpts"
+            :page-size="this.nameFilterCheck.size"
+            show-total
+            show-sizer
+            show-elevator
+            @on-page-size-change="handleChangeSize"></Page>
+        </div>
+      </Card>
+    </Modal>
   </div>
 </template>
 <script>
@@ -338,7 +361,116 @@ export default {
         applier: [
           { required: true, message: 'applier不能为空', trigger: 'blur' }
         ]
+      },
+      nameFilterCheck: {
+        modal: false,
+        tableData: [],
+        columns: [
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: '库名',
+            key: 'schema'
+          },
+          {
+            title: '表名',
+            key: 'table'
+          },
+          {
+            title: '无OnUpdate字段',
+            key: 'noOnUpdateColumn',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.noOnUpdateColumn ? 'True' : ''
+              return h('span', text)
+            }
+          },
+          {
+            title: '无OnUpdate字段索引',
+            key: 'noOnUpdateKey',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.noOnUpdateKey ? 'True' : ''
+              return h('span', text)
+            }
+          },
+          {
+            title: '无PkUk',
+            key: 'noPkUk',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.noPkUk ? 'True' : ''
+              return h('span', text)
+            }
+          },
+          {
+            title: '支持Truncate',
+            key: 'approveTruncate',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.approveTruncate ? 'True' : ''
+              return h('span', text)
+            }
+          },
+          {
+            title: '存在DefaultTime为0',
+            key: 'timeDefaultZero',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const text = row.timeDefaultZero ? 'True' : ''
+              return h('span', text)
+            }
+          },
+          {
+            title: '结果',
+            width: 100,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const flag = row.noOnUpdateColumn || row.noOnUpdateKey || row.noPkUk || row.approveTruncate || row.timeDefaultZero
+              const color = flag ? 'volcano' : 'green'
+              const text = flag ? '错误' : '正常'
+              return h('Tag', {
+                props: {
+                  color: color
+                }
+              }, text)
+            }
+          }
+        ],
+        total: 0,
+        current: 1,
+        size: 5,
+        pageSizeOpts: [5, 10, 20, 100]
       }
+    }
+  },
+  computed: {
+    dataWithPage () {
+      const data = this.nameFilterCheck.tableData
+      const start = this.nameFilterCheck.current * this.nameFilterCheck.size - this.nameFilterCheck.size
+      const end = start + this.nameFilterCheck.size
+      return [...data].slice(start, end)
     }
   },
   methods: {
@@ -346,15 +478,15 @@ export default {
       this.$refs[name].resetFields()
     },
     getResourcesInOld () {
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
-        // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
+      this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.old = []
           response.data.data.forEach(ip => this.drc.replicatorlist.old.push(ip))
         })
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
-        // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
+      this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.old = []
@@ -401,15 +533,15 @@ export default {
         })
     },
     getResourcesInNew () {
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
-        // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
+      this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.new = []
           response.data.data.forEach(ip => this.drc.replicatorlist.new.push(ip))
         })
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
-        // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
+      this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.new = []
@@ -617,6 +749,44 @@ export default {
     goToConfigRowsFiltersInDestApplier () {
       console.log('go to change rowsFilter config for ' + this.oldClusterName + '-> ' + this.newClusterName)
       this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.oldClusterName, destMha: this.newClusterName } })
+    },
+    checkMysqlTablesInOldMha () {
+      this.checkMySqlTables(this.drc.oldClusterName, this.drc.oldNameFilter)
+    },
+    checkMysqlTablesInNewMha () {
+      this.checkMySqlTables(this.drc.newClusterName, this.drc.newNameFilter)
+    },
+    checkMySqlTables (mha, nameFilter) {
+      console.log('nameFilter:' + nameFilter)
+      if (nameFilter === undefined || nameFilter === null) {
+        nameFilter = ''
+      }
+      this.$Spin.show({
+        render: (h) => {
+          return h('div', [
+            h('Icon', {
+              class: 'demo-spin-icon-load',
+              props: {
+                size: 18
+              }
+            }),
+            h('div', '检测中，请稍等...')
+          ])
+        }
+      })
+      setTimeout(() => {
+        this.$Spin.hide()
+      }, 80000)
+      this.axios.get('/api/drc/v1/build/preCheckMySqlTables?mha=' + mha +
+        '&' + 'nameFilter=' + nameFilter)
+        .then(response => {
+          this.nameFilterCheck.tableData = response.data.data
+          this.$Spin.hide()
+          this.nameFilterCheck.modal = true
+        })
+    },
+    handleChangeSize (val) {
+      this.size = val
     }
   },
   created () {

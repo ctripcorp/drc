@@ -18,8 +18,8 @@
                 </Select>
           <br/>
           <br/>
-          Mhas：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
-          cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
+          Mhas:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
+          cluster:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
           <Button :style="{marginLeft: '50px'}" type="primary" @click="getMhaGroups">查询</Button>
           <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
           <br/>

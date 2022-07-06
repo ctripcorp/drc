@@ -2,8 +2,6 @@ package com.ctrip.framework.drc.applier.resource.position;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +31,14 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     private GtidSet gtidSet;
 
-    private Endpoint endpoint;
+    private DataSource dataSource;
 
-    public GtidMergeTask(GtidSet gtidSet, Endpoint endpoint) {
+    private String registryKey;
+
+    public GtidMergeTask(GtidSet gtidSet, DataSource dataSource, String registryKey) {
         this.gtidSet = gtidSet;
-        this.endpoint = endpoint;
+        this.dataSource = dataSource;
+        this.registryKey = registryKey;
     }
 
     @Override
@@ -47,24 +48,22 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
 
     @Override
     public void afterException(Throwable t) {
-        DataSourceManager.getInstance().clearDataSource(endpoint);
-        loggerTT.error("[TT] call gtid merge task failed", t);
+        loggerTT.error("[TT][{}] call gtid merge task failed", registryKey, t);
         try {
             TimeUnit.SECONDS.sleep(2);
         } catch (InterruptedException e) {
-            loggerTT.error("[TT] sleep error when calling gtid merge task", e);
+            loggerTT.error("[TT][{}] sleep error when calling gtid merge task", registryKey, e);
         }
     }
 
     @Override
     public void afterSuccess(int retryTime) {
-        loggerTT.info("{} success with retryTime {}", name(), retryTime);
+        loggerTT.info("[TT][{}] {} success with retryTime {}", registryKey, name(), retryTime);
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean updateGtidSetRecord(GtidSet gtidSet) throws SQLException {
-        loggerTT.info("[TT] use the gtid set: {} to union the old gtid set record", gtidSet.toString());
-        DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+        loggerTT.info("[TT][{}] use the gtid set: {} to union the old gtid set record", registryKey, gtidSet.toString());
         try (Connection connection = dataSource.getConnection()){
             try (PreparedStatement statement = connection.prepareStatement(BEGIN)) {
                 statement.execute();
@@ -81,7 +80,7 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
                 }
                 if (gtidSetFromDb == null) {
                     String gtidSetToInsert = gtidSet.getUUIDSet(uuid).toString();
-                    loggerTT.info("[TT] use the gtid set: {} to insert", gtidSetToInsert);
+                    loggerTT.info("[TT][{}] use the gtid set: {} to insert", registryKey, gtidSetToInsert);
                     try (PreparedStatement insertStatement = connection.prepareStatement(INSERT_GTID_SET_SQL)) {
                         insertStatement.setString(1, uuid);
                         insertStatement.setString(2, gtidSetToInsert);
@@ -91,12 +90,12 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
                     }
                 } else {
                     String gtidSetToUpdate = new GtidSet(gtidSetFromDb).union(gtidSet).getUUIDSet(uuid).toString();
-                    loggerTT.info("[TT] use the new gtid set: {} to update the old gtid set record: {}", gtidSetToUpdate, gtidSetFromDb);
+                    loggerTT.info("[TT][{}] use the new gtid set: {} to update the old gtid set record: {}", registryKey, gtidSetToUpdate, gtidSetFromDb);
                     try (PreparedStatement statement = connection.prepareStatement(UPDATE_GTID_SET_SQL)) {
                         statement.setString(1, gtidSetToUpdate);
                         statement.setString(2, uuid);
                         if (statement.executeUpdate() != 1) {
-                            throw new SQLException("[TT] update gtid set error, affected rows not 1");
+                            throw new SQLException("[TT][{}] update gtid set error, affected rows not 1", registryKey);
                         }
                     }
                 }
@@ -105,8 +104,7 @@ public class GtidMergeTask implements NamedCallable<Boolean> {
                 statement.execute();
             }
         } catch (SQLException e) {
-            DataSourceManager.getInstance().clearDataSource(endpoint);
-            loggerTT.error("update gtid set of {}:{} error and clear from dataSourceManager", endpoint.getHost(), endpoint.getPort(), e);
+            loggerTT.error("[TT][{}] update gtid set of {} error and clear from dataSourceManager", registryKey, dataSource.getUrl(), e);
             throw e;
         }
         return true;

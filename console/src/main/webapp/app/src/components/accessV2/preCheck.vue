@@ -2,48 +2,48 @@
   <div>
     <Row>
       <i-col span="12">
-        <Form  :model="oldMha"  :label-width="250" style="float: left; margin-top: 50px">
+        <Form  :model="srcMha"  :label-width="250" style="float: left; margin-top: 50px">
           <FormItem label="源集群名" prop="mhaName" style="width: 600px">
             <Row>
               <Col span="16">
-                <Input v-model="oldMha.mhaName"  readonly placeholder="请输入源集群名"/>
+                <Input v-model="srcMha.mhaName"  readonly placeholder="请输入源集群名"/>
               </Col>
               <Col span="5">
-                <Button  type="primary" @click="checkMySqlConfig(oldMha)" ghost style="margin-left: 10px">配置校验</Button>
+                <Button  type="primary" @click="checkMySqlConfig(srcMha)" ghost style="margin-left: 10px">配置校验</Button>
               </Col>
             </Row>
           </FormItem>
-          <FormItem label="相关表" prop="ip">
+          <FormItem label="同步表" prop="ip">
             <Row>
               <Col span="16">
-                <Input v-model="oldMha.nameFilter"  placeholder="请输入同步相关表"/>
+                <Input v-model="srcMha.nameFilter"   placeholder="支持正则，默认全部"/>
               </Col>
               <Col span="5">
-                <Button  type="primary" @click="checkMySqlTables(oldMha)" ghost style="margin-left: 10px">表校验</Button>
+                <Button  type="primary" @click="checkMySqlTables(srcMha)" ghost style="margin-left: 10px">表校验</Button>
               </Col>
             </Row>
           </FormItem>
         </Form>
       </i-col>
       <i-col span="12">
-        <Form  :model="newMha"  :label-width="250" style="float: left; margin-top: 50px">
-          <FormItem label="源集群名" prop="mhaName" style="width: 600px">
+        <Form  :model="destMha"  :label-width="250" style="float: left; margin-top: 50px">
+          <FormItem label="目标集群名" prop="mhaName" style="width: 600px">
             <Row>
               <Col span="16">
-                <Input v-model="newMha.mhaName"  readonly placeholder="请输入源集群名"/>
+                <Input v-model="destMha.mhaName"  readonly placeholder="请输入源集群名"/>
               </Col>
               <Col span="5">
-                <Button type="primary" @click="checkMySqlConfig(newMha)" ghost style="margin-left: 10px">配置校验</Button>
+                <Button type="primary" @click="checkMySqlConfig(destMha)"  ghost style="margin-left: 10px">配置校验</Button>
               </Col>
             </Row>
           </FormItem>
-          <FormItem label="相关表" prop="ip">
+          <FormItem label="同步表" prop="ip">
             <Row>
               <Col span="16">
-                <Input v-model="newMha.nameFilter"  placeholder="请输入同步相关表"/>
+                <Input v-model="destMha.nameFilter"  placeholder="支持正则，默认全部"/>
               </Col>
               <Col span="5">
-                <Button  type="primary" @click="checkMySqlTables(newMha)" ghost style="margin-left: 10px">表校验</Button>
+                <Button  type="primary" @click="checkMySqlTables(destMha)" ghost style="margin-left: 10px">表校验</Button>
               </Col>
             </Row>
           </FormItem>
@@ -87,7 +87,7 @@
     <Modal
       v-model="tablesCheckModal"
       title="表检验"
-      width="900px">
+      width="1000px">
       <Card>
         <div slot="title">
           <span>相关表</span>
@@ -120,11 +120,11 @@ export default {
   },
   data () {
     return {
-      oldMha: {
+      srcMha: {
         mhaName: this.oldClusterName,
         nameFilter: ''
       },
-      newMha: {
+      destMha: {
         mhaName: this.newClusterName,
         nameFilter: ''
       },
@@ -166,27 +166,73 @@ export default {
         {
           title: '无OnUpdate字段',
           key: 'noOnUpdateColumn',
-          sortable: true
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const text = row.noOnUpdateColumn ? 'True' : ''
+            return h('span', text)
+          }
         },
         {
           title: '无OnUpdate字段索引',
           key: 'noOnUpdateKey',
-          sortable: true
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const text = row.noOnUpdateKey ? 'True' : ''
+            return h('span', text)
+          }
         },
         {
           title: '无PkUk',
           key: 'noPkUk',
-          sortable: true
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const text = row.noPkUk ? 'True' : ''
+            return h('span', text)
+          }
         },
         {
           title: '支持Truncate',
           key: 'approveTruncate',
-          sortable: true
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const text = row.approveTruncate ? 'True' : ''
+            return h('span', text)
+          }
         },
         {
           title: '存在DefaultTime为0',
           key: 'timeDefaultZero',
-          sortable: true
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const text = row.timeDefaultZero ? 'True' : ''
+            return h('span', text)
+          }
+        },
+        {
+          title: '结果',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const flag = row.noOnUpdateColumn || row.noOnUpdateKey || row.noPkUk || row.approveTruncate || row.timeDefaultZero
+            const color = flag ? 'volcano' : 'green'
+            const text = flag ? '错误' : '正常'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
         }
       ],
       total: 0,
