@@ -74,7 +74,10 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         newServer.initialize();
         newServer.start();
         logger.info("applier servers put cluster: {}", clusterKey);
-        servers.put(clusterKey, newServer);
+        ApplierServerInCluster server = servers.put(clusterKey, newServer);
+        if (server != null) {
+            doRemoveServer(server);
+        }
     }
 
     protected ApplierServerInCluster getApplierServer(ApplierConfigDto config) throws Exception {
