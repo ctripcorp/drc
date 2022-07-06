@@ -277,11 +277,14 @@ public class MetaGenerator {
     private void generateDbClusters(Dc dc, Long dcId) throws SQLException {
         List<MhaTbl> localMhaTbls = mhaTbls.stream().filter(mhaTbl -> (mhaTbl.getDcId().equals(dcId))).collect(Collectors.toList());
         for(MhaTbl mhaTbl : localMhaTbls) {
-            Set<Long> mhaGroupIds = groupMappingTbls.stream().filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && p.getMhaId().equals(mhaTbl.getId())).map(GroupMappingTbl::getMhaGroupId).collect(Collectors.toSet());
+            Set<Long> mhaGroupIds = groupMappingTbls.stream().filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && 
+                    p.getMhaId().equals(mhaTbl.getId())).map(GroupMappingTbl::getMhaGroupId).collect(Collectors.toSet());
             List<MhaGroupTbl> mhaGroupTblList = mhaGroupTbls.stream()
-                    .filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && mhaGroupIds.contains(p.getId()) && p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode()))
+                    .filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) &&
+                            mhaGroupIds.contains(p.getId()) &&
+                            (p.getDrcEstablishStatus().equals(EstablishStatusEnum.ESTABLISHED.getCode()) || 
+                                    p.getDrcEstablishStatus().equals(EstablishStatusEnum.BUILT_NEW_MHA.getCode())))
                     .collect(Collectors.toList());
-
             if (mhaGroupTblList.size() == 0) {
                 logger.debug("skip, mha group for {} is not established yet", mhaTbl.getMhaName());
                 continue;
