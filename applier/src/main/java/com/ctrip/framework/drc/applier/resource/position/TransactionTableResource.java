@@ -103,7 +103,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
     protected void doInitialize() throws Exception {
         endpoint = new DefaultEndPoint(ip, port, username, password);
         PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
-        setCommonProperty(poolProperties);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
         dataSource = DataSourceManager.getInstance().getDataSource(endpoint, poolProperties);
