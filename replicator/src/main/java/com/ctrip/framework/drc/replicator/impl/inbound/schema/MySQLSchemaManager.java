@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 import com.wix.mysql.EmbeddedMysql;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.springframework.util.CollectionUtils;
 
 import java.io.File;
@@ -45,6 +46,8 @@ import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemaSnapshotTask.SHOW_TABLES_QUERY;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager.SchemaStatus.*;
 import static ctrip.framework.drc.mysql.EmbeddedDb.*;
 
@@ -59,6 +62,8 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = \"%s\" AND `table_name` = \"%s\" and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
 
     private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\"";
+
+    private static final int SOCKET_TIMEOUT = 30000;
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
@@ -82,7 +87,11 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
         }
         inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
-        inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint);
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
+        poolProperties.setConnectionProperties(timeout);
+        inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
+
     }
 
     @Override

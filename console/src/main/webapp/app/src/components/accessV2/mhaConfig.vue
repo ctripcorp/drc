@@ -215,7 +215,7 @@ export default {
           },
           {
             value: 'ntgxy',
-            key: '南通xy'
+            label: 'ntgxy'
           },
           {
             value: 'fraaws',
@@ -250,10 +250,10 @@ export default {
     },
     queryOldMhaMachineUuid () {
       const that = this
-      console.log('/api/drc/v1/mha/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/uuid/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
-      that.axios.get('/api/drc/v1/mha/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/uuid/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
+      console.log('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
+        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
+      that.axios.get('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
+        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -266,8 +266,8 @@ export default {
     },
     queryNewMhaMachineUuid () {
       const that = this
-      that.axios.get('/api/drc/v1/mha/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/uuid/' + this.newMhaMachine.ip + '/' + this.newMhaMachine.port + '/' + this.oldMhaMachine.master)
+      that.axios.get('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
+        ',' + this.newMhaMachine.mhaName + '/' + this.newMhaMachine.ip + '/' + this.newMhaMachine.port + '/' + this.oldMhaMachine.master)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {

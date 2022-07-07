@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.activity.monitor;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.server.ApplierServer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -26,6 +28,8 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
 
     @InstanceConfig(path = "container")
     public ApplierServerContainer container;
+
+    private ExecutorService executorService = ThreadUtils.newCachedThreadPool("WatchActivityRemove");
 
     @Override
     public void loop() {
@@ -88,10 +92,18 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
         }
     }
 
-    private void removeServer(String key) throws Throwable{
-        container.removeServer(key, true);
-        container.registerServer(key);
-        lastLWMHashMap.remove(key);
+    private void removeServer(String key) {
+        executorService.submit(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                container.removeServer(key, true);
+            } catch (Exception e) {
+                logger.error("watch activity remove serve({}) error", key, e);
+            }
+            container.registerServer(key);
+            lastLWMHashMap.remove(key);
+            logger.info("watch activity remove serve({}) cost time: {}ms", key, System.currentTimeMillis() - startTime);
+        });
     }
 
     @Override

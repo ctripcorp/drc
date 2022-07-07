@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -47,16 +48,19 @@ public class BuildController {
     private RowsFilterService rowsFilterService;
     
     @Autowired
+    private DrcBuildService drcBuildService;
+    
+    @Autowired
     private DefaultConsoleConfig consoleConfig;
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
-    private DalUtils dalUtils = DalUtils.getInstance();
+    private  DalUtils dalUtils = DalUtils.getInstance();
     
-    private ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
+    private  ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
     
-    private ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
+    private  ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
     
     
     @PostMapping("simplexDrc/{srcMha}/{destMha}") 
@@ -278,5 +282,28 @@ public class BuildController {
         }
     }
     
+    @GetMapping("preCheckMySqlConfig") 
+    public ApiResult preCheckConfig(@RequestParam String mha) {
+        try {
+            logger.info("[[tag=preCheck,mha={}]] preCheckConfig ",mha);
+            Map<String, Object> resMap = drcBuildService.preCheckMySqlConfig(mha);
+            return ApiResult.getSuccessInstance(resMap);
+        } catch (Exception e) {
+            logger.error("[[tag=preCheck,mha={}]] error in preCheckMySqlConfig",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("preCheckMySqlTables")
+    public ApiResult preCheckTables(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=preCheck,mha={}]] preCheckTables with nameFilter:{}",mha,nameFilter);
+            List<TableCheckVo> checkVos = drcBuildService.preCheckMySqlTables(mha, nameFilter);
+            return ApiResult.getSuccessInstance(checkVos);
+        } catch (Exception e) {
+            logger.error("[[tag=preCheck,mha={}]]  in preCheckMySqlTables",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
     
 }
