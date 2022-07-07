@@ -5,10 +5,11 @@ import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStateme
 
 /**
  * 1、execute batch using BatchPreparedStatementExecutor
+ *
  * @Author limingdong
  * @create 2021/2/1
  */
-public class PartialTransactionContextResource extends TransactionContextResource {
+public class PartialTransactionContextResource extends TransactionContextResource implements Batchable {
 
     private TransactionContextResource parent;
 
@@ -45,6 +46,23 @@ public class PartialTransactionContextResource extends TransactionContextResourc
     }
 
     protected TransactionData.ApplyResult doComplete() {
-        return ((BatchPreparedStatementExecutor)executor).executeBatch();
+        return ((BatchPreparedStatementExecutor) executor).executeBatch();
+    }
+
+    @Override
+    public TransactionData.ApplyResult executeBatch() {
+        if (everWrong()) {
+            return TransactionData.ApplyResult.BATCH_ERROR;
+        }
+        atTrace("e");
+        long start = System.nanoTime();
+        TransactionData.ApplyResult result = doExecuteBatch();
+        costTimeNS = costTimeNS + (System.nanoTime() - start);
+        atTrace("E");
+        return result;
+    }
+
+    protected TransactionData.ApplyResult doExecuteBatch() {
+        return doComplete();
     }
 }

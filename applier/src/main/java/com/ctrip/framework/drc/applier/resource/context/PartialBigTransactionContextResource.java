@@ -1,13 +1,12 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.applier.resource.context.savepoint.DefaultSavepointExecutor;
 import com.ctrip.framework.drc.applier.resource.context.savepoint.SavepointExecutor;
 import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStatementExecutor;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -26,15 +25,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class PartialBigTransactionContextResource extends PartialTransactionContextResource {
 
-    protected static final int MAX_BATCH_EXECUTE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, "1000"));
-
     private static final Logger loggerBatch = LoggerFactory.getLogger("BATCH");
 
     private SavepointExecutor savepointExecutor;
 
     private List<Runnable> writeEventWrappers = Lists.newArrayList();
-
-    private AtomicLong batchRowsCount = new AtomicLong(0);
 
     private BatchPreparedStatementExecutor preparedStatementExecutor;
 
@@ -47,6 +42,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     public void doInitialize() {
         super.doInitialize();
         savepointExecutor = new DefaultSavepointExecutor(connection);
+        batchRowsCount.set(0);
     }
 
     @Override
@@ -57,7 +53,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
             setTableKey(tableKey);
             super.insert(beforeRows, beforeBitmap, columns);
         });
-        checkBatchExecuteSize(beforeRows.size());
+        batchRowsCount.addAndGet(beforeRows.size());
     }
 
     @Override
@@ -68,7 +64,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
             setTableKey(tableKey);
             super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
         });
-        checkBatchExecuteSize(beforeRows.size());
+        batchRowsCount.addAndGet(beforeRows.size());
     }
 
     @Override
@@ -79,28 +75,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
             setTableKey(tableKey);
             super.delete(beforeRows, beforeBitmap, columns);
         });
-        checkBatchExecuteSize(beforeRows.size());
-    }
-
-    private void checkBatchExecuteSize(int batchSize) {
-        if (batchRowsCount.addAndGet(batchSize) >= MAX_BATCH_EXECUTE_SIZE) {
-            executeBatch();
-        }
-    }
-
-    private TransactionData.ApplyResult executeBatch() {
-        if (everWrong()) {
-            return TransactionData.ApplyResult.BATCH_ERROR;
-        }
-        TransactionData.ApplyResult result = TransactionData.ApplyResult.SUCCESS;
-        if (batchRowsCount.get() > 0) {
-            atTrace("e");
-            long start = System.nanoTime();
-            result = doExecuteBatch();
-            costTimeNS = costTimeNS + (System.nanoTime() - start);
-            atTrace("E");
-        }
-        return result;
+        batchRowsCount.addAndGet(beforeRows.size());
     }
 
     protected TransactionData.ApplyResult doExecuteBatch() {
@@ -140,6 +115,9 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     protected TransactionData.ApplyResult doComplete() {
         return executeBatch();
     }
+
+    @VisibleForTesting
+    private AtomicLong batchRowsCount = new AtomicLong(0);
 
     @VisibleForTesting
     protected long getBatchRowsCount() {
