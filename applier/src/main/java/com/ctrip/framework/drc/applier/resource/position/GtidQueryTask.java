@@ -3,8 +3,6 @@ package com.ctrip.framework.drc.applier.resource.position;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,24 +20,26 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     private String uuid;
 
-    private Endpoint endpoint;
+    private DataSource dataSource;
 
-    public GtidQueryTask(String uuid, Endpoint endpoint) {
+    private String registryKey;
+
+    public GtidQueryTask(String uuid, DataSource dataSource, String registryKey) {
         this.uuid = uuid;
-        this.endpoint = endpoint;
+        this.dataSource = dataSource;
+        this.registryKey = registryKey;
     }
 
     @Override
     public GtidSet call() throws SQLException {
-        loggerTT.info("[TT] query gtid set in db start, uuid is: {}", uuid);
-        DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+        loggerTT.info("[TT][{}] query gtid set in db start, uuid is: {}", registryKey, uuid);
         GtidSet gtidSet;
         try (Connection connection = dataSource.getConnection()) {
             TransactionTableGtidReader gtidReader = new TransactionTableGtidReader();
             gtidSet = gtidReader.getGtidSetByUuid(connection, uuid);
-            loggerTT.info("[TT] query gtid set in db success: {}", gtidSet.toString());
+            loggerTT.info("[TT][{}] query gtid set in db success: {}", registryKey, gtidSet.toString());
         } catch (SQLException e) {
-            loggerTT.error("[TT] query gtid set in db failed, uuid is: {}", uuid, e);
+            loggerTT.error("[TT][{}] query gtid set in db failed, uuid is: {}", registryKey, uuid, e);
             throw e;
         }
         return gtidSet;
@@ -47,12 +47,11 @@ public class GtidQueryTask implements NamedCallable<GtidSet> {
 
     @Override
     public void afterException(Throwable t) {
-        DataSourceManager.getInstance().clearDataSource(endpoint);
-        loggerTT.error("[TT] query gtid set task failed, uuid is: {}", uuid, t);
+        loggerTT.error("[TT][{}] query gtid set task failed, uuid is: {}", registryKey, uuid, t);
         try {
             TimeUnit.SECONDS.sleep(2);
         } catch (InterruptedException e) {
-            loggerTT.error("[TT] sleep error when calling gtid query task, uuid is: {}", uuid, e);
+            loggerTT.error("[TT][{}] sleep error when calling gtid query task, uuid is: {}", registryKey, uuid, e);
         }
     }
 }

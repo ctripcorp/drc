@@ -18,8 +18,8 @@
                 </Select>
           <br/>
           <br/>
-          Mhas：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
-          cluster：<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
+          Mhas:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部，逗号分隔" v-model="searchCondition.mhas" />
+          cluster:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部"  v-model="searchCondition.clusterName" />
           <Button :style="{marginLeft: '50px'}" type="primary" @click="getMhaGroups">查询</Button>
           <Button :style="{marginLeft: '20px'}" type="primary" @click="reset">重置</Button>
           <br/>
@@ -357,7 +357,7 @@ export default {
     goToLink (row, index) {
       console.log('go to change config for ' + row.srcMha + ' and ' + row.destMha)
       // this.$router.push({ path: '/access', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
-      this.$router.push({ path: '/accessV2', query: { step: '2', clustername: row.srcMha, newclustername: row.destMha } })
+      this.$router.push({ path: '/accessV2', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
     },
     checkConfig (row, index) {
       console.log(row.srcMha)

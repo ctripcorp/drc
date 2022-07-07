@@ -65,17 +65,17 @@
                   </Select>
                 </FormItem>
                 <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select  v-model="configInTripUid.uid"   style="width: 200px" placeholder="选择UID相关字段">
-                    <Option value="">无UID</Option>
+                  <Select  v-model="configInTripUid.uid"   filterable allow-create @on-create="handleCreateUIDColumn" style="width: 200px" placeholder="选择UID相关字段">
+<!--                    <Option value="">无UID</Option>-->
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select   v-model="configInTripUid.udl"   style="width: 200px" placeholder="选择UDL相关字段">
-                    <Option value="">无UDL</Option>
-                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-                  </Select>
-                </FormItem>
+<!--                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">-->
+<!--                  <Select   v-model="configInTripUid.udl"   style="width: 200px" placeholder="选择UDL相关字段">-->
+<!--                    <Option value="">无UDL</Option>-->
+<!--                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>-->
+<!--                  </Select>-->
+<!--                </FormItem>-->
                 <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
@@ -228,7 +228,7 @@ export default {
       },
       configInTripUid: {
         uid: '',
-        udl: '',
+        // udl: '',
         regionsChosen: []
       },
       modesForChose: [
@@ -321,13 +321,13 @@ export default {
       if (row.mode === 'trip_uid') {
         this.configInTripUid = {
           uid: row.columns[0],
-          udl: row.columns.length === 2 ? row.columns[1] : '',
+          // udl: row.columns.length === 2 ? row.columns[1] : '',
           regionsChosen: row.context.split(',')
         }
       } else {
         this.configInTripUid = {
           uid: '',
-          udl: '',
+          // udl: '',
           regionsChosen: []
         }
       }
@@ -349,7 +349,7 @@ export default {
     rowsFilterConfigInit () {
       this.configInTripUid = {
         uid: '',
-        udl: '',
+        // udl: '',
         regionsChosen: []
       }
       this.rowsFilterConfig = {
@@ -372,17 +372,12 @@ export default {
       console.log('before:')
       console.log(this.rowsFilterConfig)
       if (this.rowsFilterConfig.mode === 'trip_uid') {
-        if (this.configInTripUid.uid === null || this.configInTripUid.uid === undefined) {
-          this.configInTripUid.uid = ''
-        }
-        if (this.configInTripUid.udl === null || this.configInTripUid.udl === undefined) {
-          this.configInTripUid.udl = ''
-        }
-        if (this.configInTripUid.uid === '' && this.configInTripUid.udl === '') {
-          alert('uid 与 udl 字段不能都为空！')
+        if (this.configInTripUid.uid === null || this.configInTripUid.uid === undefined || this.configInTripUid.uid === '') {
+          alert('uid字段不能为空！')
           return
         }
-        this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
+        // this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
+        this.rowsFilterConfig.columns = [this.configInTripUid.uid]
         this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
       }
       console.log('after:')
@@ -532,43 +527,43 @@ export default {
     handleChangeSize (val) {
       this.size = val
     },
-    handleCreateUDLColumn (val) {
-      if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
-        alert('已有项禁止创建')
-        return
-      }
-      if (val === '' || val === undefined || val === null) {
-        alert('字段不能为空')
-        return
-      }
-      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
-        'srcDc=' + this.drc.srcDc +
-        '&mhaName=' + this.drc.srcMha +
-        '&namespace=' + this.rowsFilterConfig.namespace +
-        '&name=' + this.rowsFilterConfig.name +
-        '&column=' + val)
-      this.axios.get(
-        '/api/drc/v1/build/dataMedia/columnCheck?' +
-        'srcDc=' + this.drc.srcDc +
-        '&mhaName=' + this.drc.srcMha +
-        '&namespace=' + this.rowsFilterConfig.namespace +
-        '&name=' + this.rowsFilterConfig.name +
-        '&column=' + val)
-        .then(response => {
-          if (response.data.status === 1) {
-            alert('查询字段:' + val + '失败！' + response.data.data)
-            this.columnsForChose.push(val)
-            this.configInTripUid.udl = val
-          } else {
-            const tablesWithoutColumn = response.data.data
-            if (tablesWithoutColumn.length !== 0) {
-              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
-            }
-            this.columnsForChose.push(val)
-            this.configInTripUid.udl = val
-          }
-        })
-    },
+    // handleCreateUDLColumn (val) {
+    //   if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
+    //     alert('已有项禁止创建')
+    //     return
+    //   }
+    //   if (val === '' || val === undefined || val === null) {
+    //     alert('字段不能为空')
+    //     return
+    //   }
+    //   console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+    //     'srcDc=' + this.drc.srcDc +
+    //     '&mhaName=' + this.drc.srcMha +
+    //     '&namespace=' + this.rowsFilterConfig.namespace +
+    //     '&name=' + this.rowsFilterConfig.name +
+    //     '&column=' + val)
+    //   this.axios.get(
+    //     '/api/drc/v1/build/dataMedia/columnCheck?' +
+    //     'srcDc=' + this.drc.srcDc +
+    //     '&mhaName=' + this.drc.srcMha +
+    //     '&namespace=' + this.rowsFilterConfig.namespace +
+    //     '&name=' + this.rowsFilterConfig.name +
+    //     '&column=' + val)
+    //     .then(response => {
+    //       if (response.data.status === 1) {
+    //         alert('查询字段:' + val + '失败！' + response.data.data)
+    //         this.columnsForChose.push(val)
+    //         this.configInTripUid.udl = val
+    //       } else {
+    //         const tablesWithoutColumn = response.data.data
+    //         if (tablesWithoutColumn.length !== 0) {
+    //           alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+    //         }
+    //         this.columnsForChose.push(val)
+    //         this.configInTripUid.udl = val
+    //       }
+    //     })
+    // },
     handleCreateUIDColumn (val) {
       if (val === '无UID' || this.contains(this.columnsForChose, val)) {
         alert('已有项禁止创建')

@@ -1,10 +1,13 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,6 +20,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -31,6 +35,9 @@ public class LocalControllerTest extends AbstractControllerTest {
 
     @Mock
     private RowsFilterService rowsFilterService;
+    
+    @Mock
+    private LocalService localService;
 
     @Before
     public void setUp() throws SQLException {
@@ -131,8 +138,6 @@ public class LocalControllerTest extends AbstractControllerTest {
         String response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
         System.out.println(response);
-
-
     }
 
     @Test
@@ -211,5 +216,71 @@ public class LocalControllerTest extends AbstractControllerTest {
             e.printStackTrace();
         }
     }
+    
 
+    @Test
+    public void testPreCheckConfig() throws Exception {
+        HashMap<String, Object> res = Maps.newHashMap();
+        res.put("binlogMode", "ON");
+        res.put("binlogFormat", "ROW");
+        res.put("binlogVersion1", "OFF");
+        res.put("binlogTransactionDependency", "WRITESET");
+        res.put("gtidMode", "ON");
+        res.put("drcTables", 2);
+        res.put("autoIncrementStep", 2);
+        res.put("autoIncrementOffset", 1);
+        res.put("drcAccounts", "three accounts ready");
+        Mockito.when(localService.preCheckMySqlConfig(Mockito.eq("mha1"))).thenReturn(res);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/preCheckMySqlConfig?" +
+                                "mha=" + "mha1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+
+        Mockito.when(localService.preCheckMySqlConfig(Mockito.eq("mha1"))).thenThrow(new RuntimeException("test"));
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/preCheckMySqlConfig?" +
+                                "mha=" + "mha1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        status = mvcResult.getResponse().getStatus();
+        response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+    }
+
+    @Test
+    public void testPreCheckTables() throws Exception {
+        List<TableCheckVo> checkVos = org.assertj.core.util.Lists.newArrayList();
+        TableCheckVo tableCheckVo = new TableCheckVo(new MySqlUtils.TableSchemaName("schema1", "table1"));
+        checkVos.add(tableCheckVo);
+        System.out.println(tableCheckVo.toString());
+        Mockito.when(localService.preCheckMySqlTables(Mockito.eq("mha1"),Mockito.eq(",*"))).thenReturn(checkVos);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/preCheckMySqlTables?" +
+                                "mha=" + "mha1" +
+                                "&nameFilter=" + ".*")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+
+        Mockito.when(localService.preCheckMySqlTables(Mockito.eq("mha1"),Mockito.eq(",*"))).thenThrow(new RuntimeException("test"));
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/preCheckMySqlTables?" +
+                                "mha=" + "mha1" +
+                                "&nameFilter=" + ".*")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        status = mvcResult.getResponse().getStatus();
+        response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+    }
 }
