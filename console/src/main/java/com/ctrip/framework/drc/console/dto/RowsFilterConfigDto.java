@@ -42,6 +42,8 @@ public class RowsFilterConfigDto {
     
     private boolean illegalArgument;
     
+    private Integer fetchMode;
+    
     
 
     public RowsFilterMappingTbl getRowsFilterMappingTbl () {
@@ -71,6 +73,7 @@ public class RowsFilterConfigDto {
         parameters.setColumns(this.getColumns());
         parameters.setContext(this.getContext());
         parameters.setIllegalArgument(this.getIllegalArgument());
+        parameters.setFetchMode(this.fetchMode);
         rowsFilterTbl.setParameters(JsonCodec.INSTANCE.encode(parameters));
         return rowsFilterTbl;
     }
@@ -92,6 +95,7 @@ public class RowsFilterConfigDto {
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
                 ", illegalArgument=" + illegalArgument +
+                ", fetchMode=" + fetchMode +
                 '}';
     }
 
@@ -198,5 +202,13 @@ public class RowsFilterConfigDto {
 
     public void setIllegalArgument(boolean illegalArgument) {
         this.illegalArgument = illegalArgument;
+    }
+
+    public Integer getFetchMode() {
+        return fetchMode;
+    }
+
+    public void setFetchMode(Integer fetchMode) {
+        this.fetchMode = fetchMode;
     }
 }
