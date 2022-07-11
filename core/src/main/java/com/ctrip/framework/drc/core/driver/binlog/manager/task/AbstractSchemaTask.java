@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.BatchTask.MAX_BATCH_SIZE;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
 
 /**
  * @Author limingdong
@@ -48,7 +49,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
     }
 
     protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync) throws Exception {
-        return doCreate(sqlCollection, clazz, sync, null);
+        return doCreate(sqlCollection, clazz, sync, MAX_ACTIVE);
     }
 
     protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync, Integer concurrency) throws Exception {
