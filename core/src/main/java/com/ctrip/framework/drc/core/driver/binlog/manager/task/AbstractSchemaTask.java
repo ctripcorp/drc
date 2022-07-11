@@ -17,7 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.BatchTask.MAX_BATCH_SIZE;
-import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
 
 /**
  * @Author limingdong
@@ -49,8 +48,12 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
     }
 
     protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync) throws Exception {
+        return doCreate(sqlCollection, clazz, sync, null);
+    }
+
+    protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync, Integer concurrency) throws Exception {
         List<BatchTask> tasks = getBatchTasks(sqlCollection, clazz);
-        return sync ? sync(tasks) : async(tasks);
+        return sync ? sync(tasks) : async(tasks, concurrency);
     }
 
     protected List<BatchTask> getBatchTasks(Collection<String> sqlCollection, Class<? extends BatchTask> clazz) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
@@ -87,17 +90,17 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         return res;
     }
 
-    private boolean async(List<BatchTask> tasks) {
-        if (tasks.size() <= MAX_ACTIVE) {
+    private boolean async(List<BatchTask> tasks, Integer concurrency) {
+        if (tasks.size() <= concurrency) {
             return oneBatch(tasks);
         } else {
             boolean res = true;
-            int loopSize = tasks.size() / MAX_ACTIVE + 1;
+            int loopSize = tasks.size() / concurrency + 1;
             for (int i = 0; i < loopSize; ++i) {
                 if (i == (loopSize - 1)) {
-                    res = oneBatch(tasks.subList(i * MAX_ACTIVE, tasks.size()));
+                    res = oneBatch(tasks.subList(i * concurrency, tasks.size()));
                 } else {
-                    res = oneBatch(tasks.subList(i * MAX_ACTIVE, (i + 1) * MAX_ACTIVE));
+                    res = oneBatch(tasks.subList(i * concurrency, (i + 1) * concurrency));
                 }
                 if (!res) {
                     return res;
