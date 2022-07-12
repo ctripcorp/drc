@@ -63,7 +63,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private static final String INFORMATION_SCHEMA_QUERY = "select * from information_schema.COLUMNS where `TABLE_SCHEMA`=\"%s\" and `TABLE_NAME`=\"%s\"";
 
-    private static final int SOCKET_TIMEOUT = 30000;
+    private static final int SOCKET_TIMEOUT = 60000;
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
@@ -87,7 +87,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
         }
         inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
-        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        PoolProperties poolProperties = getDefaultPoolProperties(inMemoryEndpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
