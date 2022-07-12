@@ -8,9 +8,10 @@ import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
-import com.google.common.collect.Maps;
+import com.ctrip.xpipe.api.monitor.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
@@ -30,9 +31,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @DependsOn({"dalServiceImpl", "drcMaintenanceServiceImpl"})
 public class SyncMhaTask extends AbstractMonitor implements Monitor {
 
-    public static final int INITIAL_DELAY = 30;
+    public static final int INITIAL_DELAY = 0;
 
-    public static final int PERIOD = 30;
+    public static final int PERIOD = 5;
 
     public static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 
@@ -45,28 +46,36 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    private Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = Maps.newConcurrentMap();
-
     @Override
     public void scheduledTask() {
-        String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
-        if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-            logger.info("sync mha instance group");
-            mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
-            updateAllMhaInstanceGroup();
+        try {
+            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", new Task() {
+                @Override
+                public void go() throws Exception {
+                    String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
+                    if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                        logger.info("[[task=syncMhaTask]]sync all mha instance group");
+                        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+                        updateAllMhaInstanceGroup(mhaInstanceGroupMap);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            logger.info("[[task=SyncMhaTask]]cluster manager check error", t);
         }
+
     }
 
-    protected void updateAllMhaInstanceGroup() {
+    protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) {
         try {
             List<DalPojo> allPojos = TableEnum.MHA_TABLE.getAllPojos();
             for (DalPojo pojo : allPojos) {
                 MhaTbl mhaTbl = (MhaTbl) pojo;
-                MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupMap.get(mhaTbl.getMhaName());
+                MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTbl.getMhaName());
                 if (null != mhaInstanceGroupDto) {
                     try {
-                        logger.info("update mha {} instance", mhaInstanceGroupDto.getMhaName());
-                        drcMaintenanceService.updateMhaInstances(mhaInstanceGroupDto, true);
+                        logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
+                        drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto,mhaTbl);
                     } catch (Throwable t) {
                         logger.warn("Fail update for {}", mhaInstanceGroupDto.getMhaName(), t);
                     }

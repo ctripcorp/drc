@@ -17,70 +17,79 @@ import java.sql.Types;
 @Table(name = "machine_tbl")
 public class MachineTbl implements DalPojo {
 
-    /**
-     * 主键
-     */
-    @Id
+	/**
+	 * 主键
+	 */
+	@Id
 	@Column(name = "id")
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	@Type(value = Types.BIGINT)
 	private Long id;
 
-    /**
-     * MySQL实例ip
-     */
+	/**
+	 * MySQL实例ip
+	 */
 	@Column(name = "ip")
 	@Type(value = Types.VARCHAR)
 	private String ip;
 
-    /**
-     * MySQL实例端口
-     */
+	/**
+	 * MySQL实例端口
+	 */
 	@Column(name = "port")
 	@Type(value = Types.INTEGER)
 	private Integer port;
 
-    /**
-     * MySQL实例uuid
-     */
+	/**
+	 * MySQL实例uuid
+	 */
 	@Column(name = "uuid")
 	@Type(value = Types.VARCHAR)
 	private String uuid;
 
-    /**
-     * 主从关系, 0:从, 1:主
-     */
+	/**
+	 * 主从关系, 0:从, 1:主
+	 */
 	@Column(name = "master")
 	@Type(value = Types.TINYINT)
 	private Integer master;
 
-    /**
-     * 集群mha id
-     */
+	/**
+	 * 集群mha id
+	 */
 	@Column(name = "mha_id")
 	@Type(value = Types.BIGINT)
 	private Long mhaId;
 
-    /**
-     * 是否删除, 0:否; 1:是
-     */
+	/**
+	 * 是否删除, 0:否; 1:是
+	 */
 	@Column(name = "deleted")
 	@Type(value = Types.TINYINT)
 	private Integer deleted;
 
-    /**
-     * 创建时间
-     */
+	/**
+	 * 创建时间
+	 */
 	@Column(name = "create_time")
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp createTime;
 
-    /**
-     * 更新时间
-     */
+	/**
+	 * 更新时间
+	 */
 	@Column(name = "datachange_lasttime", insertable = false, updatable = false)
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
+
+	public MachineTbl() {
+	}
+
+	public MachineTbl(String ip, Integer port, Integer master) {
+		this.ip = ip;
+		this.port = port;
+		this.master = master;
+	}
 
 	public Long getId() {
 		return id;

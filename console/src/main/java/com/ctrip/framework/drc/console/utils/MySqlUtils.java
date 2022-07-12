@@ -427,7 +427,7 @@ public class MySqlUtils {
     }
 
     @Deprecated
-    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Throwable {
+    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
