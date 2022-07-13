@@ -31,7 +31,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @DependsOn({"dalServiceImpl", "drcMaintenanceServiceImpl"})
 public class SyncMhaTask extends AbstractMonitor implements Monitor {
 
-    public static final int INITIAL_DELAY = 0;
+    public static final int INITIAL_DELAY = 1;
 
     public static final int PERIOD = 5;
 
@@ -66,23 +66,15 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor {
 
     }
 
-    protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) {
-        try {
-            List<DalPojo> allPojos = TableEnum.MHA_TABLE.getAllPojos();
-            for (DalPojo pojo : allPojos) {
-                MhaTbl mhaTbl = (MhaTbl) pojo;
-                MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTbl.getMhaName());
-                if (null != mhaInstanceGroupDto) {
-                    try {
-                        logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
-                        drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto,mhaTbl);
-                    } catch (Throwable t) {
-                        logger.warn("Fail update for {}", mhaInstanceGroupDto.getMhaName(), t);
-                    }
-                }
+    protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
+        List<DalPojo> allPojos = TableEnum.MHA_TABLE.getAllPojos();
+        for (DalPojo pojo : allPojos) {
+            MhaTbl mhaTbl = (MhaTbl) pojo;
+            MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTbl.getMhaName());
+            if (null != mhaInstanceGroupDto) {
+                logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
+                drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto, mhaTbl);
             }
-        } catch (Throwable t) {
-            logger.error("Fail update all mha instance group, ", t);
         }
     }
 

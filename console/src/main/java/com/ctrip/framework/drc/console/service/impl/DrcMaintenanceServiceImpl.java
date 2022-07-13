@@ -93,11 +93,10 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
             } else if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
                 slaveDb.add(machineTbl.getIp() + ':' + machineTbl.getPort());
                 machineTbl.setMaster(BooleanEnum.FALSE.getCode());
-                machineTbl.setDeleted(BooleanEnum.TRUE.getCode());
                 machineTblToBeUpdated.add(machineTbl);
             }
         }
-        logger.info("[[mha={}]]slave->master: {}, master->down: {} ", mhaName, masterDb, slaveDb);
+        logger.info("[[mha={}]]slave->master: {}, master->slave: {} ", mhaName, masterDb, slaveDb);
         return machineTblToBeUpdated;
     }
 
