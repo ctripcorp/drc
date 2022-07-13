@@ -145,7 +145,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testGetMachines() throws Exception {
         List<String> machines = metaInfoService.getMachines("fat-fx-drc1");
-        Assert.assertEquals(2, machines.size());
+        Assert.assertEquals(3, machines.size());
         Assert.assertEquals("10.2.72.230:55111", machines.get(0));
 
         machines = metaInfoService.getMachines("fat-fx-drc2");

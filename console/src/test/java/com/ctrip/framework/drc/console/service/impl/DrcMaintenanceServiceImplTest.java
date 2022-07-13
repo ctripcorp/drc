@@ -120,7 +120,7 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
             result = drcMaintenanceService.changeMasterDb("fat-fx-drc1", "10.2.72.230", 55111);
             Assert.assertEquals(0, result.getStatus().intValue());
             Assert.assertEquals(2, ((Integer) result.getData()).intValue());
-            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u1i1", result.getMessage());
+            Assert.assertEquals("update fat-fx-drc1 master instance succeeded, u2i0", result.getMessage());
         }
         
     }
