@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dao;
 
+import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.fetcher.resource.context.sql.SelectBuilder;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -8,6 +9,7 @@ import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
 
 /**
  * @author shb沈海波
@@ -26,5 +28,19 @@ public class MachineTblDao extends AbstractDao<MachineTbl> {
                 .and().equal("deleted", 0, Types.TINYINT);
         MachineTbl machineTbl = client.queryFirst(sqlBuilder, hints);
         return machineTbl;
+    }
+
+    public List<MachineTbl> queryByMhaId(Long mhaId, Integer deleted) throws SQLException{
+        if (null == mhaId ) {
+            throw new IllegalArgumentException("build sql: queryMachineByMhaId, but id is null" );
+        }
+        SelectSqlBuilder builder = new SelectSqlBuilder();
+        builder.selectAll().equal("mha_id", mhaId, Types.BIGINT,false)
+                .and().equal("deleted", deleted, Types.TINYINT, false);
+        return client.query(builder, new DalHints());
+    }
+
+    public int[] batchLogicalDelete(List<MachineTbl> deleteMachines) throws SQLException{
+        return this.batchUpdate(deleteMachines);
     }
 }

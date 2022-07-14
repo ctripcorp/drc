@@ -1,5 +1,10 @@
 package com.ctrip.framework.drc.console.dto;
 
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,6 +65,23 @@ public class MhaInstanceGroupDto {
         this.slaves = slaves;
     }
 
+    // only for dto which has full machinesInfo
+    public List<MachineTbl> transferToMachine() {
+        List<MachineTbl> machineTblList = Lists.newArrayList();
+        if (master == null) {
+            throw new IllegalArgumentException("mha:" + this.mhaName + "without master,forbidden transfer!");
+        }
+        machineTblList.add(
+                new MachineTbl(master.getIp(), master.getPort(), BooleanEnum.TRUE.getCode())
+        );
+        slaves.forEach(
+                slave -> machineTblList.add(
+                        new MachineTbl(slave.getIp(),slave.getPort(),BooleanEnum.FALSE.getCode())
+                )
+        );
+        return machineTblList;
+    }
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

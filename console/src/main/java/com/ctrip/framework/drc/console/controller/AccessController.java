@@ -90,7 +90,7 @@ public class AccessController {
     public ApiResult standAloneBuildMachine(@RequestBody MhaInstanceGroupDto dto) {
         logger.info("standalone build mha instance: {}", dto);
         try {
-            Boolean res = drcMaintenanceService.updateMhaInstances(dto, false);
+            Boolean res = drcMaintenanceService.updateMhaInstances(dto);
             return ApiResult.getSuccessInstance(String.format("standalone build mha instance %s result: %s", dto, res));
         } catch (Throwable t) {
             return ApiResult.getFailInstance(String.format("Fail standalone build mha instance %s for %s", dto, t));

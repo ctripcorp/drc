@@ -14,6 +14,7 @@ import com.ctrip.xpipe.concurrent.AbstractExceptionLogTask;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,10 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+
+import static com.ctrip.framework.drc.core.monitor.datasource.AbstractDataSource.setCommonProperty;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 
 /**
  * Created by jixinwang on 2021/8/23
@@ -44,6 +49,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
     private static final int MERGE_THRESHOLD = 60 * 5;
 
     private static final int PERIOD = 60;
+
+    private static final int SOCKET_TIMEOUT = 2000;
 
     private volatile int commitCount;
 
@@ -95,7 +102,10 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @Override
     protected void doInitialize() throws Exception {
         endpoint = new DefaultEndPoint(ip, port, username, password);
-        dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
+        PoolProperties poolProperties = getDefaultPoolProperties(endpoint);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
+        poolProperties.setConnectionProperties(timeout);
+        dataSource = DataSourceManager.getInstance().getDataSource(endpoint, poolProperties);
 
         for (int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {
             beginState.put(i, false);
@@ -108,15 +118,15 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     @Override
     public void mergeRecord(String uuid, boolean needRetry) {
-        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, endpoint), RETRY_TIME).call();
+        GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey), RETRY_TIME).call();
         if (gtidSet == null) {
-            loggerTT.error("[TT] query gtid set error, shutdown server, key is: {}", registryKey);
+            loggerTT.error("[TT][{}] query gtid set error, shutdown server", registryKey);
             setStatus(SystemStatus.STOPPED);
         } else {
             if (StringUtils.isNotBlank(gtidSet.toString())) {
                 doMergeGtid(gtidSet, needRetry);
             }
-            loggerTT.info("[TT] merge gtid record in db success: {}", gtidSet.toString());
+            loggerTT.info("[TT][{}] merge gtid record in db success: {}", registryKey, gtidSet.toString());
         }
 
     }
@@ -132,19 +142,19 @@ public class TransactionTableResource extends AbstractResource implements Transa
             while (beginState.get(id)) {
                 if (!commitState.get(id)) {
                     usedIndex.replace(id, usedIndex.get(id) + 1);
-                    loggerTT.info("[TT] [USED] start waiting, gtid is: {}, index is: {}", gtid, id);
+                    loggerTT.info("[TT] [USED][{}] start waiting, gtid is: {}, index is: {}", registryKey, gtid, id);
                     flags[id].wait();
-                    loggerTT.info("[TT] [USED] end waiting, gtid is: {}, index is: {}", gtid, id);
+                    loggerTT.info("[TT] [USED][{}] end waiting, gtid is: {}, index is: {}", registryKey, gtid, id);
                 }
                 if (commitState.get(id)) {
-                    loggerTT.info("[TT] [USED] merge gtid start");
+                    loggerTT.info("[TT] [USED][{}] merge gtid start", registryKey);
                     mergeGtid(true);
-                    loggerTT.info("[TT] [USED] merge gtid end, current gtid is: {}, index is: {}， commit state is: {}", gtid, id, commitState.get(id));
+                    loggerTT.info("[TT] [USED][{}] merge gtid end, current gtid is: {}, index is: {}， commit state is: {}", registryKey, gtid, id, commitState.get(id));
                 }
             }
 
             beginState.put(id, true);
-            loggerTT.debug("[TT] set begin, gno is: {}, index is: {}", gno, id);
+            loggerTT.debug("[TT][{}] set begin, gno is: {}, index is: {}", registryKey, gno, id);
         }
     }
 
@@ -153,31 +163,31 @@ public class TransactionTableResource extends AbstractResource implements Transa
         GtidSet allGtidToMerge = getAllGtidToMerge();
         doMergeGtid(allGtidToMerge, needRetry);
         resetBeginAndCommitStates(indexesToMerge);
-        loggerTT.info("[TT] merge gtid success, cost: {} ms", System.currentTimeMillis() - start);
+        loggerTT.info("[TT][{}] merge gtid success, cost: {} ms", registryKey, System.currentTimeMillis() - start);
         lastTimeGtidMerged = System.currentTimeMillis();
     }
 
     private void doMergeGtid(GtidSet gtidSet, boolean needRetry) {
         if (needRetry) {
-            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), RETRY_TIME).call();
+            Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), RETRY_TIME).call();
             if (res == null) {
-                loggerTT.error("[TT] merge gtid set error, shutdown server, key is: {}", registryKey);
+                loggerTT.error("[TT][{}] merge gtid set error, shutdown server", registryKey);
                 setStatus(SystemStatus.STOPPED);
             }
         } else {
-            new RetryTask<>(new GtidMergeTask(gtidSet, endpoint), 0).call();
+            new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), 0).call();
         }
     }
 
     private GtidSet getAllGtidToMerge() {
         GtidSet gtidSetRecorded = getGtidRecordedInDB();
-        loggerTT.info("[TT] get gtid recorded to merge: {}", gtidSetRecorded.toString());
+        loggerTT.info("[TT][{}] get gtid recorded to merge: {}", registryKey, gtidSetRecorded.toString());
 
         GtidSet gtidSetInMemory = getGtidSavedInMemory();
-        loggerTT.info("[TT] get gtid saved in memory to merge: {}", gtidSetInMemory.toString());
+        loggerTT.info("[TT][{}] get gtid saved in memory to merge: {}", registryKey, gtidSetInMemory.toString());
 
         GtidSet allGtidSetToMerge = gtidSetRecorded.union(gtidSetInMemory);
-        loggerTT.info("[TT] get all gtid to merge: {}", allGtidSetToMerge.toString());
+        loggerTT.info("[TT][{}] get all gtid to merge: {}", registryKey, allGtidSetToMerge.toString());
         return allGtidSetToMerge;
     }
 
@@ -223,10 +233,10 @@ public class TransactionTableResource extends AbstractResource implements Transa
             //already executed or deadlock
             String message = e.getMessage();
             if (message.startsWith("Duplicate entry") || message.equals("Deadlock found when trying to get lock; try restarting transaction")) {
-                loggerTT.error("[TT] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", e);
+                loggerTT.error("[TT][{}] 0 rows updated or insert for record transaction table, PROLY already executed or deadlock", registryKey, e);
                 throw e;
             } else {
-                loggerTT.error("[TT] UNLIKELY exception when record transaction table, shutdown server, key is: {}", registryKey, e);
+                loggerTT.error("[TT][{}] UNLIKELY exception when record transaction table, shutdown server", registryKey, e);
                 setStatus(SystemStatus.STOPPED);
             }
         }
@@ -256,7 +266,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         long gno = Long.parseLong(uuidAndGno[1]);
         int index = (int) (gno % TRANSACTION_TABLE_SIZE);
         beginState.replace(index, false);
-        loggerTT.info("[TT] clear begin state: {}", index);
+        loggerTT.info("[TT][{}] clear begin state: {}", registryKey, index);
     }
 
     @Override
@@ -266,12 +276,12 @@ public class TransactionTableResource extends AbstractResource implements Transa
         int index = (int) (gno % TRANSACTION_TABLE_SIZE);
         indexAndGtid.put(index, gtid);
         if (needMerged()) {
-            loggerTT.info("[TT] merge gtid for up to transaction table merge size {} start", commitCount);
+            loggerTT.info("[TT][{}] merge gtid for up to transaction table merge size {} start", registryKey, commitCount);
             mergeGtid(true);
-            loggerTT.info("[TT] merge gtid for up to transaction table merge size end");
+            loggerTT.info("[TT][{}] merge gtid for up to transaction table merge size end", registryKey);
         }
         setCommitState(index);
-        loggerTT.debug("[TT] set commit, gno is: {}, id is: {}", gno, index);
+        loggerTT.debug("[TT][{}] set commit, gno is: {}, id is: {}", registryKey, gno, index);
     }
 
     private synchronized boolean needMerged() {
@@ -289,7 +299,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
             if (usedTime > 0) {
                 usedIndex.replace(index, usedTime - 1);
                 flags[index].notify();
-                loggerTT.info("[TT] [USED] start notify, index is: {}", index);
+                loggerTT.info("[TT] [USED][{}] start notify, index is: {}", registryKey, index);
             }
         }
     }
@@ -298,10 +308,10 @@ public class TransactionTableResource extends AbstractResource implements Transa
     public void recordToMemory(String gtid) {
         synchronized (gtidSavedInMemoryLock) {
             if (++gtidSetSizeInMemory >= TRANSACTION_TABLE_MERGE_SIZE) {
-                loggerTT.info("[TT] merge gtid for up to memory merge size {} start", gtidSetSizeInMemory);
+                loggerTT.info("[TT][{}] merge gtid for up to memory merge size {} start", registryKey, gtidSetSizeInMemory);
                 gtidSetSizeInMemory = 0;
                 asyncMergeGtid(true);
-                loggerTT.info("[TT] merge gtid for up to memory merge size end");
+                loggerTT.info("[TT][{}] merge gtid for up to memory merge size end", registryKey);
             }
             gtidSavedInMemory.add(gtid);
         }
@@ -311,9 +321,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
         mergeGtidService.submit(new Runnable() {
             @Override
             public void run() {
-                loggerTT.info("[TT] async merge gtid start");
+                loggerTT.info("[TT][{}] async merge gtid start", registryKey);
                 mergeGtid(needRetry);
-                loggerTT.info("[TT] async merge gtid end");
+                loggerTT.info("[TT][{}] async merge gtid end", registryKey);
             }
         });
     }
@@ -324,9 +334,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
             public void doRun() throws Exception {
                 long current = System.currentTimeMillis();
                 if ((current - lastTimeGtidMerged) / 1000 > MERGE_THRESHOLD) {
-                    loggerTT.info("[TT] merge gtid periodically start");
+                    loggerTT.info("[TT][{}] merge gtid periodically start", registryKey);
                     mergeGtid(true);
-                    loggerTT.info("[TT] merge gtid periodically end");
+                    loggerTT.info("[TT][{}] merge gtid periodically end", registryKey);
                 }
             }
         }, MERGE_THRESHOLD, PERIOD, TimeUnit.SECONDS);
@@ -340,9 +350,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @Override
     protected void doDispose() throws Exception {
         if (dataSource != null) {
-            loggerTT.info("[TT] merge gtid when disposing start");
+            loggerTT.info("[TT][{}] merge gtid when disposing start", registryKey);
             mergeGtid(false);
-            loggerTT.info("[TT] merge gtid when disposing end");
+            loggerTT.info("[TT][{}] merge gtid when disposing end", registryKey);
             DataSourceManager.getInstance().clearDataSource(endpoint);
         }
         if (scheduledExecutorService != null) {

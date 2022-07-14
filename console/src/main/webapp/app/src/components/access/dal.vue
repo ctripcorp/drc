@@ -167,6 +167,10 @@ export default {
             label: '南通星湖大道'
           },
           {
+            value: 'ntgxy',
+            label: 'ntgxy'
+          },
+          {
             value: 'fraaws',
             label: '法兰克福AWS'
           },

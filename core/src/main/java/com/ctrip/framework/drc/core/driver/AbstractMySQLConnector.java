@@ -22,6 +22,7 @@ import io.netty.channel.ChannelFuture;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
@@ -93,7 +94,7 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
     protected abstract ChannelHandlerFactory getChannelHandlerFactory();
 
     protected ExecutorService getExecutorService() {
-        return ThreadUtils.newCachedThreadPool(getThreadName(THREAD_NAME_PREFIX, threadNamePostfix));
+        return ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, getThreadName(THREAD_NAME_PREFIX, threadNamePostfix));
     }
 
     protected void postProcessSimpleObjectPool(SimpleObjectPool<NettyClient> simpleObjectPool) throws Exception {

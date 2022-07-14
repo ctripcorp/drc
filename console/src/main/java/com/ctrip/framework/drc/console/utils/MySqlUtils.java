@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.utils;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
@@ -12,9 +13,9 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -51,32 +52,45 @@ public class MySqlUtils {
 
     private static final String GET_DB_TABLES_SUFFIX = " AND table_name NOT LIKE '\\_%' GROUP BY table_schema, table_name;";
 
-    private static final String CHECK_GTID_MODE = "SELECT @@GTID_MODE;";
+    private static final String MATCH_ALL_FILTER = ".*";
 
+
+    /**
+     * CHECK MySql Config 
+     * log_bin = ON/1
+     * binlog_format = ROW
+     * BINLOG_TRANSACTION_DEPENDENCY_TRACKING = WRITESET
+     * log_bin_use_v1_row_events=OFF
+     * GTID_MODE=ON
+     * auto_increment_increment depend on DRC deploy
+     * auto_increment_offset depend on DRC deploy
+     * drcmonitordb should have 2 tables : [delaymonitor,gtid_executed]
+     * table via drc sync should have [pk/uk, column on_update(eg:datachange_lasttime), index in on_update column]
+     * table via drc sync forbid truncate
+     */
+    private static final String CHECK_BINLOG = "show global variables like \"log_bin\";";
+    private static final String CHECK_BINLOG_FORMAT = "show global variables like \"binlog_format\";";
     private static final String CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING = "SELECT @@BINLOG_TRANSACTION_DEPENDENCY_TRACKING;";
+    private static final String CHECK_BINLOG_VERSION1 = "show global variables like \"log_bin_use_v1_row_events\";";
+    private static final String CHECK_GTID_MODE = "SELECT @@GTID_MODE;";
+    private static final String CHECK_INCREMENT_STEP = "show global variables like \"auto_increment_increment\";";
+    private static final String CHECK_INCREMENT_OFFSET = "show global variables like \"auto_increment_offset\";";
+    private static final String CHECK_DRC_TABLES = "select count(*) from information_schema.tables where TABLE_SCHEMA = \"drcmonitordb\";";
+    private static final int SHOW_CERTAIN_VARIABLES_INDEX = 2;
+    private static final String CHECK_ACCOUNT_AVAILABLE = "SELECT @@GTID_MODE;";
 
     private static final String ON_UPDATE = "on update";
-
     private static final String PRIMARY_KEY = "primary key";
-
     private static final String UNIQUE_KEY = "unique key";
+    private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
-
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
-
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
-
     private static final String GET_ON_UPDATE_COLUMN = " and EXTRA like 'on update%';";
-
     private static final int COLUMN_INDEX = 1;
-
-    private static final String GTID_EXECUTED_COMMAND_V1 = "show master status;";
-
-    private static final int GTID_EXECUTED_INDEX_V1 = 5;
-
+    
     private static final String GTID_EXECUTED_COMMAND_V2 = "show global variables like \"gtid_executed\";";
-
     private static final int GTID_EXECUTED_INDEX_V2 = 2;
     
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
@@ -117,7 +131,7 @@ public class MySqlUtils {
         return getCreateTblStmts(endpoint,
                 tables.stream().
                         filter(tableSchemaName-> aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())).
-                        map(TableSchemaName::toString).collect(Collectors.toList()), false);
+                        map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
     public static List<TableSchemaName> getTablesAfterRegexFilter(Endpoint endpoint, AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tables = getDefaultTables(endpoint);
@@ -180,41 +194,46 @@ public class MySqlUtils {
 
     /**
      * @param endpoint
+     * @param tables tale without ``
      * @return key: database.table, value: createTblStmts
      */
     public static Map<String, String> getCreateTblStmts(Endpoint endpoint, List<String> tables, Boolean removeSqlOperator) {
-
-        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         Map<String, String> stmts = Maps.newHashMap();
-        ReadResource readResource = null;
         for(String table : tables) {
-            try {
-                String sql = String.format(GET_CREATE_TABLE_STMT, table);
-                GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-                readResource = sqlOperatorWrapper.select(execution);
-                ResultSet rs = readResource.getResultSet();
-                if (rs.next()) {
-                    String stmt = filterStmt(rs.getString(CREATE_TABLE_INDEX), endpoint, table);
-                    stmts.put(table, stmt);
-                }
-            } catch (Throwable t) {
-                logger.error("[[monitor=table,endpoint={}:{}]] getCreateTblStmts error: ", endpoint.getHost(), endpoint.getPort(), t);
-                removeSqlOperator(endpoint);
-            } finally {
-                if (readResource != null) {
-                    readResource.close();
-                }
+            String createTblStmt = getCreateTblStmt(endpoint, TableSchemaName.getTableSchemaName(table), removeSqlOperator);
+            String stmt = filterStmt(createTblStmt, endpoint, table);
+            stmts.put(table, stmt);
+        }
+        return stmts;
+    }
+    
+    public static String getCreateTblStmt(Endpoint endpoint,TableSchemaName table,Boolean removeSqlOperator) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(GET_CREATE_TABLE_STMT, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            if (rs.next()) {
+                return rs.getString(CREATE_TABLE_INDEX);
+            }
+        } catch (Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getCreateTblStmts error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if (readResource != null) {
+                readResource.close();
             }
         }
         if (removeSqlOperator) {
             removeSqlOperator(endpoint);
         }
-        return stmts;
+        return null;
     }
 
     // column use lowerCase
     public static Map<String, Set<String>> getAllColumnsByTable(Endpoint endpoint, List<TableSchemaName> tables, Boolean removeSqlOperator) {
-
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         Map<String, Set<String>> table2ColumnsMap = Maps.newHashMap();
         ReadResource readResource = null;
@@ -308,6 +327,7 @@ public class MySqlUtils {
     /**
      * DRC MySQL dependency: every table should have a column which is TIMESTAMP with ON UPDATE timing on the millisecond, i.e., "`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)"
      */
+    @Deprecated
     public static List<String> checkOnUpdate(Endpoint endpoint, List<String> dbNames) {
         List<String> tablesWithoutOnUpdate = Lists.newArrayList();
         Map<String, String> createTblStmts = getAllCreateStmts(endpoint, dbNames);
@@ -319,7 +339,8 @@ public class MySqlUtils {
         }
         return tablesWithoutOnUpdate;
     }
-
+    
+    @Deprecated
     public static List<String> checkOnUpdateKey(Endpoint endpoint) {
         List<TableSchemaName> tableSchemaNames = getDefaultTables(endpoint);
         List<String> tablesWithoutOnUpdateKey = Lists.newArrayList();
@@ -363,6 +384,7 @@ public class MySqlUtils {
     /**
      * DRC MySQL dependency: every table needs to have at least one primary key or unique key
      */
+    @Deprecated
     public static List<String> checkUniqOrPrimary(Endpoint endpoint, List<String> dbNames) {
         List<String> tablesWithoutPkAndUk = Lists.newArrayList();
         Map<String, String> createTblStmts = getAllCreateStmts(endpoint, dbNames);
@@ -376,6 +398,7 @@ public class MySqlUtils {
         return tablesWithoutPkAndUk;
     }
 
+    @Deprecated
     public static String checkMySqlSetting(Endpoint endpoint, String sql) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
@@ -396,23 +419,15 @@ public class MySqlUtils {
         }
         return null;
     }
-
-    public static String checkGtidMode(Endpoint endpoint) {
-        logger.info("check gtid mode {}:{}", endpoint.getHost(), endpoint.getPort());
-        return checkMySqlSetting(endpoint, CHECK_GTID_MODE);
-    }
-
-    public static String checkBinlogTransactionDependency(Endpoint endpoint) {
-        logger.info("check writeset {}:{}", endpoint.getHost(), endpoint.getPort());
-        return checkMySqlSetting(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING);
-    }
-
-    public static List<String> checkApprovedTruncateTableList(Endpoint endpoint) {
-        List<TableSchemaName> tables = getTables(endpoint, GET_APPROVED_TRUNCATE_TABLES, true);
+    
+    
+    public static List<String> checkApprovedTruncateTableList(Endpoint endpoint,boolean removeSqlOperator) {
+        List<TableSchemaName> tables = getTables(endpoint, GET_APPROVED_TRUNCATE_TABLES, removeSqlOperator);
         return tables.stream().map(TableSchemaName::toString).collect(Collectors.toList());
     }
 
-    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Throwable {
+    
+    public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
@@ -433,6 +448,7 @@ public class MySqlUtils {
         return uuid;
     }
 
+    @Deprecated
     public static String getGtidExecuted(Endpoint endpoint) throws SQLException {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
@@ -508,34 +524,168 @@ public class MySqlUtils {
         }
 
         List<TableSchemaName> tables = getTables(endpoint, sql, true);
-        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::toString).collect(Collectors.toList()), true);
+        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), true);
     }
 
+    @Deprecated
     public static String getExecutedGtid(Endpoint endpoint) {
-        String gtidExecuted;
-        return StringUtils.isNotEmpty(gtidExecuted = getMySqlConfig(endpoint, GTID_EXECUTED_COMMAND_V1, GTID_EXECUTED_INDEX_V1)) ? gtidExecuted : getMySqlConfig(endpoint, GTID_EXECUTED_COMMAND_V2, GTID_EXECUTED_INDEX_V2);
+        return  getSqlResultString(endpoint, GTID_EXECUTED_COMMAND_V2, GTID_EXECUTED_INDEX_V2);
     }
-
-    public static String getMySqlConfig(Endpoint endpoint, String command, int idx) {
+    
+    public static String getSqlResultString(Endpoint endpoint, String sql,int index) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
-            GeneralSingleExecution execution = new GeneralSingleExecution(command);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
             if(rs.next()) {
-                return rs.getString(idx);
+                return rs.getString(index);
             }
         } catch (Throwable t) {
-            logger.warn("[[endpoint={}]]{} error: ", command, endpoint.getSocketAddress(), t);
+            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(),sql, t);
             removeSqlOperator(endpoint);
         } finally {
             if(readResource != null) {
                 readResource.close();
             }
         }
-        return StringUtils.EMPTY;
+        return null;
     }
+
+    public static Integer getSqlResultInteger(Endpoint endpoint, String sql,int index) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            if(rs.next()) {
+                return rs.getInt(index);
+            }
+        } catch (Throwable t) {
+            logger.error("[[endpoint={}:{}]] sql:{} error: ", endpoint.getHost(), endpoint.getPort(),sql, t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+        return null;
+    }
+    
+    public static String checkBinlogMode(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogMode", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint,CHECK_BINLOG,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static String checkBinlogFormat(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogFormat", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint,CHECK_BINLOG_FORMAT,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static String checkBinlogVersion(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogVersion", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint,CHECK_BINLOG_VERSION1,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static Integer checkAutoIncrementStep(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementStep", endpoint.getSocketAddress());
+        return getSqlResultInteger(endpoint, CHECK_INCREMENT_STEP,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static Integer checkAutoIncrementOffset(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkAutoIncrementOffset ", endpoint.getSocketAddress());
+        return getSqlResultInteger(endpoint, CHECK_INCREMENT_OFFSET,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static Integer checkDrcTables(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkDrcTables ", endpoint.getSocketAddress());
+        return getSqlResultInteger(endpoint, CHECK_DRC_TABLES,1);
+    }
+
+    public static String checkGtidMode(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] check gtid mode", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint, CHECK_GTID_MODE,1);
+    }
+
+    public static String checkBinlogTransactionDependency(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] check writeset", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING,1);
+    }
+    
+    public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
+        List<TableCheckVo> checkTableVos = Lists.newLinkedList();
+        try{
+            if(StringUtils.isEmpty(nameFilter)) {
+                nameFilter = MATCH_ALL_FILTER;
+            }
+            List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+            HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint,false));
+            for (TableSchemaName table : tables) {
+                TableCheckVo tableVo = new TableCheckVo(table);
+                String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, table, false);
+                if (StringUtils.isEmpty(onUpdateColumn)) {
+                    tableVo.setNoOnUpdateColumn(true);
+                    tableVo.setNoOnUpdateKey(true);
+                } else {
+                    tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
+                }
+                String createTblStmt = getCreateTblStmt(endpoint, table, false);
+                if (StringUtils.isEmpty(createTblStmt) || 
+                        (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
+                    tableVo.setNoPkUk(true);
+                }
+                if (StringUtils.isEmpty(createTblStmt) || createTblStmt.toLowerCase().contains(DEFAULT_ZERO_TIME)) {
+                    tableVo.setTimeDefaultZero(true);
+                }
+                if (tablesApprovedTruncate.contains(tableVo.getFullName())) {
+                    tableVo.setApproveTruncate(true);
+                }
+                
+                if (tableVo.hasProblem()) {
+                    checkTableVos.add(0,tableVo);
+                } else {
+                    checkTableVos.add(tableVo);
+                }
+            }
+        } finally {
+            removeSqlOperator(endpoint);
+        }
+        return checkTableVos;
+    }
+
+    public static boolean testAccount(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(CHECK_ACCOUNT_AVAILABLE);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            if(rs.next()) {
+                return true;
+            }
+            return false;
+        } catch (Throwable t) {
+            logger.error("[[endpoint={}:{}]] sql error in check Account: ", endpoint.getHost(), endpoint.getPort(), t);
+            return false;
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+            removeSqlOperator(endpoint);
+        }
+    }
+    
+    public static String checkAccounts(List<Endpoint> endpoints) {
+        for (Endpoint endpoint : endpoints) {
+            if (!testAccount(endpoint)) {
+                return "three accounts might not be ready";
+            }
+        }
+        return "three accounts ready";
+    }
+
 
     public static final class TableSchemaName {
         private String schema;
@@ -544,9 +694,18 @@ public class MySqlUtils {
             this.schema = schema;
             this.name = name;
         }
+       
+        public static TableSchemaName getTableSchemaName(String schemaName) {
+            if (StringUtils.isEmpty(schemaName) || !schemaName.contains(".")) {
+                return null;
+            }
+            String[] split = schemaName.split("\\.");
+            return new TableSchemaName(split[0],split[1]);
+        }
+        
         public String getSchema() { return schema; }
         public String getName() { return name; }
-
+        
         @Override
         public String toString() {
             return String.format("`%s`.`%s`", schema, name);

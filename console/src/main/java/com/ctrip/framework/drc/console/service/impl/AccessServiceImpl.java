@@ -304,7 +304,7 @@ public class AccessServiceImpl implements AccessService {
                     MhaInstanceGroupDto mhaInstanceGroupDto = mhaList.get(mha);
                     if (null != mhaInstanceGroupDto) {
                         try {
-                            drcMaintenanceService.updateMhaInstances(mhaInstanceGroupDto, false);
+                            drcMaintenanceService.updateMhaInstances(mhaInstanceGroupDto);
                         } catch (Throwable t) {
                             logger.error("Fail init mha instances for {}", mha, t);
                         }
@@ -428,7 +428,7 @@ public class AccessServiceImpl implements AccessService {
         List<String> tablesWithOutPkOrUk = MySqlUtils.checkUniqOrPrimary(endpoint, null);
         String gtidMode = MySqlUtils.checkGtidMode(endpoint);
         String binlogTransactionDependency = MySqlUtils.checkBinlogTransactionDependency(endpoint);
-        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint);
+        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint,true);
         res.put("noOnUpdate", String.join(", ", tablesWithOutOnUpdate));
         res.put("noOnUpdateKey", String.join(", ", tablesWithOutOnUpdateKey));
         res.put("noPkUk", String.join(", ", tablesWithOutPkOrUk));
