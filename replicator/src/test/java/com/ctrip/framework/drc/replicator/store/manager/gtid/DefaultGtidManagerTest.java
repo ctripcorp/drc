@@ -131,4 +131,13 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
         uuidConfig = uuidOperator.getUuids(replicatorConfig.getRegistryKey());
         Assert.assertTrue(uuidConfig.getUuids().size() == 0);
     }
+
+    @Test
+    public void testToUUID() {
+        Set<UUID> uuids = gtidManager.toUUID();
+        Set<String> stringUuids = gtidManager.toString(uuids);
+        Assert.assertTrue(stringUuids.size() == 1);
+        Assert.assertTrue(stringUuids.contains(uuid));
+
+    }
 }

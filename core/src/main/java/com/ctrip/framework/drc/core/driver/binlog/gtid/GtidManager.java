@@ -3,8 +3,10 @@ package com.ctrip.framework.drc.core.driver.binlog.gtid;
 
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
+import com.google.common.collect.Sets;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Created by mingdongli
@@ -23,4 +25,20 @@ public interface GtidManager extends Lifecycle, GtidReader, GtidObserver {
     Set<String> getUuids();
 
     boolean removeUuid(String uuid);
+
+    default Set<UUID> toUUID() {
+        Set<UUID> res = Sets.newHashSet();
+        for (String uuid : getUuids()) {
+            res.add(UUID.fromString(uuid));
+        }
+        return res;
+    }
+
+    default Set<String> toString(Set<UUID> uuidSet) {
+        Set<String> res = Sets.newHashSet();
+        for (UUID uuid : uuidSet) {
+            res.add(uuid.toString());
+        }
+        return res;
+    }
 }
