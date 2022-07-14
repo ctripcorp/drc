@@ -215,7 +215,7 @@ export default {
           },
           {
             value: 'ntgxy',
-            label: 'ntgxy'
+            key: 'ntgxy'
           },
           {
             value: 'fraaws',
@@ -231,7 +231,7 @@ export default {
           },
           {
             value: 'sinibualiyun',
-            label: 'IBU-VPC(aliyun)'
+            key: 'IBU-VPC(aliyun)'
           },
           {
             value: 'sinaws',
