@@ -49,15 +49,12 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor {
     @Override
     public void scheduledTask() {
         try {
-            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", new Task() {
-                @Override
-                public void go() throws Exception {
-                    String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
-                    if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-                        logger.info("[[task=syncMhaTask]]sync all mha instance group");
-                        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
-                        updateAllMhaInstanceGroup(mhaInstanceGroupMap);
-                    }
+            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", () -> {
+                String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
+                if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                    logger.info("[[task=syncMhaTask]]sync all mha instance group");
+                    Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+                    updateAllMhaInstanceGroup(mhaInstanceGroupMap);
                 }
             });
         } catch (Throwable t) {
