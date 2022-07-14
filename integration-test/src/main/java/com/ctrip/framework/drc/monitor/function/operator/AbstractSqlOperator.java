@@ -134,6 +134,7 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         res.addAll(initQps());
         res.addAll(initDelayMonitor());
         res.addAll(initDDL());
+        res.addAll(initConfigDb());
 
         return res;
     }
@@ -615,6 +616,17 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='test';"
+        );
+    }
+
+    private List<String> initConfigDb() {
+        return Lists.newArrayList(
+                "CREATE DATABASE IF NOT EXISTS configdb;",
+                "CREATE TABLE `configdb`.`heartbeat` (\n" +
+                        "  `hostname` varchar(50) NOT NULL DEFAULT '',\n" +
+                        "  `time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n" +
+                        "  PRIMARY KEY (`time`)\n" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8;"
         );
     }
 
