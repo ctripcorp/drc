@@ -91,6 +91,21 @@ public class MachineTbl implements DalPojo {
 		this.master = master;
 	}
 
+	@Override
+	public String toString() {
+		return "MachineTbl{" +
+				"id=" + id +
+				", ip='" + ip + '\'' +
+				", port=" + port +
+				", uuid='" + uuid + '\'' +
+				", master=" + master +
+				", mhaId=" + mhaId +
+				", deleted=" + deleted +
+				", createTime=" + createTime +
+				", datachangeLasttime=" + datachangeLasttime +
+				'}';
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -162,5 +177,5 @@ public class MachineTbl implements DalPojo {
 	public void setDatachangeLasttime(Timestamp datachangeLasttime) {
 		this.datachangeLasttime = datachangeLasttime;
 	}
-
+	
 }

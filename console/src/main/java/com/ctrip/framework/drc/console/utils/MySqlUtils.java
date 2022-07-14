@@ -426,7 +426,7 @@ public class MySqlUtils {
         return tables.stream().map(TableSchemaName::toString).collect(Collectors.toList());
     }
 
-    @Deprecated
+    
     public static String getUuid(String ip, int port, String user, String password, boolean master) throws Exception {
         Endpoint endpoint = new MySqlEndpoint(ip, port, user, password, master);
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
