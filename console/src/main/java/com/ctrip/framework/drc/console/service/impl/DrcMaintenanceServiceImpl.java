@@ -386,8 +386,8 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
         List<MachineTbl> machinesInMetaDb = machineTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
         // change targets
         final List<MachineTbl> insertMachines = Lists.newArrayList();
-        final List<MachineTbl> deleteMachines = Lists.newArrayList();
         final List<MachineTbl> updateMachines = Lists.newArrayList();
+        final List<MachineTbl> deleteMachines = Lists.newArrayList();
 
         this.checkChange(mhaInstanceGroupDto,machinesInMetaDb,mhaTbl,insertMachines,updateMachines,deleteMachines);
         
@@ -397,11 +397,11 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                 this.beforeInsert(insertMachines,mhaTbl);
                 machineTblDao.batchInsert(insertMachines);
             }
-            if (!CollectionUtils.isEmpty(deleteMachines)) {
-                machineTblDao.batchLogicalDelete(deleteMachines);
-            }
             if (!CollectionUtils.isEmpty(updateMachines)) {
                 machineTblDao.batchUpdate(updateMachines);
+            }
+            if (!CollectionUtils.isEmpty(deleteMachines)) {
+                machineTblDao.batchLogicalDelete(deleteMachines);
             }
         } else {
             logger.info("[[task=syncMhaTask,mha={}]] switch turn off,will not updateAll change to meta db",mhaName);
@@ -422,6 +422,7 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.insert.fail." + mhaName, ip);
                 throw new Exception(mhaName + " cannot get uuid " + ip + ":" + port);
             }
+            machine.setUuid(uuid);
         }
     }
 
@@ -447,10 +448,11 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                 )
         ).forEach(
                 add -> {
-                    logger.info("[[task=syncMhaTask,mha={},action=Insert]] mysql machine to be inserted :{},-isMaster:{}",
-                            mha.getMhaName(),add.getIp()+ ":" + add.getPort(), add.getMaster() );
-                    add.setId(mha.getId());
-                    insertMachines.add(add);
+                    MachineTbl toBeAdded = new MachineTbl(add.getIp(), add.getPort(), add.getMaster());
+                    toBeAdded.setMhaId(mha.getId());
+                    logger.info("[[task=syncMhaTask,mha={},action=Insert]] mysql machine to be inserted :{}",
+                            mha.getMhaName(),toBeAdded );
+                    insertMachines.add(toBeAdded);
                 }
         );
     }
@@ -466,15 +468,17 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                 )
         ).forEach(
                 delete -> {
-                    logger.info("[[task=syncMhaTask,mha={},action=Delete]] mysql machine to be logicalDelete :{},-isMaster:{}",
-                            mha.getMhaName(), delete.getIp()+ ":" + delete.getPort(), delete.getMaster() );
-                    delete.setId(mha.getId());
-                    deleteMachines.add(delete);
+                    MachineTbl toBeDeleted = new MachineTbl(delete.getIp(), delete.getPort(), delete.getMaster());
+                    toBeDeleted.setDeleted(BooleanEnum.TRUE.getCode());
+                    toBeDeleted.setMhaId(mha.getId());
+                    toBeDeleted.setId(delete.getId());
+                    logger.info("[[task=syncMhaTask,mha={},action=Delete]] mysql machine to be logicalDelete :{}",
+                            mha.getMhaName(), toBeDeleted);
+                    deleteMachines.add(toBeDeleted);
                 }
         );
     }
-
-    // must at last ,will change 
+    
     private void getUpdateMachines(List<MachineTbl> machinesInDal,
                                    List<MachineTbl> machinesInMetaDb,
                                    List<MachineTbl> updateMachines,
@@ -484,13 +488,15 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                         local -> remote.getIp().equalsIgnoreCase(local.getIp())
                                 && remote.getPort().equals(local.getPort())
                 ).findFirst().ifPresent(
-                        localUpdate -> {
-                            if (!remote.getMaster().equals(localUpdate.getMaster())) {
-                                logger.info("[[task=syncMhaTask,mha={},action=Update]] mysql machine to be updated :{}, masterStatus change to:{}",
-                                        mha.getMhaName(),localUpdate.getIp() + ":" +localUpdate.getPort(),remote.getMaster());
-                                localUpdate.setMaster(remote.getMaster());
-                                localUpdate.setId(mha.getId());
-                                updateMachines.add(localUpdate);
+                        update -> {
+                            if (!remote.getMaster().equals(update.getMaster())) {
+                                MachineTbl toBeUpdated = new MachineTbl(update.getIp(), update.getPort(), update.getMaster());
+                                toBeUpdated.setMaster(remote.getMaster());
+                                toBeUpdated.setMhaId(mha.getId());
+                                toBeUpdated.setId(update.getId());
+                                logger.info("[[task=syncMhaTask,mha={},action=Update]] mysql machine master status change:{}",
+                                        mha.getMhaName(),toBeUpdated);
+                                updateMachines.add(toBeUpdated);
                             }
                         }
                 )
