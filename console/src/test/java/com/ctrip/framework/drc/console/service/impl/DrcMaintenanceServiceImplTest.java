@@ -179,11 +179,11 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     public void testUpdateMhaInstance() throws Throwable {
         MhaInstanceGroupDto dto = new MhaInstanceGroupDto();
         dto.setMhaName("no such mha");
-        Assert.assertFalse(drcMaintenanceService.updateMhaInstances(dto, false));
+        Assert.assertFalse(drcMaintenanceService.updateMhaInstances(dto));
 
         dto.setMhaName("fat-fx-drc1");
         dto.setMaster(new MhaInstanceGroupDto.MySQLInstance().setIp("127.0.0.1").setPort(4406).setIdc("SHAOY"));
-        Assert.assertFalse(drcMaintenanceService.updateMhaInstances(dto, false));
+        Assert.assertFalse(drcMaintenanceService.updateMhaInstances(dto));
 
         dto.setMaster(new MhaInstanceGroupDto.MySQLInstance().setIp("10.2.72.230").setPort(55111).setIdc("SHAOY"));
         dto.setSlaves(new ArrayList<>() {{
@@ -191,7 +191,7 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
         }});
         try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
             theMock.when(()-> MySqlUtils.getUuid(Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString(),Mockito.anyBoolean())).thenReturn("uuid");
-            Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto, false));
+            Assert.assertTrue(drcMaintenanceService.updateMhaInstances(dto));
         }
     }
 
@@ -309,9 +309,10 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     @Test
     public void testMhaInstancesChange() throws Exception {
         //init Mock
-        Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(null);
-        Mockito.when(machineTblDao.batchLogicalDelete(Mockito.anyList())).thenReturn(null);
-        Mockito.when(machineTblDao.batchInsert(Mockito.anyList())).thenReturn(null);
+        int[] effects = new int[]{1,1};
+        Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(effects);
+        Mockito.when(machineTblDao.batchLogicalDelete(Mockito.anyList())).thenReturn(effects);
+        Mockito.when(machineTblDao.batchInsert(Mockito.anyList())).thenReturn(effects);
         Mockito.when(monitorTableSourceProvider.getSwitchSyncMhaUpdateAll()).thenReturn("on");
 
         //init dto
