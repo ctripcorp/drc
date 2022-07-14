@@ -159,14 +159,14 @@ public class AccessControllerTest extends AbstractControllerTest {
 
     @Test
     public void testStandAloneBuildMachine() throws Throwable {
-        Mockito.doReturn(true).when(drcMaintenanceService).updateMhaInstances(Mockito.any(), Mockito.eq(false));
+        Mockito.doReturn(true).when(drcMaintenanceService).updateMhaInstances(Mockito.any());
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/machine/standalone")
                         .contentType(MediaType.APPLICATION_JSON).content(getRequestBody(new MhaInstanceGroupDto()))
                         .accept(MediaType.APPLICATION_JSON))
                 .andReturn();
         assertNormalResponseWithoutCheckingData(mvcResult, ResultCode.HANDLE_SUCCESS);
 
-        Mockito.doThrow(new Throwable()).when(drcMaintenanceService).updateMhaInstances(Mockito.any(), Mockito.eq(false));
+        Mockito.doThrow(new Throwable()).when(drcMaintenanceService).updateMhaInstances(Mockito.any());
         mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/machine/standalone")
                         .contentType(MediaType.APPLICATION_JSON).content(getRequestBody(new MhaInstanceGroupDto()))
                         .accept(MediaType.APPLICATION_JSON))
