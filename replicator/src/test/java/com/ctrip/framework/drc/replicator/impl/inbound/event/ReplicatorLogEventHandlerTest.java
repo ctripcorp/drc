@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -220,6 +221,12 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
         fakeXidLogEvent.release();
+    }
+
+    @Test
+    public void testReset() {
+        logEventHandler.reset();
+        Assert.assertEquals(logEventHandler.getCurrentGtid(), StringUtils.EMPTY);
     }
 
     private void writeTransactionWithHeartBeat() throws Exception {
