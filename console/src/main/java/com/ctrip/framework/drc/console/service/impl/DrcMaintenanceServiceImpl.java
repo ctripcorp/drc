@@ -487,7 +487,7 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
                         localUpdate -> {
                             if (!remote.getMaster().equals(localUpdate.getMaster())) {
                                 logger.info("[[task=syncMhaTask,mha={},action=Update]] mysql machine to be updated :{}, masterStatus change to:{}",
-                                        mha.getMhaName(),localUpdate.getIp() + ":" +localUpdate.getPort(),localUpdate.getMaster());
+                                        mha.getMhaName(),localUpdate.getIp() + ":" +localUpdate.getPort(),remote.getMaster());
                                 localUpdate.setMaster(remote.getMaster());
                                 localUpdate.setId(mha.getId());
                                 updateMachines.add(localUpdate);
