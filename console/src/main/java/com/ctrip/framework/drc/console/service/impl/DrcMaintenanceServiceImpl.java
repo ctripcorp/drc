@@ -396,7 +396,7 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
     private void loggingAction(String mha,int[] effects,String action) {
         int affectRows = Arrays.stream(effects).sum();
         logger.info("[[task=syncMhaTask,mha={},action={}]] affectRows:{}",mha,action,affectRows);
-        DefaultEventMonitorHolder.getInstance().logEvent("DRC.syncMhaFromDal." + action,mha,affectRows);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.syncMhaFromDal." + mha,action,affectRows);
     }
     
     private void beforeInsert(List<MachineTbl> insertMachines,MhaTbl mhaTbl) throws Exception{
