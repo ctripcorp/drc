@@ -138,6 +138,10 @@ public class ReplicatorConfig implements GlobalConfig {
         mySQLSlaveConfig.setPreviousMaster(previousMaster);
     }
 
+    public void setApplyMode(int applyMode) {
+        mySQLSlaveConfig.setApplyMode(applyMode);
+    }
+
     public TrafficEntity getTrafficEntity(DirectionEnum direction) {
         String ip = mySQLMasterConfig.getIp();
         if (StringUtils.isBlank(ip)) {

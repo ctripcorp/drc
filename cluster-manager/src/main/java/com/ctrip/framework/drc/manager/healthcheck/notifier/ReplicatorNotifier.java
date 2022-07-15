@@ -89,6 +89,7 @@ public class ReplicatorNotifier extends AbstractNotifier implements Notifier {
         configDto.setUuids(uuids);
         configDto.setTableNames(split(masterReplicator.getExcludedTables()));
         configDto.setPreviousMaster(dbs.getPreviousMaster());
+        configDto.setApplyMode(dbCluster.getApplyMode());
         return configDto;
     }
 

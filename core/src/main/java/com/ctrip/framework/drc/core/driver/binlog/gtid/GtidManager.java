@@ -26,7 +26,7 @@ public interface GtidManager extends Lifecycle, GtidReader, GtidObserver {
 
     boolean removeUuid(String uuid);
 
-    default Set<UUID> toUUID() {
+    default Set<UUID> toUUIDSet() {
         Set<UUID> res = Sets.newHashSet();
         for (String uuid : getUuids()) {
             res.add(UUID.fromString(uuid));
@@ -34,7 +34,7 @@ public interface GtidManager extends Lifecycle, GtidReader, GtidObserver {
         return res;
     }
 
-    default Set<String> toString(Set<UUID> uuidSet) {
+    default Set<String> toStringSet(Set<UUID> uuidSet) {
         Set<String> res = Sets.newHashSet();
         for (UUID uuid : uuidSet) {
             res.add(uuid.toString());

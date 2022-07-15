@@ -104,7 +104,9 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         outboundMonitorReport.setDelayMonitorReport(delayMonitorReport);
 
         GtidManager gtidManager = eventStore.getGtidManager();
-        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(new InboundFilterChainContext(gtidManager.toUUID(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration)));
+        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(
+                new InboundFilterChainContext(gtidManager.toUUIDSet(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport,
+                        transactionCache, delayMonitor, clusterName, tableFilterConfiguration, mySQLSlaveConfig.getApplyMode())));
 
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory
         replicatorSlaveServer.setLogEventHandler(logEventHandler);

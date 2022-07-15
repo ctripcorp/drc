@@ -46,7 +46,7 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
     private Set<String> getAndUpdateUuids() {
         UuidConfig uuidConfig = retrieveUuids();
         Set<String> uuids = uuidConfig.getUuids();
-        uuids.addAll(toString(config.getWhiteUUID()));
+        uuids.addAll(toStringSet(config.getWhiteUUID()));
         uuidConfig.setUuids(uuids);
         persistUuids(uuidConfig);
 

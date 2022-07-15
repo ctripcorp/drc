@@ -134,8 +134,8 @@ public class DefaultGtidManagerTest extends AbstractTransactionTest {
 
     @Test
     public void testToUUID() {
-        Set<UUID> uuids = gtidManager.toUUID();
-        Set<String> stringUuids = gtidManager.toString(uuids);
+        Set<UUID> uuids = gtidManager.toUUIDSet();
+        Set<String> stringUuids = gtidManager.toStringSet(uuids);
         Assert.assertTrue(stringUuids.size() == 1);
         Assert.assertTrue(stringUuids.contains(uuid));
 

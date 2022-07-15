@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -79,7 +80,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         super.initMocks();
         uuidSet.add(UUID.fromString(UUID_1));
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration);
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.transaction_table.getType());
         flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
     }
 
