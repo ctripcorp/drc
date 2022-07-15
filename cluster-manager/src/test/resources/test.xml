@@ -8,7 +8,7 @@
         <clusterManager ip="10.2.84.122" port="8080" master="true"/>
         <zkServer address="10.2.84.112:2181"/>
         <dbClusters>
-            <dbCluster id="integration-test.fxdrc" name="integration-test" mhaName="fxdrc" buName="BBZ" appId="100024819">
+            <dbCluster id="integration-test.fxdrc" name="integration-test" mhaName="fxdrc" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="127.0.0.1" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
                     <db ip="127.0.0.1" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
@@ -17,7 +17,7 @@
                 <applier ip="127.0.0.1" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" targetName="integration-test" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" 
                          properties="[{&quot;mode&quot;:&quot;0&quot;,&quot;tables&quot;:&quot;db[1-9]\\.table1|table2&quot;,&quot;parameters&quot;:{&quot;columns&quot;:[&quot;columnA&quot;,&quot;columnB&quot;],&quot;context&quot;:&quot;content abc&quot;}}]" />
             </dbCluster>
-            <dbCluster id="integration-test.fxdrc2" name="integration-test" mhaName="fxdrc2" buName="BBZ" appId="100024819">
+            <dbCluster id="integration-test.fxdrc2" name="integration-test" mhaName="fxdrc2" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="127.0.0.2" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
                     <db ip="127.0.0.2" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
@@ -27,7 +27,7 @@
                          properties="[{&quot;mode&quot;:&quot;0&quot;,&quot;tables&quot;:&quot;db[1-9]\\.table1|table2&quot;,&quot;parameters&quot;:{&quot;columns&quot;:[&quot;columnA&quot;,&quot;columnB&quot;],&quot;context&quot;:&quot;content abc&quot;}}]"/>
                 
             </dbCluster>
-            <dbCluster id="integration-test.fxdrc_multi" name="integration-test" mhaName="fxdrc_multi" buName="BBZ" appId="100024819">
+            <dbCluster id="integration-test.fxdrc_multi" name="integration-test" mhaName="fxdrc_multi" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="127.0.0.1" port="13306" master="true" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
                     <db ip="127.0.0.1" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
@@ -47,7 +47,7 @@
         <clusterManager ip="10.2.84.109" port="8080" master="true"/>
         <zkServer address="10.2.83.114:2181"/>
         <dbClusters>
-            <dbCluster id="integration-test.fxdrcrb"  name="integration-test" mhaName="fxdrcrb" buName="BBZ" appId="100024819">
+            <dbCluster id="integration-test.fxdrcrb"  name="integration-test" mhaName="fxdrcrb" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="127.0.0.1" port="13306" master="true" uuid=""/>
                     <db ip="127.0.0.1" port="13307" master="false" uuid=""/>
@@ -56,7 +56,7 @@
                 <applier ip="127.0.0.1" port="8081" targetIdc="shaoy" targetMhaName="fxdrc" targetName="integration-test" gtidExecuted="aa0c60f0-73c2-11ea-938d-fa163e02998c:1-24" master="false" includedDbs="db1,db2" applyMode="0"
                          properties="[{&quot;mode&quot;:&quot;0&quot;,&quot;tables&quot;:&quot;db[1-9]\\.table1|table2&quot;,&quot;parameters&quot;:{&quot;columns&quot;:[&quot;columnA&quot;,&quot;columnB&quot;],&quot;context&quot;:&quot;content abc&quot;}}]"/>
             </dbCluster>
-            <dbCluster id="integration-test.fxdrcrb2"  name="integration-test" mhaName="fxdrcrb2" buName="BBZ" appId="100024819">
+            <dbCluster id="integration-test.fxdrcrb2"  name="integration-test" mhaName="fxdrcrb2" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="127.0.0.2" port="13306" master="true" uuid=""/>
                     <db ip="127.0.0.2" port="13307" master="false" uuid=""/>
