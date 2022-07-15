@@ -74,7 +74,7 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
 
     @Override
     protected AbstractSchemaTask<Boolean> getAbstractSchemaTask() {
-        return new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource);
+        return new SchemeCloneTask(ddlSchemas, inMemoryEndpoint, inMemoryDataSource, "test_dalcluster.test_mha");
     }
 
     @Test
