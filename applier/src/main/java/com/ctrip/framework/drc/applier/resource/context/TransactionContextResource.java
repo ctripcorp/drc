@@ -14,10 +14,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.AbstractContext;
-import com.ctrip.framework.drc.fetcher.system.Derived;
-import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
-import com.ctrip.framework.drc.fetcher.system.InstanceResource;
-import com.ctrip.framework.drc.fetcher.system.Resource;
+import com.ctrip.framework.drc.fetcher.system.*;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -69,6 +66,9 @@ public class TransactionContextResource extends AbstractContext
 
     @InstanceResource
     public TransactionTable transactionTable;
+
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
 
     @Derived
     public DataSource dataSource;
@@ -146,10 +146,16 @@ public class TransactionContextResource extends AbstractContext
         try {
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
-            loggerTE.info("(" + fetchGtid() + ") [" + fetchDepth() + "] cost: " + (costTimeNS / 1000) + "us"
-                    + ((delayMs > 10) ? ("(" + trace + ")") : "")
-                    + ((delayMs > 100) ? "SLOW" : "")
-                    + ((delayMs > 1000) ? "SUPER SLOW" : ""));
+//            loggerTE.info("(" + fetchGtid() + ") [" + fetchDepth() + "] cost: " + (costTimeNS / 1000) + "us"
+//                    + ((delayMs > 10) ? ("(" + trace + ")") : "")
+//                    + ((delayMs > 100) ? "SLOW" : "")
+//                    + ((delayMs > 1000) ? "SUPER SLOW" : ""));
+
+            loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, fetchGtid(), fetchDepth(), costTimeNS / 1000,
+                    ((delayMs > 10) ? ("(" + trace + ")") : ""),
+                    ((delayMs > 100) ? "SLOW" : ""),
+                    ((delayMs > 1000) ? "SUPER SLOW" : ""));
+
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", "", delayMs);
 

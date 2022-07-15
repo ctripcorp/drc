@@ -52,7 +52,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         return doCreate(sqlCollection, clazz, sync, MAX_ACTIVE);
     }
 
-    protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync, Integer concurrency) throws Exception {
+    protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync, int concurrency) throws Exception {
         List<BatchTask> tasks = getBatchTasks(sqlCollection, clazz);
         return sync ? sync(tasks) : async(tasks, concurrency);
     }
@@ -91,7 +91,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         return res;
     }
 
-    private boolean async(List<BatchTask> tasks, Integer concurrency) {
+    private boolean async(List<BatchTask> tasks, int concurrency) {
         if (tasks.size() <= concurrency) {
             return oneBatch(tasks);
         } else {
