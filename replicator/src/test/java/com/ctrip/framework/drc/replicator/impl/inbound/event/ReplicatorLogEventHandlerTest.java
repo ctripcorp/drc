@@ -103,6 +103,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn(registerKey);
@@ -122,7 +123,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.transaction_table.getType());
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.set_gtid.getType());
         flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
@@ -130,6 +131,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }

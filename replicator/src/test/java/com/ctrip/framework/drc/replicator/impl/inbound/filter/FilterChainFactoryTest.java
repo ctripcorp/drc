@@ -80,7 +80,7 @@ public class FilterChainFactoryTest extends AbstractFilterTest {
         super.initMocks();
         uuidSet.add(UUID.fromString(UUID_1));
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.transaction_table.getType());
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.set_gtid.getType());
         flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
     }
 
