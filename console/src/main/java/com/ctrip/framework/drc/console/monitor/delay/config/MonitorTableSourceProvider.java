@@ -55,6 +55,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 600;
 
     private static final String SWITCH_DRC_TASK_SYNC_MHA = "switch.drc.task.syncmha";
+    private static final String SWITCH_SYNC_MHA_UPDATEALL= "switch.syncmha.updateall";
+    private static final String DEFAULT_SWITCH_SYNC_MHA_UPDATEALL = "off";
 
     private static final String SWITCH_SALVE_MACHINE_OFFLINE_SYNC = "switch.slaveMachineOffline.sync";
     private static final String DEFAULT_SWITCH_SALVE_MACHINE_OFFLINE_SYNC = "off";
@@ -275,6 +277,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getSyncMhaSwitch() {
         return getProperty(SWITCH_DRC_TASK_SYNC_MHA, SWITCH_STATUS_OFF);
+    }
+    
+    public String getSwitchSyncMhaUpdateAll() {
+        return getProperty(SWITCH_SYNC_MHA_UPDATEALL,DEFAULT_SWITCH_SYNC_MHA_UPDATEALL);
     }
 
     public String getSyncTableConfigSwitch() {

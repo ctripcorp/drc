@@ -304,7 +304,7 @@ public class AccessServiceImpl implements AccessService {
                     MhaInstanceGroupDto mhaInstanceGroupDto = mhaList.get(mha);
                     if (null != mhaInstanceGroupDto) {
                         try {
-                            drcMaintenanceService.updateMhaInstances(mhaInstanceGroupDto, false);
+                            drcMaintenanceService.updateMhaInstances(mhaInstanceGroupDto);
                         } catch (Throwable t) {
                             logger.error("Fail init mha instances for {}", mha, t);
                         }

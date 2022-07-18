@@ -18,9 +18,12 @@ public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements Name
 
     private Map<String, Map<String, String>> ddlSchemas;
 
-    public SchemeCloneTask(Map<String, Map<String, String>> ddlSchemas, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource) {
+    private String registerKey;
+
+    public SchemeCloneTask(Map<String, Map<String, String>> ddlSchemas, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource, String registerKey) {
         super(inMemoryEndpoint, inMemoryDataSource);
         this.ddlSchemas = ddlSchemas;
+        this.registerKey = registerKey;
     }
 
     @Override
@@ -44,7 +47,9 @@ public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements Name
                 sqls.add(trim(tableCreate));
             }
         }
-        res = doCreate(sqls, TableCreateTask.class, false);
+        Integer concurrency = TaskConfig.getInstance().getConcurrency(registerKey);
+        DDL_LOGGER.info("[SchemeCloneTask] the concurrency of {} is: {}", registerKey, concurrency);
+        res = doCreate(sqls, TableCreateTask.class, false, concurrency);
         if (!res) {
             throw new DdlException(null);
         }
