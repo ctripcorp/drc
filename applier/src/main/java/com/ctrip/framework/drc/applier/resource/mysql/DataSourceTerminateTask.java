@@ -46,7 +46,7 @@ public class DataSourceTerminateTask implements Runnable {
         boolean success = closeDataSource(drcTomcatDataSource);
         if (success) {
             long cost = getElapsedMilliSeconds();
-            logger.info(String.format("**********DataSource %s has been closed,cost:%s ms.**********", name, cost));
+            logger.info("[DataSource Terminate] {} has been closed,cost:{} ms.", name, cost);
             drcTomcatDataSource = null;
             return;
         }
@@ -55,7 +55,7 @@ public class DataSourceTerminateTask implements Runnable {
     }
 
     private boolean closeDataSource(DataSource dataSource) {
-        logger.info(String.format("**********Trying to close datasource %s.**********", name));
+        logger.info("[DataSource Terminate] Trying to close datasource {}.", name);
         boolean success = true;
 
         try {
@@ -75,23 +75,21 @@ public class DataSourceTerminateTask implements Runnable {
     private boolean closeTomcatDataSource() {
         boolean success = true;
 
-        logger.info(String.format("Error retry times for datasource %s:%s", name, retryTimes));
+        logger.info("[DataSource Terminate] Error retry times for datasource {}:{}", name, retryTimes);
 
         int abandonedTimeout = getAbandonedTimeout();
-        logger.info(String.format("Abandoned timeout for datasource %s:%s", name, abandonedTimeout));
+        logger.info("[DataSource Terminate] Abandoned timeout for datasource {}:{}", name, abandonedTimeout);
 
         int elapsedSeconds = getElapsedSeconds();
-        logger.info(String.format("Elapsed seconds for datasource %s:%s", name, elapsedSeconds));
+        logger.info("[DataSource Terminate] Elapsed seconds for datasource {}:{}", name, elapsedSeconds);
 
         org.apache.tomcat.jdbc.pool.DataSource ds = drcTomcatDataSource;
         if (retryTimes > MAX_RETRY_TIMES) {
-            logger.info(String.format("Force closing datasource %s,retry times:%s,max retry times:%s.", name,
-                    retryTimes, MAX_RETRY_TIMES));
+            logger.info("[DataSource Terminate] Force closing datasource {},retry times:{},max retry times:{}.", name, retryTimes, MAX_RETRY_TIMES);
             ds.close(true);
             return success;
         } else if (elapsedSeconds >= abandonedTimeout) {
-            logger.info(String.format("Force closing datasource %s,elapsed seconds:%s,abandoned timeout:%s.", name,
-                    elapsedSeconds, abandonedTimeout));
+            logger.info("[DataSource Terminate] Force closing datasource {},elapsed seconds:{},abandoned timeout:{}.", name, elapsedSeconds, abandonedTimeout);
             ds.close(true);
             return success;
         }
@@ -103,16 +101,15 @@ public class DataSourceTerminateTask implements Runnable {
         int idle = pool.getIdle();
         if (idle > 0) {
             pool.purge();
-            logger.info(String.format("Idle connections of datasource %s have been closed.", name));
+            logger.info("[DataSource Terminate] Idle connections of datasource {} have been closed.", name);
         }
 
         int active = pool.getActive();
         if (active == 0) {
             ds.close();
-            logger.info(
-                    String.format("Active connections of datasource %s is zero, datasource has been closed.", name));
+            logger.info("[DataSource Terminate] Active connections of datasource {} is zero, datasource has been closed.", name);
         } else if (active > 0) {
-            logger.info(String.format("Active connections of datasource %s is %s.", name, active));
+            logger.info("[DataSource Terminate] Active connections of datasource {} is {}.", name, active);
             success = false;
         }
 
