@@ -12,14 +12,13 @@ import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 import com.ctrip.xpipe.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.channels.FileChannel;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
 /**
@@ -27,8 +26,6 @@ import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transform
  * @create 2022/4/22
  */
 public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
-
-    private final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     private String registryKey;
 

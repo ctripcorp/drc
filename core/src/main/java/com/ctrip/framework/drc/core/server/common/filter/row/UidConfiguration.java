@@ -8,6 +8,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.Set;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2022/6/30
@@ -40,7 +42,11 @@ public class UidConfiguration extends AbstractConfigBean {
 
     public boolean filterRowsWithBlackList(String uid, String registryKey) throws Exception {
         Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
-        return !blackListUids.contains(uid.trim());
+        boolean res = !blackListUids.contains(uid.trim());
+        if (!res) {
+            ROWS_FILTER_LOGGER.info("[Filter] one row of uid {} for {} due to black list", uid, registryKey);
+        }
+        return res;
     }
 
     public boolean filterRowsWithWhiteList(String uid, String registryKey) throws Exception {
