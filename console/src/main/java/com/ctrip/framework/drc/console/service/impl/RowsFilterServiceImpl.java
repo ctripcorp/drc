@@ -52,9 +52,6 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     private RowsFilterTblDao rowsFilterTblDao;
     
     @Autowired
-    private MetaInfoServiceImpl metaInfoService;
-    
-    @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
     @Override
