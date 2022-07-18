@@ -183,7 +183,7 @@ export default {
           key: 'illegalArgument'
         },
         {
-          title: 'FetchMode（trip_uid专用)',
+          title: '校验模式（trip_uid专用)',
           key: 'fetchMode',
           width: 100,
           render: (h, params) => {
