@@ -100,8 +100,9 @@ public class DataSourceResource extends AbstractResource implements DataSource {
             scheduledExecutorService = null;
         }
         if (inner != null) {
-            ((DrcTomcatDataSource) inner).close(true);
-            inner = null;
+//            ((DrcTomcatDataSource) inner).close(true);
+            DataSourceTerminator.getInstance().close((DrcTomcatDataSource) inner);
+//            inner = null;
         }
     }
 

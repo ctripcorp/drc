@@ -200,7 +200,7 @@
                      filePattern="${baseDir}/transaction.table-%i.log.gz">
             <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
             <Policies>
-                <SizeBasedTriggeringPolicy size="1024 MB"/>
+                <SizeBasedTriggeringPolicy size="512 MB"/>
             </Policies>
             <DefaultRolloverStrategy>
                 <Delete basePath="${baseDir}" maxDepth="2">
