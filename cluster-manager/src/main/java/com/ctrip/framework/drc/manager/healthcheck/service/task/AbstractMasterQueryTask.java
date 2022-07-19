@@ -38,8 +38,7 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
             }
 
             // read_only = OFF,那么此节点即为Master
-            boolean isMaster;
-            isMaster = "OFF".equalsIgnoreCase(isReadOnly);
+            boolean isMaster = "OFF".equalsIgnoreCase(isReadOnly);
 
             readOnlyResultSet.close();
             statement.close();

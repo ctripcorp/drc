@@ -146,11 +146,6 @@ public class TransactionContextResource extends AbstractContext
         try {
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
-//            loggerTE.info("(" + fetchGtid() + ") [" + fetchDepth() + "] cost: " + (costTimeNS / 1000) + "us"
-//                    + ((delayMs > 10) ? ("(" + trace + ")") : "")
-//                    + ((delayMs > 100) ? "SLOW" : "")
-//                    + ((delayMs > 1000) ? "SUPER SLOW" : ""));
-
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, fetchGtid(), fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
