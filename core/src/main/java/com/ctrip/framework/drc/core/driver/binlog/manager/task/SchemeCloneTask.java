@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.manager.exception.DdlException;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -47,7 +48,7 @@ public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements Name
                 sqls.add(trim(tableCreate));
             }
         }
-        Integer concurrency = TaskConfig.getInstance().getConcurrency(registerKey);
+        int concurrency = DynamicConfig.getInstance().getConcurrency(registerKey);
         DDL_LOGGER.info("[SchemeCloneTask] the concurrency of {} is: {}", registerKey, concurrency);
         res = doCreate(sqls, TableCreateTask.class, false, concurrency);
         if (!res) {

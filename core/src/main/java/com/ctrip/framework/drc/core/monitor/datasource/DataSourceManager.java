@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.datasource;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
@@ -41,18 +42,16 @@ public class DataSourceManager extends AbstractDataSource {
     }
 
     public synchronized DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
-
         DataSource dataSource = dataSourceMap.get(endpoint);
         if (dataSource == null) {
-            logger.info("[DataSource] create for {}", endpoint.getSocketAddress());
             if (poolProperties == null) {
                 poolProperties = getDefaultPoolProperties(endpoint);
             }
+            logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
             setCommonProperty(poolProperties);
             configureMonitorProperties(endpoint, poolProperties);
             dataSource = new DrcTomcatDataSource(poolProperties);
             dataSourceMap.put(endpoint, dataSource);
-
         }
 
         return dataSource;
@@ -71,7 +70,8 @@ public class DataSourceManager extends AbstractDataSource {
         poolProperties.setInitialSize(1);
         poolProperties.setMaxWait(10000);
         poolProperties.setMaxAge(28000000);
-        String timeout = String.format("connectTimeout=%s;socketTimeout=10000", CONNECTION_TIMEOUT);
+        int socketTimeout = DynamicConfig.getInstance().getDatasourceSocketTimeout();
+        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, socketTimeout);
         poolProperties.setConnectionProperties(timeout);
 
         poolProperties.setValidationInterval(30000);
