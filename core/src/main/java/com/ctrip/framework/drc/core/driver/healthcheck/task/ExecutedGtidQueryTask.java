@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.driver.healthcheck.task;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.CompositeGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -36,13 +37,20 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     protected String getExecutedGtid(Endpoint endpoint) {
-        DataSource dataSource = dataSourceManager.getDataSource(endpoint);
-        try (Connection connection = dataSource.getConnection()){
-            return gtidReader.getExecutedGtids(connection);
+        try {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", master.toString(), () -> {
+                DataSource dataSource = dataSourceManager.getDataSource(endpoint);
+                try (Connection connection = dataSource.getConnection()){
+                    return gtidReader.getExecutedGtids(connection);
+                } catch (Exception e) {
+                    logger.warn("query executedGtid({}) of {}:{} error", getCommand(), endpoint.getHost(), endpoint.getPort(), e);
+                }
+                return StringUtils.EMPTY;
+            });
         } catch (Exception e) {
-            logger.warn("query executedGtid({}) of {}:{} error", getCommand(), endpoint.getHost(), endpoint.getPort(), e);
+            logger.error("query executedGtid({}) of {}:{} error", getCommand(), endpoint.getHost(), endpoint.getPort(), e);
+            return StringUtils.EMPTY;
         }
-        return StringUtils.EMPTY;
     }
 
     public String getCommand() {
