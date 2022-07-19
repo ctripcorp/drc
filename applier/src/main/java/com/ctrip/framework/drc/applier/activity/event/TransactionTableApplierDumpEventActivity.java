@@ -51,7 +51,7 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     protected void handleApplierGtidEvent(FetcherEvent event) {
         String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
-            loggerTT.info("uuid has changed, old uuid is: {}, new uuid is: {}", lastUuid, currentUuid);
+            loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
             transactionTable.mergeRecord(currentUuid, true);
             lastUuid = currentUuid;
         }

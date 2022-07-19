@@ -16,9 +16,7 @@ import java.sql.Statement;
  */
 public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
 
-    protected static final String SHOW_SLAVE_STATUS = "/*FORCE_MASTER*/show slave status;";
-
-    protected static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\"";
+    protected static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\";";
 
     protected static final String ACCESS_DENIED = "Access denied";
 
@@ -39,14 +37,9 @@ public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
                 isReadOnly = readOnlyResultSet.getString("Value");
             }
 
-            // show slave status
-            final ResultSet showSlaveResultSet = statement.executeQuery(SHOW_SLAVE_STATUS);
+            // read_only = OFF,那么此节点即为Master
+            boolean isMaster = "OFF".equalsIgnoreCase(isReadOnly);
 
-            // show slave status结果为空,且read_only = OFF,那么此节点即为Master
-            boolean isMaster;
-            isMaster = !showSlaveResultSet.next() && "OFF".equalsIgnoreCase(isReadOnly);
-
-            showSlaveResultSet.close();
             readOnlyResultSet.close();
             statement.close();
 
