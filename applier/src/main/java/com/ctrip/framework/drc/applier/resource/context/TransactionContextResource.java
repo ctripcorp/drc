@@ -55,8 +55,8 @@ public class TransactionContextResource extends AbstractContext
     protected final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     private static final String SET_NEXT_GTID = "set gtid_next = '%s'";
-    private static final String COMMIT = "commit";
-    private static final String ROLLBACK = "rollback";
+    protected static final String COMMIT = "commit";
+    protected static final String ROLLBACK = "rollback";
 
     @InstanceActivity
     public MetricsActivity metricsActivity;
@@ -539,15 +539,17 @@ public class TransactionContextResource extends AbstractContext
                 logSQL(statement, preparedStatementExecutor);
                 assert statement.execute();
                 try (ResultSet result = statement.getResultSet()) {
-                    while (result.next()) {
-                        rowCount += 1;
-                        String log = "|";
-                        for (String columnName : columns.getNames()) {
-                            log = log + result.getString(columnName) + "|";
+                    if (result != null) {
+                        while (result.next()) {
+                            rowCount += 1;
+                            String log = "|";
+                            for (String columnName : columns.getNames()) {
+                                log = log + result.getString(columnName) + "|";
+                            }
+                            addLogs(log);
+                            destCurrentRecord = log;
+                            loggerS.info("(" + fetchGtid() + ")" + log);
                         }
-                        addLogs(log);
-                        destCurrentRecord = log;
-                        loggerS.info("(" + fetchGtid() + ")" + log);
                     }
                 }
             } catch (Throwable t) {
