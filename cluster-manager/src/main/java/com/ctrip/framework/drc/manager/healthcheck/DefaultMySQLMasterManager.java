@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dbs;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -98,7 +99,9 @@ public class DefaultMySQLMasterManager extends AbstractCurrentMetaObserver imple
             clusterId2Endpoint.put(dbCluster.getId(), endpoint);
             DbCluster old = dbsMap.put(endpoint, dbCluster);
             logger.info("[Update] {} DefaultMySQLMasterManager to {}", old, dbCluster);
-            currentMetaManager.switchMySQLMaster(dbCluster.getId(), endpoint);
+            DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.cm.switch.mysql.master", dbCluster.getMhaName(), () -> {
+                currentMetaManager.switchMySQLMaster(dbCluster.getId(), endpoint);
+            });
         } else {
             logger.info("[MySQL] master change, not interest. {}:{}", endpoint, dbCluster);
         }
