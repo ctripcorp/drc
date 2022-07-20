@@ -12,12 +12,14 @@ import com.ctrip.platform.dal.dao.DalQueryDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.StatementParameters;
 import com.ctrip.platform.dal.dao.sqlbuilder.FreeSelectSqlBuilder;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.console.common.bean.DalConfig.DRC_TITAN_KEY;
@@ -149,7 +151,11 @@ public class DalUtils {
     }
 
     public Long updateOrCreateClusterMhaMap(Long clusterId, Long mhaId) throws SQLException {
-        ClusterMhaMapTbl clusterMhaMapTbl = clusterMhaMapTblDao.queryAll().stream().filter(p -> (clusterId.equals(p.getClusterId()) && mhaId.equals(p.getMhaId()))).findFirst().orElse(null);
+        List<ClusterMhaMapTbl> mapTbls = clusterMhaMapTblDao.queryByMhaIds(Lists.newArrayList(mhaId), BooleanEnum.FALSE.getCode());
+        if (!mapTbls.isEmpty()) {
+            return mapTbls.get(0).getId();
+        }
+        ClusterMhaMapTbl clusterMhaMapTbl = clusterMhaMapTblDao.queryByMhaIdAndClusterId(mhaId,clusterId,null);
         if(null == clusterMhaMapTbl) {
             return insertClusterMhaMap(clusterId, mhaId);
         } else if (BooleanEnum.TRUE.getCode().equals(clusterMhaMapTbl.getDeleted())) {

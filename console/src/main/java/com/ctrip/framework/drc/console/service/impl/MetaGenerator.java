@@ -187,7 +187,8 @@ public class MetaGenerator {
                 .setMhaName(mhaName)
                 .setBuName(buTbl.getBuName())
                 .setAppId(clusterTbl.getClusterAppId())
-                .setOrgId(clusterTbl.getBuId().intValue());
+                .setOrgId(clusterTbl.getBuId().intValue())
+                .setApplyMode(mhaTbl.getApplyMode());
         dc.addDbCluster(dbCluster);
         return dbCluster;
     }

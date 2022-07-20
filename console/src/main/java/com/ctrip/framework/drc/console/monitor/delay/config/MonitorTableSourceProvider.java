@@ -169,6 +169,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String DIFF_COUNT_LIMIT = "fullDataCheck.diffCount.limit";
     private static int DEFAULT_DIFF_COUNT_LIMIT = 100;
+    
+    private static final String APPLY_MODE_MIGRATE_SWITCH = "apply.mode.migrate.switch";
+    private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
+    
+    public String getDrcMetaXmlUpdateSwitch (){
+        return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_OFF);
+    }
+
 
     private static class ConfigServiceHolder {
         private static MonitorTableSourceProvider instance = new MonitorTableSourceProvider();
@@ -460,5 +468,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public int getDiffCountLimit() {
         return getIntProperty(DIFF_COUNT_LIMIT, DEFAULT_DIFF_COUNT_LIMIT);
     }
-
+    
+    public String getApplyModeMigrateSwitch() {
+        return getProperty(APPLY_MODE_MIGRATE_SWITCH,SWITCH_STATUS_OFF);
+    }
 }

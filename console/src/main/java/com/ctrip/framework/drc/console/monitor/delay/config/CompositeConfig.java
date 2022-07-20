@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_OFF;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 
 @Component
@@ -15,17 +16,24 @@ public class CompositeConfig extends AbstractConfig implements Config {
     @Autowired
     private List<Config> configs;
 
+    @Autowired
+    private MonitorTableSourceProvider monitorTableSourceProvider;
+
     @Override
     public void updateConfig() {
-        for (Config config : configs) {
-            config.updateConfig();
-            String c = config.getConfig();
-            if(null != c) {
-                META_LOGGER.info("[META] from {}", config.getSourceType());
-                META_LOGGER.debug("[META] from {}: {}", config.getSourceType(), c);
-                xml = c;
-                break;
+        if (monitorTableSourceProvider.getDrcMetaXmlUpdateSwitch().equals(SWITCH_STATUS_OFF)) {
+            for (Config config : configs) {
+                config.updateConfig();
+                String c = config.getConfig();
+                if(null != c) {
+                    META_LOGGER.info("[META] from {}", config.getSourceType());
+                    META_LOGGER.debug("[META] from {}: {}", config.getSourceType(), c);
+                    xml = c;
+                    break;
+                }
             }
+        } else {
+            META_LOGGER.info("[META] metadb data update ,not update");
         }
     }
 
