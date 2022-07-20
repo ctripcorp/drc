@@ -34,7 +34,7 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     protected String getExecutedGtid(Endpoint endpoint) {
         try {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", master.getSocketAddress().toString(), () -> {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
                 DataSource dataSource = dataSourceManager.getDataSource(endpoint);
                 try (Connection connection = dataSource.getConnection()){
                     return gtidReader.getExecutedGtids(connection);
