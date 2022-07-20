@@ -19,17 +19,22 @@ public class DrcDataSourceValidator implements Validator {
 
     @Override
     public boolean validate(Connection connection, int validateAction) {
+        boolean isMater = false;
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(IS_READ_ONLY_COMMAND)) {
                 if (resultSet.next()) {
-                    boolean isMater = "OFF".equalsIgnoreCase(resultSet.getString("Value"));
+                    isMater = "OFF".equalsIgnoreCase(resultSet.getString("Value"));
                     logger.info("DRC DataSource master validation of connection: {}, with result {}", connection, isMater);
-                    return isMater;
                 }
             }
         } catch (Exception e) {
             logger.warn("DRC DataSource master validation error", e);
         }
-        return false;
+
+        if (isMater) {
+            return true;
+        } else {
+            throw new RuntimeException("Borrowed drc connection is not master");
+        }
     }
 }
