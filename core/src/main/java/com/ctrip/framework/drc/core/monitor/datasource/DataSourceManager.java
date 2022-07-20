@@ -26,7 +26,7 @@ public class DataSourceManager extends AbstractDataSource {
 
     public static final int MAX_ACTIVE = 50;
 
-    private Striped<Lock> stripedLocks = Striped.lock(100);
+    private Striped<Lock> stripedLocks = Striped.lock(2048);
 
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
