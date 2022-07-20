@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.resource.mysql;
 
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
+import com.ctrip.framework.drc.core.driver.pool.DrcDataSourceValidator;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -73,6 +74,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
         properties.setMaxIdle(poolSize);
         properties.setInitialSize(30);
         properties.setMinIdle(poolSize);
+        properties.setValidator(new DrcDataSourceValidator());
 
         inner = new DrcTomcatDataSource(properties);
 
