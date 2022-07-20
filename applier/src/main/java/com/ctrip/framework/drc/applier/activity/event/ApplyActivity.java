@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.event.transaction.Transaction;
 import com.ctrip.framework.drc.applier.resource.context.AccurateTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
+import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
@@ -19,6 +20,9 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
     @InstanceResource
     public DataSource dataSource;
 
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
+
     public BatchTransactionContextResource batch;
     public AccurateTransactionContextResource accurate;
 
@@ -32,7 +36,7 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
 
     @Override
     public Transaction doTask(Transaction transaction) throws InterruptedException {
-        loggerTL.info("apply {}", transaction.identifier());
+        loggerTL.info("[{}] apply {}", registryKey, transaction.identifier());
         boolean bigTransaction = transaction.isOverflowed();
         if (handleEmptyTransaction(transaction)) {
             return hand(transaction);

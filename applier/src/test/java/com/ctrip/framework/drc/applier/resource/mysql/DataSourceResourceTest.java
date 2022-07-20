@@ -37,7 +37,7 @@ public class DataSourceResourceTest {
     @Test
     public void testGetConnection() throws Exception {
         DataSourceResource dataSourceResource = new DataSourceResource();
-        dataSourceResource.cluster = "test.cluster";
+        dataSourceResource.registryKey = "test.registryKey";
         ExecutorResource executorResource = new ExecutorResource();
         executorResource.initialize();
         executorResource.start();
@@ -62,7 +62,7 @@ public class DataSourceResourceTest {
         List<Connection> connectionList = new ArrayList<>();
         DrcConnectionPool.SESSION_WAIT_TIMEOUT = 1;
         DataSourceResource dataSourceResource = new DataSourceResource();
-        dataSourceResource.cluster = "test.cluster";
+        dataSourceResource.registryKey = "test.registryKey";
         ExecutorResource executorResource = new ExecutorResource();
         executorResource.initialize();
         executorResource.start();

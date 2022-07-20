@@ -72,7 +72,7 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
             LastLWM lastLWM = lastLWMHashMap.computeIfAbsent(key, k -> new LastLWM(currentLWM, currentProgress, currentTimeMillis));
             if (lastLWM.lwm == currentLWM && lastLWM.progress == currentProgress) {
                 if (currentTimeMillis - lastLWM.lastTimeMillis > bearingTimeMillis) {
-                    logger.info("lwm does not raise since {}ms, going to remove server", lastLWM.lastTimeMillis);
+                    logger.info("lwm does not raise since {}ms with bearing time {}s, going to remove server ({})", lastLWM.lastTimeMillis, bearingTimeMillis / 1000, key);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("alert", "lwm does not raise for a long time.", 1, 0);
                     removeServer(key);
                 }
