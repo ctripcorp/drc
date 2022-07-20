@@ -4,14 +4,15 @@ import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.Striped;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.JDBC_URL_FORMAT;
@@ -26,7 +27,7 @@ public class DataSourceManager extends AbstractDataSource {
 
     public static final int MAX_ACTIVE = 50;
 
-    private Striped<Lock> stripedLocks = Striped.lock(100);
+    private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
 
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
@@ -46,7 +47,7 @@ public class DataSourceManager extends AbstractDataSource {
     }
 
     public DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
-        Lock lock = stripedLocks.get(endpoint) ;
+        Lock lock = cachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
         lock.lock();
         try {
             DataSource dataSource = dataSourceMap.get(endpoint);
@@ -89,7 +90,7 @@ public class DataSourceManager extends AbstractDataSource {
     }
 
     public void clearDataSource(Endpoint endpoint) {
-        Lock lock = stripedLocks.get(endpoint) ;
+        Lock lock = cachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
         lock.lock();
         try {
             DataSource dataSource = dataSourceMap.remove(endpoint);
