@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.monitor.module.replicate;
 
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.monitor.module.DrcModule;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
@@ -90,6 +91,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private ReplicatorConfig getReplicatorConfig() {
         ReplicatorConfig replicatorConfig = new ReplicatorConfig();
+        replicatorConfig.setApplyMode(ApplyMode.set_gtid.getType());
         DefaultEndPoint endpoint = new DefaultEndPoint(AbstractConfigTest.SOURCE_MASTER_IP, srcMySQLPort, AbstractConfigTest.USER, AbstractConfigTest.PASSWORD);
         replicatorConfig.setEndpoint(endpoint);
         replicatorConfig.setRegistryKey(destination, MHA_NAME);
