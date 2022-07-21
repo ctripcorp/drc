@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dto;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
+import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
 
@@ -24,6 +25,7 @@ public class RowsFilterConfigDtoTest {
         dto.setColumns(Lists.newArrayList("columnA"));
         dto.setContext("context");
         dto.setIllegalArgument(false);
+        dto.setFetchMode(FetchMode.RPC.getCode());
         RowsFilterMappingTbl rowsFilterMappingTbl = dto.getRowsFilterMappingTbl();
         DataMediaTbl dataMediaTbl = dto.getDataMediaTbl();
         RowsFilterTbl rowsFilterTbl = dto.getRowsFilterTbl();

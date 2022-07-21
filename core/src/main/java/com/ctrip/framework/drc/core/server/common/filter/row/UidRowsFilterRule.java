@@ -21,6 +21,8 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
 
     private UidService uidService = ServicesUtil.getUidService();
 
+    private UidConfiguration uidConfiguration = UidConfiguration.getInstance();
+
     private Set<String> dstLocation = Sets.newHashSet();
 
     public UidRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
@@ -35,12 +37,15 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
 
     @Override
     protected boolean doFilterRows(Object field) throws Exception {
-        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> {
-            if (uidService.filterUid(fetchUidContext(field))) {
-                return true;
-            }
-            return false;
-        });
+        if (FetchMode.RPC == fetchMode) {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> uidService.filterUid(fetchUidContext(field)));
+        } else if (FetchMode.BlackList == fetchMode) {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> uidConfiguration.filterRowsWithBlackList(String.valueOf(field), registryKey));
+        } else if (FetchMode.WhiteList == fetchMode) {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> uidConfiguration.filterRowsWithWhiteList(String.valueOf(field), registryKey));
+        }
+
+        throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);
     }
 
     private UidContext fetchUidContext(Object field) {

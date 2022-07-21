@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.assertj.core.util.Lists;
@@ -126,6 +127,7 @@ public class BuildControllerTest extends AbstractControllerTest {
         RowsFilterConfigDto dto = new RowsFilterConfigDto();
         dto.setId(1L);
         dto.setContext("context");
+        dto.setFetchMode(FetchMode.RPC.getCode());
         Mockito.when(rowsFilterService.updateRowsFilterConfig(Mockito.any(RowsFilterConfigDto.class))).thenReturn(null);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/rowsFilterConfig").
                 contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).

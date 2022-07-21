@@ -76,6 +76,11 @@
 <!--                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>-->
 <!--                  </Select>-->
 <!--                </FormItem>-->
+                <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择">
+                    <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
+                  </Select>
+                </FormItem>
                 <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
@@ -178,6 +183,21 @@ export default {
           key: 'illegalArgument'
         },
         {
+          title: '校验模式（trip_uid专用)',
+          key: 'fetchMode',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const color = 'blue'
+            const text = row.fetchMode === 0 ? 'RPC' : row.type === '1' ? 'BlackList' : 'WhiteList'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
@@ -224,7 +244,8 @@ export default {
         mode: 'trip_uid',
         columns: [],
         context: '',
-        illegalArgument: false
+        illegalArgument: false,
+        fetchMode: 0
       },
       configInTripUid: {
         uid: '',
@@ -241,6 +262,20 @@ export default {
       regionsForChose: [
         'SIN',
         'SH'
+      ],
+      fetchModeForChose: [
+        {
+          k: 'RPC调用',
+          v: 0
+        },
+        {
+          k: 'BlackList',
+          v: 1
+        },
+        {
+          k: 'WhiteList',
+          v: 2
+        }
       ],
       columnForAdd: '',
       forceCommit: false,
@@ -342,7 +377,8 @@ export default {
         mode: row.mode,
         columns: row.columns,
         context: row.context,
-        illegalArgument: row.illegalArgument
+        illegalArgument: row.illegalArgument,
+        fetchMode: row.fetchMode
       }
       this.tableData = []
     },
@@ -364,7 +400,8 @@ export default {
         mode: 'trip_uid',
         columns: [],
         context: '',
-        illegalArgument: false
+        illegalArgument: false,
+        fetchMode: 0
       }
       this.tableData = []
     },
@@ -416,6 +453,7 @@ export default {
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
+          fetchMode: this.rowsFilterConfig.fetchMode,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
         }
         console.log('dto:')
@@ -477,7 +515,7 @@ export default {
         '&name=' + this.rowsFilterConfig.name)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('表匹配冲突校验失败，请手动添加！')
+            window.alert('表匹配冲突校验失败，请勿配置重复表！！')
           } else {
             console.log(response.data.data)
             this.conflictTables = response.data.data

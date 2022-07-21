@@ -38,4 +38,55 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         Assert.assertTrue(res.isNoRowFiltered());
     }
 
+    // id with 18, 20, 22
+    @Test
+    public void filterRowsWithBlackList() throws Exception {
+        List<RowsFilterConfig> rowsFilterConfigList = dataMediaConfig.getRowsFilters();
+        RowsFilterConfig rowsFilterConfig = rowsFilterConfigList.get(0);
+        RowsFilterConfig clone = getRowsFilterConfig(rowsFilterConfig, FetchMode.BlackList.getCode());
+
+        // black 20,21,22
+        UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
+        Assert.assertFalse(res.isNoRowFiltered());
+        Assert.assertEquals(res.getRes().size(), 1);  // 18
+
+        UidConfiguration.getInstance().clear();
+    }
+
+    @Test
+    public void filterRowsWithWhiteList() throws Exception {
+        List<RowsFilterConfig> rowsFilterConfigList = dataMediaConfig.getRowsFilters();
+        RowsFilterConfig rowsFilterConfig = rowsFilterConfigList.get(0);
+        RowsFilterConfig clone = getRowsFilterConfig(rowsFilterConfig, FetchMode.WhiteList.getCode());
+
+        // white 18,20,21
+        UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
+        Assert.assertFalse(res.isNoRowFiltered());
+        Assert.assertEquals(res.getRes().size(), 2);  // 18, 20
+
+        UidConfiguration.getInstance().clear();
+    }
+
+    private RowsFilterConfig getRowsFilterConfig(RowsFilterConfig rowsFilterConfig, int code) {
+        RowsFilterConfig clone = new RowsFilterConfig();
+        clone.setMode(rowsFilterConfig.getMode());
+        clone.setTables(rowsFilterConfig.getTables());
+        clone.setRegistryKey(rowsFilterConfig.getRegistryKey());
+        RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
+
+        RowsFilterConfig.Parameters cloneParameters = new RowsFilterConfig.Parameters();
+        cloneParameters.setColumns(parameters.getColumns());
+        cloneParameters.setContext(parameters.getContext());
+        cloneParameters.setIllegalArgument(parameters.getIllegalArgument());
+        cloneParameters.setFetchMode(code);
+
+        clone.setParameters(cloneParameters);
+
+        return clone;
+    }
+
 }
