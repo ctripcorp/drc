@@ -118,10 +118,12 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
 
-        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, "ut", ApplyMode.set_gtid.getType());
+        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, replicatorConfig);
 
         createFiles();
 
+        when(replicatorConfig.getRegistryKey()).thenReturn("ut");
+        when(replicatorConfig.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(dumpCommandPacket.getApplierName()).thenReturn(APPLIER_NAME);
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);

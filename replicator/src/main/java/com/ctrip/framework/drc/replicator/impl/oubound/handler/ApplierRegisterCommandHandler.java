@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -79,16 +80,16 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ExecutorService dumpExecutorService;
 
-    private int applyMode;
+    private boolean transactionTableMode;
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registryKey, int applyMode) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, ReplicatorConfig replicatorConfig) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
-        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", registryKey));
-        this.applyMode = applyMode;
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
+        this.transactionTableMode = replicatorConfig.getApplyMode() == ApplyMode.transaction_table.getType();
     }
 
     @Override
@@ -402,7 +403,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean shouldSendDrcGtidLog(LogEventType eventType) {
-            return isDrcGtidLogEvent(eventType) && applyMode == ApplyMode.transaction_table.getType();
+            return isDrcGtidLogEvent(eventType) && transactionTableMode;
         }
 
         private boolean checkEventSize(FileChannel fileChannel, ByteBuf headByteBuf, long eventSize) throws IOException {
