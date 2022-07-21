@@ -74,7 +74,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
         properties.setMaxIdle(poolSize);
         properties.setInitialSize(30);
         properties.setMinIdle(poolSize);
-        properties.setValidator(new DrcDataSourceValidator());
+        properties.setValidator(new DrcDataSourceValidator(properties));
 
         inner = new DrcTomcatDataSource(properties);
 

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.driver.pool;
 
+import com.ctrip.framework.drc.core.service.exceptions.InvalidConnectionException;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.apache.tomcat.jdbc.pool.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,25 @@ public class DrcDataSourceValidator implements Validator {
 
     private static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\";";
 
+    private PoolProperties properties;
+
+    private String name;
+
+    private String url;
+
+    public DrcDataSourceValidator(PoolProperties properties) {
+        this.properties = properties;
+        this.name = properties.getName();
+        this.url = properties.getUrl();
+
+        setValidateFlag();
+    }
+
+    private void setValidateFlag() {
+        properties.setTestOnConnect(true);
+        properties.setTestOnBorrow(true);
+    }
+
     @Override
     public boolean validate(Connection connection, int validateAction) {
         boolean isMater = false;
@@ -24,17 +45,19 @@ public class DrcDataSourceValidator implements Validator {
             try (ResultSet resultSet = statement.executeQuery(IS_READ_ONLY_COMMAND)) {
                 if (resultSet.next()) {
                     isMater = "OFF".equalsIgnoreCase(resultSet.getString("Value"));
-                    logger.info("DRC DataSource master validation of connection: {}, with result {}", connection, isMater);
+                    logger.info("DRC DataSource master validation of connection: {}, with result {}, for name: {}, url: {}", connection, isMater, name, url);
                 }
             }
         } catch (Exception e) {
-            logger.warn("DRC DataSource master validation error", e);
+            logger.warn("DRC DataSource master validation error, for name: {}, url: {}", name, url, e);
+            return false;
         }
 
         if (isMater) {
             return true;
         } else {
-            throw new RuntimeException("Borrowed drc connection is not master");
+            logger.error("DRC DataSource master validation false, for name: {}, url: {}", name, url);
+            throw new InvalidConnectionException(String.format("Borrowed drc connection is not master, for name: %s, url: %s", name, url));
         }
     }
 }
