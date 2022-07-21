@@ -385,7 +385,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
 
-                if (!isSlaveConcerned && (shouldNotSendDrcGtidLog(eventType) || isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, headByteBuf, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
+                if (!shouldSendDrcGtidLog(eventType) && !isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, headByteBuf, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
                     Pair<Boolean, String> res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
                     in_exclude_group = res.getKey();
                     gtidForLog = res.getValue();
@@ -402,8 +402,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return true;
         }
 
-        private boolean shouldNotSendDrcGtidLog(LogEventType eventType) {
-            return !(transactionTableMode && isDrcGtidLogEvent(eventType));
+        private boolean shouldSendDrcGtidLog(LogEventType eventType) {
+            return transactionTableMode && isDrcGtidLogEvent(eventType);
         }
 
         private boolean checkEventSize(FileChannel fileChannel, ByteBuf headByteBuf, long eventSize) throws IOException {
