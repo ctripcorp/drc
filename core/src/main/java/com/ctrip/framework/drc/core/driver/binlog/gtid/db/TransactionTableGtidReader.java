@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,16 @@ public class TransactionTableGtidReader implements GtidReader {
 
     private static final String SELECT_TRANSACTION_TABLE_SPECIFIC_GTID_SET = "select `gno`, `gtidset` from `drcmonitordb`.`gtid_executed` where `server_uuid` = \"%s\";";
 
+    // just for logging
+    private Endpoint endpoint;
+
+    public TransactionTableGtidReader(Endpoint endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public TransactionTableGtidReader() {
+    }
+
     @Override
     public String getExecutedGtids(Connection connection) {
         GtidSet executedGtidSet = new GtidSet("");
@@ -42,17 +54,20 @@ public class TransactionTableGtidReader implements GtidReader {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Map<String, String> select(Connection connection, String sql) {
-        Map<String, String> result = Maps.newHashMap();
-        try (Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery(sql)) {
-                while (resultSet.next()) {
-                    result.put(resultSet.getString(1), resultSet.getString(2));
+        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+        {
+            Map<String, String> result = Maps.newHashMap();
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                    while (resultSet.next()) {
+                        result.put(resultSet.getString(1), resultSet.getString(2));
+                    }
                 }
+            } catch (SQLException e) {
+                logger.warn("execute select sql error, sql is: {}", sql, e);
             }
-        } catch (SQLException e) {
-            logger.warn("execute select sql error, sql is: {}", sql, e);
-        }
-        return result;
+            return result;
+        });
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")

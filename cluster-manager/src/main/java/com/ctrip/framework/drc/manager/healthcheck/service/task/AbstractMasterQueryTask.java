@@ -10,13 +10,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.IS_READ_ONLY_COMMAND;
+
 /**
  * Created by mingdongli
  * 2019/11/22 上午9:38.
  */
 public abstract class AbstractMasterQueryTask<V> extends AbstractQueryTask<V> {
-
-    protected static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\";";
 
     protected static final String ACCESS_DENIED = "Access denied";
 
