@@ -204,6 +204,18 @@
         <Logger name="com.ctrip.soa" level="info" additivity="false">
             <AppenderRef ref="RollingFileSoaInfo"/>
         </Logger>
+        <Logger name="com.ctrip.framework.vi" level="info" additivity="false">
+            <AppenderRef ref="RollingFileSoaInfo"/>
+        </Logger>
+        <Logger name="com.ctrip.framework.ucs" level="info" additivity="false">
+            <AppenderRef ref="RollingFileSoaInfo"/>
+        </Logger>
+        <Logger name="org.apache.dubbo" level="info" additivity="false">
+            <AppenderRef ref="RollingFileSoaInfo"/>
+        </Logger>
+        <Logger name="com.ctriposs.baiji" level="info" additivity="false">
+            <AppenderRef ref="RollingFileSoaInfo"/>
+        </Logger>
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
             <AppenderRef ref="ReplicatorServerRollingFileWarn"/>
         </Logger>

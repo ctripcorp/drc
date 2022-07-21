@@ -106,9 +106,11 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(replicatorConfig.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
 
@@ -118,7 +120,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
 
-        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, "ut", ApplyMode.set_gtid.getType());
+        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, replicatorConfig);
 
         createFiles();
 
@@ -137,6 +139,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
         fileManager.stop();
