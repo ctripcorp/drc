@@ -15,4 +15,6 @@ public interface EventGroup {
     void reset();
 
     boolean isEmptyTransaction();
+
+    void markTerminated();
 }

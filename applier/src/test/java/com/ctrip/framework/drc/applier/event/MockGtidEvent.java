@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.applier.event;
 
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
+
 /**
  * @Author Slight
  * Oct 16, 2019

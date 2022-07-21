@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.applier.resource.condition;
+package com.ctrip.framework.drc.fetcher.resource.condition;
 
 /**
  * @Author Slight

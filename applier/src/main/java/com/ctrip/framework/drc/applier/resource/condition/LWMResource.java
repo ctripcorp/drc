@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.applier.resource.condition;
 
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMPassHandler;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.tuple.Pair;
