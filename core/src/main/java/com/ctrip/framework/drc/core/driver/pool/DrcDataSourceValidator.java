@@ -10,14 +10,14 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.IS_READ_ONLY_COMMAND;
+
 /**
  * Created by jixinwang on 2022/7/20
  */
 public class DrcDataSourceValidator implements Validator {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-
-    private static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\";";
 
     private PoolProperties properties;
 
@@ -38,6 +38,7 @@ public class DrcDataSourceValidator implements Validator {
         properties.setTestOnBorrow(true);
     }
 
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
     public boolean validate(Connection connection, int validateAction) {
         boolean isMater = false;
