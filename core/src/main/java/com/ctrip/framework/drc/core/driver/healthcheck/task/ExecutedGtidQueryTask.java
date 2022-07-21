@@ -18,15 +18,11 @@ import java.sql.Connection;
  */
 public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
 
-    protected static final String ALI_RDS = "/*FORCE_MASTER*/";
-
-    private static final String EXECUTED_GTID_SUPER = ALI_RDS + "show master status;";
-
     private CompositeGtidReader gtidReader = new CompositeGtidReader();
 
     public ExecutedGtidQueryTask(Endpoint master) {
         super(master);
-        this.gtidReader.addGtidReader(Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader()));
+        this.gtidReader.addGtidReader(Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(master)));
     }
 
     @Override
@@ -38,30 +34,18 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     protected String getExecutedGtid(Endpoint endpoint) {
         try {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", master.getSocketAddress().toString(), () -> {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.composite.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
                 DataSource dataSource = dataSourceManager.getDataSource(endpoint);
                 try (Connection connection = dataSource.getConnection()){
                     return gtidReader.getExecutedGtids(connection);
                 } catch (Exception e) {
-                    logger.warn("query executedGtid({}) of {}:{} error", getCommand(), endpoint.getHost(), endpoint.getPort(), e);
+                    logger.warn("query executedGtid of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
                 }
                 return StringUtils.EMPTY;
             });
         } catch (Exception e) {
-            logger.error("query executedGtid({}) of {}:{} error", getCommand(), endpoint.getHost(), endpoint.getPort(), e);
+            logger.error("query executedGtid of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
             return StringUtils.EMPTY;
         }
-    }
-
-    public String getCommand() {
-        return EXECUTED_GTID_SUPER;
-    }
-
-    public int getIdx() {
-        return 5;
-    }
-
-    protected boolean needDownGrade() {
-        return true;
     }
 }

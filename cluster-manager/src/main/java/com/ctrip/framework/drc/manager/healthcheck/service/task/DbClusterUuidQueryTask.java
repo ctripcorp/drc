@@ -13,13 +13,13 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+
 /**
  * Created by mingdongli
  * 2019/11/22 上午9:59.
  */
 public class DbClusterUuidQueryTask extends AbstractQueryTask<List<String>> {
-
-    public static final int WAIT_TIMEOUT_MS = 1000;
 
     private ListeningExecutorService uuidInfoExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newCachedThreadPool("UuidQueryTask-Zone"));
 
@@ -61,7 +61,7 @@ public class DbClusterUuidQueryTask extends AbstractQueryTask<List<String>> {
         });
 
         try {
-            boolean queryResult = countDownLatch.await(WAIT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
             if (!queryResult) {
                 for (Db db : dbs.getDbs()) {
                     logger.error("[Timeout] for query uuid for {}:{}", db.getIp(), db.getPort());

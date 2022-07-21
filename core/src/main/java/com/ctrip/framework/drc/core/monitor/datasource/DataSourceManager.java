@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.JDBC_URL_FORMAT;
@@ -24,6 +27,8 @@ public class DataSourceManager extends AbstractDataSource {
 
     public static final int MAX_ACTIVE = 50;
 
+    private Map<Endpoint, Lock> cachedLocks = new ConcurrentHashMap<>();
+
     private static class DataSourceManagerHolder {
         public static final DataSourceManager INSTANCE = new DataSourceManager();
     }
@@ -37,24 +42,29 @@ public class DataSourceManager extends AbstractDataSource {
 
     private Map<Endpoint, DataSource> dataSourceMap = Maps.newConcurrentMap();
 
-    public synchronized DataSource getDataSource(Endpoint endpoint) {
+    public DataSource getDataSource(Endpoint endpoint) {
         return this.getDataSource(endpoint, null);
     }
 
-    public synchronized DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
-        DataSource dataSource = dataSourceMap.get(endpoint);
-        if (dataSource == null) {
-            if (poolProperties == null) {
-                poolProperties = getDefaultPoolProperties(endpoint);
+    public DataSource getDataSource(Endpoint endpoint, PoolProperties poolProperties) {
+        Lock lock = cachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            DataSource dataSource = dataSourceMap.get(endpoint);
+            if (dataSource == null) {
+                if (poolProperties == null) {
+                    poolProperties = getDefaultPoolProperties(endpoint);
+                }
+                logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
+                setCommonProperty(poolProperties);
+                configureMonitorProperties(endpoint, poolProperties);
+                dataSource = new DrcTomcatDataSource(poolProperties);
+                dataSourceMap.put(endpoint, dataSource);
             }
-            logger.info("[DataSource] create for {} with connection properties({})", endpoint.getSocketAddress(), poolProperties.getConnectionProperties());
-            setCommonProperty(poolProperties);
-            configureMonitorProperties(endpoint, poolProperties);
-            dataSource = new DrcTomcatDataSource(poolProperties);
-            dataSourceMap.put(endpoint, dataSource);
+            return dataSource;
+        } finally {
+            lock.unlock();
         }
-
-        return dataSource;
     }
 
     public static PoolProperties getDefaultPoolProperties(Endpoint endpoint) {
@@ -79,11 +89,17 @@ public class DataSourceManager extends AbstractDataSource {
         return poolProperties;
     }
 
-    public synchronized void clearDataSource(Endpoint endpoint) {
-        DataSource dataSource = dataSourceMap.remove(endpoint);
-        if (dataSource != null) {
-            dataSource.close(true);
-            logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+    public void clearDataSource(Endpoint endpoint) {
+        Lock lock = cachedLocks.computeIfAbsent(endpoint, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            DataSource dataSource = dataSourceMap.remove(endpoint);
+            if (dataSource != null) {
+                dataSource.close(true);
+                logger.info("[DataSource] close for {}", endpoint.getSocketAddress());
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }
