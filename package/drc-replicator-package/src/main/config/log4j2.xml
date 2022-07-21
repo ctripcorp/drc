@@ -114,20 +114,6 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
-        <RollingFile name="RollingFileGtidManagerInfo" fileName="${baseDir}/manager.log"
-                     filePattern="${baseDir}/manager-%i.log.gz">
-            <PatternLayout pattern="[%d][%t] - %m%n"/>
-            <Policies>
-                <SizeBasedTriggeringPolicy size="500 MB"/>
-            </Policies>
-            <DefaultRolloverStrategy max="100">
-                <Delete basePath="${baseDir}" maxDepth="2">
-                    <IfFileName glob="manager-*.log.gz"/>
-                    <IfAccumulatedFileCount exceeds="100"/>
-                </Delete>
-            </DefaultRolloverStrategy>
-        </RollingFile>
-
         <RollingFile name="RollingFileFrequencyInfo" fileName="${baseDir}/frequency.log"
                      filePattern="${baseDir}/frequency-%i.log.gz">
             <PatternLayout pattern="[%d][%t] - %m%n"/>
@@ -200,9 +186,6 @@
         </Logger>
         <Logger name="com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionMonitorFilter" level="info" additivity="false">
             <AppenderRef ref="RollingFileEventInfo"/>
-        </Logger>
-        <Logger name="com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager" level="info" additivity="false">
-            <AppenderRef ref="RollingFileGtidManagerInfo"/>
         </Logger>
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
             <AppenderRef ref="ReplicatorServerRollingFileWarn"/>
