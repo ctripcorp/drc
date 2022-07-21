@@ -137,6 +137,11 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
         return (length == 2);
     }
 
+    @Override
+    public void markTerminated() {
+        isTerminated = true;
+    }
+
     public void close() {
         lock.lock();
         try {

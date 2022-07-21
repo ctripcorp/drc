@@ -1,10 +1,9 @@
-package com.ctrip.framework.drc.applier.event;
+package com.ctrip.framework.drc.fetcher.event;
 
-import com.ctrip.framework.drc.applier.event.transaction.BeginEvent;
-import com.ctrip.framework.drc.applier.resource.condition.LWM;
-import com.ctrip.framework.drc.applier.resource.condition.LWMPassHandler;
+import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMPassHandler;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
-import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 
 /**

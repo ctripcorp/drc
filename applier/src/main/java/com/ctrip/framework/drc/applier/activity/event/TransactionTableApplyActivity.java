@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
-import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;

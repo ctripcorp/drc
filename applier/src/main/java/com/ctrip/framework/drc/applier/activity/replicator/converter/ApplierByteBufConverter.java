@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import io.netty.buffer.ByteBuf;
 
