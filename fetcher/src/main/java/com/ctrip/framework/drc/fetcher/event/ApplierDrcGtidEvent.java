@@ -1,9 +1,7 @@
-package com.ctrip.framework.drc.applier.event;
+package com.ctrip.framework.drc.fetcher.event;
 
-
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 
 /**
  * Created by jixinwang on 2021/9/23

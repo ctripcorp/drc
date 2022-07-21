@@ -1,7 +1,6 @@
-package com.ctrip.framework.drc.applier.event;
+package com.ctrip.framework.drc.fetcher.event;
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
-import com.ctrip.framework.drc.fetcher.event.MonitoredXidEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
 import com.ctrip.framework.drc.fetcher.resource.context.EventGroupContext;

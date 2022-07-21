@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
@@ -86,7 +87,7 @@ public class MySQLMasterServerTest extends AbstractServerTest {
 
     @Test(expected = BindException.class)
     public void testStart() throws Exception {
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null, "ut"));
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null, "ut", ApplyMode.set_gtid.getType()));
 
         mySQLMasterServer.start();
         Assert.assertTrue(isUsed(PORT));

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.fetcher.activity.event;
 
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
@@ -22,7 +24,16 @@ public abstract class GroupActivity extends EventActivity<TransactionEvent, Tran
             }
             BeginEvent b = (BeginEvent) event;
             current = getTransaction(b);
-            return hand(current);
+
+            if (event instanceof ApplierDrcGtidEvent) {
+                ApplierXidEvent fakeXidLogEvent = new ApplierXidEvent();
+                current.append(fakeXidLogEvent);
+                hand(current);
+                current = null;
+                return null;
+            } else {
+                return hand(current);
+            }
         }
         current.append(event);
         if (event instanceof TerminateEvent) {

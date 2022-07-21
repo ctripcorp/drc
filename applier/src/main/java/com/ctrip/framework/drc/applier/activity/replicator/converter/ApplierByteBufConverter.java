@@ -7,6 +7,8 @@ import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConve
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -21,6 +23,8 @@ public class ApplierByteBufConverter extends AbstractByteBufConverter {
         switch (nextLogEventType) {
             case gtid_log_event:
                 return new ApplierGtidEvent();
+            case drc_gtid_log_event:
+                return new ApplierDrcGtidEvent();
             case table_map_log_event:
                 return new ApplierTableMapEvent();
             case write_rows_event_v2:

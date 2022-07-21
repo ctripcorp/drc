@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.applier.activity.replicator.converter.ApplierByte
 import com.ctrip.framework.drc.applier.activity.replicator.driver.ApplierPooledConnector;
 import com.ctrip.framework.drc.applier.event.ApplierDrcTableMapEvent;
 import com.ctrip.framework.drc.applier.event.ApplierGtidEvent;
-import com.ctrip.framework.drc.applier.event.ApplierXidEvent;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
+import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -37,6 +38,10 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     @Override
     protected void doHandleLogEvent(FetcherEvent event) {
+        if (event instanceof ApplierDrcGtidEvent) {
+            handleApplierDrcGtidEvent(event);
+        }
+
         if (event instanceof ApplierGtidEvent) {
             handleApplierGtidEvent(event);
         }
@@ -54,7 +59,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
 
     @Override
     protected void afterHandleLogEvent(FetcherEvent logEvent) {
-        if (shouldSkip()) {
+        if (shouldSkip(logEvent)) {
             logEvent.release();
             capacity.release();
             progress.tick();
@@ -63,11 +68,15 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
     }
 
+    protected void handleApplierDrcGtidEvent(FetcherEvent event) {
+        ((ApplierGtidEvent) event).involve(context);
+    }
+
     protected void handleApplierGtidEvent(FetcherEvent event) {
         ((ApplierGtidEvent) event).involve(context);
     }
 
-    protected boolean shouldSkip() {
+    protected boolean shouldSkip(FetcherEvent logEvent) {
         return "true".equalsIgnoreCase(skipEvent);
     }
 

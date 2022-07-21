@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.event;
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 
 public class ApplierRollbackEvent extends ApplierXidEvent {
 

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.google.common.collect.Lists;
