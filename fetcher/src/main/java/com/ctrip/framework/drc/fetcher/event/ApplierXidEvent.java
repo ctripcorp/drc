@@ -22,11 +22,6 @@ public class ApplierXidEvent extends MonitoredXidEvent<TransactionContext> imple
     @Override
     public ApplyResult apply(TransactionContext context) {
         super.apply(context);
-        return terminate0(context);
+        return terminate(context);
     }
-
-    protected ApplyResult terminate0(TransactionContext context) {
-        return context.complete();
-    }
-
 }

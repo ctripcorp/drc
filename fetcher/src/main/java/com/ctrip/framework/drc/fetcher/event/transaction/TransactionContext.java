@@ -23,8 +23,6 @@ public interface TransactionContext extends BaseTransactionContext {
 
     void recordTransactionTable(String gtid);
 
-    TransactionData.ApplyResult complete();
-
     List<Boolean> getConflictMap();
     List<Boolean> getOverwriteMap();
     Queue<String> getLogs();

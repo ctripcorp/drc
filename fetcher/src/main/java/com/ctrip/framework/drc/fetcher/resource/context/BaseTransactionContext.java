@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.fetcher.resource.context;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 
 import java.util.List;
 
@@ -23,4 +24,7 @@ public interface BaseTransactionContext extends TimeContext, TableKeyContext, Ta
 
     void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns);
 
+    default TransactionData.ApplyResult complete() {
+        return TransactionData.ApplyResult.SUCCESS;
+    }
 }

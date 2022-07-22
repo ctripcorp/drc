@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.fetcher.activity.event;
 
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
@@ -23,16 +22,11 @@ public abstract class GroupActivity extends EventActivity<TransactionEvent, Tran
             }
             BaseBeginEvent b = (BaseBeginEvent) event;
             current = getTransaction(b);
-            if (event instanceof ApplierDrcGtidEvent) {
-                current.markTerminated();
-                hand(current);
-                current = null;
-                return null;
-            } else {
-                return hand(current);
-            }
+            hand(current);
+        } else {
+            current.append(event);
         }
-        current.append(event);
+
         if (event instanceof TerminateEvent) {
             current = null;
         }

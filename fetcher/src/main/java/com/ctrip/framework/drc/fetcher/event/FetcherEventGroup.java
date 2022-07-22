@@ -44,6 +44,9 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
         events[0] = event;
         writeIndex = 1;
         length = 1;
+        if (event instanceof TerminateEvent) {
+            isTerminated = true;
+        }
     }
 
     @Override
@@ -135,11 +138,6 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
     @Override
     public boolean isEmptyTransaction() {
         return (length == 2);
-    }
-
-    @Override
-    public void markTerminated() {
-        isTerminated = true;
     }
 
     public void close() {
