@@ -36,7 +36,7 @@ public class LocalApplierServer extends ApplierServer {
     private ApplyMode applyMode;
 
     public LocalApplierServer() throws Exception {
-        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), null);
+        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null));
     }
 
     public LocalApplierServer(int destMySQLPort, int replicatorPort, String destination, Set<String> includedDb, TestConfig dstConfig) throws Exception {

@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.fetcher.event.config.BigTransactionThreshold;
-import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
@@ -119,7 +119,7 @@ public class FetcherEventGroupTest {
         FetcherEventGroup group = new FetcherEventGroup();
         group.append(new MonitoredGtidLogEvent());
         group.append(new MonitoredXidEvent());
-        assertTrue(group.next() instanceof BeginEvent);
+        assertTrue(group.next() instanceof BaseBeginEvent);
         assertTrue(group.next() instanceof TerminateEvent);
         assertNull(group.next());
     }

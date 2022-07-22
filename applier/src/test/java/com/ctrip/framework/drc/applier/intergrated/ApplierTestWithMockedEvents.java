@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.applier.intergrated;
 
 import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.server.LocalApplierServer;
+import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.system.AbstractActivity;
@@ -82,7 +84,7 @@ public class ApplierTestWithMockedEvents implements ApplierColumnsRelatedTest {
 
     public class EmbeddedApplierServer extends LocalApplierServer {
         public EmbeddedApplierServer() throws Exception {
-            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), null);
+            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null));
             MockEventActivity mock = new MockEventActivity();
             mock.setSystem(this);
             activities.put("DumpEventActivity", mock);
