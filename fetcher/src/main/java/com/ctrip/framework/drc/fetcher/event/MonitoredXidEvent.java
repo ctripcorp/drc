@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
