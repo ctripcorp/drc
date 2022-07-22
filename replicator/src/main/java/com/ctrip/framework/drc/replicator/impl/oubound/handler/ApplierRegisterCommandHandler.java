@@ -80,7 +80,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ExecutorService dumpExecutorService;
 
-    private boolean transactionTableMode;
+    private boolean setGitdMode;
 
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
@@ -89,7 +89,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
         this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
-        this.transactionTableMode = replicatorConfig.getApplyMode() == ApplyMode.transaction_table.getType();
+        this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
     }
 
     @Override
@@ -228,8 +228,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean skipEvent(GtidSet excludedSet, ByteBuf byteBuf, String gtid, boolean in_exclude_group) {
-            if (LogEventUtils.isGtidLogEvent(LogEventUtils.parseNextLogEventType(byteBuf))) {
+            LogEventType logEventType = LogEventUtils.parseNextLogEventType(byteBuf);
+            if (logEventType == LogEventType.gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
+            }
+
+            if (logEventType == drc_gtid_log_event) {
+                return setGitdMode || new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
         }
@@ -385,7 +390,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
 
-                if (!shouldSendDrcGtidLog(eventType) && !isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, headByteBuf, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
+                if (!isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, headByteBuf, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
                     Pair<Boolean, String> res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
                     in_exclude_group = res.getKey();
                     gtidForLog = res.getValue();
@@ -400,10 +405,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             return true;
-        }
-
-        private boolean shouldSendDrcGtidLog(LogEventType eventType) {
-            return transactionTableMode && isDrcGtidLogEvent(eventType);
         }
 
         private boolean checkEventSize(FileChannel fileChannel, ByteBuf headByteBuf, long eventSize) throws IOException {
