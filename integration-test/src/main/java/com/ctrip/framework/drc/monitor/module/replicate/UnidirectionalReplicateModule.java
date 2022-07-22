@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.monitor.module.replicate;
 
 import com.ctrip.framework.drc.monitor.DrcMonitorModule;
 import com.ctrip.framework.drc.monitor.module.ReplicateModule;
+import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.monitor.module.mysql.SrcDstMySQLModule;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 
@@ -23,8 +24,6 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
 
     protected int destMySQLPort;
 
-    protected int metaMySQLPort;
-
     private int repPort;
 
     private String registryKey;
@@ -35,47 +34,13 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
 
     private String image = "mysql:5.7";
 
-    private static final String ROW_FILTER_PROPERTIES = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"trip_uid\"," +
-            "      \"tables\": \"(CommonOrderShard[1-9]DB|CommonOrderShard[1][0-2]DB)\\\\.(basicorder|basicorder_ext)\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"UID\"" +
-            "        ]," +
-            "        \"illegalArgument\": false," +
-            "        \"fetchMode\": 0," +
-            "        \"context\": \"SIN\"" +
-            "      }" +
-            "    }" +
-            "  ]" +
-            "}";
-
-
-    private static final String ROW_FILTER_PROPERTIES_REGEX = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"java_regex\"," +
-            "      \"tables\": \"drc4.row_filter\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"uid\"" +
-            "        ]," +
-            "        \"context\": \"trip.*\"" +
-            "      }" +
-            "    }" +
-            "  ]" +
-            "}";
-
     public UnidirectionalReplicateModule() {
-        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, META_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
+        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
     }
 
-    public UnidirectionalReplicateModule(int srcMySQLPort, int destMySQLPort, int metaMySQLPort, int repPort, String registryKey) {
+    public UnidirectionalReplicateModule(int srcMySQLPort, int destMySQLPort, int repPort, String registryKey) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
-        this.metaMySQLPort = metaMySQLPort;
         this.repPort = repPort;
         this.registryKey = registryKey;
     }
@@ -127,7 +92,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     @Override
     public void startMySQLModule() {
         try {
-            mySQLModule = new SrcDstMySQLModule(srcMySQLPort, destMySQLPort, metaMySQLPort, image);
+            mySQLModule = new SrcDstMySQLModule(srcMySQLPort, destMySQLPort, image);
             mySQLModule.initialize();
             mySQLModule.start();
 
@@ -141,9 +106,9 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     }
 
     @Override
-    public void startRAModule() {
+    public void startRAModule(TestConfig srcConfig, TestConfig destConfig) {
         try {
-            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, ROW_FILTER_PROPERTIES_REGEX);
+            replicatorApplierPairModule = new ReplicatorApplierPairModule(srcMySQLPort, destMySQLPort, repPort, registryKey, srcConfig, destConfig);
             replicatorApplierPairModule.initialize();
             replicatorApplierPairModule.start();
         } catch (Exception e) {
@@ -153,6 +118,6 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     }
 
     protected DrcMonitorModule getDrcMonitorModule() {
-        return new DrcMonitorModule(srcMySQLPort, destMySQLPort, metaMySQLPort);
+        return new DrcMonitorModule(srcMySQLPort, destMySQLPort);
     }
 }

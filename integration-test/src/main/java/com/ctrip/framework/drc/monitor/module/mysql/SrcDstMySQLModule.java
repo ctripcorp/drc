@@ -19,14 +19,11 @@ public class SrcDstMySQLModule extends AbstractConfigTest implements Destroyable
 
     private int destMySQLPort;
 
-    private int metaMySQLPort;
-
     private String image;
 
-    public SrcDstMySQLModule(int srcMySQLPort, int destMySQLPort, int metaMySQLPort, String image) {
+    public SrcDstMySQLModule(int srcMySQLPort, int destMySQLPort, String image) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
-        this.metaMySQLPort = metaMySQLPort;
         this.image = image;
     }
 
@@ -46,12 +43,6 @@ public class SrcDstMySQLModule extends AbstractConfigTest implements Destroyable
             InstanceConfig dstConfig = new InstanceConfig(destMySQLPort, "destmysqltest", "dst/", image);
             dst = new DockerInstance(dstConfig);
             dst.start();
-        }
-
-        if (isUsed(metaMySQLPort)) {
-            InstanceConfig metaConfig = new InstanceConfig(metaMySQLPort, "metamysqltest", "meta/", image);
-            meta = new DockerInstance(metaConfig);
-            meta.start();
         }
     }
 
