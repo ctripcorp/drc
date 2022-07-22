@@ -24,10 +24,6 @@ public class ApplierDrcGtidEvent extends ApplierGtidEvent {
     @Override
     public TransactionData.ApplyResult apply(TransactionContext context) {
         TransactionData.ApplyResult beginResult = super.apply(context);
-        if (TransactionData.ApplyResult.SUCCESS == beginResult) {
-            return context.complete();
-        } else {
-            return beginResult;
-        }
+        return TransactionData.ApplyResult.SUCCESS == beginResult ? context.complete() : beginResult;
     }
 }

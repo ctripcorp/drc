@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcIndexLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
@@ -59,6 +60,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
@@ -199,6 +201,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         fileManager.stop();
         fileManager.dispose();
         fileManager.destroy();
