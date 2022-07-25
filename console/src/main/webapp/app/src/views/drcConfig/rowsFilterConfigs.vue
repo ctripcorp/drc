@@ -84,8 +84,8 @@
                 <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
-                <FormItem label="规则内容" >
-                  <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                <FormItem  label="规则内容" >
+                  <Input v-if="rowsFilterConfig.mode !== 'trip_uid' && rowsFilterConfig.fetchMode === 0" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
                   <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
@@ -189,7 +189,7 @@ export default {
           render: (h, params) => {
             const row = params.row
             const color = 'blue'
-            const text = row.fetchMode === 0 ? 'RPC' : row.type === '1' ? 'BlackList' : 'WhiteList'
+            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === '1' ? 'BlackList' : 'WhiteList'
             return h('Tag', {
               props: {
                 color: color
@@ -413,9 +413,12 @@ export default {
           alert('uid字段不能为空！')
           return
         }
-        // this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
         this.rowsFilterConfig.columns = [this.configInTripUid.uid]
-        this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
+          this.rowsFilterConfig.context = 'filter by config'
+        } else {
+          this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+        }
       }
       console.log('after:')
       console.log(this.rowsFilterConfig)
