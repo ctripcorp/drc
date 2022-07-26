@@ -84,9 +84,9 @@
                 <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
-                <FormItem  label="规则内容" >
-                  <Input v-if="rowsFilterConfig.mode !== 'trip_uid' && rowsFilterConfig.fetchMode === 0" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                  <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_uid' || rowsFilterConfig.fetchMode === 0">
+                  <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                  <Select v-if="rowsFilterConfig.mode === 'trip_uid' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
