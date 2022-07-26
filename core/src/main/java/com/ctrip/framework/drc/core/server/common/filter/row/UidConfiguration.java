@@ -42,7 +42,7 @@ public class UidConfiguration extends AbstractConfigBean {
 
     public boolean filterRowsWithBlackList(String uid, String registryKey) throws Exception {
         Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
-        boolean res = !blackListUids.contains(uid.trim());
+        boolean res = !blackListUids.contains(uid.trim().toLowerCase());
         if (!res) {
             ROWS_FILTER_LOGGER.info("[Filter] one row of uid {} for {} due to black list", uid, registryKey);
         }
@@ -51,13 +51,13 @@ public class UidConfiguration extends AbstractConfigBean {
 
     public boolean filterRowsWithWhiteList(String uid, String registryKey) throws Exception {
         Set<String> whiteListUids = whiteListCache.get(registryKey, () -> getList(String.format(UID_WHITELIST, registryKey)));
-        return whiteListUids.contains(uid.trim());
+        return whiteListUids.contains(uid.trim().toLowerCase());
     }
 
     private Set<String> getList(String key) {
         String value = getProperty(key);
         if (StringUtils.isNotBlank(value)) {
-            return getSplitStringSet(value);
+            return getSplitStringSet(value.toLowerCase());
         }
         return Sets.newHashSet();
     }

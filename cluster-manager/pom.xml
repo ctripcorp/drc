@@ -11,6 +11,12 @@
     <artifactId>cluster-manager</artifactId>
 
     <dependencies>
+
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.framework.drc</groupId>-->
+<!--            <artifactId>trip-service</artifactId>-->
+<!--        </dependency>-->
+
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
             <artifactId>core</artifactId>
