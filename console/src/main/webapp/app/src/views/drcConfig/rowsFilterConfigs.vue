@@ -189,7 +189,7 @@ export default {
           render: (h, params) => {
             const row = params.row
             const color = 'blue'
-            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === '1' ? 'BlackList' : 'WhiteList'
+            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === 1 ? 'BlackList' : 'WhiteList'
             return h('Tag', {
               props: {
                 color: color
