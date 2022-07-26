@@ -415,7 +415,7 @@ export default {
         }
         this.rowsFilterConfig.columns = [this.configInTripUid.uid]
         if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
-          this.rowsFilterConfig.context = 'filter by config'
+          this.rowsFilterConfig.context = '/***/filter by config'
         } else {
           this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
         }
@@ -434,8 +434,15 @@ export default {
         this.rowsFilterConfig.mode === '' ||
         this.rowsFilterConfig.mode === undefined ||
         this.rowsFilterConfig.columns.length === 0 ||
-        this.rowsFilterConfig.context === '' ||
-        this.rowsFilterConfig.context === undefined) {
+        (
+          this.rowsFilterConfig.fetchMode === 0 &&
+          (
+            this.rowsFilterConfig.context === '' ||
+            this.rowsFilterConfig.context === undefined ||
+            this.rowsFilterConfig.context === '/***/filter by config'
+          )
+        )
+      ) {
         alert('缺少行过滤配置 禁止提交')
       } else if (this.conflictTables.length !== 0) {
         alert('存在匹配表已经了行过滤，禁止提交')
