@@ -571,7 +571,8 @@ MetaInfoServiceImpl implements MetaInfoService {
                 .setName(clusterName)
                 .setMhaName(mhaName)
                 .setBuName(buTbl.getBuName())
-                .setAppId(clusterTbl.getClusterAppId());
+                .setAppId(clusterTbl.getClusterAppId())
+                .setApplyMode(mhaTbl.getApplyMode());
         dc.addDbCluster(dbCluster);
         return dbCluster;
     }
