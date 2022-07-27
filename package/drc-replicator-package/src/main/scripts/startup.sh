@@ -37,10 +37,24 @@ function getTotalDisk() {
     echo `df -lh /data/ | grep -v Size |  awk -F " " '{print substr($2,0,length($2) - 1 )}'`
 }
 
+function getIdc(){
+    IDC=local
+    if [ -f /opt/settings/server.properties ];then
+        IDC=`cat /opt/settings/server.properties | egrep -i "^idc" | awk -F= '{print $2}'`
+    fi
+    echo `toUpper $IDC`
+}
+
+IDC=`getIdc`
+echo "current idc:"$IDC
+
 function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=70
     MAX_MEM=20
+    if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ];then
+        MAX_MEM=15
+    fi
     result=`expr $total \* $SAFE_PERCENT / 100`
     if [ "$result" -gt "$MAX_MEM" ]
     then

@@ -486,7 +486,7 @@ public class TransactionContextResource extends AbstractContext
                 case ERROR:
                     throw result.throwable;
                 default:
-                    throw new AssertionError("UNLIKELY, no other possibilities for result.type here");
+                    throw new AssertionError("UNLIKELY, no other possibilities for result.type here: " + result.type.toString());
             }
         }
     }
