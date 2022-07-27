@@ -77,7 +77,7 @@
 <!--                  </Select>-->
 <!--                </FormItem>-->
                 <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择">
+                  <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
                     <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
                   </Select>
                 </FormItem>
@@ -415,7 +415,7 @@ export default {
         }
         this.rowsFilterConfig.columns = [this.configInTripUid.uid]
         if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
-          this.rowsFilterConfig.context = '/***/filter by config'
+          this.rowsFilterConfig.context = '//filter by config'
         } else {
           this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
         }
@@ -439,7 +439,7 @@ export default {
           (
             this.rowsFilterConfig.context === '' ||
             this.rowsFilterConfig.context === undefined ||
-            this.rowsFilterConfig.context === '/***/filter by config'
+            this.rowsFilterConfig.context === '//filter by config'
           )
         )
       ) {
@@ -695,6 +695,13 @@ export default {
         }
       }
       return false
+    },
+    fetchModeChange () {
+      if (this.rowsFilterConfig.fetchMode === 1) {
+        this.rowsFilterConfig.illegalArgument = true
+      } else {
+        this.rowsFilterConfig.illegalArgument = false
+      }
     }
   },
   created () {
