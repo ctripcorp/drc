@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.fetcher.activity.event;
 
 import com.ctrip.framework.drc.fetcher.MockTest;
+import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
@@ -67,7 +68,7 @@ public class GroupActivityTest extends MockTest {
     class TestGroupActivity extends GroupActivity {
 
         @Override
-        protected Transaction getTransaction(BeginEvent b) {
+        protected Transaction getTransaction(BaseBeginEvent b) {
             return transaction;
         }
 

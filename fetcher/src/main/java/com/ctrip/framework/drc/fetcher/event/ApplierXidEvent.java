@@ -1,7 +1,6 @@
-package com.ctrip.framework.drc.applier.event;
+package com.ctrip.framework.drc.fetcher.event;
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
-import com.ctrip.framework.drc.fetcher.event.MonitoredXidEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
 import com.ctrip.framework.drc.fetcher.resource.context.EventGroupContext;
@@ -23,11 +22,6 @@ public class ApplierXidEvent extends MonitoredXidEvent<TransactionContext> imple
     @Override
     public ApplyResult apply(TransactionContext context) {
         super.apply(context);
-        return terminate0(context);
+        return terminate(context);
     }
-
-    protected ApplyResult terminate0(TransactionContext context) {
-        return context.complete();
-    }
-
 }

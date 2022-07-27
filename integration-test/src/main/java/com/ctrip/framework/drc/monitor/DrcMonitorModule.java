@@ -48,10 +48,6 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     private int dstPort;
 
-    private String metaMySQLIp;
-
-    private int metaMySQLPort;
-
     private String user;
 
     private String password;
@@ -60,13 +56,9 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     protected ReadWriteSqlOperator reverseSourceSqlOperator;
 
-    private ReadWriteSqlOperator metaMySQLSqlOperator;
-
     private PoolProperties sourcePoolProperties;
 
     private PoolProperties destinationPoolProperties;
-
-    private PoolProperties metaMySQLPoolProperties;
 
     private String envType = ConfigService.getInstance().getDrcEnvType();
 
@@ -88,14 +80,13 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
 
     private boolean writeOneTransaction = true;   // build replication automatically
 
-    public DrcMonitorModule(int srcPort, int dstPort, int metaMySQLPort) {
-        this(srcPort, dstPort, metaMySQLPort, SystemConfig.MYSQL_PASSWORD);
+    public DrcMonitorModule(int srcPort, int dstPort) {
+        this(srcPort, dstPort, SystemConfig.MYSQL_PASSWORD);
     }
 
-    public DrcMonitorModule(int srcPort, int dstPort, int metaMySQLPort, String password) {
+    public DrcMonitorModule(int srcPort, int dstPort, String password) {
         this.srcPort = srcPort;
         this.dstPort = dstPort;
-        this.metaMySQLPort = metaMySQLPort;
         this.password = password;
     }
 
@@ -119,9 +110,6 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         if(null == dstIp) {
             dstIp = SystemConfig.LOCAL_SERVER_ADDRESS;
         }
-        if(null == metaMySQLIp) {
-            metaMySQLIp = SystemConfig.LOCAL_SERVER_ADDRESS;
-        }
 
         sourcePoolProperties = new PoolProperties();
         String srcUrl = String.format(JDBC_URL_FORMAT, srcIp, srcPort);
@@ -133,19 +121,11 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         destinationPoolProperties.setUrl(dstUrl);
         initPoolProperties(destinationPoolProperties);
 
-        metaMySQLPoolProperties = new PoolProperties();
-        String metaMySQLUrl = String.format(JDBC_URL_FORMAT, metaMySQLIp, metaMySQLPort);
-        metaMySQLPoolProperties.setUrl(metaMySQLUrl);
-        initPoolProperties(metaMySQLPoolProperties);
-
         sourceSqlOperator = new DefaultSqlOperator(new DefaultEndPoint(srcIp, srcPort, user, password), sourcePoolProperties);
         sourceSqlOperator.initialize();
 
         reverseSourceSqlOperator = new DefaultSqlOperator(new DefaultEndPoint(dstIp, dstPort, user, password), destinationPoolProperties);
         reverseSourceSqlOperator.initialize();
-
-        metaMySQLSqlOperator = new DefaultSqlOperator(new DefaultEndPoint(metaMySQLIp, metaMySQLPort, user, password), metaMySQLPoolProperties);
-        metaMySQLSqlOperator.initialize();
 
         addPairCase();
     }
@@ -178,8 +158,6 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
         sourceSqlOperator.start();
 
         reverseSourceSqlOperator.start();
-
-        metaMySQLSqlOperator.start();
 
         scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             @Override

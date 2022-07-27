@@ -24,6 +24,8 @@ public class InboundFilterChainContext {
 
     private String registryKey;
 
+    private int applyMode;
+
     private InboundMonitorReport inboundMonitorReport;
 
     private TransactionCache transactionCache;
@@ -38,7 +40,8 @@ public class InboundFilterChainContext {
     public InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
                                      SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
                                      TransactionCache transactionCache, DefaultMonitorManager monitorManager,
-                                     String registryKey, TableFilterConfiguration tableFilterConfiguration) {
+                                     String registryKey, TableFilterConfiguration tableFilterConfiguration,
+                                     int applyMode) {
         setWhiteUUID(whiteUUID);
         setTableNames(tableNames);
         setSchemaManager(schemaManager);
@@ -47,6 +50,7 @@ public class InboundFilterChainContext {
         setTransactionCache(transactionCache);
         setDelayMonitor(monitorManager);
         setTableFilterConfiguration(tableFilterConfiguration);
+        setApplyMode(applyMode);
     }
 
     public Set<UUID> getWhiteUUID() {
@@ -55,6 +59,14 @@ public class InboundFilterChainContext {
 
     public void setWhiteUUID(Set<UUID> whiteUUID) {
         this.whiteUUID = whiteUUID;
+    }
+
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
     }
 
     public String getRegistryKey() {

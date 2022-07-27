@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 

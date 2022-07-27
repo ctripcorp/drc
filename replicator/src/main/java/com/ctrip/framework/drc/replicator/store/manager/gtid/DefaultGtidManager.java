@@ -16,7 +16,6 @@ import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Created by mingdongli
@@ -47,10 +46,7 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
     private Set<String> getAndUpdateUuids() {
         UuidConfig uuidConfig = retrieveUuids();
         Set<String> uuids = uuidConfig.getUuids();
-        Set<UUID> uuidSet = config.getWhiteUUID();
-        for (UUID uuid : uuidSet) {
-            uuids.add(uuid.toString());
-        }
+        uuids.addAll(toStringSet(config.getWhiteUUID()));
         uuidConfig.setUuids(uuids);
         persistUuids(uuidConfig);
 

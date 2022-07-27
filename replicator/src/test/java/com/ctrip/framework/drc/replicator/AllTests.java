@@ -60,7 +60,7 @@ import java.util.HashMap;
         DefaultGtidManagerTest.class,
         DefaultUuidOperatorTest.class,
         ReplicatorConnectionTest.class,
-        FilterChainFactoryTest.class,
+        InboundFilterChainFactoryTest.class,
         HeartBeatConfigurationTest.class,
         TableFilterConfigurationTest.class,
         ReplicatorServerContainerTest.class,

@@ -133,7 +133,9 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         res.addAll(initForeignKey());
         res.addAll(initQps());
         res.addAll(initDelayMonitor());
+        res.addAll(initTransactionTable());
         res.addAll(initDDL());
+        res.addAll(initConfigDb());
 
         return res;
     }
@@ -557,6 +559,20 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         );
     }
 
+    private List<String> initTransactionTable() {
+        return Lists.newArrayList(
+                "CREATE DATABASE IF NOT EXISTS drcmonitordb;",
+
+                "CREATE TABLE IF NOT EXISTS `drcmonitordb`.`gtid_executed` (\n" +
+                        "  `id` int(11) NOT NULL,\n" +
+                        "  `server_uuid` char(36) NOT NULL,\n" +
+                        "  `gno` bigint(20) NOT NULL,\n" +
+                        "  `gtidset` longtext,\n" +
+                        "  PRIMARY KEY ix_gtid(`id`,`server_uuid`)\n" +
+                        ");"
+        );
+    }
+
     private List<String> initForeignKey() {
         return Lists.newArrayList(
                 "SET FOREIGN_KEY_CHECKS=0;",
@@ -618,13 +634,23 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
         );
     }
 
+    private List<String> initConfigDb() {
+        return Lists.newArrayList(
+                "CREATE DATABASE IF NOT EXISTS configdb;",
+                "CREATE TABLE `configdb`.`heartbeat` (\n" +
+                        "  `hostname` varchar(50) NOT NULL DEFAULT '',\n" +
+                        "  `time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n" +
+                        "  PRIMARY KEY (`time`)\n" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8;"
+        );
+    }
+
     protected Collection<String> getDropSql() {
         return Lists.newArrayList(
                 "drop database if exists drc1;",
                 "drop database if exists drc2;",
                 "drop database if exists drc3;",
-                "drop database if exists drc4;",
-                "drop database if exists drcmetadb;"
+                "drop database if exists drc4;"
         );
     }
 }

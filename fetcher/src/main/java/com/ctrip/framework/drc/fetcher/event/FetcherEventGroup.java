@@ -44,6 +44,9 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
         events[0] = event;
         writeIndex = 1;
         length = 1;
+        if (event instanceof TerminateEvent) {
+            isTerminated = true;
+        }
     }
 
     @Override

@@ -18,9 +18,9 @@ public class PartialTransactionContextResourceTest extends AbstractPartialTransa
         Mockito.when(statement.executeBatch()).thenReturn(new int[]{1, 1});
         Mockito.when(beforeRows.size()).thenReturn(ROW_SIZE * 3);
 
-        partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        transactionContextResource.insert(beforeRows, beforeBitmap, columns);
 
-        TransactionData.ApplyResult applyResult = partialTransactionContextResource.complete();
+        TransactionData.ApplyResult applyResult = transactionContextResource.complete();
         Assert.assertEquals(applyResult, TransactionData.ApplyResult.SUCCESS);
     }
 
@@ -30,9 +30,9 @@ public class PartialTransactionContextResourceTest extends AbstractPartialTransa
         Mockito.when(statement.executeBatch()).thenReturn(new int[]{1, 1});
         Mockito.when(beforeRows.size()).thenReturn(ROW_SIZE * 3);
 
-        partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        transactionContextResource.insert(beforeRows, beforeBitmap, columns);
 
-        TransactionData.ApplyResult applyResult = partialTransactionContextResource.complete();
+        TransactionData.ApplyResult applyResult = transactionContextResource.complete();
         Assert.assertEquals(applyResult, TransactionData.ApplyResult.BATCH_ERROR);
     }
 }

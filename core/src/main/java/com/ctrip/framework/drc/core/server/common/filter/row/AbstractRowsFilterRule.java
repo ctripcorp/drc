@@ -26,6 +26,8 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
     protected boolean illegalArgument;
 
+    protected FetchMode fetchMode;
+
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
         RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
@@ -33,6 +35,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             this.context = parameters.getContext();
             this.fields = parameters.getColumns();
             this.illegalArgument = parameters.getIllegalArgument();
+            this.fetchMode = FetchMode.getMode(parameters.getFetchMode());
         }
     }
 

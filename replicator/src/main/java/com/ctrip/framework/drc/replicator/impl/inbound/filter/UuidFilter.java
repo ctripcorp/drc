@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.core.server.observer.uuid.UuidObservable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
-import com.google.common.collect.Sets;
 
 import java.util.Collections;
 import java.util.Set;
@@ -24,7 +23,11 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.d
  */
 public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> implements UuidObserver {
 
-    private Set<UUID> whiteList = Sets.newConcurrentHashSet();
+    private Set<UUID> whiteList;
+
+    public UuidFilter(Set<UUID> whiteList) {
+        this.whiteList = whiteList;
+    }
 
     @Override
     public boolean doFilter(InboundLogEventContext value) {
@@ -50,10 +53,6 @@ public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> i
             }
         }
         return doNext(value, value.isInExcludeGroup());
-    }
-
-    public void setWhiteList(Set<UUID> whiteList) {
-        this.whiteList = whiteList;
     }
 
     @Override

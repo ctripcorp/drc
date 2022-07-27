@@ -29,8 +29,6 @@ public abstract class AbstractConfigTest extends AbstractLifecycle {
     public static final int SOURCE_MASTER_PORT = available(BASE_PORT);
 
     public static final int DESTINATION_MASTER_PORT = SOURCE_MASTER_PORT + 1;
-    
-    public static final int META_PORT = DESTINATION_MASTER_PORT + 1;
 
     public static final String USER = SystemConfig.MYSQL_USER_NAME;
 

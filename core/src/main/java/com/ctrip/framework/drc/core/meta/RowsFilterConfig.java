@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.meta;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
@@ -78,6 +79,8 @@ public class RowsFilterConfig {
 
         private String context;
 
+        private int fetchMode = FetchMode.RPC.getCode();
+
         public List<String> getColumns() {
             return columns;
         }
@@ -102,11 +105,20 @@ public class RowsFilterConfig {
             this.illegalArgument = illegalArgument;
         }
 
+        public int getFetchMode() {
+            return fetchMode;
+        }
+
+        public void setFetchMode(int fetchMode) {
+            this.fetchMode = fetchMode;
+        }
+
         @Override
         public String toString() {
             return "Parameters{" +
                     "columns=" + columns +
                     ", illegalArgument=" + illegalArgument +
+                    ", fetchMode=" + fetchMode +
                     ", context='" + context + '\'' +
                     '}';
         }

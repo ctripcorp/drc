@@ -75,6 +75,13 @@ public class MhaTbl implements DalPojo {
 	@Type(value = Types.TINYINT)
 	private Integer dnsStatus;
 
+	/**
+	 * apply mode, 0: set gtid, 1: transaction table,
+	 */
+	@Column(name = "apply_mode")
+	@Type(value = Types.TINYINT)
+	private Integer applyMode;
+
 	public Long getId() {
 		return id;
 	}
@@ -139,4 +146,11 @@ public class MhaTbl implements DalPojo {
 		this.dnsStatus = dnsStatus;
 	}
 
+	public Integer getApplyMode() {
+		return applyMode;
+	}
+
+	public void setApplyMode(Integer applyMode) {
+		this.applyMode = applyMode;
+	}
 }

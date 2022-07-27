@@ -106,9 +106,11 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(replicatorConfig.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
 
@@ -118,7 +120,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         fileManager.start();
         fileManager.setGtidManager(gtidManager);
 
-        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, "ut");
+        applierRegisterCommandHandler = new ApplierRegisterCommandHandler(gtidManager, fileManager, outboundMonitorReport, replicatorConfig);
 
         createFiles();
 
@@ -137,6 +139,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
         fileManager.stop();
@@ -289,7 +292,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         int numTransaction = maxGtidId - (ddlId + 1);
 
-        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*drc_gtid_log_event*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 

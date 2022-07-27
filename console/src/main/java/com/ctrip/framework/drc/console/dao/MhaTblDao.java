@@ -1,11 +1,10 @@
 package com.ctrip.framework.drc.console.dao;
 
-import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.platform.dal.dao.DalHints;
-import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -21,6 +20,15 @@ public class MhaTblDao extends AbstractDao<MhaTbl>{
 		super(MhaTbl.class);
 	}
 	
+	public List<MhaTbl> queryByDeleted(Integer deleted) throws SQLException {
+		if (deleted == null) {
+			throw new IllegalArgumentException("build sql: query ByDeleted,deleted is null ");
+		}
+		MhaTbl sample = new MhaTbl();
+		sample.setDeleted(deleted);
+		return this.queryBy(sample);
+	}
+	
 	public MhaTbl queryByMhaName(String mhaName,Integer deleted) throws SQLException {
 		if (StringUtils.isBlank(mhaName)) {
 			throw new IllegalArgumentException("build sql: query MhaTbl ByMhaName, but name is empty ");
@@ -34,15 +42,13 @@ public class MhaTblDao extends AbstractDao<MhaTbl>{
 	}
 	
 	
-	public List<MhaTbl> queryMhas(Long dcId) throws SQLException {
+	public List<MhaTbl> queryByDcId(Long dcId) throws SQLException {
 		final SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll();
-
 		if (null != dcId) {
 			builder.and();
 			builder.equal("dc_id", dcId, Types.BIGINT, false);
 		}
-
 		return client.query(builder, new DalHints());
 	}
 }

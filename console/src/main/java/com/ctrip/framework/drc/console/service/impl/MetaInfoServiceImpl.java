@@ -571,7 +571,8 @@ MetaInfoServiceImpl implements MetaInfoService {
                 .setName(clusterName)
                 .setMhaName(mhaName)
                 .setBuName(buTbl.getBuName())
-                .setAppId(clusterTbl.getClusterAppId());
+                .setAppId(clusterTbl.getClusterAppId())
+                .setApplyMode(mhaTbl.getApplyMode());
         dc.addDbCluster(dbCluster);
         return dbCluster;
     }
@@ -1119,7 +1120,7 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
-        return dalUtils.getMhaTblDao().queryMhas(dcId);
+        return dalUtils.getMhaTblDao().queryByDcId(dcId);
     }
 
     private Long getDcId(String dcName) throws SQLException {

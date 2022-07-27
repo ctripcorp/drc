@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 
 /**
  * @Author limingdong
@@ -97,9 +98,12 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         boolean isDml = (type == QueryType.INSERT || type == QueryType.UPDATE || type == QueryType.DELETE || type == QueryType.TRUNCATE);
 
         if (!isDml) {
-
-            String tableName = results.get(0).getTableName();
+            if (StringUtils.isNotBlank(schemaName) && EXCLUDED_DB.contains(schemaName.toLowerCase())) {
+                DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
+                return false;
+            }
             boolean res = schemaManager.apply(schemaName, queryString);
+            String tableName = results.get(0).getTableName();
             schemaManager.persistDdl(schemaName, tableName, queryString);
             DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, res);
 

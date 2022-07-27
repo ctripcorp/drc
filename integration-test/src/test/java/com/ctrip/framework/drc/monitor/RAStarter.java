@@ -32,7 +32,7 @@ public class RAStarter {
     public void doTest() throws Exception {
 
         //启动双向RA
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(destMySQLPort, srcMySQLPort, repPort + 1, AbstractConfigTest.DESTINATION_REVERSE, null);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(destMySQLPort, srcMySQLPort, repPort + 1, AbstractConfigTest.DESTINATION_REVERSE, null, null);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();
 
