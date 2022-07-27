@@ -446,3 +446,12 @@ CREATE TABLE `bbzdrcbenchmarkdb`.`benchmark` (
   PRIMARY KEY (`id`),
   KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='压测';
+
+
+CREATE DATABASE IF NOT EXISTS configdb;
+
+CREATE TABLE `configdb`.`heartbeat` (
+  `hostname` varchar(50) NOT NULL DEFAULT '',
+  `time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

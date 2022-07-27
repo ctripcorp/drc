@@ -30,12 +30,10 @@ public class UuidFilterTest extends AbstractFilterTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        uuidFilter = new UuidFilter();
 
         Set<UUID> uuidSet = Sets.newHashSet();
         uuidSet.add(UUID.fromString(UUID_1));
-
-        uuidFilter.setWhiteList(uuidSet);
+        uuidFilter = new UuidFilter(uuidSet);
     }
 
     @Test

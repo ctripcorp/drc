@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.monitor.module.DrcModule;
 import com.ctrip.framework.drc.monitor.module.config.AbstractConfigTest;
+import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
@@ -36,19 +37,22 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private Set<String> includedDb = Sets.newHashSet();
 
-    private String properties;
+    private TestConfig srcConfig;
+
+    private TestConfig destConfig;
 
     public ReplicatorApplierPairModule() {
-        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, null);
+        this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY, null, null);
     }
 
-    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, String properties) {
+    public ReplicatorApplierPairModule(int srcMySQLPort, int destMySQLPort, int repPort, String destination, TestConfig srcConfig, TestConfig destConfig) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
         this.repPort = repPort;
         this.destination = destination;
-        this.properties = properties;
-        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], properties [{}]", srcMySQLPort, destMySQLPort, repPort, destination, properties);
+        this.srcConfig = srcConfig;
+        this.destConfig = destConfig;
+        logger.info("srcMySQLPort [{}], destMySQLPort [{}], repPort [{}], destination [{}], srcConfig [{}], destConfig [{}]", srcMySQLPort, destMySQLPort, repPort, destination, srcConfig, destConfig);
     }
 
     @Override
@@ -65,7 +69,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
             }
         });
-        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, properties);
+        localApplierServer = new LocalApplierServer(destMySQLPort, repPort, destination, includedDb, destConfig);
         replicatorServer.initialize();
         localApplierServer.initialize();
     }
@@ -90,6 +94,7 @@ public class ReplicatorApplierPairModule extends AbstractConfigTest implements D
 
     private ReplicatorConfig getReplicatorConfig() {
         ReplicatorConfig replicatorConfig = new ReplicatorConfig();
+        replicatorConfig.setApplyMode(srcConfig.getApplyMode().getType());
         DefaultEndPoint endpoint = new DefaultEndPoint(AbstractConfigTest.SOURCE_MASTER_IP, srcMySQLPort, AbstractConfigTest.USER, AbstractConfigTest.PASSWORD);
         replicatorConfig.setEndpoint(endpoint);
         replicatorConfig.setRegistryKey(destination, MHA_NAME);

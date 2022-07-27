@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
@@ -17,7 +19,6 @@ import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.utils.StringUtil;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,6 +41,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private DalUtils dalUtils = DalUtils.getInstance();
+    private MhaTblDao mhaTblDao = dalUtils.getMhaTblDao();
+    private MhaGroupTblDao mhaGroupTblDao = dalUtils.getMhaGroupTblDao();
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
@@ -58,17 +61,24 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             return metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are same mha, which is not allowed.";
         }
 
-        List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryAll();
-        MhaTbl srcMhaTbl = mhaTbls.stream().filter(m -> m.getMhaName().equalsIgnoreCase(metaProposalDto.getSrcMha())).findFirst().get();
-        MhaTbl destMhaTbl = mhaTbls.stream().filter(m -> m.getMhaName().equalsIgnoreCase(metaProposalDto.getDestMha())).findFirst().get();
+        MhaTbl srcMhaTbl = mhaTblDao.queryByMhaName(metaProposalDto.getSrcMha(), BooleanEnum.FALSE.getCode());
+        MhaTbl destMhaTbl = mhaTblDao.queryByMhaName(metaProposalDto.getDestMha(), BooleanEnum.FALSE.getCode());
         // 1. check if two MHAs are in the same group
         Long mhaGroupId = metaInfoService.getMhaGroupId(metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
         if(mhaGroupId == null) {
             logger.info("{} {} not same group", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
             return metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
         }
-        MhaGroupTbl mhaGroupTbl = dalUtils.getMhaGroupTblDao().queryByPk(mhaGroupId);
-
+        // 2. update Mha applyMode
+        if (!srcMhaTbl.getApplyMode().equals(metaProposalDto.getSrcApplierApplyMode())) {
+            srcMhaTbl.setApplyMode(metaProposalDto.getSrcApplierApplyMode());
+            mhaTblDao.update(srcMhaTbl);
+        } 
+        if (!destMhaTbl.getApplyMode().equals(metaProposalDto.getDestApplierApplyMode())) {
+            destMhaTbl.setApplyMode(metaProposalDto.getDestApplierApplyMode());
+            mhaTblDao.update(destMhaTbl);
+        }
+        
         // get opposite clusterName as default value
         if (StringUtils.isBlank(metaProposalDto.getSrcClusterName())) {
             metaProposalDto.setSrcClusterName(getClusterName(destMhaTbl));
@@ -76,7 +86,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         if (StringUtils.isBlank(metaProposalDto.getDestClusterName())) {
             metaProposalDto.setDestClusterName(getClusterName(srcMhaTbl));
         }
-        // 2. configure and persistent in database
+        // 3. configure and persistent in database
         long srcReplicatorGroupId = configureReplicators(srcMhaTbl, destMhaTbl, metaProposalDto.getSrcReplicatorIps(), metaProposalDto.getDestGtidExecuted());
         long destReplicatorGroupId = configureReplicators(destMhaTbl, srcMhaTbl, metaProposalDto.getDestReplicatorIps(), metaProposalDto.getSrcGtidExecuted());
         configureAppliers(
@@ -100,9 +110,10 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                 metaProposalDto.getDestApplierNameMapping(),
                 metaProposalDto.getDestClusterName());
 
-        // update status and return the configured xml from db
+        // 4. update status and return the configured xml from db
+        MhaGroupTbl mhaGroupTbl = mhaGroupTblDao.queryByPk(mhaGroupId);
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
-        dalUtils.getMhaGroupTblDao().update(mhaGroupTbl);
+        mhaGroupTblDao.update(mhaGroupTbl);
         return metaInfoService.getXmlConfiguration(mhaGroupId);
     }
 

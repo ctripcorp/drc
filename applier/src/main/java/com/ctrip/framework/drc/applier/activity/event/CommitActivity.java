@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
-import com.ctrip.framework.drc.applier.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.ReleaseActivity;
 import com.ctrip.framework.drc.fetcher.resource.condition.Capacity;

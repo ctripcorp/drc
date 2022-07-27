@@ -1,10 +1,25 @@
 package com.ctrip.framework.drc.applier.server;
 
+import com.ctrip.framework.drc.applier.activity.event.*;
+import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
+import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
+import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
+import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
+import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
+import com.ctrip.framework.drc.core.config.TestConfig;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
+import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
+import com.ctrip.framework.drc.fetcher.resource.condition.CapacityResource;
+import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemoryResource;
+import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
+import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
@@ -18,26 +33,29 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.COMMA;
  */
 public class LocalApplierServer extends ApplierServer {
 
+    private ApplyMode applyMode;
+
     public LocalApplierServer() throws Exception {
-        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), null);
+        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null));
     }
 
-    public LocalApplierServer(int destMySQLPort, int replicatorPort, String destination, Set<String> includedDb, String properties) throws Exception {
-        ApplierConfigDto config = createApplierDto(destMySQLPort, replicatorPort, destination, includedDb, properties);
+    public LocalApplierServer(int destMySQLPort, int replicatorPort, String destination, Set<String> includedDb, TestConfig dstConfig) throws Exception {
+        this.applyMode = dstConfig.getApplyMode();
+        ApplierConfigDto config = createApplierDto(destMySQLPort, replicatorPort, destination, includedDb, dstConfig);
         setConfig(config, ApplierConfigDto.class);
         setName(config.getRegistryKey());
         define();
     }
 
-    public ApplierConfigDto createApplierDto(int destMySQLPort, int replicatorPort, String registryKey, Set<String> includedDb, String properties) {
+    public ApplierConfigDto createApplierDto(int destMySQLPort, int replicatorPort, String registryKey, Set<String> includedDb, TestConfig dstConfig) {
         ApplierConfigDto config = new ApplierConfigDto();
         config.setGtidExecuted("");
         config.setIdc("dest");
         config.setCluster("cluster");
         config.setName("[" + replicatorPort + "]->LOCAL_APPLIER->[" + destMySQLPort + "]");
         config.setIncludedDbs(StringUtils.join(includedDb, COMMA));
-        config.setProperties(properties);
-        config.setApplyMode(ApplyMode.set_gtid.getType());
+        config.setProperties(dstConfig.getRowsFilter());
+        config.setApplyMode(dstConfig.getApplyMode().getType());
 
         InstanceInfo replicator = new InstanceInfo();
         replicator.setIdc("src");
@@ -55,5 +73,39 @@ public class LocalApplierServer extends ApplierServer {
         config.setReplicator(replicator);
         config.setTarget(db);
         return config;
+    }
+
+    @Override
+    public void define() throws Exception {
+        if (ApplyMode.set_gtid == applyMode) {
+            super.define();
+            return;
+        }
+
+        if (ApplyMode.transaction_table == applyMode) {
+            defineTransactionTable();
+        }
+    }
+
+    public void defineTransactionTable() throws Exception {
+        source(TransactionTableApplierDumpEventActivity.class)
+                .with(ExecutorResource.class)
+                .with(LinkContextResource.class)
+                .with(DataSourceResource.class)
+                .with(LWMResource.class)
+                .with(ProgressResource.class)
+                .with(CapacityResource.class)
+                .with(ListenableDirectMemoryResource.class)
+                .with(TransactionTableResource.class)
+                .with(TransformerContextResource.class)
+                .with(MetricsActivity.class)
+                .with(ReportConflictActivity.class)
+                .with(LoadEventActivity.class)
+                .link(InvolveActivity.class)
+                .link(ApplierGroupActivity.class)
+                .link(DispatchActivity.class)
+                .link(TransactionTableApplyActivity.class, 100)
+                .link(CommitActivity.class);
+        check();
     }
 }

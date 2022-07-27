@@ -32,6 +32,8 @@ public abstract class AbstractEventTest {
 
     protected static final String tableName = "insert1";
 
+    protected static final String registryKey = "registryKey";
+
     protected static final String GTID = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
 
     protected DataMediaConfig dataMediaConfig;
@@ -54,7 +56,7 @@ public abstract class AbstractEventTest {
 
     @Before
     public void setUp() throws Exception {
-        dataMediaConfig = from("registryKey", String.format(getProperties(), getRowsFilterType().getName(), getContext()));
+        dataMediaConfig = from(registryKey, String.format(getProperties(), getRowsFilterType().getName(), getContext()));
         ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();

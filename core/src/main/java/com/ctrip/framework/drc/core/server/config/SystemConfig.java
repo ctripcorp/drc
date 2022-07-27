@@ -127,6 +127,8 @@ public class SystemConfig {
 
     public static final Logger NOTIFY_LOGGER = LoggerFactory.getLogger(NOTIFY_LOG);
 
+    public static final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
+
     //test 相关
     public static final String MYSQL_USER_NAME = "root";
 

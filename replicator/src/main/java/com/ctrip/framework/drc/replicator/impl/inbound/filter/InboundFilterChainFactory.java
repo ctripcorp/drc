@@ -2,13 +2,14 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 
 /**
  * Created by mingdongli
  * 2019/10/9 上午10:30.
  *
  * preFilter
- * TransactionMonitorFilter -> EventTypeFilter -> UuidFilter -> DdlFilter -> BlackTableNameFilter
+ * TransactionMonitorFilter -> EventTypeFilter -> UuidFilter/TransactionTableFilter -> DdlFilter -> BlackTableNameFilter
  *
  * postFilter
  * TransactionMonitorFilter(read) -> DelayMonitorFilter(read) -> PersistPostFilter(write) -> EventReleaseFilter(release)
@@ -31,15 +32,11 @@ public class InboundFilterChainFactory implements FilterChainFactory<InboundFilt
         EventTypeFilter eventTypeFilter = new EventTypeFilter();
         transactionMonitorFilter.setSuccessor(eventTypeFilter);
 
-        UuidFilter uuidFilter = new UuidFilter();
-        uuidFilter.setWhiteList(context.getWhiteUUID());
-        eventTypeFilter.setSuccessor(uuidFilter);
-
-        TransactionTableFilter transactionTableFilter = new TransactionTableFilter();
-        uuidFilter.setSuccessor(transactionTableFilter);
+        Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode() ? new UuidFilter(context.getWhiteUUID()) : new TransactionTableFilter();
+        eventTypeFilter.setSuccessor(circularBreakFilter);
 
         DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager());
-        transactionTableFilter.setSuccessor(ddlFilter);
+        circularBreakFilter.setSuccessor(ddlFilter);
 
         BlackTableNameFilter tableNameFilter = new BlackTableNameFilter(context.getInboundMonitorReport(), context.getTableNames());
         context.registerBlackTableNameFilter(tableNameFilter);

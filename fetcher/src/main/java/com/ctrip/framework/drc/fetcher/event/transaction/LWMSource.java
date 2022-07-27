@@ -1,6 +1,6 @@
-package com.ctrip.framework.drc.applier.event.transaction;
+package com.ctrip.framework.drc.fetcher.event.transaction;
 
-import com.ctrip.framework.drc.applier.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
 
 /**
  * @Author Slight

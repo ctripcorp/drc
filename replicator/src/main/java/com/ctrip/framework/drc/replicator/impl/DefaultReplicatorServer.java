@@ -19,8 +19,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.ReplicatorSlaveServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.BackupReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupEventTransactionCache;
@@ -103,9 +103,11 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         inboundMonitorReport.setDelayMonitorReport(delayMonitorReport);
         outboundMonitorReport.setDelayMonitorReport(delayMonitorReport);
 
-        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(new InboundFilterChainContext(replicatorConfig.getWhiteUUID(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration)));
-
         GtidManager gtidManager = eventStore.getGtidManager();
+        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(
+                new InboundFilterChainContext(gtidManager.toUUIDSet(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport,
+                        transactionCache, delayMonitor, clusterName, tableFilterConfiguration, mySQLSlaveConfig.getApplyMode())));
+
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory
         replicatorSlaveServer.setLogEventHandler(logEventHandler);
         replicatorSlaveServer.setGtidManager(gtidManager);
@@ -121,7 +123,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         LifecycleHelper.initializeIfPossible(transactionCache);
         LifecycleHelper.initializeIfPossible(replicatorSlaveServer);
 
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport, replicatorConfig.getRegistryKey()));
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(eventStore.getGtidManager(), eventStore.getFileManager(), outboundMonitorReport, replicatorConfig));
         mySQLMasterServer.addCommandHandler(new DelayMonitorCommandHandler(logEventHandler, replicatorConfig.getRegistryKey()));
         mySQLMasterServer.addCommandHandler(new HeartBeatCommandHandler(replicatorConfig.getRegistryKey()));
         LifecycleHelper.initializeIfPossible(mySQLMasterServer);

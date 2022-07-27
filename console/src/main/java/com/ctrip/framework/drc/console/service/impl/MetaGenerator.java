@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -187,7 +186,8 @@ public class MetaGenerator {
                 .setMhaName(mhaName)
                 .setBuName(buTbl.getBuName())
                 .setAppId(clusterTbl.getClusterAppId())
-                .setOrgId(clusterTbl.getBuId().intValue());
+                .setOrgId(clusterTbl.getBuId().intValue())
+                .setApplyMode(mhaTbl.getApplyMode());
         dc.addDbCluster(dbCluster);
         return dbCluster;
     }

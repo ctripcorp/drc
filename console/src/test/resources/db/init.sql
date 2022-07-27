@@ -65,6 +65,7 @@ CREATE TABLE `mha_tbl` (
  `mha_group_id`             bigint(20) COMMENT '集群mha group id，表示复制关系',
  `dc_id`                    bigint(20) COMMENT '集群mha所在dc id',
  `dns_status`               tinyint(4) NOT NULL DEFAULT '0' COMMENT 'db分机房域名是否创建, 0:否; 1:是',
+ `apply_mode`               tinyint NOT NULL DEFAULT 1 COMMENT 'apply mode, 0:set gtid; 1:transaction table',
  `deleted`                  tinyint NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
  `create_time`              timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
  `datachange_lasttime`      timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',

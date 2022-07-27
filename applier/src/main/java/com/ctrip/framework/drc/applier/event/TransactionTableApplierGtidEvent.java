@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.event;
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
+import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 
 /**
  * Created by jixinwang on 2021/8/20

@@ -76,12 +76,17 @@
 <!--                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>-->
 <!--                  </Select>-->
 <!--                </FormItem>-->
+                <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                  <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
+                    <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
+                  </Select>
+                </FormItem>
                 <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
-                <FormItem label="规则内容" >
+                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_uid' || rowsFilterConfig.fetchMode === 0">
                   <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                  <Select v-if="rowsFilterConfig.mode === 'trip_uid'"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                  <Select v-if="rowsFilterConfig.mode === 'trip_uid' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
@@ -178,6 +183,21 @@ export default {
           key: 'illegalArgument'
         },
         {
+          title: '校验模式（trip_uid专用)',
+          key: 'fetchMode',
+          width: 100,
+          render: (h, params) => {
+            const row = params.row
+            const color = 'blue'
+            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === 1 ? 'BlackList' : 'WhiteList'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
@@ -224,7 +244,8 @@ export default {
         mode: 'trip_uid',
         columns: [],
         context: '',
-        illegalArgument: false
+        illegalArgument: false,
+        fetchMode: 0
       },
       configInTripUid: {
         uid: '',
@@ -241,6 +262,20 @@ export default {
       regionsForChose: [
         'SIN',
         'SH'
+      ],
+      fetchModeForChose: [
+        {
+          k: 'RPC调用',
+          v: 0
+        },
+        {
+          k: 'BlackList',
+          v: 1
+        },
+        {
+          k: 'WhiteList',
+          v: 2
+        }
       ],
       columnForAdd: '',
       forceCommit: false,
@@ -342,7 +377,8 @@ export default {
         mode: row.mode,
         columns: row.columns,
         context: row.context,
-        illegalArgument: row.illegalArgument
+        illegalArgument: row.illegalArgument,
+        fetchMode: row.fetchMode
       }
       this.tableData = []
     },
@@ -364,7 +400,8 @@ export default {
         mode: 'trip_uid',
         columns: [],
         context: '',
-        illegalArgument: false
+        illegalArgument: false,
+        fetchMode: 0
       }
       this.tableData = []
     },
@@ -376,9 +413,12 @@ export default {
           alert('uid字段不能为空！')
           return
         }
-        // this.rowsFilterConfig.columns = [this.configInTripUid.uid, this.configInTripUid.udl]
         this.rowsFilterConfig.columns = [this.configInTripUid.uid]
-        this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
+          this.rowsFilterConfig.context = '//filter by config'
+        } else {
+          this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+        }
       }
       console.log('after:')
       console.log(this.rowsFilterConfig)
@@ -394,8 +434,15 @@ export default {
         this.rowsFilterConfig.mode === '' ||
         this.rowsFilterConfig.mode === undefined ||
         this.rowsFilterConfig.columns.length === 0 ||
-        this.rowsFilterConfig.context === '' ||
-        this.rowsFilterConfig.context === undefined) {
+        (
+          this.rowsFilterConfig.fetchMode === 0 &&
+          (
+            this.rowsFilterConfig.context === '' ||
+            this.rowsFilterConfig.context === undefined ||
+            this.rowsFilterConfig.context === '//filter by config'
+          )
+        )
+      ) {
         alert('缺少行过滤配置 禁止提交')
       } else if (this.conflictTables.length !== 0) {
         alert('存在匹配表已经了行过滤，禁止提交')
@@ -416,6 +463,7 @@ export default {
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
+          fetchMode: this.rowsFilterConfig.fetchMode,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
         }
         console.log('dto:')
@@ -477,7 +525,7 @@ export default {
         '&name=' + this.rowsFilterConfig.name)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('表匹配冲突校验失败，请手动添加！')
+            window.alert('表匹配冲突校验失败，请勿配置重复表！！')
           } else {
             console.log(response.data.data)
             this.conflictTables = response.data.data
@@ -647,6 +695,13 @@ export default {
         }
       }
       return false
+    },
+    fetchModeChange () {
+      if (this.rowsFilterConfig.fetchMode === 1) {
+        this.rowsFilterConfig.illegalArgument = true
+      } else {
+        this.rowsFilterConfig.illegalArgument = false
+      }
     }
   },
   created () {

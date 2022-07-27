@@ -13,6 +13,8 @@ public class UidContext {
 
     private boolean illegalArgument;
 
+    private String registryKey;
+
     public String getUid() {
         return uid;
     }
@@ -35,5 +37,13 @@ public class UidContext {
 
     public void setIllegalArgument(boolean illegalArgument) {
         this.illegalArgument = illegalArgument;
+    }
+
+    public String getRegistryKey() {
+        return registryKey;
+    }
+
+    public void setRegistryKey(String registryKey) {
+        this.registryKey = registryKey;
     }
 }

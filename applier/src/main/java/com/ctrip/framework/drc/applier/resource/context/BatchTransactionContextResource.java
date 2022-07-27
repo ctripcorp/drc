@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStateme
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.xpipe.utils.VisibleForTesting;

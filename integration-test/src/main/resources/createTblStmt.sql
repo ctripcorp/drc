@@ -378,6 +378,16 @@ CREATE TABLE IF NOT EXISTS `drcmonitordb`.`delaymonitor` (
   PRIMARY KEY(`id`)
 ) ENGINE=InnoDB;
 
+-- 事务表阻断循环复制
+CREATE DATABASE IF NOT EXISTS drcmonitordb;
+CREATE TABLE IF NOT EXISTS `drcmonitordb`.`gtid_executed` (
+  `id` int(11) NOT NULL,
+  `server_uuid` char(36) NOT NULL,
+  `gno` bigint(20) NOT NULL,
+  `gtidset` longtext,
+  PRIMARY KEY ix_gtid(`id`,`server_uuid`)
+);
+
 -- 压测
 CREATE DATABASE IF NOT EXISTS bbzbbzdrcbenchmarktmpdb;
 CREATE TABLE `bbzbbzdrcbenchmarktmpdb`.`benchmark` (

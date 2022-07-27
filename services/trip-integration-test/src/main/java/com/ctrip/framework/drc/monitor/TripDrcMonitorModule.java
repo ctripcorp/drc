@@ -26,12 +26,12 @@ public class TripDrcMonitorModule extends DrcMonitorModule {
 
     private PairCaseManager bilateralPairCaseManager = new BilateralPairCaseManager();
 
-    public TripDrcMonitorModule(int srcPort, int dstPort, int metaMySQLPort) {
-        super(srcPort, dstPort, metaMySQLPort);
+    public TripDrcMonitorModule(int srcPort, int dstPort) {
+        super(srcPort, dstPort);
     }
 
-    public TripDrcMonitorModule(int srcPort, int dstPort, int metaMySQLPort, String password) {
-        super(srcPort, dstPort, metaMySQLPort, password);
+    public TripDrcMonitorModule(int srcPort, int dstPort, String password) {
+        super(srcPort, dstPort, password);
     }
 
     public TripDrcMonitorModule(String srcIp, int srcPort, String dstIp, int dstPort, String user, String password) {

@@ -205,4 +205,11 @@ public class DdlFilterTest extends MockTest {
         verify(schemaManager, times(1)).apply(dbName, CREATE_TABLE);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
+
+    @Test
+    public void testConfigDb() {
+        String ALTER_TABLE = "alter table `configdb`.`test1` ADD COLUMN addcol119 VARCHAR(255) DEFAULT NULL COMMENT '添加普通列测试'";
+        when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
+        Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent));
+    }
 }

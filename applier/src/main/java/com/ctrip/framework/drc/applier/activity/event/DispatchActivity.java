@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
-import com.ctrip.framework.drc.applier.resource.condition.LWM;
-import com.ctrip.framework.drc.applier.resource.condition.LWMPassHandler;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMPassHandler;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;

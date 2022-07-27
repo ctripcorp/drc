@@ -24,14 +24,16 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         super.doInitialize();
         GtidSet executedGtidSet = new GtidSet(initialGtidExecuted);
         String initialGtidPurged = (String) source.get(ConfigKey.from(DEFAULT_CONFIG_FILE_NAME, registryKey + ".purgedgtid"));
+        logger.info("[{}][NETWORK GTID] executed from cluster manager: {}, from qconfig: {}", registryKey, initialGtidExecuted, initialGtidPurged);
+
         if (StringUtils.isNotBlank(initialGtidExecuted) && initialGtidPurged != null) {
             GtidSet purgedGtidSet = new GtidSet(initialGtidPurged);
             executedGtidSet = executedGtidSet.union(purgedGtidSet);
-            logger.info("[Union] executedGtidSet {} and initialGtidPurged {}", initialGtidExecuted, initialGtidPurged);
+            logger.info("[{}][NETWORK GTID] union gtid executed", registryKey);
         }
+        logger.info("[{}][NETWORK GTID] executed gtidset: {}", registryKey, executedGtidSet);
         updateGtidSet(executedGtidSet);
         updateGtid("");
-        logger.info("NETWORK GTID EXECUTED: {}, PURGED: {}", initialGtidExecuted, initialGtidPurged);
     }
 
 }
