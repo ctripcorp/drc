@@ -40,9 +40,9 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
         if (FetchMode.RPC == fetchMode) {
             return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> uidService.filterUid(fetchUidContext(field)));
         } else if (FetchMode.BlackList == fetchMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> uidConfiguration.filterRowsWithBlackList(String.valueOf(field), registryKey));
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> uidConfiguration.filterRowsWithBlackList(fetchUidContext(field)));
         } else if (FetchMode.WhiteList == fetchMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> uidConfiguration.filterRowsWithWhiteList(String.valueOf(field), registryKey));
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> uidConfiguration.filterRowsWithWhiteList(fetchUidContext(field)));
         }
 
         throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);
@@ -53,6 +53,7 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
         uidContext.setUid(String.valueOf(field));
         uidContext.setLocations(dstLocation);
         uidContext.setIllegalArgument(illegalArgument);
+        uidContext.setRegistryKey(registryKey);
 
         return uidContext;
     }

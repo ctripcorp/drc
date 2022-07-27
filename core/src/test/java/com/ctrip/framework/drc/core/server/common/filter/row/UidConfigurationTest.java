@@ -29,8 +29,8 @@ public class UidConfigurationTest {
 
     @Test
     public void filterRowsWithBlackList() throws Exception {
-        Assert.assertFalse(uidConfiguration.filterRowsWithBlackList("uid2", registryKey));
-        Assert.assertTrue(uidConfiguration.filterRowsWithBlackList("uid2", registryKey + notExist));
+        Assert.assertFalse(uidConfiguration.filterRowsWithBlackList(fetchUidContext("uid2", registryKey)));
+        Assert.assertTrue(uidConfiguration.filterRowsWithBlackList(fetchUidContext("uid2", registryKey + notExist)));
 
         String key = String.format(UID_BLACKLIST, registryKey);
         uidConfiguration.onChange(key, "uid1,uid2,uid3", "uid1");
@@ -42,8 +42,8 @@ public class UidConfigurationTest {
 
     @Test
     public void filterRowsWithWhiteList() throws Exception {
-        Assert.assertTrue(uidConfiguration.filterRowsWithWhiteList("uid4", registryKey));
-        Assert.assertFalse(uidConfiguration.filterRowsWithWhiteList("uid4", registryKey + notExist));
+        Assert.assertTrue(uidConfiguration.filterRowsWithWhiteList(fetchUidContext("uid4", registryKey)));
+        Assert.assertFalse(uidConfiguration.filterRowsWithWhiteList(fetchUidContext("uid4", registryKey + notExist)));
 
         String key = String.format(UID_WHITELIST, registryKey);
         uidConfiguration.onChange(key, "uid4,uid5", "uid4");
@@ -51,5 +51,14 @@ public class UidConfigurationTest {
         IsolateHashCache<String, Set<String>> cache =  uidConfiguration.getWhiteListCache();
         Assert.assertEquals(1, cache.size());
         Assert.assertTrue(cache.asMap().containsKey(registryKey + notExist));
+    }
+
+    private UidContext fetchUidContext(String uid, String registryKey) {
+        UidContext uidContext = new UidContext();
+        uidContext.setUid(uid);
+        uidContext.setRegistryKey(registryKey);
+        uidContext.setIllegalArgument(false);
+
+        return uidContext;
     }
 }

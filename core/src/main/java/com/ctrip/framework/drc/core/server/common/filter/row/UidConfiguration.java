@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCache;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,18 +41,32 @@ public class UidConfiguration extends AbstractConfigBean {
         return UidConfigurationHolder.INSTANCE;
     }
 
-    public boolean filterRowsWithBlackList(String uid, String registryKey) throws Exception {
-        Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
-        boolean res = !blackListUids.contains(uid.trim().toLowerCase());
-        if (!res) {
-            ROWS_FILTER_LOGGER.info("[Filter] one row of uid {} for {} due to black list", uid, registryKey);
+    public boolean filterRowsWithBlackList(UidContext uidContext) throws Exception {
+        try {
+            String registryKey = uidContext.getRegistryKey();
+            String uid = uidContext.getUid();
+            Preconditions.checkArgument(StringUtils.isNotBlank(uid));
+            Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
+            boolean res = !blackListUids.contains(uid.trim().toLowerCase());
+            if (!res) {
+                ROWS_FILTER_LOGGER.info("[Filter] one row of uid {} for {} due to black list", uid, registryKey);
+            }
+            return res;
+        } catch (IllegalArgumentException e) {
+            return uidContext.getIllegalArgument();
         }
-        return res;
     }
 
-    public boolean filterRowsWithWhiteList(String uid, String registryKey) throws Exception {
-        Set<String> whiteListUids = whiteListCache.get(registryKey, () -> getList(String.format(UID_WHITELIST, registryKey)));
-        return whiteListUids.contains(uid.trim().toLowerCase());
+    public boolean filterRowsWithWhiteList(UidContext uidContext) throws Exception {
+        try {
+            String registryKey = uidContext.getRegistryKey();
+            String uid = uidContext.getUid();
+            Preconditions.checkArgument(StringUtils.isNotBlank(uid));
+            Set<String> whiteListUids = whiteListCache.get(registryKey, () -> getList(String.format(UID_WHITELIST, registryKey)));
+            return whiteListUids.contains(uid.trim().toLowerCase());
+        } catch (IllegalArgumentException e) {
+            return uidContext.getIllegalArgument();
+        }
     }
 
     private Set<String> getList(String key) {
