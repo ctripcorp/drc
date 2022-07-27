@@ -292,7 +292,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
 
         int numTransaction = maxGtidId - (ddlId + 1);
 
-        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*drc_gtid_log_event*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
+        verify(channel, Mockito.times( 1 /*previous_gtid_log_event in the mid file*/ + 1 /*drc_uuid_log_event in the mid file*/ + numTransaction * 4 /*exclude transaction*/ + 1 /*empty msg to close file channel*/)).writeAndFlush(any(DefaultFileRegion.class));
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
