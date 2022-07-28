@@ -34,7 +34,9 @@ public class DaoConfig extends AbstractConfig implements Config{
         try {
             String localDc = dataCenterService.getDc();
             Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-            if (publicCloudDc.contains(localDc))  return;
+            if (publicCloudDc.contains(localDc)) {
+                return;
+            }
             Drc drc = metaGenerator.getDrc();
             META_LOGGER.debug("[meta] generated drc: {}", drc);
 

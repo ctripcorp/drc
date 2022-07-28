@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
@@ -26,6 +27,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -101,6 +103,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn(registerKey);
@@ -120,7 +123,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration);
+        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.set_gtid.getType());
         flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
@@ -128,6 +131,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     @After
     public void tearDown() {
+        System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }
@@ -220,6 +224,12 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
         fakeXidLogEvent.release();
+    }
+
+    @Test
+    public void testReset() {
+        logEventHandler.reset();
+        Assert.assertEquals(logEventHandler.getCurrentGtid(), StringUtils.EMPTY);
     }
 
     private void writeTransactionWithHeartBeat() throws Exception {

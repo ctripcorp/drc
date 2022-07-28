@@ -24,6 +24,12 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 	}
 
 	
+	public List<ApplierGroupTbl> queryById(Long mhaId,Integer deleted) throws SQLException {
+		ApplierGroupTbl sample = new ApplierGroupTbl();
+		sample.setMhaId(mhaId);
+		sample.setDeleted(deleted);
+		return this.queryBy(sample);
+	}
 	
 	public ApplierGroupTbl queryByMhaIdAndReplicatorGroupId(Long mhaId, Long replicatorGroupId,Integer deleted) throws SQLException {
 		if (null == mhaId || null == replicatorGroupId) {

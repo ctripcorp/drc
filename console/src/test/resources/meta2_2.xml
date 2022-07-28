@@ -2,7 +2,7 @@
 <drc>
     <dc id="shaoy">
         <dbClusters>
-            <dbCluster id="integration-test.drcTestW1" name="integration-test" mhaName="drcTestW1" buName="BBZ" org-id="1" appId="100024819">
+            <dbCluster id="integration-test.drcTestW1" name="integration-test" mhaName="drcTestW1" buName="BBZ" org-id="1" appId="100024819" applyMode="1">
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="10.2.83.109" port="3307" master="true" uuid="3c458a5b-128a-11eb-a91a-fa163e02998c"/>
                 </dbs>
@@ -17,7 +17,7 @@
     </dc>
     <dc id="sharb">
         <dbClusters>
-            <dbCluster id="integration-test.drcTestW2" name="integration-test" mhaName="drcTestW2" buName="BBZ" org-id="1" appId="100024819">
+            <dbCluster id="integration-test.drcTestW2" name="integration-test" mhaName="drcTestW2" buName="BBZ" org-id="1" appId="100024819" applyMode="1">
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
                     <db ip="10.2.83.110" port="3307" master="true" uuid="f62377c5-1289-11eb-b456-fa163ec90ff6"/>
                 </dbs>

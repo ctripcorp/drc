@@ -24,7 +24,6 @@ import com.ctrip.framework.drc.manager.healthcheck.datasource.DataSourceManagerT
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ConsoleNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifierTest;
-import com.ctrip.framework.drc.manager.healthcheck.service.task.GlobalExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTrackerImplTest;
 import com.ctrip.framework.drc.manager.service.ConsoleServiceImplTest;
 import com.ctrip.framework.foundation.Foundation;
@@ -104,8 +103,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultDrcManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,
-        ReplicatorComparatorTest.class,
-        GlobalExecutedGtidQueryTaskTest.class
+        ReplicatorComparatorTest.class
 })
 public class AllTests {
 

@@ -48,4 +48,13 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         Assert.assertFalse(value.isInExcludeGroup());
         Assert.assertFalse(value.isTransactionTableRelated());
     }
+
+    @Test
+    public void doFilterGtidLogEvent() throws IOException {
+        value = new InboundLogEventContext(gtidLogEvent, null,false, false, false, GTID);
+
+        transactionTableFilter.doFilter(value);
+        Assert.assertFalse(value.isInExcludeGroup());
+        Assert.assertFalse(value.isTransactionTableRelated());
+    }
 }

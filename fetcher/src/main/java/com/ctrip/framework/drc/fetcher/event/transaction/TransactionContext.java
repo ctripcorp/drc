@@ -1,6 +1,5 @@
-package com.ctrip.framework.drc.applier.resource.context;
+package com.ctrip.framework.drc.fetcher.event.transaction;
 
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 
 import java.util.List;
@@ -23,8 +22,6 @@ public interface TransactionContext extends BaseTransactionContext {
     default void beginTransactionTable(String gtid) {}
 
     void recordTransactionTable(String gtid);
-
-    TransactionData.ApplyResult complete();
 
     List<Boolean> getConflictMap();
     List<Boolean> getOverwriteMap();

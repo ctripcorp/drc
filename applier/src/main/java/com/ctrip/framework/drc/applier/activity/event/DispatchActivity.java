@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
-import com.ctrip.framework.drc.applier.resource.condition.LWM;
-import com.ctrip.framework.drc.applier.resource.condition.LWMPassHandler;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWM;
+import com.ctrip.framework.drc.fetcher.resource.condition.LWMPassHandler;
+import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 
@@ -15,9 +16,12 @@ public class DispatchActivity extends EventActivity<Transaction, Transaction> {
     @InstanceResource
     public LWM lwm;
 
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
+
     @Override
     public Transaction doTask(Transaction transaction) throws InterruptedException {
-        loggerTL.info("dispatch {}", transaction.identifier());
+        loggerTL.info("[{}] dispatch {}", registryKey, transaction.identifier());
         transaction.begin(lwm, new BeginHandler(transaction, this::hand));
         return null;
     }

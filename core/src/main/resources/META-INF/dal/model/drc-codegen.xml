@@ -36,6 +36,7 @@
     <attribute name="buName" value-type="String" />
     <attribute name="org-id" value-type="int" />
     <attribute name="appId" value-type="int" />
+    <attribute name="applyMode" value-type="int" />
     <entity-ref name="dbs" />
     <entity-ref name="replicatorMonitor" />
     <entity-ref name="replicator" type="list" names="replicators" />

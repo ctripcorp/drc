@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.fetcher.event;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.fetcher.event.meta.MetaEvent;
-import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemoryAware;
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @Author limingdong
  * @create 2021/3/16
  */
-public class MonitoredGtidLogEvent<T extends BaseTransactionContext> extends GtidLogEvent implements MetaEvent.Write<EventGroupContext>, DirectMemoryAware, BeginEvent<T> {
+public class MonitoredGtidLogEvent<T extends BaseTransactionContext> extends GtidLogEvent implements MetaEvent.Write<EventGroupContext>, DirectMemoryAware, BaseBeginEvent<T> {
 
     protected static final Logger loggerEGS = LoggerFactory.getLogger("EVENT GROUP SEQUENCE");
 

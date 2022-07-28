@@ -63,6 +63,7 @@ import org.junit.runners.Suite;
         RowsFilterConfigTest.class,
         DataMediaConfigTest.class,
         AbstractRowsFilterRuleTest.class,
+        UidConfigurationTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
@@ -246,6 +247,7 @@ public class AllTests {
             "          \"id\"," +
             "          \"one\"" +
             "        ]," +
+            "        \"fetchMode\": 0," +
             "        \"context\": \"%s\"" +
             "      }" +
             "    }" +

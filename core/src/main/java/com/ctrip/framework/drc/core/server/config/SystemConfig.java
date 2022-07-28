@@ -47,6 +47,8 @@ public class SystemConfig {
 
     public static final int CONNECTION_TIMEOUT = 2000;
 
+    public static final int SOCKET_TIMEOUT = 10000;
+
     public static final String JDBC_URL_FORMAT = JDBC_PREFIX + "%d" + SystemConfig.JDBC_URL_PARAM;
 
     public static final int MASTER_HEARTBEAT_PERIOD_SECONDS = 10;
@@ -124,6 +126,8 @@ public class SystemConfig {
     public static final String NOTIFY_LOG = "com.ctrip.framework.drc.manager.healthcheck.notifier";
 
     public static final Logger NOTIFY_LOGGER = LoggerFactory.getLogger(NOTIFY_LOG);
+
+    public static final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
 
     //test 相关
     public static final String MYSQL_USER_NAME = "root";

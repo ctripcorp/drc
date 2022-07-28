@@ -13,12 +13,12 @@ public class TripUnidirectionalReplicateModule extends UnidirectionalReplicateMo
         super();
     }
 
-    public TripUnidirectionalReplicateModule(int srcMySQLPort, int destMySQLPort, int metaMySQLPort, int repPort, String registryKey) {
-        super(srcMySQLPort, destMySQLPort, metaMySQLPort, repPort, registryKey);
+    public TripUnidirectionalReplicateModule(int srcMySQLPort, int destMySQLPort, int repPort, String registryKey) {
+        super(srcMySQLPort, destMySQLPort, repPort, registryKey);
     }
 
     @Override
     protected DrcMonitorModule getDrcMonitorModule() {
-        return new DrcMonitorModule(srcMySQLPort, destMySQLPort, metaMySQLPort);
+        return new DrcMonitorModule(srcMySQLPort, destMySQLPort);
     }
 }

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.activity.event;
 import com.ctrip.framework.drc.applier.event.ApplierRollbackEvent;
 import com.ctrip.framework.drc.applier.event.ApplierTransaction;
 import com.ctrip.framework.drc.fetcher.activity.event.GroupActivity;
+import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
@@ -19,8 +20,8 @@ public class ApplierGroupActivity extends GroupActivity {
     public TransformerContext transformerContext;
 
     @Override
-    protected Transaction getTransaction(BeginEvent b) {
-        ApplierTransaction transaction = new ApplierTransaction((com.ctrip.framework.drc.applier.event.transaction.BeginEvent) b);
+    protected Transaction getTransaction(BaseBeginEvent b) {
+        ApplierTransaction transaction = new ApplierTransaction((BeginEvent) b);
         transaction.setTransformerResource(transformerContext);
         return transaction;
     }

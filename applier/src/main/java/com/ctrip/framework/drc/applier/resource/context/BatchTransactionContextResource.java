@@ -1,13 +1,20 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
 import com.ctrip.framework.drc.applier.resource.context.sql.BatchPreparedStatementExecutor;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult;
+import com.ctrip.xpipe.utils.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
-import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult.BATCH_ERROR;
+import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.ApplyResult.*;
 
 /**
  * @Author Slight
@@ -15,7 +22,15 @@ import static com.ctrip.framework.drc.fetcher.event.transaction.TransactionData.
  */
 public class BatchTransactionContextResource extends TransactionContextResource implements TransactionContext, BigTransactionAware {
 
+    private static final Logger loggerBatch = LoggerFactory.getLogger("BATCH");
+
     private PartialTransactionContextResource partialTransactionContextResource;
+
+    protected static final int MAX_BATCH_EXECUTE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, "1000"));
+
+    private AtomicLong batchRowsCount = new AtomicLong(0);
+
+    private TransactionData.ApplyResult applyResult = SUCCESS;
 
     private boolean bigTransaction;
 
@@ -23,25 +38,44 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     public void doInitialize() throws Exception {
         super.doInitialize();
         executor = new BatchPreparedStatementExecutor(connection.createStatement());
-        partialTransactionContextResource = bigTransaction ?
+        partialTransactionContextResource = isBigTransaction() ?
                 new PartialBigTransactionContextResource(this) :
                 new PartialTransactionContextResource(this, true);
         partialTransactionContextResource.initialize();
+        batchRowsCount.set(0);
     }
 
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         partialTransactionContextResource.insert(beforeRows, beforeBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         partialTransactionContextResource.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         partialTransactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        checkBatchExecuteSize(beforeRows.size());
+    }
+
+    private void checkBatchExecuteSize(int batchSize) {
+        if (batchRowsCount.addAndGet(batchSize) >= MAX_BATCH_EXECUTE_SIZE) {
+            try {
+                if (SUCCESS == applyResult) {
+                    applyResult = partialTransactionContextResource.executeBatch();
+                    loggerBatch.info("[executeBatch] for gtid {}, size {}", fetchGtid(), batchRowsCount.get());
+                } else {
+                    loggerBatch.error("[executeBatch] skip for applyResult {}", applyResult);
+                }
+            } finally {
+                batchRowsCount.set(0);
+            }
+        }
     }
 
     @Override
@@ -52,7 +86,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     public ApplyResult complete() {
         boolean whateverGoesWrong = false;
-        if (BATCH_ERROR == partialTransactionContextResource.complete() || everWrong()) {
+        if (SUCCESS != applyResult || BATCH_ERROR == partialTransactionContextResource.complete() || everWrong()) {
             whateverGoesWrong = true;
         }
 
@@ -62,9 +96,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             rollback();
             conflictAndRollback();
             if (getLastUnbearable() != null) {
-                return ApplyResult.UNKNOWN;
+                return UNKNOWN;
             } else {
-                return ApplyResult.WHATEVER_ROLLBACK;
+                return SUCCESS != applyResult ? applyResult : WHATEVER_ROLLBACK;
             }
         }
         commit();
@@ -72,9 +106,9 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             conflictAndCommit();
         }
         if (getLastUnbearable() != null) {
-            return ApplyResult.UNKNOWN;
+            return UNKNOWN;
         } else {
-            return ApplyResult.SUCCESS;
+            return SUCCESS;
         }
     }
 
@@ -86,6 +120,10 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     public void setBigTransaction(boolean bigTransaction) {
         this.bigTransaction = bigTransaction;
+    }
+
+    public boolean isBigTransaction() {
+        return bigTransaction;
     }
 
     @Override
@@ -100,5 +138,10 @@ public class BatchTransactionContextResource extends TransactionContextResource 
     @Override
     protected String contextDesc() {
         return bigTransaction ? " BIG" : " BATCH";
+    }
+
+    @VisibleForTesting
+    protected long getBatchRowsCount() {
+        return batchRowsCount.get();
     }
 }

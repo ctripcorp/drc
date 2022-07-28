@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.monitor;
 
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.monitor.module.AbstractTestStarter;
+import com.ctrip.framework.drc.core.config.TestConfig;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,8 +32,60 @@ public class UnidirectionalStarter extends AbstractTestStarter {
     @Test
     public void doTest() throws Exception {
         unidirectionalReplicateModule.startMySQLModule();
-        unidirectionalReplicateModule.startRAModule();
+        unidirectionalReplicateModule.startRAModule(getSrcConfig(), getDstConfig());
         unidirectionalReplicateModule.startMonitorModule();
         Thread.currentThread().join();
     }
+
+    private TestConfig getSrcConfig() {
+        TestConfig customConfig = new TestConfig();
+
+        // applyMode
+        customConfig.setApplyMode(ApplyMode.set_gtid);
+        return customConfig;
+    }
+
+    private TestConfig getDstConfig() {
+        TestConfig customConfig = new TestConfig();
+
+        // applyMode
+        customConfig.setApplyMode(ApplyMode.transaction_table);
+
+        // rowsFilter
+        customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX);
+        return customConfig;
+    }
+
+    private static final String ROW_FILTER_PROPERTIES = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"trip_uid\"," +
+            "      \"tables\": \"(CommonOrderShard[1-9]DB|CommonOrderShard[1][0-2]DB)\\\\.(basicorder|basicorder_ext)\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"UID\"" +
+            "        ]," +
+            "        \"illegalArgument\": false," +
+            "        \"fetchMode\": 0," +
+            "        \"context\": \"SIN\"" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}";
+
+
+    private static final String ROW_FILTER_PROPERTIES_REGEX = "{" +
+            "  \"rowsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"java_regex\"," +
+            "      \"tables\": \"drc4.row_filter\"," +
+            "      \"parameters\": {" +
+            "        \"columns\": [" +
+            "          \"uid\"" +
+            "        ]," +
+            "        \"context\": \"trip.*\"" +
+            "      }" +
+            "    }" +
+            "  ]" +
+            "}";
 }

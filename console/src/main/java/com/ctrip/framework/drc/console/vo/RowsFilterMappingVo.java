@@ -43,6 +43,8 @@ public class RowsFilterMappingVo {
     
     private boolean illegalArgument;
 
+    private Integer fetchMode;
+
     public RowsFilterMappingVo() {
     }
 
@@ -69,6 +71,7 @@ public class RowsFilterMappingVo {
         this.columns = parameters.getColumns();
         this.context = parameters.getContext();
         this.illegalArgument = parameters.getIllegalArgument();
+        this.fetchMode = parameters.getFetchMode();
     }
 
 
@@ -87,6 +90,7 @@ public class RowsFilterMappingVo {
                 ", columns=" + columns +
                 ", context='" + context + '\'' +
                 ", illegalArgument=" + illegalArgument +
+                ", fetchMode=" + fetchMode +
                 '}';
     }
 
@@ -184,5 +188,13 @@ public class RowsFilterMappingVo {
 
     public void setIllegalArgument(boolean illegalArgument) {
         this.illegalArgument = illegalArgument;
+    }
+
+    public Integer getFetchMode() {
+        return fetchMode;
+    }
+
+    public void setFetchMode(Integer fetchMode) {
+        this.fetchMode = fetchMode;
     }
 }

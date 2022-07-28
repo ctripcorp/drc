@@ -37,10 +37,24 @@ function getTotalDisk() {
     echo `df -lh /data/ | grep -v Size |  awk -F " " '{print substr($2,0,length($2) - 1 )}'`
 }
 
+function getIdc(){
+    IDC=local
+    if [ -f /opt/settings/server.properties ];then
+        IDC=`cat /opt/settings/server.properties | egrep -i "^idc" | awk -F= '{print $2}'`
+    fi
+    echo `toUpper $IDC`
+}
+
+IDC=`getIdc`
+echo "current idc:"$IDC
+
 function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=70
     MAX_MEM=20
+    if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ];then
+        MAX_MEM=15
+    fi
     result=`expr $total \* $SAFE_PERCENT / 100`
     if [ "$result" -gt "$MAX_MEM" ]
     then
@@ -146,6 +160,9 @@ fi
 export JAVA_OPTS="-server $JAVA_OPTS -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:MaxTenuringThreshold=1 -Dio.netty.maxDirectMemory=0 -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m -XX:+HeapDumpOnOutOfMemoryError -XX:+HeapDumpBeforeFullGC -XX:-OmitStackTraceInFastThrow -Duser.timezone=Asia/Shanghai -Dclient.encoding.override=UTF-8 -Dfile.encoding=UTF-8 -Xlog:safepoint,classhisto*=trace,age*,gc*=info:file=$LOG_DIR/gc-%t.log:time,tid,tags:filecount=5,filesize=50m -XX:HeapDumpPath=$LOG_DIR/HeapDumpOnOutOfMemoryError/  -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${IP} -XX:+FlightRecorder -Djava.security.egd=file:/dev/./urandom"
 export JAVA_OPTS="$JAVA_OPTS -cp .:./META-INF/"
 echo $JAVA_OPTS
+
+export LD_PRELOAD=/usr/local/lib/libjemalloc.so
+export MALLOC_CONF=prof:false,lg_prof_interval:30,lg_prof_sample:17,prof_prefix:/opt/logs/100023498/jeprof
 
 PATH_TO_JAR=$SERVICE_NAME".jar"
 SERVER_URL="http://localhost:$SERVER_PORT/health"

@@ -23,7 +23,6 @@ public abstract class AbstractTestStarter {
 
     protected int mysqlPortA = SOURCE_MASTER_PORT;
     protected int mysqlPortB = DESTINATION_MASTER_PORT;
-    protected int mysqlPortMeta = META_PORT;
     protected int replicatorPortA = REPLICATOR_MASTER_PORT;
 
     public void setUp() {
@@ -34,15 +33,15 @@ public abstract class AbstractTestStarter {
 
         cleanUp();
         try {
-            unidirectionalReplicateModule = getUnidirectionalReplicateModule(mysqlPortA, mysqlPortB, mysqlPortMeta, replicatorPortA, REGISTRY_KEY);
+            unidirectionalReplicateModule = getUnidirectionalReplicateModule(mysqlPortA, mysqlPortB, replicatorPortA, REGISTRY_KEY);
             unidirectionalReplicateModule.initialize();
             unidirectionalReplicateModule.start();  //just for phase necessary
         } catch (Exception e) {
         }
     }
 
-    protected UnidirectionalReplicateModule getUnidirectionalReplicateModule(int mysqlPortA, int mysqlPortB, int mysqlPortMeta, int replicatorPortA, String registerKey) {
-        return new UnidirectionalReplicateModule(mysqlPortA, mysqlPortB, mysqlPortMeta, replicatorPortA, registerKey);
+    protected UnidirectionalReplicateModule getUnidirectionalReplicateModule(int mysqlPortA, int mysqlPortB, int replicatorPortA, String registerKey) {
+        return new UnidirectionalReplicateModule(mysqlPortA, mysqlPortB, replicatorPortA, registerKey);
     }
 
     public abstract void doTest() throws Exception;

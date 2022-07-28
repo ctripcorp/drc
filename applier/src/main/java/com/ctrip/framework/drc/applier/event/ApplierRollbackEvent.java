@@ -1,11 +1,12 @@
 package com.ctrip.framework.drc.applier.event;
 
-import com.ctrip.framework.drc.applier.resource.context.TransactionContext;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 
 public class ApplierRollbackEvent extends ApplierXidEvent {
 
     @Override
-    public ApplyResult terminate0(TransactionContext context) {
+    public ApplyResult terminate(TransactionContext context) {
         loggerED.info(
                 "RECONNECT R(" + context.fetchGtid() + ") delay: " + (System.currentTimeMillis() - createdTime) + "ms");
         context.rollback();

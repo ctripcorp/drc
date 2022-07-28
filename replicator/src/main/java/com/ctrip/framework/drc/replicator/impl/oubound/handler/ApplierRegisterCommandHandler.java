@@ -18,6 +18,8 @@ import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -54,6 +56,7 @@ import java.util.concurrent.ExecutorService;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_APPLIER_BINLOG_DUMP_GTID;
+import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isDrcGtidLogEvent;
 import static com.ctrip.framework.drc.core.server.common.EventReader.releaseCompositeByteBuf;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
@@ -77,13 +80,16 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ExecutorService dumpExecutorService;
 
+    private boolean setGitdMode;
+
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
-    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, String registryKey) {
+    public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, ReplicatorConfig replicatorConfig) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
-        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", registryKey));
+        this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
+        this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
     }
 
     @Override
@@ -222,8 +228,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean skipEvent(GtidSet excludedSet, ByteBuf byteBuf, String gtid, boolean in_exclude_group) {
-            if (LogEventUtils.isGtidLogEvent(LogEventUtils.parseNextLogEventType(byteBuf))) {
+            LogEventType logEventType = LogEventUtils.parseNextLogEventType(byteBuf);
+            if (logEventType == LogEventType.gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
+            }
+
+            if (logEventType == drc_gtid_log_event) {
+                return setGitdMode || new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
         }
@@ -654,7 +665,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private void logGtid(String gtidForLog, LogEventType eventType) {
             if (xid_log_event == eventType) {
                 GTID_LOGGER.debug("[S] X, {}", gtidForLog);
-            } else if (LogEventUtils.isDrcGtidLogEvent(eventType)) {
+            } else if (isDrcGtidLogEvent(eventType)) {
                 frequencySend.addOne();
                 if (StringUtils.isNotBlank(gtidForLog)) {
                     GTID_LOGGER.debug("[S] drc G, {}", gtidForLog);

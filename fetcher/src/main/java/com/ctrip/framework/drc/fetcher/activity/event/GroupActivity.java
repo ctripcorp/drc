@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.fetcher.activity.event;
 
-import com.ctrip.framework.drc.fetcher.event.transaction.BeginEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.Transaction;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
@@ -15,23 +15,25 @@ public abstract class GroupActivity extends EventActivity<TransactionEvent, Tran
 
     @Override
     public TransactionEvent doTask(TransactionEvent event) throws InterruptedException {
-        if (event instanceof BeginEvent) {
+        if (event instanceof BaseBeginEvent) {
             if (current != null) {
                 logger.warn("BeginEvent (Last: UNKNOWN) received without TerminateEvent ahead. - ONLY ON RECONNECT");
                 current.append(getRollbackEvent());
             }
-            BeginEvent b = (BeginEvent) event;
+            BaseBeginEvent b = (BaseBeginEvent) event;
             current = getTransaction(b);
-            return hand(current);
+            hand(current);
+        } else {
+            current.append(event);
         }
-        current.append(event);
+
         if (event instanceof TerminateEvent) {
             current = null;
         }
         return null;
     }
 
-    protected abstract Transaction getTransaction(BeginEvent b);
+    protected abstract Transaction getTransaction(BaseBeginEvent b);
 
     protected abstract TransactionEvent getRollbackEvent();
 }

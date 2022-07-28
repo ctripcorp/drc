@@ -46,6 +46,8 @@ public class ReplicatorConfigDto extends MonitorConfig {
 
     private String previousMaster;
 
+    private int applyMode;
+
     public Db getMaster() {
         return master;
     }
@@ -134,6 +136,14 @@ public class ReplicatorConfigDto extends MonitorConfig {
         this.mhaName = mhaName;
     }
 
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
     public ReplicatorConfig toReplicatorConfig() {
         ReplicatorConfig replicatorConfig = new ReplicatorConfig();
         replicatorConfig.setRegistryKey(getClusterName(), getMhaName());
@@ -157,6 +167,7 @@ public class ReplicatorConfigDto extends MonitorConfig {
         replicatorConfig.setEndpoint(endpoint);
         replicatorConfig.setStatus(getStatus());
         replicatorConfig.setPreviousMaster(getPreviousMaster());
+        replicatorConfig.setApplyMode(getApplyMode());
 
         replicatorConfig.setMonitorConfig(new MonitorConfig(getClusterAppId(), getBu(), getSrcDcName()));
 
@@ -177,6 +188,7 @@ public class ReplicatorConfigDto extends MonitorConfig {
                 ", readPassward='" + readPassward + '\'' +
                 ", status=" + status +
                 ", previousMaster='" + previousMaster + '\'' +
+                ", applyMode=" + applyMode +
                 "} " + super.toString();
     }
 }

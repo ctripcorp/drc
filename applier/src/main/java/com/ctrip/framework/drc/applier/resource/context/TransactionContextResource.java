@@ -12,12 +12,10 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.AbstractContext;
-import com.ctrip.framework.drc.fetcher.system.Derived;
-import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
-import com.ctrip.framework.drc.fetcher.system.InstanceResource;
-import com.ctrip.framework.drc.fetcher.system.Resource;
+import com.ctrip.framework.drc.fetcher.system.*;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -55,8 +53,8 @@ public class TransactionContextResource extends AbstractContext
     protected final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     private static final String SET_NEXT_GTID = "set gtid_next = '%s'";
-    private static final String COMMIT = "commit";
-    private static final String ROLLBACK = "rollback";
+    protected static final String COMMIT = "commit";
+    protected static final String ROLLBACK = "rollback";
 
     @InstanceActivity
     public MetricsActivity metricsActivity;
@@ -69,6 +67,9 @@ public class TransactionContextResource extends AbstractContext
 
     @InstanceResource
     public TransactionTable transactionTable;
+
+    @InstanceConfig(path = "registryKey")
+    public String registryKey;
 
     @Derived
     public DataSource dataSource;
@@ -146,10 +147,11 @@ public class TransactionContextResource extends AbstractContext
         try {
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
-            loggerTE.info("(" + fetchGtid() + ") [" + fetchDepth() + "] cost: " + (costTimeNS / 1000) + "us"
-                    + ((delayMs > 10) ? ("(" + trace + ")") : "")
-                    + ((delayMs > 100) ? "SLOW" : "")
-                    + ((delayMs > 1000) ? "SUPER SLOW" : ""));
+            loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, fetchGtid(), fetchDepth(), costTimeNS / 1000,
+                    ((delayMs > 10) ? ("(" + trace + ")") : ""),
+                    ((delayMs > 100) ? "SLOW" : ""),
+                    ((delayMs > 1000) ? "SUPER SLOW" : ""));
+
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", "", delayMs);
 
@@ -484,7 +486,7 @@ public class TransactionContextResource extends AbstractContext
                 case ERROR:
                     throw result.throwable;
                 default:
-                    throw new AssertionError("UNLIKELY, no other possibilities for result.type here");
+                    throw new AssertionError("UNLIKELY, no other possibilities for result.type here: " + result.type.toString());
             }
         }
     }
@@ -539,15 +541,17 @@ public class TransactionContextResource extends AbstractContext
                 logSQL(statement, preparedStatementExecutor);
                 assert statement.execute();
                 try (ResultSet result = statement.getResultSet()) {
-                    while (result.next()) {
-                        rowCount += 1;
-                        String log = "|";
-                        for (String columnName : columns.getNames()) {
-                            log = log + result.getString(columnName) + "|";
+                    if (result != null) {
+                        while (result.next()) {
+                            rowCount += 1;
+                            String log = "|";
+                            for (String columnName : columns.getNames()) {
+                                log = log + result.getString(columnName) + "|";
+                            }
+                            addLogs(log);
+                            destCurrentRecord = log;
+                            loggerS.info("(" + fetchGtid() + ")" + log);
                         }
-                        addLogs(log);
-                        destCurrentRecord = log;
-                        loggerS.info("(" + fetchGtid() + ")" + log);
                     }
                 }
             } catch (Throwable t) {

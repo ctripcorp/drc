@@ -104,6 +104,10 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
 
     @Override
     public void reset() {
+        currentGtid = StringUtils.EMPTY;
+        inExcludeGroup = false;
+        tableFiltered = false;
+        transactionTableRelated = false;
         transactionCache.reset();
     }
 }

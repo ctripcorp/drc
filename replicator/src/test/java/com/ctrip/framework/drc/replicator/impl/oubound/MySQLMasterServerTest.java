@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
@@ -57,6 +58,8 @@ public class MySQLMasterServerTest extends AbstractServerTest {
         super.initMocks();
         when(replicatorConfig.getWhiteUUID()).thenReturn(uuids);
         when(replicatorConfig.getRegistryKey()).thenReturn("");
+        when(replicatorConfig.getRegistryKey()).thenReturn("ut");
+        when(replicatorConfig.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet("c372080a-1804-11ea-8add-98039bbedf9c"));
 
@@ -86,7 +89,7 @@ public class MySQLMasterServerTest extends AbstractServerTest {
 
     @Test(expected = BindException.class)
     public void testStart() throws Exception {
-        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null, "ut"));
+        mySQLMasterServer.addCommandHandler(new ApplierRegisterCommandHandler(gtidManager, fileManager, null, replicatorConfig));
 
         mySQLMasterServer.start();
         Assert.assertTrue(isUsed(PORT));

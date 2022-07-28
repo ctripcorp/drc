@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.resource.mysql;
 
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
+import com.ctrip.framework.drc.core.driver.pool.DrcDataSourceValidator;
 import com.ctrip.framework.drc.core.driver.pool.DrcTomcatDataSource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -46,8 +47,8 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
     public int validationInterval = 30000;
 
-    @InstanceConfig(path = "cluster")
-    public String cluster = "unset";
+    @InstanceConfig(path = "registryKey")
+    public String registryKey = "unset";
 
     private PoolProperties properties;
 
@@ -58,7 +59,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
     @Override
     protected void doInitialize() throws Exception {
         properties = new PoolProperties();
-        properties.setName(cluster);
+        properties.setName(registryKey);
         properties.setUrl(URL);
         properties.setUsername(username);
         properties.setPassword(password);
@@ -73,6 +74,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
         properties.setMaxIdle(poolSize);
         properties.setInitialSize(30);
         properties.setMinIdle(poolSize);
+        properties.setValidator(new DrcDataSourceValidator(properties));
 
         inner = new DrcTomcatDataSource(properties);
 
@@ -82,7 +84,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
             warmUp();
         });
 
-        scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(cluster);
+        scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(registryKey);
         scheduledExecutorService.scheduleAtFixedRate(() -> {
             if(!Thread.currentThread().isInterrupted()) {
                 int active = ((DrcTomcatDataSource) inner).getActive();
@@ -100,8 +102,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
             scheduledExecutorService = null;
         }
         if (inner != null) {
-            ((DrcTomcatDataSource) inner).close(true);
-            inner = null;
+            DataSourceTerminator.getInstance().close((DrcTomcatDataSource) inner);
         }
     }
 
@@ -117,19 +118,19 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
     private void warmUp() {
         try {
-            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.applier.connection.create", cluster, new Task() {
+            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.applier.connection.create", registryKey, new Task() {
                 @Override
                 public void go() throws SQLException {
-                    logger.info("[Init] connection for {}:{} begin", cluster, URL);
+                    logger.info("[Init] connection for {}:{} begin", registryKey, URL);
                     Connection connection = getConnection();
                     if (connection != null) {
                         connection.close();
                     }
-                    logger.info("[Init] connection for {}:{} end", cluster, URL);
+                    logger.info("[Init] connection for {}:{} end", registryKey, URL);
                 }
             });
         } catch (Exception e) {
-            logger.error("[Init] connection for {}:{} error", cluster, URL);
+            logger.error("[Init] connection for {}:{} error", registryKey, URL);
         }
     }
 }

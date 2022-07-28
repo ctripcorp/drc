@@ -26,6 +26,8 @@ public class MySQLSlaveConfig extends Identity implements GlobalConfig {
 
     private int instanceStatus;
 
+    private int applyMode;
+
     public long getSlaveId() {
         return slaveId;
     }
@@ -82,6 +84,14 @@ public class MySQLSlaveConfig extends Identity implements GlobalConfig {
         return InstanceStatus.ACTIVE.getStatus() == instanceStatus;
     }
 
+    public int getApplyMode() {
+        return applyMode;
+    }
+
+    public void setApplyMode(int applyMode) {
+        this.applyMode = applyMode;
+    }
+
     @Override
     public String toString() {
         return "MySQLSlaveConfig{" +
@@ -92,6 +102,7 @@ public class MySQLSlaveConfig extends Identity implements GlobalConfig {
                 ", uuidSet=" + uuidSet +
                 ", tableNames=" + tableNames +
                 ", instanceStatus=" + instanceStatus +
+                ", applyMode=" + applyMode +
                 "} " + super.toString();
     }
 }

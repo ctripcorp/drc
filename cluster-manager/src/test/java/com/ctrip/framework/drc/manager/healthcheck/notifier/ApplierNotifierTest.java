@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +33,7 @@ public class ApplierNotifierTest extends AbstractNotifierTest {
         for (String ipAndPort : domains) {
             Object object = applierNotifier.getBody(ipAndPort, dbCluster, false);
             ApplierConfigDto config = (ApplierConfigDto) object;
+            Assert.assertEquals(config.getApplyMode(), ApplyMode.set_gtid.getType());
             Assert.assertEquals(config.getTarget().getCluster(), DAL_CLUSTER_NAME);
             Assert.assertEquals(config.getReplicator().mhaName, RB_MHA_NAME);
             Assert.assertEquals(config.getTarget().mhaName, OY_MHA_NAME);

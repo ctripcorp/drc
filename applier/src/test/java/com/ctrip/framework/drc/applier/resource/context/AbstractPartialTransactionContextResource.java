@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.google.common.collect.Lists;
 import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -18,13 +19,17 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Random;
 
+import static com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource.MAX_BATCH_EXECUTE_SIZE;
+import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.COMMIT;
+import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.ROLLBACK;
+
 /**
  * @Author limingdong
  * @create 2021/2/3
  */
 public abstract class AbstractPartialTransactionContextResource {
 
-    protected PartialTransactionContextResource partialTransactionContextResource;
+    protected TransactionContextResource transactionContextResource;
 
     protected BatchPreparedStatementExecutor batchPreparedStatementExecutor;
 
@@ -71,25 +76,38 @@ public abstract class AbstractPartialTransactionContextResource {
     protected com.mysql.jdbc.PreparedStatement deletePreparedStatement;
 
     @Mock
+    protected com.mysql.jdbc.PreparedStatement rollbackPreparedStatement;
+
+    @Mock
+    protected com.mysql.jdbc.PreparedStatement commitPreparedStatement;
+
+    @Mock
     protected SQLException sqlException;
 
     protected static final String GTID = "test_gtid";
 
     protected static final long SN = 12345654321l;
 
-    protected static int ROW_SIZE = new Random().nextInt(100) + 1;
+    public static int ROW_SIZE = new Random().nextInt(100) + 1;
 
     static {
-        System.setProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, String.valueOf(ROW_SIZE * 2 + 1));
+        if (System.getProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE) == null) {
+            System.setProperty(SystemConfig.MAX_BATCH_EXECUTE_SIZE, String.valueOf(ROW_SIZE * 2 + 1));
+        }
     }
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
 
         parent.dataSource = dataSource;
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(connection.createStatement()).thenReturn(statement);
+        if (bigTransaction()) {
+            if (parent instanceof BatchTransactionContextResource) {
+                ((BatchTransactionContextResource)parent).setBigTransaction(true);
+            }
+        }
         parent.initialize();
 
         Mockito.when(beforeRows.get(Mockito.anyInt())).thenReturn(beforeRow);
@@ -104,19 +122,55 @@ public abstract class AbstractPartialTransactionContextResource {
         Mockito.when(deletePreparedStatement.getUpdateCount()).thenReturn(1);
         Mockito.when(connection.prepareStatement(Mockito.contains("DELETE"))).thenReturn(deletePreparedStatement);
 
+        Mockito.when(connection.prepareStatement(ROLLBACK)).thenReturn(rollbackPreparedStatement);
+        Mockito.when(connection.prepareStatement(COMMIT)).thenReturn(commitPreparedStatement);
+
         batchPreparedStatementExecutor = new BatchPreparedStatementExecutor(connection.createStatement());
-        partialTransactionContextResource = getBatchPreparedStatementExecutor(parent);
+        transactionContextResource = getBatchPreparedStatementExecutor(parent);
+        if (transactionContextResource != parent) {
+            transactionContextResource.initialize();
+        }
 
-        partialTransactionContextResource.initialize();
-
-        partialTransactionContextResource.updateGtid(GTID);
-        partialTransactionContextResource.updateSequenceNumber(SN);
+        transactionContextResource.updateGtid(GTID);
+        transactionContextResource.updateSequenceNumber(SN);
         TableKey tableKey = new TableKey("test_db_name", "test_table_name");
-        partialTransactionContextResource.updateTableKey(tableKey);
+        transactionContextResource.updateTableKey(tableKey);
 
     }
 
-    protected PartialTransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {
+    @Test
+    public void testMultiTableConflict() throws SQLException {
+        Mockito.when(statement.executeBatch()).thenReturn(new int[]{0, 0});
+        Mockito.when(beforeRows.size()).thenReturn(MAX_BATCH_EXECUTE_SIZE / 2 + 1);
+        Mockito.when(afterRows.size()).thenReturn(MAX_BATCH_EXECUTE_SIZE / 2 + 1);
+        Mockito.when(columns.getBitmapsOfIdentifier()).thenReturn(bitmapsOfIdentifier);
+
+        Mockito.when(columns.getLastBitmapOnUpdate()).thenReturn(bitmapOfIdentifier);
+        Mockito.when(bitmapsOfIdentifier.get(Mockito.anyInt())).thenReturn(bitmapOfIdentifier);
+        Mockito.when(beforeBitmap.onBitmap(Mockito.any(Bitmap.class))).thenReturn(bitmapOfIdentifier);
+
+        TableKey tableKey = TableKey.from("1", "1");
+        transactionContextResource.setTableKey(tableKey);
+        transactionContextResource.delete(beforeRows, beforeBitmap, columns);
+
+        tableKey = TableKey.from("2", "2");
+        transactionContextResource.setTableKey(tableKey);
+        transactionContextResource.delete(beforeRows, beforeBitmap, columns);
+        if (transactionContextResource instanceof Batchable) {
+            ((Batchable)transactionContextResource).executeBatch();
+        }
+        // batch and conflict,so * 2
+        int coefficient = bigTransaction() ? 2 : 1;
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * 2 * coefficient)).prepareStatement(Mockito.anyString());
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * coefficient)).prepareStatement(Mockito.matches("DELETE FROM `1`.`1`"));
+        Mockito.verify(connection, Mockito.times((MAX_BATCH_EXECUTE_SIZE / 2 + 1) * coefficient)).prepareStatement(Mockito.matches("DELETE FROM `2`.`2`"));
+    }
+
+    protected TransactionContextResource getBatchPreparedStatementExecutor(TransactionContextResource parent) {
         return new PartialTransactionContextResource(parent, true);
+    }
+
+    protected boolean bigTransaction() {
+        return false;
     }
 }
