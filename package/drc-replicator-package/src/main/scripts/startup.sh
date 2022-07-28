@@ -161,6 +161,9 @@ export JAVA_OPTS="-server $JAVA_OPTS -XX:+UnlockExperimentalVMOptions -XX:+UseZG
 export JAVA_OPTS="$JAVA_OPTS -cp .:./META-INF/"
 echo $JAVA_OPTS
 
+export LD_PRELOAD=/usr/local/lib/libjemalloc.so
+export MALLOC_CONF=prof:true,lg_prof_interval:30,lg_prof_sample:17,prof_prefix:/mnt/mesos/sandbox/100023498/jeprof
+
 PATH_TO_JAR=$SERVICE_NAME".jar"
 SERVER_URL="http://localhost:$SERVER_PORT/health"
 STARTUP_LOG=$LOG_DIR"/startup.logger"
