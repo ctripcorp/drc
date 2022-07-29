@@ -17,7 +17,12 @@ import javax.annotation.PostConstruct;
  * @Version: $
  */
 @Component
-@DependsOn({"springUtils","periodicalUpdateDbTask","listenReplicatorTask"})
+@DependsOn({
+        "springUtils", "periodicalUpdateDbTask", "listenReplicatorTask", "consistentMonitorContainer",
+        "gtidMonitorTask", "checkTableConsistencyTask", "checkIncrementIdTask", "uuidMonitor",
+        "btdhsMonitor", "ddlMonitor", "periodicalRegisterBeaconTask", "syncMhaTask", "syncTableConfigTask", 
+        "updateDataConsistencyMetaTask", "clearConflictLog"
+})
 public class ConsoleLeaderElector extends AbstractLeaderElector {
     
     public static String CONSOLE_LEADER_ELECTOR_PATH = "/console/leader";
