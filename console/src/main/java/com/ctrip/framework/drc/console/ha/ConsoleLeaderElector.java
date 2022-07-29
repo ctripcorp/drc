@@ -1,8 +1,14 @@
 package com.ctrip.framework.drc.console.ha;
 
+import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.xpipe.cluster.AbstractLeaderElector;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
 
 /**
  * @ClassName ConsoleLeaderElector
@@ -11,10 +17,22 @@ import org.springframework.stereotype.Component;
  * @Version: $
  */
 @Component
+@DependsOn({"springUtils","periodicalUpdateDbTask","listenReplicatorTask"})
 public class ConsoleLeaderElector extends AbstractLeaderElector {
     
     public static String CONSOLE_LEADER_ELECTOR_PATH = "/console/leader";
     
+    @PostConstruct
+    public void leaderElectorInit(){
+        try {
+            this.setApplicationContext(SpringUtils.getApplicationContext());
+            this.initialize();
+            this.start();
+        } catch (Exception e) {
+            logger.error("[[component=leaderElector]] leader elector start error",e);
+        }
+    }
+
     @Override
     protected String getServerId() {
         return SystemConfig.LOCAL_SERVER_ADDRESS;

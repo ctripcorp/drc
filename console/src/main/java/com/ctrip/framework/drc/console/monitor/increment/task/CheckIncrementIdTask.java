@@ -136,6 +136,7 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
         return checkIncrementConfig(autoIncrementIncrementSet, autoIncrementOffsetSet, mhaGroup, mhaGroupKey);
     }
     
+
     protected Integer getAutoIncrementStep(String mha,Endpoint endpoint) {
         return getAutoIncrement(mha,CHECK_INCREMENT_SQL,AUTO_INCREMENT_INDEX,endpoint);
     }

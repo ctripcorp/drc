@@ -91,6 +91,13 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
 
+<<<<<<< Updated upstream
+=======
+    protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
+
+    protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
+
+>>>>>>> Stashed changes
     private volatile boolean isRegionLeader = false;
 
     public  final int INITIAL_DELAY = 30;
@@ -107,7 +114,13 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
         super.initialize();
         currentMetaManager.addObserver(this);
     }
+<<<<<<< Updated upstream
     
+=======
+
+    
+
+>>>>>>> Stashed changes
     @Override
     public void scheduledTask() {
         if (isRegionLeader) {
@@ -347,6 +360,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     @Override
     public boolean isCare(MetaKey metaKey) {
         return this.dcsInRegion.contains(metaKey.getDc());
+<<<<<<< Updated upstream
     }
     
     @Override
@@ -354,6 +368,15 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
         isRegionLeader = true;
         this.switchToStart();
     }
+=======
+    }
+    
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+>>>>>>> Stashed changes
 
     @Override
     public void notLeader() {

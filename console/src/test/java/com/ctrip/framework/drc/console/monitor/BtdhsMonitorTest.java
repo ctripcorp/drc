@@ -37,6 +37,9 @@ public class BtdhsMonitorTest extends AbstractTest {
     private BtdhsMonitor btdhsMonitor;
 
     @Mock
+    private DefaultConsoleConfig consoleConfig;
+
+    @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
     @Mock
@@ -47,9 +50,6 @@ public class BtdhsMonitorTest extends AbstractTest {
 
     @Mock
     private Reporter reporter = DefaultReporterHolder.getInstance();
-
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
 
     private MySqlEndpoint mha1MasterEndpoint = new MySqlEndpoint(CI_MYSQL_IP, CI_PORT1, CI_MYSQL_USER, CI_MYSQL_PASSWORD, true);
     private MySqlEndpoint mha1SlaveEndpoint = new MySqlEndpoint(CI_MYSQL_IP, CI_PORT2, CI_MYSQL_USER, CI_MYSQL_PASSWORD, false);
