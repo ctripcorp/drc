@@ -11,9 +11,12 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
+import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.ctrip.framework.drc.console.task.PeriodicalUpdateMhasTaskTest.getDbaDcInfoMapping;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 
@@ -60,6 +62,17 @@ public class MhaServiceImplTest {
 
     private JsonNode root;
 
+
+    public static Map<String, String> getDbaDcInfoMapping(String dbaDcInfoStr) {
+        Map<String, String> dbaDcInfos = JsonCodec.INSTANCE.decode(dbaDcInfoStr, new GenericTypeReference<Map<String, String>>() {});
+
+        Map<String, String> result = Maps.newConcurrentMap();
+        for(Map.Entry<String, String> entry : dbaDcInfos.entrySet()){
+            result.put(entry.getKey(), entry.getValue().toLowerCase());
+        }
+        return result;
+    }
+    
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);

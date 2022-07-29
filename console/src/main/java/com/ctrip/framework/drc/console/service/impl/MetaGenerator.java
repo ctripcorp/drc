@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHo
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -45,7 +43,7 @@ public class MetaGenerator {
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
-    protected String localDcName;
+    protected Map<String,String> dc2regionMap = Maps.newHashMap();
     private List<BuTbl> buTbls;
     private List<RouteTbl> routeTbls;
     private List<ProxyTbl> proxyTbls;
@@ -81,6 +79,7 @@ public class MetaGenerator {
     private Dc generateDcFrame(Drc drc, String dcName) {
         logger.debug("generate dc: {}", dcName);
         Dc dc = new Dc(dcName);
+        dc.setRegion(dc2regionMap.get(dcName));
         drc.addDc(dc);
         return dc;
     }
@@ -116,6 +115,8 @@ public class MetaGenerator {
             route.setOrgId(routeTbl.getRouteOrgId().intValue());
             route.setSrcDc(srcDc);
             route.setDstDc(dstDc);
+            route.setSrcRegion(dc2regionMap.get(srcDc));
+            route.setDstRegion(dc2regionMap.get(dstDc));
             route.setRouteInfo(generateRouteInfo(routeTbl.getSrcProxyIds(), routeTbl.getOptionalProxyIds(), routeTbl.getDstProxyIds()));
             route.setTag(routeTbl.getTag());
             dc.addRoute(route);
@@ -262,6 +263,7 @@ public class MetaGenerator {
             applier.setIp(resourceTbl.getIp())
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetDcTbl.getDcName())
+                    .setTargetRegion(dc2regionMap.get(targetDcTbl.getDcName()))
                     .setTargetMhaName(targetMhaTbl.getMhaName())
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
@@ -329,6 +331,14 @@ public class MetaGenerator {
         zookeeperTbls = dalUtils.getZookeeperTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        refreshDc2RegionMap();
+    }
+    
+    private void refreshDc2RegionMap (){
+        Map<String, List<String>> regionsInfo = consoleConfig.getRegionsInfo();
+        regionsInfo.forEach(
+                (region, dcs) -> dcs.forEach(dc -> dc2regionMap.put(dc, region))
+        );
     }
 
     public List<BuTbl> getBuTbls() {

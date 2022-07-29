@@ -105,7 +105,7 @@ public class LocalController {
                     rowsFilterService.getConflictTables(mhaName,Lists.newArrayList(logicalTables.split(",")));
             return ApiResult.getSuccessInstance(conflictTables);
         } catch (Exception e) {
-            logger.warn("[[tag=conflictTables]] get conflictTables error from {} in mha: {}",logicalTables, mhaName);
+            logger.warn("[[tag=conflictTables]] get conflictTables error from {} in mha: {}",logicalTables, mhaName,e);
             if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else {
@@ -173,6 +173,34 @@ public class LocalController {
             return ApiResult.getSuccessInstance(resMap);
         } catch (Exception e) {
             logger.error("[[tag=preCheck,mha={}]]  error in preCheckMySqlConfig",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+    
+    @GetMapping("sql/integer/query")
+    public ApiResult querySqlReturnInteger(
+            @RequestParam String mha,
+            @RequestParam String sql,
+            @RequestParam int index) {
+        try {
+            Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+            Integer result = MySqlUtils.getSqlResultInteger(masterEndpoint, sql, index);
+            return ApiResult.getSuccessInstance(result);
+        } catch (Exception e) {
+            logger.error("[[tag=localQuery,mha={}]] error in sql:{}",mha,sql,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+    
+    @GetMapping("createTblStmts/query")
+    public ApiResult getCreateTableStatements(@RequestParam String mha,@RequestParam String regexFilter) {
+        try {
+            Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(regexFilter);
+            Map<String, String> result = MySqlUtils.getDefaultCreateTblStmts(masterEndpoint, aviatorRegexFilter);
+            return ApiResult.getSuccessInstance(result);
+        } catch (Exception e) {
+            logger.error("[[tag=getCreateTableStatements,mha={}]] error,regexFilter is:{} ",mha,regexFilter,e);
             return ApiResult.getFailInstance(null);
         }
     }

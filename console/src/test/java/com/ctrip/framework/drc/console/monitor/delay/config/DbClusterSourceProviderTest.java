@@ -227,7 +227,7 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         dbClusterSourceProvider.drc = tempDrc;
         dbClusterSourceProvider.localDc = "ntgxh";
         List<String> mhaNamesToBeMonitored = Lists.newArrayList("drcNt", "drcNt2", "drcOy", "drcOy2", "drcRb", "drcRb2");
-        Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsNotInLocalDc(mhaNamesToBeMonitored);
+        Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsNotInSrcDc(mhaNamesToBeMonitored,"ntgxh");
         Assert.assertEquals(4, replicators.keySet().size());
         ReplicatorWrapper replicator = replicators.get("drc-Test01.drcOy");
         Assert.assertEquals("127.0.0.2", replicator.getIp());

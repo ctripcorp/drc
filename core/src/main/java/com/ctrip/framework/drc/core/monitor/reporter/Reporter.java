@@ -51,6 +51,8 @@ public interface Reporter extends Ordered {
 
     boolean removeRegister(Map<String, String> tags, String measurement);
 
+    boolean removeRegister(String measurement);
+
     void reportRowsFilter(@Valid RowsFilterEntity rowsFilterEntity);
 
 }

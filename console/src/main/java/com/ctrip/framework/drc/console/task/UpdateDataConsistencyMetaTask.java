@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.console.task;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DataConsistencyMonitorTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
@@ -37,7 +39,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DC
  */
 @Order(2)
 @Component
-public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObserver implements SlaveMySQLEndpointObserver {
+public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObserver implements SlaveMySQLEndpointObserver ,LeaderSwitchable {
 
     @Autowired
     private DbClusterSourceProvider sourceProvider;
@@ -56,6 +58,9 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
 
     @Autowired
     private MetaGenerator metaService;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     public static final int INITIAL_DELAY = 30;
 
@@ -64,6 +69,8 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
     public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
     private static final int DRC_MHA_SIZE = 2;
+    
+    private volatile boolean isRegionLeader = false;
 
     @Override
     public void initialize() {
@@ -73,9 +80,17 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
 
     @Override
     public void scheduledTask() {
-        String updateConsistencySwitch = monitorTableSourceProvider.getUpdateConsistencyMetaSwitch();
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(updateConsistencySwitch)) {
-            updateConsistencyMeta();
+        if (isRegionLeader) {
+            CONSOLE_DC_LOGGER.info("[[task=UpdateDataConsistencyMetaTask]] is leader, going to sync excluded tables");
+            String updateConsistencySwitch = monitorTableSourceProvider.getUpdateConsistencyMetaSwitch();
+            if(SWITCH_STATUS_ON.equalsIgnoreCase(updateConsistencySwitch)) {
+                CONSOLE_DC_LOGGER.info("[[task=UpdateDataConsistencyMetaTask]] updateConsistencyMeta");
+                updateConsistencyMeta();
+            } else {
+                CONSOLE_DC_LOGGER.warn("[[task=UpdateDataConsistencyMetaTask]] is leader but switch is off");
+            }
+        } else {
+            CONSOLE_DC_LOGGER.info("[[task=UpdateDataConsistencyMetaTask]]not a leader do nothing");
         }
     }
 
@@ -155,21 +170,6 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
     }
 
     @Override
-    public void clearOldEndpointResource(Endpoint endpoint) {
-        MySqlUtils.removeSqlOperator(endpoint);
-    }
-
-    @Override
-    public void setLocalDcName() {
-        this.localDcName = sourceProvider.getLocalDcName();
-    }
-
-    @Override
-    public void setOnlyCareLocal() {
-        this.onlyCareLocal = true;
-    }
-
-    @Override
     public int getDefaultInitialDelay() {
         return INITIAL_DELAY;
     }
@@ -182,5 +182,53 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
     @Override
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
+    }
+    
+    @Override
+    public void clearOldEndpointResource(Endpoint endpoint) {
+        MySqlUtils.removeSqlOperator(endpoint);
+    }
+
+    @Override
+    public void setLocalDcName() {
+        this.localDcName = sourceProvider.getLocalDcName();
+    }
+
+    @Override
+    public void setLocalRegionInfo() {
+        this.regionName = consoleConfig.getRegion();
+        this.dcsInRegion = consoleConfig.getDcsInLocalRegion();
+    }
+
+    @Override
+    public void setOnlyCarePart() {
+        this.onlyCarePart = true;
+    }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return this.localDcName.equalsIgnoreCase(metaKey.getDc());
+    }
+    
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+    
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        // do nothing ,waiting next schedule
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        // nothing to do
     }
 }

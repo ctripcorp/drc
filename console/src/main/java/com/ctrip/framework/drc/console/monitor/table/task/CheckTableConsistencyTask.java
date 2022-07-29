@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.table.task;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -26,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_AUTO_INCREMENT_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_TABLE_LOGGER;
 
 /**
@@ -38,7 +41,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_TA
  */
 @Order(2)
 @Component
-public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver {
+public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver, LeaderSwitchable {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
@@ -68,6 +71,8 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
 
     public  final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
+    private volatile boolean isRegionLeader = false;
+    
     @Override
     public void initialize() {
         setInitialDelay(INITIAL_DELAY);
@@ -79,8 +84,10 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
 
     @Override
     public void scheduledTask() {
+        if (isRegionLeader) {
             String tableConsistencyMonitorSwitch = monitorTableSourceProvider.getTableConsistencySwitch();
             if(SWITCH_STATUS_ON.equalsIgnoreCase(tableConsistencyMonitorSwitch)) {
+                CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency]] is Leader,going to check");
                 List<List<DbClusterSourceProvider.Mha>> mhaCombinationList = new ArrayList(dbClusterSourceProvider.getMhaGroupPairs().values());
                 for(List<DbClusterSourceProvider.Mha> mhaCombination : mhaCombinationList) {
                     if(isFilteredOut(mhaCombination)) {
@@ -96,15 +103,15 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
                     Endpoint srcEndpoint = masterMySQLEndpointMap.get(srcMetaKey);
                     Endpoint destEndpoint = masterMySQLEndpointMap.get(dstMetaKey);
                     if (srcEndpoint == null || destEndpoint == null) {
-                        CONSOLE_TABLE_LOGGER.warn("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] mha has no mysql endpoint", 
+                        CONSOLE_TABLE_LOGGER.warn("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] mha has no mysql endpoint",
                                 srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
                         continue;
                     }
                     boolean consistency = checkTableConsistency(srcEndpoint, destEndpoint, srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName());
                     if(consistency) {
                         CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency,direction={}:{},cluster={}]][Report] " +
-                                "Table is consistent between two DCs': {}:{} and {}:{}", 
-                                srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(), 
+                                        "Table is consistent between two DCs': {}:{} and {}:{}",
+                                srcDbCluster.getMhaName(), destDbCluster.getMhaName(), srcDbCluster.getName(),
                                 srcEndpoint.getHost(), srcEndpoint.getPort(), destEndpoint.getHost(), destEndpoint.getPort());
                         DefaultReporterHolder.getInstance().reportTableConsistency(consistencyEntity, ConsistencyEnum.CONSISTENT);
                     } else {
@@ -112,7 +119,14 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
                     }
                     consistencyMapper.put(srcDbCluster.getMhaName()+"."+destDbCluster.getMhaName(), consistency);
                 }
+            } else {
+                CONSOLE_TABLE_LOGGER.warn("[[monitor=tableConsistency]] is Leader,is Leader,but switch is off");
             }
+        } else {
+            DefaultReporterHolder.getInstance().removeRegister("fx.drc.table.consistency");
+            CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency]] not leader,remove monitor");
+        }
+            
     }
 
     protected boolean checkTableConsistency(Endpoint srcEndpoint, Endpoint destEndpoint, String srcMha, String destMha, String cluster) {
@@ -128,11 +142,9 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
             return false;
         }
         CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency]] unionFilter is {} for {}-{}",unionFilter,srcMha,destMha);
-        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
         // key: database.table, value: createTblStmts
-        Map<String, String> srcStmts = MySqlUtils.getDefaultCreateTblStmts(srcEndpoint,aviatorRegexFilter);
-        Map<String, String> destStmts = MySqlUtils.getDefaultCreateTblStmts(destEndpoint,aviatorRegexFilter);
-
+        Map<String, String> srcStmts = getCreateTableStatements(srcMha, unionFilter, srcEndpoint);
+        Map<String, String> destStmts = getCreateTableStatements(destMha, unionFilter, destEndpoint);
 
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
@@ -151,6 +163,14 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         }
         return true;
     }
+    
+    @PossibleRemote(path="/api/drc/v1/local/createTblStmts/query",excludeArguments = {"endpoint"})
+    // key: database.table, value: createTblStmts
+    protected Map<String, String> getCreateTableStatements(String mha,String unionFilter,Endpoint endpoint) {
+        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
+        return MySqlUtils.getDefaultCreateTblStmts(endpoint,aviatorRegexFilter);
+    }
+    
 
     private String checkTableDiff(Map<String, String> srcStmts, Map<String, String> destStmts) {
         Set<String> tableDiff = new HashSet<>(srcStmts.keySet());
@@ -202,14 +222,47 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         return false;
     }
 
-    @Override
-    public void setLocalDcName() {
 
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
     }
 
     @Override
-    public void setOnlyCareLocal() {
-        this.onlyCareLocal = false;
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        // do nothing ,waiting next schedule
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        this.scheduledTask();
+    }
+
+    @Override
+    public void setLocalDcName() {
+        // no need
+    }
+
+    @Override
+    public void setLocalRegionInfo() {
+        // no need
+    }
+
+    @Override
+    public void setOnlyCarePart() {
+        this.onlyCarePart = false;
+    }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return false;
     }
 
     @Override

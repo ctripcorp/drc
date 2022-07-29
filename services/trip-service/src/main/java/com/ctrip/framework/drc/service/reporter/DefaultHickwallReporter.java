@@ -91,6 +91,11 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         if (null == metricName) return true;
         return metrics.remove(metricName);
     }
+    
+    @Override
+    public boolean removeRegister(String measurement) {
+        return metricMapper.entrySet().removeIf(entry -> entry.getValue().getKey().equalsIgnoreCase(measurement));
+    }
 
     @Override
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {

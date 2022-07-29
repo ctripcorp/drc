@@ -174,7 +174,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
     
     public String getDrcMetaXmlUpdateSwitch (){
-        return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_OFF);
+        return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_ON);
     }
 
 

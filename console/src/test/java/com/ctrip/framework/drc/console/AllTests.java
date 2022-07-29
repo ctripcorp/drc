@@ -26,7 +26,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.*;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnectorTest;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
-import com.ctrip.framework.drc.console.monitor.delay.task.InitDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTaskTest;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTaskTest;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtidTest;
@@ -42,7 +41,6 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.task.ApplyModeMigrateTaskTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
-import com.ctrip.framework.drc.console.task.PeriodicalUpdateMhasTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
@@ -143,11 +141,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         CheckGtidTest.class,
         PeriodicalRegisterBeaconTaskTest.class,
         PeriodicalUpdateDbTaskTest.class,
-        PeriodicalUpdateMhasTaskTest.class,
         AbstractMonitorTest.class,
         DdlMonitorTest.class,
         UnitVerificationManagerTest.class,
-        InitDbTaskTest.class,
         UuidMonitorTest.class,
 
         // config

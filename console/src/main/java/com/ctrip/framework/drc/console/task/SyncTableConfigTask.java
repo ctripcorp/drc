@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.TableConfig;
@@ -32,7 +33,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Component
 @DependsOn({"metaInfoServiceImpl"})
-public class SyncTableConfigTask extends AbstractMonitor {
+public class SyncTableConfigTask extends AbstractMonitor implements LeaderSwitchable {
 
     @Autowired
     private DalServiceImpl dalService;
@@ -54,6 +55,8 @@ public class SyncTableConfigTask extends AbstractMonitor {
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
+    private volatile boolean isRegionLeader = false;
+    
     protected void setEnv(Env env) {
         this.env = env;
     }
@@ -67,11 +70,19 @@ public class SyncTableConfigTask extends AbstractMonitor {
 
     @Override
     public void scheduledTask() {
-        String syncMhaSwitch = monitorTableSourceProvider.getSyncTableConfigSwitch();
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-            logger.info("[Sync] excluded tables");
-            updateExcludedTable();
+        if (isRegionLeader) {
+            logger.info("[[task=SyncTableConfigTask]] is leader, going to sync excluded tables");
+            String syncMhaSwitch = monitorTableSourceProvider.getSyncTableConfigSwitch();
+            if(SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                logger.info("[[task=SyncTableConfigTask]] sync excluded tables");
+                updateExcludedTable();
+            } else {
+                logger.warn("[[task=SyncTableConfigTask]] is leader but switch is off");
+            }
+        } else {
+            logger.info("[[task=SyncTableConfigTask]]not a leader do nothing");
         }
+        
     }
 
     protected void updateExcludedTable() {
@@ -130,5 +141,26 @@ public class SyncTableConfigTask extends AbstractMonitor {
             return excludedTables.substring(0, excludedTables.length() - 1);
         }
         return StringUtils.EMPTY;
+    }
+
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        // nothing to do ,wait next schedule
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        // nothing to do
     }
 }

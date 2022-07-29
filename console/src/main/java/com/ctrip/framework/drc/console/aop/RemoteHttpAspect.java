@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.google.common.collect.Sets;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,11 +126,16 @@ public class RemoteHttpAspect {
      * @param joinPoint
      * @return
      */
-    private Map<String, Object> getArguments(ProceedingJoinPoint joinPoint) {
+    private Map<String, Object> getArguments(ProceedingJoinPoint joinPoint) throws NoSuchMethodException{
+        PossibleRemote annotation = getAnnotation(joinPoint);
+        HashSet<String> excludeArgs = Sets.newHashSet(annotation.excludeArguments());
         Map<String, Object> param = new HashMap<>();
         Object[] paramValues = joinPoint.getArgs();
         String[] paramNames = ((MethodSignature)joinPoint.getSignature()).getParameterNames();
         for (int i = 0; i < paramNames.length; i++) {
+            if (excludeArgs.contains(paramNames[i])) {
+                continue;
+            }
             param.put(paramNames[i], paramValues[i]);
         }
         return param;

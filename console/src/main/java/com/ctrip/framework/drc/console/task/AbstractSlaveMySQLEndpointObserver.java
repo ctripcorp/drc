@@ -11,6 +11,7 @@ import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.unidal.tuple.Triple;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,15 +22,19 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor
 
     protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
 
+    protected String regionName;
+    
+    protected List<String> dcsInRegion;
+
     protected String localDcName;
 
-    protected boolean onlyCareLocal;
+    protected boolean onlyCarePart;
+
 
     @Override
     public void initialize() {
         super.initialize();
-        setLocalDcName();
-        setOnlyCareLocal();
+        setObservationRange();
     }
 
     @Override
@@ -40,7 +45,7 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor
             MySqlEndpoint slaveMySQLEndpoint = message.getMiddle();
             ActionEnum action = message.getLast();
 
-            if(onlyCareLocal && !metaKey.getDc().equalsIgnoreCase(localDcName)) {
+            if(onlyCarePart && !isCare(metaKey)) {
                 logger.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, slaveMySQLEndpoint.getSocketAddress());
                 return;
             }
@@ -65,8 +70,19 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor
     }
 
     public abstract void clearOldEndpointResource(Endpoint endpoint);
-
+    
     public abstract void setLocalDcName();
 
-    public abstract void setOnlyCareLocal();
+    public abstract void setLocalRegionInfo();
+
+    public abstract void setOnlyCarePart();
+
+    public abstract boolean isCare(MetaKey metaKey);
+
+    private void setObservationRange() {
+        setOnlyCarePart();
+        setLocalDcName();
+        setLocalRegionInfo();
+    }
+
 }

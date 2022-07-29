@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_OFF;
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 
 @Component
@@ -21,7 +21,7 @@ public class CompositeConfig extends AbstractConfig implements Config {
 
     @Override
     public void updateConfig() {
-        if (monitorTableSourceProvider.getDrcMetaXmlUpdateSwitch().equals(SWITCH_STATUS_OFF)) {
+        if (monitorTableSourceProvider.getDrcMetaXmlUpdateSwitch().equals(SWITCH_STATUS_ON)) {
             for (Config config : configs) {
                 config.updateConfig();
                 String c = config.getConfig();

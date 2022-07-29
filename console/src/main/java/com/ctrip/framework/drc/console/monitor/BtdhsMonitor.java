@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.console.monitor;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Component;
 import org.unidal.tuple.Triple;
 
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.console.enums.LogTypeEnum.ERROR;
@@ -43,7 +47,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
 @Order(2)
 @Component
 @DependsOn("dbClusterSourceProvider")
-public class BtdhsMonitor extends AbstractMonitor implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
+public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver, LeaderSwitchable {
 
     public Logger logger = LoggerFactory.getLogger(CONSOLE_MYSQL_LOG);
 
@@ -57,39 +61,49 @@ public class BtdhsMonitor extends AbstractMonitor implements MasterMySQLEndpoint
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private static final String BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE = "show global variables like \"binlog_transaction_dependency_history_size\";";
 
     private static final int BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX = 2;
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
-
-    protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
-
-    protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
+    
 
     private String localDcName;
+    
+    private List<String> dcsInRegion;
 
+    private volatile boolean isRegionLeader = false;
+    
     @Override
     public void initialize() {
         super.initialize();
-        localDcName = sourceProvider.getLocalDcName();
         currentMetaManager.addObserver(this);
     }
 
     @Override
     public void scheduledTask() {
-        String btdhsMonitorSwitch = monitorTableSourceProvider.getBtdhsMonitorSwitch();
-        if(!SWITCH_STATUS_ON.equalsIgnoreCase(btdhsMonitorSwitch)) {
-            return;
+        if (isRegionLeader) {
+            logger.info("[[monitor=btdhs]] is a leader,going to monitor");
+            String btdhsMonitorSwitch = monitorTableSourceProvider.getBtdhsMonitorSwitch();
+            if(!SWITCH_STATUS_ON.equalsIgnoreCase(btdhsMonitorSwitch)) {
+                logger.info("[[monitor=btdhs]] btdhsMonitor switch close");
+                return;
+            }
+            for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
+                monitorBtdhs(entry);
+            }
+            for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
+                monitorBtdhs(entry);
+            }
+        } else {
+            reporter.removeRegister(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
+            logger.info("[[monitor=btdhs]] not leader,remove monitor");
         }
-
-        for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
-            monitorBtdhs(entry);
-        }
-        for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
-            monitorBtdhs(entry);
-        }
+        
     }
 
     private void monitorBtdhs(Map.Entry<MetaKey, MySqlEndpoint> entry) {
@@ -157,7 +171,7 @@ public class BtdhsMonitor extends AbstractMonitor implements MasterMySQLEndpoint
         MySqlEndpoint mySQLEndpoint = msg.getMiddle();
         ActionEnum action = msg.getLast();
 
-        if(!metaKey.getDc().equalsIgnoreCase(localDcName)) {
+        if(!dcsInRegion.contains(metaKey.getDc())) {
             CONSOLE_MYSQL_LOGGER.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, mySQLEndpoint.getSocketAddress());
             return;
         }
@@ -180,5 +194,53 @@ public class BtdhsMonitor extends AbstractMonitor implements MasterMySQLEndpoint
                 reporter.removeRegister(getEntity(oldEndpoint,metaKey).getTags(),BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
             }
         }
+    }
+
+    @Override
+    public void clearResource(Endpoint endpoint, MetaKey metaKey) {
+        reporter.removeRegister(getEntity(endpoint,metaKey).getTags(),BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
+    }
+
+    @Override
+    public void setLocalDcName() {
+        localDcName = sourceProvider.getLocalDcName();
+    }
+
+    @Override
+    public void setLocalRegionInfo() {
+        this.regionName = consoleConfig.getRegion();
+        this.dcsInRegion = consoleConfig.getDcsInLocalRegion();
+    }
+
+    @Override
+    public void setOnlyCarePart() {
+        this.onlyCarePart = true;
+    }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return this.dcsInRegion.contains(metaKey.getDc());
+    }
+
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        // do nothing ,waiting next schedule
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        this.scheduledTask();
     }
 }

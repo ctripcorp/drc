@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
@@ -29,7 +30,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Component
 @DependsOn({"dalServiceImpl", "drcMaintenanceServiceImpl"})
-public class SyncMhaTask extends AbstractMonitor implements Monitor {
+public class SyncMhaTask extends AbstractMonitor implements Monitor , LeaderSwitchable {
 
     public static final int INITIAL_DELAY = 1;
 
@@ -46,19 +47,29 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
+    private volatile boolean isRegionLeader = false;
+    
     @Override
     public void scheduledTask() {
         try {
-            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", () -> {
-                String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
-                if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-                    logger.info("[[task=syncMhaTask]]sync all mha instance group");
-                    Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
-                    updateAllMhaInstanceGroup(mhaInstanceGroupMap);
-                }
-            });
+            if (isRegionLeader) {
+                logger.info("[[task=syncMhaTask]]is leader");
+                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", () -> {
+                    String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
+                    if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                        logger.info("[[task=syncMhaTask]]sync all mha instance group");
+                        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+                        updateAllMhaInstanceGroup(mhaInstanceGroupMap);
+                    } else {
+                        logger.warn("[[task=syncMhaTask]] is leader but switch is off");
+                    }
+                });
+            } else {
+                logger.info("[[task=syncMhaTask]]not a leader do nothing");
+            }
+            
         } catch (Throwable t) {
-            logger.info("[[task=SyncMhaTask]]cluster manager check error", t);
+            logger.info("[[task=syncMhaTask]]cluster manager check error", t);
         }
 
     }
@@ -88,5 +99,26 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor {
     @Override
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
+    }
+
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        this.scheduledTask();
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        // nothing to do
     }
 }

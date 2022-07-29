@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.consistency.container.ConsistencyCheckContainer;
 import com.ctrip.framework.drc.console.monitor.consistency.instance.InstanceConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
@@ -17,6 +18,7 @@ import com.ctrip.framework.drc.core.monitor.entity.ConsistencyEntity;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
@@ -49,7 +51,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DC
  */
 @Order(2)
 @Component
-public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLEndpointObserver {
+public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLEndpointObserver , LeaderSwitchable {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -95,6 +97,8 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
 
     private ScheduledExecutorService updateDataConsistencyCheckTableScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("UpdateDataConsistencyCheckTable-Check");
 
+    private volatile boolean isRegionLeader = false;
+    
     @PostConstruct
     public void init() throws Exception {
         String generalDataConsistentMonitorSwitch = monitorTableSourceProvider.getGeneralDataConsistentMonitorSwitch();
@@ -104,17 +108,26 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
             checkContainer.initialize();
             checkContainer.start();
             currentMetaManager.addObserver(this);
-            updateDataConsistencyCheckTableScheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
+            updateDataConsistencyCheckTableScheduledExecutorService.scheduleWithFixedDelay(() -> {
+                try {
+                    if (isRegionLeader) {
                         schedule();
                         logger.info("startUpdateCheck");
-                    } catch (Throwable t) {
-                        logger.error("update data consistency check table error", t);
+                    } else {
+                        removeAllConsistencyCheck();
                     }
+                } catch (Throwable t) {
+                    logger.error("update data consistency check table error", t);
                 }
             }, INITIAL_DELAY, DELAY, TimeUnit.MINUTES);
+        }
+    }
+
+    private void removeAllConsistencyCheck() throws Exception {
+        Set<String> consistencyCheckSet = checkContainer.getConsistencyCheckSet();
+        for (String tableSchema : consistencyCheckSet) {
+            checkContainer.removeConsistencyCheck(tableSchema);
+            CONSOLE_DC_LOGGER.info("[Remove] tableSchema is:{}", tableSchema);
         }
     }
 
@@ -208,7 +221,7 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
                 }
             }
             if (dstEndpoint == null) {
-                logger.warn("[UpdateConsistencyMonitor] dataConsistencyMonitorTbl(id: {}),dst endpoint is null");
+                logger.warn("[UpdateConsistencyMonitor] dataConsistencyMonitorTbl(id: {}),dst endpoint is null",dataConsistencyMonitorTbl.getId());
                 continue;
             }
             InstanceConfig instanceConfig = getInstanceConfig(dataConsistencyMonitorTbl.getMonitorTableName(), srcEndpoint, dstEndpoint, delayMonitorConfig);
@@ -429,5 +442,28 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
         config.setEndTimeStamp(testConfig.getEndTimeStamp());
         config.setStartTimestamp(testConfig.getStartTimestamp());
         return config;
+    }
+    
+    
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        this.schedule();
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        this.removeAllConsistencyCheck();
     }
 }

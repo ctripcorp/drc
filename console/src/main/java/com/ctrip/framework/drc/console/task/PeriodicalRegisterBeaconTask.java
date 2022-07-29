@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.ClusterTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.core.service.beacon.RegisterDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.core.service.beacon.BeaconResult;
@@ -36,7 +37,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  */
 @Component
 @DependsOn({"metaInfoServiceImpl"})
-public class PeriodicalRegisterBeaconTask extends AbstractMonitor {
+public class PeriodicalRegisterBeaconTask extends AbstractMonitor implements LeaderSwitchable {
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
@@ -69,6 +70,8 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor {
         this.env = env;
     }
 
+    private volatile boolean isRegionLeader = false;
+    
     @Override
     public void initialize() {
         setInitialDelay(REGISTER_INITIAL_DELAY);
@@ -78,7 +81,13 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor {
 
     @Override
     public void scheduledTask() {
-        updateBeaconRegistration();
+        if (isRegionLeader) {
+            logger.info("[Beacon] is leader register beacon");
+            updateBeaconRegistration();
+        } else {
+            logger.info("[Beacon] not a leader, do nothing");
+        }
+        
     }
 
     protected Pair<Set<String>, Set<String>> updateBeaconRegistration() {
@@ -213,5 +222,26 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor {
             }
         }
         return false;
+    }
+
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        this.scheduledTask();
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        // nothing to do
     }
 }

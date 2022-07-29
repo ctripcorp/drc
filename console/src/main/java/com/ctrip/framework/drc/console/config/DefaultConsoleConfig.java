@@ -21,6 +21,11 @@ import java.util.*;
 @Component("defaultConsoleConfig")
 public class DefaultConsoleConfig extends AbstractConfigBean {
 
+    public static String KEY_LOCAL_REGION = "region";
+    public static String DEFAULT_REGION = "";
+    public static String KEY_REGIONS_INFO = "regions.info";
+    public static String DEFAULT_REGIONS_INFO = "";
+    
     public static String KEY_DC_INFOS = "drc.dcinfos";
 
     public static String DBA_DC_INFOS = "dba.dcinfos";
@@ -89,6 +94,24 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public DefaultConsoleConfig() {
+    }
+    
+    public String getRegion(){
+        return getProperty(KEY_LOCAL_REGION,DEFAULT_REGION);
+    }
+    
+    public Map<String,List<String>> getRegionsInfo(){
+        String regionsInfo = getProperty(KEY_REGIONS_INFO, DEFAULT_REGIONS_INFO);
+        if(StringUtils.isEmpty(regionsInfo)) {
+            return Maps.newHashMap();
+        } else {
+            return JsonCodec.INSTANCE.decode(regionsInfo, new GenericTypeReference<Map<String, List<String>>>() {});
+        }
+    }
+    public List<String> getDcsInLocalRegion() {
+        String region = getRegion();
+        Map<String, List<String>> regionsInfo = getRegionsInfo();
+        return  regionsInfo.get(region);
     }
     
     public int getConflictMhaRecordSearchTime() {

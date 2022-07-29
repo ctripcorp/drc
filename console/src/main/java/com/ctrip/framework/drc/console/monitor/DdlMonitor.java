@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.dao.entity.DdlHistoryTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
@@ -36,7 +37,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.TRUNCATE_CONSISTENCY_MEASUREMENT;
 
 @Component
-public class DdlMonitor extends AbstractMonitor implements Monitor {
+public class DdlMonitor extends AbstractMonitor implements Monitor , LeaderSwitchable {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
@@ -66,6 +67,8 @@ public class DdlMonitor extends AbstractMonitor implements Monitor {
     public static final int CONSISTENT_TRUNCATE_SET_SIZE = 1;
 
     public static final String CLEAN_SQL = "delete from ddl_history_tbl where datachange_lasttime < date_sub(CURRENT_TIMESTAMP(3), interval %s hour);";
+    
+    private volatile boolean isRegionLeader = false;
 
     @Override
     public void initialize() {
@@ -76,7 +79,7 @@ public class DdlMonitor extends AbstractMonitor implements Monitor {
 
     @Override
     public void scheduledTask() {
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getTruncateConsistentMonitorSwitch())) {
+        if(SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getTruncateConsistentMonitorSwitch()) && isRegionLeader) {
             try {
                 Map<DdlMonitorItem, Map<String, AtomicInteger>> allItemTruncateHistory = buildTruncateHistoryMap();
                 Set<DdlMonitorItem> inconsistentItem = checkTruncateInconsistency(allItemTruncateHistory);
@@ -180,6 +183,29 @@ public class DdlMonitor extends AbstractMonitor implements Monitor {
         builder.setTemplate(sql);
         StatementParameters parameters = new StatementParameters();
         return dalUtils.getDalQueryDao().update(builder, parameters, new DalHints());
+    }
+
+    @Override
+    public void isleader() {
+        isRegionLeader = true;
+        this.switchToStart();
+    }
+
+    @Override
+    public void notLeader() {
+        isRegionLeader = false;
+        this.switchToStop();
+    }
+
+
+    @Override
+    public void doSwitchToStart() throws Throwable {
+        this.scheduledTask();
+    }
+
+    @Override
+    public void doSwitchToStop() throws Throwable {
+        // nothing to do
     }
 
     public static final class DdlMonitorItem {
