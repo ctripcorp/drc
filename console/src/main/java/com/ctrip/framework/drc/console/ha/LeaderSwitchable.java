@@ -16,6 +16,7 @@ public interface LeaderSwitchable extends LeaderAware {
         LeaderSwitchUtil.getWorkers().submit(
                 () -> {
                     try {
+                        logger.info("[[tag=leaderSwitch]] {} switchToStart",this.getClass().getSimpleName());
                         this.doSwitchToStart();
                     } catch (Throwable t) {
                         logger.info("switch to start error");
@@ -29,6 +30,7 @@ public interface LeaderSwitchable extends LeaderAware {
         LeaderSwitchUtil.getWorkers().submit(
                 () -> {
                     try {
+                        logger.info("[[tag=leaderSwitch]] {} switchToStop",this.getClass().getSimpleName());
                         this.doSwitchToStop();
                     } catch (Throwable t) {
                         logger.info("switch to stop error");

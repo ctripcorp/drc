@@ -428,14 +428,14 @@ public class ListenReplicatorTask implements LeaderSwitchable {
     public void isleader() {
         isRegionLeader = true;
         // quick start
-        this.doSwitchToStart();
+        this.switchToStart();
     }
 
     @Override
     public void notLeader() {
         isRegionLeader = false;
         // stop quickly
-        this.doSwitchToStop();
+        this.switchToStop();
     }
     
     @Override
