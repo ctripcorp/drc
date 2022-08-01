@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -77,7 +78,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     private DalUtils dalUtils = DalUtils.getInstance();
 
     private Long mhaGroupId = 1L;
-
+    
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -275,6 +276,10 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     }
 
     private void init() throws SQLException {
+        Map<String,String> dc2regionMap = Maps.newHashMap();
+        dc2regionMap.put("shaoy","sha");
+        dc2regionMap.put("sharb","sha");
+        Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
         mock();
     }
 

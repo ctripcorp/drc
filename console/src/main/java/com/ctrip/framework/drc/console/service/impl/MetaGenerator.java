@@ -341,6 +341,10 @@ public class MetaGenerator {
         );
     }
 
+    public Map<String, String> getDc2regionMap() {
+        return dc2regionMap;
+    }
+
     public List<BuTbl> getBuTbls() {
         return buTbls;
     }

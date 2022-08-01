@@ -77,6 +77,8 @@ MetaInfoServiceImpl implements MetaInfoService {
     private DalUtils dalUtils = DalUtils.getInstance();
 
     private Env env = Foundation.server().getEnv();
+    
+    private Map<String, String> dc2regionMap;
 
     public List<MhaTbl> getMhaTbls(Long mhaGroupId) throws SQLException {
         Set<Long> mhaIds = dalUtils.getGroupMappingTblDao().queryAll().stream()
@@ -320,6 +322,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             if(MHA_GROUP_SIZE != mhaTbls.size()) {
                 return XmlUtils.formatXML(drc.toString());
             }
+            dc2regionMap = metaService.getDc2regionMap();
             // one2many consider use mhaTbl.getDeleted();
             generateViewDbCluster(drc, mhaTbls.get(0), mhaTbls.get(1),isDeleted); // BooleanEnum
             generateViewDbCluster(drc, mhaTbls.get(1), mhaTbls.get(0),isDeleted); // BooleanEnum
@@ -337,6 +340,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             if(MHA_GROUP_SIZE != mhaTbls.size()) {
                 return XmlUtils.formatXML(drc.toString());
             }
+            dc2regionMap = metaService.getDc2regionMap();
             generateViewDbCluster(drc, mhaTbls.get(0), mhaTbls.get(1));
             generateViewDbCluster(drc, mhaTbls.get(1), mhaTbls.get(0));
         } catch (SQLException e) {
@@ -552,6 +556,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     private Dc generateDcFrame(Drc drc, String dcName) {
         logger.info("generate view dc: {}", dcName);
         Dc dc = new Dc(dcName);
+        dc.setRegion(dc2regionMap.get(dcName));
         drc.addDc(dc);
         return dc;
     }
@@ -695,6 +700,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             applier.setIp(resourceTbl.getIp())
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetIdc)
+                    .setTargetRegion(dc2regionMap.get(targetIdc))
                     .setTargetMhaName(targetMhaTbl.getMhaName())
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
