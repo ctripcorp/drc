@@ -183,6 +183,7 @@ public class LocalController {
             @RequestParam String sql,
             @RequestParam int index) {
         try {
+            logger.error("[[tag=getCreateTableStatements,mha={}]] sql:{}",mha,sql);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
             Integer result = MySqlUtils.getSqlResultInteger(masterEndpoint, sql, index);
             return ApiResult.getSuccessInstance(result);
@@ -195,6 +196,7 @@ public class LocalController {
     @GetMapping("createTblStmts/query")
     public ApiResult getCreateTableStatements(@RequestParam String mha,@RequestParam String regexFilter) {
         try {
+            logger.error("[[tag=getCreateTableStatements,mha={}]] regexFilter:{}",mha,regexFilter);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(regexFilter);
             Map<String, String> result = MySqlUtils.getDefaultCreateTblStmts(masterEndpoint, aviatorRegexFilter);

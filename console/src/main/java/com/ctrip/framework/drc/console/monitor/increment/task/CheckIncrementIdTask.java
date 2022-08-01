@@ -123,9 +123,9 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
             }
             CONSOLE_AUTO_INCREMENT_LOGGER.debug("{}({})", metaKey, endpoint.getSocketAddress());
             try {
-                Integer autoIncrementIncrement = getAutoIncrementStep(CHECK_INCREMENT_SQL, endpoint);
+                Integer autoIncrementIncrement = getAutoIncrementStep(mhaName, endpoint);
                 autoIncrementIncrementSet.add(autoIncrementIncrement);
-                Integer autoIncrementOffset = getAutoIncrementOffSet(CHECK_OFFSET_SQL, endpoint);
+                Integer autoIncrementOffset = getAutoIncrementOffSet(mhaName, endpoint);
                 autoIncrementOffsetSet.add(autoIncrementOffset);
                 CONSOLE_AUTO_INCREMENT_LOGGER.debug("{}({}). INCREMENT:{}, OFFSET:{}", metaKey, endpoint.getSocketAddress(), autoIncrementIncrement, autoIncrementOffset);
             } catch (Throwable t) {

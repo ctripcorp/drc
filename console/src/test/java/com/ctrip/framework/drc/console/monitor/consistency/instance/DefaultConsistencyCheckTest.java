@@ -51,7 +51,7 @@ public class DefaultConsistencyCheckTest {
                 .srcMysqlPort(SRC_PORT)
                 .destMysqlIp(MYSQL_IP)
                 .destMysqlPort(DST_PORT)
-                .mhaName("mhaName1")
+                .mhaName("fat-fx-drc1")
                 .build();
         instanceConfig.setConsistencyEntity(consistencyEntity);
 
