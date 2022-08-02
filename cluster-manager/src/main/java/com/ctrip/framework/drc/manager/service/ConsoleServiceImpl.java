@@ -94,4 +94,23 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         }
         return null;
     }
+
+    public String getDbClusters(String dcId) {
+        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
+
+        DcInfo dcInfo = dcInfoMap.get(dcId);
+        if(null != dcInfo) {
+            String url = String.format(dcInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+            try {
+                long s = System.currentTimeMillis();
+                String localDbClusters = restTemplate.getForObject(url, String.class);
+                long e = System.currentTimeMillis();
+                logger.info("[meta] for local dc, took {}ms", e-s);
+                return localDbClusters;
+            } catch (Exception e) {
+                logger.error("[meta] for local dc, ", e);
+            }
+        }
+        return null;
+    }
 }
