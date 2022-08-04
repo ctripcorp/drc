@@ -13,10 +13,7 @@ import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -91,16 +88,24 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements D
 
     @Override
     public void clusterAdded(DbCluster dbCluster) {
-
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(dbCluster.getId()) != null).findFirst();
+        if (defaultDcCache.isPresent()) {
+            defaultDcCache.get().clusterAdded(dbCluster);
+        } else {
+            int random = new Random().nextInt(dcCaches.size());
+            dcCaches.get(random).clusterAdded(dbCluster);
+        }
     }
 
     @Override
     public void clusterModified(DbCluster dbCluster) {
-
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(dbCluster.getId()) != null).findFirst();
+        defaultDcCache.ifPresent(dcCache -> dcCache.clusterModified(dbCluster));
     }
 
     @Override
     public void clusterDeleted(String registryKey) {
-
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(registryKey) != null).findFirst();
+        defaultDcCache.ifPresent(dcCache -> dcCache.clusterDeleted(registryKey));
     }
 }

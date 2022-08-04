@@ -25,7 +25,7 @@ public class DbClusterSourceProvider extends AbstractConfigBean implements Sourc
 
     @Override
     public Dc getDc(String dcId) {
-        String dbClusterString = consoleService.getLocalDbClusters();
+        String dbClusterString = consoleService.getDbClusters(dcId);
         try {
             Drc drc = DefaultSaxParser.parse(dbClusterString);
             Dc dc = drc.getDcs().get(dcId);
