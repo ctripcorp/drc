@@ -98,7 +98,7 @@ public class DefaultConsoleConfigTest {
     @Test 
     public void testGetLocalConfigCloudDc() {
         Set<String> localConfigCloudDc = config.getLocalConfigCloudDc();
-        Assert.assertEquals(1,localConfigCloudDc.size());
+        Assert.assertEquals(2,localConfigCloudDc.size());
     }
     
     @Test
@@ -119,4 +119,16 @@ public class DefaultConsoleConfigTest {
         int conflictMhaRecordSearchTime = config.getConflictMhaRecordSearchTime();
         Assert.assertEquals(120,conflictMhaRecordSearchTime);
     }
+
+    
+    
+    @Test
+    public void testTestGetCMMetaServerAddress() {
+        String cmUrl = config.getCMMetaServerAddress("shaoy");
+        Assert.assertEquals("http://oy",cmUrl);
+        config.setSwitchCmRegionUrl("on");
+        cmUrl = config.getCMMetaServerAddress("shaoy");
+        Assert.assertEquals("http://cm.drc.sha",cmUrl);
+    }
+    
 }

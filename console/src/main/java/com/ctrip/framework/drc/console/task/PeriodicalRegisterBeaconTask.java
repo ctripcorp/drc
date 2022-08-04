@@ -3,11 +3,10 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.ClusterTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.core.service.beacon.RegisterDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.core.service.beacon.BeaconResult;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.HealthServiceImpl;
@@ -22,6 +21,7 @@ import com.google.common.collect.Sets;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -36,8 +36,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * date: 2020-10-10
  */
 @Component
+@Order(2)
 @DependsOn({"metaInfoServiceImpl"})
-public class PeriodicalRegisterBeaconTask extends AbstractMonitor implements LeaderSwitchable {
+public class PeriodicalRegisterBeaconTask extends AbstractLeaderAwareMonitor {
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
@@ -69,8 +70,6 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor implements Lea
     protected void setEnv(Env env) {
         this.env = env;
     }
-
-    private volatile boolean isRegionLeader = false;
     
     @Override
     public void initialize() {
@@ -87,7 +86,6 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor implements Lea
         } else {
             logger.info("[Beacon] not a leader, do nothing");
         }
-        
     }
 
     protected Pair<Set<String>, Set<String>> updateBeaconRegistration() {
@@ -223,25 +221,14 @@ public class PeriodicalRegisterBeaconTask extends AbstractMonitor implements Lea
         }
         return false;
     }
-
+    
     @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-    @Override
-    public void doSwitchToStart() throws Throwable {
+    public void switchToLeader() throws Throwable {
         this.scheduledTask();
     }
 
     @Override
-    public void doSwitchToStop() throws Throwable {
+    public void switchToSlave() throws Throwable {
         // nothing to do
     }
 }

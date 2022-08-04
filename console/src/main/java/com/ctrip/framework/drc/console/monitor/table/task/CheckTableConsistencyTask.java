@@ -22,13 +22,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_AUTO_INCREMENT_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_TABLE_LOGGER;
 
 /**
@@ -70,8 +67,6 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
     public  final int PERIOD = MonitorTableSourceProvider.getInstance().getTableConsistencyMonitorPeriod();
 
     public  final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-
-    private volatile boolean isRegionLeader = false;
     
     @Override
     public void initialize() {
@@ -220,29 +215,6 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
             }
         }
         return false;
-    }
-
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        // do nothing ,waiting next schedule
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.scheduledTask();
     }
 
     @Override

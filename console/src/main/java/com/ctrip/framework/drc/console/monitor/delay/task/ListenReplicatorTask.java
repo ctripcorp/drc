@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorComparator;
 import com.ctrip.framework.drc.console.monitor.comparator.ReplicatorWrapperComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -58,7 +58,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Order(1)
 @Component("listenReplicatorTask")
 @DependsOn("dbClusterSourceProvider")
-public class ListenReplicatorTask implements LeaderSwitchable {
+public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -108,28 +108,18 @@ public class ListenReplicatorTask implements LeaderSwitchable {
     @Autowired
     private MonitorService monitorService;
     
-    private volatile boolean isRegionLeader = false;
-    
-
-    /**
-     * periodical check the master replicator
-     */
-    private ScheduledExecutorService updateListenReplicatorScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("update-listen-replicator-scheduledExecutorService");
-
     private ExecutorService handleChangeExecutor = ThreadUtils.newFixedThreadPool(OsUtils.getCpuCount(), "handle-listen-replicator-change-executor");
-    
-    @PostConstruct
-    private void listen() {
-        listenReplicator();
+
+    @Override
+    public void initialize() {
+        setInitialDelay(INITIAL_DELAY);
+        setPeriod(PERIOD);
+        setTimeUnit(TimeUnit.SECONDS);
+        super.initialize();
     }
 
-    private void listenReplicator() {
-        updateListenReplicatorScheduledExecutorService.scheduleWithFixedDelay(
-                this::schedule, 
-                INITIAL_DELAY, PERIOD, TimeUnit.SECONDS);
-    }
-
-    public void schedule() {
+    @Override
+    public void scheduledTask() {
         try {
             if (isRegionLeader) {
                 if ((SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch()))) {
@@ -345,7 +335,7 @@ public class ListenReplicatorTask implements LeaderSwitchable {
     @VisibleForTesting
     protected void updateListenReplicators() throws SQLException {
         List<String> mhasToBeMonitored = monitorService.getMhaNamesToBeMonitored();
-        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNotInLocalRegion(mhasToBeMonitored);
+        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNeeded(mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers);
     }
 
@@ -422,30 +412,6 @@ public class ListenReplicatorTask implements LeaderSwitchable {
                 logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
                 break;
         }
-    }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        // quick start
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        // stop quickly
-        this.switchToStop();
-    }
-    
-    @Override
-    public void doSwitchToStart() {
-        this.schedule();
-    }
-
-    @Override
-    public void doSwitchToStop() {
-        this.schedule();
     }
     
 }

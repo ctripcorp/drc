@@ -39,7 +39,6 @@ import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
-import com.ctrip.framework.drc.console.task.ApplyModeMigrateTaskTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
@@ -181,7 +180,6 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DelayMonitorPooledConnectorTest.class,
 
         ListenReplicatorTaskTest.class,
-        ApplyModeMigrateTaskTest.class,
 
         //entity
         MhaInstanceGroupDtoTest.class,

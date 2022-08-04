@@ -5,6 +5,7 @@ import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -22,11 +23,19 @@ import java.util.*;
 public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public static String KEY_LOCAL_REGION = "region";
-    public static String DEFAULT_REGION = "";
+    public static String DEFAULT_REGION = "sha";
     public static String KEY_REGIONS_INFO = "regions.info";
-    public static String DEFAULT_REGIONS_INFO = "";
+    public static String DEFAULT_REGIONS_INFO = "{\"sha\":[\"sharb\",\"shaoy\"],\"nt\":[\"ntgxh\",\"ntgxy\"]}";
     
     public static String KEY_DC_INFOS = "drc.dcinfos";
+    public static final String CM_REGION_URLS= "cm.region.urls";
+    public static final String DEFAULT_CM_REGION_URLS= "{\"sha\":\"http://cm.drc.sha\", \"nt\":\"http://cm.drc.nt\"}";
+    public static final String SWITCH_META_ROLL_BACK = "switch.meta.roll.back";
+    public static final String SWITCH_CM_REGION_URL = "switch.cm.region.url";
+    public static final String SWITCH_ON = "on";
+    public static final String SWITCH_OFF = "off";
+    
+    public static String DEFAULT_SWITCH_CM_REGION_URL = "off";
 
     public static String DBA_DC_INFOS = "dba.dcinfos";
 
@@ -74,7 +83,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
     
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
-    private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws";
+    private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
     private static String LOCAL_CONFIG_MONITOR_MHAS = "local.config.monitor.mhas";
     private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
     private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
@@ -108,6 +117,16 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
             return JsonCodec.INSTANCE.decode(regionsInfo, new GenericTypeReference<Map<String, List<String>>>() {});
         }
     }
+
+    public Map<String,String> getDc2regionMap (){
+        Map<String, List<String>> regionsInfo = getRegionsInfo();
+        Map<String,String> dc2regionMap = Maps.newHashMap();
+        regionsInfo.forEach(
+                (region, dcs) -> dcs.forEach(dc -> dc2regionMap.put(dc, region))
+        );
+        return dc2regionMap;
+    }
+    
     public List<String> getDcsInLocalRegion() {
         String region = getRegion();
         Map<String, List<String>> regionsInfo = getRegionsInfo();
@@ -123,6 +142,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return Long.parseLong(timeStr);
     }
 
+    public Map<String,String> getCMRegionUrls() {
+        String cmUrlsStr = getProperty(CM_REGION_URLS, DEFAULT_CM_REGION_URLS);
+        return JsonCodec.INSTANCE.decode(cmUrlsStr, new GenericTypeReference<Map<String, String>>() {});
+    }
+    
     public Map<String, DcInfo> getDcInfos() {
         String dcInfoStr = getProperty(KEY_DC_INFOS, defaultDcInfos);
         logger.info("[[monitor=delay]] {}={}", KEY_DC_INFOS, dcInfoStr);
@@ -168,6 +192,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public void setDefaultDcInfos(String defaultDcInfos) {
         this.defaultDcInfos = defaultDcInfos;
     }
+    
+    // for test turn on switch
+    @VisibleForTesting
+    protected void setSwitchCmRegionUrl(String switchCmRegionUrl) {
+        DEFAULT_SWITCH_CM_REGION_URL = switchCmRegionUrl;
+    }
 
     public void setDefaultDbaDcInfos(String defaultDbaDcInfos) {
         this.defaultDbaDcInfos = defaultDbaDcInfos;
@@ -190,13 +220,25 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public String getCMMetaServerAddress(String dc) {
-        Map<String, DcInfo> dcInfos = getDcInfos();
-        DcInfo dcInfo = dcInfos.get(dc);
-        if (dcInfo != null) {
-            return dcInfo.getMetaServerAddress();
+        if (SWITCH_ON.equalsIgnoreCase(getSwitchCmRegionUrl())) {
+            Map<String, String> dc2regionMap = getDc2regionMap();
+            String region = dc2regionMap.get(dc);
+            Map<String, String> cmRegionUrls = getCMRegionUrls();
+            String cmMetaServerAddress = cmRegionUrls.get(region);
+            if (StringUtils.isEmpty(cmMetaServerAddress)) {
+                logger.warn("[getCMMetaServerAddress] not configured for dc:{},region:{}", dc,region);
+            }
+            return cmMetaServerAddress;
+
+        } else {
+            Map<String, DcInfo> dcInfos = getDcInfos();
+            DcInfo dcInfo = dcInfos.get(dc);
+            if (dcInfo != null) {
+                return dcInfo.getMetaServerAddress();
+            }
+            logger.warn("[getCMMetaServerAddress] not configured for {}", dc);
+            return null;
         }
-        logger.warn("[getCMMetaServerAddress] not configured for {}", dc);
-        return null;
     }
 
     private Map<String, String> getDbaDcInfoMapping() {
@@ -345,5 +387,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getGrayMhaSwitch() {
         return getProperty(CONSOLE_GRAY_MHA_SWITCH, DEFAULT_CONSOLE_GRAY_MHA_SWITCH);
+    }
+    
+    public String getSwitchCmRegionUrl() {
+        return getProperty(SWITCH_CM_REGION_URL,DEFAULT_SWITCH_CM_REGION_URL);
+    }
+    
+    public String getSwitchMetaRollBack() {
+        return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
     }
 }

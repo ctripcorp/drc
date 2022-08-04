@@ -28,7 +28,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * date: 2019-12-25
  * periodically check whether there is missing gtid
  */
-@Order(2)
+@Order(1)
 @Component
 public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver , LeaderSwitchable {
 
@@ -55,8 +55,6 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
 
     @Autowired
     private CheckGtid checkGtid;
-
-    private volatile boolean isRegionLeader = false;
     
     @Override
     public void initialize() {
@@ -122,26 +120,5 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        this.scheduledTask();
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.scheduledTask();
-    }
+    
 }

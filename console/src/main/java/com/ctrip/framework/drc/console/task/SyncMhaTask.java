@@ -3,8 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -12,9 +11,9 @@ import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
-import com.ctrip.xpipe.api.monitor.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,8 +28,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * date: 2020-07-27
  */
 @Component
+@Order(1)
 @DependsOn({"dalServiceImpl", "drcMaintenanceServiceImpl"})
-public class SyncMhaTask extends AbstractMonitor implements Monitor , LeaderSwitchable {
+public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     public static final int INITIAL_DELAY = 1;
 
@@ -46,8 +46,6 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor , LeaderSwit
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
-
-    private volatile boolean isRegionLeader = false;
     
     @Override
     public void scheduledTask() {
@@ -67,7 +65,6 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor , LeaderSwit
             } else {
                 logger.info("[[task=syncMhaTask]]not a leader do nothing");
             }
-            
         } catch (Throwable t) {
             logger.info("[[task=syncMhaTask]]cluster manager check error", t);
         }
@@ -100,25 +97,5 @@ public class SyncMhaTask extends AbstractMonitor implements Monitor , LeaderSwit
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        this.scheduledTask();
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        // nothing to do
-    }
+    
 }

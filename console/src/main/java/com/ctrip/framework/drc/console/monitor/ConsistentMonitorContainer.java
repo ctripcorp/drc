@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.consistency.container.ConsistencyCheckContainer;
 import com.ctrip.framework.drc.console.monitor.consistency.instance.InstanceConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
@@ -41,6 +40,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor.leaderSwitchWorkers;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DC_LOGGER;
@@ -51,7 +51,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DC
  */
 @Order(2)
 @Component
-public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLEndpointObserver , LeaderSwitchable {
+public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLEndpointObserver , LeaderAware{
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -448,22 +448,22 @@ public class ConsistentMonitorContainer implements MonitorContainer, SlaveMySQLE
     @Override
     public void isleader() {
         isRegionLeader = true;
-        this.switchToStart();
+        // do nothing
     }
 
     @Override
     public void notLeader() {
         isRegionLeader = false;
-        this.switchToStop();
+        leaderSwitchWorkers.submit(
+                () -> {
+                    try {
+                        logger.info("[[tag=leaderSwitch]] {} switchToSlave", this.getClass().getSimpleName());
+                        removeAllConsistencyCheck();
+                    } catch (Throwable t) {
+                        logger.warn("switch to leader error");
+                    }
+                }
+        );
     }
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        this.schedule();
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.removeAllConsistencyCheck();
-    }
+    
 }

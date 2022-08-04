@@ -59,7 +59,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
 @Order(2)
 @Component
 @DependsOn("dbClusterSourceProvider")
-public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver, LeaderSwitchable {
+public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
 
     public static final Logger uuidLogger = LoggerFactory.getLogger(UuidMonitor.class);
 
@@ -90,10 +90,6 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     private static final int UUID_INDEX = 2;
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
-
-
-
-    private volatile boolean isRegionLeader = false;
 
     public  final int INITIAL_DELAY = 30;
 
@@ -350,28 +346,5 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     public boolean isCare(MetaKey metaKey) {
         return this.dcsInRegion.contains(metaKey.getDc());
     }
-    
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-    
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        this.scheduledTask();
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.scheduledTask();
-    }
-
     
 }

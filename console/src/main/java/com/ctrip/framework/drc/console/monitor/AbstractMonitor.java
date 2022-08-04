@@ -83,7 +83,7 @@ public abstract class AbstractMonitor extends AbstractConfigBean implements Moni
     }
 
     @Override
-    public void scheduledTask() {}
+    public void scheduledTask() throws Throwable{}
 
     @PreDestroy
     @Override

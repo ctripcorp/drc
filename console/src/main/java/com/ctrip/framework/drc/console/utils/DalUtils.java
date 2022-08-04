@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.console.utils;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
-import com.ctrip.framework.drc.console.enums.SourceTypeEnum;
-import com.ctrip.framework.drc.console.enums.TableEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.DalQueryDao;
@@ -515,7 +513,8 @@ public class DalUtils {
         dataConsistencyMonitorTblDao.insert(dataConsistencyMonitorTbl);
     }
 
-    public int insertDdlHistory(String mhaName, String ddl, int queryType, String schemaName, String tableName) throws Throwable {
+    @PossibleRemote(path="/api/drc/v1/local/ddlHistory",httpType = HttpRequestEnum.POST)
+    public Integer insertDdlHistory(String mhaName, String ddl, int queryType, String schemaName, String tableName) throws SQLException {
         Long mhaId = getId(TableEnum.MHA_TABLE, mhaName);
         DdlHistoryTbl pojo = createDdlHistoryPojo(mhaId, ddl, queryType, schemaName, tableName);
         KeyHolder keyHolder = new KeyHolder();

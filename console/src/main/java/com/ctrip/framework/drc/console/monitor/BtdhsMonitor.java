@@ -47,7 +47,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
 @Order(2)
 @Component
 @DependsOn("dbClusterSourceProvider")
-public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver, LeaderSwitchable {
+public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
 
     public Logger logger = LoggerFactory.getLogger(CONSOLE_MYSQL_LOG);
 
@@ -71,12 +71,9 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
     
-
     private String localDcName;
     
     private List<String> dcsInRegion;
-
-    private volatile boolean isRegionLeader = false;
     
     @Override
     public void initialize() {
@@ -221,26 +218,5 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
     public boolean isCare(MetaKey metaKey) {
         return this.dcsInRegion.contains(metaKey.getDc());
     }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        // do nothing ,waiting next schedule
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.scheduledTask();
-    }
+    
 }

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DataConsistencyMonitorTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
@@ -39,7 +38,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DC
  */
 @Order(2)
 @Component
-public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObserver implements SlaveMySQLEndpointObserver ,LeaderSwitchable {
+public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObserver implements SlaveMySQLEndpointObserver  {
 
     @Autowired
     private DbClusterSourceProvider sourceProvider;
@@ -69,8 +68,6 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
     public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
 
     private static final int DRC_MHA_SIZE = 2;
-    
-    private volatile boolean isRegionLeader = false;
 
     @Override
     public void initialize() {
@@ -209,26 +206,14 @@ public class UpdateDataConsistencyMetaTask extends AbstractSlaveMySQLEndpointObs
     public boolean isCare(MetaKey metaKey) {
         return this.localDcName.equalsIgnoreCase(metaKey.getDc());
     }
-    
+
     @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
+    public void switchToLeader() throws Throwable {
+        // nothing to do ,wait next schedule
     }
 
     @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-    
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        // do nothing ,waiting next schedule
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        // nothing to do
+    public void switchToSlave() throws Throwable {
+        // nothing to do ,wait next schedule
     }
 }

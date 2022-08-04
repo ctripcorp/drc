@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +44,8 @@ public class LocalController {
     
     @Autowired
     private LocalService localService;
+    
+    private DalUtils dalUtils = DalUtils.getInstance();
 
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable(@RequestParam String namespace,
@@ -196,13 +200,30 @@ public class LocalController {
     @GetMapping("createTblStmts/query")
     public ApiResult getCreateTableStatements(@RequestParam String mha,@RequestParam String regexFilter) {
         try {
-            logger.error("[[tag=getCreateTableStatements,mha={}]] regexFilter:{}",mha,regexFilter);
+            logger.info("[[tag=getCreateTableStatements,mha={}]] regexFilter:{}",mha,regexFilter);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(regexFilter);
             Map<String, String> result = MySqlUtils.getDefaultCreateTblStmts(masterEndpoint, aviatorRegexFilter);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
             logger.error("[[tag=getCreateTableStatements,mha={}]] error,regexFilter is:{} ",mha,regexFilter,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+    
+    @PostMapping("ddlHistory")
+    public ApiResult insertDdlHistory(
+            @RequestParam String mhaName,
+            @RequestParam String ddl,
+            @RequestParam int queryType,
+            @RequestParam String schemaName,
+            @RequestParam String tableName) {
+        try {
+            logger.info("[[tag=insertDdlHistory,mha={}]] insertDdlHistory:{}",mhaName,ddl);
+            int effectRows = dalUtils.insertDdlHistory(mhaName, ddl, queryType, schemaName, tableName);
+            return ApiResult.getSuccessInstance(effectRows);
+        } catch (SQLException e) {
+            logger.error("[[tag=insertDdlHistory,mha={}]] insertDdlHistory error:{}",mhaName,ddl);
             return ApiResult.getFailInstance(null);
         }
     }

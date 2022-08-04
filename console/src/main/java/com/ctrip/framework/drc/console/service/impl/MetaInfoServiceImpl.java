@@ -1123,15 +1123,10 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas")
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
-    }
-    
-    @PossibleRemote(path = "/api/drc/v1/meta/mhas")
-    public List<MhaTbl> getMhasByDc(String dcName) throws SQLException {
-        return getMhas(dcName);
     }
 
     private Long getDcId(String dcName) throws SQLException {

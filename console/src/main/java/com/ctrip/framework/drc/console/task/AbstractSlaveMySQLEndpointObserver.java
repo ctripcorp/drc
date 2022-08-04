@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.task;
 
 import com.ctrip.framework.drc.console.enums.ActionEnum;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -18,7 +19,7 @@ import java.util.Map;
  * @Author: hbshen
  * @Date: 2021/4/27
  */
-public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor implements SlaveMySQLEndpointObserver {
+public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractLeaderAwareMonitor implements SlaveMySQLEndpointObserver {
 
     protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
 

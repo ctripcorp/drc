@@ -33,10 +33,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMI
  * date: 2019-12-13
  * STEP 2
  */
-@Order(2)
+@Order(1)
 @DependsOn("dbClusterSourceProvider")
 @Component("periodicalUpdateDbTask")
-public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver , LeaderAware {
+public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver {
 
     @Autowired
     private DbClusterSourceProvider sourceProvider;
@@ -52,8 +52,6 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
-
-    private volatile boolean isRegionLeader = false;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -169,6 +167,17 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     }
 
     @Override
+    public void switchToLeader() throws Throwable {
+        // do nothing
+        
+    }
+
+    @Override
+    public void switchToSlave() throws Throwable {
+        mhaTblMap.clear();
+    }
+
+    @Override
     public void setLocalDcName() {
         localDcName = sourceProvider.getLocalDcName();
     }
@@ -188,7 +197,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public boolean isCare(MetaKey metaKey) {
         return this.dcsInRegion.contains(metaKey.getDc());
     }
-
+    
     @Override
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
@@ -238,16 +247,6 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Override
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
-    }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
     }
     
     private static class MhaInfo {

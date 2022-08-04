@@ -129,7 +129,7 @@ public class ListenReplicatorTaskTest extends MockTest {
         Mockito.doReturn(delayMonitorServer).when(listenReplicatorTask).createDelayMonitorServer(Mockito.any(DelayMonitorSlaveConfig.class));
         Mockito.when(consoleConfig.getDelayExceptionTime()).thenReturn(1000L);
         Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
-        Mockito.when(dbClusterSourceProvider.getReplicatorsNotInLocalRegion(Mockito.anyList())).thenReturn(newReplicatorWrappers);
+        Mockito.when(dbClusterSourceProvider.getReplicatorsNeeded(Mockito.anyList())).thenReturn(newReplicatorWrappers);
         listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
         Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
         delayMonitorServerMap.put("dbcluster3.mha3dc2", delayMonitorServer);

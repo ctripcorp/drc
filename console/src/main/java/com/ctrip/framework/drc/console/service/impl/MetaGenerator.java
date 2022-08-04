@@ -79,7 +79,9 @@ public class MetaGenerator {
     private Dc generateDcFrame(Drc drc, String dcName) {
         logger.debug("generate dc: {}", dcName);
         Dc dc = new Dc(dcName);
-        dc.setRegion(dc2regionMap.get(dcName));
+        if ("off".equals(consoleConfig.getSwitchMetaRollBack())) {
+            dc.setRegion(dc2regionMap.get(dcName));
+        }
         drc.addDc(dc);
         return dc;
     }
@@ -115,8 +117,10 @@ public class MetaGenerator {
             route.setOrgId(routeTbl.getRouteOrgId().intValue());
             route.setSrcDc(srcDc);
             route.setDstDc(dstDc);
-            route.setSrcRegion(dc2regionMap.get(srcDc));
-            route.setDstRegion(dc2regionMap.get(dstDc));
+            if ("off".equals(consoleConfig.getSwitchMetaRollBack())) {
+                route.setSrcRegion(dc2regionMap.get(srcDc));
+                route.setDstRegion(dc2regionMap.get(dstDc));
+            }
             route.setRouteInfo(generateRouteInfo(routeTbl.getSrcProxyIds(), routeTbl.getOptionalProxyIds(), routeTbl.getDstProxyIds()));
             route.setTag(routeTbl.getTag());
             dc.addRoute(route);
@@ -263,7 +267,6 @@ public class MetaGenerator {
             applier.setIp(resourceTbl.getIp())
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetDcTbl.getDcName())
-                    .setTargetRegion(dc2regionMap.get(targetDcTbl.getDcName()))
                     .setTargetMhaName(targetMhaTbl.getMhaName())
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
@@ -272,6 +275,9 @@ public class MetaGenerator {
                     .setTargetName(applierGroupTbl.getTargetName())
                     .setApplyMode(applierGroupTbl.getApplyMode())
                     .setProperties(propertiesJson);
+            if ("off".equals(consoleConfig.getSwitchMetaRollBack())) {
+                applier.setTargetRegion(dc2regionMap.get(targetDcTbl.getDcName()));
+            }
             dbCluster.addApplier(applier);
         }
     }
@@ -331,14 +337,7 @@ public class MetaGenerator {
         zookeeperTbls = dalUtils.getZookeeperTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        refreshDc2RegionMap();
-    }
-    
-    private void refreshDc2RegionMap (){
-        Map<String, List<String>> regionsInfo = consoleConfig.getRegionsInfo();
-        regionsInfo.forEach(
-                (region, dcs) -> dcs.forEach(dc -> dc2regionMap.put(dc, region))
-        );
+        dc2regionMap = consoleConfig.getDc2regionMap();
     }
 
     public Map<String, String> getDc2regionMap() {

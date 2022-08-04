@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -39,6 +40,9 @@ public class RemoteHttpAspect {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     
+    @Autowired
+    private DataCenterService dataCenterService;
+    
     private final DalUtils dalUtils = DalUtils.getInstance();
     
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
@@ -52,7 +56,8 @@ public class RemoteHttpAspect {
             if (dcName != null) {
                 Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
                 Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-                if (publicCloudDc.contains(dcName)) {
+                String localDc = dataCenterService.getDc();
+                if (publicCloudDc.contains(dcName) && !publicCloudDc.contains(localDc)) {
                     PossibleRemote annotation = getAnnotation(point);
                     StringBuilder url = new StringBuilder(consoleDcInfos.get(dcName));
                     url.append(annotation.path());

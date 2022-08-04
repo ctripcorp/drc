@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.ha;
 import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.xpipe.cluster.AbstractLeaderElector;
-import org.springframework.boot.SpringApplication;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -17,15 +16,17 @@ import javax.annotation.PostConstruct;
  * @Version: $
  */
 @Component
-@DependsOn({
-        "springUtils", "periodicalUpdateDbTask", "listenReplicatorTask", "consistentMonitorContainer",
-        "gtidMonitorTask", "checkTableConsistencyTask", "checkIncrementIdTask", "uuidMonitor",
-        "btdhsMonitor", "ddlMonitor", "periodicalRegisterBeaconTask", "syncMhaTask", "syncTableConfigTask", 
-        "updateDataConsistencyMetaTask", "clearConflictLog"
-})
+@Order(3)
+//@DependsOn({
+//        "springUtils", "periodicalUpdateDbTask", "listenReplicatorTask", "consistentMonitorContainer",
+//        "gtidMonitorTask", "checkTableConsistencyTask", "checkIncrementIdTask", "uuidMonitor",
+//        "btdhsMonitor", "ddlMonitor", "periodicalRegisterBeaconTask", "syncMhaTask", "syncTableConfigTask", 
+//        "updateDataConsistencyMetaTask", "clearConflictLog"
+//})
+@DependsOn({"springUtils"})
 public class ConsoleLeaderElector extends AbstractLeaderElector {
     
-    public static String CONSOLE_LEADER_ELECTOR_PATH = "/console/leader";
+    public static final String CONSOLE_LEADER_ELECTOR_PATH = "/console/leader";
     
     @PostConstruct
     public void leaderElectorInit(){

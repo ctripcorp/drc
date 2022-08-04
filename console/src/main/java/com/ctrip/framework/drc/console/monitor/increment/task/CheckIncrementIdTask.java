@@ -5,26 +5,20 @@ import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
-import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.monitor.entity.MhaGroupEntity;
 import com.ctrip.framework.drc.core.monitor.enums.AutoIncrementEnum;
-import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
-import com.ctrip.framework.drc.core.monitor.operator.SqlOperator;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +34,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_AU
  * date: 2020-02-04
  */
 @Component
+@Order(2)
 public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver , LeaderSwitchable {
 
     @Autowired
@@ -68,8 +63,6 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
     private static final String CHECK_INCREMENT_SQL = "show global variables like 'auto_increment_increment';";
 
     private static final String CHECK_OFFSET_SQL = "show global variables like 'auto_increment_offset';";
-
-    private volatile boolean isRegionLeader = false;
 
     @Override
     public void initialize() {
@@ -145,7 +138,7 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
         return getAutoIncrement(mha,CHECK_OFFSET_SQL,AUTO_INCREMENT_INDEX,endpoint);
     }
     
-    @PossibleRemote(path="/api/drc/v1/local/sql/integer/query")
+    @PossibleRemote(path="/api/drc/v1/local/sql/integer/query",excludeArguments = {"endpoint"})
     protected Integer getAutoIncrement(String mha,String sql,int index,Endpoint endpoint) {
         return MySqlUtils.getSqlResultInteger(endpoint, sql, index);
     }
@@ -256,26 +249,5 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
     }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        // do nothing ,waiting next schedule
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        this.scheduledTask();
-    }
+    
 }

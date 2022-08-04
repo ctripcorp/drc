@@ -3,8 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.TableConfig;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -19,6 +18,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -32,8 +32,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * @create 2021/7/8
  */
 @Component
+@Order(2)
 @DependsOn({"metaInfoServiceImpl"})
-public class SyncTableConfigTask extends AbstractMonitor implements LeaderSwitchable {
+public class SyncTableConfigTask extends AbstractLeaderAwareMonitor {
 
     @Autowired
     private DalServiceImpl dalService;
@@ -54,8 +55,6 @@ public class SyncTableConfigTask extends AbstractMonitor implements LeaderSwitch
     private Env env = Foundation.server().getEnv();
 
     private DalUtils dalUtils = DalUtils.getInstance();
-
-    private volatile boolean isRegionLeader = false;
     
     protected void setEnv(Env env) {
         this.env = env;
@@ -144,23 +143,13 @@ public class SyncTableConfigTask extends AbstractMonitor implements LeaderSwitch
     }
 
     @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-    @Override
-    public void doSwitchToStart() throws Throwable {
+    public void switchToLeader() throws Throwable {
         // nothing to do ,wait next schedule
     }
 
     @Override
-    public void doSwitchToStop() throws Throwable {
-        // nothing to do
+    public void switchToSlave() throws Throwable {
+        // nothing to do ,wait next schedule
     }
+   
 }

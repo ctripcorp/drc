@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
@@ -37,7 +38,8 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.TRUNCATE_CONSISTENCY_MEASUREMENT;
 
 @Component
-public class DdlMonitor extends AbstractMonitor implements Monitor , LeaderSwitchable {
+@Order(2)
+public class DdlMonitor extends AbstractLeaderAwareMonitor implements Monitor  {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
@@ -67,8 +69,6 @@ public class DdlMonitor extends AbstractMonitor implements Monitor , LeaderSwitc
     public static final int CONSISTENT_TRUNCATE_SET_SIZE = 1;
 
     public static final String CLEAN_SQL = "delete from ddl_history_tbl where datachange_lasttime < date_sub(CURRENT_TIMESTAMP(3), interval %s hour);";
-    
-    private volatile boolean isRegionLeader = false;
 
     @Override
     public void initialize() {
@@ -183,29 +183,6 @@ public class DdlMonitor extends AbstractMonitor implements Monitor , LeaderSwitc
         builder.setTemplate(sql);
         StatementParameters parameters = new StatementParameters();
         return dalUtils.getDalQueryDao().update(builder, parameters, new DalHints());
-    }
-
-    @Override
-    public void isleader() {
-        isRegionLeader = true;
-        this.switchToStart();
-    }
-
-    @Override
-    public void notLeader() {
-        isRegionLeader = false;
-        this.switchToStop();
-    }
-
-
-    @Override
-    public void doSwitchToStart() throws Throwable {
-        this.scheduledTask();
-    }
-
-    @Override
-    public void doSwitchToStop() throws Throwable {
-        // nothing to do
     }
 
     public static final class DdlMonitorItem {

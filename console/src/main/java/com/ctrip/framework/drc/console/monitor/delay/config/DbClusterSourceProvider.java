@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.proxy.ProxyEndpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -240,11 +239,11 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     }
 
     /**
-     * @return
+     * @return replicators delay monitor need
      *  key: clusterId where the replicator bounds to, aka registryKey
      *  value: ReplicatorWrapper
      */
-    public Map<String, ReplicatorWrapper> getReplicatorsNotInLocalRegion(List<String> mhaNamesToBeMonitored) {
+    public Map<String, ReplicatorWrapper> getReplicatorsNeeded(List<String> mhaNamesToBeMonitored) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         List<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {

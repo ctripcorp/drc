@@ -52,7 +52,7 @@ public class ClearConflictLogTest {
 
     @Test
     public void testInitSchedule() {
-        clearConflictLog.initSchedule();
+        clearConflictLog.scheduledTask();
     }
 
     @Test
