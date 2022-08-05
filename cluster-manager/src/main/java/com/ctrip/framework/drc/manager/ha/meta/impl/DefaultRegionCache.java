@@ -112,4 +112,8 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
             throw new IllegalArgumentException(String.format("delete cluster:%s error, cluster doesn't in current region:%s", registryKey, currentRegion));
         });
     }
+
+    public List<DefaultDcCache> getDcCaches() {
+        return dcCaches;
+    }
 }

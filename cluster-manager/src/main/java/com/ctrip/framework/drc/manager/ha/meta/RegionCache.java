@@ -2,8 +2,10 @@ package com.ctrip.framework.drc.manager.ha.meta;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultDcCache;
 import com.ctrip.xpipe.api.observer.Observable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,5 +27,7 @@ public interface RegionCache extends Observable {
     void clusterModified(DbCluster dbCluster);
 
     void clusterDeleted(String registryKey);
+
+    List<DefaultDcCache> getDcCaches();
 
 }

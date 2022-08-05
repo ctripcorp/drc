@@ -80,7 +80,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
         setExecutors(executors);
 
-        regionCache.addObserver(this);
+        regionCache.getDcCaches().forEach(dcCache -> dcCache.addObserver(this));
         logger.info("[stateHandlers] has {}", stateHandlers);
     }
 
