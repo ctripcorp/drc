@@ -75,26 +75,6 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         }
     }
 
-    public String getLocalDbClusters() {
-        String localDc = dataCenterService.getDc();
-        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
-
-        DcInfo dcInfo = dcInfoMap.get(localDc);
-        if(null != dcInfo) {
-            String url = String.format(dcInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", localDc);
-            try {
-                long s = System.currentTimeMillis();
-                String localDbClusters = restTemplate.getForObject(url, String.class);
-                long e = System.currentTimeMillis();
-                logger.info("[meta] for local dc, took {}ms", e-s);
-                return localDbClusters;
-            } catch (Exception e) {
-                logger.error("[meta] for local dc, ", e);
-            }
-        }
-        return null;
-    }
-
     public String getDbClusters(String dcId) {
         Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
 
@@ -103,12 +83,12 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
             String url = String.format(dcInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
             try {
                 long s = System.currentTimeMillis();
-                String localDbClusters = restTemplate.getForObject(url, String.class);
+                String dbClusters = restTemplate.getForObject(url, String.class);
                 long e = System.currentTimeMillis();
-                logger.info("[meta] for local dc, took {}ms", e-s);
-                return localDbClusters;
+                logger.info("[meta] for dc: {}, took {}ms", dcId, e-s);
+                return dbClusters;
             } catch (Exception e) {
-                logger.error("[meta] for local dc, ", e);
+                logger.error("[meta] for dc: {}, ", dcId, e);
             }
         }
         return null;

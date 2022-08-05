@@ -3,8 +3,8 @@ package com.ctrip.framework.drc.manager.ha.multidc;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcServiceManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -39,7 +39,7 @@ public class MultiDcNotifierTest extends AbstractDbClusterTest {
     private ClusterManagerMultiDcService clusterManagerMultiDcService;
 
     @Mock
-    public DcCache dcMetaCache;
+    public RegionCache regionMetaCache;
 
     private Replicator replicator;
 
@@ -62,7 +62,7 @@ public class MultiDcNotifierTest extends AbstractDbClusterTest {
 
         Map<String, String> backupDcs = Maps.newConcurrentMap();
         backupDcs.put(TARGET_DC, BACKUP_DAL_CLUSTER_ID);
-        when(dcMetaCache.getBackupDcs(CLUSTER_ID)).thenReturn(backupDcs);
+        when(regionMetaCache.getBackupDcs(CLUSTER_ID)).thenReturn(backupDcs);
 
         when(clusterManagerMultiDcServiceManager.getOrCreate(LOCAL_IP)).thenReturn(clusterManagerMultiDcService);
         doNothing().when(clusterManagerMultiDcService).upstreamChange(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, replicator.getIp(), replicator.getApplierPort());

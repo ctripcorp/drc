@@ -83,14 +83,5 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
         verify(clusterManagerConfig, times(3)).getConsoleDcInofs();
     }
-
-    @Test
-    public void testGetLocalDbClusters() {
-        dcInfoMap.clear();
-        dcInfoMap.put(DC, new DcInfo("http://127.0.0.1:8080"));
-        when(clusterManagerConfig.getConsoleDcInofs()).thenReturn(dcInfoMap);
-        when(dataCenterService.getDc()).thenReturn(DC);
-        consoleService.getLocalDbClusters();
-        verify(clusterManagerConfig, times(1)).getConsoleDcInofs();
-    }
+    
 }
