@@ -126,7 +126,7 @@ public class DefaultClusterManagerTest extends AbstractDbClusterTest {
 
 //    @Test
     public void clusterInterface() {
-        defaultClusterManager.clusterAdded(dbCluster, forwardInfo);
+        defaultClusterManager.clusterAdded("test_dc_id", dbCluster, forwardInfo);
         defaultClusterManager.clusterDeleted(CLUSTER_ID, forwardInfo);
         defaultClusterManager.clusterModified(dbCluster, forwardInfo);
         verify(dcMetaCache, times(1)).clusterAdded(dbCluster);

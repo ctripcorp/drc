@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcServiceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -39,7 +40,7 @@ public class MultiDcNotifier implements StateChangeHandler {
     private ClusterManagerMultiDcServiceManager clusterManagerMultiDcServiceManager;
 
     @Autowired
-    public DcCache dcMetaCache;
+    public RegionCache regionMetaCache;
 
     @Override
     public void replicatorActiveElected(String clusterId, Replicator activeReplicator) {
@@ -49,7 +50,7 @@ public class MultiDcNotifier implements StateChangeHandler {
         }
 
         Map<String, DcInfo> dcInfos = config.getDcInofs();
-        Map<String, String> backupDcs = dcMetaCache.getBackupDcs(clusterId); //dcName, clusterName.mhaName
+        Map<String, String> backupDcs = regionMetaCache.getBackupDcs(clusterId); //dcName, clusterName.mhaName
         NOTIFY_LOGGER.info("[replicatorActiveElected][notify backup dc]{}, {}, {}", clusterId, backupDcs, activeReplicator);
         for (Map.Entry<String, String> entry : backupDcs.entrySet()) {
 

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
@@ -39,7 +40,7 @@ public abstract class AbstractInstanceElectorManager extends AbstractCurrentMeta
     private ZkClient zkClient;
 
     @Autowired
-    protected DcCache dcCache;
+    protected RegionCache regionCache;
 
     @Autowired
     protected InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;

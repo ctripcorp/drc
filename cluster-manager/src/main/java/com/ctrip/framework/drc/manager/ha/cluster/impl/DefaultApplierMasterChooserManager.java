@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.cluster.ApplierMasterElector;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.multidc.AbstractApplierMasterChooser;
 import com.ctrip.framework.drc.manager.ha.multidc.DefaultDcApplierMasterChooser;
@@ -36,7 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class DefaultApplierMasterChooserManager extends AbstractCurrentMetaObserver implements ApplierMasterElector, TopElement {
 
     @Autowired
-    protected DcCache dcMetaCache;
+    protected RegionCache regionMetaCache;
 
     @Autowired
     private MultiDcService multiDcService;

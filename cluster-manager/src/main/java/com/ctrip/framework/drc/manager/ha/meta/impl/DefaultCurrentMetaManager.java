@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
@@ -54,7 +54,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     private CurrentClusterServer currentClusterServer;
 
     @Autowired
-    private DcCache dcCache;
+    private RegionCache regionCache;
 
     private CurrentMeta currentMeta = new CurrentMeta();
 
@@ -80,7 +80,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
         setExecutors(executors);
 
-        dcCache.addObserver(this);
+        regionCache.addObserver(this);
         logger.info("[stateHandlers] has {}", stateHandlers);
     }
 
@@ -177,7 +177,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
     private void addCluster(String clusterId) {
 
-        DbCluster clusterMeta = dcCache.getCluster(clusterId);
+        DbCluster clusterMeta = regionCache.getCluster(clusterId);
 
         logger.info("[addCluster]{}, {}", clusterId, clusterMeta);
         currentMeta.addCluster(clusterMeta);
@@ -229,7 +229,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
         logger.info("[addSlot]{}", slotId);
         currentSlots.add(slotId);
-        for(String clusterId : dcCache.getClusters()){
+        for(String clusterId : regionCache.getClusters()){
 
             int currentSlotId = slotManager.getSlotIdByKey(clusterId);
             if(currentSlotId == slotId){
@@ -268,12 +268,12 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
 
     @Override
     public DbCluster getCluster(String clusterId) {
-        return dcCache.getCluster(clusterId);
+        return regionCache.getCluster(clusterId);
     }
 
     @Override
     public Route randomRoute(String clusterId, String dstDc) {
-        return dcCache.randomRoute(clusterId, dstDc);
+        return regionCache.randomRoute(clusterId, dstDc);
     }
 
     @Override
@@ -403,7 +403,7 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     @VisibleForTesting
     protected void routeChanges() {
         for(String clusterId : allClusters()) {
-            DbCluster clusterMeta = dcCache.getCluster(clusterId);
+            DbCluster clusterMeta = regionCache.getCluster(clusterId);
             List<Pair<String, String>> upstreamDcClusterIdList = getUpstreamDcClusterIdList(clusterMeta);
             for(Pair<String, String> upstreamDcClusterId : upstreamDcClusterIdList) {
                 if(randomRoute(clusterId, upstreamDcClusterId.getKey()) != null) {
@@ -491,8 +491,8 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
         this.slotCheckInterval = slotCheckInterval;
     }
 
-    public void setDcCache(DcCache dcCache) {
-        this.dcCache = dcCache;
+    public void setRegionCache(RegionCache regionCache) {
+        this.regionCache = regionCache;
     }
 
     @VisibleForTesting
