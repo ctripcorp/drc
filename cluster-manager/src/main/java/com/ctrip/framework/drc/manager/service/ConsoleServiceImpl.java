@@ -39,7 +39,7 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         STATE_LOGGER.info("[replicatorActiveElected] for {}:{}", clusterId, replicator);
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
-            if (!dataCenterService.getDc().equalsIgnoreCase(entry.getKey())) {
+            if (!dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
                 String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/replicators/master/";
                 try {
                     String ipAndPort = replicator.getIp() + ":" + replicator.getApplierPort();
@@ -67,7 +67,7 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
             String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/dbs/master/";
-            if (dataCenterService.getDc().equalsIgnoreCase(entry.getKey())) {
+            if (dataCenterService.getRegion().equalsIgnoreCase(entry.getKey())) {
                 restTemplate.put(url, ipAndPort, clusterId);
                 STATE_LOGGER.info("[mysqlMasterChanged] notify {}, {}", url, clusterId);
                 break;
@@ -77,8 +77,8 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
 
     public String getDbClusters(String dcId) {
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
-
-        RegionInfo regionInfo = consoleRegionInfos.get(dcId);
+        String region = dataCenterService.getRegion(dcId);
+        RegionInfo regionInfo = consoleRegionInfos.get(region);
         if(null != regionInfo) {
             String url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
             try {

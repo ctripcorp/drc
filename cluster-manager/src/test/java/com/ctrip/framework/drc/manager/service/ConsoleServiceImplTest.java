@@ -50,7 +50,7 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         regionInfoMap.clear();
         regionInfoMap.put(REGION, new RegionInfo("http://127.0.0.1:8080"));
         when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
-        when(dataCenterService.getDc()).thenReturn(DC);
+        when(dataCenterService.getRegion()).thenReturn(REGION);
 
         consoleService.replicatorActiveElected(CLUSTER_ID, null);
         verify(clusterManagerConfig, times(0)).getConsoleRegionInfos();
@@ -71,7 +71,7 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
         regionInfoMap.clear();
         regionInfoMap.put(TARGET_DC, new RegionInfo("http://127.0.0.1:8080"));
         when(clusterManagerConfig.getConsoleRegionInfos()).thenReturn(regionInfoMap);
-        when(dataCenterService.getDc()).thenReturn(DC);
+        when(dataCenterService.getRegion()).thenReturn(REGION);
         consoleService.mysqlMasterChanged(CLUSTER_ID, mysqlMaster);
         verify(clusterManagerConfig, times(1)).getConsoleRegionInfos();
 
