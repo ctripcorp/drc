@@ -8,7 +8,6 @@ import com.ctrip.xpipe.config.AbstractConfigBean;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.util.Iterator;

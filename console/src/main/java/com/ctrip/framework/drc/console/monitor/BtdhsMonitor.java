@@ -71,8 +71,6 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
     
-    private String localDcName;
-    
     private List<String> dcsInRegion;
     
     @Override
@@ -151,46 +149,6 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
             entityMap.put(endpoint, entity);
         }
         return entity;
-    }
-
-    @Override
-    public void update(Object args, Observable observable) {
-        if (observable instanceof MasterMySQLEndpointObservable) {
-            updateMySQLEndpointMap((Triple<MetaKey, MySqlEndpoint, ActionEnum>) args, masterMySQLEndpointMap);
-        } else if (observable instanceof SlaveMySQLEndpointObservable) {
-            updateMySQLEndpointMap((Triple<MetaKey, MySqlEndpoint, ActionEnum>) args, slaveMySQLEndpointMap);
-        }
-    }
-
-    private void updateMySQLEndpointMap(Triple<MetaKey, MySqlEndpoint, ActionEnum> msg, Map<MetaKey, MySqlEndpoint> mySQLEndpointMap) {
-
-        MetaKey metaKey = msg.getFirst();
-        MySqlEndpoint mySQLEndpoint = msg.getMiddle();
-        ActionEnum action = msg.getLast();
-
-        if(!dcsInRegion.contains(metaKey.getDc())) {
-            CONSOLE_MYSQL_LOGGER.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, mySQLEndpoint.getSocketAddress());
-            return;
-        }
-
-        if(ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
-            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, mySQLEndpoint.getSocketAddress());
-            MySqlEndpoint oldEndpoint = mySQLEndpointMap.get(metaKey);
-            if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
-                removeSqlOperator(oldEndpoint);
-                reporter.removeRegister(getEntity(oldEndpoint,metaKey).getTags(),BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
-            }
-            mySQLEndpointMap.put(metaKey, mySQLEndpoint);
-        } else if (ActionEnum.DELETE.equals(action)) {
-            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
-            MySqlEndpoint oldEndpoint = mySQLEndpointMap.remove(metaKey);
-            if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
-                removeSqlOperator(oldEndpoint);
-                reporter.removeRegister(getEntity(oldEndpoint,metaKey).getTags(),BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
-            }
-        }
     }
 
     @Override

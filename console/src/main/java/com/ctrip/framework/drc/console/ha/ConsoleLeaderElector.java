@@ -15,6 +15,10 @@ import javax.annotation.PostConstruct;
  * @Date 2022/6/24 16:39
  * @Version: $
  */
+// About Order:
+// 1 -> important monitor or schedule task
+// 2 -> other monitor or task 
+// 3 -> leaderElector
 @Component
 @Order(3)
 //@DependsOn({

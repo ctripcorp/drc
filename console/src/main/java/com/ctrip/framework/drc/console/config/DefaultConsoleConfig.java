@@ -127,6 +127,19 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return dc2regionMap;
     }
     
+    public List<String> getDcsInSameRegion(String dc) {
+        List<String> dcs = Lists.newArrayList();
+        Map<String, List<String>> regionsInfo = getRegionsInfo();
+        regionsInfo.forEach(
+                (region,dcsInRegion) ->{
+                    if (dcsInRegion.contains(dc)) {
+                        dcs.addAll(dcsInRegion);
+                    }
+                }
+        );
+        return dcs;
+    }
+    
     public List<String> getDcsInLocalRegion() {
         String region = getRegion();
         Map<String, List<String>> regionsInfo = getRegionsInfo();

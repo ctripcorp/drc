@@ -523,8 +523,8 @@ public class MySqlUtils {
             sql = String.format(GET_DB_TABLES_PREFIX, convertListToString(dbNames)) + GET_DB_TABLES_SUFFIX;
         }
 
-        List<TableSchemaName> tables = getTables(endpoint, sql, true);
-        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), true);
+        List<TableSchemaName> tables = getTables(endpoint, sql, false);
+        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
 
     @Deprecated
