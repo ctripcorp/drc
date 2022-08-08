@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -61,7 +61,7 @@ public class TestController {
 
     @GetMapping ("properties")
     public ApiResult properties(){
-        Map<String, List<String>> regionsInfo = defaultConsoleConfig.getRegionsInfo();
+        Map<String, Set<String>> regionsInfo = defaultConsoleConfig.getRegionsInfo();
         return ApiResult.getSuccessInstance(regionsInfo);
     }
 }

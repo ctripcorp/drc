@@ -46,13 +46,14 @@ public class LocalServiceImplTest extends AbstractTest {
             theMock.when(() -> MySqlUtils.checkBinlogFormat(Mockito.any())).thenReturn("ROW");
             theMock.when(() -> MySqlUtils.checkBinlogVersion(Mockito.any())).thenReturn("OFF");
             theMock.when(() -> MySqlUtils.checkBinlogTransactionDependency(Mockito.any())).thenReturn("WRITESET");
+            theMock.when(() -> MySqlUtils.checkBtdhs(Mockito.any())).thenReturn(100 *1000);
             theMock.when(() -> MySqlUtils.checkGtidMode(Mockito.any())).thenReturn("ON");
             theMock.when(() -> MySqlUtils.checkAutoIncrementStep(Mockito.any())).thenReturn(2);
             theMock.when(() -> MySqlUtils.checkAutoIncrementOffset(Mockito.any())).thenReturn(1);
             theMock.when(() -> MySqlUtils.checkAccounts(Mockito.any())).thenReturn("three accounts ready");
             
             Map<String, Object> res = localService.preCheckMySqlConfig("mha1");
-            Assert.assertEquals(9,res.size());
+            Assert.assertEquals(10,res.size());
             
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.eq("mha1"))).thenReturn(null);
             res = localService.preCheckMySqlConfig("mha1");

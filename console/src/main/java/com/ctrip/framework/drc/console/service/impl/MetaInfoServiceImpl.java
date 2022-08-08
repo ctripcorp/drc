@@ -390,7 +390,7 @@ MetaInfoServiceImpl implements MetaInfoService {
                 DcTbl dcTbl = dalUtils.getDcTblDao().queryByPk(dcId);
                 if(null != dcTbl) {
                     String dcName = dcTbl.getDcName();
-                    List<String> dcsInLocalRegion = consoleConfig.getDcsInSameRegion(dcName);
+                    Set<String> dcsInLocalRegion = consoleConfig.getDcsInSameRegion(dcName);
                     List<String> res = Lists.newArrayList();
                     for (String dcInLocalRegion : dcsInLocalRegion) {
                         logger.info("get {} in {}({})", type, dcsInLocalRegion, mha);
@@ -1024,7 +1024,7 @@ MetaInfoServiceImpl implements MetaInfoService {
      * key: local Mha
      * value: master db's uuid set which are not in local dc, i.e. all potential uuids which will be copied into local mha
      */
-    public Map<String, Set<String>> getUuidMap(List<String> dcNames) {
+    public Map<String, Set<String>> getUuidMap(Set<String> dcNames) {
         Map<String, Set<String>> uuidMap = Maps.newHashMap();
         Drc drc = dbClusterSourceProvider.getDrc();
 

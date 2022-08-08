@@ -64,7 +64,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     /**
      * due to legacy, src_ip means dc, dest_ip means mhaName
      */
-    public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE datachange_lasttime = '%s';";
+    public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE src_ip = '%s',datachange_lasttime = '%s';";
     private final Map<String ,Long> mhaName2IdMap = Maps.newHashMap();
 
     /**
@@ -136,7 +136,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql = String.format(UPSERT_SQL,mhaId,dcName,mhaName,timestamp);
+                    String sql = String.format(UPSERT_SQL,mhaId,dcName,mhaName,dcName,timestamp);
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
                         CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);

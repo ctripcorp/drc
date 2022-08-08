@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.task;
 
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
@@ -14,8 +13,9 @@ import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.unidal.tuple.Triple;
 
-import java.util.List;
+
 import java.util.Map;
+import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOGGER;
 
@@ -33,7 +33,7 @@ public abstract class AbstractAllMySQLEndPointObserver extends AbstractLeaderAwa
 
     protected String regionName;
 
-    protected List<String> dcsInRegion;
+    protected Set<String> dcsInRegion;
 
     protected String localDcName;
 

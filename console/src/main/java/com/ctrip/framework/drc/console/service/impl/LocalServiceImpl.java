@@ -42,6 +42,7 @@ public class LocalServiceImpl implements LocalService {
         res.put("binlogFormat", MySqlUtils.checkBinlogFormat(endpoint));
         res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint));
         res.put("binlogTransactionDependency", MySqlUtils.checkBinlogTransactionDependency(endpoint));
+        res.put("binlogTransactionDependencyHistorySize", MySqlUtils.checkBtdhs(endpoint));
         res.put("gtidMode", MySqlUtils.checkGtidMode(endpoint));
         res.put("drcTables", MySqlUtils.checkDrcTables(endpoint));
         res.put("autoIncrementStep", MySqlUtils.checkAutoIncrementStep(endpoint));

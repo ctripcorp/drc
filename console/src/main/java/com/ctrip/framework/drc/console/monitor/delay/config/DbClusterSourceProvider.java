@@ -245,7 +245,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
      */
     public Map<String, ReplicatorWrapper> getReplicatorsNeeded(List<String> mhaNamesToBeMonitored) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
-        List<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {
             replicators.putAll(getReplicatorsNotInSrcDc(mhaNamesToBeMonitored,dcInLocalRegion));
         }

@@ -165,7 +165,7 @@ public class PeriodicalUpdateDbTaskTest {
         Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
         Mockito.doReturn(Sets.newHashSet("dc-readMhaFromConfig")).when(consoleConfig).getLocalConfigCloudDc();
         Mockito.doReturn("sha").when(consoleConfig).getRegion();
-        Mockito.doReturn(Lists.newArrayList(DC1)).when(consoleConfig).getDcsInLocalRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getDelayMonitorUpdatedbSwitch();
 
