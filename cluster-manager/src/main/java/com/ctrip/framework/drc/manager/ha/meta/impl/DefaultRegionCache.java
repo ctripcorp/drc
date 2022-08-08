@@ -77,13 +77,13 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
     @Override
     public DbCluster getCluster(String registryKey) {
         Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(registryKey) != null).findFirst();
-        return defaultDcCache.isPresent() ? defaultDcCache.get().getCluster(registryKey) : null;
+        return defaultDcCache.map(dcCache -> dcCache.getCluster(registryKey)).orElse(null);
     }
 
     @Override
     public Route randomRoute(String clusterId, String dstDc) {
         Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst();
-        return defaultDcCache.isPresent() ? defaultDcCache.get().randomRoute(clusterId, dstDc) : null;
+        return defaultDcCache.map(dcCache -> dcCache.randomRoute(clusterId, dstDc)).orElse(null);
     }
 
     @Override
