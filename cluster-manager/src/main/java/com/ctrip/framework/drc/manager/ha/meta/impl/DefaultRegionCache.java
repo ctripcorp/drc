@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.observer.AbstractLifecycleObservable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -87,6 +88,11 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
     }
 
     @Override
+    public void clusterAdded(DbCluster dbCluster) {
+        throw new UnsupportedOperationException("can not support cluster add, need input dc");
+    }
+
+    @Override
     public void clusterAdded(String dcId, DbCluster dbCluster) {
         Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcId.equalsIgnoreCase(dcCache.getCurrentDc())).findFirst();
         defaultDcCache.ifPresentOrElse(dcCache -> dcCache.clusterAdded(dbCluster), () -> {
@@ -113,7 +119,8 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
         });
     }
 
-    public List<DefaultDcCache> getDcCaches() {
-        return dcCaches;
+    @Override
+    public void addObserver(Observer observer) {
+        dcCaches.forEach(dcCache -> dcCache.addObserver(observer));
     }
 }
