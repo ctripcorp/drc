@@ -32,6 +32,11 @@ public class DataCenterServiceTest {
     }
 
     @Test
+    public void getRegionByDcName() {
+        Assert.assertEquals("sin", dataCenterService.getRegion("SINAWS"));
+    }
+
+    @Test
     public void getRegionIdcMapping() {
         Map<String, Set<String>> mappings = dataCenterService.getRegionIdcMapping();
         Assert.assertEquals(3, mappings.size());

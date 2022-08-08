@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.manager.ha.config;
 
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.zookeeper.AbstractZookeeperConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.codec.JsonCodec;
@@ -27,8 +27,8 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_CLUSTER_SERVERS_CHECK_MILLI = "cluster.servers.check.milli";
     public static String KEY_WAITFOR_OFFSET_MILLI = "dcchange.waitfor.offset.milli";
     public static String KEY_VALIDATE_DOMAIN = "metaserver.validate.domain";
-    public static String KEY_DC_INFOS = "drc.dcinfos";
-    public static String KEY_CONSOLE_DC_INFOS = "drc.console.dcinfos";
+    public static String KEY_REGION_INFOS = "drc.region.infos";
+    public static String KEY_CONSOLE_REGION_INFOS = "drc.console.region.infos";
     public static String KEY_MIGRATION_IDC = "drc.migration.idcs";
     public static String KEY_MIGRATION_BLACK_IPS = "drc.migration.black.ips";
 
@@ -47,9 +47,9 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
 
     private Config serverConfig;
 
-    private Map<String, DcInfo> dcInfos = Maps.newConcurrentMap();
+    private Map<String, RegionInfo> regionInfos = Maps.newConcurrentMap();
 
-    private Map<String, DcInfo> consoleDcInfos = Maps.newConcurrentMap();
+    private Map<String, RegionInfo> consoleRegionInfos = Maps.newConcurrentMap();
 
     private Map<String, String> migrationIdcs = Maps.newConcurrentMap();
 
@@ -94,19 +94,19 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     }
 
     @Override
-    public Map<String, DcInfo> getDcInofs() {
-        if(dcInfos.isEmpty()) {
-            dcInfos = getDcInofMapping(KEY_DC_INFOS);
+    public Map<String, RegionInfo> getRegionInfos() {
+        if(regionInfos.isEmpty()) {
+            regionInfos = getDcInofMapping(KEY_REGION_INFOS);
         }
-        return dcInfos;
+        return regionInfos;
     }
 
     @Override
-    public Map<String, DcInfo> getConsoleDcInofs() {
-        if(consoleDcInfos.isEmpty()) {
-            consoleDcInfos = getDcInofMapping(KEY_CONSOLE_DC_INFOS);
+    public Map<String, RegionInfo> getConsoleRegionInfos() {
+        if(consoleRegionInfos.isEmpty()) {
+            consoleRegionInfos = getDcInofMapping(KEY_CONSOLE_REGION_INFOS);
         }
-        return consoleDcInfos;
+        return consoleRegionInfos;
     }
 
     @Override
@@ -135,13 +135,13 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
         return null;
     }
 
-    private Map<String, DcInfo> getDcInofMapping(String key) {
+    private Map<String, RegionInfo> getDcInofMapping(String key) {
 
         String dcInfoStr = getProperty(key, "{}");
-        Map<String, DcInfo> dcInfos = JsonCodec.INSTANCE.decode(dcInfoStr, new GenericTypeReference<Map<String, DcInfo>>() {});
+        Map<String, RegionInfo> dcInfos = JsonCodec.INSTANCE.decode(dcInfoStr, new GenericTypeReference<Map<String, RegionInfo>>() {});
 
-        Map<String, DcInfo> result = Maps.newConcurrentMap();
-        for(Map.Entry<String, DcInfo> entry : dcInfos.entrySet()){
+        Map<String, RegionInfo> result = Maps.newConcurrentMap();
+        for(Map.Entry<String, RegionInfo> entry : dcInfos.entrySet()){
             result.put(entry.getKey().toLowerCase(), entry.getValue());
         }
 
@@ -202,8 +202,8 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public void onChange(String key, String oldValue, String newValue) {
         super.onChange(key, oldValue, newValue);
-        dcInfos = getDcInofMapping(KEY_DC_INFOS);
-        consoleDcInfos = getDcInofMapping(KEY_CONSOLE_DC_INFOS);
+        regionInfos = getDcInofMapping(KEY_REGION_INFOS);
+        consoleRegionInfos = getDcInofMapping(KEY_CONSOLE_REGION_INFOS);
     }
 
     @Override

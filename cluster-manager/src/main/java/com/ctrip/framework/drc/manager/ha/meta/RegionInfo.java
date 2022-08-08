@@ -6,14 +6,14 @@ import com.ctrip.xpipe.utils.ObjectUtils;
  * @Author limingdong
  * @create 2020/5/17
  */
-public class DcInfo {
+public class RegionInfo {
     private String metaServerAddress;
 
-    public DcInfo(){
+    public RegionInfo(){
 
     }
 
-    public DcInfo(String metaServerAddress){
+    public RegionInfo(String metaServerAddress){
         this.metaServerAddress = metaServerAddress;
     }
 
@@ -28,8 +28,8 @@ public class DcInfo {
     @Override
     public boolean equals(Object obj) {
 
-        if (obj instanceof DcInfo) {
-            DcInfo other = (DcInfo) obj;
+        if (obj instanceof RegionInfo) {
+            RegionInfo other = (RegionInfo) obj;
             if (!ObjectUtils.equals(metaServerAddress, other.metaServerAddress)) {
                 return false;
             }
