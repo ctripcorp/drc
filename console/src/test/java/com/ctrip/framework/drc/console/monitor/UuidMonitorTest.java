@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -120,7 +121,7 @@ public class UuidMonitorTest extends AbstractTest {
         Mockito.doReturn(sample).when(machineTblDao).queryByIpPort(eq(REMOTE_MYSQL_IP), eq(REMOTE_MYSQL_Port));
         Mockito.doReturn(null).when(machineTblDao).queryByIpPort(eq(REMOTE_MYSQL_IP), eq(REMOTE_MYSQL_Port2));
         Mockito.doReturn("sha").when(consoleConfig).getRegion();
-        Mockito.doReturn(Lists.newArrayList(DC1)).when(consoleConfig).getDcsInLocalRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         uuidMonitor.initialize();
         uuidMonitor.isleader();
     }

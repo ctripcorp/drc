@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.enums.ActionEnum;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -14,12 +12,9 @@ import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
-import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
-import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObserver;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,18 +22,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.unidal.tuple.Triple;
 
 import java.sql.ResultSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.ctrip.framework.drc.console.enums.LogTypeEnum.ERROR;
 import static com.ctrip.framework.drc.console.enums.LogTypeEnum.INFO;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOG;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOGGER;
 
 /**
  * @Author: hbshen
@@ -71,7 +64,6 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
     
-    private List<String> dcsInRegion;
     
     @Override
     public void initialize() {
@@ -163,18 +155,18 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
 
     @Override
     public void setLocalRegionInfo() {
-        this.regionName = consoleConfig.getRegion();
-        this.dcsInRegion = consoleConfig.getDcsInLocalRegion();
+        regionName = consoleConfig.getRegion();
+        dcsInRegion = consoleConfig.getDcsInLocalRegion();
     }
 
     @Override
     public void setOnlyCarePart() {
-        this.onlyCarePart = true;
+        onlyCarePart = true;
     }
 
     @Override
     public boolean isCare(MetaKey metaKey) {
-        return this.dcsInRegion.contains(metaKey.getDc());
+        return dcsInRegion.contains(metaKey.getDc());
     }
     
 }

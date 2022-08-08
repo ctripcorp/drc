@@ -280,7 +280,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         dc2regionMap.put("shaoy","sha");
         dc2regionMap.put("sharb","sha");
         Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
-        Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Lists.newArrayList("shaoy","sharb"));
+        Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Sets.newHashSet(Lists.newArrayList("shaoy","sharb")));
         mock();
     }
 
@@ -437,7 +437,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 //        Mockito.doReturn(drc.findDc("dc1").findDbCluster("dbcluster1.mha3dc1")).when(dbClusterSourceProvider).getDbCluster(Mockito.eq("dc1"),Mockito.eq("dbcluster1.mha3dc1"));
         Mockito.doReturn("dc2").when(dbClusterSourceProvider).getLocalDcName();
 
-        Map<String, Set<String>> uuidMap = metaInfoService.getUuidMap(Lists.newArrayList("dc2"));
+        Map<String, Set<String>> uuidMap = metaInfoService.getUuidMap(Sets.newHashSet(Lists.newArrayList("dc2")));
         Assert.assertEquals(3, uuidMap.size());
         Set<String> mha1dc2 = uuidMap.get("mha1dc2");
         Set<String> mha2dc2 = uuidMap.get("mha2dc2");

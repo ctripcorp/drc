@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
+import com.google.common.collect.Sets;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class BtdhsMonitorTest extends AbstractTest {
         Mockito.doReturn("on").when(monitorTableSourceProvider).getBtdhsMonitorSwitch();
         Mockito.doNothing().when(currentMetaManager).addObserver(btdhsMonitor);
         Mockito.doReturn("sha").when(consoleConfig).getRegion();
-        Mockito.doReturn(Lists.newArrayList(DC1)).when(consoleConfig).getDcsInLocalRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         btdhsMonitor.initialize();
         btdhsMonitor.isleader();
         
