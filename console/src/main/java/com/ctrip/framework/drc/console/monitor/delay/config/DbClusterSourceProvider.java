@@ -259,7 +259,6 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         String localDcName = getLocalDcName();
         for (Dc dc : dcs.values()) {
             String dcName = dc.getId();
-            if (!srcDc.equalsIgnoreCase(dcName)) {
                 Map<String, DbCluster> dbClusters = dc.getDbClusters();
                 for (DbCluster dbCluster : dbClusters.values()) {
                     List<Applier> appliers = dbCluster.getAppliers();
@@ -291,7 +290,6 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         }
 
                     }
-                }
             }
         }
         return replicators;

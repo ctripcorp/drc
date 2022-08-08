@@ -186,14 +186,14 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Test
     public void testGetResourcesMethods() throws Exception {
-
+        
         List<String> r = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "R");
         System.out.println("r in dc: " + r);
-        Assert.assertEquals(3, r.size());
+        Assert.assertEquals(5, r.size());
 
         List<String> a = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "A");
         System.out.println("a in dc: " + a);
-        Assert.assertEquals(3, a.size());
+        Assert.assertEquals(5, a.size());
 
         r = metaInfoService.getResourcesInUse("fat-fx-drc1", "", "R");
         System.out.println("r in use: " + r);
@@ -280,6 +280,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         dc2regionMap.put("shaoy","sha");
         dc2regionMap.put("sharb","sha");
         Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
+        Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Lists.newArrayList("shaoy","sharb"));
         mock();
     }
 

@@ -65,7 +65,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
      * due to legacy, src_ip means dc, dest_ip means mhaName
      */
     public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE datachange_lasttime = '%s';";
-    private final Map<String, MhaInfo> mhaTblMap = Maps.newHashMap();
+    private final Map<String ,Long> mhaName2IdMap = Maps.newHashMap();
 
     /**
      * value: the time when update sql commits
@@ -93,9 +93,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
             Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
             String localDcName = sourceProvider.getLocalDcName();
             if (localConfigCloudDc.contains(localDcName)) {
-                consoleConfig.getLocalConfigMhasMap().forEach(
-                        (k, v) -> mhaTblMap.put(k, new MhaInfo(v, k, localDcName))
-                );
+                mhaName2IdMap.putAll(consoleConfig.getLocalConfigMhasMap());
             } else {
                 for (String dc : dcsInRegion) {
                     refreshMhaTblByDc(dc);
@@ -109,10 +107,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     private void refreshMhaTblByDc(String dcName) throws SQLException {
         List<MhaTbl> mhasByDc = metaInfoService.getMhas(dcName);
         mhasByDc.forEach(
-                mhaTbl -> mhaTblMap.put(
-                        mhaTbl.getMhaName(),
-                        new MhaInfo(mhaTbl.getId(),mhaTbl.getMhaName(),dcName)
-                )
+                mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
         );
     }
     
@@ -128,19 +123,20 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     Endpoint endpoint = entry.getValue();
                     String registryKey = metaKey.getClusterId();
                     String mhaName = metaKey.getMhaName();
+                    String dcName = metaKey.getDc();
                     WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-                    MhaInfo mhaInfo = mhaTblMap.get(mhaName);
-                    if (mhaInfo == null) {
+                    Long mhaId = mhaName2IdMap.get(mhaName);
+                    if (mhaId == null) {
                         refreshMhaTblMap();
-                        mhaInfo = mhaTblMap.get(mhaName);
-                        if (mhaInfo == null) {
-                            logger.warn("[[monitor=delay]] can not get mhaInfo for mha:{}",mhaName);
+                        mhaId = mhaName2IdMap.get(mhaName);
+                        if (mhaId == null) {
+                            logger.error("[[monitor=delay]] can not get mhaInfo for mha:{}",mhaName);
                             continue;
                         }
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql = String.format(UPSERT_SQL,mhaInfo.getId(),mhaInfo.getDc(),mhaInfo.getMha(),timestamp);
+                    String sql = String.format(UPSERT_SQL,mhaId,dcName,mhaName,timestamp);
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
                         CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
@@ -174,7 +170,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
 
     @Override
     public void switchToSlave() throws Throwable {
-        mhaTblMap.clear();
+        mhaName2IdMap.clear();
     }
 
     @Override
@@ -249,48 +245,4 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
         return TIME_UNIT;
     }
     
-    private static class MhaInfo {
-        private Long id;
-        private String mha;
-        private String dc;
-
-        public MhaInfo(Long id, String mha,String dc) {
-            this.id = id;
-            this.mha = mha;
-            this.dc = dc;
-        }
-        
-        @Override
-        public String toString() {
-            return "MhaInfo{" +
-                    "mha='" + mha + '\'' +
-                    ", id=" + id +
-                    ", dc='" + dc + '\'' +
-                    '}';
-        }
-        
-        public String getMha() {
-            return mha;
-        }
-
-        public void setMha(String mha) {
-            this.mha = mha;
-        }
-
-        public Long getId() {
-            return id;
-        }
-
-        public void setId(Long id) {
-            this.id = id;
-        }
-
-        public String getDc() {
-            return dc;
-        }
-
-        public void setDc(String dc) {
-            this.dc = dc;
-        }
-    }
 }
