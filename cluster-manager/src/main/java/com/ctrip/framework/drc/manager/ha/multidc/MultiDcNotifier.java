@@ -2,10 +2,11 @@ package com.ctrip.framework.drc.manager.ha.multidc;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcServiceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -39,7 +40,10 @@ public class MultiDcNotifier implements StateChangeHandler {
     private ClusterManagerMultiDcServiceManager clusterManagerMultiDcServiceManager;
 
     @Autowired
-    public DcCache dcMetaCache;
+    public RegionCache regionMetaCache;
+
+    @Autowired
+    public DataCenterService dataCenter;
 
     @Override
     public void replicatorActiveElected(String clusterId, Replicator activeReplicator) {
@@ -48,20 +52,21 @@ public class MultiDcNotifier implements StateChangeHandler {
             return;
         }
 
-        Map<String, DcInfo> dcInfos = config.getDcInofs();
-        Map<String, String> backupDcs = dcMetaCache.getBackupDcs(clusterId); //dcName, clusterName.mhaName
+        Map<String, RegionInfo> regionInfos = config.getRegionInfos();
+        Map<String, String> backupDcs = regionMetaCache.getBackupDcs(clusterId); //dcName, clusterName.mhaName
         NOTIFY_LOGGER.info("[replicatorActiveElected][notify backup dc]{}, {}, {}", clusterId, backupDcs, activeReplicator);
         for (Map.Entry<String, String> entry : backupDcs.entrySet()) {
 
             String backupDcName = entry.getKey();
             String backupClusterId = entry.getValue();
-            DcInfo dcInfo = dcInfos.get(entry.getKey());
+            String region = dataCenter.getRegion(entry.getKey());
+            RegionInfo regionInfo = regionInfos.get(region);
 
-            if (dcInfo == null) {
-                NOTIFY_LOGGER.error("[replicatorActiveElected][backup dc, but can not find dcinfo]{}, {}, {}", backupDcName, backupClusterId, dcInfos);
+            if (regionInfo == null) {
+                NOTIFY_LOGGER.error("[replicatorActiveElected][backup dc, but can not find region info]{}, {}, {}", backupDcName, backupClusterId, regionInfos);
                 continue;
             }
-            ClusterManagerMultiDcService clusterManagerMultiDcService = clusterManagerMultiDcServiceManager.getOrCreate(dcInfo.getMetaServerAddress());
+            ClusterManagerMultiDcService clusterManagerMultiDcService = clusterManagerMultiDcServiceManager.getOrCreate(regionInfo.getMetaServerAddress());
             executors.execute(new BackupDcNotifyTask(clusterManagerMultiDcService, clusterId, backupClusterId, activeReplicator));
         }
 

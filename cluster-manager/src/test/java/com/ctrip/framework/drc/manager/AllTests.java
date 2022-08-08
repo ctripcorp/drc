@@ -109,7 +109,11 @@ public class AllTests {
 
     public static final String DC = "shaoy";
 
+    public static final String REGION = "sha";
+
     public static final String TARGET_DC = "sharb";
+
+    public static final String TARGET_REGION = "sha";
 
     public static final String XML_FILE = "test.xml";
 

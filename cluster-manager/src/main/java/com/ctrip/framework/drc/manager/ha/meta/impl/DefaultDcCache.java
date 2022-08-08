@@ -283,4 +283,8 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
         return res;
     }
+
+    public String getCurrentDc() {
+        return currentDc;
+    }
 }

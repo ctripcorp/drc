@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,8 +37,8 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
             return;
         }
         STATE_LOGGER.info("[replicatorActiveElected] for {}:{}", clusterId, replicator);
-        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
-        for (Map.Entry<String, DcInfo> entry : dcInfoMap.entrySet()) {
+        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
+        for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
             if (!dataCenterService.getDc().equalsIgnoreCase(entry.getKey())) {
                 String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/replicators/master/";
                 try {
@@ -64,8 +64,8 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
     public void mysqlMasterChanged(String clusterId, Endpoint master) {
         String ipAndPort = master.getHost() + ":" + master.getPort();
         STATE_LOGGER.info("[mysqlMasterChanged] for {}:{}", clusterId, master);
-        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
-        for (Map.Entry<String, DcInfo> entry : dcInfoMap.entrySet()) {
+        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
+        for (Map.Entry<String, RegionInfo> entry : consoleRegionInfos.entrySet()) {
             String url = entry.getValue().getMetaServerAddress() + "/api/drc/v1/switch/clusters/{clusterId}/dbs/master/";
             if (dataCenterService.getDc().equalsIgnoreCase(entry.getKey())) {
                 restTemplate.put(url, ipAndPort, clusterId);
@@ -75,40 +75,20 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         }
     }
 
-    public String getLocalDbClusters() {
-        String localDc = dataCenterService.getDc();
-        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
-
-        DcInfo dcInfo = dcInfoMap.get(localDc);
-        if(null != dcInfo) {
-            String url = String.format(dcInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", localDc);
-            try {
-                long s = System.currentTimeMillis();
-                String localDbClusters = restTemplate.getForObject(url, String.class);
-                long e = System.currentTimeMillis();
-                logger.info("[meta] for local dc, took {}ms", e-s);
-                return localDbClusters;
-            } catch (Exception e) {
-                logger.error("[meta] for local dc, ", e);
-            }
-        }
-        return null;
-    }
-
     public String getDbClusters(String dcId) {
-        Map<String, DcInfo> dcInfoMap = clusterManagerConfig.getConsoleDcInofs();
+        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
 
-        DcInfo dcInfo = dcInfoMap.get(dcId);
-        if(null != dcInfo) {
-            String url = String.format(dcInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+        RegionInfo regionInfo = consoleRegionInfos.get(dcId);
+        if(null != regionInfo) {
+            String url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
             try {
                 long s = System.currentTimeMillis();
-                String localDbClusters = restTemplate.getForObject(url, String.class);
+                String dbClusters = restTemplate.getForObject(url, String.class);
                 long e = System.currentTimeMillis();
-                logger.info("[meta] for local dc, took {}ms", e-s);
-                return localDbClusters;
+                logger.info("[meta] for dc: {}, took {}ms", dcId, e-s);
+                return dbClusters;
             } catch (Exception e) {
-                logger.error("[meta] for local dc, ", e);
+                logger.error("[meta] for dc: {}, ", dcId, e);
             }
         }
         return null;

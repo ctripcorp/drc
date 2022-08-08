@@ -26,14 +26,14 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     @Resource(name = AbstractSpringConfigContext.GLOBAL_EXECUTOR)
     private ExecutorService executors;
 
-    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.POST,  consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public void clusterAdded(@PathVariable String clusterId, @RequestBody DbCluster clusterMeta,
+    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestBody DbCluster clusterMeta,
                              @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
-        clusterManager.clusterAdded(clusterMeta, forwardInfo.clone());
+        clusterManager.clusterAdded(dcId, clusterMeta, forwardInfo.clone());
     }
 
-    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.PUT,  consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public void clusterModified(@PathVariable String clusterId, @RequestBody DbCluster clusterMeta,
                                 @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager metaServer) {
 
@@ -48,7 +48,6 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     }
 
     /**
-     *
      * @param backupClusterId
      * @param clusterId
      * @param ip
@@ -58,13 +57,13 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
      */
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_UPSTREAM_CHANGE, method = RequestMethod.PUT)
     public void upstreamChange(@PathVariable String backupClusterId, @PathVariable String clusterId,
-                               @PathVariable String ip, @PathVariable int port,@ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
+                               @PathVariable String ip, @PathVariable int port, @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
         logger.debug("[upstreamChange]{},{},{},{}", clusterId, backupClusterId, ip, port);
         clusterManager.updateUpstream(clusterId, backupClusterId, ip, port, forwardInfo);
     }
 
-    @RequestMapping(path = META_SERVER_SERVICE.PATH.GET_ACTIVE_REPLICATOR, method = RequestMethod.GET, produces= MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(path = META_SERVER_SERVICE.PATH.GET_ACTIVE_REPLICATOR, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public DeferredResult<Replicator> getActiveReplicator(@PathVariable String clusterId,
                                                           @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
@@ -77,9 +76,9 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
         }, clusterManager);
     }
 
-    @RequestMapping(path = META_SERVER_SERVICE.PATH.GET_ACTIVE_MYSQL, method = RequestMethod.GET, produces= MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(path = META_SERVER_SERVICE.PATH.GET_ACTIVE_MYSQL, method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public DeferredResult<Endpoint> getActiveMySQL(@PathVariable String clusterId,
-                                                     @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
+                                                   @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
         logger.debug("[getActiveMySQL]{}", clusterId);
         return createDeferredResult(new Function<ClusterManager, Endpoint>() {

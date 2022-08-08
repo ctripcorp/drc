@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.manager.ha.config;
 
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.validation.constraints.AssertTrue;
 import java.util.Map;
 
 /**
@@ -32,6 +32,20 @@ public class DefaultClusterManagerConfigTest {
         String blackIps = clusterManagerConfig.getMigrationBlackIps();
         Assert.assertTrue(blackIps.contains("127.0.0.1"));
         Assert.assertTrue(blackIps.contains("127.0.0.2"));
+    }
+
+    @Test
+    public void getRegionInfos() {
+        Map<String, RegionInfo> regionInfos = clusterManagerConfig.getRegionInfos();
+        Assert.assertEquals(1, regionInfos.size());
+        Assert.assertEquals("127.0.0.1", regionInfos.get("sha").getMetaServerAddress());
+    }
+
+    @Test
+    public void getRegionDcInfos() {
+        Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
+        Assert.assertEquals(1, consoleRegionInfos.size());
+        Assert.assertEquals("127.0.0.2", consoleRegionInfos.get("sha").getMetaServerAddress());
     }
 
 }

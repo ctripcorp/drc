@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.rest.ForwardInfo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
@@ -24,7 +25,7 @@ public class DefaultClusterManager extends DefaultCurrentClusterServer implement
     private CurrentMetaManager currentMetaManager;   // managed by current cm
 
     @Autowired
-    private DcCache dcMetaCache;   //all in current dc
+    private RegionCache regionMetaCache;   //all in current dc
 
     @Override
     protected void doInitialize() throws Exception {
@@ -91,15 +92,15 @@ public class DefaultClusterManager extends DefaultCurrentClusterServer implement
     }
 
     @Override
-    public void clusterAdded(DbCluster clusterMeta, ForwardInfo forwardInfo) {
+    public void clusterAdded(String dcId, DbCluster clusterMeta, ForwardInfo forwardInfo) {
         logger.info("[clusterAdded]{}", clusterMeta);
-        dcMetaCache.clusterAdded(clusterMeta);
+        regionMetaCache.clusterAdded(dcId, clusterMeta);
     }
 
     @Override
     public void clusterModified(DbCluster clusterMeta, ForwardInfo forwardInfo) {
         logger.info("[clusterModified]{}", clusterMeta);
-        dcMetaCache.clusterModified(clusterMeta);
+        regionMetaCache.clusterModified(clusterMeta);
 
     }
 
@@ -107,7 +108,7 @@ public class DefaultClusterManager extends DefaultCurrentClusterServer implement
     public void clusterDeleted(String clusterId, ForwardInfo forwardInfo) {
 
         logger.info("[clusterDeleted]{}", clusterId);
-        dcMetaCache.clusterDeleted(clusterId);
+        regionMetaCache.clusterDeleted(clusterId);
     }
 
     @Override

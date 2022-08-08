@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
 import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -61,7 +61,7 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
     private CurrentClusterServer currentClusterServer;
 
     @Mock
-    private DcCache dcMetaCache;
+    private RegionCache regionMetaCache;
 
     @Mock
     private StateChangeHandler handler;
@@ -87,10 +87,10 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         when(currentClusterServer.slots()).thenReturn(DEFAULT_SLOT);
 
         DEFAULT_CLUSTER.add(DAL_CLUSTER_ID);
-        when(dcMetaCache.getClusters()).thenReturn(DEFAULT_CLUSTER);
+        when(regionMetaCache.getClusters()).thenReturn(DEFAULT_CLUSTER);
 
         when(slotManager.getSlotIdByKey(DAL_CLUSTER_ID)).thenReturn(ADDED_SLOT);
-        when(dcMetaCache.getCluster(DAL_CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(DAL_CLUSTER_ID)).thenReturn(dbCluster);
 
         currentMetaManager.setScheduled(scheduledExecutorService);
         currentMetaManager.setSlotCheckInterval(50);
@@ -146,7 +146,7 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         dcMetaComparator.compare();
 
         when(currentClusterServer.hasKey(newId)).thenReturn(true);
-        when(dcMetaCache.getCluster(newId)).thenReturn(futureDbCluster);
+        when(regionMetaCache.getCluster(newId)).thenReturn(futureDbCluster);
 
         currentMetaManager.update(dcMetaComparator, observable);
         Thread.sleep(60);
@@ -163,7 +163,7 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         dcMetaComparator.compare();
 
         when(currentClusterServer.hasKey(CLUSTER_ID)).thenReturn(true);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         currentMetaManager.update(dcMetaComparator, observable);  //due to no cluster in currentmeta
         Thread.sleep(60);
@@ -181,7 +181,7 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
         dcMetaComparator.compare();
 
         when(currentClusterServer.hasKey(CLUSTER_ID)).thenReturn(true);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         currentMetaManager.update(dcMetaComparator, observable);  //due to no cluster in currentmeta
         Thread.sleep(60);
@@ -201,7 +201,7 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
     @Test
     public void testRefreshApplierMaster() {
         currentMetaManager = spy(new DefaultCurrentMetaManager());
-        currentMetaManager.setDcCache(dcMetaCache);
+        currentMetaManager.setRegionCache(regionMetaCache);
         String clusterId = CLUSTER_ID;
 
         when(currentMetaManager.allClusters()).thenReturn(Sets.newHashSet(clusterId));
@@ -209,8 +209,8 @@ public class DefaultCurrentMetaManagerTest extends AbstractDbClusterTest {
 
         doReturn(Pair.from("127.0.0.1", randomPort())).when(currentMetaManager).getApplierMaster(anyString(), anyString());
 
-        when(dcMetaCache.randomRoute(clusterId, "sharb")).thenReturn(new Route(1000).setTag(Route.TAG_META));
-        when(dcMetaCache.getCluster(clusterId)).thenReturn(getCluster("shaoy", clusterId));
+        when(regionMetaCache.randomRoute(clusterId, "sharb")).thenReturn(new Route(1000).setTag(Route.TAG_META));
+        when(regionMetaCache.getCluster(clusterId)).thenReturn(getCluster("shaoy", clusterId));
 
         currentMetaManager.addStateChangeHandler(handler);
         currentMetaManager.routeChanges();

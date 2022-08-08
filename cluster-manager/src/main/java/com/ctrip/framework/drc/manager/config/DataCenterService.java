@@ -6,6 +6,7 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +50,15 @@ public class DataCenterService  extends AbstractConfigBean implements Initializi
         return REGION;
     }
 
+    public String getRegion(String dcName) {
+        for (Map.Entry<String, Set<String>> entry : regionIdcMapping.entrySet()) {
+            if (entry.getValue().contains(dcName.toLowerCase())) {
+                return entry.getKey();
+            }
+        }
+        throw new IllegalArgumentException("can not find region with dcName: " + dcName);
+    }
+
     public Map<String, Set<String>> getRegionIdcMapping() {
         return regionIdcMapping;
     }
@@ -61,7 +71,9 @@ public class DataCenterService  extends AbstractConfigBean implements Initializi
 
         Map<String, Set<String>> result = Maps.newConcurrentMap();
         for(Map.Entry<String, Set<String>> entry : migrationIdcs.entrySet()){
-            result.put(entry.getKey().toLowerCase(), entry.getValue());
+            Set<String> dcNames = Sets.newHashSet();
+            entry.getValue().forEach((dcName) -> dcNames.add(dcName.toLowerCase()));
+            result.put(entry.getKey().toLowerCase(), dcNames);
         }
 
         logger.debug("[getRegionIdcMapping]{}", result);
