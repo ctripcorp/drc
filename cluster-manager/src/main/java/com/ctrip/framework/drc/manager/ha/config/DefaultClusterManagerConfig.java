@@ -27,7 +27,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_CLUSTER_SERVERS_CHECK_MILLI = "cluster.servers.check.milli";
     public static String KEY_WAITFOR_OFFSET_MILLI = "dcchange.waitfor.offset.milli";
     public static String KEY_VALIDATE_DOMAIN = "metaserver.validate.domain";
-    public static String KEY_REGION_INFOS = "drc.region.infos";
+    public static String KEY_CM_REGION_INFOS = "drc.cm.region.infos";
     public static String KEY_CONSOLE_REGION_INFOS = "drc.console.region.infos";
     public static String KEY_MIGRATION_IDC = "drc.migration.idcs";
     public static String KEY_MIGRATION_BLACK_IPS = "drc.migration.black.ips";
@@ -96,7 +96,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public Map<String, RegionInfo> getRegionInfos() {
         if(regionInfos.isEmpty()) {
-            regionInfos = getDcInofMapping(KEY_REGION_INFOS);
+            regionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
         }
         return regionInfos;
     }
@@ -104,7 +104,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public Map<String, RegionInfo> getConsoleRegionInfos() {
         if(consoleRegionInfos.isEmpty()) {
-            consoleRegionInfos = getDcInofMapping(KEY_CONSOLE_REGION_INFOS);
+            consoleRegionInfos = getRegionInfoMapping(KEY_CONSOLE_REGION_INFOS);
         }
         return consoleRegionInfos;
     }
@@ -135,17 +135,17 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
         return null;
     }
 
-    private Map<String, RegionInfo> getDcInofMapping(String key) {
+    private Map<String, RegionInfo> getRegionInfoMapping(String key) {
 
-        String dcInfoStr = getProperty(key, "{}");
-        Map<String, RegionInfo> dcInfos = JsonCodec.INSTANCE.decode(dcInfoStr, new GenericTypeReference<Map<String, RegionInfo>>() {});
+        String regionInfoStr = getProperty(key, "{}");
+        Map<String, RegionInfo> regionInfos = JsonCodec.INSTANCE.decode(regionInfoStr, new GenericTypeReference<Map<String, RegionInfo>>() {});
 
         Map<String, RegionInfo> result = Maps.newConcurrentMap();
-        for(Map.Entry<String, RegionInfo> entry : dcInfos.entrySet()){
+        for(Map.Entry<String, RegionInfo> entry : regionInfos.entrySet()){
             result.put(entry.getKey().toLowerCase(), entry.getValue());
         }
 
-        logger.debug("[getDcInofs]{}", result);
+        logger.debug("[getRegionInfos]{}", result);
         return result;
     }
 
@@ -202,8 +202,8 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public void onChange(String key, String oldValue, String newValue) {
         super.onChange(key, oldValue, newValue);
-        regionInfos = getDcInofMapping(KEY_REGION_INFOS);
-        consoleRegionInfos = getDcInofMapping(KEY_CONSOLE_REGION_INFOS);
+        regionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
+        consoleRegionInfos = getRegionInfoMapping(KEY_CONSOLE_REGION_INFOS);
     }
 
     @Override
