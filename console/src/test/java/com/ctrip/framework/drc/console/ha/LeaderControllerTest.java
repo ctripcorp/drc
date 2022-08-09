@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.junit.Assert.*;
 
 
 public class LeaderControllerTest extends AbstractControllerTest {
@@ -44,4 +43,5 @@ public class LeaderControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
+
 }

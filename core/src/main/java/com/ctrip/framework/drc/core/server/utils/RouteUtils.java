@@ -1,14 +1,14 @@
 package com.ctrip.framework.drc.core.server.utils;
 
+import com.ctrip.framework.drc.core.config.CommonConfig;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.xpipe.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * @Author: hbshen
@@ -63,7 +63,122 @@ public class RouteUtils {
 
         return resultsCandidates;
     }
+    
+    // use srcDc 
+//    public static Route randomRoute(String currentDc, String tag, Integer orgId, String dstDc, List<Dc> dcs) {
+//        List<Route> routes = filterRoutes(currentDc, tag, orgId, dstDc, dcs);
+//        return random(routes);
+//    }
+//
+//    public static List<Route> filterRoutes(String currentDc, String tag, Integer orgId, String dstDc, List<Dc> dcs) {
+//        CommonConfig config = CommonConfig.getInstance();
+//        Map<String, String> dc2regionMap = config.getDc2regionMap();
+//        String currentRegion = dc2regionMap.get(currentDc);
+//        String dstRegion = dc2regionMap.get(dstDc);
+//
+//        logger.debug("[randomRoute]currentRegion: {}, tag: {}, orgId, {}, dstRegion: {}", currentRegion, tag, orgId, dstRegion);
+//        List<Route> routes = routes(currentRegion, tag, dcs);
+//        List<Route> resultsCandidates = new LinkedList<>();
+//        if(routes.isEmpty()){
+//            return resultsCandidates;
+//        }
+//        logger.debug("[randomRoute]routes: {}", routes);
+//        //for Same dstRegion
+//        List<Route> dstRegionRoutes = new LinkedList<>();
+//        routes.forEach(routeMeta -> {
+//            if (routeMeta.getDstRegion().equalsIgnoreCase(dstRegion)) {
+//                dstRegionRoutes.add(routeMeta);
+//            }
+//        });
+//        if(dstRegionRoutes.isEmpty()){
+//            logger.debug("[randomRoute]dst region empty: {}", routes);
+//            return resultsCandidates;
+//        }
+//
+//        //for same org id
+//        dstRegionRoutes.forEach(routeMeta -> {
+//            if(ObjectUtils.equals(routeMeta.getOrgId(), orgId)){
+//                resultsCandidates.add(routeMeta);
+//            }
+//        });
+//
+//        if(!resultsCandidates.isEmpty()){
+//            return resultsCandidates;
+//        }
+//
+//        dstRegionRoutes.forEach(routeMeta -> {
+//            Integer orgId1 = routeMeta.getOrgId();
+//            if(orgId1 == null || orgId1 <= 0L){
+//                resultsCandidates.add(routeMeta);
+//            }
+//        });
+//
+//        return resultsCandidates;
+//    }
+    
+    
+    // use srcRegion
+    public static Route randomRoute(String currentRegion, String tag, Integer orgId, String dstRegion, List<Dc> dcs) {
+        List<Route> routes = filterRoutes(currentRegion, tag, orgId, dstRegion, dcs);
+        return random(routes);
+    }
+    
+    public static List<Route> filterRoutes(String currentRegion, String tag, Integer orgId, String dstRegion, List<Dc> dcs) {
+        logger.debug("[randomRoute]currentRegion: {}, tag: {}, orgId, {}, dstRegion: {}", currentRegion, tag, orgId, dstRegion);
+        List<Route> routes = routes(currentRegion, tag, dcs);
+        List<Route> resultsCandidates = new LinkedList<>();
+        if(routes.isEmpty()){
+            return resultsCandidates;
+        }
+        logger.debug("[randomRoute]routes: {}", routes);
+        //for Same dstRegion
+        List<Route> dstRegionRoutes = new LinkedList<>();
+        routes.forEach(routeMeta -> {
+            if (routeMeta.getDstRegion().equalsIgnoreCase(dstRegion)) {
+                dstRegionRoutes.add(routeMeta);
+            }
+        });
+        if(dstRegionRoutes.isEmpty()){
+            logger.debug("[randomRoute]dst region empty: {}", routes);
+            return resultsCandidates;
+        }
 
+        //for same org id
+        dstRegionRoutes.forEach(routeMeta -> {
+            if(ObjectUtils.equals(routeMeta.getOrgId(), orgId)){
+                resultsCandidates.add(routeMeta);
+            }
+        });
+
+        if(!resultsCandidates.isEmpty()){
+            return resultsCandidates;
+        }
+
+        dstRegionRoutes.forEach(routeMeta -> {
+            Integer orgId1 = routeMeta.getOrgId();
+            if(orgId1 == null || orgId1 <= 0L){
+                resultsCandidates.add(routeMeta);
+            }
+        });
+
+        return resultsCandidates;
+    }
+
+    public static List<Route> routes(String srcRegion, String tag, List<Dc> dcs) {
+        List<Route> result = new LinkedList<>();
+
+        if (!CollectionUtils.isEmpty(dcs)) {
+            dcs.stream().flatMap(dc -> dc.getRoutes().stream()).forEach(
+                    route -> {
+                        if (route.tagEquals(tag) && srcRegion.equalsIgnoreCase(route.getSrcRegion())) {
+                            result.add(MetaClone.clone(route));
+                        }
+                    }
+            );
+        }
+        return result;
+    }
+    
     public static List<Route> routes(String srcDc, String tag, Dc dc) {
         List<Route> result = new LinkedList<>();
 

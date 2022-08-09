@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.ha;
 
-
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
