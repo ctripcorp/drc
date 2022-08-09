@@ -234,6 +234,11 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     public Route randomRoute(String clusterId, String dstDc) {
         return dcMetaManager.get().randomRoute(clusterId, dstDc);
     }
+    
+    @Override
+    public Route randomRoute(String clusterId,String dstDc,Integer orgId) {
+        return dcMetaManager.get().randomRoute(clusterId, dstDc,orgId);
+    }
 
     @Override
     public void clusterAdded(DbCluster clusterMeta) {

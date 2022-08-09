@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.meta.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -83,8 +84,23 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
 
     @Override
     public Route randomRoute(String clusterId, String dstDc) {
-        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst();
-        return defaultDcCache.map(dcCache -> dcCache.randomRoute(clusterId, dstDc)).orElse(null);
+        DefaultDcCache defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst().orElse(null);
+        if (defaultDcCache != null) {
+            Integer orgId = defaultDcCache.getCluster(clusterId).getOrgId();
+            List<Route> routesInDiffSrcDcs = Lists.newArrayList();
+            dcCaches.forEach(dcCache -> {
+                Route route = dcCache.randomRoute(clusterId, dstDc, orgId);
+                routesInDiffSrcDcs.add(route);
+            });
+            return RouteUtils.random(routesInDiffSrcDcs);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Route randomRoute(String clusterId, String dstDc, Integer orgId) {
+        throw new UnsupportedOperationException("unSupport method, need delegate to one certain dcCache");
     }
 
     @Override

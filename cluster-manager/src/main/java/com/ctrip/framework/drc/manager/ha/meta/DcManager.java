@@ -19,6 +19,8 @@ public interface DcManager {
      */
     Route randomRoute(String clusterId, String dstDc);
 
+    Route randomRoute(String clusterId, String dstDc, Integer orgId);
+
     Set<String> getClusters();
 
     boolean hasCluster(String registryKey);
@@ -30,4 +32,5 @@ public interface DcManager {
     void update(DbCluster dbCluster);
 
     DbCluster removeCluster(String registryKey);
+    
 }

@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.core.config;
 
-import com.ctrip.framework.drc.core.http.AuthorityConfig;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
@@ -19,7 +18,7 @@ import java.util.Set;
  */
 public class CommonConfig extends AbstractConfigBean {
     
-    private static final String KEY_LOCAL_REGION = "x.access.token";
+    private static final String KEY_LOCAL_REGION = "region";
     private static final String DEFAULT_REGION = "sha";
     
     public static String KEY_REGION_IDC_MAPPING = "drc.region.idc.mapping";

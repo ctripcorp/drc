@@ -68,6 +68,11 @@ public class DefaultDcManager implements DcManager {
     }
 
     @Override
+    public Route randomRoute(String clusterId, String dstDc, Integer orgId) {
+        return drcManager.metaRandomRoutes(currentDc, orgId, dstDc);
+    }
+
+    @Override
     public boolean hasCluster(String registryKey) {
         return drcManager.hasCluster(currentDc, registryKey);
     }
