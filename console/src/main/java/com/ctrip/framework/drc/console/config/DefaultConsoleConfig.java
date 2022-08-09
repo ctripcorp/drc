@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.framework.drc.console.config.meta.DcInfo;
+import com.ctrip.framework.drc.core.config.CommonConfig;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.codec.JsonCodec;
@@ -21,21 +22,10 @@ import java.util.*;
  */
 @Component("defaultConsoleConfig")
 public class DefaultConsoleConfig extends AbstractConfigBean {
-
-    public static String KEY_LOCAL_REGION = "region";
-    public static String DEFAULT_REGION = "sha";
     
-    public static String KEY_REGION_IDC_MAPPING = "drc.region.idc.mapping";
-    public static String DEFAULT_REGION_IDC_MAPPING = "{\"sha\": [\"shaoy\", \"sharb\"], \"ntgxh\": [\"ntgxh\"], \"ntgxy\": [\"ntgxy\"]}";
+    private CommonConfig commonConfig = CommonConfig.getInstance();
     
     public static String KEY_DC_INFOS = "drc.dcinfos";
-    
-    public static final String KEY_DRC_CM_REGION_INFOS= "drc.cm.region.infos";
-    public static final String DEFAULT_DRC_CM_REGION_INFOS= "{\"sha\":\"http://cm.drc.sha\", \"ntgxh\":\"http://cm.drc.ntgxh\", \"ntgxy\":\"http://cm.drc.ntgxy\"}";
-    
-    public static final String KEY_DRC_CONSOLE_REGION_INFOS = "drc.console.region.infos";
-    public static final String DEFAULT_DRC_CONSOLE_REGION_INFOS = "{\"sha\":\"http://console.drc.sha\", \"ntgxh\":\"http://console.drc.ntgxh\", \"ntgxy\":\"http://console.drc.ntgxy\"}";
-    
     public static final String SWITCH_META_ROLL_BACK = "switch.meta.roll.back";
     public static final String SWITCH_CM_REGION_URL = "switch.cm.region.url";
     public static final String SWITCH_ON = "on";
@@ -112,16 +102,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
     
     public String getRegion(){
-        return getProperty(KEY_LOCAL_REGION,DEFAULT_REGION);
+        return commonConfig.getRegion();
     }
     
     public Map<String,Set<String>> getRegionsInfo(){
-        String regionsInfo = getProperty(KEY_REGION_IDC_MAPPING, DEFAULT_REGION_IDC_MAPPING);
-        if(StringUtils.isEmpty(regionsInfo)) {
-            return Maps.newHashMap();
-        } else {
-            return JsonCodec.INSTANCE.decode(regionsInfo, new GenericTypeReference<Map<String, Set<String>>>() {});
-        }
+        return commonConfig.getRegion2dcsMapping();
     }
 
     public Map<String,String> getDc2regionMap (){
@@ -162,13 +147,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public Map<String,String> getCMRegionUrls() {
-        String cmUrlsStr = getProperty(KEY_DRC_CM_REGION_INFOS,DEFAULT_DRC_CM_REGION_INFOS);
-        return JsonCodec.INSTANCE.decode(cmUrlsStr, new GenericTypeReference<Map<String, String>>() {});
+        return commonConfig.getCMRegionUrls();
     }
 
     public Map<String,String> getConsoleRegionUrls() {
-        String cmUrlsStr = getProperty(KEY_DRC_CONSOLE_REGION_INFOS,DEFAULT_DRC_CONSOLE_REGION_INFOS);
-        return JsonCodec.INSTANCE.decode(cmUrlsStr, new GenericTypeReference<Map<String, String>>() {});
+        return commonConfig.getConsoleRegionUrls();
     }
     
     public Map<String, DcInfo> getDcInfos() {

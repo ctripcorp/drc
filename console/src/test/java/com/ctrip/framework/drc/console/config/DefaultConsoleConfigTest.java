@@ -125,10 +125,10 @@ public class DefaultConsoleConfigTest {
     @Test
     public void testTestGetCMMetaServerAddress() {
         String cmUrl = config.getCMMetaServerAddress("shaoy");
-        Assert.assertEquals("http://oy",cmUrl);
+        Assert.assertNotNull(cmUrl);
         config.setSwitchCmRegionUrl("on");
         cmUrl = config.getCMMetaServerAddress("shaoy");
-        Assert.assertEquals("http://cm.drc.sha",cmUrl);
+        Assert.assertNull(cmUrl);
     }
     
 }

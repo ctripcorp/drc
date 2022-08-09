@@ -84,18 +84,20 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
 
     @Override
     public Route randomRoute(String clusterId, String dstDc) {
-        DefaultDcCache defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst().orElse(null);
-        if (defaultDcCache != null) {
-            Integer orgId = defaultDcCache.getCluster(clusterId).getOrgId();
-            List<Route> routesInDiffSrcDcs = Lists.newArrayList();
-            dcCaches.forEach(dcCache -> {
-                Route route = dcCache.randomRoute(clusterId, dstDc, orgId);
-                routesInDiffSrcDcs.add(route);
-            });
-            return RouteUtils.random(routesInDiffSrcDcs);
-        } else {
-            return null;
-        }
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst();
+        List<Route> routesInDiffSrcDc = Lists.newArrayList();
+        defaultDcCache.ifPresentOrElse(
+                dcCache -> {
+                    Integer orgId = dcCache.getCluster(clusterId).getOrgId();
+                    dcCaches.forEach(dcCacheInRegion -> {
+                        Route route = dcCacheInRegion.randomRoute(clusterId, dstDc, orgId);
+                        routesInDiffSrcDc.add(route);
+                    });
+                },
+                () -> {
+                    logger.info("no route available for clusterId:{},dstDc:{}", clusterId, dstDc);
+                });
+        return RouteUtils.random(routesInDiffSrcDc);
     }
 
     @Override

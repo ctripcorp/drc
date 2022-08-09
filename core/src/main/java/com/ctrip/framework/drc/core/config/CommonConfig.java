@@ -19,16 +19,16 @@ import java.util.Set;
 public class CommonConfig extends AbstractConfigBean {
     
     private static final String KEY_LOCAL_REGION = "region";
-    private static final String DEFAULT_REGION = "sha";
+    private static final String DEFAULT_REGION = "";
     
     public static String KEY_REGION_IDC_MAPPING = "drc.region.idc.mapping";
-    public static String DEFAULT_REGION_IDC_MAPPING = "{\"sha\": [\"shaoy\", \"sharb\"], \"ntgxh\": [\"ntgxh\"], \"ntgxy\": [\"ntgxy\"]}";
+    public static String DEFAULT_REGION_IDC_MAPPING = "{}";
     
     public static final String KEY_DRC_CM_REGION_INFOS= "drc.cm.region.infos";
-    public static final String DEFAULT_DRC_CM_REGION_INFOS= "{\"sha\":\"http://cm.drc.sha\", \"ntgxh\":\"http://cm.drc.ntgxh\", \"ntgxy\":\"http://cm.drc.ntgxy\"}";
+    public static final String DEFAULT_DRC_CM_REGION_INFOS= "{}";
 
     public static final String KEY_DRC_CONSOLE_REGION_INFOS = "drc.console.region.infos";
-    public static final String DEFAULT_DRC_CONSOLE_REGION_INFOS = "{\"sha\":\"http://console.drc.sha\", \"ntgxh\":\"http://console.drc.ntgxh\", \"ntgxy\":\"http://console.drc.ntgxy\"}";
+    public static final String DEFAULT_DRC_CONSOLE_REGION_INFOS = "{}";
 
     public String getRegion(){
         return getProperty(KEY_LOCAL_REGION,DEFAULT_REGION);
