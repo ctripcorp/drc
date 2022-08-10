@@ -47,7 +47,7 @@ public class DefaultMultiDcService implements MultiDcService {
 
     private Replicator doGetActiveReplicator(String dcName, String clusterId) {
         String region = dataCenter.getRegion(dcName);
-        RegionInfo regionInfo = config.getRegionInfos().get(region);
+        RegionInfo regionInfo = config.getCmRegionInfos().get(region);
         if(regionInfo == null){
             logger.error("[getActiveReplicator][region info null]{}:{}", region, dcName);
             return null;

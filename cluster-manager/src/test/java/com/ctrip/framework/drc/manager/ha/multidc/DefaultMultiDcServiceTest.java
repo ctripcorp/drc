@@ -48,7 +48,7 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
     public void getActiveReplicatorNullAndRetry() {
         when(dataCenter.getRegion(TARGET_DC)).thenReturn(TARGET_REGION);
         Map<String, RegionInfo> empty = Maps.newConcurrentMap();
-        when(config.getRegionInfos()).thenReturn(empty);
+        when(config.getCmRegionInfos()).thenReturn(empty);
         Map<String, String> migrationIdc = Maps.newHashMap();
         migrationIdc.put(TARGET_DC, "shaxy");
         when(config.getMigrationIdc()).thenReturn(migrationIdc);
@@ -68,7 +68,7 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
         regionInfo.setMetaServerAddress(LOCAL_IP);
         notEmpry.put(TARGET_REGION, regionInfo);
         when(dataCenter.getRegion(TARGET_DC)).thenReturn(TARGET_REGION);
-        when(config.getRegionInfos()).thenReturn(notEmpry);
+        when(config.getCmRegionInfos()).thenReturn(notEmpry);
         when(clusterManagerMultiDcServiceManager.getOrCreate(LOCAL_IP)).thenReturn(clusterManagerMultiDcService);
         when(clusterManagerMultiDcService.getActiveReplicator(BACKUP_DAL_CLUSTER_ID)).thenReturn(newReplicator);
 
