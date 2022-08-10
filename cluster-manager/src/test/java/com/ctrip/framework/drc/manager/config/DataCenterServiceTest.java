@@ -39,6 +39,6 @@ public class DataCenterServiceTest {
     @Test
     public void getRegionIdcMapping() {
         Map<String, Set<String>> mappings = dataCenterService.getRegionIdcMapping();
-        Assert.assertEquals(3, mappings.size());
+        Assert.assertEquals(7, mappings.size());
     }
 }
