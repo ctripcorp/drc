@@ -93,10 +93,7 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
                         Route route = dcCacheInRegion.randomRoute(clusterId, dstDc, orgId);
                         routesInDiffSrcDc.add(route);
                     });
-                },
-                () -> {
-                    logger.info("no route available for clusterId:{},dstDc:{}", clusterId, dstDc);
-                });
+                }, () -> logger.info("no route available for clusterId:{},dstDc:{}", clusterId, dstDc));
         return RouteUtils.random(routesInDiffSrcDc);
     }
 

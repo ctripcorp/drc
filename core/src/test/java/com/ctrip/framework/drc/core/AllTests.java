@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
+import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
@@ -141,6 +142,7 @@ import org.junit.runners.Suite;
         //config package
         ApplierConfigDtoTest.class,
         SchemasHistoryDeltaDtoTest.class,
+        RegionConfigTest.class,
 
         //ddl
         DrcDdlLogEventTest.class,
