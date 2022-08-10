@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.core.server.utils;
 
 
-import com.ctrip.framework.drc.core.config.CommonConfig;
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.xpipe.utils.ObjectUtils;
@@ -24,8 +24,8 @@ public class RouteUtils {
     }
 
     public static List<Route> filterRoutes(String currentDc, String tag, Integer orgId, String dstDc, Dc dc) {
-        CommonConfig config = CommonConfig.getInstance();
-        Map<String, String> dc2regionMap = config.getDc2regionMap();
+        RegionConfig regionConfig = RegionConfig.getInstance();
+        Map<String, String> dc2regionMap = regionConfig.getDc2regionMap();
         String currentRegion = dc2regionMap.get(currentDc);
         String dstRegion = dc2regionMap.get(dstDc);
 
@@ -68,7 +68,7 @@ public class RouteUtils {
 
         return resultsCandidates;
     }
-    
+
     public static List<Route> routes(String srcRegion, String tag, Dc dc) {
         List<Route> result = new LinkedList<>();
 
@@ -82,7 +82,7 @@ public class RouteUtils {
                 });
             }
         }
-        
+
         return result;
     }
 

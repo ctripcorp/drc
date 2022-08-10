@@ -61,7 +61,7 @@ public class MultiDcNotifierTest extends AbstractDbClusterTest {
         RegionInfo regionInfo = new RegionInfo();
         regionInfo.setMetaServerAddress(LOCAL_IP);
         notEmpry.put(TARGET_REGION, regionInfo);
-        when(config.getRegionInfos()).thenReturn(notEmpry);
+        when(config.getCmRegionInfos()).thenReturn(notEmpry);
 
         Map<String, String> backupDcs = Maps.newConcurrentMap();
         backupDcs.put(TARGET_DC, BACKUP_DAL_CLUSTER_ID);

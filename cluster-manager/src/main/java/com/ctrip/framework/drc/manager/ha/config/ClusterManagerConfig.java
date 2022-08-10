@@ -28,7 +28,7 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     int getLeaderCheckMilli();
 
-    Map<String, RegionInfo> getRegionInfos();
+    Map<String, RegionInfo> getCmRegionInfos();
 
     Map<String, RegionInfo> getConsoleRegionInfos();
 

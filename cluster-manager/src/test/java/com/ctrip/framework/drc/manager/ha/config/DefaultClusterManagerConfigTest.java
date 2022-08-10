@@ -35,14 +35,14 @@ public class DefaultClusterManagerConfigTest {
     }
 
     @Test
-    public void getRegionInfos() {
-        Map<String, RegionInfo> regionInfos = clusterManagerConfig.getRegionInfos();
-        Assert.assertEquals(1, regionInfos.size());
-        Assert.assertEquals("127.0.0.1", regionInfos.get("sha").getMetaServerAddress());
+    public void getCmRegionInfos() {
+        Map<String, RegionInfo> cmRegionInfos = clusterManagerConfig.getCmRegionInfos();
+        Assert.assertEquals(1, cmRegionInfos.size());
+        Assert.assertEquals("127.0.0.1", cmRegionInfos.get("sha").getMetaServerAddress());
     }
 
     @Test
-    public void getRegionDcInfos() {
+    public void getConsoleRegionInfos() {
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         Assert.assertEquals(1, consoleRegionInfos.size());
         Assert.assertEquals("127.0.0.2", consoleRegionInfos.get("sha").getMetaServerAddress());

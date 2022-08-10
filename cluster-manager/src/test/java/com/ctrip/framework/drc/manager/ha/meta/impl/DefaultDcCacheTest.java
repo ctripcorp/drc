@@ -46,7 +46,6 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        when(dataCenterService.getDc()).thenReturn(DC);
         when(config.getClusterRefreshMilli()).thenReturn(50);
         dcCache = new DefaultDcCache(config, sourceProvider, DC);
     }

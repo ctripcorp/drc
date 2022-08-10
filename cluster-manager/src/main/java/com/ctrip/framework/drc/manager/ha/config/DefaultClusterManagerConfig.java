@@ -47,7 +47,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
 
     private Config serverConfig;
 
-    private Map<String, RegionInfo> regionInfos = Maps.newConcurrentMap();
+    private Map<String, RegionInfo> cmRegionInfos = Maps.newConcurrentMap();
 
     private Map<String, RegionInfo> consoleRegionInfos = Maps.newConcurrentMap();
 
@@ -94,11 +94,11 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     }
 
     @Override
-    public Map<String, RegionInfo> getRegionInfos() {
-        if(regionInfos.isEmpty()) {
-            regionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
+    public Map<String, RegionInfo> getCmRegionInfos() {
+        if(cmRegionInfos.isEmpty()) {
+            cmRegionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
         }
-        return regionInfos;
+        return cmRegionInfos;
     }
 
     @Override
@@ -202,7 +202,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public void onChange(String key, String oldValue, String newValue) {
         super.onChange(key, oldValue, newValue);
-        regionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
+        cmRegionInfos = getRegionInfoMapping(KEY_CM_REGION_INFOS);
         consoleRegionInfos = getRegionInfoMapping(KEY_CONSOLE_REGION_INFOS);
     }
 
