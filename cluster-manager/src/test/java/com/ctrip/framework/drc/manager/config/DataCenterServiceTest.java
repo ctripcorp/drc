@@ -22,18 +22,13 @@ public class DataCenterServiceTest {
     }
 
     @Test
-    public void getDc() {
-        Assert.assertEquals("ntgxh", dataCenterService.getDc());
-    }
-
-    @Test
     public void getRegion() {
         Assert.assertEquals("sin", dataCenterService.getRegion());
     }
 
     @Test
     public void getRegionByDcName() {
-        Assert.assertEquals("sin", dataCenterService.getRegion("SINAWS"));
+        Assert.assertEquals("sin", dataCenterService.getRegion("sinaws"));
     }
 
     @Test

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.framework.drc.console.config.meta.DcInfo;
-import com.ctrip.framework.drc.core.config.CommonConfig;
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.codec.JsonCodec;
@@ -22,15 +22,15 @@ import java.util.*;
  */
 @Component("defaultConsoleConfig")
 public class DefaultConsoleConfig extends AbstractConfigBean {
-    
-    private CommonConfig commonConfig = CommonConfig.getInstance();
-    
+
+    private RegionConfig regionConfig = RegionConfig.getInstance();
+
     public static String KEY_DC_INFOS = "drc.dcinfos";
     public static final String SWITCH_META_ROLL_BACK = "switch.meta.roll.back";
     public static final String SWITCH_CM_REGION_URL = "switch.cm.region.url";
     public static final String SWITCH_ON = "on";
     public static final String SWITCH_OFF = "off";
-    
+
     public static String DEFAULT_SWITCH_CM_REGION_URL = "off";
 
     public static String DBA_DC_INFOS = "dba.dcinfos";
@@ -77,7 +77,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
-    
+
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
     private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
     private static String LOCAL_CONFIG_MONITOR_MHAS = "local.config.monitor.mhas";
@@ -100,13 +100,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public DefaultConsoleConfig() {
     }
-    
+
     public String getRegion(){
-        return commonConfig.getRegion();
+        return regionConfig.getRegion();
     }
-    
+
     public Map<String,Set<String>> getRegionsInfo(){
-        return commonConfig.getRegion2dcsMapping();
+        return regionConfig.getRegion2dcsMapping();
     }
 
     public Map<String,String> getDc2regionMap (){
@@ -117,7 +117,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         );
         return dc2regionMap;
     }
-    
+
     public Set<String> getDcsInSameRegion(String dc) {
         Set<String> dcs = Sets.newHashSet();
         Map<String, Set<String>> regionsInfo = getRegionsInfo();
@@ -130,13 +130,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         );
         return dcs;
     }
-    
+
     public Set<String> getDcsInLocalRegion() {
         String region = getRegion();
         Map<String, Set<String>> regionsInfo = getRegionsInfo();
         return  regionsInfo.get(region);
     }
-    
+
     public int getConflictMhaRecordSearchTime() {
         return getIntProperty(CONFLICT_RECORD_SEARCH_TIME,DEFAULT_CONFLICT_RECORD_SEARCH_TIME);
     }
@@ -147,13 +147,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public Map<String,String> getCMRegionUrls() {
-        return commonConfig.getCMRegionUrls();
+        return regionConfig.getCMRegionUrls();
     }
 
     public Map<String,String> getConsoleRegionUrls() {
-        return commonConfig.getConsoleRegionUrls();
+        return regionConfig.getConsoleRegionUrls();
     }
-    
+
     public Map<String, DcInfo> getDcInfos() {
         String dcInfoStr = getProperty(KEY_DC_INFOS, defaultDcInfos);
         logger.info("[[monitor=delay]] {}={}", KEY_DC_INFOS, dcInfoStr);
@@ -199,7 +199,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public void setDefaultDcInfos(String defaultDcInfos) {
         this.defaultDcInfos = defaultDcInfos;
     }
-    
+
     // for test turn on switch
     @VisibleForTesting
     protected void setSwitchCmRegionUrl(String switchCmRegionUrl) {
@@ -359,7 +359,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
     }
-    
+
     public Set<String> getLocalConfigCloudDc() {
         String localConfigCloudDc = getProperty(LOCAL_CONFIG_CLOUD_DC, DEFAULT_LOCAL_CONFIG_CLOUD_DC);
         logger.info("localConfigCloudDc: {}", localConfigCloudDc);
@@ -395,11 +395,11 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public String getGrayMhaSwitch() {
         return getProperty(CONSOLE_GRAY_MHA_SWITCH, DEFAULT_CONSOLE_GRAY_MHA_SWITCH);
     }
-    
+
     public String getSwitchCmRegionUrl() {
         return getProperty(SWITCH_CM_REGION_URL,DEFAULT_SWITCH_CM_REGION_URL);
     }
-    
+
     public String getSwitchMetaRollBack() {
         return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
     }
