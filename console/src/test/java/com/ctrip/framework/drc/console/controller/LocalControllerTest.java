@@ -3,9 +3,12 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -38,6 +41,9 @@ public class LocalControllerTest extends AbstractControllerTest {
     
     @Mock
     private LocalService localService;
+    
+    @Mock
+    private DalUtils dalUtils;
 
     @Before
     public void setUp() throws SQLException {
@@ -283,8 +289,118 @@ public class LocalControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
+    
+    @Test
+    public void testQuerySqlReturnInteger() {
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            
+            theMock.when(() -> MySqlUtils.getSqlResultInteger(Mockito.any(Endpoint.class),Mockito.anyString(),Mockito.anyInt())).
+                    thenReturn(1);
+            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/sql/integer/query?" +
+                                    "mha=" + "mha1" +
+                                    "&sql=" + "show global variables like 'auto_increment_increment';" +
+                                    "&index=" + 2 )
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            int status = mvcResult.getResponse().getStatus();
+            String response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+
+            theMock.when(() -> MySqlUtils.getSqlResultInteger(Mockito.any(Endpoint.class),Mockito.anyString(),Mockito.anyInt())).
+                    thenThrow(new SQLException("sql query error"));
+            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/sql/integer/query?" +
+                                    "mha=" + "mha1" +
+                                    "&sql=" + "show global variables like 'auto_increment_increment';" +
+                                    "&index=" + 2 )
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            status = mvcResult.getResponse().getStatus();
+            response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
-    public void testInsertDdlHistory() {
+    public void testGetCreateTableStatements() {
+        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.getDefaultCreateTblStmts(Mockito.any(Endpoint.class),Mockito.any(AviatorRegexFilter.class))).
+                    thenReturn(null);
+            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/createTblStmts/query?" +
+                                    "mha=" + "mha1" +
+                                    "&regexFilter=" + "db1\\..*")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            int status = mvcResult.getResponse().getStatus();
+            String response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+
+            theMock.when(() -> MySqlUtils.getDefaultCreateTblStmts(Mockito.any(Endpoint.class),Mockito.any(AviatorRegexFilter.class))).
+                    thenThrow(new SQLException("sql query error"));
+            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/createTblStmts/query?" +
+                                    "mha=" + "mha1" +
+                                    "&regexFilter=" + "db1\\..*")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            status = mvcResult.getResponse().getStatus();
+            response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    @Test
+    public void testInsertDdlHistory()  {
+
+        try {
+            Mockito.when(
+                    dalUtils.insertDdlHistory(Mockito.anyString(),Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString())
+            ).thenReturn(1);
+            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/local/ddlHistory?" +
+                                    "mhaName=" + "mha1" +
+                                    "&ddl=" + "ddl_sql" + 
+                                    "&queryType=" + 2 + 
+                                    "&schemaName=" + "db1" + 
+                                    "&tableName=" + "table1"
+                            )
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            int status = mvcResult.getResponse().getStatus();
+            String response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+
+            Mockito.when(
+                    dalUtils.insertDdlHistory(Mockito.anyString(),Mockito.anyString(),Mockito.anyInt(),Mockito.anyString(),Mockito.anyString())
+            ).thenThrow(new SQLException("sql query error"));
+            mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/local/ddlHistory?" +
+                                    "mhaName=" + "mha1" +
+                                    "&ddl=" + "ddl_sql" +
+                                    "&queryType=" + 2 +
+                                    "&schemaName=" + "db1" +
+                                    "&tableName=" + "table1"
+                            )
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andDo(MockMvcResultHandlers.print())
+                    .andReturn();
+            status = mvcResult.getResponse().getStatus();
+            response = mvcResult.getResponse().getContentAsString();
+            Assert.assertEquals(200, status);
+            System.out.println(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 }

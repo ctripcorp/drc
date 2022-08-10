@@ -130,5 +130,16 @@ public class DefaultConsoleConfigTest {
         cmUrl = config.getCMMetaServerAddress("shaoy");
         Assert.assertNull(cmUrl);
     }
-    
+
+    @Test
+    public void testGetDcsInSameRegion() {
+        Set<String> dcs = config.getDcsInSameRegion("dc1");
+        Assert.assertEquals(2,dcs.size());
+    }
+
+    @Test
+    public void testGetDcsInLocalRegion() {
+        Set<String> dcs = config.getDcsInLocalRegion();
+        Assert.assertNull(dcs);
+    }
 }
