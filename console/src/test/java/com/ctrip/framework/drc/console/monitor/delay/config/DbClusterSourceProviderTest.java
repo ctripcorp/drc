@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.AbstractTest;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
@@ -13,6 +14,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +53,9 @@ public class DbClusterSourceProviderTest extends AbstractTest {
 
     @Mock
     private CompositeConfig compositeConfig;
+    
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     private static final String DC1= "dc1";
 
@@ -221,6 +226,7 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     @Test
     public void testGetReplicatorsNotInLocalDc() {
         try (MockedStatic<RouteUtils> theMock = Mockito.mockStatic(RouteUtils.class)) {
+            Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("ntgxh")));
             Route route = new Route();
             route.setRouteInfo("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443");
             List<Route> routes = Lists.newArrayList(route);
