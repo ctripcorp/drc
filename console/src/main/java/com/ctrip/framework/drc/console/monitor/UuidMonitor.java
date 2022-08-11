@@ -82,8 +82,6 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
 
     private MachineTblDao machineTblDao = DalUtils.getInstance().getMachineTblDao();
     
-    private static final String ALI_DC = "shali";
-    private static final String AWS_DC = "fraaws";
     private static final String UUID_ERROR_NUM_MEASUREMENT = "fx.drc.uuid.errorNums";
     protected static final String ALI_RDS = "/*FORCE_MASTER*/";
     private static final String UUIDCommand = "show  global  variables  like \"server_uuid\";";
@@ -257,7 +255,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
                 return false;
             }
             // correct
-            if ((localDcName.equalsIgnoreCase(ALI_DC) || localDcName.equalsIgnoreCase(AWS_DC)) && uuidStringFromDB != null) {
+            if ((publicCloudDc.contains(localDcName)) && uuidStringFromDB != null) {
                 String uuidString = uuidStringFromDB + "," + uuidFromCommand;
                 sample.setUuid(uuidString);
             } else {
