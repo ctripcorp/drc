@@ -104,7 +104,8 @@ public class CheckGtid extends AbstractConfigBean {
                                     .uuid(uuid)
                                     .build();
                             reporter.reportGtidGapCount(gtidGapEntity, gapCount);
-                            CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [GTID] {}\n [Report GTID Gap Count] mysql {}:{} uuid : {} of gapCount: {}", localDcName, mhaName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), getGtid(uuid, intervals), mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), uuid, gapCount);
+                            CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [GTID] {}\n [Report GTID Gap Count] mysql {}:{} uuid : {} of gapCount: {}", 
+                                    localDcName, mhaName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), getGtid(uuid, intervals), mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), uuid, gapCount);
 
                             reportRepeatedGtidGap(gtidGapEntity, uuid, intervals);
                             mhaGtidSet.put(mhaName, curGtidSet);
@@ -189,7 +190,7 @@ public class CheckGtid extends AbstractConfigBean {
         String dcName = gtidGapEntity.getDcName();
         String mha = gtidGapEntity.getMhaName();
         // last gtidSet
-        GtidSet gtidSet = mhaGtidSet.get(mha);
+        GtidSet lastGtidSet = mhaGtidSet.get(mha);
         // last uuid and Gap mapper
         List<GapInterval> gapIntervals = uuidGapIntervalsMapper.get(uuid);
         List<GapInterval> curGapIntervals = getGapIntervals(intervals);
@@ -199,7 +200,7 @@ public class CheckGtid extends AbstractConfigBean {
             CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [Report RepeatGap] uuid : {} has no repeated gap", dcName, mha, gtidGapEntity.getIp(), gtidGapEntity.getPort(), uuid);
         } else {
             // there is gap in current Gtid
-            if(null == gtidSet) {
+            if(null == lastGtidSet) {
                 // if this is the first time check the gap, there is no repeat gap
                 reporter.reportGtidGapRepeat(gtidGapEntity, NON_REPEAT_COUNT);
                 CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [Report RepeatGap] uuid : {} has no repeated gap", dcName, mha, gtidGapEntity.getIp(), gtidGapEntity.getPort(), uuid);
@@ -208,8 +209,8 @@ public class CheckGtid extends AbstractConfigBean {
                 // check repeat gap logic:
                 //      add the current Gtid Gap's transaction id into previous gtidSet
                 //      if succeed, we can prove that there is gap repeated between the previous and current GtidSet
-                CONSOLE_GTID_LOGGER.info("[[uuid={}]]gtidSet : {}, curGapIntervals: {}", uuid, gtidSet, curGapIntervals);
-                List<GapInterval> repeatedGapIntervals = getRepeatedGapInterval(uuid, curGapIntervals, gtidSet);
+                CONSOLE_GTID_LOGGER.info("[[uuid={}]]lastGtidSet : {}, curGapIntervals: {}", uuid, lastGtidSet, curGapIntervals);
+                List<GapInterval> repeatedGapIntervals = getRepeatedGapInterval(uuid, curGapIntervals, lastGtidSet);
                 Long repeatedGapCount = getRepeatedGapCount(repeatedGapIntervals);
                 if(repeatedGapIntervals.size() == 0) {
                     reporter.reportGtidGapRepeat(gtidGapEntity, NON_REPEAT_COUNT);
@@ -238,13 +239,13 @@ public class CheckGtid extends AbstractConfigBean {
     /**
      * @param uuid
      * @param curGapIntervals
-     * @param gtidSet
+     * @param lastGtidSet
      * @return
      */
-    protected List<GapInterval> getRepeatedGapInterval(String uuid, List<GapInterval> curGapIntervals, GtidSet gtidSet) {
+    protected List<GapInterval> getRepeatedGapInterval(String uuid, List<GapInterval> curGapIntervals, GtidSet lastGtidSet) {
 
         List<GapInterval> repeatedGapIntervals = Lists.newArrayList();
-        long maxTransactionId = getMaxTransactionId(gtidSet, uuid);
+        long maxTransactionId = getMaxTransactionId(lastGtidSet, uuid);
         Long repeatedGapStart = null, repeatedGapEnd = null;
 
         for(GapInterval gapInterval : curGapIntervals) {
@@ -258,7 +259,7 @@ public class CheckGtid extends AbstractConfigBean {
                     return repeatedGapIntervals;
                 }
                 String gtid = uuid+":"+transactionId;
-                if(gtidSet.add(gtid)) {
+                if(lastGtidSet.add(gtid)) {
                     if(null == repeatedGapStart) {
                         // first time find the repeat tx id
                         repeatedGapStart = transactionId;
@@ -303,6 +304,13 @@ public class CheckGtid extends AbstractConfigBean {
         List<GtidSet.Interval> intervals = uuidSet.getIntervals();
         CONSOLE_GTID_LOGGER.info("[[uuid={}]]gtidSet intervals: {}", uuid, intervals);
         return intervals.get(intervals.size() - 1).getEnd();
+    }
+    
+    public void resourcesRelease() {
+        mhaGtidSet.clear();
+        uuidGapIntervalsMapper.clear();
+        DefaultReporterHolder.getInstance().removeRegister("fx.drc.gtid.gap.count");
+        DefaultReporterHolder.getInstance().removeRegister("fx.drc.gtid.gap.repeat");
     }
 
     /**

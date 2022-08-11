@@ -45,15 +45,19 @@ public class RemoteClusterManager extends AbstractRemoteClusterManager implement
         }
     }
 
+    private String appendDcId(String uriPath, String dcId) {
+        return uriPath + "?dcId=" + dcId;
+    }
+
     @Override
-    public void clusterAdded(DbCluster dbCluster, ForwardInfo forwardInfo) {
+    public void clusterAdded(String dcId, DbCluster dbCluster, ForwardInfo forwardInfo) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
         String key = RegistryKey.from(dbCluster.getName(), dbCluster.getMhaName());
         logger.info("[clusterAdded][forward]{},{}--> {}", key, forwardInfo, this);
 
         HttpEntity<DbCluster> entity = new HttpEntity<>(dbCluster, headers);
-        restTemplate.exchange(changeClusterPath, HttpMethod.POST, entity, String.class, key);
+        restTemplate.exchange(appendDcId(changeClusterPath, dcId), HttpMethod.POST, entity, String.class, key);
 
     }
 

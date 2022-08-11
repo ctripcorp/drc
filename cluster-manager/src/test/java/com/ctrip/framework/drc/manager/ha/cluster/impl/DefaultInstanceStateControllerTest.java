@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.tuple.Pair;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +35,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
     private ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("UT_DefaultInstanceStateControllerTest");
 
     @Mock
-    private DcCache dcMetaCache;
+    private RegionCache regionMetaCache;
 
     @Mock
     private CurrentMetaManager currentMetaManager;
@@ -72,7 +72,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         replicatorList.add(newReplicator);
         when(currentMetaManager.getSurviveReplicators(CLUSTER_ID)).thenReturn(replicatorList);
 
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.registerReplicator(CLUSTER_ID, newReplicator);
         Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
@@ -91,7 +91,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         replicatorList.add(newReplicator);
         when(currentMetaManager.getSurviveReplicators(CLUSTER_ID)).thenReturn(replicatorList);
 
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.addReplicator(CLUSTER_ID, newReplicator);
         Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
@@ -116,7 +116,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         newReplicator.setPort(backupPort);
         replicatorList.add(newReplicator);
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(null);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.registerApplier(CLUSTER_ID, applier);
 
@@ -139,7 +139,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         applier.setPort(backupPort);
 
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.registerApplier(CLUSTER_ID, applier);
 
@@ -172,7 +172,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         newReplicator.setPort(backupPort);
         replicatorList.add(newReplicator);
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(null);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.addApplier(CLUSTER_ID, applier);
 
@@ -214,7 +214,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
 
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
-        when(dcMetaCache.getCluster(cluster_multi)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(cluster_multi)).thenReturn(dbCluster);
         when(currentMetaManager.getSurviveAppliers(cluster_multi, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()))).thenReturn(surviveAppliers);
 
         DbCluster body = instanceStateController.addApplier(cluster_multi, applier);
@@ -239,7 +239,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
         when(currentMetaManager.getMySQLMaster(anyString())).thenReturn(switchedMySQLMaster);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         DbCluster body = instanceStateController.applierMasterChange(CLUSTER_ID, applierMaster, newApplier);
 
@@ -279,7 +279,7 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         Pair<String, Integer> applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
 
         when(currentMetaManager.getApplierMaster(anyString(), anyString())).thenReturn(applierMaster);
-        when(dcMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
 
         List<DbCluster> body = instanceStateController.mysqlMasterChanged(CLUSTER_ID, mysqlMaster, appliers, newReplicator);
 

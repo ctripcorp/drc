@@ -4,14 +4,16 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.manager.config.DataCenterService;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.DcManager;
-import com.ctrip.framework.drc.manager.ha.meta.comparator.*;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ReplicatorComparator;
 import com.ctrip.xpipe.api.lifecycle.Ordered;
-import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.api.monitor.EventMonitor;
 import com.ctrip.xpipe.observer.AbstractLifecycleObservable;
 import com.ctrip.xpipe.utils.StringUtil;
@@ -19,8 +21,6 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.ctrip.xpipe.utils.XpipeThreadFactory;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
@@ -37,31 +37,23 @@ import java.util.concurrent.atomic.AtomicReference;
  * @Author limingdong
  * @create 2020/4/21
  */
-@Component
-public class DefaultDcCache extends AbstractLifecycleObservable implements DcCache, Runnable, TopElement {
+public class DefaultDcCache extends AbstractLifecycleObservable implements DcCache, Runnable {
 
     public static final String META_MODIFY_JUST_NOW_TEMPLATE = "current dc meta modifyTime {} larger than meta loadTime {}";
 
     public static String MEMORY_META_SERVER_DAO_KEY = "memory_meta_server_dao_file";
 
-    public static int META_MODIFY_PROTECT_COUNT = 20;
-
     public static double META_REMOVE_THRESHOLD = 0.5;
 
     public static final String META_CHANGE_TYPE = "MetaChange";
 
-    @Autowired(required = false)
     private SourceProvider sourceProvider;
 
-    @Autowired
     private ClusterManagerConfig config;
-
-    @Autowired
-    private DataCenterService dataCenterService;
 
     private String currentDc;
 
-    private ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create("Meta-Refresher"));
+    private ScheduledExecutorService scheduled;
 
     private ScheduledFuture<?> future;
 
@@ -69,14 +61,17 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     private AtomicLong metaModifyTime = new AtomicLong(System.currentTimeMillis());
 
-    public DefaultDcCache() {
+    public DefaultDcCache(ClusterManagerConfig config, SourceProvider sourceProvider, String idc) {
+        this.config = config;
+        this.sourceProvider = sourceProvider;
+        this.currentDc = idc;
+        scheduled = Executors.newScheduledThreadPool(1, XpipeThreadFactory.create(ThreadUtils.getThreadName("Meta-Refresher", currentDc)));
+        logger.info("[doInitialize][dc]{}", currentDc);
     }
 
     @Override
     protected void doInitialize() throws Exception {
         super.doInitialize();
-        currentDc = dataCenterService.getDc();
-        logger.info("[doInitialize][dc]{}", currentDc);
         this.dcMetaManager.set(loadMetaManager());
     }
 
@@ -226,11 +221,6 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     }
 
     @Override
-    public DcManager getDcMeta() {
-        return this.dcMetaManager.get();
-    }
-
-    @Override
     public Set<String> getClusters() {
         return dcMetaManager.get().getClusters();
     }
@@ -243,6 +233,11 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     @Override
     public Route randomRoute(String clusterId, String dstDc) {
         return dcMetaManager.get().randomRoute(clusterId, dstDc);
+    }
+    
+    @Override
+    public Route randomRoute(String clusterId,String dstDc,Integer orgId) {
+        return dcMetaManager.get().randomRoute(clusterId, dstDc,orgId);
     }
 
     @Override
@@ -292,5 +287,9 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
         }
 
         return res;
+    }
+
+    public String getCurrentDc() {
+        return currentDc;
     }
 }

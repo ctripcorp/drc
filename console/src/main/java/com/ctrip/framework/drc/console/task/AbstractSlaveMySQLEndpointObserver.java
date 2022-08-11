@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.task;
 
 import com.ctrip.framework.drc.console.enums.ActionEnum;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObservable;
@@ -11,25 +11,31 @@ import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.unidal.tuple.Triple;
 
+
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @Author: hbshen
  * @Date: 2021/4/27
  */
-public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor implements SlaveMySQLEndpointObserver {
+public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractLeaderAwareMonitor implements SlaveMySQLEndpointObserver {
 
     protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
 
+    protected String regionName;
+    
+    protected Set<String> dcsInRegion;
+
     protected String localDcName;
 
-    protected boolean onlyCareLocal;
+    protected boolean onlyCarePart;
+
 
     @Override
     public void initialize() {
         super.initialize();
-        setLocalDcName();
-        setOnlyCareLocal();
+        setObservationRange();
     }
 
     @Override
@@ -40,7 +46,7 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor
             MySqlEndpoint slaveMySQLEndpoint = message.getMiddle();
             ActionEnum action = message.getLast();
 
-            if(onlyCareLocal && !metaKey.getDc().equalsIgnoreCase(localDcName)) {
+            if(onlyCarePart && !isCare(metaKey)) {
                 logger.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, slaveMySQLEndpoint.getSocketAddress());
                 return;
             }
@@ -65,8 +71,19 @@ public abstract class AbstractSlaveMySQLEndpointObserver extends AbstractMonitor
     }
 
     public abstract void clearOldEndpointResource(Endpoint endpoint);
-
+    
     public abstract void setLocalDcName();
 
-    public abstract void setOnlyCareLocal();
+    public abstract void setLocalRegionInfo();
+
+    public abstract void setOnlyCarePart();
+
+    public abstract boolean isCare(MetaKey metaKey);
+
+    private void setObservationRange() {
+        setOnlyCarePart();
+        setLocalDcName();
+        setLocalRegionInfo();
+    }
+
 }

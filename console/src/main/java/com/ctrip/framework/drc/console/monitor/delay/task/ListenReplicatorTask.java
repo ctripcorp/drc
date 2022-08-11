@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorComparator;
 import com.ctrip.framework.drc.console.monitor.comparator.ReplicatorWrapperComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -9,7 +10,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DrcReplicatorWrapper
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnector;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
-import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
@@ -56,9 +56,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * STEP 3
  */
 @Order(1)
-@Component
+@Component("listenReplicatorTask")
 @DependsOn("dbClusterSourceProvider")
-public class ListenReplicatorTask {
+public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -70,8 +70,6 @@ public class ListenReplicatorTask {
     private Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
 
     private Set<String> processingListenServer = Sets.newConcurrentHashSet();
-
-    private static final String MYSQL_DELAY_MESUREMENT = "fx.drc.delay.mysql";
 
     private static final String DRC_DELAY_MESUREMENT = "fx.drc.delay";
 
@@ -109,41 +107,41 @@ public class ListenReplicatorTask {
 
     @Autowired
     private MonitorService monitorService;
-
-    /**
-     * periodical check the master replicator
-     */
-    private ScheduledExecutorService updateListenReplicatorScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("update-listen-replicator-scheduledExecutorService");
-
+    
     private ExecutorService handleChangeExecutor = ThreadUtils.newFixedThreadPool(OsUtils.getCpuCount(), "handle-listen-replicator-change-executor");
 
-    @PostConstruct
-    private void listen() {
-        listenReplicator();
-        ListenReplicatorMonitors();
+    @Override
+    public void initialize() {
+        setInitialDelay(INITIAL_DELAY);
+        setPeriod(PERIOD);
+        setTimeUnit(TimeUnit.SECONDS);
+        super.initialize();
     }
 
-    private void listenReplicator() {
-        updateListenReplicatorScheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch())) {
-                        logger.info("[[monitor=delaylisten]] update listen replicator");
-                        try {
-                            updateListenReplicators();
-                            pollDetectReplicators();
-                        } catch (Throwable t) {
-                            logger.error("[[monitor=delaylisten]] update listen replicator error, exception", t);
-                        }
-                    }
-                } catch (Throwable t) {
-                    logger.error("[[monitor=delaylisten]] listen replicator schedule error", t);
+    @Override
+    public void scheduledTask() {
+        try {
+            if (isRegionLeader) {
+                if ((SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorSwitch()))) {
+                    logger.info("[[monitor=delaylisten]] is Leader, going to listen all replicator");
+                    updateListenReplicators();
+                    pollDetectReplicators();
+                } else {
+                    logger.warn("[[monitor=delaylisten]] is Leader, but listen all replicator switch is off");
                 }
+            } else {
+                logger.info("[[monitor=delaylisten]] not leader,going to close all delayMonitorServers");
+                for (String clusterId : delayMonitorServerMap.keySet()) {
+                    removeListenServer(clusterId);
+                }
+                DefaultReporterHolder.getInstance().removeRegister(DRC_DELAY_MESUREMENT);
             }
-        }, INITIAL_DELAY, PERIOD, TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            logger.error("[[monitor=delaylisten]] listen replicator schedule error", t);
+        }
     }
-
+    
+    
     @VisibleForTesting
     protected void setReplicatorWrappers(Map<String, ReplicatorWrapper> replicatorWrappers) {
         this.replicatorWrappers = replicatorWrappers;
@@ -153,25 +151,7 @@ public class ListenReplicatorTask {
     protected void setDelayMonitorServerMap(Map<String, StaticDelayMonitorServer> delayMonitorServerMap) {
         this.delayMonitorServerMap = delayMonitorServerMap;
     }
-
-    private void ListenReplicatorMonitors() {
-        if (!SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getListenReplicatorMonitorSwitch())) {
-            return;
-        }
-
-        logger.info("[[monitor=delaylisten]] start listen replicator monitor");
-        List<ReplicatorMonitorWrapper> replicatorMonitors = dbClusterSourceProvider.getReplicatorMonitorsInLocalDc();
-        replicatorMonitors.forEach(wrapper -> {
-            DelayMonitorSlaveConfig config = generateConfig(wrapper, MYSQL_DELAY_MESUREMENT);
-            StaticDelayMonitorServer delayMonitorServer = createDelayMonitorServer(config);
-            try {
-                delayMonitorServer.initialize();
-                delayMonitorServer.start();
-            } catch (Exception e) {
-                log(config, "initialize and start error", ERROR, e);
-            }
-        });
-    }
+    
 
     private synchronized boolean markProcessingListenServer(String clusterId) {
         if (processingListenServer.contains(clusterId)) {
@@ -200,7 +180,7 @@ public class ListenReplicatorTask {
                     delayMonitorServer.initialize();
                     delayMonitorServer.start();
                     cacheServer(clusterId, replicatorWrapper, delayMonitorServer);
-                    logger.info("[[monitor=delaylisten]] add replicator listen success for cluster: {},", clusterId);
+                    logger.info("[[monitor=delaylisten]] add replicator listen success for cluster: {},config is: {}", clusterId,config);
                 } catch (Exception e) {
                     logger.error("[[monitor=delaylisten]] add replicator listen error for cluster: {},", clusterId, e);
                 } finally {
@@ -270,7 +250,7 @@ public class ListenReplicatorTask {
                         logger.info("[[monitor=delaylisten]] modify replicator listen fail for cluster: {} for same config,", clusterId);
                     } else {
                         restartListenServer(clusterId, newConfig);
-                        logger.info("[[monitor=delaylisten]] modify replicator listen success for cluster: {},", clusterId);
+                        logger.info("[[monitor=delaylisten]] modify replicator listen success for cluster: {},new config is: {}", clusterId,newConfig);
                     }
                     replicatorWrappers.put(clusterId, newReplicatorWrapper);
                 } catch (Exception e) {
@@ -301,7 +281,7 @@ public class ListenReplicatorTask {
                         newConfig.setEndpoint(newEndpoint);
                         restartListenServer(clusterId, newConfig);
                         updateMasterReplicatorInDb(delayMonitorServer.getConfig(), newReplicatorIp);
-                        logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},", clusterId);
+                        logger.info("[[monitor=delaylisten]] switch replicator listen success for cluster: {},new Config is:{}", clusterId,newConfig);
                     } else {
                         log(oldConfig, "ignore switch for old replicator endpoint(" + oldConfig.getIp() + ":" + oldConfig.getPort() + ") equals new replicator ip", INFO, null);
                     }
@@ -325,7 +305,6 @@ public class ListenReplicatorTask {
         try {
             oldDelayMonitorServer.stop();
             oldDelayMonitorServer.dispose();
-
             StaticDelayMonitorServer newDelayMonitorServer = createDelayMonitorServer(newConfig);
             newDelayMonitorServer.initialize();
             newDelayMonitorServer.start();
@@ -355,8 +334,8 @@ public class ListenReplicatorTask {
 
     @VisibleForTesting
     protected void updateListenReplicators() throws SQLException {
-        List<String> mhaNamesToBeMonitored = monitorService.getMhaNamesToBeMonitored();
-        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNotInLocalDc(mhaNamesToBeMonitored);
+        List<String> mhasToBeMonitored = monitorService.getMhaNamesToBeMonitored();
+        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNeeded(mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers);
     }
 
@@ -434,4 +413,5 @@ public class ListenReplicatorTask {
                 break;
         }
     }
+    
 }

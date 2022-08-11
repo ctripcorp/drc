@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.dao.entity.DdlHistoryTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
@@ -20,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
@@ -36,7 +38,8 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.TRUNCATE_CONSISTENCY_MEASUREMENT;
 
 @Component
-public class DdlMonitor extends AbstractMonitor implements Monitor {
+@Order(2)
+public class DdlMonitor extends AbstractLeaderAwareMonitor implements Monitor  {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
@@ -76,7 +79,7 @@ public class DdlMonitor extends AbstractMonitor implements Monitor {
 
     @Override
     public void scheduledTask() {
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getTruncateConsistentMonitorSwitch())) {
+        if(SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getTruncateConsistentMonitorSwitch()) && isRegionLeader) {
             try {
                 Map<DdlMonitorItem, Map<String, AtomicInteger>> allItemTruncateHistory = buildTruncateHistoryMap();
                 Set<DdlMonitorItem> inconsistentItem = checkTruncateInconsistency(allItemTruncateHistory);

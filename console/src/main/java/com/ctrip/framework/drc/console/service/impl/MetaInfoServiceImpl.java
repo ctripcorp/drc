@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,7 +66,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
     @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
+    private DefaultConsoleConfig consoleConfig;
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
@@ -77,7 +77,7 @@ MetaInfoServiceImpl implements MetaInfoService {
     private DalUtils dalUtils = DalUtils.getInstance();
 
     private Env env = Foundation.server().getEnv();
-
+    
     public List<MhaTbl> getMhaTbls(Long mhaGroupId) throws SQLException {
         Set<Long> mhaIds = dalUtils.getGroupMappingTblDao().queryAll().stream()
                 .filter(p -> BooleanEnum.FALSE.getCode().equals(p.getDeleted()) && p.getMhaGroupId().equals(mhaGroupId)).map(GroupMappingTbl::getMhaId).collect(Collectors.toSet());
@@ -390,12 +390,17 @@ MetaInfoServiceImpl implements MetaInfoService {
                 DcTbl dcTbl = dalUtils.getDcTblDao().queryByPk(dcId);
                 if(null != dcTbl) {
                     String dcName = dcTbl.getDcName();
-                    logger.info("get {} in {}({})", type, dcName, mha);
-                    if(ModuleEnum.REPLICATOR.getDescription().equals(type)) {
-                        return getReplicatorResources(dcName);
-                    } else if (ModuleEnum.APPLIER.getDescription().equals(type)) {
-                        return getApplierResources(dcName);
+                    Set<String> dcsInLocalRegion = consoleConfig.getDcsInSameRegion(dcName);
+                    List<String> res = Lists.newArrayList();
+                    for (String dcInLocalRegion : dcsInLocalRegion) {
+                        logger.info("get {} in {}({})", type, dcsInLocalRegion, mha);
+                        if(ModuleEnum.REPLICATOR.getDescription().equals(type)) {
+                            res.addAll(getReplicatorResources(dcInLocalRegion));
+                        } else if (ModuleEnum.APPLIER.getDescription().equals(type)) {
+                            res.addAll(getApplierResources(dcInLocalRegion));
+                        }
                     }
+                    return res;
                 }
             }
         } catch (SQLException e) {
@@ -550,9 +555,13 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
     private Dc generateDcFrame(Drc drc, String dcName) {
-        logger.info("generate view dc: {}", dcName);
-        Dc dc = new Dc(dcName);
-        drc.addDc(dc);
+        Dc dc = drc.findDc(dcName);
+        if (dc == null) {
+            logger.info("generate view dc: {}", dcName);
+            dc = new Dc(dcName);
+            dc.setRegion(metaService.getDc2regionMap().get(dcName));
+            drc.addDc(dc);
+        }
         return dc;
     }
 
@@ -695,6 +704,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             applier.setIp(resourceTbl.getIp())
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetIdc)
+                    .setTargetRegion(metaService.getDc2regionMap().get(targetIdc))
                     .setTargetMhaName(targetMhaTbl.getMhaName())
                     .setGtidExecuted(applierTbl.getGtidInit())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
@@ -864,7 +874,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         Map<String, Integer> ucsStrategyIdMap = Maps.newHashMap();
         if(SOURCE_QCONFIG.equalsIgnoreCase(monitorTableSourceProvider.getUcsStrategyIdMapSource())) {
             for(String dalClusterName : realDalClusters) {
-                Map<String, Integer> ucsStrategyIds = defaultConsoleConfig.getUcsStrategyIdMap(dalClusterName);
+                Map<String, Integer> ucsStrategyIds = consoleConfig.getUcsStrategyIdMap(dalClusterName);
                 ucsStrategyIdMap.putAll(ucsStrategyIds);
             }
         }
@@ -877,7 +887,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         if(SOURCE_QCONFIG.equalsIgnoreCase(monitorTableSourceProvider.getUidMapSource())) {
             Map<String, String> rawMap = Maps.newHashMap();
             for(String dalClusterName : realDalClusters) {
-                Map<String, String> uidNameMap = defaultConsoleConfig.getUidMap(dalClusterName);
+                Map<String, String> uidNameMap = consoleConfig.getUidMap(dalClusterName);
                 rawMap.putAll(uidNameMap);
             }
             Endpoint endpoint = getMasterMachine(mhaName);
@@ -1010,37 +1020,35 @@ MetaInfoServiceImpl implements MetaInfoService {
     }
 
     /**
+     * dcNames: dcs in local region
      * key: local Mha
      * value: master db's uuid set which are not in local dc, i.e. all potential uuids which will be copied into local mha
      */
-    public Map<String, Set<String>> getUuidMap() {
+    public Map<String, Set<String>> getUuidMap(Set<String> dcNames) {
         Map<String, Set<String>> uuidMap = Maps.newHashMap();
-
         Drc drc = dbClusterSourceProvider.getDrc();
-        String localDcName = dbClusterSourceProvider.getLocalDcName();
-        Map<String, Dc> dcs = drc.getDcs();
 
-        List<DbCluster> targetDbClusters = dcs.values()
-                .stream()
-                .filter(p -> !localDcName.equalsIgnoreCase(p.getId()))
-                .map(dc -> dc.getDbClusters().values())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+        for (String localDcName : dcNames) {
+            List<DbCluster> localDbClusters = Lists.newArrayList(drc.findDc(localDcName).getDbClusters().values());
 
-        for(DbCluster dbCluster :  targetDbClusters) {
-            for(Applier applier : dbCluster.getAppliers()) {
-                if(localDcName.equalsIgnoreCase(applier.getTargetIdc())) {
-                    String localMhaName = applier.getTargetMhaName();
-                    Dbs dbs = dbCluster.getDbs();
-                    List<Db> dbList = dbs.getDbs();
-                    for(Db db : dbList) {
+            for(DbCluster dbCluster :  localDbClusters) {
+                String localMhaName = dbCluster.getMhaName();
+                for (Applier applier : dbCluster.getAppliers()) {
+                    String remoteDc = applier.getTargetIdc();
+                    String remoteCluster = applier.getTargetName();
+                    String remoteMha = applier.getTargetMhaName();
+                    String remoteDbClusterId = remoteCluster + "." + remoteMha;
+                    DbCluster remoteDbCluster = drc.findDc(remoteDc).findDbCluster(remoteDbClusterId);
+                    List<Db> dbList = remoteDbCluster.getDbs().getDbs();
+                    for (Db db : dbList) {
                         // ali dc uuid is not only
                         String uuidString = db.getUuid();
                         String[] uuids = uuidString.split(",");
                         Set<String> uuidSet = uuidMap.getOrDefault(localMhaName, Sets.newHashSet());
                         for (String uuid : uuids) {
                             uuidSet.add(uuid);
-                            logger.info("mhaName is {},opposite end mha isMaster{} uuid contain {}", localMhaName, db.isMaster(), uuid);
+                            logger.info("[getUuidMap] localMhaName {},opposite db(isMaster:{}) uuid contain {}",
+                                    localMhaName, db.isMaster(), uuid);
                         }
                         uuidMap.put(localMhaName, uuidSet);
                     }
@@ -1049,6 +1057,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         }
         return uuidMap;
     }
+
 
     public List<RouteDto> getRoutes(String routeOrgName, String srcDcName, String dstDcName, String tag,Integer deleted) {
         List<RouteDto> routes = Lists.newArrayList();
@@ -1072,7 +1081,6 @@ MetaInfoServiceImpl implements MetaInfoService {
                             (null == dstDcName || p.getDstDcId().equals(finalDstDcId)) &&
                             (null == tag || p.getTag().equalsIgnoreCase(tag)))
                     .collect(Collectors.toList());
-
             for(RouteTbl routeTbl : routeTbls) {
                 routes.add(getRouteDto(routeTbl));
             }
@@ -1086,9 +1094,14 @@ MetaInfoServiceImpl implements MetaInfoService {
         RouteDto routeDto = new RouteDto();
         routeDto.setId(routeTbl.getId());
         routeDto.setRouteOrgName(routeTbl.getRouteOrgId() == 0L ? null : dalUtils.getBuTblDao().queryByPk(routeTbl.getRouteOrgId()).getBuName());
-        routeDto.setSrcDcName(dalUtils.getDcTblDao().queryByPk(routeTbl.getSrcDcId()).getDcName());
-        routeDto.setDstDcName(dalUtils.getDcTblDao().queryByPk(routeTbl.getDstDcId()).getDcName());
-
+        
+        String srcName = dalUtils.getDcTblDao().queryByPk(routeTbl.getSrcDcId()).getDcName();
+        String dstName = dalUtils.getDcTblDao().queryByPk(routeTbl.getDstDcId()).getDcName();
+        routeDto.setSrcDcName(srcName);
+        routeDto.setSrcRegionName(metaService.getDc2regionMap().get(srcName));
+        routeDto.setDstDcName(dstName);
+        routeDto.setDstRegionName(metaService.getDc2regionMap().get(dstName));
+        
         List<ProxyTbl> proxyTbls = dalUtils.getProxyTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
         String srcProxyIds = routeTbl.getSrcProxyIds();
@@ -1118,6 +1131,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas")
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
@@ -1255,4 +1269,6 @@ MetaInfoServiceImpl implements MetaInfoService {
         DcTbl dcTbl = dalUtils.getDcTblDao().queryByPk(mhaTbl.getDcId());
         return dcTbl.getDcName();
     }
+
+   
 }

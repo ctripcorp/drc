@@ -3,11 +3,14 @@ package com.ctrip.framework.drc.console.monitor.delay.task;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -15,7 +18,9 @@ import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
+import com.google.common.collect.Sets;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.unidal.tuple.Triple;
 import org.xml.sax.SAXException;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -36,7 +40,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
-
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
@@ -60,6 +63,12 @@ public class PeriodicalUpdateDbTaskTest {
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
+
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
+
+    @Mock
+    private MetaInfoServiceImpl metaInfoService;
 
 //    @Mock
 //    private MetaInfoServiceImpl metaInfoService;
@@ -154,8 +163,22 @@ public class PeriodicalUpdateDbTaskTest {
         MockitoAnnotations.openMocks(this);
         task.setLocalDcName(DC1);
         Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
+        Mockito.doReturn(Sets.newHashSet("dc-readMhaFromConfig")).when(consoleConfig).getLocalConfigCloudDc();
+        Mockito.doReturn("sha").when(consoleConfig).getRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getDelayMonitorUpdatedbSwitch();
+
+        MhaTbl mhaTbl1 = new MhaTbl();
+        mhaTbl1.setMhaName(MHA1DC1);
+        mhaTbl1.setId(4L);
+        MhaTbl mhaTbl2 = new MhaTbl();
+        mhaTbl2.setId(2L);
+        mhaTbl2.setMhaName(MHA1DC2);
+        
+        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(metaInfoService).getMhas(Mockito.eq(DC1));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(metaInfoService).getMhas(Mockito.eq(DC2));
+        task.isleader();
 //        when(metaInfoService.getEstablishedDbEndpointMap("ntgxh")).thenReturn(mapper);
 
 //        // data consistency

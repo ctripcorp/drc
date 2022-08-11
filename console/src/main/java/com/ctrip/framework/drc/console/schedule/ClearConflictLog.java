@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.schedule;
 
 import com.ctrip.framework.drc.console.dao.ConflictLogDao;
 import com.ctrip.framework.drc.console.dao.entity.ConflictLog;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
@@ -15,6 +17,7 @@ import com.ctrip.platform.dal.dao.sqlbuilder.FreeSelectSqlBuilder;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import org.apache.commons.lang.time.DateUtils;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
@@ -29,7 +32,8 @@ import java.util.concurrent.TimeUnit;
  * Created by jixinwang on 2020/11/12
  */
 @Component
-public class ClearConflictLog extends AbstractLifecycle {
+@Order(2)
+public class ClearConflictLog extends AbstractLeaderAwareMonitor {
 
     private final int BATCH_SIZE = 100;
 
@@ -39,42 +43,51 @@ public class ClearConflictLog extends AbstractLifecycle {
 
     private MonitorTableSourceProvider configService;
 
-    private ScheduledExecutorService conflictLogClearScheduledExecutorService;
-
     private DalRowMapper<ConflictLog> conflictLogDalRowMapper;
 
     public ClearConflictLog(ConflictLogDao conflictLogDao, DalQueryDao queryDao, MonitorTableSourceProvider configService) throws SQLException {
         this.conflictLogDao = conflictLogDao;
         this.queryDao = queryDao;
         this.configService = configService;
-        this.conflictLogClearScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("-scheduledExecutorService");
         this.conflictLogDalRowMapper = new DalDefaultJpaMapper<>(ConflictLog.class);
-        initSchedule();
     }
 
-    protected void initSchedule() {
-        final long initialDelay = Constants.sixty * Constants.sixty * Constants.twentyFour - DateUtils.getFragmentInSeconds(Calendar.getInstance(), Calendar.DATE);
-        final long period = Constants.sixty * Constants.sixty * Constants.twentyFour;
-        conflictLogClearScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final String conflictLogClearSwitch = configService.getConflictLogClearSwitch();
-                    if ("on".equals(conflictLogClearSwitch)){
-                        DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "ClearConflictLog", new Task() {
-                            @Override
-                            public void go() throws Exception {
-                                deleteConflictLog();
-                            }
-                        });
-                    }
-                } catch (Throwable t) {
-                    logger.info("clear conflict log error", t);
+    @Override
+    public void initialize() {
+        final int initialDelay = (int) (Constants.sixty * Constants.sixty * Constants.twentyFour - 
+                DateUtils.getFragmentInSeconds(Calendar.getInstance(), Calendar.DATE));
+        final int period = Constants.sixty * Constants.sixty * Constants.twentyFour;
+        setInitialDelay(initialDelay);
+        setPeriod(period);
+        setTimeUnit(TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void scheduledTask() {
+        try {
+            if (isRegionLeader) {
+                final String conflictLogClearSwitch = configService.getConflictLogClearSwitch();
+                if ("on".equals(conflictLogClearSwitch)){
+                    logger.info("[[task=clearConflict]is leader going to clear confilct log");
+                    DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "ClearConflictLog", new Task() {
+                        @Override
+                        public void go() throws Exception {
+                            deleteConflictLog();
+                        }
+                    });
+
+                } else {
+                    logger.warn("[[task=clearConflict]] is leader but switch is off");
                 }
+            } else {
+                logger.info("[[task=clearConflict]]not a leader do nothing");
             }
 
-        }, initialDelay, period, TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            logger.info("[[task=clearConflict]] log error", t);
+        }
     }
+    
 
     public void deleteConflictLog() throws SQLException {
         int total = conflictLogDao.count();
@@ -103,5 +116,15 @@ public class ClearConflictLog extends AbstractLifecycle {
         StatementParameters parameters = new StatementParameters();
         builder.mapWith(conflictLogDalRowMapper);
         return queryDao.query(builder, parameters, new DalHints());
+    }
+
+    @Override
+    public void switchToLeader() throws Throwable {
+        // nothing to do
+    }
+
+    @Override
+    public void switchToSlave() throws Throwable {
+        // nothing to do
     }
 }

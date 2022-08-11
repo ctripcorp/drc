@@ -5,6 +5,7 @@
   </entity>
   <entity name="dc">
     <attribute name="id" value-type="String" />
+    <attribute name="region" value-type="String" />
     <entity-ref name="route" type="list" names="routes" xml-indent="true" />
     <entity-ref name="clusterManager" type="list" names="clusterManagers" />
     <entity-ref name="zkServer" />
@@ -15,7 +16,9 @@
     <attribute name="org-id" value-type="int" />
     <attribute name="tag" value-type="String" />
     <attribute name="src-dc" value-type="String" />
+    <attribute name="src-region" value-type="String" />
     <attribute name="dst-dc" value-type="String" />
+    <attribute name="dst-region" value-type="String" />
     <attribute name="routeInfo" value-type="String" />
   </entity>
   <entity name="clusterManager">
@@ -73,6 +76,7 @@
   <entity name="applier">
     <attribute name="ip" value-type="String" />
     <attribute name="port" value-type="int" />
+    <attribute name="targetRegion" value-type="String" />
     <attribute name="targetIdc" value-type="String" />
     <attribute name="targetMhaName" value-type="String" />
     <attribute name="targetName" value-type="String" />

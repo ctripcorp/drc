@@ -66,6 +66,7 @@ public class ConsistentMonitorContainerTest extends MockTest {
         when(checkContainer.addConsistencyCheck(any(InstanceConfig.class))).thenReturn(true);
         when(monitorService.queryMhaIdsToBeMonitored()).thenReturn(List.of(1L,2L,100L,0L));
         Mockito.doNothing().when(currentMetaManager).addObserver(consistentMonitorContainer);
+        consistentMonitorContainer.isleader();
     }
 
     @Test

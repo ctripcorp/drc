@@ -113,6 +113,7 @@ public class SyncTableConfigTaskTest {
         Mockito.when(monitorTableSourceProvider.getSyncTableConfigSwitch()).thenReturn(SWITCH_STATUS_ON);
 
         syncTableConfigTask.initialize();
+        syncTableConfigTask.isleader();
     }
 
     @After

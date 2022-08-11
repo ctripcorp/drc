@@ -1,26 +1,24 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.AbstractTest;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
-import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -55,6 +53,9 @@ public class DbClusterSourceProviderTest extends AbstractTest {
 
     @Mock
     private CompositeConfig compositeConfig;
+    
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
 
     private static final String DC1= "dc1";
 
@@ -224,47 +225,56 @@ public class DbClusterSourceProviderTest extends AbstractTest {
 
     @Test
     public void testGetReplicatorsNotInLocalDc() {
-        dbClusterSourceProvider.drc = tempDrc;
-        dbClusterSourceProvider.localDc = "ntgxh";
-        List<String> mhaNamesToBeMonitored = Lists.newArrayList("drcNt", "drcNt2", "drcOy", "drcOy2", "drcRb", "drcRb2");
-        Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsNotInLocalDc(mhaNamesToBeMonitored);
-        Assert.assertEquals(4, replicators.keySet().size());
-        ReplicatorWrapper replicator = replicators.get("drc-Test01.drcOy");
-        Assert.assertEquals("127.0.0.2", replicator.getIp());
-        Assert.assertEquals(8383, replicator.getPort());
-        Assert.assertEquals("drc-Test01", replicator.getClusterName());
-        Assert.assertEquals("ntgxh", replicator.getDcName());
-        Assert.assertEquals("shaoy", replicator.getDestDcName());
-        Assert.assertEquals("drcNt", replicator.getMhaName());
-        Assert.assertEquals("drcOy", replicator.getDestMhaName());
-        Assert.assertEquals("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443", replicator.getRoutes().get(0).getRouteInfo());
-        replicator = replicators.get("drc-Test02.drcOy2");
-        Assert.assertEquals("127.0.0.2", replicator.getIp());
-        Assert.assertEquals(8383, replicator.getPort());
-        Assert.assertEquals("drc-Test02", replicator.getClusterName());
-        Assert.assertEquals("ntgxh", replicator.getDcName());
-        Assert.assertEquals("shaoy", replicator.getDestDcName());
-        Assert.assertEquals("drcNt2", replicator.getMhaName());
-        Assert.assertEquals("drcOy2", replicator.getDestMhaName());
-        Assert.assertEquals("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443", replicator.getRoutes().get(0).getRouteInfo());
-        replicator = replicators.get("drc-Test01.drcRb");
-        Assert.assertEquals("127.0.0.3", replicator.getIp());
-        Assert.assertEquals(8383, replicator.getPort());
-        Assert.assertEquals("drc-Test01", replicator.getClusterName());
-        Assert.assertEquals("ntgxh", replicator.getDcName());
-        Assert.assertEquals("sharb", replicator.getDestDcName());
-        Assert.assertEquals("drcNt", replicator.getMhaName());
-        Assert.assertEquals("drcRb", replicator.getDestMhaName());
-        Assert.assertEquals(0, replicator.getRoutes().size());
-        replicator = replicators.get("drc-Test02.drcRb2");
-        Assert.assertEquals("127.0.0.3", replicator.getIp());
-        Assert.assertEquals(8383, replicator.getPort());
-        Assert.assertEquals("drc-Test02", replicator.getClusterName());
-        Assert.assertEquals("ntgxh", replicator.getDcName());
-        Assert.assertEquals("sharb", replicator.getDestDcName());
-        Assert.assertEquals("drcNt2", replicator.getMhaName());
-        Assert.assertEquals("drcRb2", replicator.getDestMhaName());
-        Assert.assertEquals(0, replicator.getRoutes().size());
+        try (MockedStatic<RouteUtils> theMock = Mockito.mockStatic(RouteUtils.class)) {
+            Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("ntgxh")));
+            Route route = new Route();
+            route.setRouteInfo("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443");
+            List<Route> routes = Lists.newArrayList(route);
+            theMock.when(() -> RouteUtils.filterRoutes(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(),Mockito.anyString(),Mockito.any(Dc.class))).thenReturn(routes);
+            dbClusterSourceProvider.drc = tempDrc;
+            dbClusterSourceProvider.localDc = "ntgxh";
+            List<String> mhaNamesToBeMonitored = Lists.newArrayList("drcNt", "drcNt2", "drcOy", "drcOy2", "drcRb", "drcRb2");
+            Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsNotInSrcDc(mhaNamesToBeMonitored, "ntgxh");
+            Assert.assertEquals(4, replicators.keySet().size());
+            ReplicatorWrapper replicator = replicators.get("drc-Test01.drcOy");
+            Assert.assertEquals("127.0.0.2", replicator.getIp());
+            Assert.assertEquals(8383, replicator.getPort());
+            Assert.assertEquals("drc-Test01", replicator.getClusterName());
+            Assert.assertEquals("ntgxh", replicator.getDcName());
+            Assert.assertEquals("shaoy", replicator.getDestDcName());
+            Assert.assertEquals("drcNt", replicator.getMhaName());
+            Assert.assertEquals("drcOy", replicator.getDestMhaName());
+            Assert.assertEquals("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443", replicator.getRoutes().get(0).getRouteInfo());
+            replicator = replicators.get("drc-Test02.drcOy2");
+            Assert.assertEquals("127.0.0.2", replicator.getIp());
+            Assert.assertEquals(8383, replicator.getPort());
+            Assert.assertEquals("drc-Test02", replicator.getClusterName());
+            Assert.assertEquals("ntgxh", replicator.getDcName());
+            Assert.assertEquals("shaoy", replicator.getDestDcName());
+            Assert.assertEquals("drcNt2", replicator.getMhaName());
+            Assert.assertEquals("drcOy2", replicator.getDestMhaName());
+            Assert.assertEquals("PROXYTCP://127.0.0.28:80,PROXYTCP://127.0.0.82:80,PROXYTCP://127.0.0.135:80,PROXYTCP://127.0.0.188:80 PROXYTLS://127.0.0.8:443,PROXYTLS://127.0.0.11:443", replicator.getRoutes().get(0).getRouteInfo());
+            replicator = replicators.get("drc-Test01.drcRb");
+            Assert.assertEquals("127.0.0.3", replicator.getIp());
+            Assert.assertEquals(8383, replicator.getPort());
+            Assert.assertEquals("drc-Test01", replicator.getClusterName());
+            Assert.assertEquals("ntgxh", replicator.getDcName());
+            Assert.assertEquals("sharb", replicator.getDestDcName());
+            Assert.assertEquals("drcNt", replicator.getMhaName());
+            Assert.assertEquals("drcRb", replicator.getDestMhaName());
+            Assert.assertEquals(1, replicator.getRoutes().size());
+            replicator = replicators.get("drc-Test02.drcRb2");
+            Assert.assertEquals("127.0.0.3", replicator.getIp());
+            Assert.assertEquals(8383, replicator.getPort());
+            Assert.assertEquals("drc-Test02", replicator.getClusterName());
+            Assert.assertEquals("ntgxh", replicator.getDcName());
+            Assert.assertEquals("sharb", replicator.getDestDcName());
+            Assert.assertEquals("drcNt2", replicator.getMhaName());
+            Assert.assertEquals("drcRb2", replicator.getDestMhaName());
+            Assert.assertEquals(1, replicator.getRoutes().size());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Test

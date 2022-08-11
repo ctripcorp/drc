@@ -9,8 +9,12 @@ public class RouteDto {
     private String routeOrgName;
 
     private String srcDcName;
+    
+    private String srcRegionName;
 
     private String dstDcName;
+    
+    private String dstRegionName;
 
     private List<String> srcProxyUris;
 
@@ -109,18 +113,37 @@ public class RouteDto {
         this.deleted = deleted;
     }
 
+
+    public String getSrcRegionName() {
+        return srcRegionName;
+    }
+
+    public void setSrcRegionName(String srcRegionName) {
+        this.srcRegionName = srcRegionName;
+    }
+
+    public String getDstRegionName() {
+        return dstRegionName;
+    }
+
+    public void setDstRegionName(String dstRegionName) {
+        this.dstRegionName = dstRegionName;
+    }
+
     @Override
     public String toString() {
         return "RouteDto{" +
                 "id=" + id +
                 ", routeOrgName='" + routeOrgName + '\'' +
                 ", srcDcName='" + srcDcName + '\'' +
+                ", srcRegionName='" + srcRegionName + '\'' +
                 ", dstDcName='" + dstDcName + '\'' +
+                ", dstRegionName='" + dstRegionName + '\'' +
                 ", srcProxyUris=" + srcProxyUris +
                 ", relayProxyUris=" + relayProxyUris +
                 ", dstProxyUris=" + dstProxyUris +
                 ", tag='" + tag + '\'' +
-                ", deleted='" + deleted + '\'' +
+                ", deleted=" + deleted +
                 '}';
     }
 }

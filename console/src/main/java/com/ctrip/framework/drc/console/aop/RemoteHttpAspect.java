@@ -2,9 +2,11 @@ package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.google.common.collect.Sets;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,6 +40,9 @@ public class RemoteHttpAspect {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     
+    @Autowired
+    private DataCenterService dataCenterService;
+    
     private final DalUtils dalUtils = DalUtils.getInstance();
     
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
@@ -50,7 +56,8 @@ public class RemoteHttpAspect {
             if (dcName != null) {
                 Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
                 Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-                if (publicCloudDc.contains(dcName)) {
+                String localDc = dataCenterService.getDc();
+                if (publicCloudDc.contains(dcName) && !publicCloudDc.contains(localDc)) {
                     PossibleRemote annotation = getAnnotation(point);
                     StringBuilder url = new StringBuilder(consoleDcInfos.get(dcName));
                     url.append(annotation.path());
@@ -124,11 +131,16 @@ public class RemoteHttpAspect {
      * @param joinPoint
      * @return
      */
-    private Map<String, Object> getArguments(ProceedingJoinPoint joinPoint) {
+    private Map<String, Object> getArguments(ProceedingJoinPoint joinPoint) throws NoSuchMethodException{
+        PossibleRemote annotation = getAnnotation(joinPoint);
+        HashSet<String> excludeArgs = Sets.newHashSet(annotation.excludeArguments());
         Map<String, Object> param = new HashMap<>();
         Object[] paramValues = joinPoint.getArgs();
         String[] paramNames = ((MethodSignature)joinPoint.getSignature()).getParameterNames();
         for (int i = 0; i < paramNames.length; i++) {
+            if (excludeArgs.contains(paramNames[i])) {
+                continue;
+            }
             param.put(paramNames[i], paramValues[i]);
         }
         return param;

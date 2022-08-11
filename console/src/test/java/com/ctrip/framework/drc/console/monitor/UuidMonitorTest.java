@@ -20,6 +20,8 @@ import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -118,7 +120,10 @@ public class UuidMonitorTest extends AbstractTest {
         sample.setUuid(remote_server_uuid);
         Mockito.doReturn(sample).when(machineTblDao).queryByIpPort(eq(REMOTE_MYSQL_IP), eq(REMOTE_MYSQL_Port));
         Mockito.doReturn(null).when(machineTblDao).queryByIpPort(eq(REMOTE_MYSQL_IP), eq(REMOTE_MYSQL_Port2));
+        Mockito.doReturn("sha").when(consoleConfig).getRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         uuidMonitor.initialize();
+        uuidMonitor.isleader();
     }
 
     private static String getRemoteUUID() {
@@ -157,9 +162,8 @@ public class UuidMonitorTest extends AbstractTest {
 
     @Test
     public void testMonitorUuid() {
-        uuidMonitor.masterMySQLEndpointMap.put(META_KEY1, mha3MasterEndpoint);
-        uuidMonitor.slaveMySQLEndpointMap.put(META_KEY1, mha3SlaveEndpoint);
-
+        uuidMonitor.update(new Triple<>(META_KEY1, mha3MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
+        uuidMonitor.update(new Triple<>(META_KEY1, mha3SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
         uuidMonitor.scheduledTask();
         Assert.assertEquals(SWITCH_STATUS_ON, monitorTableSourceProvider.getUuidMonitorSwitch());
     }
@@ -167,8 +171,10 @@ public class UuidMonitorTest extends AbstractTest {
     @Test
     public void testUUidError() throws SQLException {
 
-        uuidMonitor.masterMySQLEndpointMap.put(META_KEY1, mha3MasterEndpoint);
-        uuidMonitor.slaveMySQLEndpointMap.put(META_KEY1, mha3SlaveEndpoint);
+        uuidMonitor.update(new Triple<>(META_KEY1, mha3MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
+        uuidMonitor.update(new Triple<>(META_KEY1, mha3SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
+//        uuidMonitor.super.masterMySQLEndpointMap.put(META_KEY1, mha3MasterEndpoint);
+//        uuidMonitor.super.slaveMySQLEndpointMap.put(META_KEY1, mha3SlaveEndpoint);
         MachineTbl sample = new MachineTbl();
         sample.setUuid("errorUUID");
         Mockito.doReturn(sample).when(machineTblDao).queryByIpPort(eq(REMOTE_MYSQL_IP), eq(REMOTE_MYSQL_Port));
@@ -176,40 +182,12 @@ public class UuidMonitorTest extends AbstractTest {
         uuidMonitor.scheduledTask();
     }
 
-    @Test
-    public void testObserve() {
-        Assert.assertEquals(0, uuidMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, uuidMonitor.slaveMySQLEndpointMap.size());
 
-        uuidMonitor.update(new Triple<>(META_KEY3, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
-        uuidMonitor.update(new Triple<>(META_KEY3, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(0, uuidMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, uuidMonitor.slaveMySQLEndpointMap.size());
-
-        uuidMonitor.update(new Triple<>(META_KEY1, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
-        uuidMonitor.update(new Triple<>(META_KEY1, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(1, uuidMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(1, uuidMonitor.slaveMySQLEndpointMap.size());
-        Assert.assertEquals(mha1MasterEndpoint, uuidMonitor.masterMySQLEndpointMap.get(META_KEY1));
-        Assert.assertEquals(mha1SlaveEndpoint, uuidMonitor.slaveMySQLEndpointMap.get(META_KEY1));
-
-        uuidMonitor.update(new Triple<>(META_KEY1, mha2MasterEndpoint, ActionEnum.UPDATE), new LocalMasterMySQLEndpointObservable());
-        uuidMonitor.update(new Triple<>(META_KEY1, mha2SlaveEndpoint, ActionEnum.UPDATE), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(1, uuidMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(1, uuidMonitor.slaveMySQLEndpointMap.size());
-        Assert.assertEquals(mha2MasterEndpoint, uuidMonitor.masterMySQLEndpointMap.get(META_KEY1));
-        Assert.assertEquals(mha2SlaveEndpoint, uuidMonitor.slaveMySQLEndpointMap.get(META_KEY1));
-
-        uuidMonitor.update(new Triple<>(META_KEY1, mha2MasterEndpoint, ActionEnum.DELETE), new LocalMasterMySQLEndpointObservable());
-        uuidMonitor.update(new Triple<>(META_KEY1, mha2SlaveEndpoint, ActionEnum.DELETE), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(0, uuidMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, uuidMonitor.slaveMySQLEndpointMap.size());
-    }
-    
     
     @Test
     public void testRemoteDc() {
-        uuidMonitor.masterMySQLEndpointMap.put(META_KEY1, mha3MasterEndpoint);
+
+        uuidMonitor.update(new Triple<>(META_KEY1, mha3MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
         
         // DC1 as publicCloudDC
         Set<String> publicCloudDc  = new HashSet<>();

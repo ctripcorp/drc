@@ -50,6 +50,7 @@ public class UpdateDataConsistencyMetaTaskTest {
         MockitoAnnotations.openMocks(this);
 
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getUpdateConsistencyMetaSwitch();
+        task.isleader();
     }
 
     @Test

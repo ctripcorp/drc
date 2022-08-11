@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.DataConsistencyMonitorTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +43,9 @@ public class MetaInfoServiceTwoImpl {
 
     @Autowired
     private MonitorService monitorService;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -150,8 +155,13 @@ public class MetaInfoServiceTwoImpl {
     }
 
     public List<String> getProxyUris(String dc) throws Throwable {
-        Long dcId = dalUtils.getId(TableEnum.DC_TABLE, dc);
-        return dalUtils.getProxyTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode()) && p.getDcId().equals(dcId)).map(ProxyTbl::getUri).collect(Collectors.toList());
+        Set<String> dcsInSameRegion = consoleConfig.getDcsInSameRegion(dc);
+        List<String> proxyUris = Lists.newArrayList();
+        for (String InSameRegion : dcsInSameRegion) {
+            Long dcId = dalUtils.getId(TableEnum.DC_TABLE, InSameRegion);
+            dalUtils.getProxyTblDao().queryByDcId(dcId,BooleanEnum.FALSE.getCode()).forEach(proxyTbl -> proxyUris.add(proxyTbl.getUri()));
+        } 
+        return proxyUris;
     }
 
     public List<String> getAllProxyUris() throws Throwable {

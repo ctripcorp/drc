@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.manager.ha.multidc;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcServiceManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -15,8 +16,7 @@ import org.mockito.Mock;
 
 import java.util.Map;
 
-import static com.ctrip.framework.drc.manager.AllTests.BACKUP_DAL_CLUSTER_ID;
-import static com.ctrip.framework.drc.manager.AllTests.TARGET_DC;
+import static com.ctrip.framework.drc.manager.AllTests.*;
 
 /**
  * @Author limingdong
@@ -34,6 +34,9 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
     private ClusterManagerConfig config;
 
     @Mock
+    public DataCenterService dataCenter;
+
+    @Mock
     private ClusterManagerMultiDcService clusterManagerMultiDcService;
 
     @Before
@@ -43,11 +46,13 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
 
     @Test
     public void getActiveReplicatorNullAndRetry() {
-        Map<String, DcInfo> empry = Maps.newConcurrentMap();
-        when(config.getDcInofs()).thenReturn(empry);
+        when(dataCenter.getRegion(TARGET_DC)).thenReturn(TARGET_REGION);
+        Map<String, RegionInfo> empty = Maps.newConcurrentMap();
+        when(config.getCmRegionInfos()).thenReturn(empty);
         Map<String, String> migrationIdc = Maps.newHashMap();
         migrationIdc.put(TARGET_DC, "shaxy");
         when(config.getMigrationIdc()).thenReturn(migrationIdc);
+        when(dataCenter.getRegion("shaxy")).thenReturn(TARGET_REGION);
         Replicator replicator = multiDcService.getActiveReplicator(TARGET_DC, BACKUP_DAL_CLUSTER_ID);
         Assert.assertNull(replicator);
         verify(config, times(1)).getMigrationIdc();
@@ -58,11 +63,12 @@ public class DefaultMultiDcServiceTest extends AbstractDbClusterTest {
         newReplicator.setIp(LOCAL_IP);
         newReplicator.setPort(backupPort);
 
-        Map<String, DcInfo> notEmpry = Maps.newConcurrentMap();
-        DcInfo dcInfo = new DcInfo();
-        dcInfo.setMetaServerAddress(LOCAL_IP);
-        notEmpry.put(TARGET_DC, dcInfo);
-        when(config.getDcInofs()).thenReturn(notEmpry);
+        Map<String, RegionInfo> notEmpry = Maps.newConcurrentMap();
+        RegionInfo regionInfo = new RegionInfo();
+        regionInfo.setMetaServerAddress(LOCAL_IP);
+        notEmpry.put(TARGET_REGION, regionInfo);
+        when(dataCenter.getRegion(TARGET_DC)).thenReturn(TARGET_REGION);
+        when(config.getCmRegionInfos()).thenReturn(notEmpry);
         when(clusterManagerMultiDcServiceManager.getOrCreate(LOCAL_IP)).thenReturn(clusterManagerMultiDcService);
         when(clusterManagerMultiDcService.getActiveReplicator(BACKUP_DAL_CLUSTER_ID)).thenReturn(newReplicator);
 

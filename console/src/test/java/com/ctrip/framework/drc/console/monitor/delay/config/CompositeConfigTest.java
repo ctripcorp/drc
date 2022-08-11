@@ -19,7 +19,7 @@ public class CompositeConfigTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(monitorTableSourceProvider.getDrcMetaXmlUpdateSwitch()).thenReturn("off");
+        Mockito.when(monitorTableSourceProvider.getDrcMetaXmlUpdateSwitch()).thenReturn("on");
     }
 
     @Test

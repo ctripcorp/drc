@@ -84,7 +84,7 @@ public class ReplicatorInstanceElectorManager extends AbstractInstanceElectorMan
     }
 
     private Replicator getReplicator(String clusterId, String ip, int port) {
-        DbCluster dbCluster = dcCache.getCluster(clusterId);
+        DbCluster dbCluster = regionCache.getCluster(clusterId);
         List<Replicator> replicatorList = dbCluster.getReplicators();
         return replicatorList.stream().filter(replicator -> replicator.getIp().equalsIgnoreCase(ip) && replicator.getPort() == port).findFirst().orElse(null);
     }

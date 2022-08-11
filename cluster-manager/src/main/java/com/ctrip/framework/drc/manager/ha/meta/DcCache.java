@@ -21,12 +21,11 @@ public interface DcCache extends Observable {
 
     Route randomRoute(String clusterId, String dstDc);
 
-    DcManager getDcMeta();
+    Route randomRoute(String clusterId,String dstDc,Integer orgId);
 
     void clusterAdded(DbCluster dbCluster);
 
     void clusterModified(DbCluster dbCluster);
 
     void clusterDeleted(String registryKey);
-
 }

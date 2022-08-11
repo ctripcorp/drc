@@ -107,7 +107,7 @@ public class ApplierInstanceElectorManager extends AbstractInstanceElectorManage
     }
 
     private Applier getApplier(String clusterId, String ip, int port, String targetMha) {
-        DbCluster dbCluster = dcCache.getCluster(clusterId);
+        DbCluster dbCluster = regionCache.getCluster(clusterId);
         logger.info("[DbCluster] is {}", dbCluster);
         List<Applier> applierList = dbCluster.getAppliers();
         return applierList.stream().filter(applier -> applier.getIp().equalsIgnoreCase(ip) && applier.getPort() == port && applier.getTargetMhaName().equalsIgnoreCase(targetMha)).findFirst().orElse(null);

@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.task;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.TableConfig;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -18,6 +18,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -31,8 +32,9 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
  * @create 2021/7/8
  */
 @Component
+@Order(2)
 @DependsOn({"metaInfoServiceImpl"})
-public class SyncTableConfigTask extends AbstractMonitor {
+public class SyncTableConfigTask extends AbstractLeaderAwareMonitor {
 
     @Autowired
     private DalServiceImpl dalService;
@@ -53,7 +55,7 @@ public class SyncTableConfigTask extends AbstractMonitor {
     private Env env = Foundation.server().getEnv();
 
     private DalUtils dalUtils = DalUtils.getInstance();
-
+    
     protected void setEnv(Env env) {
         this.env = env;
     }
@@ -67,11 +69,19 @@ public class SyncTableConfigTask extends AbstractMonitor {
 
     @Override
     public void scheduledTask() {
-        String syncMhaSwitch = monitorTableSourceProvider.getSyncTableConfigSwitch();
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-            logger.info("[Sync] excluded tables");
-            updateExcludedTable();
+        if (isRegionLeader) {
+            logger.info("[[task=SyncTableConfigTask]] is leader, going to sync excluded tables");
+            String syncMhaSwitch = monitorTableSourceProvider.getSyncTableConfigSwitch();
+            if(SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                logger.info("[[task=SyncTableConfigTask]] sync excluded tables");
+                updateExcludedTable();
+            } else {
+                logger.warn("[[task=SyncTableConfigTask]] is leader but switch is off");
+            }
+        } else {
+            logger.info("[[task=SyncTableConfigTask]]not a leader do nothing");
         }
+        
     }
 
     protected void updateExcludedTable() {
@@ -131,4 +141,15 @@ public class SyncTableConfigTask extends AbstractMonitor {
         }
         return StringUtils.EMPTY;
     }
+
+    @Override
+    public void switchToLeader() throws Throwable {
+        // nothing to do ,wait next schedule
+    }
+
+    @Override
+    public void switchToSlave() throws Throwable {
+        // nothing to do ,wait next schedule
+    }
+   
 }

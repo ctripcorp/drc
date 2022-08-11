@@ -147,7 +147,7 @@ public class DbClusterSourceProviderTest {
 
     @Test
     public void testGetDc() {
-        Mockito.when(consoleService.getLocalDbClusters()).thenReturn(drcXmlStrFromConsole);
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(drcXmlStrFromConsole);
         Dc actual = sourceProvider.getDc(SHAOY);
         Assert.assertNotNull(actual);
         Map<String, DbCluster> dbClusters = actual.getDbClusters();
@@ -155,7 +155,7 @@ public class DbClusterSourceProviderTest {
         Assert.assertNotNull(dbClusters.get("integration-test.fat-fx-drc1"));
         Assert.assertNotNull(dbClusters.get("train.ticketorder"));
 
-        Mockito.when(consoleService.getLocalDbClusters()).thenReturn(drcXmlStr);
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(drcXmlStr);
         actual = sourceProvider.getDc(SHAOY);
         Assert.assertNotNull(actual);
         Assert.assertEquals("shaoy", actual.getId());
@@ -164,15 +164,15 @@ public class DbClusterSourceProviderTest {
         actual = sourceProvider.getDc("ntgxh");
         Assert.assertNull(actual);
 
-        Mockito.when(consoleService.getLocalDbClusters()).thenReturn(wrongDrcXmlStr);
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(wrongDrcXmlStr);
         actual = sourceProvider.getDc("ntgxh");
         Assert.assertNull(actual);
 
-        Mockito.when(consoleService.getLocalDbClusters()).thenReturn(nullDrcXmlStr);
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(nullDrcXmlStr);
         actual = sourceProvider.getDc("ntgxh");
         Assert.assertNull(actual);
 
-        Mockito.when(consoleService.getLocalDbClusters()).thenReturn(initDrcXmlStr);
+        Mockito.when(consoleService.getDbClusters(SHAOY)).thenReturn(initDrcXmlStr);
         actual = sourceProvider.getDc("ntgxh");
         Assert.assertNull(actual);
     }

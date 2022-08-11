@@ -78,6 +78,8 @@ public class MySqlUtils {
     private static final String CHECK_DRC_TABLES = "select count(*) from information_schema.tables where TABLE_SCHEMA = \"drcmonitordb\";";
     private static final int SHOW_CERTAIN_VARIABLES_INDEX = 2;
     private static final String CHECK_ACCOUNT_AVAILABLE = "SELECT @@GTID_MODE;";
+    private static final String BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE = "show global variables like \"binlog_transaction_dependency_history_size\";";
+    private static final int BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX = 2;
 
     private static final String ON_UPDATE = "on update";
     private static final String PRIMARY_KEY = "primary key";
@@ -523,8 +525,8 @@ public class MySqlUtils {
             sql = String.format(GET_DB_TABLES_PREFIX, convertListToString(dbNames)) + GET_DB_TABLES_SUFFIX;
         }
 
-        List<TableSchemaName> tables = getTables(endpoint, sql, true);
-        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), true);
+        List<TableSchemaName> tables = getTables(endpoint, sql, false);
+        return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
 
     @Deprecated
@@ -612,6 +614,11 @@ public class MySqlUtils {
     public static String checkBinlogTransactionDependency(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] check writeset", endpoint.getSocketAddress());
         return getSqlResultString(endpoint, CHECK_BINLOG_TRANSACTION_DEPENDENCY_TRACKING,1);
+    }
+    
+    public static Integer checkBtdhs(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
+        return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
     
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {

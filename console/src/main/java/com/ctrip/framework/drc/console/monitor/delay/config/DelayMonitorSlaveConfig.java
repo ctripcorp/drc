@@ -118,6 +118,19 @@ public class DelayMonitorSlaveConfig extends MySQLSlaveConfig implements GlobalC
         return Objects.hash(super.hashCode(), dc, destDc, cluster, mha, destMha, measurement, routeInfo);
     }
 
+    @Override
+    public String toString() {
+        return "DelayMonitorSlaveConfig{" +
+                "dc='" + dc + '\'' +
+                ", destDc='" + destDc + '\'' +
+                ", cluster='" + cluster + '\'' +
+                ", mha='" + mha + '\'' +
+                ", destMha='" + destMha + '\'' +
+                ", measurement='" + measurement + '\'' +
+                ", routeInfo='" + routeInfo + '\'' +
+                '}';
+    }
+
     public DelayMonitorSlaveConfig clone() {
         DelayMonitorSlaveConfig config = new DelayMonitorSlaveConfig();
         config.setDc(this.dc);

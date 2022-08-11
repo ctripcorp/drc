@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifier;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -35,7 +36,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGG
 public class DefaultInstanceStateController extends AbstractLifecycle implements InstanceStateController, TopElement {
 
     @Autowired
-    private DcCache dcMetaCache;
+    private RegionCache regionMetaCache;
 
     @Autowired
     private CurrentMetaManager currentMetaManager;
@@ -203,7 +204,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     private DbCluster getDbClusterWithRefreshReplicator(String clusterId, Replicator replicator, Endpoint mysqlMaster) {
-        DbCluster dbCluster = dcMetaCache.getCluster(clusterId);
+        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
         DbCluster clone = MetaClone.clone(dbCluster);
         clone.getReplicators().clear();
         clone.getReplicators().add(replicator);
@@ -223,7 +224,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         String targetName = applier.getTargetName();
         String targetMhaName = applier.getTargetMhaName();
         String backupClusterId = RegistryKey.from(targetName, targetMhaName);
-        DbCluster dbCluster = dcMetaCache.getCluster(clusterId);
+        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
         DbCluster clone = MetaClone.clone(dbCluster);
         clone.getAppliers().clear();
         clone.getAppliers().add(applier);

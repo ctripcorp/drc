@@ -53,6 +53,9 @@ public class CheckTableConsistencyTaskTest {
     
     @Mock
     private MetaInfoServiceImpl metaInfoService;
+    
+    @Mock
+    private DbClusterSourceProvider dbClusterSourceProvider;
 
     private DataSource dataSource;
 
