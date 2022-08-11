@@ -142,4 +142,10 @@ public class DefaultConsoleConfigTest {
         Set<String> dcs = config.getDcsInLocalRegion();
         Assert.assertNull(dcs);
     }
+    
+    @Test
+    public void getPublicCloudRegion() {
+        Set<String> publicCloudRegion = config.getPublicCloudRegion();
+        Assert.assertEquals(2,publicCloudRegion.size());
+    }
 }

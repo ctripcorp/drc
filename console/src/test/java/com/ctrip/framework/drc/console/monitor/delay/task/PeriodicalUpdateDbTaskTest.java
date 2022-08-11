@@ -129,7 +129,7 @@ public class PeriodicalUpdateDbTaskTest {
     private MetaKey metaKey2;
 
     @Before
-    public void setUp() throws IOException, SAXException, InterruptedException, SQLException {
+    public void setUp() throws Exception {
         // for db
         createDb();
 
@@ -176,8 +176,8 @@ public class PeriodicalUpdateDbTaskTest {
         mhaTbl2.setId(2L);
         mhaTbl2.setMhaName(MHA1DC2);
         
-        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(metaInfoService).getMhas(Mockito.eq(DC1));
-        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(metaInfoService).getMhas(Mockito.eq(DC2));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(metaInfoService).getMhasByDc(Mockito.eq(DC1));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(metaInfoService).getMhasByDc(Mockito.eq(DC2));
         task.isleader();
 //        when(metaInfoService.getEstablishedDbEndpointMap("ntgxh")).thenReturn(mapper);
 
