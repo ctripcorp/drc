@@ -12,6 +12,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -22,10 +24,10 @@ import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -532,5 +534,22 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     public void updateMhaDc() {
         int result = metaInfoService.updateMhaDc("fat-fx-drc1", "shaoy");
         Assert.assertEquals(1, result);
+    }
+
+    @Test
+    public void testGetMhasByDc() {
+        Mockito.when(defaultConsoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("publicCloudRegion")));
+        Mockito.when(defaultConsoleConfig.getRegion()).thenReturn("publicCloudRegion");
+        Map<String, String> consoleRegionUrls = new HashMap<>() {{put("sha","http://console.sha");}};
+        Mockito.when(defaultConsoleConfig.getConsoleRegionUrls()).thenReturn(consoleRegionUrls);
+        
+        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when(() -> HttpUtils.get(Mockito.anyString())).thenReturn(ApiResult.getSuccessInstance(null));
+            List<MhaTbl> mhas = metaInfoService.getMhasByDc("fra");
+            Assert.assertNull(mhas);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
     }
 }

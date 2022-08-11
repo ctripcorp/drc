@@ -77,6 +77,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
+    private static String PUBLIC_CLOUD_REGION = "drc.public.cloud.region";
+    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin";
 
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
     private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
@@ -358,6 +360,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         String publicCloudDc = getProperty(PUBLIC_CLOUD_DC, DEFAULT_PUBLIC_CLOUD_DC);
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
+    }
+    
+    public Set<String> getPublicCloudRegion() {
+        String publicCloudRegion = getProperty(PUBLIC_CLOUD_REGION,DEFAULT_PUBLIC_CLOUD_REGION);
+        logger.info("public cloud region: {}", publicCloudRegion);
+        return Sets.newHashSet(publicCloudRegion.split(","));
     }
 
     public Set<String> getLocalConfigCloudDc() {

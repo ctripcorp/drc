@@ -84,7 +84,6 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Override
     public void initialize() {
         super.initialize();
-        refreshMhaTblMap();
         currentMetaManager.addObserver(this);
     }
 
@@ -99,13 +98,13 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     refreshMhaTblByDc(dc);
                 }
             }
-        } catch (SQLException e) {
-            logger.error("[[task=updateDelayTable]] sql error in refreshMhaTblMap",e);
+        } catch (Exception e) {
+            logger.error("[[task=updateDelayTable]] error in refreshMhaTblMap",e);
         }
     }
     
-    private void refreshMhaTblByDc(String dcName) throws SQLException {
-        List<MhaTbl> mhasByDc = metaInfoService.getMhas(dcName);
+    private void refreshMhaTblByDc(String dcName) throws Exception {
+        List<MhaTbl> mhasByDc = metaInfoService.getMhasByDc(dcName);
         mhasByDc.forEach(
                 mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
         );
