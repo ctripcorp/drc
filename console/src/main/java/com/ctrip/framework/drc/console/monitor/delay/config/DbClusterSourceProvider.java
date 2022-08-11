@@ -273,7 +273,11 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                                 break;
                             }
                             // get Route use localDc
-                            List<Route> routes = RouteUtils.filterRoutes(localDcName, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(localDcName));
+                            Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+                            List<Route> routes = Lists.newArrayList();
+                            for (String dcInLocalRegion : dcsInLocalRegion) {
+                                 routes.addAll(RouteUtils.filterRoutes(dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)));
+                            }
                             replicators.put(
                                     dbCluster.getId(),
                                     new ReplicatorWrapper(
