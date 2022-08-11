@@ -12,10 +12,7 @@ import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
 import com.ctrip.framework.drc.manager.ha.cluster.task.*;
 import com.ctrip.framework.drc.manager.ha.config.DefaultClusterManagerConfigTest;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.*;
-import com.ctrip.framework.drc.manager.ha.meta.impl.CurrentMetaTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManagerTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultDcCacheTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultDrcManagerTest;
+import com.ctrip.framework.drc.manager.ha.meta.impl.*;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceManagerTest;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceTest;
 import com.ctrip.framework.drc.manager.ha.multidc.*;
@@ -100,6 +97,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DcComparatorTest.class,
         DcComparatorTest2.class,
         DefaultDcCacheTest.class,
+        DefaultRegionCacheTest.class,
         DefaultDrcManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,

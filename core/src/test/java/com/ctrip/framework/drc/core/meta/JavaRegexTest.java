@@ -1,10 +1,8 @@
 package com.ctrip.framework.drc.core.meta;
 
-import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 /**
