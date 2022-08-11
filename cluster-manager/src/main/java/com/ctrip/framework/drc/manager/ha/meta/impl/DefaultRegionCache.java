@@ -91,12 +91,11 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
                     Integer orgId = dcCache.getCluster(clusterId).getOrgId();
                     dcCaches.forEach(dcCacheInRegion -> {
                         Route route = dcCacheInRegion.randomRoute(clusterId, dstDc, orgId);
+                        logger.info("route chosen for clusterId:{},dstDc:{},routeInfo:{}",clusterId,dstDc,route.getRouteInfo());
                         routesInDiffSrcDc.add(route);
                     });
                 },
-                () -> {
-                    logger.info("no route available for clusterId:{},dstDc:{}", clusterId, dstDc);
-                });
+                () -> logger.info("no route available for clusterId:{},dstDc:{}", clusterId, dstDc));
         logger.info("route available for clusterId:{},dstDc:{},size:{}", clusterId, dstDc,routesInDiffSrcDc.size());
         return RouteUtils.random(routesInDiffSrcDc);
     }
