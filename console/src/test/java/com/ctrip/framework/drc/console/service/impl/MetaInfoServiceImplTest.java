@@ -538,8 +538,8 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Test
     public void testGetMhasByDc() {
-        Mockito.when(defaultConsoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("publicCloudRegion")));
-        Mockito.when(defaultConsoleConfig.getRegion()).thenReturn("publicCloudRegion");
+        Mockito.when(defaultConsoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("region1")));
+        Mockito.when(defaultConsoleConfig.getRegion()).thenReturn("region1");
         Map<String, String> consoleRegionUrls = new HashMap<>() {{put("sha","http://console.sha");}};
         Mockito.when(defaultConsoleConfig.getConsoleRegionUrls()).thenReturn(consoleRegionUrls);
         

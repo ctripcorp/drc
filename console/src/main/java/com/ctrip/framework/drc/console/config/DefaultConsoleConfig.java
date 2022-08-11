@@ -365,7 +365,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public Set<String> getPublicCloudRegion() {
         String publicCloudRegion = getProperty(PUBLIC_CLOUD_REGION,DEFAULT_PUBLIC_CLOUD_REGION);
         logger.info("public cloud region: {}", publicCloudRegion);
-        return Sets.newHashSet(publicCloudRegion.split(","));
+        return Sets.newHashSet(publicCloudRegion.toLowerCase().split(","));
     }
 
     public Set<String> getLocalConfigCloudDc() {
