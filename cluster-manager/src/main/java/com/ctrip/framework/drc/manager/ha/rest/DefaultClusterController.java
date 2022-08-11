@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.manager.ha.cluster.SlotManager;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.zk.ZkClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ public class DefaultClusterController implements ClusterApi {
     private ClusterManagerConfig metaServerConfig;
 
     @Autowired
-    private DcCache dcMetaCache;
+    private RegionCache regionMetaCache;
 
     @Autowired
     private SlotManager slotManager;

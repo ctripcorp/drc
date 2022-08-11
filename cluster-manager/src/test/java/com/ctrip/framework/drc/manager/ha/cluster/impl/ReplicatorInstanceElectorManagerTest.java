@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.observer.NodeAdded;
@@ -32,7 +32,7 @@ public class ReplicatorInstanceElectorManagerTest extends AbstractDbClusterTest 
     private CurrentMetaManager currentMetaManager;
 
     @Mock
-    private DcCache dcCache;
+    private RegionCache regionCache;
 
     @Mock
     private InstanceStateController instanceStateController;
@@ -47,7 +47,7 @@ public class ReplicatorInstanceElectorManagerTest extends AbstractDbClusterTest 
         when(zkClient.get()).thenReturn(curatorFramework);
         when(currentMetaManager.watchReplicatorIfNotWatched(anyString())).thenReturn(true);
         when(instanceActiveElectAlgorithmManager.get(anyString())).thenReturn(new DefaultInstanceActiveElectAlgorithm());
-        when(dcCache.getCluster(anyString())).thenReturn(dbCluster);
+        when(regionCache.getCluster(anyString())).thenReturn(dbCluster);
 
         Replicator replicator = dbCluster.getReplicators().get(0);
         zookeeperValue.setPort(replicator.getPort());

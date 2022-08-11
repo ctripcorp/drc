@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.assertj.core.util.Sets;
 import org.junit.Assert;
 import org.junit.Before;
@@ -77,7 +78,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     private DalUtils dalUtils = DalUtils.getInstance();
 
     private Long mhaGroupId = 1L;
-
+    
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -185,14 +186,14 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Test
     public void testGetResourcesMethods() throws Exception {
-
+        
         List<String> r = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "R");
         System.out.println("r in dc: " + r);
-        Assert.assertEquals(3, r.size());
+        Assert.assertEquals(5, r.size());
 
         List<String> a = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "A");
         System.out.println("a in dc: " + a);
-        Assert.assertEquals(3, a.size());
+        Assert.assertEquals(5, a.size());
 
         r = metaInfoService.getResourcesInUse("fat-fx-drc1", "", "R");
         System.out.println("r in use: " + r);
@@ -275,6 +276,11 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     }
 
     private void init() throws SQLException {
+        Map<String,String> dc2regionMap = Maps.newHashMap();
+        dc2regionMap.put("shaoy","sha");
+        dc2regionMap.put("sharb","sha");
+        Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
+        Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Sets.newHashSet(Lists.newArrayList("shaoy","sharb")));
         mock();
     }
 
@@ -425,9 +431,13 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     public void testGetUuidMap() throws IOException, SAXException {
         Drc drc = DefaultSaxParser.parse(DRC_XML_one2many);
         Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
+//        Mockito.doReturn(drc.findDc("dc1").findDbCluster("dbcluster1.mha1dc1")).when(dbClusterSourceProvider).getDbCluster(Mockito.eq("dc1"),Mockito.eq("dbcluster1.mha1dc1"));
+//        Mockito.doReturn(drc.findDc("dc1").findDbCluster("dbcluster1.mha2dc1")).when(dbClusterSourceProvider).getDbCluster(Mockito.eq("dc1"),Mockito.eq("dbcluster1.mha2dc1"));
+//        Mockito.doReturn(drc.findDc("dc3").findDbCluster("dbcluster1.mha3dc3")).when(dbClusterSourceProvider).getDbCluster(Mockito.eq("dc3"),Mockito.eq("dbcluster1.mha3dc3"));
+//        Mockito.doReturn(drc.findDc("dc1").findDbCluster("dbcluster1.mha3dc1")).when(dbClusterSourceProvider).getDbCluster(Mockito.eq("dc1"),Mockito.eq("dbcluster1.mha3dc1"));
         Mockito.doReturn("dc2").when(dbClusterSourceProvider).getLocalDcName();
 
-        Map<String, Set<String>> uuidMap = metaInfoService.getUuidMap();
+        Map<String, Set<String>> uuidMap = metaInfoService.getUuidMap(Sets.newHashSet(Lists.newArrayList("dc2")));
         Assert.assertEquals(3, uuidMap.size());
         Set<String> mha1dc2 = uuidMap.get("mha1dc2");
         Set<String> mha2dc2 = uuidMap.get("mha2dc2");

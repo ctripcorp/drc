@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.mock;
 
+import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.task.AbstractSlaveMySQLEndpointObserver;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 
@@ -19,7 +20,19 @@ public class LocalSlaveMySQLEndpointObserver extends AbstractSlaveMySQLEndpointO
     }
 
     @Override
-    public void setOnlyCareLocal() {
+    public void setLocalRegionInfo() {
+        
+    }
+
+    @Override
+    public void setOnlyCarePart() {
 
     }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return localDcName.equalsIgnoreCase(metaKey.getDc());
+    }
+
+   
 }

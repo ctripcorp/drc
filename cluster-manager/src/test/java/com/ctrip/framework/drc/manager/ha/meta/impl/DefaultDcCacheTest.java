@@ -32,7 +32,6 @@ import static com.ctrip.framework.drc.manager.AllTests.DC;
  */
 public class DefaultDcCacheTest extends AbstractDbClusterTest {
 
-    @InjectMocks
     private DefaultDcCache dcCache;
 
     @Mock
@@ -47,8 +46,8 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        when(dataCenterService.getDc()).thenReturn(DC);
         when(config.getClusterRefreshMilli()).thenReturn(50);
+        dcCache = new DefaultDcCache(config, sourceProvider, DC);
     }
 
     @Test

@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.manager.ha.multidc;
 
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcServiceManager;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +27,9 @@ public class DefaultMultiDcService implements MultiDcService {
     @Autowired
     private ClusterManagerConfig config;
 
+    @Autowired
+    public DataCenterService dataCenter;
+
     @Override
     public Replicator getActiveReplicator(String dcName, String clusterId) {
 
@@ -42,14 +46,14 @@ public class DefaultMultiDcService implements MultiDcService {
     }
 
     private Replicator doGetActiveReplicator(String dcName, String clusterId) {
-        dcName = dcName.toLowerCase();
-        DcInfo dcInfo = config.getDcInofs().get(dcName);
-        if(dcInfo == null){
-            logger.error("[getActiveReplicator][dc info null]{}", dcName);
+        String region = dataCenter.getRegion(dcName);
+        RegionInfo regionInfo = config.getCmRegionInfos().get(region);
+        if(regionInfo == null){
+            logger.error("[getActiveReplicator][region info null]{}:{}", region, dcName);
             return null;
         }
 
-        ClusterManagerMultiDcService clusterManagerMultiDcService = clusterManagerMultiDcServiceManager.getOrCreate(dcInfo.getMetaServerAddress());
+        ClusterManagerMultiDcService clusterManagerMultiDcService = clusterManagerMultiDcServiceManager.getOrCreate(regionInfo.getMetaServerAddress());
         Replicator replicator = clusterManagerMultiDcService.getActiveReplicator(clusterId);
         logger.info("[getActiveReplicator] for {} is {}", clusterId, replicator);
         return replicator;

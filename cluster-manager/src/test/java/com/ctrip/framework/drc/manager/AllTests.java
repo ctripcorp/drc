@@ -5,16 +5,14 @@ import ch.vorburger.mariadb4j.DB;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.manager.config.DataCenterServiceTest;
 import com.ctrip.framework.drc.manager.config.DbClusterSourceProviderTest;
 import com.ctrip.framework.drc.manager.ha.DefaultStateChangeHandlerTest;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
 import com.ctrip.framework.drc.manager.ha.cluster.task.*;
 import com.ctrip.framework.drc.manager.ha.config.DefaultClusterManagerConfigTest;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.*;
-import com.ctrip.framework.drc.manager.ha.meta.impl.CurrentMetaTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultCurrentMetaManagerTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultDcCacheTest;
-import com.ctrip.framework.drc.manager.ha.meta.impl.DefaultDrcManagerTest;
+import com.ctrip.framework.drc.manager.ha.meta.impl.*;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceManagerTest;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceTest;
 import com.ctrip.framework.drc.manager.ha.multidc.*;
@@ -67,6 +65,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 
         ConsoleNotifierTest.class,
+        DataCenterServiceTest.class,
 
         // for ha
         ClusterManagerLeaderElectorTest.class,
@@ -98,6 +97,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DcComparatorTest.class,
         DcComparatorTest2.class,
         DefaultDcCacheTest.class,
+        DefaultRegionCacheTest.class,
         DefaultDrcManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,
@@ -107,7 +107,11 @@ public class AllTests {
 
     public static final String DC = "shaoy";
 
+    public static final String REGION = "sha";
+
     public static final String TARGET_DC = "sharb";
+
+    public static final String TARGET_REGION = "sha";
 
     public static final String XML_FILE = "test.xml";
 

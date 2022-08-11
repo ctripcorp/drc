@@ -13,7 +13,7 @@ public interface Monitor {
 
     void start();
 
-    void scheduledTask();
+    void scheduledTask() throws Throwable;
 
     void destroy();
 

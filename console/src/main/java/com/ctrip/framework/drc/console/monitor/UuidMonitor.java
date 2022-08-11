@@ -5,12 +5,14 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
+import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
+import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.response.AbstractResponse;
@@ -24,6 +26,7 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObserver;
+import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
@@ -56,7 +59,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
 @Order(2)
 @Component
 @DependsOn("dbClusterSourceProvider")
-public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
+public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
 
     public static final Logger uuidLogger = LoggerFactory.getLogger(UuidMonitor.class);
 
@@ -78,7 +81,7 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
     private OpenService openService;
 
     private MachineTblDao machineTblDao = DalUtils.getInstance().getMachineTblDao();
-
+    
     private static final String ALI_DC = "shali";
     private static final String AWS_DC = "fraaws";
     private static final String UUID_ERROR_NUM_MEASUREMENT = "fx.drc.uuid.errorNums";
@@ -87,12 +90,6 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
     private static final int UUID_INDEX = 2;
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
-
-    protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
-
-    protected Map<MetaKey, MySqlEndpoint> slaveMySQLEndpointMap = Maps.newConcurrentMap();
-
-    private String localDcName;
 
     public  final int INITIAL_DELAY = 30;
 
@@ -105,23 +102,30 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
         setInitialDelay(INITIAL_DELAY);
         setPeriod(PERIOD);
         setTimeUnit(TIME_UNIT);
-        localDcName = sourceProvider.getLocalDcName();
+        super.initialize();
         currentMetaManager.addObserver(this);
     }
 
     @Override
     public void scheduledTask() {
-        String uuidMonitorSwitch = monitorTableSourceProvider.getUuidMonitorSwitch();
-        if (!SWITCH_STATUS_ON.equalsIgnoreCase(uuidMonitorSwitch)) {
-            uuidLogger.info("[[monitor=UUIDMonitor]] uuidMonitor closed");
-            return;
+        if (isRegionLeader) {
+            uuidLogger.info("[[monitor=UUIDMonitor]] is a leader,going to monitor");
+            String uuidMonitorSwitch = monitorTableSourceProvider.getUuidMonitorSwitch();
+            if (!SWITCH_STATUS_ON.equalsIgnoreCase(uuidMonitorSwitch)) {
+                uuidLogger.info("[[monitor=UUIDMonitor]] uuidMonitor switch close");
+                return;
+            }
+            for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
+                monitorUuid(entry);
+            }
+            for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
+                monitorUuid(entry);
+            }
+        } else {
+            reporter.removeRegister(UUID_ERROR_NUM_MEASUREMENT);
+            uuidLogger.info("[[monitor=UUIDMonitor]] not leader,remove monitor");
         }
-        for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
-            monitorUuid(entry);
-        }
-        for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
-            monitorUuid(entry);
-        }
+        
     }
 
     private void monitorUuid(Map.Entry<MetaKey, MySqlEndpoint> entry) {
@@ -239,9 +243,7 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
     }
 
     private boolean autoCorrect(String ip, int port, String uuidStringFromDB,String uuidFromCommand) {
-        
         try { // update UUID
-
             Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
             MachineTbl sample;
             // get Pk and uuid
@@ -320,42 +322,29 @@ public class UuidMonitor extends AbstractMonitor implements MasterMySQLEndpointO
     }
 
     @Override
-    public void update(Object args, Observable observable) {
-        if (observable instanceof MasterMySQLEndpointObservable) {
-            updateMySQLEndpointMap((Triple<MetaKey, MySqlEndpoint, ActionEnum>) args, masterMySQLEndpointMap);
-        } else if (observable instanceof SlaveMySQLEndpointObservable) {
-            updateMySQLEndpointMap((Triple<MetaKey, MySqlEndpoint, ActionEnum>) args, slaveMySQLEndpointMap);
-        }
+    public void clearResource(Endpoint endpoint, MetaKey metaKey) {
+        reporter.removeRegister(getEntity(endpoint,metaKey).getTags(),UUID_ERROR_NUM_MEASUREMENT);
     }
 
-    private void updateMySQLEndpointMap(Triple<MetaKey, MySqlEndpoint, ActionEnum> msg, Map<MetaKey, MySqlEndpoint> mySQLEndpointMap) {
-
-        MetaKey metaKey = msg.getFirst();
-        MySqlEndpoint mySQLEndpoint = msg.getMiddle();
-        ActionEnum action = msg.getLast();
-        
-        if (!metaKey.getDc().equalsIgnoreCase(localDcName)) {
-            CONSOLE_MYSQL_LOGGER.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, mySQLEndpoint.getSocketAddress());
-            return;
-        }
-
-        if (ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
-            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, mySQLEndpoint.getSocketAddress());
-            MySqlEndpoint oldEndpoint = mySQLEndpointMap.get(metaKey);
-            if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
-                removeSqlOperator(oldEndpoint);
-                reporter.removeRegister(getEntity(oldEndpoint,metaKey).getTags(),UUID_ERROR_NUM_MEASUREMENT);
-            }
-            mySQLEndpointMap.put(metaKey, mySQLEndpoint);
-        } else if (ActionEnum.DELETE.equals(action)) {
-            CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
-            MySqlEndpoint oldEndpoint = mySQLEndpointMap.remove(metaKey);
-            if (oldEndpoint != null) {
-                CONSOLE_MYSQL_LOGGER.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
-                removeSqlOperator(oldEndpoint);
-                reporter.removeRegister(getEntity(oldEndpoint,metaKey).getTags(),UUID_ERROR_NUM_MEASUREMENT);
-            }
-        }
+    @Override
+    public void setLocalDcName() {
+        localDcName = sourceProvider.getLocalDcName();
     }
+    
+    @Override
+    public void setLocalRegionInfo() {
+        this.regionName = consoleConfig.getRegion();
+        this.dcsInRegion = consoleConfig.getDcsInLocalRegion();
+    }
+
+    @Override
+    public void setOnlyCarePart() {
+        this.onlyCarePart = true;
+    }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return this.dcsInRegion.contains(metaKey.getDc());
+    }
+    
 }

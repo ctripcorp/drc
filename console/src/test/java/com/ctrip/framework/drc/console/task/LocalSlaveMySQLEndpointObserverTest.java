@@ -22,7 +22,7 @@ public class LocalSlaveMySQLEndpointObserverTest{
     public void setUp() {
         observer = new LocalSlaveMySQLEndpointObserver();
         observer.localDcName = DC1;
-        observer.onlyCareLocal = true;
+        observer.onlyCarePart = true;
     }
 
     @Test

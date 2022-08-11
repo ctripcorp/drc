@@ -68,6 +68,14 @@ export default {
           key: 'dstDcName'
         },
         {
+          title: '源Region',
+          key: 'srcRegionName'
+        },
+        {
+          title: '目标Region',
+          key: 'dstRegionName'
+        },
+        {
           title: '源端Proxy',
           key: 'srcProxyUris'
         },

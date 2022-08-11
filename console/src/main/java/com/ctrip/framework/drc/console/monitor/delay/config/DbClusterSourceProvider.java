@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
@@ -9,7 +10,6 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.proxy.ProxyEndpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -34,6 +34,9 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
 
     @Autowired
     private CompositeConfig compositeConfig;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     private static final String DRC_DB_CLUSTER = "drc.dbclusters";
 
@@ -236,23 +239,31 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     }
 
     /**
-     * @return
+     * @return replicators delay monitor need
      *  key: clusterId where the replicator bounds to, aka registryKey
      *  value: ReplicatorWrapper
      */
-    public Map<String, ReplicatorWrapper> getReplicatorsNotInLocalDc(List<String> mhaNamesToBeMonitored) {
+    public Map<String, ReplicatorWrapper> getReplicatorsNeeded(List<String> mhaNamesToBeMonitored) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
-        String localDcName = getLocalDcName();
-        Map<String, Dc> dcs = getDcs();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            replicators.putAll(getReplicatorsNotInSrcDc(mhaNamesToBeMonitored,dcInLocalRegion));
+        }
+        return replicators;
+    }
 
+    
+    public Map<String, ReplicatorWrapper> getReplicatorsNotInSrcDc(List<String> mhaNamesToBeMonitored,String srcDc) {
+        Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
+        Map<String, Dc> dcs = getDcs();
+        String localDcName = getLocalDcName();
         for (Dc dc : dcs.values()) {
             String dcName = dc.getId();
-            if (!localDcName.equalsIgnoreCase(dcName)) {
                 Map<String, DbCluster> dbClusters = dc.getDbClusters();
                 for (DbCluster dbCluster : dbClusters.values()) {
                     List<Applier> appliers = dbCluster.getAppliers();
                     for (Applier applier : appliers) {
-                        if (localDcName.equals(applier.getTargetIdc())) {
+                        if (srcDc.equals(applier.getTargetIdc())) {
 
                             if(!mhaNamesToBeMonitored.contains(dbCluster.getMhaName())) {
                                 break;
@@ -261,12 +272,13 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                             if (dbCluster.getReplicators().isEmpty()) {
                                 break;
                             }
+                            // get Route use localDc
                             List<Route> routes = RouteUtils.filterRoutes(localDcName, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(localDcName));
                             replicators.put(
                                     dbCluster.getId(),
                                     new ReplicatorWrapper(
                                             dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
-                                            localDcName,
+                                            srcDc,
                                             dcName,
                                             dbCluster.getName(),
                                             applier.getTargetMhaName(),
@@ -278,12 +290,11 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         }
 
                     }
-                }
             }
         }
         return replicators;
     }
-
+    
     /**
      * get all the replicatorMonitor which are in local dc
      */

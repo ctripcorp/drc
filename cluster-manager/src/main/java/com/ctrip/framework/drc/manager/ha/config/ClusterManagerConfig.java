@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.config;
 
-import com.ctrip.framework.drc.manager.ha.meta.DcInfo;
+import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.xpipe.config.ZkConfig;
 import com.ctrip.xpipe.tuple.Pair;
 
@@ -28,9 +28,9 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     int getLeaderCheckMilli();
 
-    Map<String, DcInfo> getDcInofs();
+    Map<String, RegionInfo> getCmRegionInfos();
 
-    Map<String, DcInfo> getConsoleDcInofs();
+    Map<String, RegionInfo> getConsoleRegionInfos();
 
     Map<String, String> getMigrationIdc();
 

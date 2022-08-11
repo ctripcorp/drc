@@ -726,7 +726,7 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetAllDeletedMhaGroups() throws Exception {
-        Mockito.doReturn(null).when(metaInfoService).getDeletedMhaGroupPairVos();
+        Mockito.doReturn( null).when(metaInfoService).getDeletedMhaGroupPairVos();
         MvcResult mvcResult = doNormalGet("/api/drc/v1/meta/orderedDeletedGroups/all");
         assertNormalResponseWithoutCheckingData(mvcResult,ResultCode.HANDLE_SUCCESS);
 

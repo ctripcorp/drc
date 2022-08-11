@@ -12,7 +12,7 @@ import com.ctrip.xpipe.api.lifecycle.TopElement;
  */
 public interface ClusterManager extends ClusterServer, TopElement {
 
-    void clusterAdded(DbCluster dbCluster, ForwardInfo forwardInfo);
+    void clusterAdded(String dcId, DbCluster dbCluster, ForwardInfo forwardInfo);
 
     void clusterModified(DbCluster dbCluster, ForwardInfo forwardInfo);
 

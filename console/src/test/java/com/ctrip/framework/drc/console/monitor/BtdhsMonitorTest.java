@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.AbstractTest;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.mock.LocalMasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.console.mock.LocalSlaveMySQLEndpointObservable;
@@ -9,7 +10,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
-import org.junit.Assert;
+import com.google.common.collect.Sets;
+import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -36,6 +38,9 @@ public class BtdhsMonitorTest extends AbstractTest {
     private BtdhsMonitor btdhsMonitor;
 
     @Mock
+    private DefaultConsoleConfig consoleConfig;
+
+    @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
     @Mock
@@ -49,8 +54,7 @@ public class BtdhsMonitorTest extends AbstractTest {
 
     private MySqlEndpoint mha1MasterEndpoint = new MySqlEndpoint(CI_MYSQL_IP, CI_PORT1, CI_MYSQL_USER, CI_MYSQL_PASSWORD, true);
     private MySqlEndpoint mha1SlaveEndpoint = new MySqlEndpoint(CI_MYSQL_IP, CI_PORT2, CI_MYSQL_USER, CI_MYSQL_PASSWORD, false);
-    private MySqlEndpoint mha2MasterEndpoint = new MySqlEndpoint(MYSQL_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD, true);
-    private MySqlEndpoint mha2SlaveEndpoint = new MySqlEndpoint(MYSQL_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD, false);
+    private MySqlEndpoint mha3MasterEndpoint = new MySqlEndpoint(MYSQL_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD, true);
 
     @Override
     @Before
@@ -61,8 +65,11 @@ public class BtdhsMonitorTest extends AbstractTest {
         Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
         Mockito.doReturn("on").when(monitorTableSourceProvider).getBtdhsMonitorSwitch();
         Mockito.doNothing().when(currentMetaManager).addObserver(btdhsMonitor);
-
+        Mockito.doReturn("sha").when(consoleConfig).getRegion();
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         btdhsMonitor.initialize();
+        btdhsMonitor.isleader();
+        
     }
 
     @Test
@@ -74,43 +81,15 @@ public class BtdhsMonitorTest extends AbstractTest {
 
     @Test
     public void testMonitorBtdhs() {
-        btdhsMonitor.masterMySQLEndpointMap.put(META_KEY1, mha1MasterEndpoint);
-        btdhsMonitor.slaveMySQLEndpointMap.put(META_KEY1, mha1SlaveEndpoint);
-        btdhsMonitor.masterMySQLEndpointMap.put(META_KEY2, mha2MasterEndpoint);
-        Map<String, String> mha2MasterEndpointTags = btdhsMonitor.getEntity(mha2MasterEndpoint, META_KEY2).getTags();
+        btdhsMonitor.update(new Triple<>(META_KEY1, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
+        btdhsMonitor.update(new Triple<>(META_KEY1, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
+        btdhsMonitor.update(new Triple<>(META_KEY3, mha3MasterEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
+        Map<String, String> mha2MasterEndpointTags = btdhsMonitor.getEntity(mha3MasterEndpoint, META_KEY3).getTags();
 
         btdhsMonitor.scheduledTask();
         verify(reporter, times(2)).reportResetCounter(Mockito.any(), Mockito.anyLong(), Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT));
         verify(reporter, never()).reportResetCounter(Mockito.eq(mha2MasterEndpointTags), Mockito.anyLong(), Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT));
     }
 
-    @Test
-    public void testObserve() {
-        Assert.assertEquals(0, btdhsMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, btdhsMonitor.slaveMySQLEndpointMap.size());
 
-        btdhsMonitor.update(new Triple<>(META_KEY3, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY3, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(0, btdhsMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, btdhsMonitor.slaveMySQLEndpointMap.size());
-
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(1, btdhsMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(1, btdhsMonitor.slaveMySQLEndpointMap.size());
-        Assert.assertEquals(mha1MasterEndpoint, btdhsMonitor.masterMySQLEndpointMap.get(META_KEY1));
-        Assert.assertEquals(mha1SlaveEndpoint, btdhsMonitor.slaveMySQLEndpointMap.get(META_KEY1));
-
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha2MasterEndpoint, ActionEnum.UPDATE), new LocalMasterMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha2SlaveEndpoint, ActionEnum.UPDATE), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(1, btdhsMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(1, btdhsMonitor.slaveMySQLEndpointMap.size());
-        Assert.assertEquals(mha2MasterEndpoint, btdhsMonitor.masterMySQLEndpointMap.get(META_KEY1));
-        Assert.assertEquals(mha2SlaveEndpoint, btdhsMonitor.slaveMySQLEndpointMap.get(META_KEY1));
-
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha2MasterEndpoint, ActionEnum.DELETE), new LocalMasterMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha2SlaveEndpoint, ActionEnum.DELETE), new LocalSlaveMySQLEndpointObservable());
-        Assert.assertEquals(0, btdhsMonitor.masterMySQLEndpointMap.size());
-        Assert.assertEquals(0, btdhsMonitor.slaveMySQLEndpointMap.size());
-    }
 }

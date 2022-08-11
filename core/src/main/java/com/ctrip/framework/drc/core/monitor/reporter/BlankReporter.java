@@ -105,6 +105,11 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
+    public boolean removeRegister(String measurement) {
+        return false;
+    }
+
+    @Override
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
 
     }

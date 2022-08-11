@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.FailoverDto;
 import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
 import com.ctrip.framework.drc.core.service.beacon.RegisterDto;
-import com.ctrip.framework.drc.core.service.enums.EnvEnum;
 import com.ctrip.framework.drc.core.service.beacon.BeaconResult;
 import com.ctrip.framework.drc.console.monitor.delay.DelayMap;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -31,7 +30,6 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static com.ctrip.framework.drc.core.service.beacon.BeaconResult.BEACON_FAIL_WITHOUT_RETRY;
-import static com.ctrip.framework.drc.console.monitor.delay.task.InitDbTask.INIT_INSERT_SQL;
 import static com.ctrip.framework.drc.console.service.impl.HealthServiceImpl.*;
 import static com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTask.DEFAULT_MYSQL_ALL_DOWN_SYSTEM_NAME;
 
@@ -250,7 +248,7 @@ public class HealthServiceImplTest {
 
         Assert.assertFalse(healthService.isLocalDcUpdating(MHA));
 
-        String sql = String.format(INIT_INSERT_SQL, 1, LOCAL_DC, LOCAL_DC);
+        String sql = String.format("REPLACE INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s');", 1, LOCAL_DC, LOCAL_DC);
         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
         sqlOperatorWrapper.insert(execution);
         Assert.assertTrue(healthService.isLocalDcUpdating(MHA));

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.task;
 
 import com.ctrip.framework.drc.console.enums.ActionEnum;
-import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
+import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
@@ -11,25 +11,30 @@ import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.unidal.tuple.Triple;
 
+
 import java.util.Map;
+import java.util.Set;
 
 /**
- * @Author: hbshen
+ * @Author: hbshen 
  * @Date: 2021/4/26
  */
-public abstract class AbstractMasterMySQLEndpointObserver extends AbstractMonitor implements MasterMySQLEndpointObserver {
+public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeaderAwareMonitor implements MasterMySQLEndpointObserver {
 
     protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
-
-    protected String localDcName;
-
-    protected boolean onlyCareLocal;
+    
+    protected String regionName;
+    
+    protected Set<String> dcsInRegion;
+    
+    protected String localDcName; 
+    
+    protected boolean onlyCarePart;
 
     @Override
     public void initialize() {
         super.initialize();
-        setLocalDcName();
-        setOnlyCareLocal();
+        setObservationRange();
     }
 
     @Override
@@ -40,11 +45,11 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractMonito
             MySqlEndpoint masterMySQLEndpoint = message.getMiddle();
             ActionEnum action = message.getLast();
 
-            if(onlyCareLocal && !metaKey.getDc().equalsIgnoreCase(localDcName)) {
-                logger.warn("[OBSERVE][{}] {} not interested in {}({})", getClass().getName(), localDcName, metaKey, masterMySQLEndpoint.getSocketAddress());
+            if (onlyCarePart && !isCare(metaKey)) {
+                logger.info("[OBSERVE][dc={}] {} not interested in {}({})", 
+                        getClass().getName(), localDcName, metaKey, masterMySQLEndpoint.getSocketAddress());
                 return;
             }
-
             if(ActionEnum.ADD.equals(action) || ActionEnum.UPDATE.equals(action)) {
                 logger.info("[OBSERVE][{}] {} {}({})", getClass().getName(), action.name(), metaKey, masterMySQLEndpoint.getSocketAddress());
                 MySqlEndpoint oldEndpoint = masterMySQLEndpointMap.get(metaKey);
@@ -63,7 +68,7 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractMonito
             }
         }
     }
-
+    
     public Map<MetaKey, MySqlEndpoint> getMasterMySQLEndpointMap() {
         return masterMySQLEndpointMap;
     }
@@ -75,8 +80,18 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractMonito
     public abstract void clearOldEndpointResource(Endpoint endpoint);
 
     public abstract void setLocalDcName();
-
-    public abstract void setOnlyCareLocal();
+    
+    public abstract void setLocalRegionInfo();
+    
+    public abstract void setOnlyCarePart();
+    
+    public abstract boolean isCare(MetaKey metaKey);
+    
+    private void setObservationRange() {
+        setOnlyCarePart();
+        setLocalDcName();
+        setLocalRegionInfo();
+    }
 
     public void setMasterMySQLEndpointMap(Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap) {
         this.masterMySQLEndpointMap = masterMySQLEndpointMap;

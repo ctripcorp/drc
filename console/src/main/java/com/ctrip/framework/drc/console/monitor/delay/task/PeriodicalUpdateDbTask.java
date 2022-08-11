@@ -1,27 +1,29 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
+import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_DELAY_MONITOR_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
 
@@ -31,9 +33,9 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMI
  * date: 2019-12-13
  * STEP 2
  */
-@Order(2)
+@Order(1)
 @DependsOn("dbClusterSourceProvider")
-@Component
+@Component("periodicalUpdateDbTask")
 public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver {
 
     @Autowired
@@ -44,6 +46,12 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
 
     @Autowired
     private DefaultCurrentMetaManager currentMetaManager;
+    
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -53,7 +61,11 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
 
     private static final int MAX_MAP_SIZE = 60;
 
-    private static final String UPDATE_SQL = "UPDATE `drcmonitordb`.`delaymonitor` SET `datachange_lasttime`='%s' WHERE `dest_ip`='%s';";
+    /**
+     * due to legacy, src_ip means dc, dest_ip means mhaName
+     */
+    public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE src_ip = '%s',datachange_lasttime = '%s';";
+    private final Map<String ,Long> mhaName2IdMap = Maps.newHashMap();
 
     /**
      * value: the time when update sql commits
@@ -72,39 +84,93 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Override
     public void initialize() {
         super.initialize();
+        refreshMhaTblMap();
         currentMetaManager.addObserver(this);
     }
 
-    @Override
-    public void scheduledTask() {
-        String delayMonitorSwitch = monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch();
-        if(SWITCH_STATUS_ON.equalsIgnoreCase(delayMonitorSwitch)) {
-            for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
-                MetaKey metaKey = entry.getKey();
-                Endpoint endpoint = entry.getValue();
-                String registryKey = metaKey.getClusterId();
-                WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-                long timestampInMillis = System.currentTimeMillis();
-                Timestamp timestamp = new Timestamp(timestampInMillis);
-                String sql = String.format(UPDATE_SQL, timestamp, metaKey.getMhaName());
-                GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-                try {
-                    CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
-                    sqlOperatorWrapper.update(execution);
-                    long commitTimeInMillis = System.currentTimeMillis();
-                    boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
-                    CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
-                    if(slowCommit) {
-                        DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, timestamp.toString());
-                        commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
-                        CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, datachangeLastTime.toString(), commitTimeInMillis);
-                    }
-                } catch (Throwable t) {
-                    removeSqlOperator(endpoint);
-                    CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, t);
+    private void refreshMhaTblMap() {
+        try {
+            Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
+            String localDcName = sourceProvider.getLocalDcName();
+            if (localConfigCloudDc.contains(localDcName)) {
+                mhaName2IdMap.putAll(consoleConfig.getLocalConfigMhasMap());
+            } else {
+                for (String dc : dcsInRegion) {
+                    refreshMhaTblByDc(dc);
                 }
             }
+        } catch (SQLException e) {
+            logger.error("[[task=updateDelayTable]] sql error in refreshMhaTblMap",e);
         }
+    }
+    
+    private void refreshMhaTblByDc(String dcName) throws SQLException {
+        List<MhaTbl> mhasByDc = metaInfoService.getMhas(dcName);
+        mhasByDc.forEach(
+                mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
+        );
+    }
+    
+
+    @Override
+    public void scheduledTask() {
+        if(isRegionLeader) {
+            String delayMonitorSwitch = monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch();
+            if ("on".equalsIgnoreCase(delayMonitorSwitch)) {
+                logger.info("[[monitor=delay]] going to update monitor table");
+                for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
+                    MetaKey metaKey = entry.getKey();
+                    Endpoint endpoint = entry.getValue();
+                    String registryKey = metaKey.getClusterId();
+                    String mhaName = metaKey.getMhaName();
+                    String dcName = metaKey.getDc();
+                    WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+                    Long mhaId = mhaName2IdMap.get(mhaName);
+                    if (mhaId == null) {
+                        refreshMhaTblMap();
+                        mhaId = mhaName2IdMap.get(mhaName);
+                        if (mhaId == null) {
+                            logger.error("[[monitor=delay]] can not get mhaInfo for mha:{}",mhaName);
+                            continue;
+                        }
+                    }
+                    long timestampInMillis = System.currentTimeMillis();
+                    Timestamp timestamp = new Timestamp(timestampInMillis);
+                    String sql = String.format(UPSERT_SQL,mhaId,dcName,mhaName,dcName,timestamp);
+                    GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+                    try {
+                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
+                        sqlOperatorWrapper.update(execution);
+                        long commitTimeInMillis = System.currentTimeMillis();
+                        boolean slowCommit = commitTimeInMillis - timestampInMillis > SLOW_COMMIT_THRESHOLD;
+                        CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={},slow={}]][Update DB] timestamp: {}, commit time: {}", endpoint.getSocketAddress(), localDcName, registryKey, slowCommit, timestamp, new Timestamp(commitTimeInMillis));
+                        if(slowCommit) {
+                            DatachangeLastTime datachangeLastTime = new DatachangeLastTime(registryKey, timestamp.toString());
+                            commitTimeMap.put(datachangeLastTime, commitTimeInMillis);
+                            CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] Put commitTimeMap: {} -> {}", endpoint.getSocketAddress(), localDcName, registryKey, datachangeLastTime.toString(), commitTimeInMillis);
+                        }
+                    } catch (Throwable t) {
+                        removeSqlOperator(endpoint);
+                        CONSOLE_DELAY_MONITOR_LOGGER.warn("[[monitor=delay,endpoint={},dc={},cluster={}]] fail update db, ", endpoint.getSocketAddress(), localDcName, registryKey, t);
+                    }
+                }
+            } else {
+                logger.warn("[[monitor=delay]] is leader but switch is off");
+            }
+        } else {
+            logger.info("[[monitor=delay]] not leader do nothing");
+        }
+    }
+
+    @Override
+    public void switchToLeader() throws Throwable {
+        // do nothing
+        
+    }
+
+    @Override
+    public void switchToSlave() throws Throwable {
+        mhaName2IdMap.clear();
     }
 
     @Override
@@ -113,15 +179,26 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     }
 
     @Override
-    public void setOnlyCareLocal() {
-        this.onlyCareLocal = true;
+    public void setLocalRegionInfo() {
+        this.regionName = consoleConfig.getRegion();
+        this.dcsInRegion = consoleConfig.getDcsInLocalRegion();
     }
 
+    @Override
+    public void setOnlyCarePart() {
+        this.onlyCarePart = true;
+    }
+
+    @Override
+    public boolean isCare(MetaKey metaKey) {
+        return this.dcsInRegion.contains(metaKey.getDc());
+    }
+    
     @Override
     public void clearOldEndpointResource(Endpoint endpoint) {
         removeSqlOperator(endpoint);
     }
-
+    
     public static final class DatachangeLastTime {
 
         private String registryKey;
@@ -167,5 +244,5 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     public TimeUnit getDefaultTimeUnit() {
         return TIME_UNIT;
     }
-
+    
 }

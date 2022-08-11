@@ -64,8 +64,11 @@
         <FormItem label="binlogVersion1  [SHOULD BE: OFF]">
           <Input  v-model="configCheck.binlogVersion1" readonly/>
         </FormItem>
-        <FormItem label="BTDT [SHOULD BE: writeSet]">
+        <FormItem label="BTD [SHOULD BE: writeSet]">
           <Input v-model="configCheck.binlogTransactionDependency" readonly/>
+        </FormItem>
+        <FormItem label="BTDHS [SHOULD BE: 100k]">
+          <Input v-model="configCheck.binlogTransactionDependencyHistorySize" readonly/>
         </FormItem>
         <FormItem label="GTID_MODE [SHOULD BE: ON]">
           <Input v-model="configCheck.gtidMode" readonly/>
@@ -133,6 +136,7 @@ export default {
         binlogFormat: '',
         binlogVersion1: '',
         binlogTransactionDependency: '',
+        binlogTransactionDependencyHistorySize: 0,
         gtidMode: '',
         drcTables: 0,
         autoIncrementStep: 0,
@@ -273,6 +277,7 @@ export default {
           this.configCheck.binlogFormat = result.binlogFormat
           this.configCheck.binlogVersion1 = result.binlogVersion1
           this.configCheck.binlogTransactionDependency = result.binlogTransactionDependency
+          this.configCheck.binlogTransactionDependencyHistorySize = result.binlogTransactionDependencyHistorySize
           this.configCheck.gtidMode = result.gtidMode
           this.configCheck.drcTables = result.drcTables
           this.configCheck.autoIncrementStep = result.autoIncrementStep

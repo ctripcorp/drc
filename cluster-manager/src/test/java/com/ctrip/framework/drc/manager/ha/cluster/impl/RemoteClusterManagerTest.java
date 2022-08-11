@@ -43,7 +43,7 @@ public class RemoteClusterManagerTest extends AbstractDbClusterTest {
     //for all not throw exceptions
     @Test
     public void clusterAdded() {
-        remoteClusterManager.clusterAdded(dbCluster, forwardInfo);
+        remoteClusterManager.clusterAdded("test_dc_id", dbCluster, forwardInfo);
     }
 
     @Test

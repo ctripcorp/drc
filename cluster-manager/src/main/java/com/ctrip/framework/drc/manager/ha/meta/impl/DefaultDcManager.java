@@ -20,8 +20,6 @@ public class DefaultDcManager implements DcManager {
 
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public static final int BIDIRECTIONAL_REPL_TARGET_DC_COUNT = 1;
-
     private DrcManager drcManager;
 
     private String currentDc;
@@ -67,6 +65,11 @@ public class DefaultDcManager implements DcManager {
         }
 
         return drcManager.metaRandomRoutes(currentDc, clusterMeta.getOrgId(), dstDc);
+    }
+
+    @Override
+    public Route randomRoute(String clusterId, String dstDc, Integer orgId) {
+        return drcManager.metaRandomRoutes(currentDc, orgId, dstDc);
     }
 
     @Override
