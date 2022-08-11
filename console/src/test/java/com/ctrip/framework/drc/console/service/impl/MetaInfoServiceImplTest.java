@@ -9,13 +9,16 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
+import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -25,6 +28,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
@@ -76,6 +80,9 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Mock
     private DbClusterSourceProvider dbClusterSourceProvider;
+
+    @Mock
+    private OpenService openService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -537,19 +544,20 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     }
 
     @Test
-    public void testGetMhasByDc() {
+    public void testGetMhasByDc() throws Exception {
         Mockito.when(defaultConsoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList("region1")));
         Mockito.when(defaultConsoleConfig.getRegion()).thenReturn("region1");
         Map<String, String> consoleRegionUrls = new HashMap<>() {{put("sha","http://console.sha");}};
         Mockito.when(defaultConsoleConfig.getConsoleRegionUrls()).thenReturn(consoleRegionUrls);
+
+        MhaResponseVo mhaResponseVo = new MhaResponseVo();
+        mhaResponseVo.setData(null);
+        mhaResponseVo.setStatus(Constants.zero);
+        Mockito.when(openService.getMhas(Mockito.anyString(),Mockito.anyMap())).thenReturn(mhaResponseVo);
         
-        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when(() -> HttpUtils.get(Mockito.anyString())).thenReturn(ApiResult.getSuccessInstance(null));
-            List<MhaTbl> mhas = metaInfoService.getMhasByDc("fra");
-            Assert.assertNull(mhas);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        List<MhaTbl> mhas = metaInfoService.getMhasByDc("fra");
+        Assert.assertNull(mhas);
+        
         
     }
 }

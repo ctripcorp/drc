@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
@@ -12,10 +12,12 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.*;
@@ -26,6 +28,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
@@ -76,6 +79,9 @@ MetaInfoServiceImpl implements MetaInfoService {
     
     @Autowired
     private RowsFilterService rowsFilterService;
+    
+    @Autowired
+    private OpenService openService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -1146,11 +1152,14 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (publicCloudRegion.contains(localRegion.toLowerCase())) {
             Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
             String shaConsoleUrl = consoleRegionUrls.get("sha");
-            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName=%S", shaConsoleUrl,dcName);
-            ApiResult apiResult = HttpUtils.get(uri);
-            if (apiResult.getStatus().equals(ResultCode.HANDLE_SUCCESS.getCode())) {
+            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
+            Map<String, String> params = Maps.newHashMap();
+            params.put("dcName", dcName);
+            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
+            
+            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
                 logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
-                return (List<MhaTbl>) apiResult.getData();
+                return mhaResponseVo.getData();
             } else {
                 return null;
             }
