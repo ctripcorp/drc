@@ -218,12 +218,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
         ReadResource readResource = null;
         try {
             String command;
-            if (localDcName.equalsIgnoreCase("shali")) {
-                command = ALI_RDS + UUIDCommand;
-            }
-            else {
-                command = UUIDCommand;
-            }
+            command = ALI_RDS + UUIDCommand;
             GeneralSingleExecution execution = new GeneralSingleExecution(command);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
