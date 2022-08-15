@@ -33,7 +33,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     protected final MetricRegistry metrics = new MetricRegistry();
 
-    private static final int REPORT_PERIOD = 60;
+    private static final int REPORT_PERIOD = 30;
 
     private static final String HICKWALL_DOMAIN = "hickwall.domain";
 

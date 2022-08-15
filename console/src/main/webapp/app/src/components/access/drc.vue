@@ -478,15 +478,15 @@ export default {
       this.$refs[name].resetFields()
     },
     getResourcesInOld () {
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
-      // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/R')
+      this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.old = []
           response.data.data.forEach(ip => this.drc.replicatorlist.old.push(ip))
         })
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
-      // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.oldClusterName + '/resources/all/types/A')
+      this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.old = []
@@ -533,15 +533,15 @@ export default {
         })
     },
     getResourcesInNew () {
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
-      // this.axios.get('/api/drc/v1/meta/resources?type=R')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
+      this.axios.get('/api/drc/v1/meta/resources?type=R')
         .then(response => {
           console.log(response.data)
           this.drc.replicatorlist.new = []
           response.data.data.forEach(ip => this.drc.replicatorlist.new.push(ip))
         })
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
-      // this.axios.get('/api/drc/v1/meta/resources?type=A')
+      // this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/A')
+      this.axios.get('/api/drc/v1/meta/resources?type=A')
         .then(response => {
           console.log(response.data)
           this.drc.applierlist.new = []
