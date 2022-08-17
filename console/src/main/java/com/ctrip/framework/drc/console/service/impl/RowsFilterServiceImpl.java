@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
@@ -153,6 +154,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/columnCheck")
     public List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName) {
         List<String> tables = Lists.newArrayList();
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
@@ -191,6 +193,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck")
     public List<String> getConflictTables(String mhaName,List<String> logicalTables)  {
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();

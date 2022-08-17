@@ -1,11 +1,13 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -1140,33 +1142,33 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER)
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
     }
 
-    public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
-        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
-        String localRegion = consoleConfig.getRegion();
-        if (publicCloudRegion.contains(localRegion.toLowerCase())) {
-            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
-            String shaConsoleUrl = consoleRegionUrls.get("sha");
-            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
-            Map<String, String> params = Maps.newHashMap();
-            params.put("dcName", dcName);
-            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
-            
-            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
-                logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
-                return mhaResponseVo.getData();
-            } else {
-                return null;
-            }
-        } else {
-            return getMhas(dcName);
-        }
-    }
+//    public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
+//        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+//        String localRegion = consoleConfig.getRegion();
+//        if (publicCloudRegion.contains(localRegion.toLowerCase())) {
+//            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
+//            String shaConsoleUrl = consoleRegionUrls.get("sha");
+//            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
+//            Map<String, String> params = Maps.newHashMap();
+//            params.put("dcName", dcName);
+//            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
+//            
+//            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
+//                logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
+//                return mhaResponseVo.getData();
+//            } else {
+//                return null;
+//            }
+//        } else {
+//            return getMhas(dcName);
+//        }
+//    }
 
     private Long getDcId(String dcName) throws SQLException {
         if (StringUtils.isBlank(dcName)) {

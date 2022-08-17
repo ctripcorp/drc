@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -17,9 +18,12 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +56,9 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     
     @Autowired
     private LocalService localService;
+    
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
 
     @Override
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
@@ -163,7 +170,37 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     public List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter) {
         return localService.preCheckMySqlTables(mha,nameFilter);
     }
+
     
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check")
+    public List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name,
+                                                          String mhaName, Integer type) {
+        logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,mhaName);
+        Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint != null) {
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
+            return MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
+        } else {
+            throw new IllegalArgumentException("no machine find for" + mhaName);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/build/rowsFilter/commonColumns")
+    public Set<String> getCommonColumnInDataMedias(String mhaName, String namespace, String name) {
+        logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name, mhaName);
+        Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint != null) {
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
+            return MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
+            
+        } else {
+            throw new IllegalArgumentException("no machine find for" + mhaName);
+        }
+        
+    }
+
     private String getClusterName(MhaTbl mha) throws SQLException{
         List<ClusterMhaMapTbl> clusterMhaMapTbls = dalUtils.getClusterMhaMapTblDao().
                 queryByMhaIds(Lists.newArrayList(mha.getId()), BooleanEnum.FALSE.getCode());

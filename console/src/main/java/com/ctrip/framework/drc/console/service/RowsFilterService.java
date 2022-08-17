@@ -20,6 +20,7 @@ public interface RowsFilterService {
     
     List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException;
 
+    // forward by mhaName
     List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName);
 
     List<String> getLogicalTables(
@@ -29,5 +30,6 @@ public interface RowsFilterService {
             String name,
             String mhaName) throws SQLException;
 
+    // forward by mhaName
     List<String> getConflictTables(String mhaName, List<String> logicalTables);
 }
