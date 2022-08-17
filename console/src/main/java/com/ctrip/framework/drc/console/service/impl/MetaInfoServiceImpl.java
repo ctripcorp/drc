@@ -1148,27 +1148,27 @@ MetaInfoServiceImpl implements MetaInfoService {
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
     }
 
-//    public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
-//        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
-//        String localRegion = consoleConfig.getRegion();
-//        if (publicCloudRegion.contains(localRegion.toLowerCase())) {
-//            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
-//            String shaConsoleUrl = consoleRegionUrls.get("sha");
-//            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
-//            Map<String, String> params = Maps.newHashMap();
-//            params.put("dcName", dcName);
-//            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
-//            
-//            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
-//                logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
-//                return mhaResponseVo.getData();
-//            } else {
-//                return null;
-//            }
-//        } else {
-//            return getMhas(dcName);
-//        }
-//    }
+    public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+        String localRegion = consoleConfig.getRegion();
+        if (publicCloudRegion.contains(localRegion.toLowerCase())) {
+            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
+            String shaConsoleUrl = consoleRegionUrls.get("sha");
+            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
+            Map<String, String> params = Maps.newHashMap();
+            params.put("dcName", dcName);
+            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
+
+            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
+                logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
+                return mhaResponseVo.getData();
+            } else {
+                return null;
+            }
+        } else {
+            return getMhas(dcName);
+        }
+    }
 
     private Long getDcId(String dcName) throws SQLException {
         if (StringUtils.isBlank(dcName)) {
