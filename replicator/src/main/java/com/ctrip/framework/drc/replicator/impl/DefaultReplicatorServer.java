@@ -36,6 +36,7 @@ import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 
 /**
  * @author wenchao.meng
@@ -187,4 +188,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         return replicatorConfig.getEndpoint();
     }
 
+    @VisibleForTesting
+    protected ReplicatorLogEventHandler getLogEventHandler() {
+        return logEventHandler;
+    }
 }
