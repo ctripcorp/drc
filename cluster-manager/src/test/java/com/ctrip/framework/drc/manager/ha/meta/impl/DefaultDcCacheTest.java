@@ -10,14 +10,16 @@ import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.config.SourceProvider;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.comparator.*;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.DcComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.InstanceComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ReplicatorComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -241,7 +243,7 @@ public class DefaultDcCacheTest extends AbstractDbClusterTest {
         });
 
         when(sourceProvider.getDc(DC)).thenReturn(dcClone);
-        Thread.sleep(50);
+        Thread.sleep(100);
 
         Assert.assertEquals(1, updateCount[0]);
     }
