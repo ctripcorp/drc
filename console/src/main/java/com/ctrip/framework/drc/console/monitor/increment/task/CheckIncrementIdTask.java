@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
@@ -45,6 +46,9 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
 
     @Autowired
     private DefaultCurrentMetaManager currentMetaManager;
+    
+    @Autowired
+    private MySqlService mySqlService;
 
     private List<Set<DbClusterSourceProvider.Mha>> mhaGroups;
 
@@ -131,17 +135,13 @@ public class CheckIncrementIdTask extends AbstractMasterMySQLEndpointObserver im
     
 
     protected Integer getAutoIncrementStep(String mha,Endpoint endpoint) {
-        return getAutoIncrement(mha,CHECK_INCREMENT_SQL,AUTO_INCREMENT_INDEX,endpoint);
+        return mySqlService.getAutoIncrement(mha,CHECK_INCREMENT_SQL,AUTO_INCREMENT_INDEX,endpoint);
     }
     
     protected Integer getAutoIncrementOffSet(String mha,Endpoint endpoint)  {
-        return getAutoIncrement(mha,CHECK_OFFSET_SQL,AUTO_INCREMENT_INDEX,endpoint);
+        return mySqlService.getAutoIncrement(mha,CHECK_OFFSET_SQL,AUTO_INCREMENT_INDEX,endpoint);
     }
     
-    @PossibleRemote(path="/api/drc/v1/local/sql/integer/query",excludeArguments = {"endpoint"})
-    protected Integer getAutoIncrement(String mha,String sql,int index,Endpoint endpoint) {
-        return MySqlUtils.getSqlResultInteger(endpoint, sql, index);
-    }
 
     /**
      * given all the AUTO_INCREMENT_INCREMENT and AUTO_INCREMENT_OFFSET in all master db for a mhaGroup

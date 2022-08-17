@@ -194,7 +194,6 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         if (mySqlEndpoint != null) {
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
             return MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
-            
         } else {
             throw new IllegalArgumentException("no machine find for" + mhaName);
         }

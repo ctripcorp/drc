@@ -183,7 +183,7 @@ public class BuildController {
             List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,logicalTables);
             return ApiResult.getSuccessInstance(conflictTables);
         } catch (Exception e) {
-            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
+            logger.warn("[[tag=conflictTables]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
             if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else {
@@ -203,7 +203,7 @@ public class BuildController {
             logger.info("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName);
             return ApiResult.getSuccessInstance(rowsFilterService.getTablesWithoutColumn(column, namespace, name, mhaName));
         } catch (Exception e) {
-            logger.error("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName, e);
+            logger.warn("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName, e);
             if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else {
@@ -219,7 +219,7 @@ public class BuildController {
             Map<String, Object> resMap = drcBuildService.preCheckMySqlConfig(mha);
             return ApiResult.getSuccessInstance(resMap);
         } catch (Exception e) {
-            logger.error("[[tag=preCheck,mha={}]] error in preCheckMySqlConfig",mha,e);
+            logger.warn("[[tag=preCheck,mha={}]] error in preCheckMySqlConfig",mha,e);
             return ApiResult.getFailInstance(null);
         }
     }
@@ -231,7 +231,7 @@ public class BuildController {
             List<TableCheckVo> checkVos = drcBuildService.preCheckMySqlTables(mha, nameFilter);
             return ApiResult.getSuccessInstance(checkVos);
         } catch (Exception e) {
-            logger.error("[[tag=preCheck,mha={}]]  in preCheckMySqlTables",mha,e);
+            logger.warn("[[tag=preCheck,mha={}]]  in preCheckMySqlTables",mha,e);
             return ApiResult.getFailInstance(null);
         }
     }

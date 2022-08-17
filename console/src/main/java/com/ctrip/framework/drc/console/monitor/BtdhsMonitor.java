@@ -101,7 +101,7 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
         Map<String, String> entityTags = entity.getTags();
         try {
             long binlogTxDependencyHistSize = getBinlogTxDependencyHistSize(sqlOperatorWrapper);
-            reporter.reportResetCounter(entityTags, binlogTxDependencyHistSize, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT);
+            reporter.resetReportCounter(entityTags, binlogTxDependencyHistSize, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
             cLog(entityTags, "BTDHS="+binlogTxDependencyHistSize, INFO, null);
         } catch (Throwable t) {
             cLog(entityTags, "Fail to get binlog_transaction_dependency_history_size", ERROR, t);

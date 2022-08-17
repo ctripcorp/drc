@@ -47,14 +47,13 @@ public class RemoteHttpAspect {
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
     public void pointCut(){};
     
-    @Around(value = "pointCut()")
-    public Object aroundOperate(ProceedingJoinPoint point) {
+    @Around(value = "pointCut() && @annotation(possibleRemote)")
+    public Object aroundOperate(ProceedingJoinPoint point,PossibleRemote possibleRemote) {
         try {
             String localRegion = consoleConfig.getRegion();
             Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
             Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
             
-            PossibleRemote possibleRemote = getAnnotation(point);
             Map<String, Object> argsNotExcluded = getArgsNotExcluded(point,possibleRemote.excludeArguments());
             ForwardTypeEnum forwardType = possibleRemote.forwardType();
             
@@ -184,13 +183,5 @@ public class RemoteHttpAspect {
         return param;
     }
     
-    private PossibleRemote getAnnotation(ProceedingJoinPoint point) throws NoSuchMethodException {
-        MethodSignature signature = (MethodSignature)point.getSignature();
-        Method method = signature.getMethod();
-        PossibleRemote annotation = point.getTarget().getClass().
-                getDeclaredMethod(method.getName(),method.getParameterTypes()).getAnnotation(PossibleRemote.class);
-        return annotation;
-    }
-
 }
     
