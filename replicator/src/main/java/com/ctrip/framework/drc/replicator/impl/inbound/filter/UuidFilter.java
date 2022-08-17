@@ -63,7 +63,7 @@ public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> i
     }
 
     @VisibleForTesting
-    protected Set<UUID> getWhiteList() {
+    public Set<UUID> getWhiteList() {
         return Collections.unmodifiableSet(whiteList);
     }
 }

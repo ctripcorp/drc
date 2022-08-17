@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTes
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperatorTest;
+import com.ctrip.framework.drc.replicator.impl.DefaultReplicatorServerTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorConnectionTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.EventTransactionCacheTest;
@@ -53,6 +54,7 @@ import java.util.HashMap;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        DefaultReplicatorServerTest.class,
         TableFilterTest.class,
         TypeFilterTest.class,
         OutboundFilterChainFactoryTest.class,
