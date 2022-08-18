@@ -54,46 +54,7 @@ public class LocalControllerTest extends AbstractControllerTest {
         Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).
                 thenReturn(new MySqlEndpoint("ip",0,"user","psw",true));
     }
-
-    @Test
-    public void testGetMatchTable() {
-        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            List<MySqlUtils.TableSchemaName> res = 
-                    Lists.newArrayList(new MySqlUtils.TableSchemaName("db", "table"));
-            theMock.when((MockedStatic.Verification) MySqlUtils.getTablesAfterRegexFilter(Mockito.any(),Mockito.any())).
-                    thenReturn(res);
-            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/check?" +
-                                    "namespace=" + "db" +
-                                    "&name=" + "table" +
-                                    "&srcDc=" + "dc1" +
-                                    "&dataMediaSourceName=" + "mha" +
-                                    "&type=" + 0)
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            int status = mvcResult.getResponse().getStatus();
-            String response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-
-            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/check?" +
-                                    "namespace=" + "；" +
-                                    "&name=" + "table" +
-                                    "&srcDc=" + "dc1" +
-                                    "&dataMediaSourceName=" + "mha" +
-                                    "&type=" + 0)
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            status = mvcResult.getResponse().getStatus();
-            response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
+    
     @Test
     public void testGetCommonColumnInDataMedias() {
         try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
@@ -132,7 +93,7 @@ public class LocalControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetConflictTables() throws Exception {
-        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(), Mockito.anyList())).
+        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(), Mockito.anyString())).
                 thenReturn(Lists.newArrayList("conflictTable1"));
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/dataMedia/conflictCheck?" +
                                 "mhaName=" + "mhaName" +

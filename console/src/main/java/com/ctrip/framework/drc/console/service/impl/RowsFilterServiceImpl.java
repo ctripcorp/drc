@@ -194,11 +194,12 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck")
-    public List<String> getConflictTables(String mhaName,List<String> logicalTables)  {
+    public List<String> getConflictTables(String mhaName, String logicalTables)  {
+        String[] tables = logicalTables.split(",");
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();
         ArrayList<String> conflictTables = Lists.newArrayList();
-        for (String logicalTable : logicalTables) {
+        for (String logicalTable : tables) {
             AviatorRegexFilter filter = new AviatorRegexFilter(logicalTable);
             List<String> tablesAfterFilter = MySqlUtils.getTablesAfterRegexFilter(endpoint, filter).stream().
                     map(MySqlUtils.TableSchemaName ::getDirectSchemaTableName).collect(Collectors.toList());

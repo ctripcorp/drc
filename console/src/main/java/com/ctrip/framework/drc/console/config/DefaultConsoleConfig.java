@@ -59,8 +59,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private Map<String, String> consoleDcInfos = Maps.newConcurrentMap();
 
-    private Map<String, String> validationDcInfos = Maps.newConcurrentMap();
-
     private Map<String, String> consoleDcEndpointInfos = Maps.newConcurrentMap();
 
     private String defaultDcInfos = "{}";

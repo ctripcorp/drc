@@ -188,7 +188,7 @@ public class BuildControllerTest extends AbstractControllerTest {
                 Mockito.anyString(),
                 Mockito.anyString(),
                 Mockito.anyString())).thenReturn(Lists.newArrayList("db2\\..*","db1\\.*"));
-        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(),Mockito.anyList())).
+        Mockito.when(rowsFilterService.getConflictTables(Mockito.anyString(),Mockito.anyString())).
                 thenReturn(Lists.newArrayList("conflictTable1"));
         Map<String, String> consoleDcInfos = Maps.newHashMap();
         HashSet<String> publicDc = Sets.newHashSet("publicDc");

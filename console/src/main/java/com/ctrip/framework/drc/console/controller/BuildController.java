@@ -180,7 +180,7 @@ public class BuildController {
             List<String> logicalTables =
                     rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);
             logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
-            List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,logicalTables);
+            List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,String.join(",",logicalTables));
             return ApiResult.getSuccessInstance(conflictTables);
         } catch (Exception e) {
             logger.warn("[[tag=conflictTables]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);

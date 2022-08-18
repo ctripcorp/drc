@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.MhaService;
+import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -15,6 +16,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -37,11 +39,10 @@ public class MhaController {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
-
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
     
-    private DalUtils dalUtils = DalUtils.getInstance();
+    @Autowired
+    private MySqlService mySqlService;
+    
     /**
      * Get all the mha names
      *
@@ -94,32 +95,17 @@ public class MhaController {
         return ApiResult.getFailInstance(null);
     }
 
-    @GetMapping("gtid/{mhas}/{mha}")
-    public ApiResult getRealExecutedGtid(@PathVariable String mhas,@PathVariable String mha){
+    @GetMapping("gtid")
+    public ApiResult getRealExecutedGtid(@RequestParam String mha){
         try {
-            MhaTbl mhaTbl = dalUtils.queryByMhaName(mha,BooleanEnum.FALSE.getCode());
-            String srcDc  = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
-            Endpoint endpoint = metaInfoService.getMasterEndpoint(mhaTbl);
-            if (endpoint == null) {
-                logger.error("[[tag=gtidQuery]] getRealExecutedGtid from {} master in mhas:{},machine not exist",mha,mhas);
+            String unionGtid = mySqlService.getRealExecutedGtid(mha);
+            if (StringUtils.isEmpty(unionGtid)) {
                 return ApiResult.getFailInstance(null);
-            }
-            Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-            if (publicCloudDc.contains(srcDc)) {
-                String dcDomain = consoleDcInfos.get(srcDc);
-                String url = dcDomain + "/api/drc/v1/local/gtid?" +
-                        "mha=" + mha +
-                        "&ip=" + endpoint.getHost() +
-                        "&port=" + endpoint.getPort() +
-                        "&user=" + endpoint.getUser() +
-                        "&psw=" + endpoint.getPassword();
-                return HttpUtils.get(url,ApiResult.class);
             } else {
-                return ApiResult.getSuccessInstance(MySqlUtils.getUnionExecutedGtid(endpoint));
+                return ApiResult.getSuccessInstance(unionGtid);
             }
         } catch (Throwable e) {
-            logger.error("[[tag=gtidQuery]] getRealExecutedGtid from {} master in mhas:{}",mha,mhas,e);
+            logger.error("[[tag=gtidQuery]] getRealExecutedGtid from mha: {}",mha,e);
         }
         return ApiResult.getFailInstance(null);
     }

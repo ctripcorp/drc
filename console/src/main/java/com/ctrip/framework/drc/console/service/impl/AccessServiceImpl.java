@@ -428,7 +428,7 @@ public class AccessServiceImpl implements AccessService {
         List<String> tablesWithOutPkOrUk = MySqlUtils.checkUniqOrPrimary(endpoint, null);
         String gtidMode = MySqlUtils.checkGtidMode(endpoint);
         String binlogTransactionDependency = MySqlUtils.checkBinlogTransactionDependency(endpoint);
-        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint,true);
+        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint,false);
         res.put("noOnUpdate", String.join(", ", tablesWithOutOnUpdate));
         res.put("noOnUpdateKey", String.join(", ", tablesWithOutOnUpdateKey));
         res.put("noPkUk", String.join(", ", tablesWithOutPkOrUk));

@@ -12,18 +12,15 @@ import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
-import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
-import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
-import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +30,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,9 +51,6 @@ public class DrcBuildServiceImpl implements DrcBuildService {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
-    @Autowired
-    private LocalService localService;
     
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
@@ -160,17 +155,44 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
     
     @Override
-    @PossibleRemote(path = "/api/drc/v1/local/preCheckMySqlConfig")
+    @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
-        return localService.preCheckMySqlConfig(mha);
+        Map<String, Object> res = new HashMap<>();
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("[[tag=preCheck]] preCheckMySqlConfig from mha:{},db not exist", mha);
+            return res;
+        }
+        res.put("binlogMode", MySqlUtils.checkBinlogMode(endpoint));
+        res.put("binlogFormat", MySqlUtils.checkBinlogFormat(endpoint));
+        res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint));
+        res.put("binlogTransactionDependency", MySqlUtils.checkBinlogTransactionDependency(endpoint));
+        res.put("binlogTransactionDependencyHistorySize", MySqlUtils.checkBtdhs(endpoint));
+        res.put("gtidMode", MySqlUtils.checkGtidMode(endpoint));
+        res.put("drcTables", MySqlUtils.checkDrcTables(endpoint));
+        res.put("autoIncrementStep", MySqlUtils.checkAutoIncrementStep(endpoint));
+        res.put("autoIncrementOffset", MySqlUtils.checkAutoIncrementOffset(endpoint));
+        List<Endpoint> endpoints = dbClusterSourceProvider.getMasterEndpointsInAllAccounts(mha);
+        if (CollectionUtils.isEmpty(endpoints) || endpoints.size() != 3) {
+            logger.error("[[tag=preCheck]] preCHeckDrcAccounts from mha:{},db not exist",mha);
+            res.put("drcAccounts","no db endpoint find");
+        } else {
+            res.put("drcAccounts",MySqlUtils.checkAccounts(endpoints));
+        }
+        return res;
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v1/local/preCheckMySqlTables")
+    @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlTables")
     public List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter) {
-        return localService.preCheckMySqlTables(mha,nameFilter);
+        List<TableCheckVo> tableVos = Lists.newArrayList();
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("[[tag=preCheck]] preCheckMySqlTables from mha:{},db not exist",mha);
+            return tableVos;
+        }
+        return MySqlUtils.checkTablesWithFilter(endpoint, nameFilter);
     }
-
     
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check")
@@ -425,9 +447,10 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
 
     public String getGtidInit(MhaTbl mhaTbl) throws SQLException {
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         String mhaDcName = dalUtils.getDcNameByDcId(mhaTbl.getDcId());
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-        if(publicCloudDc.contains(mhaDcName.toLowerCase())) {
+        String regionForDc = consoleConfig.getRegionForDc(mhaDcName);
+        if(publicCloudRegion.contains(regionForDc.toLowerCase())) {
             return "";
         }
 

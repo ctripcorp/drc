@@ -31,5 +31,5 @@ public interface RowsFilterService {
             String mhaName) throws SQLException;
 
     // forward by mhaName
-    List<String> getConflictTables(String mhaName, List<String> logicalTables);
+    List<String> getConflictTables(String mhaName, String logicalTables);
 }

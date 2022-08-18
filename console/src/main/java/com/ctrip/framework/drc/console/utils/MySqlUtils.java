@@ -272,7 +272,7 @@ public class MySqlUtils {
 
     public static Set<String> getAllCommonColumns(Endpoint endpoint,AviatorRegexFilter aviatorRegexFilter) {
         List<TableSchemaName> tablesAfterFilter = getTablesAfterRegexFilter(endpoint,aviatorRegexFilter);
-        Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, true);
+        Map<String, Set<String>> allColumnsByTable = getAllColumnsByTable(endpoint, tablesAfterFilter, false);
         HashSet<String> commonColumns = Sets.newHashSet();
         for (Set<String> columns : allColumnsByTable.values()) {
             if (commonColumns.isEmpty()) {
@@ -445,7 +445,6 @@ public class MySqlUtils {
             if(readResource != null) {
                 readResource.close();
             }
-            removeSqlOperator(endpoint);
         }
         return uuid;
     }
@@ -466,7 +465,6 @@ public class MySqlUtils {
             if(readResource != null) {
                 readResource.close();
             }
-            removeSqlOperator(endpoint);
         }
         return new GtidSet(gtidExecuted).toString();
     }
@@ -623,41 +621,38 @@ public class MySqlUtils {
     
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
         List<TableCheckVo> checkTableVos = Lists.newLinkedList();
-        try{
-            if(StringUtils.isEmpty(nameFilter)) {
-                nameFilter = MATCH_ALL_FILTER;
+        
+        if(StringUtils.isEmpty(nameFilter)) {
+            nameFilter = MATCH_ALL_FILTER;
+        }
+        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+        HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint,false));
+        for (TableSchemaName table : tables) {
+            TableCheckVo tableVo = new TableCheckVo(table);
+            String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, table, false);
+            if (StringUtils.isEmpty(onUpdateColumn)) {
+                tableVo.setNoOnUpdateColumn(true);
+                tableVo.setNoOnUpdateKey(true);
+            } else {
+                tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
             }
-            List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
-            HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint,false));
-            for (TableSchemaName table : tables) {
-                TableCheckVo tableVo = new TableCheckVo(table);
-                String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, table, false);
-                if (StringUtils.isEmpty(onUpdateColumn)) {
-                    tableVo.setNoOnUpdateColumn(true);
-                    tableVo.setNoOnUpdateKey(true);
-                } else {
-                    tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
-                }
-                String createTblStmt = getCreateTblStmt(endpoint, table, false);
-                if (StringUtils.isEmpty(createTblStmt) || 
-                        (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
-                    tableVo.setNoPkUk(true);
-                }
-                if (StringUtils.isEmpty(createTblStmt) || createTblStmt.toLowerCase().contains(DEFAULT_ZERO_TIME)) {
-                    tableVo.setTimeDefaultZero(true);
-                }
-                if (tablesApprovedTruncate.contains(tableVo.getFullName())) {
-                    tableVo.setApproveTruncate(true);
-                }
-                
-                if (tableVo.hasProblem()) {
-                    checkTableVos.add(0,tableVo);
-                } else {
-                    checkTableVos.add(tableVo);
-                }
+            String createTblStmt = getCreateTblStmt(endpoint, table, false);
+            if (StringUtils.isEmpty(createTblStmt) || 
+                    (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
+                tableVo.setNoPkUk(true);
             }
-        } finally {
-            removeSqlOperator(endpoint);
+            if (StringUtils.isEmpty(createTblStmt) || createTblStmt.toLowerCase().contains(DEFAULT_ZERO_TIME)) {
+                tableVo.setTimeDefaultZero(true);
+            }
+            if (tablesApprovedTruncate.contains(tableVo.getFullName())) {
+                tableVo.setApproveTruncate(true);
+            }
+            
+            if (tableVo.hasProblem()) {
+                checkTableVos.add(0,tableVo);
+            } else {
+                checkTableVos.add(tableVo);
+            }
         }
         return checkTableVos;
     }
@@ -675,12 +670,13 @@ public class MySqlUtils {
             return false;
         } catch (Throwable t) {
             logger.error("[[endpoint={}:{}]] sql error in check Account: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
             return false;
         } finally {
             if(readResource != null) {
                 readResource.close();
             }
-            removeSqlOperator(endpoint);
+            
         }
     }
     
