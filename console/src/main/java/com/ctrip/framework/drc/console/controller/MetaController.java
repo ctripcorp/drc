@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller;
 
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -518,12 +519,13 @@ public class MetaController {
     }
 
     @GetMapping("mhas")
-    public ApiResult queryMhas(@RequestParam(value = "dcName", required = false) String dcName) {
+    public ApiResult<List<MhaTbl>> queryMhas(@RequestParam(value = "dcName", required = false) String dcName) {
         logger.info("[meta] query mha info, dc name is: {}", dcName);
         try {
             return ApiResult.getSuccessInstance(metaInfoService.getMhas(dcName));
         } catch (SQLException e) {
-            return ApiResult.getFailInstance(e);
+            logger.error("meta] query mha info error",e);
+            return ApiResult.getFailInstance(null);
         }
     }
     

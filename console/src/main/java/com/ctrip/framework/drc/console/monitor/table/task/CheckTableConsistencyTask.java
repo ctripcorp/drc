@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.table.task;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.entity.ConsistencyEntity;
 import com.ctrip.framework.drc.core.monitor.enums.ConsistencyEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
