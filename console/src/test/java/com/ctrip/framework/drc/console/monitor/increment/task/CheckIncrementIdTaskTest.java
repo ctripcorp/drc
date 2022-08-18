@@ -22,10 +22,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +50,7 @@ public class CheckIncrementIdTaskTest {
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
+    @Spy
     private MySqlService mySqlService = new MySqlServiceImpl();
 
     private static Drc drc;
@@ -213,26 +210,15 @@ public class CheckIncrementIdTaskTest {
     @Test
     public void testCheckIncrementId() throws Exception {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(mySqlService.getAutoIncrement(
-                Mockito.anyString(),
-                Mockito.eq("show global variables like 'auto_increment_increment';"),
-                Mockito.anyInt(),
-                Mockito.any(MySqlEndpoint.class)
-        )).thenReturn(2);
-        Mockito.when(mySqlService.getAutoIncrement(
-                Mockito.anyString(),
-                Mockito.eq("show global variables like 'auto_increment_offset';"),
-                Mockito.anyInt(),
-                Mockito.eq(endpointNt)
-        )).thenReturn(1);
-        Mockito.when(mySqlService.getAutoIncrement(
-                Mockito.anyString(),
-                Mockito.eq("show global variables like 'auto_increment_offset';"),
-                Mockito.anyInt(),
-                Mockito.eq(endpointOy)
-        )).thenReturn(2);
+
         
         task.setMasterMySQLEndpointMap(masterMySQLEndpointMap);
+        Assert.assertFalse(task.checkIncrementId(MHA_GROUP_KEY, mhaGroup));
+        
+        execute(AUTO_INCREMENT_INCREMENT, NT_PORT1);
+        execute(AUTO_INCREMENT_OFFSET_1, NT_PORT1);
+        execute(AUTO_INCREMENT_INCREMENT, OY_PORT1);
+        execute(AUTO_INCREMENT_OFFSET_2, OY_PORT1);
         Assert.assertTrue(task.checkIncrementId(MHA_GROUP_KEY, mhaGroup));
     }
 
