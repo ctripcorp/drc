@@ -175,6 +175,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
+        private boolean skipDrcGtidLogEvent;
+
         private ChannelAttributeKey channelAttributeKey;
 
         private Filter<OutboundLogEventContext> filterChain;
@@ -184,6 +186,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
+            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
@@ -234,7 +237,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             if (logEventType == drc_gtid_log_event) {
-                return setGitdMode || new GtidSet(gtid).isContainedWithin(excludedSet);
+                return skipDrcGtidLogEvent || new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
         }

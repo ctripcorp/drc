@@ -53,7 +53,7 @@ function getSafeXmx() {
     SAFE_PERCENT=70
     MAX_MEM=20
     if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ];then
-        MAX_MEM=15
+        MAX_MEM=10
     fi
     result=`expr $total \* $SAFE_PERCENT / 100`
     if [ "$result" -gt "$MAX_MEM" ]
