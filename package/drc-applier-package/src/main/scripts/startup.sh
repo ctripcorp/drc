@@ -26,10 +26,24 @@ function getTotalMem() {
     echo `free -g | egrep "^Mem" | awk -F " " '{print $2}'`
 }
 
+function getIdc(){
+    IDC=local
+    if [ -f /opt/settings/server.properties ];then
+        IDC=`cat /opt/settings/server.properties | egrep -i "^idc" | awk -F= '{print $2}'`
+    fi
+    echo `toUpper $IDC`
+}
+
+IDC=`getIdc`
+echo "current idc:"$IDC
+
 function getSafeXmx() {
     total=`getTotalMem`
     SAFE_PERCENT=85
     MAX_MEM=16
+    if [ $IDC = "SIN-AWS" ] || [ $IDC = "FRA-AWS" ] || [ $IDC = "SHA-ALI" ];then
+            MAX_MEM=10
+    fi
     result=`expr $total \* $SAFE_PERCENT / 100`
     if [ "$result" -gt "$MAX_MEM" ]
     then
