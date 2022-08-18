@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service;
 
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.Map;
 

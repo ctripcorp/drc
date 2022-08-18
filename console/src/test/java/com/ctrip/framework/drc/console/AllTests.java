@@ -109,6 +109,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         HealthServiceImplTest.class,
         ConsistencyConsistencyMonitorServiceImplTest.class,
         MonitorServiceImplTest.class,
+        MySqlServiceImplTest.class,
 
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,

@@ -245,7 +245,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
                 logger.warn("[getCMMetaServerAddress] not configured for dc:{},region:{}", dc,region);
             }
             return cmMetaServerAddress;
-
         } else {
             Map<String, DcInfo> dcInfos = getDcInfos();
             DcInfo dcInfo = dcInfos.get(dc);

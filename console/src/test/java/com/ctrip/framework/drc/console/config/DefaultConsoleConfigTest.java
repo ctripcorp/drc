@@ -146,6 +146,6 @@ public class DefaultConsoleConfigTest {
     @Test
     public void getPublicCloudRegion() {
         Set<String> publicCloudRegion = config.getPublicCloudRegion();
-        Assert.assertEquals(2,publicCloudRegion.size());
+        Assert.assertEquals(3,publicCloudRegion.size());
     }
 }

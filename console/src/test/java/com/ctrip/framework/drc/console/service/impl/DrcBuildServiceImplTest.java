@@ -71,7 +71,8 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.getMasterEndpoint(any())).thenReturn(new DefaultEndPoint("10.2.72.230", 55111, "m_drc_w", "80+H44bA5wwqA(!R_"));
         Mockito.when(metaInfoService.findAvailableApplierPort(any())).thenReturn(8888);
         Mockito.when(metaInfoService.getXmlConfiguration(anyLong())).thenReturn("xml");
-        Mockito.when(consoleConfig.getPublicCloudDc()).thenReturn(Sets.newHashSet("shali"));
+        Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("cloudRegion"));
+        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
         Mockito.when(rowsFilterService.generateRowsFiltersConfig(anyLong())).thenReturn(null);
     }
 
