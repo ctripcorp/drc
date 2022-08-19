@@ -39,7 +39,7 @@ public class RemoteHttpAspect {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     
-    private final DalUtils dalUtils = DalUtils.getInstance();
+    private  DalUtils dalUtils = DalUtils.getInstance();
     
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
     public void pointCut(){};
