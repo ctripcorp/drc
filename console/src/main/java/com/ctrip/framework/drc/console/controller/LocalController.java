@@ -1,28 +1,18 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
-import com.ctrip.framework.drc.console.service.LocalService;
-import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.TableCheckVo;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.collect.Lists;
-import com.googlecode.aviator.exception.CompileExpressionErrorException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @ClassName LocalController
@@ -47,7 +37,7 @@ public class LocalController {
             @RequestParam String sql,
             @RequestParam int index) {
         try {
-            logger.error("[[tag=getCreateTableStatements,mha={}]] sql:{}",mha,sql);
+            logger.info("[[tag=getCreateTableStatements,mha={}]] sql:{}",mha,sql);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
             Integer result = MySqlUtils.getSqlResultInteger(masterEndpoint, sql, index);
             return ApiResult.getSuccessInstance(result);
@@ -58,15 +48,15 @@ public class LocalController {
     }
     
     @GetMapping("createTblStmts/query")
-    public ApiResult getCreateTableStatements(@RequestParam String mha,@RequestParam String regexFilter) {
+    public ApiResult getCreateTableStatements(@RequestParam String mha,@RequestParam String unionFilter) {
         try {
-            logger.info("[[tag=getCreateTableStatements,mha={}]] regexFilter:{}",mha,regexFilter);
+            logger.info("[[tag=getCreateTableStatements,mha={}]] regexFilter:{}",mha, unionFilter);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
-            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(regexFilter);
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
             Map<String, String> result = MySqlUtils.getDefaultCreateTblStmts(masterEndpoint, aviatorRegexFilter);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
-            logger.error("[[tag=getCreateTableStatements,mha={}]] error,regexFilter is:{} ",mha,regexFilter,e);
+            logger.error("[[tag=getCreateTableStatements,mha={}]] error,regexFilter is:{} ",mha, unionFilter,e);
             return ApiResult.getFailInstance(null);
         }
     }

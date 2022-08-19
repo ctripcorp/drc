@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.http.StringSetApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -209,7 +210,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v1/build/rowsFilter/commonColumns")
+    @PossibleRemote(path = "/api/drc/v1/build/rowsFilter/commonColumns",responseType = StringSetApiResult.class)
     public Set<String> getCommonColumnInDataMedias(String mhaName, String namespace, String name) {
         logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name, mhaName);
         Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);

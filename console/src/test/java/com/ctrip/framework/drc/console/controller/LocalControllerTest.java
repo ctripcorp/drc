@@ -99,7 +99,7 @@ public class LocalControllerTest extends AbstractControllerTest {
                     thenReturn(null);
             MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/createTblStmts/query?" +
                                     "mha=" + "mha1" +
-                                    "&regexFilter=" + "db1\\..*")
+                                    "&unionFilter=" + "db1\\..*")
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();
@@ -112,7 +112,7 @@ public class LocalControllerTest extends AbstractControllerTest {
                     thenThrow(new SQLException("sql query error"));
             mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/local/createTblStmts/query?" +
                                     "mha=" + "mha1" +
-                                    "&regexFilter=" + "db1\\..*")
+                                    "&unionFilter=" + "db1\\..*")
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();

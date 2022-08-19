@@ -19,13 +19,10 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
-import com.ctrip.framework.drc.console.vo.response.MhaListResponse;
+import com.ctrip.framework.drc.console.vo.http.MhaListApiResult;
 import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
@@ -1143,7 +1140,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER,responseType = MhaListResponse.class)
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER,responseType = MhaListApiResult.class)
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);

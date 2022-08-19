@@ -47,12 +47,6 @@ public class BuildController {
     @Autowired
     private DrcBuildService drcBuildService;
     
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
-
-    @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
-    
     private  DalUtils dalUtils = DalUtils.getInstance();
     
     private  ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
@@ -157,7 +151,7 @@ public class BuildController {
             return ApiResult.getSuccessInstance(commonColumns);
         } catch (Exception e) {
             logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name, mhaName,e);
-            if (e  instanceof CompileExpressionErrorException) {
+            if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else if (e instanceof IllegalArgumentException) {
                 return ApiResult.getFailInstance("no machine find for " + mhaName);
