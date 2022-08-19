@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import com.ctrip.framework.drc.console.aop.RemoteHttpAspectTest;
 import com.ctrip.framework.drc.console.config.DbClusterRetrieverTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.controller.*;
@@ -115,6 +116,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConflictLogCheckerTest.class,
 
         OpenApiServiceImplTest.class,
+        RemoteHttpAspectTest.class,
+        
         // controller
         AccessControllerTest.class,
         BuildControllerTest.class,
