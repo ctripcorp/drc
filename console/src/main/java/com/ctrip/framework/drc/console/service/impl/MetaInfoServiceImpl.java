@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.response.MhaListResponse;
 import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -1142,7 +1143,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER)
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER,responseType = MhaListResponse.class)
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);

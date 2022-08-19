@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
@@ -110,16 +109,16 @@ public class RemoteHttpAspect {
         HttpRequestEnum httpRequestType = possibleRemote.httpType();
         switch (httpRequestType) {
             case GET:
-                apiResult = HttpUtils.get(regionUrl.toString(), ApiResult.class);
+                apiResult = HttpUtils.get(regionUrl.toString(), possibleRemote.responseType());
                 break;
             case PUT:
-                apiResult = HttpUtils.put(regionUrl.toString(), ApiResult.class);
+                apiResult = HttpUtils.put(regionUrl.toString(), possibleRemote.responseType());
                 break;
             case POST:
-                apiResult = HttpUtils.post(regionUrl.toString(), ApiResult.class);
+                apiResult = HttpUtils.post(regionUrl.toString(), possibleRemote.responseType());
                 break;
             case DELETE:
-                apiResult = HttpUtils.delete(regionUrl.toString(), ApiResult.class);
+                apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());
                 break;
             default:
                 logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + httpRequestType.getDescription());
@@ -127,7 +126,7 @@ public class RemoteHttpAspect {
         }
         return apiResult.getData();
     }
-    
+
     private String getDcNameByArgs(Map<String, Object> arguments) {
         try {
             String dcName = null;
