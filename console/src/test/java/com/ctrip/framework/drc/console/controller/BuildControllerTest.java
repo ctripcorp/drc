@@ -179,7 +179,8 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
-
+    
+    
     @Test
     public void testGetConflictTables() throws Exception {
         Mockito.when(rowsFilterService.getLogicalTables(
@@ -295,6 +296,60 @@ public class BuildControllerTest extends AbstractControllerTest {
                 .andReturn();
         status = mvcResult.getResponse().getStatus();
         response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+    }
+
+    @Test
+    public void testGetMatchTable() throws Exception {
+        Mockito.when(
+                drcBuildService.getMatchTable(Mockito.eq(".*"),Mockito.eq(".*"),Mockito.eq("mha1"),Mockito.anyInt()
+                )).thenReturn(null);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/dataMedia/check?" +
+                                "namespace=" + ".*" +
+                                "&name=" + ".*" +
+                                "&mhaName=" + "mha1" +
+                                "&type=" + 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+
+        Mockito.when(
+                drcBuildService.getMatchTable(
+                        Mockito.eq(".*"),
+                        Mockito.eq(".*"),
+                        Mockito.eq("mha1"),
+                        Mockito.anyInt()
+                )).thenThrow(new IllegalArgumentException());
+        mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/dataMedia/check?" +
+                                "namespace=" + ".*" +
+                                "&name=" + ".*" +
+                                "&mhaName=" + "mha1" +
+                                "&type=" + 1)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+    }
+
+    @Test
+    public void testGetCommonColumnInDataMedias() throws Exception {
+        Mockito.when(
+                drcBuildService.getCommonColumnInDataMedias(
+                        Mockito.eq("mha1"),
+                        Mockito.eq(".*"),
+                        Mockito.eq(".*")
+                )).thenReturn(null);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/rowsFilter/commonColumns?" +
+                                "mhaName=" + "mha1" +
+                                "&namespace=" + ".*" +
+                                "&name=" + ".*"
+                        ).accept(MediaType.APPLICATION_JSON)).andDo(MockMvcResultHandlers.print()).andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
