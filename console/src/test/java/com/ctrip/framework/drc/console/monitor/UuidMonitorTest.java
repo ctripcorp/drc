@@ -12,10 +12,10 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
-import com.ctrip.framework.drc.console.vo.response.AbstractResponse;
 import com.ctrip.framework.drc.console.vo.response.UuidResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
@@ -201,7 +201,7 @@ public class UuidMonitorTest extends AbstractTest {
         responseVoWithErrorUuid.setData(machineTbl);
         Mockito.doReturn(responseVoWithErrorUuid).when(openService).getUUIDFromRemoteDC(Mockito.anyString(),Mockito.anyMap());
 
-        AbstractResponse<String> updateResponse = new AbstractResponse<>();
+        ApiResult<String> updateResponse = new ApiResult<>();
         updateResponse.setStatus(0);
         Mockito.doReturn(updateResponse).when(openService).updateUuidByMachineTbl(Mockito.anyString(),Mockito.any(MachineTbl.class));
         

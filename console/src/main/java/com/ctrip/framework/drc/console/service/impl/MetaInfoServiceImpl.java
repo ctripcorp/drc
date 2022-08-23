@@ -1140,12 +1140,17 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_CENTER,responseType = MhaListApiResult.class)
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaListApiResult.class)
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
     }
-
+    
+    
+    /**
+     * use List<MhaTbl> getMhas(String dcName)
+     */
+    @Deprecated
     public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         String localRegion = consoleConfig.getRegion();

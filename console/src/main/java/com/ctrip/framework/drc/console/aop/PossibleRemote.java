@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.aop;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import io.netty.handler.codec.socks.SocksResponseType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -18,7 +17,7 @@ public @interface PossibleRemote {
     
     String path();
 
-    ForwardTypeEnum forwardType() default ForwardTypeEnum.BY_ARG;
+    ForwardTypeEnum forwardType() default ForwardTypeEnum.TO_OVERSEA_BY_ARG;
     
     HttpRequestEnum httpType() default HttpRequestEnum.GET;
     

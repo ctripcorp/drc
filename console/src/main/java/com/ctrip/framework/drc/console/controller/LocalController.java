@@ -37,12 +37,12 @@ public class LocalController {
             @RequestParam String sql,
             @RequestParam int index) {
         try {
-            logger.info("[[tag=getCreateTableStatements,mha={}]] sql:{}",mha,sql);
+            logger.info("[[tag=querySqlReturnInteger,mha={}]] sql:{}",mha,sql);
             Endpoint masterEndpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
             Integer result = MySqlUtils.getSqlResultInteger(masterEndpoint, sql, index);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
-            logger.error("[[tag=localQuery,mha={}]] error in sql:{}",mha,sql,e);
+            logger.error("[[tag=querySqlReturnInteger,mha={}]] error in sql:{}",mha,sql,e);
             return ApiResult.getFailInstance(null);
         }
     }

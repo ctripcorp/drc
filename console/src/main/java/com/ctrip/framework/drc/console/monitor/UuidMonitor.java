@@ -11,9 +11,9 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOpera
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.vo.response.AbstractResponse;
 import com.ctrip.framework.drc.console.vo.response.UuidResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
@@ -265,7 +265,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
             if (!StringUtils.isEmpty(centerRegionUrl)) {
                 try {
                     String uri = String.format("%s/api/drc/v1/monitor/uuid", centerRegionUrl);
-                    AbstractResponse<String> response = openService.updateUuidByMachineTbl(uri, machineTblWithUuid);
+                    ApiResult<String> response = openService.updateUuidByMachineTbl(uri, machineTblWithUuid);
                     if (Constants.zero.equals(response.getStatus())) {
                         return true;
                     }

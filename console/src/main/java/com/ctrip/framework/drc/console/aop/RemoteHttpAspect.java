@@ -55,14 +55,14 @@ public class RemoteHttpAspect {
             ForwardTypeEnum forwardType = possibleRemote.forwardType();
             
             switch (forwardType) {
-                case TO_CENTER: 
+                case TO_META_DB: 
                     if (publicCloudRegion.contains(localRegion)) {
                         StringBuilder url = new StringBuilder(consoleConfig.getCenterRegionUrl());
                         return forwardByHttp(url,possibleRemote,argsNotExcluded);
                     } else {
                         return invokeOriginalMethod(point);
                     }
-                case BY_ARG:
+                case TO_OVERSEA_BY_ARG:
                     if (!publicCloudRegion.contains(localRegion) ) {
                         String regionByArgs = getRegionByArgs(argsNotExcluded);
                         if (publicCloudRegion.contains(regionByArgs)) {

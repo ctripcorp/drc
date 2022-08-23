@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.increment.task;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -8,7 +7,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.monitor.entity.MhaGroupEntity;
 import com.ctrip.framework.drc.core.monitor.enums.AutoIncrementEnum;

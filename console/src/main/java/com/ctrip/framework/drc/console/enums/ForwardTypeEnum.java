@@ -2,10 +2,10 @@ package com.ctrip.framework.drc.console.enums;
 
 public enum ForwardTypeEnum {
     // for sha console forward to oversea
-    BY_ARG(0),
+    TO_OVERSEA_BY_ARG(0),
     
     // for oversea forward to sha
-    TO_CENTER(1);
+    TO_META_DB(1);
     
     private int type;
     

@@ -28,7 +28,7 @@ public class OpenService {
         return HttpUtils.get(uri,UuidResponseVo.class,params);
     }
 
-    public AbstractResponse<String> updateUuidByMachineTbl(String uri, MachineTbl machineTbl) {
-        return HttpUtils.post(uri, machineTbl, AbstractResponse.class);
+    public ApiResult<String> updateUuidByMachineTbl(String uri, MachineTbl machineTbl) {
+        return HttpUtils.post(uri, machineTbl, ApiResult.class);
     }
 }
