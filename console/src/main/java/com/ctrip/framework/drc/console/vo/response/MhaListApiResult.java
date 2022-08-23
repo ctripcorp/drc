@@ -8,5 +8,5 @@ import java.util.List;
 /**
  * Created by jixinwang on 2021/7/13
  */
-public class MhaResponseVo extends ApiResult<List<MhaTbl>> {
+public class MhaListApiResult extends ApiResult<List<MhaTbl>> {
 }

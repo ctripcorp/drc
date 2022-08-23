@@ -12,10 +12,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
-import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
+import com.ctrip.framework.drc.console.vo.response.MhaListApiResult;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -28,10 +26,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -550,7 +544,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Map<String, String> consoleRegionUrls = new HashMap<>() {{put("sha","http://console.sha");}};
         Mockito.when(defaultConsoleConfig.getConsoleRegionUrls()).thenReturn(consoleRegionUrls);
 
-        MhaResponseVo mhaResponseVo = new MhaResponseVo();
+        MhaListApiResult mhaResponseVo = new MhaListApiResult();
         mhaResponseVo.setData(null);
         mhaResponseVo.setStatus(Constants.zero);
         Mockito.when(openService.getMhas(Mockito.anyString(),Mockito.anyMap())).thenReturn(mhaResponseVo);

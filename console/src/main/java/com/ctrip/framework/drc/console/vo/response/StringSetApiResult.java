@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.vo.http;
+package com.ctrip.framework.drc.console.vo.response;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
 

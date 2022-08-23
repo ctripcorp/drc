@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl.openapi;
 
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dto.BuildMhaDto;
-import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.vo.response.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -16,8 +14,8 @@ import java.util.Map;
 @Service
 public class OpenService {
 
-    public MhaResponseVo getMhas(String uri, Map<String, String> params) {
-        return HttpUtils.get(uri, MhaResponseVo.class, params);
+    public MhaListApiResult getMhas(String uri, Map<String, String> params) {
+        return HttpUtils.get(uri, MhaListApiResult.class, params);
     }
 
     public MhaNamesResponseVo getMhaNamesToBeMonitored(String uri) {

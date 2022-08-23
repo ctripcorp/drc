@@ -19,8 +19,7 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
-import com.ctrip.framework.drc.console.vo.http.MhaListApiResult;
-import com.ctrip.framework.drc.console.vo.response.MhaResponseVo;
+import com.ctrip.framework.drc.console.vo.response.MhaListApiResult;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
@@ -1160,7 +1159,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
             Map<String, String> params = Maps.newHashMap();
             params.put("dcName", dcName);
-            MhaResponseVo mhaResponseVo = openService.getMhas(uri, params);
+            MhaListApiResult mhaResponseVo = openService.getMhas(uri, params);
 
             if (Constants.zero.equals(mhaResponseVo.getStatus())) {
                 logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
