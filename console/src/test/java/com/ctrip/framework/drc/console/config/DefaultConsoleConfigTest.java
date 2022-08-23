@@ -146,6 +146,25 @@ public class DefaultConsoleConfigTest {
     @Test
     public void getPublicCloudRegion() {
         Set<String> publicCloudRegion = config.getPublicCloudRegion();
-        Assert.assertEquals(2,publicCloudRegion.size());
+        Assert.assertEquals(3,publicCloudRegion.size());
+    }
+
+    @Test
+    public void testGetCenterRegionUrl() {
+        String centerRegionUrl = config.getCenterRegionUrl();
+        Assert.assertNull(centerRegionUrl);
+        
+    }
+
+    @Test
+    public void testGetCenterRegion() {
+        String centerRegion = config.getCenterRegion();
+        Assert.assertEquals("sha",centerRegion);
+    }
+
+    @Test
+    public void testGetRegionForDc() {
+        String region = config.getRegionForDc("dc1");
+        Assert.assertEquals("region1",region);
     }
 }

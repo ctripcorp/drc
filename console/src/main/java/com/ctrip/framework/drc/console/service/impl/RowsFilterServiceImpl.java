@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
@@ -153,6 +154,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/columnCheck")
     public List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName) {
         List<String> tables = Lists.newArrayList();
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
@@ -191,11 +193,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
-    public List<String> getConflictTables(String mhaName,List<String> logicalTables)  {
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck")
+    public List<String> getConflictTables(String mhaName, String logicalTables)  {
+        String[] tables = logicalTables.split(",");
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();
         ArrayList<String> conflictTables = Lists.newArrayList();
-        for (String logicalTable : logicalTables) {
+        for (String logicalTable : tables) {
             AviatorRegexFilter filter = new AviatorRegexFilter(logicalTable);
             List<String> tablesAfterFilter = MySqlUtils.getTablesAfterRegexFilter(endpoint, filter).stream().
                     map(MySqlUtils.TableSchemaName ::getDirectSchemaTableName).collect(Collectors.toList());

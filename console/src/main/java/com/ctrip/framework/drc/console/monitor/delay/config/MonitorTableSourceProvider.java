@@ -460,7 +460,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public String getUpdateMonitorMetaInfoSwitch() {
         return getProperty(UPDATE_MONITOR_META_INFO_SWITCH, SWITCH_STATUS_ON);
     }
-
+    
     public String getSlaveMachineOfflineSyncSwitch() {
         return getProperty(SWITCH_SALVE_MACHINE_OFFLINE_SYNC, DEFAULT_SWITCH_SALVE_MACHINE_OFFLINE_SYNC);
     }

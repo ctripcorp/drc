@@ -32,9 +32,9 @@ public class DaoConfig extends AbstractConfig implements Config{
     @Override
     public void updateConfig() {
         try {
-            String localDc = dataCenterService.getDc();
-            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-            if (publicCloudDc.contains(localDc)) {
+            String region = consoleConfig.getRegion();
+            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+            if (publicCloudRegion.contains(region)) {
                 return;
             }
             Drc drc = metaGenerator.getDrc();
@@ -48,36 +48,6 @@ public class DaoConfig extends AbstractConfig implements Config{
             META_LOGGER.error("Fail get drc from db, ", e);
         }
     }
-
-    protected List<String> addDbClusterAfterFilter(Drc drc, Drc drcSource, List<String> filterOutMhas, boolean peripheral) {
-        List<String> addedMhas = Lists.newArrayList();
-        if (null != drcSource) {
-            Map<String, Dc> dcsSource = drcSource.getDcs();
-            for (String dcId : dcsSource.keySet()) {
-                Dc dc = drc.getDcs().get(dcId);
-                if(null == dc) {
-                    dc = new Dc(dcId);
-                    drc.addDc(dc);
-                }
-
-                Dc dcSource = dcsSource.get(dcId);
-                // add peripheral config like cm, zk and proxy route
-                if (peripheral) {
-                    dcSource.getClusterManagers().forEach(dc::addClusterManager);
-                    dc.setZkServer(dcSource.getZkServer());
-                    dcSource.getRoutes().forEach(dc::addRoute);
-                }
-
-                for (DbCluster dbCluster : dcSource.getDbClusters().values()) {
-                    String mhaName = dbCluster.getMhaName();
-                    if (!filterOutMhas.contains(mhaName)) {
-                        dc.addDbCluster(dbCluster);
-                        addedMhas.add(mhaName);
-                    }
-                }
-            }
-        }
-        return addedMhas;
-    }
+    
 
 }

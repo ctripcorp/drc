@@ -32,9 +32,7 @@ public class RemoteConfigTest extends AbstractConfigTest {
 
     @Test
     public void testUpdateConfig() throws Exception {
-        Mockito.doReturn(new HashMap<>() {{
-            put("dc2", "http://127.0.0.1:8080");
-        }}).when(consoleConfig).getConsoleDcInfos();
+        Mockito.when(consoleConfig.getCenterRegionUrl()).thenReturn("http://127.0.0.1:8080");
         Mockito.doReturn("dc").when(dbClusterSourceProvider).getLocalDcName();
 
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {

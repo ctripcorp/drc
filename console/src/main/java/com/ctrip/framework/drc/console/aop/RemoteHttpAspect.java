@@ -2,11 +2,13 @@ package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -20,10 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @ClassName RemoteAspect
@@ -40,71 +39,95 @@ public class RemoteHttpAspect {
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     
-    @Autowired
-    private DataCenterService dataCenterService;
-    
-    private final DalUtils dalUtils = DalUtils.getInstance();
+    private  DalUtils dalUtils = DalUtils.getInstance();
     
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
     public void pointCut(){};
     
-    @Around(value = "pointCut()")
-    public Object aroundOperate(ProceedingJoinPoint point) {
+    @Around(value = "pointCut() && @annotation(possibleRemote)")
+    public Object aroundOperate(ProceedingJoinPoint point,PossibleRemote possibleRemote) {
         try {
-            Map<String, Object> nameAndValue = getArguments(point);
-            String dcName = getDcNameByArgument(nameAndValue);
-            if (dcName != null) {
-                Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-                Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-                String localDc = dataCenterService.getDc();
-                if (publicCloudDc.contains(dcName) && !publicCloudDc.contains(localDc)) {
-                    PossibleRemote annotation = getAnnotation(point);
-                    StringBuilder url = new StringBuilder(consoleDcInfos.get(dcName));
-                    url.append(annotation.path());
-                    boolean isFirstArgs = true;
-                    for (Map.Entry<String, Object> entry : nameAndValue.entrySet()) {
-                        if (isFirstArgs) {
-                            url.append("?").append(entry.getKey()).append("=").append(entry.getValue());
-                            isFirstArgs = false;
+            String localRegion = consoleConfig.getRegion();
+            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
+            
+            Map<String, Object> argsNotExcluded = getArgsNotExcluded(point,possibleRemote.excludeArguments());
+            ForwardTypeEnum forwardType = possibleRemote.forwardType();
+            
+            switch (forwardType) {
+                case TO_META_DB: 
+                    if (publicCloudRegion.contains(localRegion)) {
+                        StringBuilder url = new StringBuilder(consoleConfig.getCenterRegionUrl());
+                        return forwardByHttp(url,possibleRemote,argsNotExcluded);
+                    } else {
+                        return invokeOriginalMethod(point);
+                    }
+                case TO_OVERSEA_BY_ARG:
+                    if (!publicCloudRegion.contains(localRegion) ) {
+                        String regionByArgs = getRegionByArgs(argsNotExcluded);
+                        if (publicCloudRegion.contains(regionByArgs)) {
+                            StringBuilder url = new StringBuilder(consoleRegionUrls.get(regionByArgs));
+                            return forwardByHttp(url,possibleRemote,argsNotExcluded);
                         } else {
-                            url.append("&").append(entry.getKey()).append("=").append(entry.getValue());
+                            return invokeOriginalMethod(point);
                         }
+                    } else {
+                        return invokeOriginalMethod(point);
                     }
-                    logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", url);
-                    ApiResult apiResult;
-                    switch (annotation.httpType()) {
-                        case GET: 
-                            apiResult = HttpUtils.get(url.toString(), ApiResult.class);
-                            break;
-                        case PUT: 
-                            apiResult = HttpUtils.put(url.toString(), ApiResult.class);
-                            break;
-                        case POST: 
-                            apiResult = HttpUtils.post(url.toString(), ApiResult.class);
-                            break;
-                        case DELETE: 
-                            apiResult = HttpUtils.delete(url.toString(), ApiResult.class);
-                            break;
-                        default:
-                            logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + annotation.httpType().getDescription());
-                            return null;
-                    }
-                    return apiResult.getData();
-                } else {
-                    Object[] args = point.getArgs();
-                    return point.proceed(args);
-                }
-            } else {
-                Object[] args = point.getArgs();
-                return point.proceed(args);
+                default:
+                    return invokeOriginalMethod(point);
             }
         } catch (Throwable e) {
             logger.error("[[tag=remoteHttpAop]] error", e);
             return null;
         }
     }
+    
+    private Object invokeOriginalMethod(ProceedingJoinPoint point) throws Throwable{
+        Object[] args = point.getArgs();
+        return point.proceed(args);
+    }
+    
+    private Object forwardByHttp(StringBuilder regionUrl, PossibleRemote possibleRemote, Map<String, Object> args) {
+        if (StringUtils.isEmpty(regionUrl)) {
+            throw new IllegalArgumentException("no regionUrl find");
+        }
+        
+        regionUrl.append(possibleRemote.path());
+        boolean isFirstArgs = true;
+        for (Map.Entry<String, Object> entry : args.entrySet()) {
+            if (isFirstArgs) {
+                regionUrl.append("?").append(entry.getKey()).append("=").append(entry.getValue());
+                isFirstArgs = false;
+            } else {
+                regionUrl.append("&").append(entry.getKey()).append("=").append(entry.getValue());
+            }
+        }
+        logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", regionUrl);
+        
+        ApiResult apiResult;
+        HttpRequestEnum httpRequestType = possibleRemote.httpType();
+        switch (httpRequestType) {
+            case GET:
+                apiResult = HttpUtils.get(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            case PUT:
+                apiResult = HttpUtils.put(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            case POST:
+                apiResult = HttpUtils.post(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            case DELETE:
+                apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            default:
+                logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + httpRequestType.getDescription());
+                return null;
+        }
+        return apiResult.getData();
+    }
 
-    private String getDcNameByArgument(Map<String, Object> arguments) {
+    private String getDcNameByArgs(Map<String, Object> arguments) {
         try {
             String dcName = null;
             if (arguments.containsKey("mha") || arguments.containsKey("mhaName") ||
@@ -126,33 +149,36 @@ public class RemoteHttpAspect {
         }
     }
     
+    private String getRegionByArgs(Map<String, Object> arguments) {
+        String dcNameByArgs = getDcNameByArgs(arguments);
+        if (StringUtils.isEmpty(dcNameByArgs)) {
+            return null;
+        }  else {
+            return consoleConfig.getRegionForDc(dcNameByArgs);
+        }
+    }
+    
     /**
      * 获取参数Map集合
      * @param joinPoint
      * @return
      */
-    private Map<String, Object> getArguments(ProceedingJoinPoint joinPoint) throws NoSuchMethodException{
-        PossibleRemote annotation = getAnnotation(joinPoint);
-        HashSet<String> excludeArgs = Sets.newHashSet(annotation.excludeArguments());
+    private Map<String, Object> getArgsNotExcluded(ProceedingJoinPoint joinPoint,String[] excludeArguments) throws NoSuchMethodException{
+        HashSet<String> excludeArgs = Sets.newHashSet(excludeArguments);
         Map<String, Object> param = new HashMap<>();
+        MethodSignature signature = (MethodSignature)joinPoint.getSignature();
+        Method method = signature.getMethod();
         Object[] paramValues = joinPoint.getArgs();
-        String[] paramNames = ((MethodSignature)joinPoint.getSignature()).getParameterNames();
+        String[] paramNames = signature.getParameterNames();
         for (int i = 0; i < paramNames.length; i++) {
             if (excludeArgs.contains(paramNames[i])) {
                 continue;
             }
+            logger.debug("[[tag=remoteHttpAop]] method:{},argName:{},argValue:{}",method.getName(),paramNames[i],paramValues[i]);
             param.put(paramNames[i], paramValues[i]);
         }
         return param;
     }
     
-    private PossibleRemote getAnnotation(ProceedingJoinPoint point) throws NoSuchMethodException {
-        MethodSignature signature = (MethodSignature)point.getSignature();
-        Method method = signature.getMethod();
-        PossibleRemote annotation = point.getTarget().getClass().
-                getDeclaredMethod(method.getName(),method.getParameterTypes()).getAnnotation(PossibleRemote.class);
-        return annotation;
-    }
-
 }
     

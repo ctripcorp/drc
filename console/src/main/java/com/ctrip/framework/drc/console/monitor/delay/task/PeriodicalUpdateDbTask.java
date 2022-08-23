@@ -104,7 +104,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     }
     
     private void refreshMhaTblByDc(String dcName) throws Exception {
-        List<MhaTbl> mhasByDc = metaInfoService.getMhasByDc(dcName);
+        List<MhaTbl> mhasByDc = metaInfoService.getMhas(dcName);
         mhasByDc.forEach(
                 mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
         );

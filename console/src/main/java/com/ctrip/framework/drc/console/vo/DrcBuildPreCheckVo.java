@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.vo;
 
-import com.ctrip.framework.drc.console.vo.response.AbstractResponse;
-
 import java.util.List;
 
 /**

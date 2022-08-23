@@ -63,8 +63,8 @@ public class MetaGenerator {
     private List<ApplierTbl> applierTbls;
 
     public Drc getDrc() throws Exception {
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-        if(publicCloudDc.contains(dataCenterService.getDc())){
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+        if(publicCloudRegion.contains(consoleConfig.getRegion())){
             return null;
         }
         List<DcTbl> dcTbls = dalUtils.getDcTblDao().queryAll();
