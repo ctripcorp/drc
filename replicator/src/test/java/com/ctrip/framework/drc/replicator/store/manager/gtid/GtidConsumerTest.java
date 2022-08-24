@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.store.manager.gtid;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
@@ -73,7 +74,7 @@ public class GtidConsumerTest extends AbstractTransactionTest {
                     ByteBuf byteBuf = getGtidEvent();
                     GtidLogEvent gtidLogEvent = new GtidLogEvent().read(byteBuf);
                     byteBuf.release();
-                    gtidConsumer.offer(gtidLogEvent);
+                    gtidConsumer.offer(gtidLogEvent.getGtid());
                     events.add(gtidLogEvent);
                 }
                 countDownLatch.countDown();

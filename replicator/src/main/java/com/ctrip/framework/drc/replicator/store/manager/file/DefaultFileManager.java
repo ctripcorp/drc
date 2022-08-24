@@ -15,7 +15,7 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
-import com.ctrip.framework.drc.replicator.store.manager.gtid.GtidConsumer;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -382,7 +382,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             if (fileChannel.position() + nextTransactionOffset <= endPos) {  //one transaction or just drc_gtid_log_event
                                 if (nextTransactionOffset > 0 || LogEventUtils.isDrcGtidLogEvent(eventType)) {
                                     fileChannel.position(fileChannel.position() + nextTransactionOffset);
-                                    gtidConsumer.offer(gtidLogEvent);
+                                    gtidConsumer.offer(gtidLogEvent.getGtid());
                                     if (logger.isDebugEnabled()) {
                                         logger.debug("[Position] skip {} for gtid {}, cluster {}", nextTransactionOffset, gtidLogEvent.getGtid(), registryKey);
                                     }
