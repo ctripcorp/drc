@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.container;
 
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
+import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.applier.server.ApplierServer;
 import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
 import com.ctrip.framework.drc.applier.server.ApplierWatcher;
@@ -221,11 +222,19 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
             try {
                 DataSourceResource dataSourceResource = serverInCluster.getDataSourceResource(); //resource just has initialize and dispose
                 dataSourceResource.dispose();
+                logger.info("close datasource for {}", registryKey);
+
+                // merge transaction table if need
+                TransactionTableResource transactionTableResource = serverInCluster.getTransactionTableResource();
+                if (transactionTableResource != null) {
+                    transactionTableResource.dispose();
+                    logger.info("dispose transaction for {} before shutdown", registryKey);
+                }
+
                 if (leaderElector != null) {
                     leaderElector.stop();
                     leaderElector.dispose();
                 }
-                logger.info("close datasource for {}", registryKey);
             } catch (Throwable t) {
                 logger.error("lifecycle stop error", t);
             } finally {
