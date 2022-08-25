@@ -14,6 +14,7 @@ import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
 import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -244,9 +245,7 @@ public abstract class AbstractNotifier implements Notifier {
             Throwable throwable = serverException.getCause();
             if (throwable instanceof ResourceAccessException) {
                 Throwable cause = throwable.getCause();
-                if (cause != null && cause instanceof ConnectException) {
-                    return true;
-                }
+                return cause instanceof ConnectException || cause instanceof ConnectTimeoutException;
             }
             return false;
         }
