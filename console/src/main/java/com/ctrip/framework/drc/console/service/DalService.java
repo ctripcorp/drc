@@ -29,7 +29,7 @@ public interface DalService {
 
     ApiResult switchDalClusterType(String dalClusterName, String env, DalClusterTypeEnum typeEnum, String zoneId) throws Exception;
 
-    Map<String, MhaInstanceGroupDto> getMhaList(Env env);
+    Map<String, MhaInstanceGroupDto> getMhaList(Env env) throws Exception;
 
-    String getDc(String mha, Env env);
+    String getDc(String mha, Env env) throws Exception;
 }

@@ -41,6 +41,7 @@ import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
+import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
 import com.ctrip.framework.drc.console.utils.*;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVoTest;
@@ -139,6 +140,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         // monitor
         ConsistentMonitorContainerTest.class,
 //        StaticDelayMonitorServerTest.class,
+        SyncMhaTaskTest.class,
         MySqlUtilsTest.class,
         JsonUtilsTest.class,
         CheckGtidTest.class,

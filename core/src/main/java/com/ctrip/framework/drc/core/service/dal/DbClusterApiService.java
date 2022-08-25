@@ -13,7 +13,7 @@ public interface DbClusterApiService extends Ordered {
 
     JsonNode getInstanceGroupsInfo(String dalServicePrefix,List<String> mhas);
     
-    JsonNode getMhaList(String dalServicePrefix);
+    JsonNode getMhaList(String dalServicePrefix) throws Exception;
 
     ApiResult switchDalClusterType(String dalClusterName,String dalServicePrefix, DalClusterTypeEnum typeEnum, String zoneId) throws Exception;
     
