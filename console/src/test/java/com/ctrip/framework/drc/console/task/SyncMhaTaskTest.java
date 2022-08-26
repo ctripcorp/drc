@@ -45,12 +45,13 @@ public class SyncMhaTaskTest {
         //leader and fail
         Mockito.when(monitorTableSourceProvider.getSyncMhaSwitch()).thenReturn("on");
         Mockito.when(dalServicedalService.getMhaList(Mockito.any(Env.class))).thenThrow(new RuntimeException("error"));
-        Mockito.doNothing().when(drcMaintenanceService).mhaInstancesChange(Mockito.any(MhaInstanceGroupDto.class),Mockito.any(MhaTbl.class));
         syncMhaTask.isleader();
+        syncMhaTask.scheduledTask();;
         
         // leader and success
         Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = Maps.newHashMap();
         Mockito.when(dalServicedalService.getMhaList(Mockito.any(Env.class))).thenReturn(mhaInstanceGroupMap);
+        Mockito.doNothing().when(drcMaintenanceService).mhaInstancesChange(Mockito.any(MhaInstanceGroupDto.class),Mockito.any(MhaTbl.class));
         syncMhaTask.scheduledTask();
         
         

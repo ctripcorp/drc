@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
@@ -91,6 +92,7 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
         @Override
         public void afterFail() {
+            NamedCallable.super.afterFail();
             logger.error("[[task=syncMhaTask]] task fail after reTry time:{}",RETRY_TIME);
         }
 
