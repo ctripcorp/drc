@@ -117,24 +117,20 @@ public class DalServiceImpl implements DalService {
     }
 
     @Override
-    public Map<String, MhaInstanceGroupDto> getMhaList(Env env) {
+    public Map<String, MhaInstanceGroupDto> getMhaList(Env env) throws Exception {
         String dalServicePrefix = domainConfig.getDalServicePrefix();
         JsonNode resultNode = dbClusterApiServiceImpl.getMhaList(dalServicePrefix);
         Map<String, MhaInstanceGroupDto> mhaInstancesMap = new HashMap<>();
         for(JsonNode mhaInstanceGroupNode : resultNode) {
-            try {
-                String mhaName = mhaInstanceGroupNode.get("mhaName").asText();
-                MhaInstanceGroupDto mhaInstanceGroupDto = objectMapper.treeToValue(mhaInstanceGroupNode, MhaInstanceGroupDto.class);
-                mhaInstancesMap.put(mhaName, mhaInstanceGroupDto);
-            } catch (Throwable t) {
-                logger.error("Fail parse node, ", t);
-            }
+            String mhaName = mhaInstanceGroupNode.get("mhaName").asText();
+            MhaInstanceGroupDto mhaInstanceGroupDto = objectMapper.treeToValue(mhaInstanceGroupNode, MhaInstanceGroupDto.class);
+            mhaInstancesMap.put(mhaName, mhaInstanceGroupDto);
         }
         return mhaInstancesMap;
     }
 
     @Override
-    public String getDc(String mha, Env env) {
+    public String getDc(String mha, Env env) throws Exception {
         logger.debug("[getDc] for {} in {}", mha, env.getName());
         Map<String, MhaInstanceGroupDto> mhaList = getMhaList(env);
         MhaInstanceGroupDto mhaInstanceGroupDto = mhaList.get(mha);

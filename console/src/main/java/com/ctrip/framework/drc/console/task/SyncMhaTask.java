@@ -8,6 +8,9 @@ import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
@@ -47,21 +50,16 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
     
+    private final static int RETRY_TIME = 10;
+    
     @Override
     public void scheduledTask() {
         try {
             if (isRegionLeader) {
                 logger.info("[[task=syncMhaTask]]is leader");
-                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", () -> {
-                    String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
-                    if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
-                        logger.info("[[task=syncMhaTask]]sync all mha instance group");
-                        Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
-                        updateAllMhaInstanceGroup(mhaInstanceGroupMap);
-                    } else {
-                        logger.warn("[[task=syncMhaTask]] is leader but switch is off");
-                    }
-                });
+                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", 
+                    new RetryTask<>(new SyncMhaFromDalTask(), RETRY_TIME)
+                );
             } else {
                 logger.info("[[task=syncMhaTask]]not a leader do nothing");
             }
@@ -69,6 +67,39 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
             logger.info("[[task=syncMhaTask]]cluster manager check error", t);
         }
 
+    }
+    
+    private class SyncMhaFromDalTask implements NamedCallable<Boolean> {
+        
+        @Override
+        public Boolean call() throws Exception {
+            String syncMhaSwitch = monitorTableSourceProvider.getSyncMhaSwitch();
+            if (SWITCH_STATUS_ON.equalsIgnoreCase(syncMhaSwitch)) {
+                logger.info("[[task=syncMhaTask]]sync all mha instance group");
+                Map<String, MhaInstanceGroupDto> mhaInstanceGroupMap = dalService.getMhaList(Foundation.server().getEnv());
+                updateAllMhaInstanceGroup(mhaInstanceGroupMap);
+            } else {
+                logger.warn("[[task=syncMhaTask]] is leader but switch is off");
+            }
+            return true;
+        }
+        
+
+        @Override
+        public void afterException(Throwable t) {
+            logger.warn("[[task=syncMhaTask]] task error once",t);
+        }
+
+        @Override
+        public void afterFail() {
+            NamedCallable.super.afterFail();
+            logger.error("[[task=syncMhaTask]] task fail after reTry time:{}",RETRY_TIME);
+        }
+
+        @Override
+        public void afterSuccess(int retryTime) {
+            logger.info("[[task=syncMhaTask]]sync all mha instance success after retryTime:{}",retryTime);
+        }
     }
 
     protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
