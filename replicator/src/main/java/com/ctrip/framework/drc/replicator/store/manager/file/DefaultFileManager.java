@@ -410,7 +410,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     }
                 } else if (executed && (LogEventType.xid_log_event == eventType)){
                     if (gtid != StringUtils.EMPTY) {  //add gtid when read xid
-                        gtidConsumer.offer(gtid);
+                        gtidConsumer.add(gtid);
                         gtid = StringUtils.EMPTY;
                     }
                     truncatePosition = TRUNCATE_FLAG;
