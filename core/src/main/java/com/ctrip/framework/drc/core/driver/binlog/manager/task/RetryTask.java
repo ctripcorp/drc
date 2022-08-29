@@ -6,7 +6,7 @@ import java.util.concurrent.Callable;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class RetryTask<V> implements Callable {
+public class RetryTask<V> implements Callable<V> {
 
     public static final int MAX_RETRY = 5;
 
