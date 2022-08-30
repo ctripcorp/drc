@@ -129,4 +129,32 @@ public class GtidConsumerTest extends AbstractTransactionTest {
             logger.error("getExecutedGtids error", e);
         }
     }
+
+    @Test
+    public void testGetGtidSetWithoutQueue() {
+        String testGtid = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        GtidConsumer gtidConsumer = new GtidConsumer(false);
+        gtidConsumer.add(testGtid);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid));
+    }
+
+    @Test
+    public void testGetGtidSetWithQueue() {
+        String testGtid1 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        String testGtid2 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:67";
+        String testGtid3 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:68";
+        String testGtid4 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:69";
+        GtidConsumer gtidConsumer = new GtidConsumer(true);
+        gtidConsumer.offer(testGtid1);
+        gtidConsumer.offer(testGtid2);
+        gtidConsumer.offer(testGtid3);
+        gtidConsumer.add(testGtid4);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid1));
+        Assert.assertFalse(gtidSet.add(testGtid2));
+        Assert.assertFalse(gtidSet.add(testGtid3));
+        Assert.assertFalse(gtidSet.add(testGtid4));
+
+    }
 }

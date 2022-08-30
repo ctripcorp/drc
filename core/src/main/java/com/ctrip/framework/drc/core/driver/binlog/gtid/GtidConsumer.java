@@ -28,7 +28,7 @@ public class GtidConsumer {
 
     private BlockingQueue<String> gtidQueue = new LinkedBlockingDeque<String>();
 
-    private String lastGtidInQueue = StringUtils.EMPTY;
+    private volatile String lastGtidInQueue = StringUtils.EMPTY;
 
     private Future future;
 
@@ -67,7 +67,9 @@ public class GtidConsumer {
         }
         logger.info("[Consume] gtid queue completely and return executed gtid {}", gtidSet);
         gtidSet.add(lastGtidInQueue);
-        future.cancel(true);
+        if (future != null) {
+            future.cancel(true);
+        }
         return gtidSet;
     }
 
