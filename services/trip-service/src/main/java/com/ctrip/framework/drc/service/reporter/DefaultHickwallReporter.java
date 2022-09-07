@@ -53,7 +53,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     private static final String ROWS_FILTER_SEND_MEASUREMENT = "fx.drc.rows.filter.send";
 
-    private static final String COST_FLOW_SEND_MEASUREMENT = "fx.drc.cost.flow.send";
+    private static final String TRAFFIC_STATISTIC_MEASUREMENT = "fx.drc.traffic.statistic";
 
     private static final String CONSISTENCY_MEASUREMENT = "fx.drc.consistency";
 
@@ -109,8 +109,8 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     @Override
-    public void reportCostFlow(TrafficStatisticEntity trafficStatisticEntity) {
-        reportResetCounter(trafficStatisticEntity.getTags(), trafficStatisticEntity.getSend(), COST_FLOW_SEND_MEASUREMENT);
+    public void reportTrafficStatistic(TrafficStatisticEntity trafficStatisticEntity) {
+        reportResetCounter(trafficStatisticEntity.getTags(), trafficStatisticEntity.getSend(), TRAFFIC_STATISTIC_MEASUREMENT);
     }
 
     @Override
