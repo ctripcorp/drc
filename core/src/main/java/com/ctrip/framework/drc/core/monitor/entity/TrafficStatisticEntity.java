@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by jixinwang on 2022/9/7
  */
-public class CostFlowEntity extends BaseEndpointEntity {
+public class TrafficStatisticEntity extends BaseEndpointEntity {
 
     @NotNull(message = "dbName cannot be null")
     private String dbName;
@@ -21,7 +21,7 @@ public class CostFlowEntity extends BaseEndpointEntity {
 
     protected AtomicLong send = new AtomicLong(0);
 
-    public CostFlowEntity(Builder builder) {
+    public TrafficStatisticEntity(Builder builder) {
         super(new BaseEndpointEntity.Builder()
                 .clusterAppId(builder.clusterAppId)
                 .buName(builder.buName)
@@ -107,8 +107,8 @@ public class CostFlowEntity extends BaseEndpointEntity {
             return this;
         }
 
-        public CostFlowEntity build() {
-            return new CostFlowEntity(this);
+        public TrafficStatisticEntity build() {
+            return new TrafficStatisticEntity(this);
         }
     }
 

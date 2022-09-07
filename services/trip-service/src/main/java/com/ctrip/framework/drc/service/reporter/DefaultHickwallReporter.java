@@ -109,8 +109,8 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     }
 
     @Override
-    public void reportCostFlow(CostFlowEntity costFlowEntity) {
-        reportResetCounter(costFlowEntity.getTags(), costFlowEntity.getSend(), COST_FLOW_SEND_MEASUREMENT);
+    public void reportCostFlow(TrafficStatisticEntity trafficStatisticEntity) {
+        reportResetCounter(trafficStatisticEntity.getTags(), trafficStatisticEntity.getSend(), COST_FLOW_SEND_MEASUREMENT);
     }
 
     @Override

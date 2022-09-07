@@ -5,7 +5,7 @@ import java.util.Objects;
 /**
  * Created by jixinwang on 2022/9/7
  */
-public class CostFlowKey {
+public class TrafficStatisticKey {
 
     private String dbName;
 
@@ -13,7 +13,7 @@ public class CostFlowKey {
 
     private String dstRegion;
 
-    public CostFlowKey(String dbName, String srcRegion, String dstRegion) {
+    public TrafficStatisticKey(String dbName, String srcRegion, String dstRegion) {
         this.dbName = dbName;
         this.srcRegion = srcRegion;
         this.dstRegion = dstRegion;
@@ -48,7 +48,7 @@ public class CostFlowKey {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        CostFlowKey that = (CostFlowKey) o;
+        TrafficStatisticKey that = (TrafficStatisticKey) o;
 
         if (!Objects.equals(dbName, that.dbName)) return false;
         if (!Objects.equals(srcRegion, that.srcRegion)) return false;
@@ -65,7 +65,7 @@ public class CostFlowKey {
 
     @Override
     public String toString() {
-        return "CostFlowKey{" +
+        return "TrafficStatisticKey{" +
                 "dbName='" + dbName + '\'' +
                 ", srcRegion='" + srcRegion + '\'' +
                 ", dstRegion='" + dstRegion + '\'' +

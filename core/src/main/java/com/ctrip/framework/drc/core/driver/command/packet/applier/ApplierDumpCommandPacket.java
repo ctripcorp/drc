@@ -183,15 +183,15 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         nameFilter = new String(filterBytes);
         index += (filterBytes.length + 1);
 
+        applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
+        index += 2;
+
+        // 2. read rowFilterContext
+        byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
+        properties = new String(propertiesBytes);
+        index += (propertiesBytes.length + 1);
+
         if (data.length > index) {
-            applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
-            index += 2;
-
-            // 2. read rowFilterContext
-            byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
-            properties = new String(propertiesBytes);
-            index += (propertiesBytes.length + 1);
-
             // read region
             byte[] regionBytes = ByteHelper.readNullTerminatedBytes(data, index);
             region = new String(regionBytes);

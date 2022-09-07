@@ -76,6 +76,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         }
                         break;
                 }
+                value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
             }
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
@@ -85,7 +86,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
             }
         }
-        
+
         value.setNoRowFiltered(noRowFiltered);
         if (!noRowFiltered) {
             value.setRowsEvent(afterRowsEvent);

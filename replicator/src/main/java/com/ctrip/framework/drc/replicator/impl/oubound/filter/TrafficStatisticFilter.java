@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
-import com.ctrip.framework.drc.core.driver.binlog.impl.WriteRowsEvent;
-import com.ctrip.framework.drc.core.monitor.entity.CostFlowKey;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 
@@ -11,7 +10,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
 /**
  * Created by jixinwang on 2022/9/7
  */
-public class CostFlowFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
+public class TrafficStatisticFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
     private static final long GTID_EVENT_SIZE = 69;
 
@@ -21,7 +20,7 @@ public class CostFlowFilter extends AbstractLogEventFilter<OutboundLogEventConte
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    public CostFlowFilter(OutboundMonitorReport outboundMonitorReport) {
+    public TrafficStatisticFilter(OutboundMonitorReport outboundMonitorReport) {
         this.outboundMonitorReport = outboundMonitorReport;
     }
 
@@ -29,21 +28,17 @@ public class CostFlowFilter extends AbstractLogEventFilter<OutboundLogEventConte
     public boolean doFilter(OutboundLogEventContext value) {
         boolean noRowFiltered = doNext(value, value.isNoRowFiltered());
 
-        String dbName = value.getCostFlowKey().getDbName();
+        String dbName = value.getTrafficStatisticKey().getDbName();
         if (dbName != null) {
             costFlowDb = dbName;
         }
 
-        if (noRowFiltered) {
-            transactionSize += value.getEventSize();
-        } else {
-            transactionSize += ((WriteRowsEvent) value.getRowsEvent()).getFilteredEventSize();
-        }
+        transactionSize += value.getFilteredEventSize();
 
         if (xid_log_event == value.getEventType()) {
-            CostFlowKey costFlowKey = value.getCostFlowKey();
-            costFlowKey.setDbName(costFlowDb);
-            outboundMonitorReport.updateCostFlow(value.getCostFlowKey(), transactionSize + GTID_EVENT_SIZE);
+            TrafficStatisticKey trafficStatisticKey = value.getTrafficStatisticKey();
+            trafficStatisticKey.setDbName(costFlowDb);
+            outboundMonitorReport.updateTrafficStatistic(value.getTrafficStatisticKey(), transactionSize + GTID_EVENT_SIZE);
             transactionSize = 0;
         }
 

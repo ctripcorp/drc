@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
-import com.ctrip.framework.drc.core.monitor.entity.CostFlowEntity;
-import com.ctrip.framework.drc.core.monitor.entity.CostFlowKey;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticEntity;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -24,7 +24,7 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
 
     private Map<TableKey, RowsFilterEntity> rowsFilterEntityMap = Maps.newConcurrentMap();
 
-    private Map<CostFlowKey, CostFlowEntity> costFlowEntityMap = Maps.newConcurrentMap();
+    private Map<TrafficStatisticKey, TrafficStatisticEntity> costFlowEntityMap = Maps.newConcurrentMap();
 
     public OutboundMonitorReport(long domain, TrafficEntity trafficEntity) {
         super(domain, trafficEntity);
@@ -44,10 +44,10 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
             rowsFilterEntity.clearCount();
         }
 
-        for (Map.Entry<CostFlowKey, CostFlowEntity> entry : costFlowEntityMap.entrySet()) {
-            CostFlowEntity costFlowEntity = entry.getValue();
-            hickwallReporter.reportCostFlow(costFlowEntity);
-            costFlowEntity.clearCount();
+        for (Map.Entry<TrafficStatisticKey, TrafficStatisticEntity> entry : costFlowEntityMap.entrySet()) {
+            TrafficStatisticEntity trafficStatisticEntity = entry.getValue();
+            hickwallReporter.reportCostFlow(trafficStatisticEntity);
+            trafficStatisticEntity.clearCount();
         }
     }
 
@@ -86,15 +86,15 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
         return rowsFilterEntity;
     }
 
-    public void updateCostFlow(CostFlowKey costFlowKey, long eventSize) {
-        CostFlowEntity costFlowEntity = getCostFlow(costFlowKey);
-        costFlowEntity.updateCount(eventSize);
+    public void updateTrafficStatistic(TrafficStatisticKey trafficStatisticKey, long eventSize) {
+        TrafficStatisticEntity trafficStatisticEntity = getTrafficStatistic(trafficStatisticKey);
+        trafficStatisticEntity.updateCount(eventSize);
     }
 
-    private CostFlowEntity getCostFlow(CostFlowKey costFlowKey) {
-        CostFlowEntity costFlowEntity = costFlowEntityMap.get(costFlowKey);
-        if (costFlowEntity == null) {
-            costFlowEntity = new CostFlowEntity.Builder()
+    private TrafficStatisticEntity getTrafficStatistic(TrafficStatisticKey trafficStatisticKey) {
+        TrafficStatisticEntity trafficStatisticEntity = costFlowEntityMap.get(trafficStatisticKey);
+        if (trafficStatisticEntity == null) {
+            trafficStatisticEntity = new TrafficStatisticEntity.Builder()
                     .dcName(this.trafficEntity.getDcName())
                     .buName(this.trafficEntity.getBuName())
                     .mha(this.trafficEntity.getMhaName())
@@ -103,12 +103,12 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
                     .clusterName(this.trafficEntity.getClusterName())
                     .mysqlIp(this.trafficEntity.getIp())
                     .mysqlPort(this.trafficEntity.getPort())
-                    .dbName(costFlowKey.getDbName())
-                    .srcRegion(costFlowKey.getSrcRegion())
-                    .dstRegion(costFlowKey.getDstRegion()).build();
-            costFlowEntityMap.put(costFlowKey, costFlowEntity);
+                    .dbName(trafficStatisticKey.getDbName())
+                    .srcRegion(trafficStatisticKey.getSrcRegion())
+                    .dstRegion(trafficStatisticKey.getDstRegion()).build();
+            costFlowEntityMap.put(trafficStatisticKey, trafficStatisticEntity);
         }
-        return costFlowEntity;
+        return trafficStatisticEntity;
     }
 
     public String getClusterName() {

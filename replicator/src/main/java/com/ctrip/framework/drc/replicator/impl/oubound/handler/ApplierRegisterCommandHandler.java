@@ -12,7 +12,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.monitor.entity.CostFlowKey;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -465,7 +465,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 if (drc_gtid_log_event == eventType) {
-                    outboundMonitorReport.updateCostFlow(new CostFlowKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
                 }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
@@ -477,10 +477,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 logGtid(previousGtidLogEvent, eventType);
 
-                CostFlowKey costFlowKey = new CostFlowKey(null, replicatorRegion, applierRegion);
+                TrafficStatisticKey trafficStatisticKey = new TrafficStatisticKey(null, replicatorRegion, applierRegion);
 
                 // read header already
-                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent, costFlowKey);
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent, trafficStatisticKey);
                 filterChain.doFilter(logEventContext);
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();

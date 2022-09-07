@@ -116,7 +116,7 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
-    public void reportCostFlow(@Valid CostFlowEntity costFlowEntity) {
+    public void reportCostFlow(@Valid TrafficStatisticEntity trafficStatisticEntity) {
 
     }
 
