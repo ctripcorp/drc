@@ -21,7 +21,7 @@ public class DrcCostKafkaSender {
 
     private static final String TOPIC = "ops.cost.insight.share.unit.detail.hourly";
 
-    Producer<String, String> producer;
+    private Producer<String, String> producer;
 
     @PostConstruct
     private void init() throws IOException {

@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.core.monitor.entity.CostFlowEntity;
+import com.ctrip.framework.drc.core.monitor.entity.CostFlowKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -22,6 +24,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
 
     private Map<TableKey, RowsFilterEntity> rowsFilterEntityMap = Maps.newConcurrentMap();
 
+    private Map<CostFlowKey, CostFlowEntity> costFlowEntityMap = Maps.newConcurrentMap();
+
     public OutboundMonitorReport(long domain, TrafficEntity trafficEntity) {
         super(domain, trafficEntity);
     }
@@ -38,6 +42,12 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
             RowsFilterEntity rowsFilterEntity = entry.getValue();
             hickwallReporter.reportRowsFilter(rowsFilterEntity);
             rowsFilterEntity.clearCount();
+        }
+
+        for (Map.Entry<CostFlowKey, CostFlowEntity> entry : costFlowEntityMap.entrySet()) {
+            CostFlowEntity costFlowEntity = entry.getValue();
+            hickwallReporter.reportCostFlow(costFlowEntity);
+            costFlowEntity.clearCount();
         }
     }
 
@@ -74,6 +84,31 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
             rowsFilterEntityMap.put(tableKey, rowsFilterEntity);
         }
         return rowsFilterEntity;
+    }
+
+    public void updateCostFlow(CostFlowKey costFlowKey, long eventSize) {
+        CostFlowEntity costFlowEntity = getCostFlow(costFlowKey);
+        costFlowEntity.updateCount(eventSize);
+    }
+
+    private CostFlowEntity getCostFlow(CostFlowKey costFlowKey) {
+        CostFlowEntity costFlowEntity = costFlowEntityMap.get(costFlowKey);
+        if (costFlowEntity == null) {
+            costFlowEntity = new CostFlowEntity.Builder()
+                    .dcName(this.trafficEntity.getDcName())
+                    .buName(this.trafficEntity.getBuName())
+                    .mha(this.trafficEntity.getMhaName())
+                    .clusterAppId(this.trafficEntity.getClusterAppId())
+                    .registryKey(this.trafficEntity.getRegistryKey())
+                    .clusterName(this.trafficEntity.getClusterName())
+                    .mysqlIp(this.trafficEntity.getIp())
+                    .mysqlPort(this.trafficEntity.getPort())
+                    .dbName(costFlowKey.getDbName())
+                    .srcRegion(costFlowKey.getSrcRegion())
+                    .dstRegion(costFlowKey.getDstRegion()).build();
+            costFlowEntityMap.put(costFlowKey, costFlowEntity);
+        }
+        return costFlowEntity;
     }
 
     public String getClusterName() {

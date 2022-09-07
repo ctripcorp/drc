@@ -62,6 +62,8 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
 
     private List<Row> rows;
 
+    private long filteredEventSize;
+
     private Long checksum;
 
     public AbstractRowsEvent() {
@@ -80,11 +82,11 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         final int payloadLength = payloadBytes.length;
 
         // set logEventHeader
-        int eventSize = eventHeaderLengthVersionGt1 + payloadLength;
+        filteredEventSize = eventHeaderLengthVersionGt1 + payloadLength;
         setLogEventHeader(
                 new LogEventHeader(
-                        logEventHeader.getEventType(), logEventHeader.getServerId(), eventSize,
-                        logEventHeader.getNextEventStartPosition() + eventSize, logEventHeader.getFlags()
+                        logEventHeader.getEventType(), logEventHeader.getServerId(), filteredEventSize,
+                        logEventHeader.getNextEventStartPosition() + filteredEventSize, logEventHeader.getFlags()
                 )
         );
 
@@ -93,6 +95,10 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         payloadByteBuf.writeBytes(payloadBytes);
         payloadByteBuf.skipBytes(payloadLength);
         setPayloadBuf(payloadByteBuf);
+    }
+
+    public long getFilteredEventSize() {
+        return filteredEventSize;
     }
 
     @Override

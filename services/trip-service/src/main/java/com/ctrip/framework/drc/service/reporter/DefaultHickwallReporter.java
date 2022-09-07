@@ -53,6 +53,8 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     private static final String ROWS_FILTER_SEND_MEASUREMENT = "fx.drc.rows.filter.send";
 
+    private static final String COST_FLOW_SEND_MEASUREMENT = "fx.drc.cost.flow.send";
+
     private static final String CONSISTENCY_MEASUREMENT = "fx.drc.consistency";
 
     private static final String TABLE_CONSISTENCY_MEASUREMENT = "fx.drc.table.consistency";
@@ -91,7 +93,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         if (null == metricName) return true;
         return metrics.remove(metricName);
     }
-    
+
     @Override
     public boolean removeRegister(String measurement) {
         metrics.removeMatching(
@@ -104,6 +106,11 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getTotal(), ROWS_FILTER_TOTAL_MEASUREMENT);
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getSend(), ROWS_FILTER_SEND_MEASUREMENT);
+    }
+
+    @Override
+    public void reportCostFlow(CostFlowEntity costFlowEntity) {
+        reportResetCounter(costFlowEntity.getTags(), costFlowEntity.getSend(), COST_FLOW_SEND_MEASUREMENT);
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.entity.CostFlowKey;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -32,6 +33,8 @@ public class OutboundLogEventContext {
 
     private boolean noRowFiltered = false;
 
+    private CostFlowKey costFlowKey;
+
     private Exception cause;
 
     private String gtid;
@@ -39,12 +42,13 @@ public class OutboundLogEventContext {
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid, CostFlowKey costFlowKey) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
         this.eventType = eventType;
         this.eventSize = eventSize;
         this.gtid = gtid;
+        this.costFlowKey = costFlowKey;
     }
 
     public FileChannel getFileChannel() {
@@ -112,6 +116,10 @@ public class OutboundLogEventContext {
 
     public void setCause(Exception cause) {
         this.cause = cause;
+    }
+
+    public CostFlowKey getCostFlowKey() {
+        return costFlowKey;
     }
 
     public void backToHeader() {

@@ -40,6 +40,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             EventReader.readEvent(fileChannel, tableMapLogEvent);
             value.setNoRowFiltered(true);
             if (table_map_log_event == eventType) {
+                value.getCostFlowKey().setDbName(tableMapLogEvent.getSchemaName());
                 previousTableMapLogEvent = tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
                 previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);
