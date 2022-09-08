@@ -1,9 +1,9 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,7 +11,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Map;
 
 /**
  * Created by jixinwang on 2021/9/15
@@ -38,35 +37,44 @@ public class TransactionTableGtidReader implements GtidReader {
 
     @Override
     public String getExecutedGtids(Connection connection) {
-        GtidSet executedGtidSet = new GtidSet("");
-        Map<String, String> gtidSet = select(connection, SELECT_TRANSACTION_TABLE_GTID_SET);
-        for (Map.Entry<String, String> entry : gtidSet.entrySet()) {
-            executedGtidSet = executedGtidSet.union(new GtidSet(entry.getValue()));
-        }
-
-        Map<String, String> gtids = select(connection, SELECT_TRANSACTION_TABLE_GTID);
-        for (Map.Entry<String, String> entry : gtids.entrySet()) {
-            executedGtidSet.add(entry.getKey() + ":" + entry.getValue());
-        }
-
-        return executedGtidSet.toString();
+        GtidSet mergedGtidSet = selectMergedGtidSet(connection, SELECT_TRANSACTION_TABLE_GTID_SET);
+        GtidSet unMergedGtidSet = selectUnMergedGtidSet(connection, SELECT_TRANSACTION_TABLE_GTID);
+        return mergedGtidSet.union(unMergedGtidSet).toString();
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private Map<String, String> select(Connection connection, String sql) {
-        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+    private GtidSet selectMergedGtidSet(Connection connection, String sql) {
+        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
         {
-            Map<String, String> result = Maps.newHashMap();
+            GtidSet executedGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(sql)) {
                     while (resultSet.next()) {
-                        result.put(resultSet.getString(1), resultSet.getString(2));
+                        executedGtidSet = executedGtidSet.union(new GtidSet(resultSet.getString(2)));
                     }
                 }
             } catch (SQLException e) {
                 logger.warn("execute select sql error, sql is: {}", sql, e);
             }
-            return result;
+            return executedGtidSet;
+        });
+    }
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    private GtidSet selectUnMergedGtidSet(Connection connection, String sql) {
+        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+        {
+            GtidConsumer gtidConsumer = new GtidConsumer(true);
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                    while (resultSet.next()) {
+                        gtidConsumer.offer(String.format("%s:%s", resultSet.getString(1), resultSet.getString(2)));
+                    }
+                }
+            } catch (SQLException e) {
+                logger.warn("execute select sql error, sql is: {}", sql, e);
+            }
+            return gtidConsumer.getGtidSet();
         });
     }
 

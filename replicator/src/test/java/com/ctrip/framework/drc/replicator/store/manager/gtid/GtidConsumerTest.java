@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.store.manager.gtid;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
@@ -73,7 +74,7 @@ public class GtidConsumerTest extends AbstractTransactionTest {
                     ByteBuf byteBuf = getGtidEvent();
                     GtidLogEvent gtidLogEvent = new GtidLogEvent().read(byteBuf);
                     byteBuf.release();
-                    gtidConsumer.offer(gtidLogEvent);
+                    gtidConsumer.offer(gtidLogEvent.getGtid());
                     events.add(gtidLogEvent);
                 }
                 countDownLatch.countDown();
@@ -127,5 +128,59 @@ public class GtidConsumerTest extends AbstractTransactionTest {
         } catch (Exception e) {
             logger.error("getExecutedGtids error", e);
         }
+    }
+
+    @Test
+    public void testGetGtidSetWithoutQueue() {
+        String testGtid = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        GtidConsumer gtidConsumer = new GtidConsumer(false);
+        gtidConsumer.add(testGtid);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid));
+    }
+
+    @Test
+    public void testGetGtidSetWithQueue() {
+        String testGtid1 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        String testGtid2 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:67";
+        String testGtid3 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:68";
+        String testGtid4 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:69";
+        GtidConsumer gtidConsumer = new GtidConsumer(true);
+        gtidConsumer.offer(testGtid1);
+        gtidConsumer.offer(testGtid2);
+        gtidConsumer.offer(testGtid3);
+        gtidConsumer.add(testGtid4);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid1));
+        Assert.assertFalse(gtidSet.add(testGtid2));
+        Assert.assertFalse(gtidSet.add(testGtid3));
+        Assert.assertFalse(gtidSet.add(testGtid4));
+
+    }
+
+    @Test
+    public void testGetGtidEventSetWithQueue() {
+        String testGtid1 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        String testGtid2 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:67";
+        String testGtid3 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:68";
+        String testGtid4 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:69";
+
+
+        GtidLogEvent logEvent1 = new GtidLogEvent(testGtid1);
+        GtidLogEvent logEvent2 = new GtidLogEvent(testGtid2);
+        GtidLogEvent logEvent3 = new GtidLogEvent(testGtid3);
+
+
+        GtidConsumer gtidConsumer = new GtidConsumer(true, true);
+        gtidConsumer.offer(logEvent1);
+        gtidConsumer.offer(logEvent2);
+        gtidConsumer.offer(logEvent3);
+        gtidConsumer.add(testGtid4);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid1));
+        Assert.assertFalse(gtidSet.add(testGtid2));
+        Assert.assertFalse(gtidSet.add(testGtid3));
+        Assert.assertFalse(gtidSet.add(testGtid4));
+
     }
 }
