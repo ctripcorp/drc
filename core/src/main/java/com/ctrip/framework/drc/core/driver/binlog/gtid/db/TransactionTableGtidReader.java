@@ -62,9 +62,9 @@ public class TransactionTableGtidReader implements GtidReader {
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private GtidSet selectUnMergedGtidSet(Connection connection, String sql) {
-        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+        GtidConsumer gtidConsumer = new GtidConsumer(true);
+        DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
         {
-            GtidConsumer gtidConsumer = new GtidConsumer(true);
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(sql)) {
                     while (resultSet.next()) {
@@ -74,8 +74,9 @@ public class TransactionTableGtidReader implements GtidReader {
             } catch (SQLException e) {
                 logger.warn("execute select sql error, sql is: {}", sql, e);
             }
-            return gtidConsumer.getGtidSet();
         });
+        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.consumer.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+                gtidConsumer.getGtidSet());
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
