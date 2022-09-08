@@ -76,7 +76,9 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                         }
                         break;
                 }
-                value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
+                if (!noRowFiltered) {
+                    value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
+                }
             }
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
