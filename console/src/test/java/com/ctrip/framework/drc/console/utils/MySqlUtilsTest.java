@@ -582,7 +582,7 @@ public class MySqlUtilsTest {
             Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (Exception e) {
-            logger.error("init db error:", e);
+            logger.error("init db error: ", e);
         }
     }
 }
