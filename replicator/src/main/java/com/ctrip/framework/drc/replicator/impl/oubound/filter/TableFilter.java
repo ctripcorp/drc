@@ -41,7 +41,6 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             value.setNoRowFiltered(true);
             if (table_map_log_event == eventType) {
                 value.getTrafficStatisticKey().setDbName(tableMapLogEvent.getSchemaName());
-                logger.info("[flow] table map name is: {}", tableMapLogEvent.getSchemaName());
                 previousTableMapLogEvent = tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
                 previousTableMapLogEvent = drcTableMap.put(tableMapLogEvent.getSchemaNameDotTableName(), tableMapLogEvent);

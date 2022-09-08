@@ -31,7 +31,6 @@ public class TrafficStatisticFilter extends AbstractLogEventFilter<OutboundLogEv
         String dbName = value.getTrafficStatisticKey().getDbName();
         if (dbName != null) {
             trafficStatisticDb = dbName;
-            logger.info("[flow] trafficStatisticDb is: {}, dbName is: {}", trafficStatisticDb, dbName);
         }
 
         transactionSize += value.getFilteredEventSize();
@@ -39,7 +38,6 @@ public class TrafficStatisticFilter extends AbstractLogEventFilter<OutboundLogEv
         if (xid_log_event == value.getEventType()) {
             TrafficStatisticKey trafficStatisticKey = value.getTrafficStatisticKey();
             trafficStatisticKey.setDbName(trafficStatisticDb);
-            logger.info("[flow] db is: {}", trafficStatisticDb);
             outboundMonitorReport.updateTrafficStatistic(trafficStatisticKey, transactionSize + GTID_EVENT_SIZE);
             transactionSize = 0;
         }
