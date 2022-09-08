@@ -64,6 +64,8 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Filter first = filter;
         Assert.assertTrue(filter instanceof SendFilter);
         filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof TrafficStatisticFilter);
+        filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TableFilter);

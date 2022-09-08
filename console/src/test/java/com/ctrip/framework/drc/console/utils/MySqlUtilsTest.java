@@ -502,7 +502,7 @@ public class MySqlUtilsTest {
         String executedGtid = MySqlUtils.getExecutedGtid(endpointCi3306);
         System.out.println("executedGtid: " + executedGtid);
     }
-    
+
     @Test
     public void testCheckBinlogMode() {
         String binlogMode = MySqlUtils.checkBinlogMode(endpointCi3306);
@@ -582,7 +582,7 @@ public class MySqlUtilsTest {
             Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (Exception e) {
-            logger.error("init db error: ", e);
+            logger.error("init db error:", e);
         }
     }
 }

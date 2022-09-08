@@ -14,7 +14,7 @@ public class TrafficStatisticFilter extends AbstractLogEventFilter<OutboundLogEv
 
     private static final long GTID_EVENT_SIZE = 69;
 
-    private String costFlowDb;
+    private String trafficStatisticDb;
 
     private long transactionSize;
 
@@ -30,15 +30,15 @@ public class TrafficStatisticFilter extends AbstractLogEventFilter<OutboundLogEv
 
         String dbName = value.getTrafficStatisticKey().getDbName();
         if (dbName != null) {
-            costFlowDb = dbName;
+            trafficStatisticDb = dbName;
         }
 
         transactionSize += value.getFilteredEventSize();
 
         if (xid_log_event == value.getEventType()) {
             TrafficStatisticKey trafficStatisticKey = value.getTrafficStatisticKey();
-            trafficStatisticKey.setDbName(costFlowDb);
-            outboundMonitorReport.updateTrafficStatistic(value.getTrafficStatisticKey(), transactionSize + GTID_EVENT_SIZE);
+            trafficStatisticKey.setDbName(trafficStatisticDb);
+            outboundMonitorReport.updateTrafficStatistic(trafficStatisticKey, transactionSize + GTID_EVENT_SIZE);
             transactionSize = 0;
         }
 
