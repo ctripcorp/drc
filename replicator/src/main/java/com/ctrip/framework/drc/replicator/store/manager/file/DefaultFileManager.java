@@ -311,7 +311,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private GtidSet doGetGtids(File file, boolean executed) {
         long truncatePosition = TRUNCATE_FLAG;
-        GtidConsumer gtidConsumer = new GtidConsumer(executed);
+        GtidConsumer gtidEventConsumer = new GtidConsumer(executed, true);
         String gtid = StringUtils.EMPTY;
         RandomAccessFile raf = null;
         ByteBuffer headBuffer = ByteBuffer.allocateDirect(eventHeaderLengthVersionGt1);
@@ -382,7 +382,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             if (fileChannel.position() + nextTransactionOffset <= endPos) {  //one transaction or just drc_gtid_log_event
                                 if (nextTransactionOffset > 0 || LogEventUtils.isDrcGtidLogEvent(eventType)) {
                                     fileChannel.position(fileChannel.position() + nextTransactionOffset);
-                                    gtidConsumer.offer(gtidLogEvent.getGtid());
+                                    gtidEventConsumer.offer(gtidLogEvent);
                                     if (logger.isDebugEnabled()) {
                                         logger.debug("[Position] skip {} for gtid {}, cluster {}", nextTransactionOffset, gtidLogEvent.getGtid(), registryKey);
                                     }
@@ -402,7 +402,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             if (!executed) {
                                 return gtidSet;
                             } else {
-                                gtidConsumer.init(gtidSet);
+                                gtidEventConsumer.init(gtidSet);
                             }
                         }
                     } finally {
@@ -410,7 +410,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     }
                 } else if (executed && (LogEventType.xid_log_event == eventType)){
                     if (gtid != StringUtils.EMPTY) {  //add gtid when read xid
-                        gtidConsumer.add(gtid);
+                        gtidEventConsumer.add(gtid);
                         gtid = StringUtils.EMPTY;
                     }
                     truncatePosition = TRUNCATE_FLAG;
@@ -475,7 +475,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             }
         }
 
-        return gtidConsumer.getGtidSet();
+        return gtidEventConsumer.getGtidEventSet();
     }
 
     private void createFileIfNecessary() throws IOException {
