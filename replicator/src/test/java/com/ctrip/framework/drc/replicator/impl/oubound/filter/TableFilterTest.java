@@ -79,7 +79,7 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.table_map_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", null);
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey(null, "", ""));
         skip = tableFilter.doFilter(outboundLogEventContext);
         Assert.assertTrue(skip);
         Assert.assertEquals(1, tableFilter.getTableMapWithinTransaction().size());
