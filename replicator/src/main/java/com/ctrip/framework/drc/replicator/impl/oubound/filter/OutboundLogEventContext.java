@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -24,6 +25,8 @@ public class OutboundLogEventContext {
 
     private long eventSize;
 
+    private long filteredEventSize;
+
     private LogEvent rowsEvent;
 
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
@@ -32,6 +35,8 @@ public class OutboundLogEventContext {
 
     private boolean noRowFiltered = false;
 
+    private TrafficStatisticKey trafficStatisticKey;
+
     private Exception cause;
 
     private String gtid;
@@ -39,12 +44,14 @@ public class OutboundLogEventContext {
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid, TrafficStatisticKey trafficStatisticKey) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
         this.eventType = eventType;
         this.eventSize = eventSize;
         this.gtid = gtid;
+        this.trafficStatisticKey = trafficStatisticKey;
+        this.filteredEventSize = eventSize;
     }
 
     public FileChannel getFileChannel() {
@@ -114,6 +121,10 @@ public class OutboundLogEventContext {
         this.cause = cause;
     }
 
+    public TrafficStatisticKey getTrafficStatisticKey() {
+        return trafficStatisticKey;
+    }
+
     public void backToHeader() {
         try {
             this.fileChannel.position(fileChannelPos - eventHeaderLengthVersionGt1);
@@ -128,5 +139,13 @@ public class OutboundLogEventContext {
         } catch (IOException e) {
             setCause(e);
         }
+    }
+
+    public long getFilteredEventSize() {
+        return filteredEventSize;
+    }
+
+    public void setFilteredEventSize(long filteredEventSize) {
+        this.filteredEventSize = filteredEventSize;
     }
 }

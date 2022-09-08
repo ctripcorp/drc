@@ -34,20 +34,27 @@ public class DbTbl implements DalPojo {
 	private String dbName;
 
     /**
-     * 集群mha group id，表示复制关系
+     * Db owner
      */
-	@Column(name = "mha_group_id")
-	@Type(value = Types.BIGINT)
-	private Long mhaGroupId;
+	@Column(name = "db_owner")
+	@Type(value = Types.VARCHAR)
+	private String dbOwner;
 
     /**
-     * db分机房域名是否创建, 0:否; 1:是
+     * buCode 如 FLT
      */
-	@Column(name = "dns_status")
-	@Type(value = Types.TINYINT)
-	private Integer dnsStatus;
+	@Column(name = "bu_code")
+	@Type(value = Types.VARCHAR)
+	private String buCode;
 
-    /**
+	/**
+	 * buName 中文名
+	 */
+	@Column(name = "bu_name")
+	@Type(value = Types.VARCHAR)
+	private String buName;
+	
+	/**
      * 是否删除, 0:否; 1:是
      */
 	@Column(name = "deleted")
@@ -84,20 +91,28 @@ public class DbTbl implements DalPojo {
 		this.dbName = dbName;
 	}
 
-	public Long getMhaGroupId() {
-		return mhaGroupId;
+	public String getDbOwner() {
+		return dbOwner;
 	}
 
-	public void setMhaGroupId(Long mhaGroupId) {
-		this.mhaGroupId = mhaGroupId;
+	public void setDbOwner(String dbOwner) {
+		this.dbOwner = dbOwner;
 	}
 
-	public Integer getDnsStatus() {
-		return dnsStatus;
+	public String getBuCode() {
+		return buCode;
 	}
 
-	public void setDnsStatus(Integer dnsStatus) {
-		this.dnsStatus = dnsStatus;
+	public void setBuCode(String buCode) {
+		this.buCode = buCode;
+	}
+
+	public String getBuName() {
+		return buName;
+	}
+
+	public void setBuName(String buName) {
+		this.buName = buName;
 	}
 
 	public Integer getDeleted() {
@@ -123,5 +138,4 @@ public class DbTbl implements DalPojo {
 	public void setDatachangeLasttime(Timestamp datachangeLasttime) {
 		this.datachangeLasttime = datachangeLasttime;
 	}
-
 }

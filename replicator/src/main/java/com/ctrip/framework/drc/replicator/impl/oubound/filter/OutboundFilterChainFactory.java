@@ -20,8 +20,11 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
     public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
         SendFilter sendFilter = new SendFilter(context.getChannel());
 
+        TrafficStatisticFilter trafficStatisticFilter = new TrafficStatisticFilter(context.getOutboundMonitorReport());
+        sendFilter.setSuccessor(trafficStatisticFilter);
+
         TypeFilter consumeTypeFilter = new TypeFilter(context.getConsumeType(), context.shouldFilterRows());
-        sendFilter.setSuccessor(consumeTypeFilter);
+        trafficStatisticFilter.setSuccessor(consumeTypeFilter);
 
         TableFilter tableFilter = new TableFilter();
         consumeTypeFilter.setSuccessor(tableFilter);

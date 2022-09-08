@@ -173,6 +173,11 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String APPLY_MODE_MIGRATE_SWITCH = "apply.mode.migrate.switch";
     private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
     
+    private static final String SYNC_DB_INFO_SWITCH = "sync.db.info.switch";
+    // allow update and delete the change
+    private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
+    
+    
     public String getDrcMetaXmlUpdateSwitch (){
         return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_ON);
     }
@@ -471,5 +476,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     
     public String getApplyModeMigrateSwitch() {
         return getProperty(APPLY_MODE_MIGRATE_SWITCH,SWITCH_STATUS_OFF);
+    }
+    
+    public String getSyncDbInfoSwitch() {
+        return getProperty(SYNC_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
+    }
+    
+    public String getUpdateDbInfoSwitch() {
+        return getProperty(UPDATE_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
+        
     }
 }

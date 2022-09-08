@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -11,6 +12,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -72,6 +74,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private static final int END_OF_STATEMENT_FLAG = 1;
 
+    private static final String DRC_GTID_EVENT_DB_NAME = "drc_gtid_db";
+
     private GtidManager gtidManager;
 
     private FileManager fileManager;
@@ -82,6 +86,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private boolean setGitdMode;
 
+    private String replicatorRegion;
+
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
     public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, ReplicatorConfig replicatorConfig) {
@@ -90,6 +96,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         this.outboundMonitorReport = outboundMonitorReport;
         this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
         this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
+        this.replicatorRegion = RegionConfig.getInstance().getRegion();
     }
 
     @Override
@@ -159,6 +166,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private AviatorRegexFilter aviatorFilter = null;
 
+        private String applierRegion;
+
         private String ip;
 
         private OffsetNotifier offsetNotifier = new OffsetNotifier(LOG_EVENT_START);
@@ -190,8 +199,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
+            this.applierRegion = dumpCommandPacket.getRegion();
             this.ip = ip;
-            logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
+            logger.info("[ConsumeType] is {}, [properties] is {}, [replicatorRegion] is {}, [applierRegion] is {}, for {} from {}", consumeType.name(), properties, replicatorRegion, applierRegion, applierName, ip);
             channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
@@ -453,6 +463,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 if (gtid_log_event == eventType) {
                     updateMonitorStatis(eventSize, previousGtidLogEvent);
                 }
+
+                if (drc_gtid_log_event == eventType) {
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
+                }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
                         || checkIncludedDbs(fileChannel, eventSize, eventType, headByteBuf))
@@ -462,8 +476,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 logGtid(previousGtidLogEvent, eventType);
+
+                TrafficStatisticKey trafficStatisticKey = new TrafficStatisticKey(null, replicatorRegion, applierRegion);
+
                 // read header already
-                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent, trafficStatisticKey);
                 filterChain.doFilter(logEventContext);
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();

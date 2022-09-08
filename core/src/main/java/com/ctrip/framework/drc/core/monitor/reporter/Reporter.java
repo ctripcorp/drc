@@ -55,4 +55,6 @@ public interface Reporter extends Ordered {
 
     void reportRowsFilter(@Valid RowsFilterEntity rowsFilterEntity);
 
+    void reportTrafficStatistic(@Valid TrafficStatisticEntity trafficStatisticEntity);
+
 }

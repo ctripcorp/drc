@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.monitor.enums.ConsistencyEnum;
 import com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum;
 
 
+import javax.validation.Valid;
 import java.util.Map;
 
 /**
@@ -51,7 +52,7 @@ public class BlankReporter implements Reporter {
 
     @Override
     public void reportResetCounter(Map<String, String> tags, Long value, MeasurementEnum measurementEnum) {
-        
+
     }
 
     @Override
@@ -111,6 +112,11 @@ public class BlankReporter implements Reporter {
 
     @Override
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
+
+    }
+
+    @Override
+    public void reportTrafficStatistic(@Valid TrafficStatisticEntity trafficStatisticEntity) {
 
     }
 

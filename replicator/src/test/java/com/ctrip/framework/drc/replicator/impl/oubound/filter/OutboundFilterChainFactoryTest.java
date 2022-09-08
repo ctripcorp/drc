@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
@@ -63,6 +64,8 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         Filter first = filter;
         Assert.assertTrue(filter instanceof SendFilter);
         filter = filter.getSuccessor();
+        Assert.assertTrue(filter instanceof TrafficStatisticFilter);
+        filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TypeFilter);
         filter = filter.getSuccessor();
         Assert.assertTrue(filter instanceof TableFilter);
@@ -95,7 +98,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.drc_table_map_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         boolean noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertTrue(noRowsFilter);
 
@@ -109,7 +112,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.write(byteBuffer);
 
         logEventType = LogEventType.gtid_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertTrue(noRowsFilter);
 
@@ -123,7 +126,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.write(byteBuffer);
 
         logEventType = LogEventType.table_map_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertTrue(noRowsFilter);
 
@@ -140,7 +143,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.write_rows_event_v2;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
@@ -159,7 +162,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.write_rows_event_v2;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
@@ -179,7 +182,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.write_rows_event_v2;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertFalse(noRowsFilter);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
@@ -199,7 +202,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.xid_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         noRowsFilter = filterChain.doFilter(outboundLogEventContext);
         Assert.assertTrue(noRowsFilter);
 

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.activity.replicator.driver;
 
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.AbstractInstanceConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
@@ -77,7 +78,9 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
         commandPacket.setConsumeType(ConsumeType.Applier.getCode());
         commandPacket.setApplyMode(slaveConfig.getApplyMode());
         commandPacket.setProperties(slaveConfig.getProperties());
-        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}, applyMode is: {}, properties is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter(), slaveConfig.getApplyMode(), slaveConfig.getProperties());
+        String region = RegionConfig.getInstance().getRegion();
+        commandPacket.setRegion(region);
+        logger.info("[Filter] applier name is: {}, includeDbs is: {}, name filter is: {}, applyMode is: {}, properties is: {}, region is: {}", slaveConfig.getApplierName(), slaveConfig.getIncludedDbs(), slaveConfig.getNameFilter(), slaveConfig.getApplyMode(), slaveConfig.getProperties(), region);
         CommandFuture<ResultCode> commandFuture = dumpGtidCommandHandler.handle(commandPacket, simpleObjectPool);
         return commandFuture;
     }

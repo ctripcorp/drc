@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.monitor.kpi;
 
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticEntity;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -22,6 +24,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
 
     private Map<TableKey, RowsFilterEntity> rowsFilterEntityMap = Maps.newConcurrentMap();
 
+    private Map<TrafficStatisticKey, TrafficStatisticEntity> trafficStatisticEntityMap = Maps.newConcurrentMap();
+
     public OutboundMonitorReport(long domain, TrafficEntity trafficEntity) {
         super(domain, trafficEntity);
     }
@@ -38,6 +42,12 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
             RowsFilterEntity rowsFilterEntity = entry.getValue();
             hickwallReporter.reportRowsFilter(rowsFilterEntity);
             rowsFilterEntity.clearCount();
+        }
+
+        for (Map.Entry<TrafficStatisticKey, TrafficStatisticEntity> entry : trafficStatisticEntityMap.entrySet()) {
+            TrafficStatisticEntity trafficStatisticEntity = entry.getValue();
+            hickwallReporter.reportTrafficStatistic(trafficStatisticEntity);
+            trafficStatisticEntity.clearCount();
         }
     }
 
@@ -74,6 +84,31 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
             rowsFilterEntityMap.put(tableKey, rowsFilterEntity);
         }
         return rowsFilterEntity;
+    }
+
+    public void updateTrafficStatistic(TrafficStatisticKey trafficStatisticKey, long eventSize) {
+        TrafficStatisticEntity trafficStatisticEntity = getTrafficStatistic(trafficStatisticKey);
+        trafficStatisticEntity.updateCount(eventSize);
+    }
+
+    private TrafficStatisticEntity getTrafficStatistic(TrafficStatisticKey trafficStatisticKey) {
+        TrafficStatisticEntity trafficStatisticEntity = trafficStatisticEntityMap.get(trafficStatisticKey);
+        if (trafficStatisticEntity == null) {
+            trafficStatisticEntity = new TrafficStatisticEntity.Builder()
+                    .dcName(this.trafficEntity.getDcName())
+                    .buName(this.trafficEntity.getBuName())
+                    .mha(this.trafficEntity.getMhaName())
+                    .clusterAppId(this.trafficEntity.getClusterAppId())
+                    .registryKey(this.trafficEntity.getRegistryKey())
+                    .clusterName(this.trafficEntity.getClusterName())
+                    .mysqlIp(this.trafficEntity.getIp())
+                    .mysqlPort(this.trafficEntity.getPort())
+                    .dbName(trafficStatisticKey.getDbName())
+                    .srcRegion(trafficStatisticKey.getSrcRegion())
+                    .dstRegion(trafficStatisticKey.getDstRegion()).build();
+            trafficStatisticEntityMap.put(trafficStatisticKey, trafficStatisticEntity);
+        }
+        return trafficStatisticEntity;
     }
 
     public String getClusterName() {

@@ -42,6 +42,8 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     private String properties = StringUtils.EMPTY;
 
+    private String region = StringUtils.EMPTY;
+
     public ApplierDumpCommandPacket(byte command) {
         super(command);
     }
@@ -123,6 +125,9 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         // properties
         ByteHelper.writeNullTerminatedString(properties, out);
 
+        // region
+        ByteHelper.writeNullTerminatedString(region, out);
+
         return out.toByteArray();
     }
 
@@ -178,14 +183,19 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
         nameFilter = new String(filterBytes);
         index += (filterBytes.length + 1);
 
-        if (data.length > index) {
-            applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
-            index += 2;
+        applyMode = ByteHelper.readUnsignedShortLittleEndian(data, index);
+        index += 2;
 
-            // 2. read rowFilterContext
-            byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
-            properties = new String(propertiesBytes);
-            index += (propertiesBytes.length + 1);
+        // 2. read rowFilterContext
+        byte[] propertiesBytes = ByteHelper.readNullTerminatedBytes(data, index);
+        properties = new String(propertiesBytes);
+        index += (propertiesBytes.length + 1);
+
+        if (data.length > index) {
+            // read region
+            byte[] regionBytes = ByteHelper.readNullTerminatedBytes(data, index);
+            region = new String(regionBytes);
+            index += (regionBytes.length + 1);
         }
 
         // end read
@@ -245,5 +255,13 @@ public class ApplierDumpCommandPacket extends AbstractServerCommandWithHeadPacke
 
     public void setProperties(String properties) {
         this.properties = properties;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
     }
 }

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import io.netty.buffer.ByteBuf;
 import org.junit.After;
@@ -60,7 +61,7 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.drc_table_map_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", null);
         boolean skip = tableFilter.doFilter(outboundLogEventContext);
         Assert.assertTrue(skip);
         Assert.assertEquals(1, tableFilter.getDrcTableMap().size());
@@ -78,7 +79,7 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.table_map_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey(null, "", ""));
         skip = tableFilter.doFilter(outboundLogEventContext);
         Assert.assertTrue(skip);
         Assert.assertEquals(1, tableFilter.getTableMapWithinTransaction().size());
@@ -96,7 +97,7 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.write_rows_event_v2;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", null);
         skip = tableFilter.doFilter(outboundLogEventContext);
         Assert.assertFalse(skip);
         Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
@@ -115,7 +116,7 @@ public class  TableFilterTest extends AbstractRowsFilterTest {
         fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
 
         logEventType = LogEventType.xid_log_event;
-        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "", new TrafficStatisticKey("testDbName", "srcRegion", "dstRegion"));
         skip = tableFilter.doFilter(outboundLogEventContext);
         Assert.assertTrue(skip);
 
