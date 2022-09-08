@@ -157,4 +157,30 @@ public class GtidConsumerTest extends AbstractTransactionTest {
         Assert.assertFalse(gtidSet.add(testGtid4));
 
     }
+
+    @Test
+    public void testGetGtidEventSetWithQueue() {
+        String testGtid1 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:66";
+        String testGtid2 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:67";
+        String testGtid3 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:68";
+        String testGtid4 = "a0a1fbb8-bdc8-11e9-96a0-fa163e7af2ad:69";
+
+
+        GtidLogEvent logEvent1 = new GtidLogEvent(testGtid1);
+        GtidLogEvent logEvent2 = new GtidLogEvent(testGtid2);
+        GtidLogEvent logEvent3 = new GtidLogEvent(testGtid3);
+
+
+        GtidConsumer gtidConsumer = new GtidConsumer(true, true);
+        gtidConsumer.offer(logEvent1);
+        gtidConsumer.offer(logEvent2);
+        gtidConsumer.offer(logEvent3);
+        gtidConsumer.add(testGtid4);
+        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        Assert.assertFalse(gtidSet.add(testGtid1));
+        Assert.assertFalse(gtidSet.add(testGtid2));
+        Assert.assertFalse(gtidSet.add(testGtid3));
+        Assert.assertFalse(gtidSet.add(testGtid4));
+
+    }
 }
