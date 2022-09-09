@@ -152,10 +152,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
-        private Set<String> includedDbs = Sets.newHashSet();
-
-        private boolean dbFiltering = false;
-
         private boolean shouldSkipEvent = false;
 
         private int continuousTableMapCount = 0;
@@ -202,7 +198,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
-            this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
             this.applierRegion = dumpCommandPacket.getRegion();
             this.ip = ip;
             logger.info("[ConsumeType] is {}, [properties] is {}, [replicatorRegion] is {}, [applierRegion] is {}, for {} from {}", consumeType.name(), properties, replicatorRegion, applierRegion, applierName, ip);
@@ -472,8 +467,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
-                        || checkIncludedDbs(fileChannel, eventSize, eventType, headByteBuf))
-                        || processNameFilter(fileChannel, eventSize, eventType, headByteBuf)) {
+                        || processNameFilter(fileChannel, eventSize, eventType, headByteBuf))) {
                     lastEventType = eventType;
                     return previousGtidLogEvent;
                 }
@@ -499,34 +493,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
             lastEventType = eventType;
             return previousGtidLogEvent;
-        }
-
-        private boolean checkIncludedDbs(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
-            if (xid_log_event == eventType) {
-                dbFiltering = false;
-                return dbFiltering;
-            }
-            if (dbFiltering) {
-                fileChannel.position(fileChannel.position() + (eventSize - eventHeaderLengthVersionGt1));  // forward body size
-                return dbFiltering;
-            }
-            if (!includedDbs.isEmpty() && table_map_log_event == eventType) {
-                handTableMapEvent(fileChannel, eventSize, headByteBuf);
-            }
-            return dbFiltering;
-        }
-
-        private void handTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
-            TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
-            CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            if (!includedDbs.contains(tableMapLogEvent.getSchemaName())) {
-                dbFiltering = true;
-                GTID_LOGGER.info("[Skip] {} for includedDbs:{}", tableMapLogEvent.getSchemaName(), includedDbs);
-            } else {
-                dbFiltering = false;
-                fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
-            }
-            releaseCompositeByteBuf(compositeByteBuf);
         }
 
         private boolean processNameFilter(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
