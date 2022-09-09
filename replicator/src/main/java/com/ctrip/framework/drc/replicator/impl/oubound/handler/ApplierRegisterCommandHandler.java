@@ -168,6 +168,10 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierRegion;
 
+        private long transactionSize;
+
+        private String sendingSchema;
+
         private String ip;
 
         private OffsetNotifier offsetNotifier = new OffsetNotifier(LOG_EVENT_START);
@@ -461,10 +465,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
                 if (gtid_log_event == eventType) {
+                    transactionSize += eventSize;
                     updateMonitorStatis(eventSize, previousGtidLogEvent);
-                }
-
-                if (drc_gtid_log_event == eventType) {
+                } else {
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
                 }
             } else {  // two cases: partial transaction and filtered db
@@ -477,13 +480,17 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 logGtid(previousGtidLogEvent, eventType);
 
-                TrafficStatisticKey trafficStatisticKey = new TrafficStatisticKey(null, replicatorRegion, applierRegion);
-
                 // read header already
-                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent, trafficStatisticKey);
+                OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
                 filterChain.doFilter(logEventContext);
+                transactionSize += logEventContext.getFilteredEventSize();
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();
+                }
+
+                if (xid_log_event == eventType) {
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(sendingSchema, replicatorRegion, applierRegion), transactionSize);
+                    transactionSize = 0;
                 }
 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
@@ -523,10 +530,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean processNameFilter(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
-            if (!includedDbs.isEmpty() || aviatorFilter == null) {
-                return false;
-            }
-
             shouldSkipEvent = false;
 
             if (xid_log_event == eventType) {
@@ -571,7 +574,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            if (!aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
+            sendingSchema = tableMapLogEvent.getSchemaName();
+            if (aviatorFilter != null && !aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
                 shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
                 GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());

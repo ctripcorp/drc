@@ -35,8 +35,6 @@ public class OutboundLogEventContext {
 
     private boolean noRowFiltered = false;
 
-    private TrafficStatisticKey trafficStatisticKey;
-
     private Exception cause;
 
     private String gtid;
@@ -44,13 +42,12 @@ public class OutboundLogEventContext {
     public OutboundLogEventContext() {
     }
 
-    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid, TrafficStatisticKey trafficStatisticKey) {
+    public OutboundLogEventContext(FileChannel fileChannel, long fileChannelPos, LogEventType eventType, long eventSize, String gtid) {
         this.fileChannel = fileChannel;
         this.fileChannelPos = fileChannelPos;
         this.eventType = eventType;
         this.eventSize = eventSize;
         this.gtid = gtid;
-        this.trafficStatisticKey = trafficStatisticKey;
         this.filteredEventSize = eventSize;
     }
 
@@ -119,10 +116,6 @@ public class OutboundLogEventContext {
 
     public void setCause(Exception cause) {
         this.cause = cause;
-    }
-
-    public TrafficStatisticKey getTrafficStatisticKey() {
-        return trafficStatisticKey;
     }
 
     public void backToHeader() {
