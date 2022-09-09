@@ -38,7 +38,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Component
 @Order(2)
 public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedCallable<Boolean> {
-    
+
     protected static final int INITIAL_DELAY = 5;
 
     protected static final int PERIOD = 60 * 12;
@@ -46,15 +46,15 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
     protected static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 
     private final static int RETRY_TIME = 3;
-    
+
     private Map<Long,String> buId2BuCodeMap = Maps.newHashMap();
-    
+
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired
     private OpenService openService;
-    
+
     @Autowired
     private DbTblDao dbTblDao;
 
@@ -66,7 +66,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         setTimeUnit(TIME_UNIT);
         super.initialize();
     }
-    
+
     @Override
     public void scheduledTask() {
         try {
@@ -100,7 +100,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         return true;
     }
 
-    
+
     @Override
     public void afterException(Throwable t) {
         logger.warn("[[task=SyncDbInfoTask]] task error once",t);
@@ -126,7 +126,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
             if (len == 0) {
                 return;
             }
-            
+
             //handle offline dbs
             List<String> remoteDbNameList = new ArrayList<>();
             for (JsonElement jsonElement : dbArray) {
@@ -139,7 +139,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
             final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
                     dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
 
-            // update 
+            // update
             int size = 100;
             int pages = len / size + 1;
             for (int i = 0; i < pages; i++) {
@@ -202,9 +202,9 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
             logger.info("[[task=SyncDbInfoTask]] sync all DbInfo done");
             t.complete();
         }
-        
+
     }
-    
+
     @VisibleForTesting
     protected void setValue(DbTbl target,JsonObject source) {
         target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString());
