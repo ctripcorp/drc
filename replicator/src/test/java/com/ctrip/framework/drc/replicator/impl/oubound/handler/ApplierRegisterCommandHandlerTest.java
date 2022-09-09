@@ -349,27 +349,6 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
-    @Test
-    public void test_14_includedDb() throws Exception {
-        Set<String> includedDbs = Sets.newHashSet();
-        String dbName1 = "drc4";
-        String dbName2 = "drc3";
-        includedDbs.add(dbName1);
-        includedDbs.add(dbName2);
-        when(dumpCommandPacket.getIncludedDbs()).thenReturn(includedDbs);
-
-        int size = createDiffDbRows(includedDbs);
-        GtidSet gtidSet = new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-2500");
-        includedDbs.remove(dbName1);
-        when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Applier.getCode());
-        when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
-
-        applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
-        Thread.sleep(250);
-        verify(channel, Mockito.times(size/2 * 4 /* dbName2 */ + size/2 * 2 /* dbName1 */ + 1 /* drc_uuid*/ + 1 /* close fd write empty event*/)).writeAndFlush(any(DefaultFileRegion.class));
-        verify(channelAttributeKey, times(0)).setHeartBeat(false);
-    }
-
     // send 123(tableId) -> db1.table1(tableName), skip 124(tableId) -> db1.table2(tableName)
     @Test
     public void test_15_nameFilter() throws Exception {
