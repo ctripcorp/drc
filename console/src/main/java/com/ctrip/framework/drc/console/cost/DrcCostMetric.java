@@ -16,7 +16,8 @@ public class DrcCostMetric {
     private String app_platform;
     private String app_instance;
     private String operation;
-    private Float share_unit_type;
+    private String share_unit_type;
+    private Float share_unit_amount;
     private String cost_group;
     private String owner;
     private String bu_code;
@@ -95,12 +96,20 @@ public class DrcCostMetric {
         this.operation = operation;
     }
 
-    public Float getShare_unit_type() {
+    public String getShare_unit_type() {
         return share_unit_type;
     }
 
-    public void setShare_unit_type(Float share_unit_type) {
+    public void setShare_unit_type(String share_unit_type) {
         this.share_unit_type = share_unit_type;
+    }
+
+    public Float getShare_unit_amount() {
+        return share_unit_amount;
+    }
+
+    public void setShare_unit_amount(Float share_unit_amount) {
+        this.share_unit_amount = share_unit_amount;
     }
 
     public String getCost_group() {
