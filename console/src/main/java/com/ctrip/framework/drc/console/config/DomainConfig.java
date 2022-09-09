@@ -47,6 +47,12 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
     
+    private static final String CMS_GET_DB_INFO_URL = "cms.get.db.info.url";
+    private static final String DEFAULT_CMS_GET_DB_INFO_URL = "http://localhost:8080/cms/getAllDbInfo";
+    private static final String CMS_GET_BU_INFO_URL = "cms.get.bu.info.url";
+    private static final String DEFAULT_CMS_GET_BU_INFO_URL = "http://localhost:8080/cms/getAllBuInfo";
+    private static final String CMS_ACCESS_TOKEN = "cms.access.token";
+    
     public String getCmsGetServerUrl() {
         return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
     }
@@ -93,6 +99,18 @@ public class DomainConfig extends AbstractConfigBean {
     
     public String getOpsAccessToken() {
         return getProperty(OPS_ACCESS_TOKEN,DEFAULT_OPS_ACCESS_TOKEN);
+    }
+    
+    public String getCmsGetDbInfoUrl() {
+        return getProperty(CMS_GET_DB_INFO_URL,DEFAULT_CMS_GET_DB_INFO_URL);
+    }
+    
+    public String getCmsGetBuInfoUrl() {
+        return getProperty(CMS_GET_BU_INFO_URL,DEFAULT_CMS_GET_BU_INFO_URL);
+    }
+    
+    public String getCmsAccessToken() {
+        return getProperty(CMS_ACCESS_TOKEN,"");
     }
     
 }

@@ -57,14 +57,14 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
         try {
             if (isRegionLeader) {
                 logger.info("[[task=syncMhaTask]]is leader");
-                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.syncMha", "syncFromDal", 
+                DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.schedule", "syncFromDal", 
                     new RetryTask<>(new SyncMhaFromDalTask(), RETRY_TIME)
                 );
             } else {
                 logger.info("[[task=syncMhaTask]]not a leader do nothing");
             }
         } catch (Throwable t) {
-            logger.info("[[task=syncMhaTask]]cluster manager check error", t);
+            logger.info("[[task=syncMhaTask]] error", t);
         }
 
     }
