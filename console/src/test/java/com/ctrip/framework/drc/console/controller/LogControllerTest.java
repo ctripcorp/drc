@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.console.dto.LogHandleDto;
 import com.ctrip.framework.drc.console.service.LogService;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogChecker;
 import com.ctrip.framework.drc.console.service.impl.UnitServiceImpl;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;

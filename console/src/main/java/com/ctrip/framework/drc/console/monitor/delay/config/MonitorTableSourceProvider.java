@@ -177,7 +177,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     // allow update and delete the change
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
 
-    private static final String SEND_FLOW_COST_SWITCH = "send.flow.cost.switch";
+    private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
 
 
     public String getDrcMetaXmlUpdateSwitch (){
@@ -489,8 +489,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     }
 
-    public String getSendFlowCostSwitch() {
-        return getProperty(SEND_FLOW_COST_SWITCH,SWITCH_STATUS_OFF);
+    public String getSendTrafficSwitch() {
+        return getProperty(SEND_TRAFFIC_SWITCH,SWITCH_STATUS_OFF);
 
     }
 }

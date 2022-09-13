@@ -53,8 +53,8 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_CMS_GET_BU_INFO_URL = "http://localhost:8080/cms/getAllBuInfo";
     private static final String CMS_ACCESS_TOKEN = "cms.access.token";
 
-    private static final String FLOW_COST_FROM_HICK_WALL_URL = "flow.cost.from.hick.wall.url";
-    private static final String DEFAULT_FLOW_COST_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
+    private static final String TRAFFIC_FROM_HICK_WALL_URL = "traffic.from.hick.wall.url";
+    private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
 
     public String getCmsGetServerUrl() {
         return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
@@ -116,8 +116,8 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(CMS_ACCESS_TOKEN,"");
     }
 
-    public String getFlowCostFromHickWall() {
-        return getProperty(FLOW_COST_FROM_HICK_WALL_URL, DEFAULT_FLOW_COST_FROM_HICK_WALL_URL);
+    public String getTrafficFromHickWall() {
+        return getProperty(TRAFFIC_FROM_HICK_WALL_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_URL);
     }
 
 }
