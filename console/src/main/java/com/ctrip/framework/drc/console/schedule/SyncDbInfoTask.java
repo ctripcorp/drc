@@ -194,7 +194,6 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         } catch (Exception e) {
             logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);
         }
-        
     }
 
     @VisibleForTesting

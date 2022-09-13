@@ -73,6 +73,10 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     public void scheduledTask() throws Throwable {
         try {
             if (isRegionLeader) {
+<<<<<<< HEAD
+=======
+                logger.info("[[task=sendTraffic]] is leader");
+>>>>>>> b262150c2be63ec52a232c90dea5ca704153b169
                 final String sendTrafficSwitch = configService.getSendTrafficSwitch();
                 if ("on".equals(sendTrafficSwitch)) {
                     logger.info("[[task=sendTraffic] start");
@@ -169,7 +173,11 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             try {
                 statisticsService.send(metric);
             } catch (Exception e) {
+<<<<<<< HEAD
                 logger.info("[[task=sendTraffic]] send to kafka error: {}", metric, e);
+=======
+                logger.error("[[task=sendTraffic]] send to kafka error: {}", metric, e);
+>>>>>>> b262150c2be63ec52a232c90dea5ca704153b169
             }
 
         }
