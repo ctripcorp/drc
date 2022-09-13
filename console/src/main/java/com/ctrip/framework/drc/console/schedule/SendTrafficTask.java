@@ -61,7 +61,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     @Override
     public void initialize() {
         final int initialDelay = 60 * 5;
-        final int period = 60 * 60 * 24;
+        final int period = 60 * 60;
         setInitialDelay(initialDelay);
         setPeriod(period);
         setTimeUnit(TimeUnit.SECONDS);
@@ -70,23 +70,25 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     }
 
     @Override
-    public void scheduledTask() throws Exception {
+    public void scheduledTask() throws Throwable {
         try {
-            final String sendTrafficSwitch = configService.getSendTrafficSwitch();
-            if ("on".equals(sendTrafficSwitch)) {
-                logger.info("[[task=sendTraffic] start");
-                DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "SendTraffic", new Task() {
-                    @Override
-                    public void go() throws Exception {
-                        dbMap = getDbInfo();
-                        sendTraffic();
-                    }
-                });
-
+            if (isRegionLeader) {
+                final String sendTrafficSwitch = configService.getSendTrafficSwitch();
+                if ("on".equals(sendTrafficSwitch)) {
+                    logger.info("[[task=sendTraffic] start");
+                    DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "SendTraffic", new Task() {
+                        @Override
+                        public void go() throws Exception {
+                            dbMap = getDbInfo();
+                            sendTraffic();
+                        }
+                    });
+                } else {
+                    logger.warn("[[task=sendTraffic]]switch is off");
+                }
             } else {
-                logger.warn("[[task=sendTraffic]]switch is off");
+                logger.info("[[task=sendTraffic]]not a leader do nothing");
             }
-
         } catch (Throwable t) {
             logger.error("[[task=sendTraffic]] log error", t);
         }
