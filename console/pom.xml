@@ -23,6 +23,17 @@
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <artifactId>kafka-clients</artifactId>-->
+<!--                    <groupId>org.apache.kafka</groupId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.kafka</groupId>-->
+<!--            <artifactId>kafka-clients</artifactId>-->
+<!--            <version>2.0.1</version>-->
 <!--        </dependency>-->
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.platform</groupId>-->
@@ -108,11 +119,6 @@
             <groupId>dom4j</groupId>
             <artifactId>dom4j</artifactId>
             <version>1.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ctrip.framework.ckafka</groupId>
-            <artifactId>client</artifactId>
-            <version>0.0.6</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

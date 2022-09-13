@@ -1,16 +1,10 @@
 package com.ctrip.framework.drc.console.controller.monitor;
 
 import com.ctrip.framework.drc.console.controller.AbstractControllerTest;
-import com.ctrip.framework.drc.console.controller.monitor.MonitorController;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.monitor.delay.config.ConsistencyMonitorConfig;
-import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
-import com.ctrip.framework.drc.console.service.DalService;
-import com.ctrip.framework.drc.console.service.monitor.ConsistencyMonitorService;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
-import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import org.junit.Assert;
@@ -20,16 +14,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;

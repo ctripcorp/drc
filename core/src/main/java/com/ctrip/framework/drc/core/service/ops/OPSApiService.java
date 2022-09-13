@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
 import com.ctrip.xpipe.api.lifecycle.Ordered;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,4 +14,6 @@ public interface OPSApiService extends Ordered {
     JsonNode getAllDbs(String mysqlDbClusterUrl,String accessToken,String clusterName, String env) throws JsonProcessingException;
 
      List<AppNode> getAppNodes(String cmsGetServerUrl,String accessToken,List<String> appIds,String env);
+
+    List<HickWallTrafficEntity> getTrafficFromHickWall(HickWallTrafficContext context) throws Exception;
 }

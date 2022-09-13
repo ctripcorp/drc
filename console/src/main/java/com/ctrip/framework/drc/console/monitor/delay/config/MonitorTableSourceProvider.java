@@ -169,15 +169,17 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String DIFF_COUNT_LIMIT = "fullDataCheck.diffCount.limit";
     private static int DEFAULT_DIFF_COUNT_LIMIT = 100;
-    
+
     private static final String APPLY_MODE_MIGRATE_SWITCH = "apply.mode.migrate.switch";
     private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
-    
+
     private static final String SYNC_DB_INFO_SWITCH = "sync.db.info.switch";
     // allow update and delete the change
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
-    
-    
+
+    private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
+
+
     public String getDrcMetaXmlUpdateSwitch (){
         return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_ON);
     }
@@ -291,7 +293,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public String getSyncMhaSwitch() {
         return getProperty(SWITCH_DRC_TASK_SYNC_MHA, SWITCH_STATUS_OFF);
     }
-    
+
     public String getSwitchSyncMhaUpdateAll() {
         return getProperty(SWITCH_SYNC_MHA_UPDATEALL,DEFAULT_SWITCH_SYNC_MHA_UPDATEALL);
     }
@@ -465,7 +467,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public String getUpdateMonitorMetaInfoSwitch() {
         return getProperty(UPDATE_MONITOR_META_INFO_SWITCH, SWITCH_STATUS_ON);
     }
-    
+
     public String getSlaveMachineOfflineSyncSwitch() {
         return getProperty(SWITCH_SALVE_MACHINE_OFFLINE_SYNC, DEFAULT_SWITCH_SALVE_MACHINE_OFFLINE_SYNC);
     }
@@ -473,17 +475,22 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public int getDiffCountLimit() {
         return getIntProperty(DIFF_COUNT_LIMIT, DEFAULT_DIFF_COUNT_LIMIT);
     }
-    
+
     public String getApplyModeMigrateSwitch() {
         return getProperty(APPLY_MODE_MIGRATE_SWITCH,SWITCH_STATUS_OFF);
     }
-    
+
     public String getSyncDbInfoSwitch() {
         return getProperty(SYNC_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
     }
-    
+
     public String getUpdateDbInfoSwitch() {
         return getProperty(UPDATE_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
-        
+
+    }
+
+    public String getSendTrafficSwitch() {
+        return getProperty(SEND_TRAFFIC_SWITCH,SWITCH_STATUS_OFF);
+
     }
 }

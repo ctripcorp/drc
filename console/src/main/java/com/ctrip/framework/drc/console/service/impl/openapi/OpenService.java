@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -23,10 +22,10 @@ import java.util.Map;
  */
 @Service
 public class OpenService {
-    
+
     @Autowired
     private DomainConfig domainConfig;
-    
+
     private static final Gson gson = new Gson();
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -38,7 +37,7 @@ public class OpenService {
     public MhaNamesResponseVo getMhaNamesToBeMonitored(String uri) {
         return HttpUtils.get(uri, MhaNamesResponseVo.class);
     }
-    
+
     public UuidResponseVo getUUIDFromRemoteDC(String uri, Map<String, Object> params) {
         return HttpUtils.get(uri,UuidResponseVo.class,params);
     }
@@ -67,7 +66,7 @@ public class OpenService {
         JsonObject jsonObject = gson.fromJson(response, JsonObject.class);
         return jsonObject.get("data").getAsJsonArray();
     }
-    
+
     public void refreshBuInfoMap(Map<Long, String> buId2BuCodeMap) throws Exception {
 //        JsonObject requestBody = new JsonObject();
 //        requestBody.addProperty("access_token", domainConfig.getCmsAccessToken());
@@ -83,6 +82,4 @@ public class OpenService {
             buId2BuCodeMap.put(buInfo.get("organizationId").getAsLong(),buInfo.get("code").getAsString());
         }
     }
-    
-    
 }

@@ -9,9 +9,6 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.utils.VisibleForTesting;
-import com.dianping.cat.Cat;
-import com.dianping.cat.message.Message;
-import com.dianping.cat.message.Transaction;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -38,7 +35,7 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Component
 @Order(2)
 public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedCallable<Boolean> {
-    
+
     protected static final int INITIAL_DELAY = 5;
 
     protected static final int PERIOD = 60 * 12;
@@ -46,15 +43,15 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
     protected static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 
     private final static int RETRY_TIME = 3;
-    
+
     private Map<Long,String> buId2BuCodeMap = Maps.newHashMap();
-    
+
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired
     private OpenService openService;
-    
+
     @Autowired
     private DbTblDao dbTblDao;
 
@@ -66,7 +63,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         setTimeUnit(TIME_UNIT);
         super.initialize();
     }
-    
+
     @Override
     public void scheduledTask() {
         try {
@@ -100,7 +97,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
         return true;
     }
 
-    
+
     @Override
     public void afterException(Throwable t) {
         logger.warn("[[task=SyncDbInfoTask]] task error once",t);
@@ -119,92 +116,86 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
 
     @VisibleForTesting
     protected void syncDbInfo(JsonArray dbArray) {
-        Transaction t = Cat.newTransaction("DRC.console.schedule", "all_update_db_info");
         try {
-            int len = dbArray.size();
-            t.addData("allDbCount", len);
-            if (len == 0) {
-                return;
-            }
-            
-            //handle offline dbs
-            List<String> remoteDbNameList = new ArrayList<>();
-            for (JsonElement jsonElement : dbArray) {
-                JsonObject jsonObject = jsonElement.getAsJsonObject();
-                String name = jsonObject.get("db_name").getAsString();
-                remoteDbNameList.add(name);
-            }
+            DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.schedule", "all_update_db_info",
+                    () -> {
+                        int len = dbArray.size();
+                        logger.info("[[task=SyncDbInfoTask]] sync DbInfo from cms, count:{}", len);
+                        if (len == 0) {
+                            return;
+                        }
 
-            List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
-            final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
-                    dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
+                        //handle offline dbs
+                        List<String> remoteDbNameList = new ArrayList<>();
+                        for (JsonElement jsonElement : dbArray) {
+                            JsonObject jsonObject = jsonElement.getAsJsonObject();
+                            String name = jsonObject.get("db_name").getAsString();
+                            remoteDbNameList.add(name);
+                        }
 
-            // update 
-            int size = 100;
-            int pages = len / size + 1;
-            for (int i = 0; i < pages; i++) {
-                Transaction t2 = Cat.newTransaction("Console.Schedule.Service.Batch", "batch_update_db_info");
-                try {
-                    List<String> dbNames = new LinkedList<>();
-                    List<DbTbl> inserts = new LinkedList<>();
-                    List<DbTbl> updates = new LinkedList<>();
-                    for (int j = i * size; j < i * size + size && j < len; j++) {
-                        JsonObject dbInfo = dbArray.get(j).getAsJsonObject();
-                        String dbName = dbInfo.get("db_name").getAsString();
-                        dbNames.add(dbName);
-                    }
+                        List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
+                        final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
+                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
 
-                    List<DbTbl> dbs = dbTblDao.queryByDbNames(dbNames);
-                    for (int m = i * size; m < i * size + size && m < len; m++) {
-                        JsonObject dbInfo = dbArray.get(m).getAsJsonObject();
-                        DbTbl dbEntity = new DbTbl();
-                        setValue(dbEntity, dbInfo);
-                        boolean status = true;
-                        for (DbTbl db : dbs) {
-                            if (db.getDbName().equals(dbInfo.get("db_name").getAsString())) {
-                                dbEntity.setId(db.getId());
-                                updates.add(dbEntity);
-                                status = false;
-                                break;
+                        // update
+                        int size = 100;
+                        int pages = len / size + 1;
+                        logger.info("[[task=SyncDbInfoTask]] start By {} batches", pages);
+                        for (int i = 0; i < pages; i++) {
+                            long start = System.currentTimeMillis();
+                            logger.info("[[task=SyncDbInfoTask,batch={}]] start batch!", i);
+                            try {
+                                List<String> dbNames = new LinkedList<>();
+                                List<DbTbl> inserts = new LinkedList<>();
+                                List<DbTbl> updates = new LinkedList<>();
+                                for (int j = i * size; j < i * size + size && j < len; j++) {
+                                    JsonObject dbInfo = dbArray.get(j).getAsJsonObject();
+                                    String dbName = dbInfo.get("db_name").getAsString();
+                                    dbNames.add(dbName);
+                                }
+
+                                List<DbTbl> dbs = dbTblDao.queryByDbNames(dbNames);
+                                for (int m = i * size; m < i * size + size && m < len; m++) {
+                                    JsonObject dbInfo = dbArray.get(m).getAsJsonObject();
+                                    DbTbl dbEntity = new DbTbl();
+                                    setValue(dbEntity, dbInfo);
+                                    boolean status = true;
+                                    for (DbTbl db : dbs) {
+                                        if (db.getDbName().equals(dbInfo.get("db_name").getAsString())) {
+                                            dbEntity.setId(db.getId());
+                                            updates.add(dbEntity);
+                                            status = false;
+                                            break;
+                                        }
+                                    }
+                                    if (status) {
+                                        inserts.add(dbEntity);
+                                    }
+                                }
+                                if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
+                                    dbTblDao.update(updates);
+                                    logger.info("[[task=SyncDbInfoTask,batch={}]] updateBatch execute,count:{}", i, updates.size());
+                                }
+                                dbTblDao.insert(inserts);
+                                logger.info("[[task=SyncDbInfoTask,batch={}]] insertBatch execute,count:{}", i, inserts.size());
+                                
+                            } catch (Exception e) {
+                                logger.error("[[task=SyncDbInfoTask,batch={}]] batch action fail", i, e);
+                            } finally {
+                                long end = System.currentTimeMillis();
+                                logger.info("[[task=SyncDbInfoTask,batch={}]] this batch cost time:{}", i, end - start);
                             }
                         }
-                        if (status) {
-                            inserts.add(dbEntity);
+                        if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
+                            dbTblDao.batchDelete(excessDbInfos);
+                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch:{}", excessDbInfos.size());
                         }
-                    }
-                    if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
-                        dbTblDao.update(updates);
-                        t2.addData("updateBatch",updates.size());
-                    }
-                    dbTblDao.insert(inserts);
-                    t2.addData("current_batch:", i);
-                    t2.addData("all_batch:", pages);
-                    t2.addData("insertBatch",inserts.size());
-                    t2.setStatus(Message.SUCCESS);
-                } catch (Exception e) {
-                    logger.error("[[task=SyncDbInfoTask]] batch action error",e);
-                    t2.setStatus(e);
-                    Cat.logError(e);
-                } finally {
-                    t2.complete();
-                }
-            }
-            if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
-                dbTblDao.batchDelete(excessDbInfos);
-                t.addData("delete_batch",excessDbInfos.size());
-            }
-            t.setStatus(Message.SUCCESS);
+                    });
         } catch (Exception e) {
-            logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error",e);
-            t.setStatus(e);
-            Cat.logError(e);
-        } finally {
-            logger.info("[[task=SyncDbInfoTask]] sync all DbInfo done");
-            t.complete();
+            logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);
         }
-        
     }
-    
+
     @VisibleForTesting
     protected void setValue(DbTbl target,JsonObject source) {
         target.setDbName(source.get("db_name").isJsonNull() ? null : source.get("db_name").getAsString());
