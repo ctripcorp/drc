@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.mysql.MySQLToolsApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.TrafficStatisticsService;
 import com.ctrip.framework.drc.core.service.user.UserService;
 
 /**
@@ -50,6 +51,13 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
     }
     public static  UserService getUserServiceImpl(){
         return UserServiceHolder.INSTANCE;
+    }
+
+    private static class TrafficStatisticsServiceHolder {
+        public static final TrafficStatisticsService INSTANCE = load(TrafficStatisticsService.class);
+    }
+    public static  TrafficStatisticsService getTrafficStatisticsService(){
+        return TrafficStatisticsServiceHolder.INSTANCE;
     }
     
 }

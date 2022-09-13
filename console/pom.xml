@@ -23,6 +23,17 @@
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <artifactId>kafka-clients</artifactId>-->
+<!--                    <groupId>org.apache.kafka</groupId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.kafka</groupId>-->
+<!--            <artifactId>kafka-clients</artifactId>-->
+<!--            <version>2.0.1</version>-->
 <!--        </dependency>-->
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.platform</groupId>-->
@@ -45,17 +56,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>4.9.3</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>kotlin-stdlib</artifactId>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
@@ -119,11 +119,6 @@
             <groupId>dom4j</groupId>
             <artifactId>dom4j</artifactId>
             <version>1.6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ctrip.framework.ckafka</groupId>
-            <artifactId>client</artifactId>
-            <version>0.0.6</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

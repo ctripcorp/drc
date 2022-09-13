@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -25,6 +27,11 @@ public class BlankOPSApiServiceImpl implements OPSApiService {
 
     @Override
     public List<AppNode> getAppNodes(String cmsGetServerUrl,String accessToken,List<String> appIds,String env) {
+        return null;
+    }
+
+    @Override
+    public List<HickWallTrafficEntity> getTrafficFromHickWall(HickWallTrafficContext context) throws Exception {
         return null;
     }
 
