@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.schedule;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.statistics.traffic.*;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
@@ -13,6 +14,8 @@ import com.ctrip.xpipe.api.monitor.Task;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -21,6 +24,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Order(2)
 public class SendTrafficTask extends AbstractLeaderAwareMonitor {
+
+    private final Logger trafficLogger = LoggerFactory.getLogger("TRAFFIC");
 
     private static final String SHA = "sha";
     private static final String SIN = "sin";
@@ -41,6 +47,10 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String AWS_PROVIDER = "AWS";
 
     private static final int batchSize = 100;
+
+    private static final int initialDelay = 5 * 60;
+
+    private static final int delay = 60 * 60;
 
     private Long currentTimeRoundToHour;
 
@@ -55,6 +65,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     @Autowired
     private DbTblDao dbTblDao;
 
+    public ScheduledExecutorService timer = ThreadUtils.newSingleThreadScheduledExecutor("Send-Traffic-Task");
+
     private OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
 
     private TrafficStatisticsService statisticsService = ApiContainer.getTrafficStatisticsService();
@@ -67,40 +79,37 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     @Override
     public void initialize() {
-        final int initialDelay = 60 * 5;
-        final int period = 60 * 60;
-        setInitialDelay(initialDelay);
-        setPeriod(period);
-        setTimeUnit(TimeUnit.SECONDS);
         this.accessToken = domainConfig.getCmsAccessToken();
         this.hickWallUrl = domainConfig.getTrafficFromHickWall();
+        startSendTrafficTask();
     }
 
-    @Override
-    public void scheduledTask() throws Throwable {
-        try {
-            if (isRegionLeader) {
-                logger.info("[[task=sendTraffic]] is leader");
-                final String sendTrafficSwitch = configService.getSendTrafficSwitch();
-                if ("on".equals(sendTrafficSwitch)) {
-                    logger.info("[[task=sendTraffic] start");
-                    DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "SendTraffic", new Task() {
-                        @Override
-                        public void go() throws Exception {
-                            dbMap = getDbInfo();
-                            sendTraffic();
-                            updateSendTime();
-                        }
-                    });
+    private void startSendTrafficTask() {
+        timer.scheduleAtFixedRate(() -> {
+            try {
+                if (isRegionLeader) {
+                    logger.info("[[task=sendTraffic]] is leader");
+                    final String sendTrafficSwitch = configService.getSendTrafficSwitch();
+                    if ("on".equals(sendTrafficSwitch)) {
+                        logger.info("[[task=sendTraffic] start");
+                        DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "SendTraffic", new Task() {
+                            @Override
+                            public void go() throws Exception {
+                                dbMap = getDbInfo();
+                                sendTraffic();
+                                updateSendTime();
+                            }
+                        });
+                    } else {
+                        logger.warn("[[task=sendTraffic]]switch is off");
+                    }
                 } else {
-                    logger.warn("[[task=sendTraffic]]switch is off");
+                    logger.info("[[task=sendTraffic]]not a leader do nothing");
                 }
-            } else {
-                logger.info("[[task=sendTraffic]]not a leader do nothing");
+            } catch (Throwable t) {
+                logger.error("[[task=sendTraffic]] log error", t);
             }
-        } catch (Throwable t) {
-            logger.error("[[task=sendTraffic]] log error", t);
-        }
+        }, initialDelay, delay, TimeUnit.SECONDS);
     }
 
     private Map<String, DbTbl> getDbInfo() throws SQLException {
@@ -156,7 +165,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             }
 
             if (currentTimeRoundToHour.equals(db.getTrafficSendLastTime())) {
-                logger.info("[cost] already send in:{} for db: {}, region: {}, type: {}", currentTimeRoundToHour, dbName, region, costType.getName());
+                trafficLogger.warn("[cost] already send in:{} for db: {}, region: {}, type: {}", currentTimeRoundToHour, dbName, region, costType.getName());
                 continue;
             }
 
@@ -213,8 +222,6 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             dbTbl.setTrafficSendLastTime(currentTimeRoundToHour);
             toUpdateDbs.add(dbTbl);
         }
-        int[] ret = dbTblDao.batchUpdate(toUpdateDbs);
-        System.out.println(ret);
+        dbTblDao.batchUpdate(toUpdateDbs);
     }
-
 }

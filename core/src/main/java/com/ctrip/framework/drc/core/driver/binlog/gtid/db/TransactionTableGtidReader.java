@@ -37,42 +37,42 @@ public class TransactionTableGtidReader implements GtidReader {
 
     @Override
     public String getExecutedGtids(Connection connection) {
-        GtidSet mergedGtidSet = selectMergedGtidSet(connection, SELECT_TRANSACTION_TABLE_GTID_SET);
-        GtidSet unMergedGtidSet = selectUnMergedGtidSet(connection, SELECT_TRANSACTION_TABLE_GTID);
+        GtidSet mergedGtidSet = selectMergedGtidSet(connection);
+        GtidSet unMergedGtidSet = selectUnMergedGtidSet(connection);
         return mergedGtidSet.union(unMergedGtidSet).toString();
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private GtidSet selectMergedGtidSet(Connection connection, String sql) {
+    public GtidSet selectMergedGtidSet(Connection connection) {
         return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
         {
             GtidSet executedGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                try (ResultSet resultSet = statement.executeQuery(SELECT_TRANSACTION_TABLE_GTID_SET)) {
                     while (resultSet.next()) {
                         executedGtidSet = executedGtidSet.union(new GtidSet(resultSet.getString(2)));
                     }
                 }
             } catch (SQLException e) {
-                logger.warn("execute select sql error, sql is: {}", sql, e);
+                logger.warn("execute select sql error, sql is: {}", SELECT_TRANSACTION_TABLE_GTID_SET, e);
             }
             return executedGtidSet;
         });
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private GtidSet selectUnMergedGtidSet(Connection connection, String sql) {
+    private GtidSet selectUnMergedGtidSet(Connection connection) {
         GtidConsumer gtidConsumer = new GtidConsumer(true);
         DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
         {
             try (Statement statement = connection.createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery(sql)) {
+                try (ResultSet resultSet = statement.executeQuery(SELECT_TRANSACTION_TABLE_GTID)) {
                     while (resultSet.next()) {
                         gtidConsumer.offer(String.format("%s:%s", resultSet.getString(1), resultSet.getString(2)));
                     }
                 }
             } catch (SQLException e) {
-                logger.warn("execute select sql error, sql is: {}", sql, e);
+                logger.warn("execute select sql error, sql is: {}", SELECT_TRANSACTION_TABLE_GTID, e);
             }
         });
         return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.consumer.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->

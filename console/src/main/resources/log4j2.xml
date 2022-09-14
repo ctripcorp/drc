@@ -2,6 +2,7 @@
 <Configuration status="info">
     <Properties>
         <property name="basePathForWindows">C:</property>
+        <Property name="baseDir">/opt/logs/100023928</Property>
     </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT" follow="true">
@@ -265,6 +266,20 @@
             </Policies>
         </RollingFile>
 
+        <RollingFile name="traffic" fileName="${baseDir}/traffic.log"
+                     filePattern="${baseDir}/traffic-%i.log.gz">
+            <PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss:SSS}] %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="512 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="traffic-*.log.gz"/>
+                    <IfAccumulatedFileCount exceeds="3"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <!--Table Consistency Monitor appenders-->
         <RollingFile name="tableConsistencyMonitorRollingFileDebug"
                      fileName="/opt/logs/drc/console/table-consistency-monitor_debug.log"
@@ -442,6 +457,10 @@
 
         <Logger name="HEARTBEAT" additivity="false">
             <AppenderRef ref="RollingFileHeartBeatInfo"/>
+        </Logger>
+
+        <Logger name="TRAFFIC" additivity="false">
+            <AppenderRef ref="traffic"/>
         </Logger>
     </Loggers>
 
