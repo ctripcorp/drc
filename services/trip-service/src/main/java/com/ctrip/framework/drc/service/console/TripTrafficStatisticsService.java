@@ -16,10 +16,9 @@ import java.util.Properties;
  */
 public class TripTrafficStatisticsService implements TrafficStatisticsService {
 
-
     private static final String TOPIC = "ops.cost.insight.share.unit.detail.hourly";
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger trafficLogger = LoggerFactory.getLogger("TRAFFIC");
 
     private Producer<String, String> producer;
 
@@ -38,7 +37,7 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
         try {
             producer = KafkaClientFactory.newProducer(TOPIC, properties);
         } catch (Throwable t) {
-            logger.error("[cost] get kafka producer error", t);
+            trafficLogger.error("[cost] get kafka producer error", t);
         }
     }
 
@@ -49,9 +48,9 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
             @Override
             public void onCompletion(RecordMetadata recordMetadata, Exception e) {
                 if (e == null) {
-                    logger.info("[cost] send value success: {}", value);
+                    trafficLogger.info("[cost] send value success: {}", value);
                 } else {
-                    logger.error("[cost] send value error: {}", value, e);
+                    trafficLogger.error("[cost] send value error: {}", value, e);
                 }
             }
         });
