@@ -42,7 +42,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String GTID_MONITOR_SWITCH = "gtid.monitor.switch";
     private static final String GTID_MONITOR_PERIOD = "gtid.monitor.period";
-    private static final int DEFAULT_GTID_MONITOR_PERIOD = 120;
+    private static final int DEFAULT_GTID_MONITOR_PERIOD = 60 * 10;
 
     public static final String DRC_DELAY_MESUREMENT = "fx.drc.delay";
 

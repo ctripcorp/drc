@@ -11,15 +11,14 @@ import com.ctrip.framework.drc.core.monitor.entity.GtidGapEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
-import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.owasp.csrfguard.util.Strings;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -142,8 +141,8 @@ public class CheckGtid extends AbstractConfigBean {
         public String call() throws Exception {
             try {
                 return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.union.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
-                    String showMasterGtidset = Strings.EMPTY;
-                    GtidSet transactionTableGtidset = new GtidSet(Strings.EMPTY);
+                    String showMasterGtidset = StringUtils.EMPTY;
+                    GtidSet transactionTableGtidset = new GtidSet(StringUtils.EMPTY);
                     DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
                     try (Connection connection = dataSource.getConnection()){
                         ShowMasterGtidReader showMasterGtidReader = new ShowMasterGtidReader();
@@ -159,7 +158,7 @@ public class CheckGtid extends AbstractConfigBean {
                 });
             } catch (Exception e) {
                 CONSOLE_GTID_LOGGER.error("get union executed gtidset of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
-                return Strings.EMPTY;
+                return StringUtils.EMPTY;
             }
         }
     }
