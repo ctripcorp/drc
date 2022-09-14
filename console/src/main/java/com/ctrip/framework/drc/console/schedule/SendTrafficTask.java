@@ -10,7 +10,9 @@ import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.monitor.Task;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,6 +39,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String SIN_AWS = "SIN-AWS";
 
     private static final String AWS_PROVIDER = "AWS";
+
+    private static final int batchSize = 100;
 
     private Long currentTimeRoundToHour;
 
@@ -57,6 +62,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private String accessToken;
 
     private String hickWallUrl;
+
+    private Set<String> dbsSended = Sets.newHashSet();
 
     @Override
     public void initialize() {
@@ -82,6 +89,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
                         public void go() throws Exception {
                             dbMap = getDbInfo();
                             sendTraffic();
+                            updateSendTime();
                         }
                     });
                 } else {
@@ -146,6 +154,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             if (db == null) {
                 continue;
             }
+
+            if (currentTimeRoundToHour.equals(db.getTrafficSendLastTime())) {
+                logger.info("[cost] already send in:{} for db: {}, region: {}, type: {}", currentTimeRoundToHour, dbName, region, costType.getName());
+                continue;
+            }
+
             String owner = db.getDbOwner();
             String buCode = db.getBuCode();
 
@@ -169,10 +183,38 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
             try {
                 statisticsService.send(metric);
+                dbsSended.add(dbName);
             } catch (Exception e) {
                 logger.error("[[task=sendTraffic]] send to kafka error: {}", metric, e);
             }
-
         }
     }
+
+    private void updateSendTime() throws SQLException {
+        List<String> dbNames = Lists.newArrayList();
+        for (String dbName : dbsSended) {
+            dbNames.add(dbName);
+            if (dbNames.size() == batchSize) {
+                batchUpdateTime(dbNames);
+                dbNames = Lists.newArrayList();
+            }
+        }
+        if (dbNames.size() != batchSize) {
+            batchUpdateTime(dbNames);
+        }
+    }
+
+    private void batchUpdateTime(List<String> dbNames) throws SQLException {
+        List<DbTbl> toUpdateDbs = Lists.newArrayList();
+        for (String dbName : dbNames) {
+            Long id = dbMap.get(dbName).getId();
+            DbTbl dbTbl = new DbTbl();
+            dbTbl.setId(id);
+            dbTbl.setTrafficSendLastTime(currentTimeRoundToHour);
+            toUpdateDbs.add(dbTbl);
+        }
+        int[] ret = dbTblDao.batchUpdate(toUpdateDbs);
+        System.out.println(ret);
+    }
+
 }

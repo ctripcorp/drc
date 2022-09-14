@@ -53,7 +53,7 @@ public class DbTbl implements DalPojo {
 	@Column(name = "bu_name")
 	@Type(value = Types.VARCHAR)
 	private String buName;
-	
+
 	/**
      * 是否删除, 0:否; 1:是
      */
@@ -74,6 +74,13 @@ public class DbTbl implements DalPojo {
 	@Column(name = "datachange_lasttime", insertable = false, updatable = false)
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
+
+	/**
+	 * 上次发送流量统计时间，unix秒数，round to hour
+	 */
+	@Column(name = "traffic_send_last_time")
+	@Type(value = Types.BIGINT)
+	private Long trafficSendLastTime;
 
 	public Long getId() {
 		return id;
@@ -137,5 +144,13 @@ public class DbTbl implements DalPojo {
 
 	public void setDatachangeLasttime(Timestamp datachangeLasttime) {
 		this.datachangeLasttime = datachangeLasttime;
+	}
+
+	public Long getTrafficSendLastTime() {
+		return trafficSendLastTime;
+	}
+
+	public void setTrafficSendLastTime(Long trafficSendLastTime) {
+		this.trafficSendLastTime = trafficSendLastTime;
 	}
 }
