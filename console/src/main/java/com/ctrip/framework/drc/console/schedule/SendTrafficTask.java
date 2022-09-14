@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     public void initialize() {
         this.accessToken = domainConfig.getCmsAccessToken();
         this.hickWallUrl = domainConfig.getTrafficFromHickWall();
+    }
+
+    @PostConstruct
+    @Override
+    public void start() {
+        initialize();
         startSendTrafficTask();
     }
 
