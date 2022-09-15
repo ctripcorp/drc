@@ -42,12 +42,15 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String SHA = "sha";
     private static final String SIN = "sin";
     private static final String FRA = "fra";
+    private static final String ALI = "ali";
 
     private static final String FRA_AWS = "FRA-AWS";
     private static final String SHAXY = "SHAXY";
     private static final String SIN_AWS = "SIN-AWS";
+    private static final String SHA_ALI = "SHA-ALI";
 
     private static final String AWS_PROVIDER = "aws";
+    private static final String ALIYUN_PROVIDER = "aliyun";
 
     private static final int batchSize = 100;
 
@@ -136,23 +139,63 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         currentTimeRoundToHour = System.currentTimeMillis() / 1000 / (60 * 60) * (60 * 60);
         logger.info("[[task=sendTraffic]] current time round to hour: {}", currentTimeRoundToHour);
 
-        HickWallTrafficContext shaToSinContext = getHickWallTrafficContext(SHA, SIN);
-        List<HickWallTrafficEntity> shaToSin = opsApiService.getTrafficFromHickWall(shaToSinContext);
-        sendToKafKa(shaToSin, AWS_PROVIDER, SIN_AWS, CostType.storage, 1);
+//        // sin->sin
+//        HickWallTrafficContext sinToSinContext = getHickWallTrafficContext(SIN, SIN);
+//        List<HickWallTrafficEntity> sinToSin = opsApiService.getTrafficFromHickWall(sinToSinContext);
+//        sendToKafKa(sinToSin, AWS_PROVIDER, SIN_AWS, CostType.storage, 1);
 
+        // sin->sha
         HickWallTrafficContext sinToShaContext = getHickWallTrafficContext(SIN, SHA);
         List<HickWallTrafficEntity> sinToSha = opsApiService.getTrafficFromHickWall(sinToShaContext);
         sendToKafKa(sinToSha, AWS_PROVIDER, SIN_AWS, CostType.storage, 1);
         sendToKafKa(sinToSha, AWS_PROVIDER, SIN_AWS, CostType.flow, 9);
+        sendToCat(sinToSha);
 
-        HickWallTrafficContext shaToFraContext = getHickWallTrafficContext(SHA, FRA);
-        List<HickWallTrafficEntity> shaToFra = opsApiService.getTrafficFromHickWall(shaToFraContext);
-        sendToKafKa(shaToFra, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
+//        // fra->fra
+//        HickWallTrafficContext fraToFraContext = getHickWallTrafficContext(FRA, FRA);
+//        List<HickWallTrafficEntity> fraToFra = opsApiService.getTrafficFromHickWall(fraToFraContext);
+//        sendToKafKa(fraToFra, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
 
+        // fra->sha
         HickWallTrafficContext fraToShaContext = getHickWallTrafficContext(FRA, SHA);
         List<HickWallTrafficEntity> fraToSha = opsApiService.getTrafficFromHickWall(fraToShaContext);
         sendToKafKa(fraToSha, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
         sendToKafKa(fraToSha, AWS_PROVIDER, FRA_AWS, CostType.flow, 9);
+        sendToCat(fraToSha);
+
+//        // ali->ali
+//        HickWallTrafficContext aliToAliContext = getHickWallTrafficContext(ALI, ALI);
+//        List<HickWallTrafficEntity> aliToAli = opsApiService.getTrafficFromHickWall(aliToAliContext);
+//        sendToKafKa(aliToAli, ALIYUN_PROVIDER, SHA_ALI, CostType.storage, 1);
+
+        // ali->sha
+        HickWallTrafficContext aliToShaContext = getHickWallTrafficContext(ALI, SHA);
+        List<HickWallTrafficEntity> aliToSha = opsApiService.getTrafficFromHickWall(aliToShaContext);
+        sendToKafKa(aliToSha, ALIYUN_PROVIDER, SHA_ALI, CostType.storage, 1);
+        sendToCat(aliToSha);
+
+        // sha->sha
+        HickWallTrafficContext shaToShaContext = getHickWallTrafficContext(SHA, SHA);
+        List<HickWallTrafficEntity> shaToSha = opsApiService.getTrafficFromHickWall(shaToShaContext);
+        sendToCat(shaToSha);
+
+        // sha->sin
+        HickWallTrafficContext shaToSinContext = getHickWallTrafficContext(SHA, SIN);
+        List<HickWallTrafficEntity> shaToSin = opsApiService.getTrafficFromHickWall(shaToSinContext);
+        sendToKafKa(shaToSin, AWS_PROVIDER, SIN_AWS, CostType.storage, 1);
+        sendToCat(shaToSin);
+
+        // sha->fra
+        HickWallTrafficContext shaToFraContext = getHickWallTrafficContext(SHA, FRA);
+        List<HickWallTrafficEntity> shaToFra = opsApiService.getTrafficFromHickWall(shaToFraContext);
+        sendToKafKa(shaToFra, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
+        sendToCat(shaToFra);
+
+        // sha->ali
+        HickWallTrafficContext shaToAliContext = getHickWallTrafficContext(SHA, ALI);
+        List<HickWallTrafficEntity> shaToAli = opsApiService.getTrafficFromHickWall(shaToAliContext);
+        sendToKafKa(shaToAli, ALIYUN_PROVIDER, SHA_ALI, CostType.storage, 1);
+        sendToCat(shaToAli);
     }
 
     private HickWallTrafficContext getHickWallTrafficContext(String srcRegion, String dstRegion) {
@@ -205,6 +248,38 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             } catch (Exception e) {
                 logger.error("[[task=sendTraffic]] send to kafka error: {}", metric, e);
             }
+        }
+    }
+
+    private void sendToCat(List<HickWallTrafficEntity> costs) {
+        if (costs == null) {
+            return;
+        }
+        for (HickWallTrafficEntity cost : costs) {
+            String dbName = cost.getMetric().getDbName();
+            if (dbName == null) {
+                continue;
+            }
+            DbTbl db = dbMap.get(dbName);
+            if (db == null) {
+                continue;
+            }
+
+            if (currentTimeRoundToHour.equals(db.getTrafficSendLastTime())) {
+                trafficLogger.warn("[cost] already send in:{} for db: {}", currentTimeRoundToHour, dbName);
+                continue;
+            }
+
+            String buName = db.getBuName();
+
+            CatTrafficMetric metric = new CatTrafficMetric();
+            metric.setDbName(dbName);
+            metric.setBuName(buName);
+            List<Object> value = (List<Object>) (cost.getValues().get(0));
+            metric.setCount("1");
+            metric.setSize(Float.parseFloat(value.get(1).toString()));
+            statisticsService.send(metric);
+            dbsSended.add(dbName);
         }
     }
 

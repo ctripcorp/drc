@@ -10,6 +10,11 @@ public class BlankTrafficStatisticsService implements TrafficStatisticsService {
     }
 
     @Override
+    public void send(CatTrafficMetric metric) {
+
+    }
+
+    @Override
     public int getOrder() {
         return 1;
     }
