@@ -37,6 +37,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private final Logger trafficLogger = LoggerFactory.getLogger("TRAFFIC");
 
+    private static final String schemaVersion = "v1.0";
+
     private static final String SHA = "sha";
     private static final String SIN = "sin";
     private static final String FRA = "fra";
@@ -45,7 +47,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String SHAXY = "SHAXY";
     private static final String SIN_AWS = "SIN-AWS";
 
-    private static final String AWS_PROVIDER = "AWS";
+    private static final String AWS_PROVIDER = "aws";
 
     private static final int batchSize = 100;
 
@@ -188,7 +190,6 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.setService_type("drc");
             metric.setApp_platform(costType.getName());
             metric.setApp_instance(dbName);
-            metric.setOperation("RunInstances");
             metric.setShare_unit_type(costType.getName());
             List<Object> value = (List<Object>) (cost.getValues().get(0));
             metric.setShare_unit_amount(Float.parseFloat(value.get(1).toString()) * rate);
@@ -196,6 +197,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.setOwner(owner);
             metric.setBu_code(buCode);
             metric.setProduct_line_code("");
+            metric.set_schema_version(schemaVersion);
 
             try {
                 statisticsService.send(metric);

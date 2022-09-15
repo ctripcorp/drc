@@ -15,13 +15,13 @@ public class KafKaTrafficMetric {
     private String service_type;
     private String app_platform;
     private String app_instance;
-    private String operation;
     private String share_unit_type;
     private Float share_unit_amount;
     private String cost_group;
     private String owner;
     private String bu_code;
     private String product_line_code;
+    private String _schema_version;
 
 
     public Long getTimestamp() {
@@ -88,14 +88,6 @@ public class KafKaTrafficMetric {
         this.app_instance = app_instance;
     }
 
-    public String getOperation() {
-        return operation;
-    }
-
-    public void setOperation(String operation) {
-        this.operation = operation;
-    }
-
     public String getShare_unit_type() {
         return share_unit_type;
     }
@@ -144,6 +136,14 @@ public class KafKaTrafficMetric {
         this.product_line_code = product_line_code;
     }
 
+    public String get_schema_version() {
+        return _schema_version;
+    }
+
+    public void set_schema_version(String _schema_version) {
+        this._schema_version = _schema_version;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -157,17 +157,17 @@ public class KafKaTrafficMetric {
                 Objects.equals(service_type, that.service_type) &&
                 Objects.equals(app_platform, that.app_platform) &&
                 Objects.equals(app_instance, that.app_instance) &&
-                Objects.equals(operation, that.operation) &&
                 Objects.equals(share_unit_type, that.share_unit_type) &&
                 Objects.equals(cost_group, that.cost_group) &&
                 Objects.equals(owner, that.owner) &&
                 Objects.equals(bu_code, that.bu_code) &&
-                Objects.equals(product_line_code, that.product_line_code);
+                Objects.equals(product_line_code, that.product_line_code) &&
+                Objects.equals(_schema_version, that._schema_version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, cloud_provider, region, zone, app_name, service_type, app_platform, app_instance, operation, share_unit_type, cost_group, owner, bu_code, product_line_code);
+        return Objects.hash(timestamp, cloud_provider, region, zone, app_name, service_type, app_platform, app_instance, share_unit_type, cost_group, owner, bu_code, product_line_code, _schema_version);
     }
 
     @Override
@@ -181,12 +181,12 @@ public class KafKaTrafficMetric {
                 ", service_type='" + service_type + '\'' +
                 ", app_platform='" + app_platform + '\'' +
                 ", app_instance='" + app_instance + '\'' +
-                ", operation='" + operation + '\'' +
                 ", share_unit_type=" + share_unit_type +
                 ", cost_group='" + cost_group + '\'' +
                 ", owner='" + owner + '\'' +
                 ", bu_code='" + bu_code + '\'' +
                 ", product_line_code='" + product_line_code + '\'' +
+                ", _schema_version='" + _schema_version + '\'' +
                 '}';
     }
 }
