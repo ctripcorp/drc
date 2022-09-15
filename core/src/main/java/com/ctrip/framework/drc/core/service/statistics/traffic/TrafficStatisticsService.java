@@ -8,4 +8,6 @@ import com.ctrip.xpipe.api.lifecycle.Ordered;
 public interface TrafficStatisticsService extends Ordered {
 
     void send(KafKaTrafficMetric metric);
+
+    void send(CatTrafficMetric metric);
 }

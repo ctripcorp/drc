@@ -1,9 +1,12 @@
 package com.ctrip.framework.drc.service.console;
 
 import com.ctrip.framework.ckafka.client.KafkaClientFactory;
+import com.ctrip.framework.drc.core.service.statistics.traffic.CatTrafficMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.KafKaTrafficMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.TrafficStatisticsService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.dianping.cat.Cat;
+import com.dianping.cat.message.Transaction;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
@@ -17,6 +20,8 @@ import java.util.Properties;
 public class TripTrafficStatisticsService implements TrafficStatisticsService {
 
     private static final String TOPIC = "ops.cost.insight.share.unit.detail.hourly";
+
+    private static final String KPI_TYPE = "DRC.Traffic";
 
     private final Logger trafficLogger = LoggerFactory.getLogger("TRAFFIC");
 
@@ -54,6 +59,15 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
                 }
             }
         });
+    }
+
+    @Override
+    public void send(CatTrafficMetric metric) {
+        Transaction t = Cat.newTransaction(KPI_TYPE, metric.getDbName());
+        t.addProperty("bu", metric.getBuName());
+        t.addProperty("count", metric.getCount());
+        t.addProperty("size", metric.getSize().toString());
+        t.complete();
     }
 
     @Override

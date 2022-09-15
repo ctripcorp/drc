@@ -82,6 +82,13 @@ public class DbTbl implements DalPojo {
 	@Type(value = Types.BIGINT)
 	private Long trafficSendLastTime;
 
+	/**
+	 * 是否接入drc, 0:否; 1:是
+	 */
+	@Column(name = "is_drc")
+	@Type(value = Types.TINYINT)
+	private Integer isDrc;
+
 	public Long getId() {
 		return id;
 	}
@@ -152,5 +159,13 @@ public class DbTbl implements DalPojo {
 
 	public void setTrafficSendLastTime(Long trafficSendLastTime) {
 		this.trafficSendLastTime = trafficSendLastTime;
+	}
+
+	public Integer getIsDrc() {
+		return isDrc;
+	}
+
+	public void setIsDrc(Integer isDrc) {
+		this.isDrc = isDrc;
 	}
 }
