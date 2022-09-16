@@ -53,9 +53,9 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
             @Override
             public void onCompletion(RecordMetadata recordMetadata, Exception e) {
                 if (e == null) {
-                    trafficLogger.info("[cost] send value success: {}", value);
+                    trafficLogger.info("[cost][kafka] send value success: {}", value);
                 } else {
-                    trafficLogger.error("[cost] send value error: {}", value, e);
+                    trafficLogger.error("[cost][kafka] send value error: {}", value, e);
                 }
             }
         });
@@ -68,6 +68,7 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
         t.addProperty("count", metric.getCount());
         t.addProperty("size", metric.getSize().toString());
         t.complete();
+        trafficLogger.info("[cost][cat] send value success: {}", metric);
     }
 
     @Override

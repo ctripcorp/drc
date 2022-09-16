@@ -68,4 +68,14 @@ public class CatTrafficMetric {
         result = 31 * result + (dbName != null ? dbName.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "CatTrafficMetric{" +
+                "buName='" + buName + '\'' +
+                ", count='" + count + '\'' +
+                ", size=" + size +
+                ", dbName='" + dbName + '\'' +
+                '}';
+    }
 }
