@@ -277,7 +277,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.setBuName(buName);
             List<Object> value = (List<Object>) (cost.getValues().get(0));
             metric.setCount("1");
-            metric.setSize(Float.parseFloat(value.get(1).toString()));
+            metric.setSize(Long.parseLong(value.get(1).toString()));
             statisticsService.send(metric);
             dbsSended.add(dbName);
         }

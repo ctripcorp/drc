@@ -7,12 +7,11 @@ import java.util.Objects;
  */
 public class CatTrafficMetric {
 
-    // Chinese name
     private String buName;
 
     private String count;
 
-    private Float size;
+    private Long size;
 
     private String dbName;
 
@@ -32,11 +31,11 @@ public class CatTrafficMetric {
         this.count = count;
     }
 
-    public Float getSize() {
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(Float size) {
+    public void setSize(Long size) {
         this.size = size;
     }
 
