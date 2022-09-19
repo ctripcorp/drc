@@ -32,7 +32,7 @@ public class OPSApiServiceImpl implements OPSApiService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String ACCESS_TOKEN_KEY = "access_token";
-    
+
     private static final String REQUEST_BODY_KEY = "request_body";
 
     private static final String CLUSTER_NAME_KEY = "cluster_name";
@@ -113,9 +113,9 @@ public class OPSApiServiceImpl implements OPSApiService {
         JsonObject data = jsonObject.get("data").getAsJsonObject();
         String result = JsonUtils.toJson(data.get("result"));
 
-        List<HickWallTrafficEntity> flowCosts= JsonUtils.fromJsonToList(result, HickWallTrafficEntity.class);
-        logger.info("[cost] get_flow_cot_from_hick_wall(size:{})", flowCosts.size());
-        return flowCosts;
+        List<HickWallTrafficEntity> costs= JsonUtils.fromJsonToList(result, HickWallTrafficEntity.class);
+        logger.info("[cost] get_cost_from_hick_wall(size:{})", costs.size());
+        return costs;
     }
 
     @Override
