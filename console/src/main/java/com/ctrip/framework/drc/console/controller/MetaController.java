@@ -523,7 +523,8 @@ public class MetaController {
         try {
             return ApiResult.getSuccessInstance(metaInfoService.getMhas(dcName));
         } catch (SQLException e) {
-            return ApiResult.getFailInstance(e);
+            logger.error("meta] query mha info error",e);
+            return ApiResult.getFailInstance(null);
         }
     }
     

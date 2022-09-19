@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.service.MhaService;
+import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -45,10 +46,7 @@ public class MhaControllerTest {
     private MetaInfoServiceImpl metaInfoService;
     
     @Mock
-    private DalUtils dalUtils;
-    
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    private MySqlService mySqlService;
     
 
     @Before
@@ -173,66 +171,24 @@ public class MhaControllerTest {
     
     @Test
     public void testGetGtd() throws Exception {
-        MhaTbl mhaTbl = new MhaTbl();
-        mhaTbl.setDcId(1L);
-        Map<String, String> consoleDcInfos = Maps.newHashMap();
-        consoleDcInfos.put("publicDc","domain");
-        HashSet<String> publicDc = Sets.newHashSet("publicDc");
+        Mockito.when(mySqlService.getRealExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        System.out.println(response);
+        Assert.assertEquals(200, status);
+        Assert.assertNotNull(response);
+        Assert.assertNotEquals("", response);
+
+        Mockito.when(mySqlService.getRealExecutedGtid(Mockito.anyString())).thenReturn("");
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
         
-        MySqlEndpoint mySqlEndpoint = new MySqlEndpoint("ip1", 3306, "usr", "psw", true);
-        Mockito.when(dalUtils.queryByMhaName(Mockito.anyString(),Mockito.any())).thenReturn(mhaTbl);
-        Mockito.when(dalUtils.getDcNameByDcId(Mockito.eq(1L))).thenReturn("publicDc");
-        Mockito.when(metaInfoService.getMasterEndpoint(Mockito.any(MhaTbl.class))).thenReturn(mySqlEndpoint);
-        Mockito.when(consoleConfig.getConsoleDcInfos()).thenReturn(consoleDcInfos);
-        Mockito.when(consoleConfig.getPublicCloudDc()).thenReturn(publicDc);
-
-        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
-            theMock.when(() -> HttpUtils.get(
-                    Mockito.eq("domain//api/drc/v1/local/gtid?" +
-                            "mha=" + "mha1" +
-                            "&ip=" + "ip1" +
-                            "&port=" + 3306 +
-                            "&user=" + "usr" +
-                            "&psw=" + "psw "))).thenReturn(ApiResult.getSuccessInstance("gtidString"));
-            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/mha1,mha2/mha1" )
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            int status = mvcResult.getResponse().getStatus();
-            String response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-        Mockito.when(dalUtils.getDcNameByDcId(Mockito.eq(1L))).thenReturn("notPublicDc");
-        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(() -> MySqlUtils.getUnionExecutedGtid(Mockito.any())).
-                    thenReturn("GtidSetString");
-            MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/mha1,mha2/mha1" )
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            int status = mvcResult.getResponse().getStatus();
-            String response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-
-
-            Mockito.when(dalUtils.getDcNameByDcId(Mockito.eq(1L))).thenThrow(new SQLException("sql erroe"));
-            mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/mha1,mha2/mha1" )
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andDo(MockMvcResultHandlers.print())
-                    .andReturn();
-            status = mvcResult.getResponse().getStatus();
-            response = mvcResult.getResponse().getContentAsString();
-            Assert.assertEquals(200, status);
-            System.out.println(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         
         
     }

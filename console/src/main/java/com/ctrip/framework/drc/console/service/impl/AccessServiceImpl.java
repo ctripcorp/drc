@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -314,6 +313,8 @@ public class AccessServiceImpl implements AccessService {
 
                 } catch (IOException e) {
                     logger.error("Fail to parse requestBody: {}", requestBody);
+                } catch (Exception e) {
+                    logger.error("getMhaList error",e);
                 }
             }
         }
@@ -428,7 +429,7 @@ public class AccessServiceImpl implements AccessService {
         List<String> tablesWithOutPkOrUk = MySqlUtils.checkUniqOrPrimary(endpoint, null);
         String gtidMode = MySqlUtils.checkGtidMode(endpoint);
         String binlogTransactionDependency = MySqlUtils.checkBinlogTransactionDependency(endpoint);
-        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint,true);
+        List<String> approvedTruncateList = MySqlUtils.checkApprovedTruncateTableList(endpoint,false);
         res.put("noOnUpdate", String.join(", ", tablesWithOutOnUpdate));
         res.put("noOnUpdateKey", String.join(", ", tablesWithOutOnUpdateKey));
         res.put("noPkUk", String.join(", ", tablesWithOutPkOrUk));

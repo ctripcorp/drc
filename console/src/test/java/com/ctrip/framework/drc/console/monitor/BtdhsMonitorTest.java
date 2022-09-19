@@ -87,8 +87,16 @@ public class BtdhsMonitorTest extends AbstractTest {
         Map<String, String> mha2MasterEndpointTags = btdhsMonitor.getEntity(mha3MasterEndpoint, META_KEY3).getTags();
 
         btdhsMonitor.scheduledTask();
-        verify(reporter, times(2)).reportResetCounter(Mockito.any(), Mockito.anyLong(), Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT));
-        verify(reporter, never()).reportResetCounter(Mockito.eq(mha2MasterEndpointTags), Mockito.anyLong(), Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT));
+        verify(reporter, times(2)).resetReportCounter(
+                Mockito.any(), 
+                Mockito.anyLong(), 
+                Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
+        );
+        verify(reporter, never()).resetReportCounter(
+                Mockito.eq(mha2MasterEndpointTags), 
+                Mockito.anyLong(), 
+                Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
+        );
     }
 
 

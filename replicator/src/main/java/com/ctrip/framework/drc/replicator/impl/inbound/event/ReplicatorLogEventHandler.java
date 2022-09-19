@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObse
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObserver;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.api.observer.Observer;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
@@ -109,5 +110,10 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
         tableFiltered = false;
         transactionTableRelated = false;
         transactionCache.reset();
+    }
+
+    @VisibleForTesting
+    public Filter<InboundLogEventContext> getFilterChain() {
+        return filterChain;
     }
 }

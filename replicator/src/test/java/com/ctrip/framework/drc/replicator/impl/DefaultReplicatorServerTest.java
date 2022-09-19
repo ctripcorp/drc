@@ -3,18 +3,24 @@ package com.ctrip.framework.drc.replicator.impl;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
+import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.AbstractServerTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.UuidFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Sets;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -28,6 +34,12 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
     private DefaultReplicatorServer replicatorServer;
 
     private ReplicatorConfig replicatorConfig;
+
+    public static final String UUID_1 = "12af97a8-2f0f-11eb-b4a7-d6dccc6aae21";
+
+    public static final String UUID_2 = "12af97a8-2f0f-11eb-b4a7-d6dccc6aae22";
+
+    public static final String UUID_3 = "12af97a8-2f0f-11eb-b4a7-d6dccc6aae23";
 
     @Before
     public void setUp() throws Exception {
@@ -49,13 +61,13 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
         }
 
         replicatorConfig.setEndpoint(endpoint);
-        replicatorConfig.setWhiteUUID(Sets.newHashSet(UUID.fromString("12af97a8-2f0f-11eb-b4a7-d6dccc6aae29")));
-        replicatorConfig.setGtidSet(new GtidSet("12af97a8-2f0f-11eb-b4a7-d6dccc6aae29:1-7"));
+        replicatorConfig.setWhiteUUID(Sets.newHashSet(UUID.fromString(UUID_3)));
+        replicatorConfig.setGtidSet(new GtidSet(UUID_3 + ":1-7"));
 
         replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration(), new UuidOperator() {
             @Override
             public UuidConfig getUuids(String key) {
-                return new UuidConfig(Sets.newHashSet());
+                return new UuidConfig(Sets.newHashSet(UUID_1, UUID_2));
             }
 
             @Override
@@ -64,12 +76,27 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
             }
         });
 
-        replicatorServer.initialize();
     }
 
     @Test
-    public void testStartMySQLMaster() throws Exception {
-        replicatorServer.start();
-        Thread.currentThread().join();
+    public void testUUids() {
+        ReplicatorLogEventHandler replicatorLogEventHandler = replicatorServer.getLogEventHandler();
+        Filter<InboundLogEventContext> filter = replicatorLogEventHandler.getFilterChain();
+        boolean pass = false;
+        while (filter != null) {
+            if (filter instanceof UuidFilter) {
+                UuidFilter uuidFilter = (UuidFilter) filter;
+                Set<UUID> uuidSet =  uuidFilter.getWhiteList();
+                Assert.assertTrue(uuidSet.size() == 3);
+                Assert.assertTrue(uuidSet.contains(UUID.fromString(UUID_1)));
+                Assert.assertTrue(uuidSet.contains(UUID.fromString(UUID_2)));
+                Assert.assertTrue(uuidSet.contains(UUID.fromString(UUID_3)));
+                pass = true;
+                break;
+            }
+            filter = filter.getSuccessor();
+        }
+        Assert.assertTrue(pass);
     }
+
 }

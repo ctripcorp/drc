@@ -1,16 +1,16 @@
 package com.ctrip.framework.drc.console.monitor.table.task;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.entity.ConsistencyEntity;
 import com.ctrip.framework.drc.core.monitor.enums.ConsistencyEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -51,6 +51,9 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+
+    @Autowired
+    private MySqlService mySqlService;
 
     private static final String SWITCH_STATUS_ON = "on";
 
@@ -138,8 +141,8 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         }
         CONSOLE_TABLE_LOGGER.info("[[monitor=tableConsistency]] unionFilter is {} for {}-{}",unionFilter,srcMha,destMha);
         // key: database.table, value: createTblStmts
-        Map<String, String> srcStmts = getCreateTableStatements(srcMha, unionFilter, srcEndpoint);
-        Map<String, String> destStmts = getCreateTableStatements(destMha, unionFilter, destEndpoint);
+        Map<String, String> srcStmts = mySqlService.getCreateTableStatements(srcMha, unionFilter, srcEndpoint);
+        Map<String, String> destStmts = mySqlService.getCreateTableStatements(destMha, unionFilter, destEndpoint);
 
         String tableDiff = checkTableDiff(srcStmts, destStmts);
         if(null != tableDiff) {
@@ -159,12 +162,7 @@ public class CheckTableConsistencyTask extends AbstractMasterMySQLEndpointObserv
         return true;
     }
     
-    @PossibleRemote(path="/api/drc/v1/local/createTblStmts/query",excludeArguments = {"endpoint"})
-    // key: database.table, value: createTblStmts
-    protected Map<String, String> getCreateTableStatements(String mha,String unionFilter,Endpoint endpoint) {
-        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
-        return MySqlUtils.getDefaultCreateTblStmts(endpoint,aviatorRegexFilter);
-    }
+    
     
 
     private String checkTableDiff(Map<String, String> srcStmts, Map<String, String> destStmts) {

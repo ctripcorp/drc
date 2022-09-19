@@ -6,6 +6,8 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
+import com.ctrip.framework.drc.console.service.MySqlService;
+import com.ctrip.framework.drc.console.service.impl.MySqlServiceImpl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -20,9 +22,10 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -41,10 +44,14 @@ public class CheckIncrementIdTaskTest {
 
     private static Logger logger = LoggerFactory.getLogger(CheckIncrementIdTaskTest.class);
 
+    @InjectMocks
     private CheckIncrementIdTask task = new CheckIncrementIdTask();
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
+
+    @Spy
+    private MySqlService mySqlService = new MySqlServiceImpl();
 
     private static Drc drc;
 
@@ -82,9 +89,11 @@ public class CheckIncrementIdTaskTest {
 
     private static Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
 
+    private static final MySqlEndpoint endpointNt = new MySqlEndpoint("127.0.0.1", 13366, "root", "", true);
+    private static final MySqlEndpoint endpointOy = new MySqlEndpoint("127.0.0.1", 13377, "root", "", true);
+
     @BeforeClass
     public static void setUp() throws IOException, SAXException {
-
         // for db
         try {
             logger.info("start and init dbs");
@@ -186,15 +195,26 @@ public class CheckIncrementIdTaskTest {
             add(new DbClusterSourceProvider.Mha("shaoy", shaoy.getDbClusters().get("drc-Test01.drcOy")));
             add(new DbClusterSourceProvider.Mha("sharb", sharb.getDbClusters().get("drc-Test01.drcRb")));
         }};
-
-        masterMySQLEndpointMap.put(new MetaKey("ntgxh", "drc-Test01.drcNt", "drc-Test01", "drcNt"), new MySqlEndpoint("127.0.0.1", 13366, "root", "", true));
-        masterMySQLEndpointMap.put(new MetaKey("shaoy", "drc-Test01.drcOy", "drc-Test01", "drcOy"), new MySqlEndpoint("127.0.0.1", 13377, "root", "", true));
+        
+        masterMySQLEndpointMap.put(
+                new MetaKey("ntgxh", "drc-Test01.drcNt", "drc-Test01", "drcNt"),
+                endpointNt
+        );
+        masterMySQLEndpointMap.put(
+                new MetaKey("shaoy", "drc-Test01.drcOy", "drc-Test01", "drcOy"),
+                endpointOy
+        );
+        
     }
 
     @Test
     public void testCheckIncrementId() throws Exception {
+        MockitoAnnotations.openMocks(this);
+
+        
         task.setMasterMySQLEndpointMap(masterMySQLEndpointMap);
         Assert.assertFalse(task.checkIncrementId(MHA_GROUP_KEY, mhaGroup));
+        
         execute(AUTO_INCREMENT_INCREMENT, NT_PORT1);
         execute(AUTO_INCREMENT_OFFSET_1, NT_PORT1);
         execute(AUTO_INCREMENT_INCREMENT, OY_PORT1);

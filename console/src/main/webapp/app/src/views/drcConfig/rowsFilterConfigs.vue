@@ -486,18 +486,16 @@ export default {
       console.log('/api/drc/v1/build/dataMedia/check?' +
         'namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name +
-        '&srcDc=' + this.drc.srcDc +
-        '&dataMediaSourceName=' + this.drc.srcMha +
+        '&mhaName=' + this.drc.srcMha +
         '&type=' + 0)
       this.axios.get('/api/drc/v1/build/dataMedia/check?' +
         'namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name +
-        '&srcDc=' + this.drc.srcDc +
-        '&dataMediaSourceName=' + this.drc.srcMha +
+        '&mhaName=' + this.drc.srcMha +
         '&type=' + 0)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('查询匹配表失败')
+            window.alert('查询匹配表失败' + response.data.data)
           } else {
             console.log(response.data.data)
             this.tableData = response.data.data
@@ -511,7 +509,6 @@ export default {
       console.log('/api/drc/v1/build/dataMedia/conflictCheck?' +
         'applierGroupId=' + this.drc.applierGroupId +
         '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
-        '&srcDc=' + this.drc.srcDc +
         '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name)
@@ -519,7 +516,6 @@ export default {
         '/api/drc/v1/build/dataMedia/conflictCheck?' +
         'applierGroupId=' + this.drc.applierGroupId +
         '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
-        '&srcDc=' + this.drc.srcDc +
         '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name)
@@ -538,13 +534,11 @@ export default {
     },
     getCommonColumns () {
       console.log('/api/drc/v1/build/rowsFilter/commonColumns?' +
-        'srcDc=' + this.drc.srcDc +
-        '&srcMha=' + this.drc.srcMha +
+        '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name)
       this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
-        'srcDc=' + this.drc.srcDc +
-        '&srcMha=' + this.drc.srcMha +
+        '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
         '&name=' + this.rowsFilterConfig.name)
         .then(response => {

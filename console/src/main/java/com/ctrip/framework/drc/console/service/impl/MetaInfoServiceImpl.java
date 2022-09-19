@@ -1,21 +1,25 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.response.MhaListApiResult;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
@@ -23,6 +27,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
 import com.ctrip.platform.dal.dao.DalPojo;
@@ -73,6 +78,9 @@ MetaInfoServiceImpl implements MetaInfoService {
     
     @Autowired
     private RowsFilterService rowsFilterService;
+    
+    @Autowired
+    private OpenService openService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -1131,10 +1139,37 @@ MetaInfoServiceImpl implements MetaInfoService {
         return proxyIps;
     }
 
-    @PossibleRemote(path = "/api/drc/v1/meta/mhas")
+    @PossibleRemote(path = "/api/drc/v1/meta/mhas",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaListApiResult.class)
     public List<MhaTbl> getMhas(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         return dalUtils.getMhaTblDao().queryByDcId(dcId);
+    }
+    
+    
+    /**
+     * use List<MhaTbl> getMhas(String dcName)
+     */
+    @Deprecated
+    public List<MhaTbl> getMhasByDc(String dcName) throws Exception {
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+        String localRegion = consoleConfig.getRegion();
+        if (publicCloudRegion.contains(localRegion.toLowerCase())) {
+            Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
+            String shaConsoleUrl = consoleRegionUrls.get("sha");
+            String uri = String.format("%s/api/drc/v1/meta/mhas?dcName={dcName}", shaConsoleUrl);
+            Map<String, String> params = Maps.newHashMap();
+            params.put("dcName", dcName);
+            MhaListApiResult mhaResponseVo = openService.getMhas(uri, params);
+
+            if (Constants.zero.equals(mhaResponseVo.getStatus())) {
+                logger.info("dc:{} get Mha MetaInfo From sha region",dcName);
+                return mhaResponseVo.getData();
+            } else {
+                return null;
+            }
+        } else {
+            return getMhas(dcName);
+        }
     }
 
     private Long getDcId(String dcName) throws SQLException {

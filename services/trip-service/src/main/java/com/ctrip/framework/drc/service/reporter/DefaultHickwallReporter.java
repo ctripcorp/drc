@@ -33,7 +33,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
 
     protected final MetricRegistry metrics = new MetricRegistry();
 
-    private static final int REPORT_PERIOD = 60;
+    private static final int REPORT_PERIOD = 30;
 
     private static final String HICKWALL_DOMAIN = "hickwall.domain";
 
@@ -52,6 +52,8 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     private static final String ROWS_FILTER_TOTAL_MEASUREMENT = "fx.drc.rows.filter.total";
 
     private static final String ROWS_FILTER_SEND_MEASUREMENT = "fx.drc.rows.filter.send";
+
+    private static final String TRAFFIC_STATISTIC_MEASUREMENT = "fx.drc.traffic.statistic";
 
     private static final String CONSISTENCY_MEASUREMENT = "fx.drc.consistency";
 
@@ -91,7 +93,7 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
         if (null == metricName) return true;
         return metrics.remove(metricName);
     }
-    
+
     @Override
     public boolean removeRegister(String measurement) {
         metrics.removeMatching(
@@ -104,6 +106,11 @@ public class DefaultHickwallReporter extends AbstractConfigBean implements Repor
     public void reportRowsFilter(RowsFilterEntity rowsFilterEntity) {
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getTotal(), ROWS_FILTER_TOTAL_MEASUREMENT);
         reportResetCounter(rowsFilterEntity.getTags(), rowsFilterEntity.getSend(), ROWS_FILTER_SEND_MEASUREMENT);
+    }
+
+    @Override
+    public void reportTrafficStatistic(TrafficStatisticEntity trafficStatisticEntity) {
+        reportResetCounter(trafficStatisticEntity.getTags(), trafficStatisticEntity.getSend(), TRAFFIC_STATISTIC_MEASUREMENT);
     }
 
     @Override

@@ -129,7 +129,7 @@ public class PeriodicalUpdateDbTaskTest {
     private MetaKey metaKey2;
 
     @Before
-    public void setUp() throws IOException, SAXException, InterruptedException, SQLException {
+    public void setUp() throws Exception {
         // for db
         createDb();
 

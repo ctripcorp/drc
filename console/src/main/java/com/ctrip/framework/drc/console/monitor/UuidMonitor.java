@@ -4,8 +4,6 @@ package com.ctrip.framework.drc.console.monitor;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.enums.ActionEnum;
-import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -13,22 +11,18 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOpera
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.vo.response.AbstractResponse;
 import com.ctrip.framework.drc.console.vo.response.UuidResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
-import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
-import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.SlaveMySQLEndpointObserver;
-import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.unidal.tuple.Triple;
-
+import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -47,7 +40,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOGGER;
 
 
 /**
@@ -168,11 +160,11 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     }
     
     private String getUUIDFromDB(String ip, int port) throws SQLException {// select from db
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         MachineTbl machineTbl;
         
-        if (publicCloudDc.contains(localDcName)) {
-            machineTbl = getUUIDFromRemoteDB(ip, port, localDcName);
+        if (publicCloudRegion.contains(regionName)) {
+            machineTbl = getUUIDFromRemoteDB(ip, port);
             uuidLogger.info("[[monitor=UUIDMonitor]] get UUID from remote dc,current dc is {}",localDcName);
         } else {
             machineTbl = getUUIDFromLocalDB(ip,port);
@@ -181,25 +173,20 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
         return machineTbl != null ? machineTbl.getUuid() : null;
     }
     
-    private MachineTbl getUUIDFromRemoteDB(String ip, int port, String localDcName) {
-        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-        
-        if(consoleDcInfos.size() != 0) {
-            for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
-                if(!entry.getKey().equalsIgnoreCase(localDcName)) {
-                    try {
-                        String uri = String.format("%s/api/drc/v1/monitor/uuid?ip={ip}&port={port}", entry.getValue());
-                        Map<String, Object> params = Maps.newHashMap();
-                        params.put("ip", ip);
-                        params.put("port", port);
-                        UuidResponseVo uuidResponseVo = openService.getUUIDFromRemoteDC(uri,params);
-                        if (Constants.zero.equals(uuidResponseVo.getStatus())) {
-                            return uuidResponseVo.getData();
-                        }
-                    } catch (Throwable t) {
-                        logger.warn("[[monitor=UUIDMonitor]] fail get uuid from remote dc:{}",entry.getKey(),t);
-                    }
+    private MachineTbl getUUIDFromRemoteDB(String ip, int port) {
+        String centerRegionUrl = consoleConfig.getCenterRegionUrl();
+        if (!StringUtils.isEmpty(centerRegionUrl)) {
+            try {
+                String uri = String.format("%s/api/drc/v1/monitor/uuid?ip={ip}&port={port}", centerRegionUrl);
+                Map<String, Object> params = Maps.newHashMap();
+                params.put("ip", ip);
+                params.put("port", port);
+                UuidResponseVo uuidResponseVo = openService.getUUIDFromRemoteDC(uri,params);
+                if (Constants.zero.equals(uuidResponseVo.getStatus())) {
+                    return uuidResponseVo.getData();
                 }
+            } catch (Throwable t) {
+                logger.warn("[[monitor=UUIDMonitor]] fail get uuid from center region",t);
             }
         }
         uuidLogger.warn(" [[monitor=UUIDMonitor]] no such mysqlMachine {}:{} in db",ip,port);
@@ -218,12 +205,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
         ReadResource readResource = null;
         try {
             String command;
-            if (localDcName.equalsIgnoreCase("shali")) {
-                command = ALI_RDS + UUIDCommand;
-            }
-            else {
-                command = UUIDCommand;
-            }
+            command = ALI_RDS + UUIDCommand;
             GeneralSingleExecution execution = new GeneralSingleExecution(command);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
@@ -241,12 +223,13 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     }
 
     private boolean autoCorrect(String ip, int port, String uuidStringFromDB,String uuidFromCommand) {
-        try { // update UUID
-            Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        try {
+            // update UUID
+            Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
             MachineTbl sample;
             // get Pk and uuid
-            if (publicCloudDc.contains(localDcName)) {
-                sample = getUUIDFromRemoteDB(ip, port, localDcName);
+            if (publicCloudRegion.contains(regionName)) {
+                sample = getUUIDFromRemoteDB(ip, port);
             } else {
                 sample = getUUIDFromLocalDB(ip, port);
             }
@@ -255,7 +238,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
                 return false;
             }
             // correct
-            if ((publicCloudDc.contains(localDcName)) && uuidStringFromDB != null) {
+            if ((publicCloudRegion.contains(regionName)) && uuidStringFromDB != null) {
                 String uuidString = uuidStringFromDB + "," + uuidFromCommand;
                 sample.setUuid(uuidString);
             } else {
@@ -276,27 +259,21 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     
     private boolean updateUuid(MachineTbl machineTblWithUuid) throws SQLException {
         // update
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
-        if (publicCloudDc.contains(localDcName)) {
-            Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-            
-            if(consoleDcInfos.size() != 0) {
-                for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
-                    if(!entry.getKey().equalsIgnoreCase(localDcName)) {
-                        try {
-                            String uri = String.format("%s/api/drc/v1/monitor/uuid", entry.getValue());
-                            AbstractResponse<String> response = openService.updateUuidByMachineTbl(uri, machineTblWithUuid);
-                            if (Constants.zero.equals(response.getStatus())) {
-                                return true;
-                            }
-                        } catch (Throwable t) {
-                            logger.warn("[[monitor=UUIDMonitor]] fail get uuid from remote dc:{}",entry.getKey(),t);
-                        }
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+        if (publicCloudRegion.contains(regionName)) {
+            String centerRegionUrl = consoleConfig.getCenterRegionUrl();
+            if (!StringUtils.isEmpty(centerRegionUrl)) {
+                try {
+                    String uri = String.format("%s/api/drc/v1/monitor/uuid", centerRegionUrl);
+                    ApiResult<String> response = openService.updateUuidByMachineTbl(uri, machineTblWithUuid);
+                    if (Constants.zero.equals(response.getStatus())) {
+                        return true;
                     }
+                } catch (Throwable t) {
+                    logger.warn("[[monitor=UUIDMonitor]] fail get uuid from center region:",t);
                 }
             }
             return false;
-            
         } else {
             int update = machineTblDao.update(machineTblWithUuid);
             return update == 1;

@@ -24,26 +24,22 @@ public class RemoteConfig extends AbstractConfig implements Config {
 
     @Override
     public void updateConfig() {
-        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
+        
         Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
+        String centerRegionUrl = consoleConfig.getCenterRegionUrl();
         if (localConfigCloudDc.contains(dbClusterSourceProvider.getLocalDcName())) {
             return;
         }
-        if(consoleDcInfos.size() != 0) {
-            for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
-                if(!entry.getKey().equalsIgnoreCase(dbClusterSourceProvider.getLocalDcName())) {
-                    try {
-                        String drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", entry.getValue()), String.class);
-                        if(StringUtils.isNotBlank(drcFromRemote) && !drcFromRemote.equalsIgnoreCase(this.xml)) {
-                            this.xml = drcFromRemote;
-                            persistConfig();
-                            break;
-                        }
-                    } catch (Throwable t) {
-                        META_LOGGER.warn("Fail get drc from remote: {}", entry.getKey(), t);
+        if(!StringUtils.isEmpty(centerRegionUrl)) {
+                try {
+                    String drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", centerRegionUrl), String.class);
+                    if(StringUtils.isNotBlank(drcFromRemote) && !drcFromRemote.equalsIgnoreCase(this.xml)) {
+                        this.xml = drcFromRemote;
+                        persistConfig();
                     }
+                } catch (Throwable t) {
+                    META_LOGGER.warn("Fail get drc from remote center region ", t);
                 }
-            }
         }
 
     }

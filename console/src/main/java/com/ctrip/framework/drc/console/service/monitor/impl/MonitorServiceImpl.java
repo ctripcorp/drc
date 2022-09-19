@@ -10,17 +10,17 @@ import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DalUtils;
-import com.ctrip.framework.drc.console.utils.JsonUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.console.vo.response.MhaNamesResponseVo;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -90,17 +90,17 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public List<String> getMhaNamesToBeMonitored() throws SQLException {
-        String currentDcName = sourceProvider.getLocalDcName();
-        Set<String> publicCloudDc = consoleConfig.getPublicCloudDc();
+        String region = consoleConfig.getRegion();
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         List<String> mhaNamesToBeMonitored;
 
-        if (publicCloudDc.contains(currentDcName)) {
+        if (publicCloudRegion.contains(region)) {
             Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
-            if (localConfigCloudDc.contains(currentDcName)) {
+            if (localConfigCloudDc.contains(sourceProvider.getLocalDcName())) {
                 mhaNamesToBeMonitored = consoleConfig.getLocalDcMhaNamesToBeMonitored();
                 logger.info("get mha name to be monitored from local config: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
             } else {
-                mhaNamesToBeMonitored = getRemoteMhaNamesToBeMonitored(currentDcName);
+                mhaNamesToBeMonitored = getRemoteMhaNamesToBeMonitored();
                 logger.info("get mha name to be monitored from remote: {}", JsonUtils.toJson(mhaNamesToBeMonitored));
             }
         } else {
@@ -111,19 +111,14 @@ public class MonitorServiceImpl implements MonitorService {
         return mhaNamesToBeMonitored;
     }
 
-    private List<String> getRemoteMhaNamesToBeMonitored(String currentDcName) throws IllegalStateException {
-        Map<String, String> consoleDcInfos = consoleConfig.getConsoleDcInfos();
-
-        if(consoleDcInfos.size() != 0) {
-            for(Map.Entry<String, String> entry : consoleDcInfos.entrySet()) {
-                if(!entry.getKey().equalsIgnoreCase(currentDcName)) {
-                    String uri = String.format("%s/api/drc/v1/monitor/switches/on", entry.getValue());
-                    MhaNamesResponseVo mhaNamesResponseVo = openService.getMhaNamesToBeMonitored(uri);
-
-                    if (Constants.zero.equals(mhaNamesResponseVo.getStatus())) {
-                        return mhaNamesResponseVo.getData();
-                    }
-                }
+    private List<String> getRemoteMhaNamesToBeMonitored() throws IllegalStateException {
+        String centerRegionUrl = consoleConfig.getCenterRegionUrl();
+        
+        if(!StringUtils.isEmpty(centerRegionUrl)) {
+            String uri = String.format("%s/api/drc/v1/monitor/switches/on", centerRegionUrl);
+            MhaNamesResponseVo mhaNamesResponseVo = openService.getMhaNamesToBeMonitored(uri);
+            if (Constants.zero.equals(mhaNamesResponseVo.getStatus())) {
+                return mhaNamesResponseVo.getData();
             }
         }
         logger.info("can not get remote mha names to be monitored");

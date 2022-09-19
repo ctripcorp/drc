@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -23,6 +24,8 @@ public class OutboundLogEventContext {
     private LogEventType eventType;
 
     private long eventSize;
+
+    private long filteredEventSize;
 
     private LogEvent rowsEvent;
 
@@ -45,6 +48,7 @@ public class OutboundLogEventContext {
         this.eventType = eventType;
         this.eventSize = eventSize;
         this.gtid = gtid;
+        this.filteredEventSize = eventSize;
     }
 
     public FileChannel getFileChannel() {
@@ -128,5 +132,13 @@ public class OutboundLogEventContext {
         } catch (IOException e) {
             setCause(e);
         }
+    }
+
+    public long getFilteredEventSize() {
+        return filteredEventSize;
+    }
+
+    public void setFilteredEventSize(long filteredEventSize) {
+        this.filteredEventSize = filteredEventSize;
     }
 }

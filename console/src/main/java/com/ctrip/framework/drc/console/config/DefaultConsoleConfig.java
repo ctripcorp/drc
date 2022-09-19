@@ -59,8 +59,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private Map<String, String> consoleDcInfos = Maps.newConcurrentMap();
 
-    private Map<String, String> validationDcInfos = Maps.newConcurrentMap();
-
     private Map<String, String> consoleDcEndpointInfos = Maps.newConcurrentMap();
 
     private String defaultDcInfos = "{}";
@@ -77,6 +75,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String PUBLIC_CLOUD_DC = "drc.public.cloud.dc";
     private static String DEFAULT_PUBLIC_CLOUD_DC = "shali";
+    private static String PUBLIC_CLOUD_REGION = "drc.public.cloud.region";
+    private static String DEFAULT_PUBLIC_CLOUD_REGION = "fra,sin,ali";
+    private static String CENTER_REGION = "console.center.region";
+    private static String DEFAULT_CENTER_REGION = "sha";
 
     private static String LOCAL_CONFIG_CLOUD_DC = "local.config.cloud.dc";
     private static String DEFAULT_LOCAL_CONFIG_CLOUD_DC = "sinibuaws,sinibualiyun";
@@ -84,13 +86,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DEFAULT_LOCAL_CONFIG_MONITOR_MHAS = "";
     private static String LOCAL_CONFIG_MHAS_MAP = "local.config.mhas.nameidmap";
     private static String DEFAULT_LOCAL_CONFIG_MHAS_MAP = "{}";
-
-    private static String CONSOLE_GRAY_MHA = "console.gray.mha";
-    private static String DEFAULT_CONSOLE_GRAY_MHA = "";
-
-    private static String CONSOLE_GRAY_MHA_SWITCH = "console.gray.mha.switch";
-    private static String DEFAULT_CONSOLE_GRAY_MHA_SWITCH = "on";
-
+    
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
 
@@ -105,12 +101,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return regionConfig.getRegion();
     }
 
-    public Map<String,Set<String>> getRegionsInfo(){
+    public Map<String,Set<String>> getRegion2dcsMapping(){
         return regionConfig.getRegion2dcsMapping();
     }
 
     public Map<String,String> getDc2regionMap (){
-        Map<String, Set<String>> regionsInfo = getRegionsInfo();
+        Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         Map<String,String> dc2regionMap = Maps.newHashMap();
         regionsInfo.forEach(
                 (region, dcs) -> dcs.forEach(dc -> dc2regionMap.put(dc, region))
@@ -120,7 +116,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public Set<String> getDcsInSameRegion(String dc) {
         Set<String> dcs = Sets.newHashSet();
-        Map<String, Set<String>> regionsInfo = getRegionsInfo();
+        Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         regionsInfo.forEach(
                 (region,dcsInRegion) ->{
                     if (dcsInRegion.contains(dc)) {
@@ -133,10 +129,29 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public Set<String> getDcsInLocalRegion() {
         String region = getRegion();
-        Map<String, Set<String>> regionsInfo = getRegionsInfo();
+        Map<String, Set<String>> regionsInfo = getRegion2dcsMapping();
         return  regionsInfo.get(region);
     }
-
+    
+    public String getCenterRegionUrl() {
+        Map<String, String> consoleRegionUrls = getConsoleRegionUrls();
+        return consoleRegionUrls.get(getCenterRegion());
+    }
+    
+    public String getCenterRegion() {
+        return getProperty(CENTER_REGION,DEFAULT_CENTER_REGION);
+    }
+    
+    public String getRegionForDc(String dcName) {
+        Map<String, Set<String>> region2dcsMapping = getRegion2dcsMapping();
+        for (Map.Entry<String, Set<String>> entry : region2dcsMapping.entrySet()) {
+            if (entry.getValue().contains(dcName.toLowerCase())) {
+                return entry.getKey();
+            }
+        }
+        throw new IllegalArgumentException("can not find region with dcName: " + dcName);
+    }
+    
     public int getConflictMhaRecordSearchTime() {
         return getIntProperty(CONFLICT_RECORD_SEARCH_TIME,DEFAULT_CONFLICT_RECORD_SEARCH_TIME);
     }
@@ -181,13 +196,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return consoleDcInfos;
     }
-
-    public Map<String, String> getValidationDcInfos() {
-        if(validationDcInfos.size() == 0) {
-            validationDcInfos = getValidationDcInfoMapping();
-        }
-        return validationDcInfos;
-    }
+    
 
     public Map<String, String> getConsoleDcEndpointInfos() {
         if(consoleDcEndpointInfos.size() == 0) {
@@ -236,7 +245,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
                 logger.warn("[getCMMetaServerAddress] not configured for dc:{},region:{}", dc,region);
             }
             return cmMetaServerAddress;
-
         } else {
             Map<String, DcInfo> dcInfos = getDcInfos();
             DcInfo dcInfo = dcInfos.get(dc);
@@ -359,6 +367,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         logger.info("public cloud dc: {}", publicCloudDc);
         return Sets.newHashSet(publicCloudDc.split(","));
     }
+    
+    public Set<String> getPublicCloudRegion() {
+        String publicCloudRegion = getProperty(PUBLIC_CLOUD_REGION,DEFAULT_PUBLIC_CLOUD_REGION);
+        logger.info("public cloud region: {}", publicCloudRegion);
+        return Sets.newHashSet(publicCloudRegion.toLowerCase().split(","));
+    }
 
     public Set<String> getLocalConfigCloudDc() {
         String localConfigCloudDc = getProperty(LOCAL_CONFIG_CLOUD_DC, DEFAULT_LOCAL_CONFIG_CLOUD_DC);
@@ -385,15 +399,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return mhasIdNameMap;
 
-    }
-
-    public Set<String> getGrayMha() {
-        String grayMha = getProperty(CONSOLE_GRAY_MHA, DEFAULT_CONSOLE_GRAY_MHA);
-        return Sets.newHashSet(grayMha.split(","));
-    }
-
-    public String getGrayMhaSwitch() {
-        return getProperty(CONSOLE_GRAY_MHA_SWITCH, DEFAULT_CONSOLE_GRAY_MHA_SWITCH);
     }
 
     public String getSwitchCmRegionUrl() {

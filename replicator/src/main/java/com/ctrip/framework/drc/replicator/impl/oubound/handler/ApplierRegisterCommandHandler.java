@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -11,6 +12,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -72,6 +74,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private static final int END_OF_STATEMENT_FLAG = 1;
 
+    private static final String DRC_GTID_EVENT_DB_NAME = "drc_gtid_db";
+
     private GtidManager gtidManager;
 
     private FileManager fileManager;
@@ -82,6 +86,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private boolean setGitdMode;
 
+    private String replicatorRegion;
+
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
     public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, ReplicatorConfig replicatorConfig) {
@@ -90,6 +96,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         this.outboundMonitorReport = outboundMonitorReport;
         this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
         this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
+        this.replicatorRegion = RegionConfig.getInstance().getRegion();
     }
 
     @Override
@@ -145,10 +152,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
-        private Set<String> includedDbs = Sets.newHashSet();
-
-        private boolean dbFiltering = false;
-
         private boolean shouldSkipEvent = false;
 
         private int continuousTableMapCount = 0;
@@ -158,6 +161,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private LogEventType lastEventType = null;
 
         private AviatorRegexFilter aviatorFilter = null;
+
+        private String applierRegion;
+
+        private long transactionSize;
+
+        private String sendingSchema;
 
         private String ip;
 
@@ -175,6 +184,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
+        private boolean skipDrcGtidLogEvent;
+
         private ChannelAttributeKey channelAttributeKey;
 
         private Filter<OutboundLogEventContext> filterChain;
@@ -184,11 +195,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
+            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
-            this.includedDbs.addAll(dumpCommandPacket.getIncludedDbs());
+            this.applierRegion = dumpCommandPacket.getRegion();
             this.ip = ip;
-            logger.info("[ConsumeType] is {}, [properties] is {}, for {} from {}", consumeType.name(), properties, applierName, ip);
+            logger.info("[ConsumeType] is {}, [properties] is {}, [replicatorRegion] is {}, [applierRegion] is {}, for {} from {}", consumeType.name(), properties, replicatorRegion, applierRegion, applierName, ip);
             channelAttributeKey = channel.attr(ReplicatorMasterHandler.KEY_CLIENT).get();
             if (!consumeType.shouldHeartBeat()) {
                 channelAttributeKey.setHeartBeat(false);
@@ -234,7 +246,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             }
 
             if (logEventType == drc_gtid_log_event) {
-                return setGitdMode || new GtidSet(gtid).isContainedWithin(excludedSet);
+                return skipDrcGtidLogEvent || new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
         }
@@ -448,22 +460,31 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
                 if (gtid_log_event == eventType) {
+                    transactionSize += eventSize;
                     updateMonitorStatis(eventSize, previousGtidLogEvent);
+                } else {
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
                 }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
-                        || checkIncludedDbs(fileChannel, eventSize, eventType, headByteBuf))
-                        || processNameFilter(fileChannel, eventSize, eventType, headByteBuf)) {
+                        || processNameFilter(fileChannel, eventSize, eventType, headByteBuf))) {
                     lastEventType = eventType;
                     return previousGtidLogEvent;
                 }
 
                 logGtid(previousGtidLogEvent, eventType);
+
                 // read header already
                 OutboundLogEventContext logEventContext = new OutboundLogEventContext(fileChannel, fileChannel.position(), eventType, eventSize, previousGtidLogEvent);
                 filterChain.doFilter(logEventContext);
+                transactionSize += logEventContext.getFilteredEventSize();
                 if (logEventContext.getCause() != null) {
                     throw logEventContext.getCause();
+                }
+
+                if (xid_log_event == eventType) {
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(sendingSchema, replicatorRegion, applierRegion), transactionSize);
+                    transactionSize = 0;
                 }
 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
@@ -474,39 +495,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return previousGtidLogEvent;
         }
 
-        private boolean checkIncludedDbs(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
-            if (xid_log_event == eventType) {
-                dbFiltering = false;
-                return dbFiltering;
-            }
-            if (dbFiltering) {
-                fileChannel.position(fileChannel.position() + (eventSize - eventHeaderLengthVersionGt1));  // forward body size
-                return dbFiltering;
-            }
-            if (!includedDbs.isEmpty() && table_map_log_event == eventType) {
-                handTableMapEvent(fileChannel, eventSize, headByteBuf);
-            }
-            return dbFiltering;
-        }
-
-        private void handTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
-            TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
-            CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            if (!includedDbs.contains(tableMapLogEvent.getSchemaName())) {
-                dbFiltering = true;
-                GTID_LOGGER.info("[Skip] {} for includedDbs:{}", tableMapLogEvent.getSchemaName(), includedDbs);
-            } else {
-                dbFiltering = false;
-                fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
-            }
-            releaseCompositeByteBuf(compositeByteBuf);
-        }
-
         private boolean processNameFilter(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
-            if (!includedDbs.isEmpty() || aviatorFilter == null) {
-                return false;
-            }
-
             shouldSkipEvent = false;
 
             if (xid_log_event == eventType) {
@@ -551,7 +540,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            if (!aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
+            sendingSchema = tableMapLogEvent.getSchemaName();
+            if (aviatorFilter != null && !aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
                 shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
                 GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
