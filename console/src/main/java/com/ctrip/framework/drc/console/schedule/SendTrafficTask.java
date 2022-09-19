@@ -139,11 +139,6 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         currentTimeRoundToHour = System.currentTimeMillis() / 1000 / (60 * 60) * (60 * 60);
         logger.info("[[task=sendTraffic]] current time round to hour: {}", currentTimeRoundToHour);
 
-//        // sin->sin
-//        HickWallTrafficContext sinToSinContext = getHickWallTrafficContext(SIN, SIN);
-//        List<HickWallTrafficEntity> sinToSin = opsApiService.getTrafficFromHickWall(sinToSinContext);
-//        sendToKafKa(sinToSin, AWS_PROVIDER, SIN_AWS, CostType.storage, 1);
-
         // sin->sha
         HickWallTrafficContext sinToShaContext = getHickWallTrafficContext(SIN, SHA);
         List<HickWallTrafficEntity> sinToSha = opsApiService.getTrafficFromHickWall(sinToShaContext);
@@ -151,22 +146,12 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         sendToKafKa(sinToSha, AWS_PROVIDER, SIN_AWS, CostType.flow, 9);
         sendToCat(sinToSha);
 
-//        // fra->fra
-//        HickWallTrafficContext fraToFraContext = getHickWallTrafficContext(FRA, FRA);
-//        List<HickWallTrafficEntity> fraToFra = opsApiService.getTrafficFromHickWall(fraToFraContext);
-//        sendToKafKa(fraToFra, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
-
         // fra->sha
         HickWallTrafficContext fraToShaContext = getHickWallTrafficContext(FRA, SHA);
         List<HickWallTrafficEntity> fraToSha = opsApiService.getTrafficFromHickWall(fraToShaContext);
         sendToKafKa(fraToSha, AWS_PROVIDER, FRA_AWS, CostType.storage, 1);
         sendToKafKa(fraToSha, AWS_PROVIDER, FRA_AWS, CostType.flow, 9);
         sendToCat(fraToSha);
-
-//        // ali->ali
-//        HickWallTrafficContext aliToAliContext = getHickWallTrafficContext(ALI, ALI);
-//        List<HickWallTrafficEntity> aliToAli = opsApiService.getTrafficFromHickWall(aliToAliContext);
-//        sendToKafKa(aliToAli, ALIYUN_PROVIDER, SHA_ALI, CostType.storage, 1);
 
         // ali->sha
         HickWallTrafficContext aliToShaContext = getHickWallTrafficContext(ALI, SHA);
