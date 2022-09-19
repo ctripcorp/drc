@@ -3,29 +3,22 @@ package com.ctrip.framework.drc.console.monitor.gtid.function;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.GtidGapEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.config.Config;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.sql.Connection;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
@@ -83,7 +76,7 @@ public class CheckGtid extends AbstractConfigBean {
             String mhaName = entry.getKey().getMhaName();
             Endpoint mySqlMasterEndpoint = entry.getValue();
             String gtidFilterSetStr = getProperty(String.format(MHA_FILTER_GTID, mhaName), "");
-            ListenableFuture<String> listenableFuture = gtidCheckExecutorService.submit(new UnionGtidSet(mySqlMasterEndpoint));
+            ListenableFuture<String> listenableFuture = gtidCheckExecutorService.submit(new ExecutedGtidQueryTask(mySqlMasterEndpoint));
             Futures.addCallback(listenableFuture, new FutureCallback<>() {
                 @Override
                 public void onSuccess(String gtidSetStr) {
@@ -111,7 +104,7 @@ public class CheckGtid extends AbstractConfigBean {
                                     .uuid(uuid)
                                     .build();
                             reporter.reportGtidGapCount(gtidGapEntity, gapCount);
-                            CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [GTID] {}\n [Report GTID Gap Count] mysql {}:{} uuid : {} of gapCount: {}",
+                            CONSOLE_GTID_LOGGER.info("[[monitor=gtid,dc={},mha={},db={}:{}]]\n [GTID] {}\n [Report GTID Gap Count] mysql {}:{} uuid : {} of gapCount: {}", 
                                     localDcName, mhaName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), getGtid(uuid, intervals), mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), uuid, gapCount);
 
                             reportRepeatedGtidGap(gtidGapEntity, uuid, intervals);
@@ -126,40 +119,6 @@ public class CheckGtid extends AbstractConfigBean {
                     CONSOLE_GTID_LOGGER.error("[[monitor=gtid,dc={},mha={},db={}:{}]][Query] new master executed gtid error: ", localDcName, mhaName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), t);
                 }
             });
-        }
-    }
-
-    class UnionGtidSet implements Callable<String> {
-
-        private Endpoint endpoint;
-
-        public UnionGtidSet(Endpoint endpoint) {
-            this.endpoint = endpoint;
-        }
-
-        @Override
-        public String call() throws Exception {
-            try {
-                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.union.gtidset.reader", endpoint.getHost() + ":" + endpoint.getPort(), () -> {
-                    String showMasterGtidset = StringUtils.EMPTY;
-                    GtidSet transactionTableGtidset = new GtidSet(StringUtils.EMPTY);
-                    DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
-                    try (Connection connection = dataSource.getConnection()){
-                        ShowMasterGtidReader showMasterGtidReader = new ShowMasterGtidReader();
-                        showMasterGtidset = showMasterGtidReader.getExecutedGtids(connection);
-                        TransactionTableGtidReader transactionTableGtidReader = new TransactionTableGtidReader(endpoint);
-                        transactionTableGtidset =  transactionTableGtidReader.selectMergedGtidSet(connection);
-                    } catch (Exception e) {
-                        CONSOLE_GTID_LOGGER.warn("get union executed gtidset of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
-                    }
-                    String unionGtidSet = new GtidSet(showMasterGtidset).union(transactionTableGtidset).toString();
-                    CONSOLE_GTID_LOGGER.info("get union executed gtidset of {}:{} is: {}", endpoint.getHost(), endpoint.getPort(), unionGtidSet);
-                    return unionGtidSet;
-                });
-            } catch (Exception e) {
-                CONSOLE_GTID_LOGGER.error("get union executed gtidset of {}:{} error", endpoint.getHost(), endpoint.getPort(), e);
-                return StringUtils.EMPTY;
-            }
         }
     }
 
@@ -346,7 +305,7 @@ public class CheckGtid extends AbstractConfigBean {
         CONSOLE_GTID_LOGGER.info("[[uuid={}]]gtidSet intervals: {}", uuid, intervals);
         return intervals.get(intervals.size() - 1).getEnd();
     }
-
+    
     public void resourcesRelease() {
         mhaGtidSet.clear();
         uuidGapIntervalsMapper.clear();

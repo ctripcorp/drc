@@ -38,8 +38,9 @@ public class TransactionTableGtidReader implements GtidReader {
     @Override
     public String getExecutedGtids(Connection connection) {
         GtidSet mergedGtidSet = selectMergedGtidSet(connection);
-        GtidSet unMergedGtidSet = selectUnMergedGtidSet(connection);
-        return mergedGtidSet.union(unMergedGtidSet).toString();
+//        GtidSet unMergedGtidSet = selectUnMergedGtidSet(connection);
+//        return mergedGtidSet.union(unMergedGtidSet).toString();
+        return mergedGtidSet.toString();
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
