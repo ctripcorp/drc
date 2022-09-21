@@ -33,27 +33,20 @@ public class RowsFilterResult<V> {
 
     public enum Status {
 
-        No_Filtered(true, false),
+        No_Filtered(true),
 
-        Filtered(false, false),
+        Filtered(false),
 
-        Illegal(true, true);
+        Illegal(true);
 
         private boolean noRowFiltered;
 
-        private boolean illegal;
-
-        Status(boolean noRowFiltered, boolean illegal) {
+        Status(boolean noRowFiltered) {
             this.noRowFiltered = noRowFiltered;
-            this.illegal = illegal;
         }
 
         public boolean noRowFiltered() {
             return noRowFiltered;
-        }
-
-        public boolean isIllegal() {
-            return illegal;
         }
 
         public static Status from(boolean res) {

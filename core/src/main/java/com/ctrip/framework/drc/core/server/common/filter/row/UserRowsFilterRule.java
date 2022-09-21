@@ -41,10 +41,12 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
     protected RowsFilterResult.Status doFilterRows(Object field, RowsFilterConfig.Parameters parameters) throws Exception {
         String filterMode = parameters.getUserFilterMode();
         UserFilterMode userFilterMode = UserFilterMode.getUserFilterMode(filterMode);
-        if (UserFilterMode.Uid == userFilterMode) {
+        if (UserFilterMode.Udl == userFilterMode) {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.udl", registryKey, () -> uidService.filterUdl(fetchUserContext(field, parameters)));
+        } else if (UserFilterMode.Uid == userFilterMode) {
             int fetchMode = parameters.getFetchMode();
             if (FetchMode.RPC.getCode() == fetchMode) {
-                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> uidService.filterUid(fetchUserContext(field, parameters)));
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.uid", registryKey, () -> uidService.filterUid(fetchUserContext(field, parameters)));
             } else if (FetchMode.BlackList.getCode() == fetchMode) {
                 return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> RowsFilterResult.Status.from(uidConfiguration.filterRowsWithBlackList(fetchUserContext(field, parameters))));
             } else if (FetchMode.WhiteList.getCode() == fetchMode) {
@@ -52,8 +54,6 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
             }
 
             throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);
-        } else if (UserFilterMode.Udl == userFilterMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.udl", registryKey, () -> uidService.filterUdl(fetchUserContext(field, parameters)));
         }
 
         throw new UnsupportedOperationException("not support for filterMode " + filterMode);

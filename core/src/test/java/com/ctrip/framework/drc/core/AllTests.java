@@ -67,6 +67,8 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleTest.class,
         UidConfigurationTest.class,
         RowsFilterTypeTest.class,
+        AbstractRowsFilterRuleForUdlTest.class,
+        AbstractRowsFilterRuleForUidTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,

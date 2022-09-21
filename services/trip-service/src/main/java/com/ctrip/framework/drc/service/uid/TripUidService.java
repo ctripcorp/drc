@@ -61,7 +61,7 @@ public class TripUidService implements UidService {
         }
 
         @Override
-        public RowsFilterResult.Status call() throws Exception {
+        public RowsFilterResult.Status call() {
             try {
                 if (locations == null || locations.isEmpty()) {
                     return RowsFilterResult.Status.from(false);

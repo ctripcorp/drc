@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
@@ -77,7 +78,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             }
         }
 
-        return found == fieldSize ? integerMap : null;
+        return found == fieldSize ? integerMap : ((parametersList != null && parametersList.size() > 1) ? integerMap : null);
     }
 
     /**
@@ -114,13 +115,13 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
                 lastValue = rowValue.get(index);
                 filterResult = handleValue(lastValue, parameters, rowsFilterContext);
                 if (Illegal != filterResult) {
-                    rowsFilterContext.putIfAbsent(lastValue, filterResult);
+                    rowsFilterContext.putIfAbsent(new CacheKey(i, lastValue), filterResult);
                     return filterResult;
                 }
             }
 
         }
-        return handleIllegal(lastValue, filterResult, parameters, rowsFilterContext);
+        return handleIllegal(new CacheKey(parametersList.size() - 1, lastValue), filterResult, parameters, rowsFilterContext);
     }
 
     private RowsFilterResult.Status handleValue(Object field, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) throws Exception {
@@ -133,11 +134,11 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
         return filterResult;
     }
 
-    private RowsFilterResult.Status handleIllegal(Object field, RowsFilterResult.Status filterResult, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) {
+    private RowsFilterResult.Status handleIllegal(CacheKey key, RowsFilterResult.Status filterResult, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) {
         RowsFilterResult.Status status = filterResult;
         if (Illegal == filterResult) {
             status = RowsFilterResult.Status.from(parameters.getIllegalArgument());
-            rowsFilterContext.putIfAbsent(field, status);
+            rowsFilterContext.putIfAbsent(key, status);
 
         }
         return status;
@@ -145,5 +146,30 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
     protected RowsFilterResult.Status doFilterRows(Object field, RowsFilterConfig.Parameters parameters) throws Exception {
         return No_Filtered;
+    }
+
+    static class CacheKey {
+        private int index;
+        private Object lastValue;
+
+        public CacheKey(int index, Object lastValue) {
+            this.index = index;
+            this.lastValue = lastValue;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CacheKey)) return false;
+            CacheKey cacheKey = (CacheKey) o;
+            return index == cacheKey.index &&
+                    Objects.equals(lastValue, cacheKey.lastValue);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(index, lastValue);
+        }
     }
 }

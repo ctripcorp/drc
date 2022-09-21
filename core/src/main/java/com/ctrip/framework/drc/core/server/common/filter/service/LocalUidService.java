@@ -11,12 +11,22 @@ public class LocalUidService implements UidService {
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext uidContext) throws Exception {
+        // 1 3 5 -> 1 5 AbstractRowsFilterRuleForUidTest
+        int value = Integer.parseInt(uidContext.getUserAttr());
+        if (value < 10) {
+            return RowsFilterResult.Status.from(value % 4 == 1);
+        }
         return RowsFilterResult.Status.from(true);
     }
 
     @Override
     public RowsFilterResult.Status filterUdl(UserContext uidContext) throws Exception {
-        return RowsFilterResult.Status.from(true);
+        // 2 4 6 -> 2(degrade by uid=1) 6  AbstractRowsFilterRuleForUdlTest
+        int value = Integer.parseInt(uidContext.getUserAttr());
+        if (value == 2) {
+            return RowsFilterResult.Status.Illegal;
+        }
+        return RowsFilterResult.Status.from(Integer.parseInt(uidContext.getUserAttr()) % 3 == 0);
     }
 
     @Override
