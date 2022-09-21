@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.common.filter.service;
 
-import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
 
 /**
  * @Author limingdong
@@ -9,8 +10,13 @@ import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
 public class LocalUidService implements UidService {
 
     @Override
-    public boolean filterUid(UidContext uidContext) throws Exception {
-        return true;
+    public RowsFilterResult.Status filterUid(UserContext uidContext) throws Exception {
+        return RowsFilterResult.Status.from(true);
+    }
+
+    @Override
+    public RowsFilterResult.Status filterUdl(UserContext uidContext) throws Exception {
+        return RowsFilterResult.Status.from(true);
     }
 
     @Override

@@ -1,20 +1,49 @@
 package com.ctrip.framework.drc.core.server.common.enums;
 
+import com.ctrip.framework.drc.core.server.common.filter.row.*;
+
+import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.ROWS_FILTER_RULE;
+
 /**
  * @Author limingdong
  * @create 2022/4/22
  */
 public enum RowsFilterType {
 
-    None("none"),
+    None("none") {
+        public Class<? extends RowsFilterRule> filterRuleClass() {
+            return NoopRowsFilterRule.class;
+        }
+    },
 
-    AviatorRegex("aviator_regex"),
+    AviatorRegex("aviator_regex") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() {
+            return AviatorRegexRowsFilterRule.class;
+        }
+    },
 
-    JavaRegex("java_regex"),
+    JavaRegex("java_regex") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() {
+            return JavaRegexRowsFilterRule.class;
+        }
+    },
 
-    TripUid("trip_uid"),
+    TripUdl("trip_udl") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() {
+            return UidRowsFilterRule.class;
+        }
+    },
 
-    Custom("custom");
+    Custom("custom") {
+        @Override
+        public Class<? extends RowsFilterRule> filterRuleClass() throws ClassNotFoundException {
+            String clazz = System.getProperty(ROWS_FILTER_RULE);
+            return  (Class<RowsFilterRule>) Class.forName(clazz);
+        }
+    };
 
     private String name;
 
@@ -35,4 +64,6 @@ public enum RowsFilterType {
 
         throw new UnsupportedOperationException("not support for name " + name);
     }
+
+    public abstract Class<? extends RowsFilterRule> filterRuleClass() throws ClassNotFoundException;
 }

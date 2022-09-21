@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +28,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
 
     @Override
     protected RowsFilterType getRowsFilterType() {
-        return RowsFilterType.TripUid;
+        return RowsFilterType.TripUdl;
     }
 
     @Test
@@ -35,7 +36,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         // LocalUidService
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
-        Assert.assertTrue(res.isNoRowFiltered());
+        Assert.assertTrue(res.isNoRowFiltered().noRowFiltered());
     }
 
     // id with 18, 20, 22
@@ -49,7 +50,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
-        Assert.assertFalse(res.isNoRowFiltered());
+        Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
         Assert.assertEquals(res.getRes().size(), 1);  // 18
 
         UidConfiguration.getInstance().clear();
@@ -65,7 +66,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
-        Assert.assertFalse(res.isNoRowFiltered());
+        Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
         Assert.assertEquals(res.getRes().size(), 2);  // 18, 20
 
         UidConfiguration.getInstance().clear();
@@ -84,7 +85,9 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         cloneParameters.setIllegalArgument(parameters.getIllegalArgument());
         cloneParameters.setFetchMode(code);
 
-        clone.setParameters(cloneParameters);
+        RowsFilterConfig.Configs configs = new RowsFilterConfig.Configs();
+        configs.setParameters(Lists.newArrayList(cloneParameters));
+        clone.setConfigs(configs);
 
         return clone;
     }

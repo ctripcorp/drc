@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -27,8 +28,9 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
 
     public UidRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
-        if (StringUtils.isNotBlank(context)) {
-            String[] locations = context.split(COMMA);
+        Collections.sort(parametersList);
+        if (parametersList != null && !parametersList.isEmpty() && StringUtils.isNotBlank(parametersList.get(0).getContext())) {
+            String[] locations = parametersList.get(0).getContext().split(COMMA);
             for (String l : locations) {
                 dstLocation.add(l.trim().toUpperCase());
             }
@@ -36,23 +38,32 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
     }
 
     @Override
-    protected boolean doFilterRows(Object field) throws Exception {
-        if (FetchMode.RPC == fetchMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> uidService.filterUid(fetchUidContext(field)));
-        } else if (FetchMode.BlackList == fetchMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> uidConfiguration.filterRowsWithBlackList(fetchUidContext(field)));
-        } else if (FetchMode.WhiteList == fetchMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> uidConfiguration.filterRowsWithWhiteList(fetchUidContext(field)));
+    protected RowsFilterResult.Status doFilterRows(Object field, RowsFilterConfig.Parameters parameters) throws Exception {
+        String filterMode = parameters.getUserFilterMode();
+        UserFilterMode userFilterMode = UserFilterMode.getUserFilterMode(filterMode);
+        if (UserFilterMode.Uid == userFilterMode) {
+            int fetchMode = parameters.getFetchMode();
+            if (FetchMode.RPC.getCode() == fetchMode) {
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.sdk", registryKey, () -> uidService.filterUid(fetchUserContext(field, parameters)));
+            } else if (FetchMode.BlackList.getCode() == fetchMode) {
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> RowsFilterResult.Status.from(uidConfiguration.filterRowsWithBlackList(fetchUserContext(field, parameters))));
+            } else if (FetchMode.WhiteList.getCode() == fetchMode) {
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> RowsFilterResult.Status.from(uidConfiguration.filterRowsWithWhiteList(fetchUserContext(field, parameters))));
+            }
+
+            throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);
+        } else if (UserFilterMode.Udl == userFilterMode) {
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.udl", registryKey, () -> uidService.filterUdl(fetchUserContext(field, parameters)));
         }
 
-        throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);
+        throw new UnsupportedOperationException("not support for filterMode " + filterMode);
     }
 
-    private UidContext fetchUidContext(Object field) {
-        UidContext uidContext = new UidContext();
-        uidContext.setUid(String.valueOf(field));
+    protected UserContext fetchUserContext(Object field, RowsFilterConfig.Parameters parameters) {
+        UserContext uidContext = new UserContext();
+        uidContext.setUserAttr(String.valueOf(field));
         uidContext.setLocations(dstLocation);
-        uidContext.setIllegalArgument(illegalArgument);
+        uidContext.setIllegalArgument(parameters.getIllegalArgument());
         uidContext.setRegistryKey(registryKey);
 
         return uidContext;

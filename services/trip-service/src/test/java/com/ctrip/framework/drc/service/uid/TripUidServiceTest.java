@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.service.uid;
 
-import com.ctrip.basebiz.tripaccount.region.route.sdk.UDL;
-import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
 import com.ctrip.soa.platform.accountregionroute.v1.Region;
 import com.google.common.collect.Sets;
@@ -28,7 +27,7 @@ public class TripUidServiceTest {
 
     @Test
     public void filterUid() throws Exception {
-        UidContext uidContext = new UidContext();
+        UserContext uidContext = new UserContext();
         uidContext.setUid("test_uid");
         uidContext.setLocations(locations);
         uidContext.setIllegalArgument(false);

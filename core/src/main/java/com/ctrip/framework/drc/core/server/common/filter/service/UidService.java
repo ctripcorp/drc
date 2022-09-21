@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.common.filter.service;
 
-import com.ctrip.framework.drc.core.server.common.filter.row.UidContext;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
 import com.ctrip.xpipe.api.lifecycle.Ordered;
 
 /**
@@ -9,6 +10,8 @@ import com.ctrip.xpipe.api.lifecycle.Ordered;
  */
 public interface UidService extends Ordered {
 
-    boolean filterUid(UidContext uidContext) throws Exception;
+    RowsFilterResult.Status filterUid(UserContext uidContext) throws Exception;
+
+    RowsFilterResult.Status filterUdl(UserContext uidContext) throws Exception;
 
 }

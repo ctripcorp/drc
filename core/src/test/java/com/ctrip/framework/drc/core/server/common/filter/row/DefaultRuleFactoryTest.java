@@ -22,7 +22,7 @@ public class DefaultRuleFactoryTest {
 
     @Test
     public void createRowsFilterRule() throws Exception {
-        String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUid.getName(), location);
+        String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUdl.getName(), location);
         DataMediaConfig dataMediaConfig = DataMediaConfig.from(registryKey, properties);
         RowsFilterRule rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
         Assert.assertTrue(rowsFilterRule instanceof UidRowsFilterRule);

@@ -18,14 +18,14 @@ public class JavaRegexRowsFilterRule extends AbstractRowsFilterRule implements R
 
     public JavaRegexRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
-        pattern = Pattern.compile(context);
+        pattern = Pattern.compile(parametersList.get(0).getContext());
     }
 
     @Override
-    protected boolean doFilterRows(Object field) throws Exception {
+    protected RowsFilterResult.Status doFilterRows(Object field, RowsFilterConfig.Parameters parameters) throws Exception {
         return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.regex", registryKey, () -> {
             Matcher matcher =  pattern.matcher(String.valueOf(field));
-            return matcher.find();
+            return RowsFilterResult.Status.from(matcher.find());
         });
     }
 }

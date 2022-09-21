@@ -9,8 +9,10 @@ import com.google.common.collect.Maps;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
+import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.*;
 
 /**
  * @Author limingdong
@@ -20,23 +22,14 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
     protected String registryKey;
 
-    protected List<String> fields;
+    protected List<RowsFilterConfig.Parameters> parametersList;
 
-    protected String context;
-
-    protected boolean illegalArgument;
-
-    protected FetchMode fetchMode;
+    private List<String> fields;
 
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
-        RowsFilterConfig.Parameters parameters = rowsFilterConfig.getParameters();
-        if (parameters != null) {
-            this.context = parameters.getContext();
-            this.fields = parameters.getColumns();
-            this.illegalArgument = parameters.getIllegalArgument();
-            this.fetchMode = FetchMode.getMode(parameters.getFetchMode());
-        }
+        parametersList = rowsFilterConfig.getConfigs().getParameters();
+        fields = parametersList.stream().flatMap(parameters -> parameters.getColumns().stream()).collect(Collectors.toList());
     }
 
     @Override
@@ -46,15 +39,15 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
         LinkedHashMap<String, Integer> indices = getIndices(columns, fields);
         if (indices == null) {
-            return new RowsFilterResult(true);
+            return new RowsFilterResult(No_Filtered);
         }
 
         List<AbstractRowsEvent.Row> filteredRow = doFilterRows(rowsEvent, rowsFilterContext, indices);
 
         if (filteredRow != null && rows.size() == filteredRow.size()) {
-            return new RowsFilterResult(true);
+            return new RowsFilterResult(No_Filtered);
         }
-        return new RowsFilterResult(false, filteredRow);
+        return new RowsFilterResult(Filtered, filteredRow);
     }
 
     protected List<List<Object>> getValues(AbstractRowsEvent rowsEvent) {
@@ -97,24 +90,60 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
         List<AbstractRowsEvent.Row> result = Lists.newArrayList();
         List<List<Object>> values = getValues(rowsEvent);
         List<AbstractRowsEvent.Row> rows = rowsEvent.getRows();
-        int index = indices.values().iterator().next(); // only one field
         for (int i = 0; i < values.size(); ++i) {
-            Object field = values.get(i).get(index);
-            Boolean cache = rowsFilterContext.get(field);
-            if (cache == null) {
-                cache = doFilterRows(field);
-                rowsFilterContext.putIfAbsent(field, cache);
-            } else {
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.cache", registryKey);
-            }
-            if (cache) {
+            RowsFilterResult.Status filterResult = handleRow(values.get(i), rowsFilterContext, indices);
+            if (filterResult.noRowFiltered()) {
                 result.add(rows.get(i));
             }
         }
         return result;
     }
 
-    protected boolean doFilterRows(Object field) throws Exception {
-        return true;
+    private RowsFilterResult.Status handleRow(List<Object> rowValue, RowsFilterContext rowsFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
+        RowsFilterResult.Status filterResult = Illegal;
+        Object lastValue = null;
+        RowsFilterConfig.Parameters parameters = null;
+        for (int i = 0; i < parametersList.size(); ++i) { // iterate Parameters : udl、uid
+            parameters = parametersList.get(i);
+            List<String> fieldList = parameters.getColumns();
+            if (fieldList != null && fieldList.size() == 1) { // only one field
+                Integer index = indices.get(fieldList.get(0));
+                if (index == null) {
+                    continue;
+                }
+                lastValue = rowValue.get(index);
+                filterResult = handleValue(lastValue, parameters, rowsFilterContext);
+                if (Illegal != filterResult) {
+                    rowsFilterContext.putIfAbsent(lastValue, filterResult);
+                    return filterResult;
+                }
+            }
+
+        }
+        return handleIllegal(lastValue, filterResult, parameters, rowsFilterContext);
+    }
+
+    private RowsFilterResult.Status handleValue(Object field, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) throws Exception {
+        RowsFilterResult.Status filterResult = rowsFilterContext.get(field);
+        if (filterResult == null) {
+            filterResult = doFilterRows(field, parameters);
+        } else {
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.rows.filter.cache", registryKey);
+        }
+        return filterResult;
+    }
+
+    private RowsFilterResult.Status handleIllegal(Object field, RowsFilterResult.Status filterResult, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) {
+        RowsFilterResult.Status status = filterResult;
+        if (Illegal == filterResult) {
+            status = RowsFilterResult.Status.from(parameters.getIllegalArgument());
+            rowsFilterContext.putIfAbsent(field, status);
+
+        }
+        return status;
+    }
+
+    protected RowsFilterResult.Status doFilterRows(Object field, RowsFilterConfig.Parameters parameters) throws Exception {
+        return No_Filtered;
     }
 }

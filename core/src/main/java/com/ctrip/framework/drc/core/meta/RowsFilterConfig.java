@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.core.meta;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
@@ -19,7 +21,10 @@ public class RowsFilterConfig {
 
     private String tables;
 
+    @Deprecated
     private Parameters parameters;
+
+    private Configs configs;
 
     public String getMode() {
         return mode;
@@ -38,11 +43,7 @@ public class RowsFilterConfig {
     }
 
     public Parameters getParameters() {
-        return parameters;
-    }
-
-    public void setParameters(Parameters parameters) {
-        this.parameters = parameters;
+        return getConfigs().getParameters().get(0);
     }
 
     public boolean shouldFilterRows() {
@@ -61,6 +62,23 @@ public class RowsFilterConfig {
         return registryKey;
     }
 
+    public Configs getConfigs() {
+        return configs;
+    }
+
+    public void setConfigs(Configs configs) {
+        this.configs = configs;
+    }
+
+    public void setParameters(Parameters parameters) {
+        this.parameters = parameters;
+    }
+
+    public Class<? extends RowsFilterRule> getRowsFilterRule() throws ClassNotFoundException {
+        RowsFilterType rowFilterType = getRowsFilterType();
+        return rowFilterType.filterRuleClass();
+    }
+
     @Override
     public String toString() {
         return "RowsFilterConfig{" +
@@ -68,10 +86,11 @@ public class RowsFilterConfig {
                 ", mode='" + mode + '\'' +
                 ", tables='" + tables + '\'' +
                 ", parameters=" + parameters +
+                ", configs=" + configs +
                 '}';
     }
 
-    public static class Parameters {
+    public static class Parameters implements Comparable<Parameters> {
 
         private List<String> columns;
 
@@ -80,6 +99,8 @@ public class RowsFilterConfig {
         private String context;
 
         private int fetchMode = FetchMode.RPC.getCode();
+
+        private String userFilterMode;
 
         public List<String> getColumns() {
             return columns;
@@ -113,13 +134,49 @@ public class RowsFilterConfig {
             this.fetchMode = fetchMode;
         }
 
+        public String getUserFilterMode() {
+            return userFilterMode;
+        }
+
+        public void setUserFilterMode(String userFilterMode) {
+            this.userFilterMode = userFilterMode;
+        }
+
         @Override
         public String toString() {
             return "Parameters{" +
                     "columns=" + columns +
                     ", illegalArgument=" + illegalArgument +
-                    ", fetchMode=" + fetchMode +
                     ", context='" + context + '\'' +
+                    ", fetchMode=" + fetchMode +
+                    ", userFilterMode='" + userFilterMode + '\'' +
+                    '}';
+        }
+
+        @Override
+        public int compareTo(Parameters o) {
+            UserFilterMode userFilterMode = UserFilterMode.getUserFilterMode(getUserFilterMode());
+            UserFilterMode thatUserFilterMode = UserFilterMode.getUserFilterMode(o.getUserFilterMode());
+            return userFilterMode.getPriority() - thatUserFilterMode.getPriority();
+        }
+    }
+
+    public static class Configs {
+
+        private List<Parameters> parameters;
+
+        public List<Parameters> getParameters() {
+            return parameters;
+        }
+
+        public void setParameters(List<Parameters> parameters) {
+            this.parameters = parameters;
+        }
+
+        @Override
+        public String toString() {
+            return "Configs{" +
+                    "parameters=" + parameters +
                     '}';
         }
     }

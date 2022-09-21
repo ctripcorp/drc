@@ -56,7 +56,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
                 thenReturn(rowsFilterMappingTbls);
         
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
-        rowsFilterTbl.setMode(RowsFilterType.TripUid.getName());
+        rowsFilterTbl.setMode(RowsFilterType.TripUdl.getName());
         rowsFilterTbl.setParameters("{\n" +
                 "                    \"columns\": [\n" +
                 "                        \"columnA\",\n" +

@@ -21,7 +21,7 @@ public class AviatorRegexRowsFilterRule extends AbstractRowsFilterRule implement
 
     public AviatorRegexRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
-        expression = AviatorEvaluator.compile(context, true);
+        expression = AviatorEvaluator.compile(parametersList.get(0).getContext(), true);
     }
 
     protected List<AbstractRowsEvent.Row> doFilterRows(AbstractRowsEvent rowsEvent, RowsFilterContext rowFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
@@ -38,12 +38,12 @@ public class AviatorRegexRowsFilterRule extends AbstractRowsFilterRule implement
                 j++;
             }
             ArrayWrapper wrapper = new ArrayWrapper(array);
-            Boolean cache = rowFilterContext.get(wrapper);
+            RowsFilterResult.Status cache = rowFilterContext.get(wrapper);
             if (cache == null) {
-                cache = (boolean)expression.execute(expression.newEnv(array));
+                cache = RowsFilterResult.Status.from((boolean)expression.execute(expression.newEnv(array)));
                 rowFilterContext.putIfAbsent(wrapper, cache);
             }
-            if (cache) {
+            if (cache.noRowFiltered()) {
                 result.add(rows.get(i));
             }
         }

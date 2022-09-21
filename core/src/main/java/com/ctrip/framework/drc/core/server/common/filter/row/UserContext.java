@@ -5,9 +5,9 @@ import java.util.Set;
 /**
  * Created by jixinwang on 2022/5/25
  */
-public class UidContext {
+public class UserContext {
 
-    private String uid;
+    private String userAttr;
 
     private Set<String> locations;
 
@@ -15,12 +15,12 @@ public class UidContext {
 
     private String registryKey;
 
-    public String getUid() {
-        return uid;
+    public String getUserAttr() {
+        return userAttr;
     }
 
-    public void setUid(String uid) {
-        this.uid = uid;
+    public void setUserAttr(String userAttr) {
+        this.userAttr = userAttr;
     }
 
     public Set<String> getLocations() {
