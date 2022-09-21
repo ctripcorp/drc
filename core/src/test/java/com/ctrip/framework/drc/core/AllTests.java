@@ -32,6 +32,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
@@ -65,6 +66,7 @@ import org.junit.runners.Suite;
         DataMediaConfigTest.class,
         AbstractRowsFilterRuleTest.class,
         UidConfigurationTest.class,
+        RowsFilterTypeTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,

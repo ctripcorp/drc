@@ -18,7 +18,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.COMMA;
  * @Author limingdong
  * @create 2022/4/22
  */
-public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
+public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
 
     private UidService uidService = ServicesUtil.getUidService();
 
@@ -26,7 +26,7 @@ public class UidRowsFilterRule extends AbstractRowsFilterRule implements RowsFil
 
     private Set<String> dstLocation = Sets.newHashSet();
 
-    public UidRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
+    public UserRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
         Collections.sort(parametersList);
         if (parametersList != null && !parametersList.isEmpty() && StringUtils.isNotBlank(parametersList.get(0).getContext())) {

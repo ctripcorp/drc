@@ -16,14 +16,14 @@ import java.util.List;
  */
 public class UidRowsFilterRuleTest extends AbstractEventTest {
 
-    private UidRowsFilterRule uidRowsFilterRule;
+    private UserRowsFilterRule uidRowsFilterRule;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         List<RowsFilterConfig> rowsFilterConfigList = dataMediaConfig.getRowsFilters();
         RowsFilterConfig rowsFilterConfig = rowsFilterConfigList.get(0);
-        uidRowsFilterRule = new UidRowsFilterRule(rowsFilterConfig);
+        uidRowsFilterRule = new UserRowsFilterRule(rowsFilterConfig);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         RowsFilterConfig clone = getRowsFilterConfig(rowsFilterConfig, FetchMode.BlackList.getCode());
 
         // black 20,21,22
-        UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
+        UserRowsFilterRule uidRowsFilterRule = new UserRowsFilterRule(clone);
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
@@ -63,7 +63,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         RowsFilterConfig clone = getRowsFilterConfig(rowsFilterConfig, FetchMode.WhiteList.getCode());
 
         // white 18,20,21
-        UidRowsFilterRule uidRowsFilterRule = new UidRowsFilterRule(clone);
+        UserRowsFilterRule uidRowsFilterRule = new UserRowsFilterRule(clone);
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = uidRowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());

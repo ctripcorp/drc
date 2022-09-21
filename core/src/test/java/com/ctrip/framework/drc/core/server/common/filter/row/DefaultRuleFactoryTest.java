@@ -25,7 +25,7 @@ public class DefaultRuleFactoryTest {
         String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.TripUdl.getName(), location, location);
         DataMediaConfig dataMediaConfig = DataMediaConfig.from(registryKey, properties);
         RowsFilterRule rowsFilterRule = ruleFactory.createRowsFilterRule(dataMediaConfig.getRowsFilters().get(0));
-        Assert.assertTrue(rowsFilterRule instanceof UidRowsFilterRule);
+        Assert.assertTrue(rowsFilterRule instanceof UserRowsFilterRule);
 
         properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.None.getName(), location, location);
         dataMediaConfig = DataMediaConfig.from(registryKey, properties);
