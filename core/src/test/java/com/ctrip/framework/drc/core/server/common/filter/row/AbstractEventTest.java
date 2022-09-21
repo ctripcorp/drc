@@ -56,7 +56,7 @@ public abstract class AbstractEventTest {
 
     @Before
     public void setUp() throws Exception {
-        dataMediaConfig = from(registryKey, String.format(getProperties(), getRowsFilterType().getName(), getContext()));
+        dataMediaConfig = from(registryKey, String.format(getProperties(), getRowsFilterType().getName(), getContext(), getContext()));
         ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();

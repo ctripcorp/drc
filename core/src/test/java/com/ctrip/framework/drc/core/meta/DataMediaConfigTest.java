@@ -14,10 +14,14 @@ import java.util.Optional;
  */
 public class DataMediaConfigTest {
 
+    /**
+     {"rowsFilters":[{"mode":"trip_udl","tables":"table1","parameters":{"columns":["columnA","columnB","cloumnC"],"context":"regre1"},"configs":{"parameters":[{"columns":["columnA","columnB","cloumnC"],"context":"regre1"}]}},{"mode":"aviator_regex","tables":"table2","parameters":{"columns":["cloumnA"],"context":"regre2"},"configs":{"parameters":[{"columns":["cloumnA"],"context":"regre2"}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
+     */
+
     public static final String MEDIA_CONFIG = "{\n" +
             "  \"rowsFilters\": [\n" +
             "    {\n" +
-            "      \"mode\": \"trip_uid\",\n" +
+            "      \"mode\": \"trip_udl\",\n" +
             "      \"tables\": \"table1\",\n" +
             "      \"parameters\": {\n" +
             "        \"columns\": [\n" +
@@ -26,6 +30,18 @@ public class DataMediaConfigTest {
             "          \"cloumnC\"\n" +
             "        ],\n" +
             "        \"context\": \"regre1\"\n" +
+            "      },\n" +
+            "      \"configs\": {\n" +
+            "        \"parameters\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"columnA\",\n" +
+            "              \"columnB\",\n" +
+            "              \"cloumnC\"\n" +
+            "            ],\n" +
+            "            \"context\": \"regre1\"\n" +
+            "          }\n" +
+            "        ]\n" +
             "      }\n" +
             "    },\n" +
             "    {\n" +
@@ -36,6 +52,16 @@ public class DataMediaConfigTest {
             "          \"cloumnA\"\n" +
             "        ],\n" +
             "        \"context\": \"regre2\"\n" +
+            "      },\n" +
+            "      \"configs\": {\n" +
+            "        \"parameters\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"cloumnA\"\n" +
+            "            ],\n" +
+            "            \"context\": \"regre2\"\n" +
+            "          }\n" +
+            "        ]\n" +
             "      }\n" +
             "    }\n" +
             "  ],\n" +
@@ -52,8 +78,6 @@ public class DataMediaConfigTest {
             "}";
 
     private DataMediaConfig rowsFilterConfigs;
-
-//    private String properties= "[{\"mode\":\"java_regex\",\"tables\":\"fltbackendservicetestdb\\\\.drcdemo\",\"parameters\":{\"columns\":[\"id\"],\"context\":\"^\\\\d*[02468]$\"}}]";
 
     @Before
     public void setUp() throws Exception {

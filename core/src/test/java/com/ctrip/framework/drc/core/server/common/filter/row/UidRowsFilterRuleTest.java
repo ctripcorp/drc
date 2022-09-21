@@ -84,6 +84,7 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         cloneParameters.setContext(parameters.getContext());
         cloneParameters.setIllegalArgument(parameters.getIllegalArgument());
         cloneParameters.setFetchMode(code);
+        cloneParameters.setUserFilterMode(parameters.getUserFilterMode());
 
         RowsFilterConfig.Configs configs = new RowsFilterConfig.Configs();
         configs.setParameters(Lists.newArrayList(cloneParameters));

@@ -106,7 +106,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
         for (int i = 0; i < parametersList.size(); ++i) { // iterate Parameters : udl、uid
             parameters = parametersList.get(i);
             List<String> fieldList = parameters.getColumns();
-            if (fieldList != null && fieldList.size() == 1) { // only one field
+            if (fieldList != null && !fieldList.isEmpty()) {
                 Integer index = indices.get(fieldList.get(0));
                 if (index == null) {
                     continue;

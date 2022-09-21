@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.core.meta;
 
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -44,7 +43,10 @@ public class RowsFilterConfig {
     }
 
     public Parameters getParameters() {
-        return getConfigs().getParameters().get(0);
+        if (getConfigs() != null) {
+            return getConfigs().getParameters().get(0);
+        }
+        return parameters;
     }
 
     public boolean shouldFilterRows() {
@@ -73,11 +75,6 @@ public class RowsFilterConfig {
 
     public void setParameters(Parameters parameters) {
         this.parameters = parameters;
-    }
-
-    public Class<? extends RowsFilterRule> getRowsFilterRule() throws ClassNotFoundException {
-        RowsFilterType rowFilterType = getRowsFilterType();
-        return rowFilterType.filterRuleClass();
     }
 
     @Override
