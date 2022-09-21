@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @Author limingdong
@@ -140,6 +141,24 @@ public class RowsFilterConfig {
 
         public void setUserFilterMode(String userFilterMode) {
             this.userFilterMode = userFilterMode;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Parameters)) return false;
+            Parameters that = (Parameters) o;
+            return illegalArgument == that.illegalArgument &&
+                    fetchMode == that.fetchMode &&
+                    Objects.equals(columns, that.columns) &&
+                    Objects.equals(context, that.context) &&
+                    Objects.equals(userFilterMode, that.userFilterMode);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(columns, illegalArgument, context, fetchMode, userFilterMode);
         }
 
         @Override
