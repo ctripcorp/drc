@@ -31,7 +31,7 @@ public class AbstractRowsFilterRuleForUidTest extends AbstractEventTest {
             "        \"context\": \"%s\"\n" +
             "      },\n" +
             "      \"configs\": {\n" +
-            "        \"parameters\": [\n" +
+            "        \"parameterList\": [\n" +
             "          {\n" +
             "            \"columns\": [\n" +
             "              \"three\"\n" +

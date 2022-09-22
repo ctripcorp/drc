@@ -260,7 +260,7 @@ public class AllTests {
             "        \"context\": \"%s\"\n" +
             "      },\n" +
             "      \"configs\": {\n" +
-            "        \"parameters\": [\n" +
+            "        \"parameterList\": [\n" +
             "          {\n" +
             "            \"columns\": [\n" +
             "              \"id\",\n" +

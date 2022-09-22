@@ -13,6 +13,8 @@ public class UserContext {
 
     private boolean illegalArgument;
 
+    private int drcStrategyId;
+
     private String registryKey;
 
     public String getUserAttr() {
@@ -45,5 +47,13 @@ public class UserContext {
 
     public void setRegistryKey(String registryKey) {
         this.registryKey = registryKey;
+    }
+
+    public int getDrcStrategyId() {
+        return drcStrategyId;
+    }
+
+    public void setDrcStrategyId(int drcStrategyId) {
+        this.drcStrategyId = drcStrategyId;
     }
 }

@@ -6,10 +6,16 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
 import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
+import com.ctrip.framework.ucs.client.ShardingKeyValue;
+import com.ctrip.framework.ucs.client.api.RequestContext;
+import com.ctrip.framework.ucs.client.api.UcsClient;
+import com.ctrip.framework.ucs.client.api.UcsClientFactory;
 import com.ctrip.soa.platform.accountregionroute.v1.Region;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.Illegal;
@@ -23,6 +29,8 @@ public class TripUidService implements UidService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final int RETRY_TIME = 2;
+
+    private static UcsClient ucsClient = UcsClientFactory.getInstance().getUcsClient();
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext userContext) throws Exception {
@@ -67,6 +75,9 @@ public class TripUidService implements UidService {
                     return RowsFilterResult.Status.from(false);
                 }
                 Region region = regionFor(userAttr);
+                if (region == null) {
+                    return Illegal;
+                }
                 return RowsFilterResult.Status.from(locations.contains(region.name().toUpperCase()));
             } catch (Exception e) {
                 return Illegal;
@@ -99,14 +110,25 @@ public class TripUidService implements UidService {
 
     private class UdlFilterTask extends UserFilterTask {
 
-        public UdlFilterTask(UserContext uidContext) {
-            super(uidContext);
+        private int drcStrategyId;
+
+        public UdlFilterTask(UserContext userContext) {
+            super(userContext);
+            this.drcStrategyId = userContext.getDrcStrategyId();
         }
 
         @Override
         protected Region regionFor(String attr) {
-            //TODO
-            return AccountUidRoute.regionForUid(attr);
+            if (StringUtils.isBlank(attr)) {
+                return Region.SH;
+            }
+            ShardingKeyValue udlKey = ShardingKeyValue.ofUserId(attr);
+            RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
+            Optional<String> region = ctx.getRequestRegion();
+            if (region.isEmpty()) {
+                return Region.SH;
+            }
+            return Region.valueOf(region.get());
         }
     }
 }

@@ -28,9 +28,9 @@ public class TripUidServiceTest {
     @Test
     public void filterUid() throws Exception {
         UserContext uidContext = new UserContext();
-        uidContext.setUid("test_uid");
+        uidContext.setUserAttr("test_uid");
         uidContext.setLocations(locations);
         uidContext.setIllegalArgument(false);
-        Assert.assertTrue(uidService.filterUid(uidContext));
+        Assert.assertFalse(uidService.filterUid(uidContext).noRowFiltered());
     }
 }

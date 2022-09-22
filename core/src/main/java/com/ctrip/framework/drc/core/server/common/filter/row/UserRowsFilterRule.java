@@ -26,6 +26,8 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
 
     private Set<String> dstLocation = Sets.newHashSet();
 
+    private int drcStrategyId;
+
     public UserRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         super(rowsFilterConfig);
         Collections.sort(parametersList);
@@ -35,6 +37,7 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
                 dstLocation.add(l.trim().toUpperCase());
             }
         }
+        drcStrategyId = rowsFilterConfig.getConfigs() != null ? rowsFilterConfig.getConfigs().getDrcStrategyId() : -1;
     }
 
     @Override
@@ -42,7 +45,11 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
         String filterMode = parameters.getUserFilterMode();
         UserFilterMode userFilterMode = UserFilterMode.getUserFilterMode(filterMode);
         if (UserFilterMode.Udl == userFilterMode) {
-            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.udl", registryKey, () -> uidService.filterUdl(fetchUserContext(field, parameters)));
+            return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.udl", registryKey, () -> {
+                UserContext userContext = fetchUserContext(field, parameters);
+                userContext.setDrcStrategyId(drcStrategyId);
+                return uidService.filterUdl(userContext);
+            });
         } else if (UserFilterMode.Uid == userFilterMode) {
             int fetchMode = parameters.getFetchMode();
             if (FetchMode.RPC.getCode() == fetchMode) {

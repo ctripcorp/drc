@@ -29,7 +29,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
 
     public AbstractRowsFilterRule(RowsFilterConfig rowsFilterConfig) {
         this.registryKey = rowsFilterConfig.getRegistryKey();
-        parametersList = rowsFilterConfig.getConfigs() != null ? rowsFilterConfig.getConfigs().getParameters() : Lists.newArrayList(rowsFilterConfig.getParameters());
+        parametersList = rowsFilterConfig.getConfigs() != null ? rowsFilterConfig.getConfigs().getParameterList() : Lists.newArrayList(rowsFilterConfig.getParameters());
         fields = parametersList.stream().flatMap(parameters -> parameters.getColumns().stream()).collect(Collectors.toList());
     }
 

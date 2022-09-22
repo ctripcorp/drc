@@ -44,7 +44,7 @@ public class RowsFilterConfig {
 
     public Parameters getParameters() {
         if (getConfigs() != null) {
-            return getConfigs().getParameters().get(0);
+            return getConfigs().getParameterList().get(0);
         }
         return parameters;
     }
@@ -83,7 +83,7 @@ public class RowsFilterConfig {
                 "registryKey='" + registryKey + '\'' +
                 ", mode='" + mode + '\'' +
                 ", tables='" + tables + '\'' +
-                ", parameters=" + parameters +
+                ", parameterList=" + parameters +
                 ", configs=" + configs +
                 '}';
     }
@@ -179,20 +179,42 @@ public class RowsFilterConfig {
 
     public static class Configs {
 
-        private List<Parameters> parameters;
+        private List<Parameters> parameterList;
 
-        public List<Parameters> getParameters() {
-            return parameters;
+        private int drcStrategyId;
+
+        private int routeStrategyId;
+
+        public List<Parameters> getParameterList() {
+            return parameterList;
         }
 
-        public void setParameters(List<Parameters> parameters) {
-            this.parameters = parameters;
+        public void setParameterList(List<Parameters> parameterList) {
+            this.parameterList = parameterList;
+        }
+
+        public int getDrcStrategyId() {
+            return drcStrategyId;
+        }
+
+        public void setDrcStrategyId(int drcStrategyId) {
+            this.drcStrategyId = drcStrategyId;
+        }
+
+        public int getRouteStrategyId() {
+            return routeStrategyId;
+        }
+
+        public void setRouteStrategyId(int routeStrategyId) {
+            this.routeStrategyId = routeStrategyId;
         }
 
         @Override
         public String toString() {
             return "Configs{" +
-                    "parameters=" + parameters +
+                    "parameterList=" + parameterList +
+                    ", drcStrategyId=" + drcStrategyId +
+                    ", routeStrategyId=" + routeStrategyId +
                     '}';
         }
     }

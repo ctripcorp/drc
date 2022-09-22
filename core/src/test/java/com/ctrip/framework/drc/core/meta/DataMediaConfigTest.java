@@ -15,7 +15,7 @@ import java.util.Optional;
 public class DataMediaConfigTest {
 
     /**
-     {"rowsFilters":[{"mode":"trip_udl","tables":"table1","parameters":{"columns":["columnA","columnB","cloumnC"],"context":"regre1"},"configs":{"parameters":[{"columns":["columnA","columnB","cloumnC"],"context":"regre1"}]}},{"mode":"aviator_regex","tables":"table2","parameters":{"columns":["cloumnA"],"context":"regre2"},"configs":{"parameters":[{"columns":["cloumnA"],"context":"regre2"}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
+     {"rowsFilters":[{"mode":"trip_udl","tables":"table1","parameters":{"columns":["columnA","columnB","cloumnC"],"context":"regre1"},"configs":{"parameterList":[{"columns":["columnA","columnB","cloumnC"],"context":"regre1"}]}},{"mode":"aviator_regex","tables":"table2","parameters":{"columns":["cloumnA"],"context":"regre2"},"configs":{"parameters":[{"columns":["cloumnA"],"context":"regre2"}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
      */
 
     public static final String MEDIA_CONFIG = "{\n" +
@@ -32,7 +32,7 @@ public class DataMediaConfigTest {
             "        \"context\": \"regre1\"\n" +
             "      },\n" +
             "      \"configs\": {\n" +
-            "        \"parameters\": [\n" +
+            "        \"parameterList\": [\n" +
             "          {\n" +
             "            \"columns\": [\n" +
             "              \"columnA\",\n" +
@@ -54,7 +54,7 @@ public class DataMediaConfigTest {
             "        \"context\": \"regre2\"\n" +
             "      },\n" +
             "      \"configs\": {\n" +
-            "        \"parameters\": [\n" +
+            "        \"parameterList\": [\n" +
             "          {\n" +
             "            \"columns\": [\n" +
             "              \"cloumnA\"\n" +

@@ -111,6 +111,11 @@
             <artifactId>tripaccount-udl-route-sdk</artifactId>
             <version>1.0.4</version>
         </dependency>
+        <dependency>
+            <groupId>com.ctrip.framework.fx</groupId>
+            <artifactId>ucs-client</artifactId>
+            <version>0.4.0</version>
+        </dependency>
     </dependencies>
 
 </project>

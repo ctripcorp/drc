@@ -27,7 +27,7 @@ public class RowsFilterConfigTest {
      *     "context": "regre2"
      *   },
      *   "configs": {
-     *     "parameters": [
+     *     "parameterList": [
      *       {
      *         "columns": [
      *           "uid"
@@ -72,7 +72,7 @@ public class RowsFilterConfigTest {
             "    \"context\": \"regre2\"\n" +
             "  },\n" +
             "  \"configs\": {\n" +
-            "    \"parameters\": [\n" +
+            "    \"parameterList\": [\n" +
             "      {\n" +
             "        \"columns\": [\n" +
             "          \"uid\"\n" +
@@ -126,7 +126,7 @@ public class RowsFilterConfigTest {
         String tables = rowsFilterConfigNew.getTables();
         Assert.assertEquals("drc1.insert1", tables);
 
-        List<RowsFilterConfig.Parameters> parametersList = rowsFilterConfigNew.getConfigs().getParameters();
+        List<RowsFilterConfig.Parameters> parametersList = rowsFilterConfigNew.getConfigs().getParameterList();
         Assert.assertEquals(2, parametersList.size());
         Assert.assertEquals("uid", parametersList.get(0).getColumns().get(0));
         Assert.assertEquals("udl", parametersList.get(1).getColumns().get(0));
