@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
@@ -13,6 +14,8 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.RowsFilterMappingVo;
@@ -55,28 +58,57 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    
     @Override
     public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException {
-        ArrayList<RowsFilterConfig> configs = Lists.newArrayList();
+        ArrayList<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
                 rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
-        Map<Long, List<RowsFilterMappingTbl>> mapGroupByRowsFilterId = 
-                rowsFilterMappingTbls.stream().collect(Collectors.groupingBy(RowsFilterMappingTbl::getRowsFilterId));
-        for (Map.Entry<Long, List<RowsFilterMappingTbl>> entry :mapGroupByRowsFilterId.entrySet()) {
-            RowsFilterConfig config = new RowsFilterConfig();
-            RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(entry.getKey(), BooleanEnum.FALSE.getCode());
-            config.setMode(String.valueOf(rowsFilterTbl.getMode()));
-            List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByIdsAndType(
-                    Lists.transform(entry.getValue(), RowsFilterMappingTbl::getDataMediaId),
-                    DataMediaTypeEnum.ROWS_FILTER.getType(),
-                    BooleanEnum.FALSE.getCode());
-            config.setTables(
-                    dataMediaTbls.stream().map(DataMediaTbl::getFullName).collect(Collectors.joining(",")));
-            config.setParameters(
-                    JsonUtils.fromJson(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class));
-            configs.add(config);
+        for (RowsFilterMappingTbl mapping :  rowsFilterMappingTbls) {
+            RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
+            RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
+
+            DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByIdsAndType(
+                    Lists.newArrayList(mapping.getDataMediaId()), DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode()
+            ).get(0);
+            rowsFilterConfig.setTables(dataMediaTbl.getFullName());
+            
+            // old rowsFilterConfig in parameters
+            if (rowsFilterTbl.getMode().equals(RowsFilterType.TripUid.getName())) {
+                // generate RowsFilterConfig.Configs by parameters
+                RowsFilterConfig.Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class);
+                parameters.setUserFilterMode(UserFilterMode.Uid.getName());
+                RowsFilterConfig.Configs configs = new RowsFilterConfig.Configs();
+                configs.setParameterList(Lists.newArrayList(parameters));
+                
+                String configsJson = JsonUtils.toJson(configs);
+                logger.info("[[tag=rowsFilter]] old rowsFilterTbl in trip_uid mode with id:{},generate config:{}",
+                        rowsFilterTbl.getId(),configsJson);
+                
+                // copy parameters to configs
+                if ("on".equalsIgnoreCase(consoleConfig.getRowsFilterMigrateSwitch())) {
+                    RowsFilterTbl sampleWithConfigs = new RowsFilterTbl();
+                    sampleWithConfigs.setId(rowsFilterTbl.getId());
+                    sampleWithConfigs.setMode(RowsFilterType.TripUdl.getName());
+                    sampleWithConfigs.setConfigs(configsJson);
+                    int updateRows = rowsFilterTblDao.update(sampleWithConfigs);
+                    logger.info("[[tag=rowsFilter]] effect rows:{},correct old rowsFilterTbl to udl_mode with id:{},config:{}",
+                            updateRows, rowsFilterTbl.getId(), configsJson);
+                }
+                
+                //set RowsFilterConfig
+                rowsFilterConfig.setMode(RowsFilterType.TripUdl.getName());
+                rowsFilterConfig.setConfigs(configs);
+            } else {
+                rowsFilterConfig.setMode(rowsFilterTbl.getMode());
+                rowsFilterConfig.setConfigs(JsonUtils.fromJson(rowsFilterTbl.getConfigs(), RowsFilterConfig.Configs.class));
+            }
+            rowsFilterConfigs.add(rowsFilterConfig);
         }
-        return configs;
+        return rowsFilterConfigs;
+        
     }
 
     @Override
@@ -105,8 +137,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Override
     @DalTransactional(logicDbName = DB_NAME)
     public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
-        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
-        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
+        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
+        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         Long dataMediaId = dataMediaTblDao.insertReturnPk(dataMediaTbl);
         Long rowsFilterId = rowsFilterTblDao.insertReturnPk(rowsFilterTbl);
         RowsFilterMappingTbl mappingTbl = new RowsFilterMappingTbl();
@@ -120,8 +152,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Override
     @DalTransactional(logicDbName = DB_NAME)
     public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
-        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.getDataMediaTbl();
-        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.getRowsFilterTbl();
+        DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
+        RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         int update0 = dataMediaTblDao.update(dataMediaTbl);
         int update1 = rowsFilterTblDao.update(rowsFilterTbl);
         if (update0 + update1 == 2) {

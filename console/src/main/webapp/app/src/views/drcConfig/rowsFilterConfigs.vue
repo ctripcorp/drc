@@ -59,36 +59,40 @@
                     <Option v-for="item in modesForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_uid'">
+                <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_udl'">
                   <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
                     <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
                   </Select>
                 </FormItem>
-                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">
-                  <Select  v-model="configInTripUid.uid"   filterable allow-create @on-create="handleCreateUIDColumn" style="width: 200px" placeholder="选择UID相关字段">
-<!--                    <Option value="">无UID</Option>-->
+                <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
+                  <Select  v-model="rowsFilterConfig.columns"   filterable allow-create @on-create="handleCreateUIDColumn" multiple style="width: 200px" placeholder="不选默认则无UID配置">
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-<!--                <FormItem label="UID" v-if="rowsFilterConfig.mode === 'trip_uid'">-->
-<!--                  <Select   v-model="configInTripUid.udl"   style="width: 200px" placeholder="选择UDL相关字段">-->
-<!--                    <Option value="">无UDL</Option>-->
-<!--                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>-->
-<!--                  </Select>-->
-<!--                </FormItem>-->
-                <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_uid'">
+                <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
+                  <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUIDColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_udl'">
                   <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
                     <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem v-if="rowsFilterConfig.mode === 'trip_uid'" label="空处理" >
+                <FormItem v-if="rowsFilterConfig.mode === 'trip_udl'" label="空处理" >
                   <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
                 </FormItem>
-                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_uid' || rowsFilterConfig.fetchMode === 0">
-                  <Input v-if="rowsFilterConfig.mode !== 'trip_uid'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                  <Select v-if="rowsFilterConfig.mode === 'trip_uid' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_udl' || rowsFilterConfig.fetchMode === 0">
+                  <Input v-if="rowsFilterConfig.mode !== 'trip_udl'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                  <Select v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
+                </FormItem>
+                <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
+                  <Input v-model="rowsFilterConfig.drcStrategyId" style="width:200px" placeholder="Integer类型"/>
+                </FormItem>
+                <FormItem label="路由 UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
+                  <Input v-model="rowsFilterConfig.routeStrategyId" style="width:200px" placeholder="Integer类型"/>
                 </FormItem>
               </Form>
             </Card>
@@ -161,11 +165,6 @@ export default {
           title: '表名',
           key: 'name'
         },
-        // {
-        //   title: '规则名',
-        //   key: 'rowsFilterName',
-        //   width: 200
-        // },
         {
           title: '模式',
           key: 'mode'
@@ -179,11 +178,23 @@ export default {
           key: 'context'
         },
         {
-          title: '默认同步（trip_uid专用)',
+          title: 'udl相关列（udl专用)',
+          key: 'udlColumns'
+        },
+        {
+          title: 'DRC UDL策略id（udl)',
+          key: 'drcStrategyId'
+        },
+        {
+          title: 'Route UDL策略id（udl)',
+          key: 'routeStrategyId'
+        },
+        {
+          title: '默认同步（udl)',
           key: 'illegalArgument'
         },
         {
-          title: '校验模式（trip_uid专用)',
+          title: '校验模式（udl)',
           key: 'fetchMode',
           width: 100,
           render: (h, params) => {
@@ -240,22 +251,22 @@ export default {
         dataMediaSourceId: 0,
         dataMediaSourceName: '',
         rowsFilterId: 0,
-        // rowsFilterName: '',
-        mode: 'trip_uid',
+        mode: 'trip_udl',
+        drcStrategyId: 0,
+        routeStrategyId: 0,
+        udlColumns: [],
         columns: [],
         context: '',
         illegalArgument: false,
         fetchMode: 0
       },
       configInTripUid: {
-        uid: '',
-        // udl: '',
         regionsChosen: []
       },
       modesForChose: [
         'aviator_regex',
         'java_regex',
-        'trip_uid',
+        'trip_udl',
         'custom'
       ],
       columnsForChose: [],
@@ -353,16 +364,12 @@ export default {
       this.display.rowsFilterModal = true
     },
     rowsFilterConfigInitFormRow (row, index) {
-      if (row.mode === 'trip_uid') {
+      if (row.mode === 'trip_udl') {
         this.configInTripUid = {
-          uid: row.columns[0],
-          // udl: row.columns.length === 2 ? row.columns[1] : '',
           regionsChosen: row.context.split(',')
         }
       } else {
         this.configInTripUid = {
-          uid: '',
-          // udl: '',
           regionsChosen: []
         }
       }
@@ -377,6 +384,9 @@ export default {
         mode: row.mode,
         columns: row.columns,
         context: row.context,
+        udlColumns: row.udlColumns,
+        drcStrategyId: row.drcStrategyId,
+        routeStrategyId: row.routeStrategyId,
         illegalArgument: row.illegalArgument,
         fetchMode: row.fetchMode
       }
@@ -384,8 +394,6 @@ export default {
     },
     rowsFilterConfigInit () {
       this.configInTripUid = {
-        uid: '',
-        // udl: '',
         regionsChosen: []
       }
       this.rowsFilterConfig = {
@@ -396,10 +404,12 @@ export default {
         dataMediaSourceId: 0,
         dataMediaSourceName: this.drc.srcMha,
         rowsFilterId: 0,
-        // rowsFilterName: '',
-        mode: 'trip_uid',
+        mode: 'trip_udl',
         columns: [],
         context: '',
+        udlColumns: [],
+        drcStrategyId: 0,
+        routeStrategyId: 0,
         illegalArgument: false,
         fetchMode: 0
       }
@@ -408,12 +418,21 @@ export default {
     submitConfig () {
       console.log('before:')
       console.log(this.rowsFilterConfig)
-      if (this.rowsFilterConfig.mode === 'trip_uid') {
-        if (this.configInTripUid.uid === null || this.configInTripUid.uid === undefined || this.configInTripUid.uid === '') {
-          alert('uid字段不能为空！')
+      if (this.rowsFilterConfig.mode === 'trip_udl') {
+        if (this.columns.length === 0 && this.udlColumns.length === 0) {
+          alert('uid 与 uld字段不能同时为空！')
           return
         }
-        this.rowsFilterConfig.columns = [this.configInTripUid.uid]
+        if (this.rowsFilterConfig.fetchMode === 0 &&
+            (
+              this.rowsFilterConfig.context === '' ||
+              this.rowsFilterConfig.context === undefined ||
+              this.rowsFilterConfig.context === '//filter by config'
+            )
+        ) {
+          alert('context 不能为空！')
+          return
+        }
         if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
           this.rowsFilterConfig.context = '//filter by config'
         } else {
@@ -433,16 +452,7 @@ export default {
       } else if (
         this.rowsFilterConfig.mode === '' ||
         this.rowsFilterConfig.mode === undefined ||
-        this.rowsFilterConfig.columns.length === 0 ||
-        (
-          this.rowsFilterConfig.fetchMode === 0 &&
-          (
-            this.rowsFilterConfig.context === '' ||
-            this.rowsFilterConfig.context === undefined ||
-            this.rowsFilterConfig.context === '//filter by config'
-          )
-        )
-      ) {
+        (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0)) {
         alert('缺少行过滤配置 禁止提交')
       } else if (this.conflictTables.length !== 0) {
         alert('存在匹配表已经了行过滤，禁止提交')
@@ -461,7 +471,10 @@ export default {
           dataMediaSourceName: this.drc.srcMha,
           rowsFilterId: this.rowsFilterConfig.rowsFilterId === 0 ? null : this.rowsFilterConfig.rowsFilterId,
           mode: this.rowsFilterConfig.mode,
-          columns: this.rowsFilterConfig.columns === [] ? null : this.rowsFilterConfig.columns,
+          columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
+          udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rthis.rowsFilterConfig.udlColumns,
+          drcStrategyId: this.rowsFilterConfig.drcStrategyId,
+          routeStrategyId: this.rowsFilterConfig.routeStrategyId,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
           fetchMode: this.rowsFilterConfig.fetchMode,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
@@ -569,43 +582,43 @@ export default {
     handleChangeSize (val) {
       this.size = val
     },
-    // handleCreateUDLColumn (val) {
-    //   if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
-    //     alert('已有项禁止创建')
-    //     return
-    //   }
-    //   if (val === '' || val === undefined || val === null) {
-    //     alert('字段不能为空')
-    //     return
-    //   }
-    //   console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
-    //     'srcDc=' + this.drc.srcDc +
-    //     '&mhaName=' + this.drc.srcMha +
-    //     '&namespace=' + this.rowsFilterConfig.namespace +
-    //     '&name=' + this.rowsFilterConfig.name +
-    //     '&column=' + val)
-    //   this.axios.get(
-    //     '/api/drc/v1/build/dataMedia/columnCheck?' +
-    //     'srcDc=' + this.drc.srcDc +
-    //     '&mhaName=' + this.drc.srcMha +
-    //     '&namespace=' + this.rowsFilterConfig.namespace +
-    //     '&name=' + this.rowsFilterConfig.name +
-    //     '&column=' + val)
-    //     .then(response => {
-    //       if (response.data.status === 1) {
-    //         alert('查询字段:' + val + '失败！' + response.data.data)
-    //         this.columnsForChose.push(val)
-    //         this.configInTripUid.udl = val
-    //       } else {
-    //         const tablesWithoutColumn = response.data.data
-    //         if (tablesWithoutColumn.length !== 0) {
-    //           alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
-    //         }
-    //         this.columnsForChose.push(val)
-    //         this.configInTripUid.udl = val
-    //       }
-    //     })
-    // },
+    handleCreateUDLColumn (val) {
+      if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+      this.axios.get(
+        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        'srcDc=' + this.drc.srcDc +
+        '&mhaName=' + this.drc.srcMha +
+        '&namespace=' + this.rowsFilterConfig.namespace +
+        '&name=' + this.rowsFilterConfig.name +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+            this.rowsFilterConfig.udlColumns.push(val)
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+            this.rowsFilterConfig.udlColumns.push(val)
+          }
+        })
+    },
     handleCreateUIDColumn (val) {
       if (val === '无UID' || this.contains(this.columnsForChose, val)) {
         alert('已有项禁止创建')
@@ -632,14 +645,14 @@ export default {
           if (response.data.status === 1) {
             alert('查询字段:' + val + '失败！' + response.data.data)
             this.columnsForChose.push(val)
-            this.configInTripUid.uid = val
+            this.rowsFilterConfig.columns.push(val)
           } else {
             const tablesWithoutColumn = response.data.data
             if (tablesWithoutColumn.length !== 0) {
               alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
             }
             this.columnsForChose.push(val)
-            this.configInTripUid.uid = val
+            this.rowsFilterConfig.columns.push(val)
           }
         })
     },

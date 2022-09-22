@@ -7,7 +7,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import com.ctrip.platform.dal.dao.annotation.Database;
-import com.ctrip.platform.dal.dao.annotation.Sensitive;
 import com.ctrip.platform.dal.dao.annotation.Type;
 import java.sql.Types;
 import java.sql.Timestamp;
@@ -33,19 +32,30 @@ public class RowsFilterTbl implements DalPojo {
 	private Long id;
 
     /**
-     * 行过滤配置 模式 regex, trip_uid,customed
+     * 行过滤配置 模式 regex, trip_uid,customized
      */
 	@Column(name = "mode")
 	@Type(value = Types.VARCHAR)
 	private String mode;
 
     /**
-     * json 保存 columns,expresssion属性
+     * json 保存 columns,context属性
+	 * deprecated ,use configs
      */
 	@Column(name = "parameters")
 	@Type(value = Types.LONGVARCHAR)
 	private String parameters;
 
+
+	/**
+	 * json (List of parameters)
+	 * parameters contain:
+	 * 1.column 2.illegalArgument 3.fetchMode 4.context 5.userFilterMode
+	 */
+	@Column(name = "configs")
+	@Type(value = Types.LONGVARCHAR)
+	private String configs;
+	
     /**
      * 是否删除, 0:否; 1:是
      */
@@ -116,4 +126,11 @@ public class RowsFilterTbl implements DalPojo {
 		this.datachangeLasttime = datachangeLasttime;
 	}
 
+	public String getConfigs() {
+		return configs;
+	}
+
+	public void setConfigs(String configs) {
+		this.configs = configs;
+	}
 }
