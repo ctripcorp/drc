@@ -40,8 +40,8 @@ public class TripBidirectionalStarter extends AbstractTestStarter {
     public boolean skipMonitor = false;
     public boolean startLocalSchemaManager = false;
 
-    protected UnidirectionalReplicateModule getUnidirectionalReplicateModule(int mysqlPortA, int mysqlPortB, int mysqlPortMeta, int replicatorPortA, String registerKey) {
-        return new TripUnidirectionalReplicateModule(mysqlPortA, mysqlPortB, mysqlPortMeta, replicatorPortA, registerKey);
+    protected UnidirectionalReplicateModule getUnidirectionalReplicateModule(int mysqlPortA, int mysqlPortB, int replicatorPortA, String registerKey) {
+        return new TripUnidirectionalReplicateModule(mysqlPortA, mysqlPortB, replicatorPortA, registerKey);
     }
 
     @Before
@@ -56,13 +56,13 @@ public class TripBidirectionalStarter extends AbstractTestStarter {
     public void doTest() throws Exception {
         //启动单向MySQL、初试化表、RA
         unidirectionalReplicateModule.startMySQLModule();
-        unidirectionalReplicateModule.startRAModule();
+        unidirectionalReplicateModule.startRAModule(null, null);
 
         //启动双向RAEventTransactionCache.java
         if (DESTINATION_REVERSE.equalsIgnoreCase(REGISTRY_KEY)) {
             System.setProperty(SystemConfig.REVERSE_REPLICATOR_SWITCH_TEST, String.valueOf(true));
         }
-        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, null);
+        replicatorApplierPairModule = new ReplicatorApplierPairModule(mysqlPortB, mysqlPortA, replicatorPortB, DESTINATION_REVERSE, null, null);
         replicatorApplierPairModule.setIncludedDb(includedDbs);
         replicatorApplierPairModule.initialize();
         replicatorApplierPairModule.start();
