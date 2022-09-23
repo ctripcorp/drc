@@ -69,11 +69,6 @@
                     <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
-                <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
-                  <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUIDColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
-                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-                  </Select>
-                </FormItem>
                 <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 'trip_udl'">
                   <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
                     <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
@@ -86,6 +81,11 @@
                   <Input v-if="rowsFilterConfig.mode !== 'trip_udl'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
                   <Select v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
                     <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
+                  <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
                 <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
@@ -182,19 +182,19 @@ export default {
           key: 'udlColumns'
         },
         {
-          title: 'DRC UDL策略id（udl)',
+          title: 'DRC UDL策略（udl专用)',
           key: 'drcStrategyId'
         },
         {
-          title: 'Route UDL策略id（udl)',
+          title: 'Route UDL策略（udl专用)',
           key: 'routeStrategyId'
         },
         {
-          title: '默认同步（udl)',
+          title: '默认同步（udl专用)',
           key: 'illegalArgument'
         },
         {
-          title: '校验模式（udl)',
+          title: '校验模式（udl专用)',
           key: 'fetchMode',
           width: 100,
           render: (h, params) => {
@@ -423,6 +423,11 @@ export default {
           alert('uid 与 uld字段不能同时为空！')
           return
         }
+        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
+          this.rowsFilterConfig.context = '//filter by config'
+        } else {
+          this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+        }
         if (this.rowsFilterConfig.fetchMode === 0 &&
             (
               this.rowsFilterConfig.context === '' ||
@@ -432,11 +437,6 @@ export default {
         ) {
           alert('context 不能为空！')
           return
-        }
-        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
-          this.rowsFilterConfig.context = '//filter by config'
-        } else {
-          this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
         }
       }
       console.log('after:')
@@ -472,7 +472,7 @@ export default {
           rowsFilterId: this.rowsFilterConfig.rowsFilterId === 0 ? null : this.rowsFilterConfig.rowsFilterId,
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
-          udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rthis.rowsFilterConfig.udlColumns,
+          udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.udlColumns,
           drcStrategyId: this.rowsFilterConfig.drcStrategyId,
           routeStrategyId: this.rowsFilterConfig.routeStrategyId,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
@@ -608,14 +608,12 @@ export default {
           if (response.data.status === 1) {
             alert('查询字段:' + val + '失败！' + response.data.data)
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.udlColumns.push(val)
           } else {
             const tablesWithoutColumn = response.data.data
             if (tablesWithoutColumn.length !== 0) {
               alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
             }
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.udlColumns.push(val)
           }
         })
     },
@@ -645,14 +643,12 @@ export default {
           if (response.data.status === 1) {
             alert('查询字段:' + val + '失败！' + response.data.data)
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.columns.push(val)
           } else {
             const tablesWithoutColumn = response.data.data
             if (tablesWithoutColumn.length !== 0) {
               alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
             }
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.columns.push(val)
           }
         })
     },
@@ -682,7 +678,6 @@ export default {
           if (response.data.status === 1) {
             alert('查询字段:' + val + '失败！' + response.data.data)
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.columns.push(val)
           } else {
             const tablesWithoutColumn = response.data.data
             if (tablesWithoutColumn.length !== 0) {
@@ -690,7 +685,6 @@ export default {
                 tablesWithoutColumn)
             }
             this.columnsForChose.push(val)
-            this.rowsFilterConfig.columns.push(val)
           }
         })
     },

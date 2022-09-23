@@ -182,6 +182,25 @@ public class BuildController {
         }
     }
 
+    @GetMapping("dataMedia/conflictCheck/remote")
+    public ApiResult getConflictTables(
+            @RequestParam String mhaName,
+            @RequestParam String logicalTables) {
+        try {
+            logger.info("[[tag=conflictTables]] get conflictTables from {} in mha: {}",logicalTables, mhaName);
+            List<String> conflictTables =
+                    rowsFilterService.getConflictTables(mhaName, logicalTables);
+            return ApiResult.getSuccessInstance(conflictTables);
+        } catch (Exception e) {
+            logger.warn("[[tag=conflictTables]] get conflictTables error from {} in mha: {}",logicalTables, mhaName,e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
+            }
+        }
+    }
+
     @GetMapping("dataMedia/columnCheck")
     public ApiResult getTablesWithoutColumn(
             @RequestParam String mhaName,

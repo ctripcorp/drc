@@ -74,15 +74,26 @@ public class RowsFilterMappingVo {
     
     public void setRowsFilter(RowsFilterTbl rowsFilterTbl) {
         this.rowsFilterId = rowsFilterTbl.getId();
-        this.mode = rowsFilterTbl.getMode();
         this.columns = Lists.newArrayList();
         this.udlColumns = Lists.newArrayList();
 
-        RowsFilterConfig.Configs configs = JsonUtils.fromJson(rowsFilterTbl.getConfigs(), RowsFilterConfig.Configs.class);
+        RowsFilterConfig.Configs configs;
+        // for migrate
+        if (RowsFilterType.TripUid.getName().equals(rowsFilterTbl.getMode())) {
+            this.mode = RowsFilterType.TripUdl.getName();
+            configs = new RowsFilterConfig.Configs();
+            configs.setParameterList(Lists.newArrayList(
+                    JsonUtils.fromJson(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class)
+            ));
+        } else {
+            this.mode = rowsFilterTbl.getMode();
+            configs =  JsonUtils.fromJson(rowsFilterTbl.getConfigs(), RowsFilterConfig.Configs.class);
+        }
+
         this.drcStrategyId = configs.getDrcStrategyId();
         this.routeStrategyId = configs.getRouteStrategyId();
-        List<RowsFilterConfig.Parameters> parametersList= configs.getParameterList();
         
+        List<RowsFilterConfig.Parameters> parametersList= configs.getParameterList();
         if (RowsFilterType.TripUdl.getName().equalsIgnoreCase(rowsFilterTbl.getMode())) {
             for (RowsFilterConfig.Parameters parameters : parametersList) {
                 this.context = parameters.getContext();

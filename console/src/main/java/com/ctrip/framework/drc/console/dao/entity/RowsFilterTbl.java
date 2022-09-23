@@ -40,8 +40,9 @@ public class RowsFilterTbl implements DalPojo {
 
     /**
      * json 保存 columns,context属性
-	 * deprecated ,use configs
+	 * use configs
      */
+	@Deprecated
 	@Column(name = "parameters")
 	@Type(value = Types.LONGVARCHAR)
 	private String parameters;

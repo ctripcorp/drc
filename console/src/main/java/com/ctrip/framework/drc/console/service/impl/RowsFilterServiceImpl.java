@@ -225,7 +225,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
     
     @Override
-    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck")
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck/remote")
     public List<String> getConflictTables(String mhaName, String logicalTables)  {
         String[] tables = logicalTables.split(",");
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);

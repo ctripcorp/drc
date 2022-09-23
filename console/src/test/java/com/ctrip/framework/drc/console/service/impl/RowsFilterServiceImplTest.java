@@ -99,6 +99,38 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
         System.out.println(JsonUtils.toJson(rowsFilterConfigs.get(0)));
         Assert.assertEquals(1,rowsFilterConfigs.size());
+        
+        //mock
+        rowsFilterTbl.setId(1L);
+        rowsFilterTbl.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl.setConfigs("{\n" +
+                "    \"parameterList\": [\n" +
+                "        {\n" +
+                "            \"columns\": [\n" +
+                "                \"columnB\"\n" +
+                "            ],\n" +
+                "            \"illegalArgument\": false,\n" +
+                "            \"context\": \"context\",\n" +
+                "            \"fetchMode\": 0,\n" +
+                "            \"userFilterMode\": \"udl\"\n" +
+                "        },\n" +
+                "        {\n" +
+                "            \"columns\": [\n" +
+                "                \"columnA\"\n" +
+                "            ],\n" +
+                "            \"illegalArgument\": false,\n" +
+                "            \"context\": \"context\",\n" +
+                "            \"fetchMode\": 0,\n" +
+                "            \"userFilterMode\": \"uid\"\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}\n");
+        Mockito.when(rowsFilterTblDao.queryById(Mockito.eq(Long.valueOf(1L)),Mockito.eq(BooleanEnum.FALSE.getCode()))).
+                thenReturn(rowsFilterTbl);
+        // test
+        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
+        System.out.println(JsonUtils.toJson(rowsFilterConfigs.get(0)));
+        Assert.assertEquals(2,rowsFilterConfigs.get(0).getConfigs().getParameterList().size());
     }
     
 }

@@ -19,7 +19,7 @@ public class RowsFilterMappingVoTest {
         rowsFilterTbl.setId(1L);
         rowsFilterTbl.setMode("trip_udl");
         rowsFilterTbl.setConfigs("{\n" +
-                "    \"parameters\": [\n" +
+                "    \"parameterList\": [\n" +
                 "        {\n" +
                 "            \"columns\": [\n" +
                 "                \"columnB\"\n" +
@@ -49,7 +49,6 @@ public class RowsFilterMappingVoTest {
 
         RowsFilterMappingVo vo = new RowsFilterMappingVo(mappingTbl,dataMediaTbl, rowsFilterTbl);
         Assert.assertNotNull(vo.getUdlColumns());
-        // todo 有问题
         Assert.assertNotNull(vo.getColumns());
         System.out.println(vo.toString());
     }
