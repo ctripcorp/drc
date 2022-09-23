@@ -34,6 +34,6 @@ public enum UserFilterMode {
             }
         }
 
-        throw new UnsupportedOperationException("not support for name " + name);
+        return Uid;
     }
 }
