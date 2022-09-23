@@ -37,7 +37,7 @@ public class RowsFilterResult<V> {
 
         Filtered(false),
 
-        Illegal(true);
+        Illegal(false);
 
         private boolean noRowFiltered;
 

@@ -16,6 +16,10 @@ public class AbstractRowsFilterRuleForUdlTest extends AbstractEventTest {
 
     private AbstractRowsFilterRule rowsFilterRule;
 
+    /**
+     {"rowsFilters":[{"mode":"%s","tables":"drc1.insert1","parameters":{"columns":["three"],"fetchMode":0,"context":"%s"},"configs":{"parameterList":[{"columns":["three"],"fetchMode":0,"context":"%s","illegalArgument":true,"userFilterMode":"uid"},{"columns":["four"],"fetchMode":0,"context":"%s","illegalArgument":true,"userFilterMode":"udl"}],"drcStrategyId":1,"routeStrategyId":1}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
+     */
+
     // suppose one -> uid; two -> udl
     private static final String ROW_FILTER_PROPERTIES_V2 = "{\n" +
             "  \"rowsFilters\": [\n" +
@@ -49,7 +53,9 @@ public class AbstractRowsFilterRuleForUdlTest extends AbstractEventTest {
             "            \"illegalArgument\": true,\n" +
             "            \"userFilterMode\": \"udl\"\n" +
             "          }\n" +
-            "        ]\n" +
+            "        ],\n" +
+            "        \"drcStrategyId\": 1,\n" +
+            "        \"routeStrategyId\": 1\n" +
             "      }\n" +
             "    }\n" +
             "  ],\n" +
