@@ -80,6 +80,7 @@ public class TripUidService implements UidService {
                 }
                 return RowsFilterResult.Status.from(locations.contains(region.name().toUpperCase()));
             } catch (Exception e) {
+                logger.error("regionFor {} error", userAttr, e);
                 return Illegal;
             }
         }
@@ -122,7 +123,7 @@ public class TripUidService implements UidService {
             if (StringUtils.isBlank(attr)) {
                 return Region.SH;
             }
-            ShardingKeyValue udlKey = ShardingKeyValue.ofUserId(attr);
+            ShardingKeyValue udlKey = ShardingKeyValue.ofUserId(attr); // TODO
             RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
             Optional<String> region = ctx.getRequestRegion();
             if (region.isEmpty()) {

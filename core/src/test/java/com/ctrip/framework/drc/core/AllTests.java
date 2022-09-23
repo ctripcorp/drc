@@ -243,7 +243,7 @@ import org.junit.runners.Suite;
 })
 public class AllTests {
     /**
-     {"rowsFilters":[{"mode":"%s","tables":"drc1.insert1","parameters":{"columns":["id","one"],"fetchMode":0,"context":"%s"},"configs":{"parameters":[{"columns":["id","one"],"fetchMode":0,"context":"%s","userFilterMode":"uid"}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
+     {"rowsFilters":[{"mode":"%s","tables":"drc1.insert1","parameters":{"columns":["id","one"],"fetchMode":0,"context":"%s"},"configs":{"parameterList":[{"columns":["id","one"],"fetchMode":0,"context":"%s","userFilterMode":"uid","drcStrategyId":1,"routeStrategyId":1}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
      */
 
     public static final String ROW_FILTER_PROPERTIES = "{\n" +
@@ -268,7 +268,9 @@ public class AllTests {
             "            ],\n" +
             "            \"fetchMode\": 0,\n" +
             "            \"context\": \"%s\",\n" +
-            "            \"userFilterMode\": \"uid\"\n" +
+            "            \"userFilterMode\": \"uid\",\n" +
+            "            \"drcStrategyId\" : 1,\n" +
+            "            \"routeStrategyId\" : 1\n" +
             "          }\n" +
             "        ]\n" +
             "      }\n" +

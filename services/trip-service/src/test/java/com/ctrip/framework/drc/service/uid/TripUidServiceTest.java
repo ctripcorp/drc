@@ -27,10 +27,20 @@ public class TripUidServiceTest {
 
     @Test
     public void filterUid() throws Exception {
-        UserContext uidContext = new UserContext();
-        uidContext.setUserAttr("test_uid");
-        uidContext.setLocations(locations);
-        uidContext.setIllegalArgument(false);
-        Assert.assertFalse(uidService.filterUid(uidContext).noRowFiltered());
+        UserContext userContext = new UserContext();
+        userContext.setUserAttr("test_uid");
+        userContext.setLocations(locations);
+        userContext.setIllegalArgument(false);
+        Assert.assertFalse(uidService.filterUid(userContext).noRowFiltered());
+    }
+
+    @Test
+    public void filterUdl() throws Exception {
+        UserContext userContext = new UserContext();
+        userContext.setUserAttr("SG");
+        userContext.setLocations(locations);
+        userContext.setIllegalArgument(false);
+        userContext.setDrcStrategyId(1);
+        Assert.assertFalse(uidService.filterUdl(userContext).noRowFiltered());
     }
 }
