@@ -98,7 +98,7 @@ public class RowsFilterConfig {
 
         private int fetchMode = FetchMode.RPC.getCode();
 
-        private String userFilterMode;
+        private String userFilterMode = UserFilterMode.Uid.getName();
 
         public List<String> getColumns() {
             return columns;
