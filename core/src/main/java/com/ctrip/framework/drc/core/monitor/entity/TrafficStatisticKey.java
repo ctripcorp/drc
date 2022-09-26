@@ -13,10 +13,13 @@ public class TrafficStatisticKey {
 
     private String dstRegion;
 
-    public TrafficStatisticKey(String dbName, String srcRegion, String dstRegion) {
+    private String dstType;
+
+    public TrafficStatisticKey(String dbName, String srcRegion, String dstRegion, String dstType) {
         this.dbName = dbName;
         this.srcRegion = srcRegion;
         this.dstRegion = dstRegion;
+        this.dstType = dstType;
     }
 
     public String getDbName() {
@@ -41,6 +44,14 @@ public class TrafficStatisticKey {
 
     public void setDstRegion(String dstRegion) {
         this.dstRegion = dstRegion;
+    }
+
+    public String getDstType() {
+        return dstType;
+    }
+
+    public void setDstType(String dstType) {
+        this.dstType = dstType;
     }
 
     @Override
@@ -69,6 +80,7 @@ public class TrafficStatisticKey {
                 "dbName='" + dbName + '\'' +
                 ", srcRegion='" + srcRegion + '\'' +
                 ", dstRegion='" + dstRegion + '\'' +
+                ", dstType='" + dstType + '\'' +
                 '}';
     }
 }
