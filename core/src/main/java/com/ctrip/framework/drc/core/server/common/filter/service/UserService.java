@@ -8,7 +8,7 @@ import com.ctrip.xpipe.api.lifecycle.Ordered;
  * @Author limingdong
  * @create 2022/5/10
  */
-public interface UidService extends Ordered {
+public interface UserService extends Ordered {
 
     RowsFilterResult.Status filterUid(UserContext uidContext) throws Exception;
 

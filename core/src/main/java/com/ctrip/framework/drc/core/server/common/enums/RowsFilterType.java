@@ -36,6 +36,7 @@ public enum RowsFilterType {
             return UserRowsFilterRule.class;
         }
     },
+
     TripUid("trip_uid") {
         @Override
         public Class<? extends RowsFilterRule> filterRuleClass() {

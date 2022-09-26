@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
  * @Author limingdong
  * @create 2022/5/10
  */
-public class LocalUidService implements UidService {
+public class LocalUserService implements UserService {
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext uidContext) throws Exception {

@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
-import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
+import com.ctrip.framework.drc.core.server.common.filter.service.UserService;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 
@@ -20,7 +20,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.COMMA;
  */
 public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFilterRule<List<AbstractRowsEvent.Row>> {
 
-    private UidService uidService = ServicesUtil.getUidService();
+    private UserService uidService = ServicesUtil.getUidService();
 
     private UidConfiguration uidConfiguration = UidConfiguration.getInstance();
 

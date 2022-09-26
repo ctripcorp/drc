@@ -3,14 +3,14 @@ package com.ctrip.framework.drc.service.uid;
 import com.ctrip.basebiz.tripaccount.region.route.sdk.AccountUidRoute;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.server.common.filter.row.Region;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserContext;
-import com.ctrip.framework.drc.core.server.common.filter.service.UidService;
+import com.ctrip.framework.drc.core.server.common.filter.service.UserService;
 import com.ctrip.framework.ucs.client.ShardingKeyValue;
 import com.ctrip.framework.ucs.client.api.RequestContext;
 import com.ctrip.framework.ucs.client.api.UcsClient;
 import com.ctrip.framework.ucs.client.api.UcsClientFactory;
-import com.ctrip.soa.platform.accountregionroute.v1.Region;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRe
  * @Author limingdong
  * @create 2022/5/10
  */
-public class TripUidService implements UidService {
+public class TripUserService implements UserService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -105,7 +105,8 @@ public class TripUidService implements UidService {
 
         @Override
         protected Region regionFor(String attr) {
-            return AccountUidRoute.regionForUid(attr);
+            com.ctrip.soa.platform.accountregionroute.v1.Region region =  AccountUidRoute.regionForUid(attr);
+            return Region.nameFor(region.name().toUpperCase());
         }
     }
 
@@ -121,15 +122,15 @@ public class TripUidService implements UidService {
         @Override
         protected Region regionFor(String attr) {
             if (StringUtils.isBlank(attr)) {
-                return Region.SH;
+                return Region.SHA;
             }
-            ShardingKeyValue udlKey = ShardingKeyValue.ofUserId(attr); // TODO
+            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
             RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
             Optional<String> region = ctx.getRequestRegion();
             if (region.isEmpty()) {
-                return Region.SH;
+                return Region.SHA;
             }
-            return Region.valueOf(region.get());
+            return Region.nameFor(region.get().toUpperCase());
         }
     }
 }
