@@ -90,9 +90,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
     
-    private static String ROWS_FILTER_MIGRATE_SWITCH = "rows.filter.migrate.switch";
 
-    public DefaultConsoleConfig(Config config) {
+    // only for test
+    protected DefaultConsoleConfig(Config config) {
         super(config);
     }
 
@@ -411,7 +411,4 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
     }
     
-    public String getRowsFilterMigrateSwitch() {
-        return getProperty(ROWS_FILTER_MIGRATE_SWITCH,SWITCH_OFF);
-    }
 }

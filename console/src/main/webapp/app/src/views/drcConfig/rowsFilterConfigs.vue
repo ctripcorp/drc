@@ -59,6 +59,28 @@
                     <Option v-for="item in modesForChose" :value="item" :key="item">{{ item }}</Option>
                   </Select>
                 </FormItem>
+                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_udl' || rowsFilterConfig.fetchMode === 0">
+                  <Input v-if="rowsFilterConfig.mode !== 'trip_udl'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
+                  <Select v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                    <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <FormItem v-if="rowsFilterConfig.mode === 'trip_udl'" label="空处理" >
+                  <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
+                </FormItem>
+                <Divider v-if="rowsFilterConfig.mode === 'trip_udl'">UDL配置</Divider>
+                <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
+                  <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
+                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
+                </FormItem>
+                <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
+                  <Input v-model="rowsFilterConfig.drcStrategyId" style="width:200px" placeholder="Integer类型"/>
+                </FormItem>
+<!--                <FormItem label="路由 UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">-->
+<!--                  <Input v-model="rowsFilterConfig.routeStrategyId" style="width:200px" placeholder="Integer类型"/>-->
+<!--                </FormItem>-->
+                <Divider v-if="rowsFilterConfig.mode === 'trip_udl'">UID配置</Divider>
                 <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 'trip_udl'">
                   <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
                     <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
@@ -73,26 +95,6 @@
                   <Select  v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择" @on-change="fetchModeChange()">
                     <Option v-for="item in fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}</Option>
                   </Select>
-                </FormItem>
-                <FormItem v-if="rowsFilterConfig.mode === 'trip_udl'" label="空处理" >
-                  <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
-                </FormItem>
-                <FormItem  label="规则内容" v-if="rowsFilterConfig.mode !== 'trip_udl' || rowsFilterConfig.fetchMode === 0">
-                  <Input v-if="rowsFilterConfig.mode !== 'trip_udl'" type="textarea" v-model="rowsFilterConfig.context" style="width: 250px" placeholder="请输入行过滤内容"/>
-                  <Select v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.fetchMode === 0"  v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
-                    <Option v-for="item in regionsForChose" :value="item" :key="item">{{ item }}</Option>
-                  </Select>
-                </FormItem>
-                <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 'trip_udl'">
-                  <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
-                    <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-                  </Select>
-                </FormItem>
-                <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
-                  <Input v-model="rowsFilterConfig.drcStrategyId" style="width:200px" placeholder="Integer类型"/>
-                </FormItem>
-                <FormItem label="路由 UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
-                  <Input v-model="rowsFilterConfig.routeStrategyId" style="width:200px" placeholder="Integer类型"/>
                 </FormItem>
               </Form>
             </Card>
@@ -185,10 +187,10 @@ export default {
           title: 'DRC UDL策略（udl专用)',
           key: 'drcStrategyId'
         },
-        {
-          title: 'Route UDL策略（udl专用)',
-          key: 'routeStrategyId'
-        },
+        // {
+        //   title: 'Route UDL策略（udl专用)',
+        //   key: 'routeStrategyId'
+        // },
         {
           title: '默认同步（udl专用)',
           key: 'illegalArgument'

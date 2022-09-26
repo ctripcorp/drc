@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.UdlMigrateConfiguration;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
@@ -43,7 +44,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
     private DbClusterSourceProvider dbClusterSourceProvider;
 
     @Mock
-    private DefaultConsoleConfig consoleConfig;
+    private UdlMigrateConfiguration udlMigrateConfig;
     
     @InjectMocks
     private RowsFilterServiceImpl rowsFilterService;
@@ -66,7 +67,26 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Mockito.when(rowsFilterMappingTblDao.queryByApplierGroupIds(Mockito.anyList(),Mockito.anyInt())).
                 thenReturn(rowsFilterMappingTbls);
         
+        
         //mock
+        DataMediaTbl dataMediaTbl = new DataMediaTbl();
+        dataMediaTbl.setNamespcae("db[01-32]");
+        dataMediaTbl.setName("table1|table2");
+        List<DataMediaTbl> dataMediaTbls = Lists.newArrayList(dataMediaTbl);
+        Mockito.when(dataMediaTblDao.queryByIdsAndType(
+                    Mockito.anyList(),
+                    Mockito.eq(DataMediaTypeEnum.ROWS_FILTER.getType()),
+                    Mockito.eq(BooleanEnum.FALSE.getCode()))).
+                thenReturn(dataMediaTbls);
+        
+        //mock
+        Mockito.when(udlMigrateConfig.gray(Mockito.eq(1L))).thenReturn(true);
+        
+        //mock
+        Mockito.when(rowsFilterTblDao.update(Mockito.any(RowsFilterTbl.class))).thenReturn(1);
+
+
+        // test 1
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
         rowsFilterTbl.setId(1L);
         rowsFilterTbl.setMode(RowsFilterType.TripUid.getName());
@@ -81,28 +101,22 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Mockito.when(rowsFilterTblDao.queryById(Mockito.eq(Long.valueOf(1L)),Mockito.eq(BooleanEnum.FALSE.getCode()))).
                 thenReturn(rowsFilterTbl);
         
-        //mock
-        DataMediaTbl dataMediaTbl = new DataMediaTbl();
-        dataMediaTbl.setNamespcae("db[01-32]");
-        dataMediaTbl.setName("table1|table2");
-        List<DataMediaTbl> dataMediaTbls = Lists.newArrayList(dataMediaTbl);
-        Mockito.when(dataMediaTblDao.queryByIdsAndType(
-                    Mockito.anyList(),
-                    Mockito.eq(DataMediaTypeEnum.ROWS_FILTER.getType()),
-                    Mockito.eq(BooleanEnum.FALSE.getCode()))).
-                thenReturn(dataMediaTbls);
-        
-        //mock
-        Mockito.when(consoleConfig.getRowsFilterMigrateSwitch()).thenReturn("off");
-        
-        // test
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
-        System.out.println(JsonUtils.toJson(rowsFilterConfigs.get(0)));
+        System.out.println("test1" + JsonUtils.toJson(rowsFilterConfigs.get(0)));
         Assert.assertEquals(1,rowsFilterConfigs.size());
+        Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
         
-        //mock
+        // test 2
         rowsFilterTbl.setId(1L);
         rowsFilterTbl.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl.setParameters("{\n" +
+                "                    \"columns\": [\n" +
+                "                        \"columnA\",\n" +
+                "                        \"columnB\",\n" +
+                "                        \"cloumnC\"\n" +
+                "                    ],\n" +
+                "                    \"context\": \"SIN\"\n" +
+                "                }");
         rowsFilterTbl.setConfigs("{\n" +
                 "    \"parameterList\": [\n" +
                 "        {\n" +
@@ -127,10 +141,18 @@ public class RowsFilterServiceImplTest extends AbstractTest {
                 "}\n");
         Mockito.when(rowsFilterTblDao.queryById(Mockito.eq(Long.valueOf(1L)),Mockito.eq(BooleanEnum.FALSE.getCode()))).
                 thenReturn(rowsFilterTbl);
-        // test
         rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
-        System.out.println(JsonUtils.toJson(rowsFilterConfigs.get(0)));
+        System.out.println("test2" + JsonUtils.toJson(rowsFilterConfigs.get(0)));
+        Assert.assertEquals(1,rowsFilterConfigs.size());
         Assert.assertEquals(2,rowsFilterConfigs.get(0).getConfigs().getParameterList().size());
+        Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
+        
+        //mock
+        Mockito.when(udlMigrateConfig.gray(Mockito.eq(1L))).thenReturn(false);
+        // test 3
+        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
+        System.out.println("test3" +JsonUtils.toJson(rowsFilterConfigs.get(0)));
+        Assert.assertEquals(RowsFilterType.TripUid.getName(),rowsFilterConfigs.get(0).getMode());
     }
     
 }
