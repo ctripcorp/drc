@@ -23,10 +23,7 @@
           <FormItem label="设置ApplierTargetName" prop="oldTargetName" style="width: 600px">
             <Input v-model="drc.oldTargetName" placeholder="请输入设置ApplierTargetName，不填默认为本侧dalcluster_name"/>
           </FormItem>
-          <FormItem label="设置includedDbs" prop="oldIncludedDbs" style="width: 600px">
-            <Input v-model="drc.oldIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认为全部DB"/>
-          </FormItem>
-          <FormItem label="配置同步对象" prop="oldNameFilter" style="width: 600px">
+          <FormItem label="配置表过滤" prop="oldNameFilter" style="width: 600px">
             <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
             <Button @click="checkMysqlTablesInOldMha">同步表校验</Button>
           </FormItem>
@@ -71,10 +68,7 @@
           <FormItem label="设置ApplierTargetName" prop="newTargetName" style="width: 600px">
             <Input v-model="drc.newTargetName" placeholder="请输入设置ApplierTargetName，不填默认为dalcluster_name"/>
           </FormItem>
-          <FormItem label="设置includedDbs" prop="newIncludedDbs" style="width: 600px">
-            <Input v-model="drc.newIncludedDbs" placeholder="请输入DB列表，以逗号分隔，不填默认全部DB"/>
-          </FormItem>
-          <FormItem label="配置同步对象" prop="newNameFilter" style="width: 600px">
+          <FormItem label="配置表过滤" prop="newNameFilter" style="width: 600px">
             <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" placeholder="请输入表名，支持正则表达式，以逗号分隔，不填默认为全部表"/>
             <Button @click="checkMysqlTablesInNewMha">同步表校验</Button>
           </FormItem>
@@ -128,10 +122,7 @@
               <FormItem label="源ApplierTargetName">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldTargetName" readonly/>
               </FormItem>
-              <FormItem label="源集群端includedDbs">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldIncludedDbs" readonly/>
-              </FormItem>
-              <FormItem label="源集群端同步对象">
+              <FormItem label="源集群端表过滤">
                 <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" readonly/>
               </FormItem>
               <FormItem label="源集群端表名映射">
@@ -161,10 +152,7 @@
               <FormItem label="新ApplierTargetName">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newTargetName" readonly/>
               </FormItem>
-              <FormItem label="新集群端includedDbs">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newIncludedDbs" readonly/>
-              </FormItem>
-              <FormItem label="新集群端同步对象">
+              <FormItem label="新集群端表过滤">
                 <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" readonly/>
               </FormItem>
               <FormItem label="新集群端表名映射">
@@ -278,8 +266,6 @@ export default {
         newClusterName: this.newClusterName,
         oldTargetName: this.oldTargetName,
         newTargetName: this.newTargetName,
-        oldIncludedDbs: '',
-        newIncludedDbs: '',
         oldNameFilter: '',
         oldNameMapping: '',
         newNameFilter: '',
@@ -511,11 +497,6 @@ export default {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' targetName ' + response.data.data)
           this.drc.oldTargetName = response.data.data
         })
-      this.axios.get('/api/drc/v1/meta/includeddbs?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
-        .then(response => {
-          console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' includedbs ' + response.data.data)
-          this.drc.oldIncludedDbs = response.data.data
-        })
       this.axios.get('/api/drc/v1/meta/namefilter?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
         .then(response => {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' namefilter ' + response.data.data)
@@ -565,11 +546,6 @@ export default {
         .then(response => {
           console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' targetName ' + response.data.data)
           this.drc.newTargetName = response.data.data
-        })
-      this.axios.get('/api/drc/v1/meta/includeddbs?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
-        .then(response => {
-          console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' includedbs ' + response.data.data)
-          this.drc.newIncludedDbs = response.data.data
         })
       this.axios.get('/api/drc/v1/meta/namefilter?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
         .then(response => {
@@ -665,12 +641,12 @@ export default {
         destMha: this.drc.newClusterName,
         srcReplicatorIps: this.drc.replicators.old,
         srcApplierIps: this.drc.appliers.old,
-        srcApplierIncludedDbs: this.drc.oldIncludedDbs,
+        srcApplierIncludedDbs: null,
         srcApplierApplyMode: this.drc.oldApplyMode,
         srcGtidExecuted: this.drc.oldExecutedGtid,
         destReplicatorIps: this.drc.replicators.new,
         destApplierIps: this.drc.appliers.new,
-        destApplierIncludedDbs: this.drc.newIncludedDbs,
+        destApplierIncludedDbs: null,
         destApplierApplyMode: this.drc.newApplyMode,
         destGtidExecuted: this.drc.newExecutedGtid
       }).then(response => {
@@ -698,14 +674,12 @@ export default {
       console.log(this.drc.oldClusterName, this.drc.newClusterName)
       console.log(this.drc.replicators.old)
       console.log(this.drc.appliers.old)
-      console.log(this.drc.oldIncludedDbs)
       console.log(this.drc.oldNameFilter)
       console.log(this.drc.oldNameMapping)
       console.log(this.drc.oldApplyMode)
       console.log(this.drc.oldExecutedGtid)
       console.log(this.drc.replicators.new)
       console.log(this.drc.appliers.new)
-      console.log(this.drc.newIncludedDbs)
       console.log(this.drc.newNameFilter)
       console.log(this.drc.newNameMapping)
       console.log(this.drc.newApplyMode)
@@ -717,7 +691,7 @@ export default {
         destMha: this.drc.newClusterName,
         srcReplicatorIps: this.drc.replicators.old,
         srcApplierIps: this.drc.appliers.old,
-        srcApplierIncludedDbs: this.drc.oldIncludedDbs,
+        srcApplierIncludedDbs: null,
         srcApplierNameFilter: this.drc.oldNameFilter,
         srcApplierNameMapping: this.drc.oldNameMapping,
         srcApplierApplyMode: this.drc.oldApplyMode,
@@ -725,7 +699,7 @@ export default {
         srcClusterName: this.drc.oldTargetName,
         destReplicatorIps: this.drc.replicators.new,
         destApplierIps: this.drc.appliers.new,
-        destApplierIncludedDbs: this.drc.newIncludedDbs,
+        destApplierIncludedDbs: null,
         destApplierNameFilter: this.drc.newNameFilter,
         destApplierNameMapping: this.drc.newNameMapping,
         destApplierApplyMode: this.drc.newApplyMode,

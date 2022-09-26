@@ -172,25 +172,25 @@ export default {
           key: 'mode'
         },
         {
-          title: '相关列',
+          title: 'udl列（udl专用)',
+          key: 'udlColumns'
+        },
+        {
+          title: '相关列/uid列',
           key: 'columns'
         },
         {
           title: '内容',
           key: 'context'
         },
-        {
-          title: 'udl相关列（udl专用)',
-          key: 'udlColumns'
-        },
-        {
-          title: 'DRC UDL策略（udl专用)',
-          key: 'drcStrategyId'
-        },
         // {
         //   title: 'Route UDL策略（udl专用)',
         //   key: 'routeStrategyId'
         // },
+        {
+          title: 'DRC UDL策略（udl专用)',
+          key: 'drcStrategyId'
+        },
         {
           title: '默认同步（udl专用)',
           key: 'illegalArgument'
