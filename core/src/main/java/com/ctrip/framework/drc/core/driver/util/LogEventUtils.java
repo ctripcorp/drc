@@ -62,4 +62,8 @@ public class LogEventUtils {
     public static boolean isRowsEvent(LogEventType eventType) {
         return !(eventType.getType() < write_rows_event_v2.getType() || eventType.getType() > delete_rows_event_v2.getType());
     }
+
+    public static boolean isApplierIgnored(LogEventType eventType) {
+        return LogEventType.rows_query_log_event == eventType;
+    }
 }

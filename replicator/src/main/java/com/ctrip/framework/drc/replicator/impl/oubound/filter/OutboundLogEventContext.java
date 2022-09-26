@@ -35,6 +35,8 @@ public class OutboundLogEventContext {
 
     private boolean noRowFiltered = false;
 
+    private boolean skipEvent = false;
+
     private Exception cause;
 
     private String gtid;
@@ -140,5 +142,13 @@ public class OutboundLogEventContext {
 
     public void setFilteredEventSize(long filteredEventSize) {
         this.filteredEventSize = filteredEventSize;
+    }
+
+    public boolean isSkipEvent() {
+        return skipEvent;
+    }
+
+    public void setSkipEvent(boolean skipEvent) {
+        this.skipEvent = skipEvent;
     }
 }

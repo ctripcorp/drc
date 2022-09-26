@@ -105,7 +105,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
                     .mysqlPort(this.trafficEntity.getPort())
                     .dbName(trafficStatisticKey.getDbName())
                     .srcRegion(trafficStatisticKey.getSrcRegion())
-                    .dstRegion(trafficStatisticKey.getDstRegion()).build();
+                    .dstRegion(trafficStatisticKey.getDstRegion())
+                    .dstType(trafficStatisticKey.getDstType()).build();
             trafficStatisticEntityMap.put(trafficStatisticKey, trafficStatisticEntity);
         }
         return trafficStatisticEntity;
