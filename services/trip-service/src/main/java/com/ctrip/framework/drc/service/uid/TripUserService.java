@@ -132,8 +132,10 @@ public class TripUserService implements UserService {
             RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
             Optional<String> region = ctx.getRequestRegion();
             if (region.isEmpty()) {
+                logger.info("[UdlFilter] ucsStrategyId:{},noRegion find for udl:{}",drcStrategyId,udlKey);
                 return Region.SHA;
             }
+            logger.info("[UdlFilter] ucsStrategyId:{},region:{} find for udl:{}",drcStrategyId,region.get().toUpperCase(),udlKey);
             return Region.nameFor(region.get().toUpperCase());
         }
     }
