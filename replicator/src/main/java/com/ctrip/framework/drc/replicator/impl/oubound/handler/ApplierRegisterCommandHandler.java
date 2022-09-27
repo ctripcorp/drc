@@ -194,7 +194,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
+            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Replicator);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.applierRegion = dumpCommandPacket.getRegion();

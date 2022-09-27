@@ -20,7 +20,7 @@ public class DrcBinlogDumpGtidCommandExecutor extends BinlogDumpGtidCommandExecu
     @Override
     protected ServerCommandPacket getPacket(String queryString) {
         ApplierDumpCommandPacket dumpCommandPacket = new ApplierDumpCommandPacket(String.valueOf(slaveId), gtidSet);
-        dumpCommandPacket.setConsumeType(ConsumeType.Slave.getCode());
+        dumpCommandPacket.setConsumeType(ConsumeType.Replicator.getCode());
         dumpCommandPacket.setRegion(RegionConfig.getInstance().getRegion());
         return dumpCommandPacket;
     }
