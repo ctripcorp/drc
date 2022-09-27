@@ -75,6 +75,10 @@ public class TripUserService implements UserService {
                     return RowsFilterResult.Status.from(false);
                 }
                 Region region = regionFor(userAttr);
+                logger.debug(
+                        "[UserService] for {},attr:{},region:{},locations",
+                        this.getClass().getSimpleName(), userAttr, region.name()
+                );
                 if (region == null) {
                     return Illegal;
                 }
