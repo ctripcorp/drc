@@ -194,7 +194,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
+            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Replicator);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.applierRegion = dumpCommandPacket.getRegion();
@@ -239,7 +239,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid, boolean in_exclude_group) {
-            if (eventType == LogEventType.gtid_log_event) {
+            if (eventType == gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
             }
 
@@ -486,8 +486,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
-                outboundMonitorReport.addSize(eventSize);
-
             }
             lastEventType = eventType;
             return previousGtidLogEvent;
@@ -595,7 +593,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             frequencySend.addOne();
             outboundMonitorReport.addOutboundGtid(applierName, previousGtidLogEvent);
             outboundMonitorReport.addOneCount();
-            outboundMonitorReport.addSize(eventSize);
         }
 
         private void trySkip(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, GtidSet excludedSet) throws IOException {

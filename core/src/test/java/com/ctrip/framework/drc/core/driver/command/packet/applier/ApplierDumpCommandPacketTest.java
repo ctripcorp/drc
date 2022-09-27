@@ -40,7 +40,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
         packet.setGtidSet(gtidSet);
 
         packet.setApplyMode(ApplyMode.transaction_table.getType());
-        packet.setConsumeType(ConsumeType.Slave.getCode());
+        packet.setConsumeType(ConsumeType.Replicator.getCode());
         packet.setProperties(properties);
     }
 
@@ -51,7 +51,7 @@ public class ApplierDumpCommandPacketTest extends AbstractCommandPacketTest {
         clone.read(byteBuf);
         Assert.assertEquals(packet.getApplierName(), clone.getApplierName());
         Assert.assertEquals(packet.getGtidSet(), clone.getGtidSet());
-        Assert.assertEquals(packet.getConsumeType(), ConsumeType.Slave.getCode());
+        Assert.assertEquals(packet.getConsumeType(), ConsumeType.Replicator.getCode());
         Assert.assertEquals(packet.getApplyMode(), ApplyMode.transaction_table.getType());
         Assert.assertEquals(packet.getProperties(), properties);
     }
