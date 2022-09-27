@@ -158,7 +158,6 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channel, times(2 * 2 + 1 + 2)).writeAndFlush(any(DefaultFileRegion.class));  //gtid and drc_uuid_log in last two files, and format_log、 previous_log in last file, switch file will send empty msg
         verify(outboundMonitorReport, times(2)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(2)).addOneCount();
-        verify(outboundMonitorReport, times(2 * 2 + 2)).addSize(any(Long.class)); // +2 for drc_uuid_log
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
