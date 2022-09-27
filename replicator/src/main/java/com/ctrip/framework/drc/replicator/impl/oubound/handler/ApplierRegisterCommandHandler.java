@@ -413,6 +413,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 } else {
                     gtidForLog = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf);
                     channelAttributeKey.handleEvent(true);
+                    if (drc_gtid_log_event == eventType) {
+                        in_exclude_group = true;
+                    }
                 }
 
                 releaseCompositeByteBuf(eventPair.getValue());

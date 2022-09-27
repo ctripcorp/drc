@@ -41,6 +41,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
 
         if (filtered) {
             if (gtid_log_event == logEventType) {  //persist drc_gtid_log_event
+                circularBreak = true;
                 checkXid(logEvent, logEventType, value);
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
