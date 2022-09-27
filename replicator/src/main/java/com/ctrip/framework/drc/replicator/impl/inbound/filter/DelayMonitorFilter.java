@@ -55,5 +55,10 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
         return filtered;
     }
 
+    @Override
+    public void reset() {
+        previousGtid = StringUtils.EMPTY;
+        super.reset();
+    }
 
 }

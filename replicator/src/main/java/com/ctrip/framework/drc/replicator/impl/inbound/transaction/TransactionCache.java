@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObservable;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 

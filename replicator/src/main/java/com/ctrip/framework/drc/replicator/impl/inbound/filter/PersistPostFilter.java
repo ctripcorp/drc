@@ -23,6 +23,8 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
 
     private TransactionCache transactionCache;
 
+    private boolean circularBreak = false;
+
     public PersistPostFilter(TransactionCache transactionCache) {
         this.transactionCache = transactionCache;
     }
@@ -37,6 +39,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
 
         if (filtered) {
             if (gtid_log_event == logEventType) {  //persist drc_gtid_log_event
+                circularBreak = true;
                 checkXid(logEvent, logEventType, value);
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
@@ -44,6 +47,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                 value.setNotRelease(true);
                 value.setGtid(StringUtils.EMPTY);
             } else if (xid_log_event == logEventType) {
+                circularBreak = false;
                 if (value.isTableFiltered()) {  // persist xid_log_event, no need fake another one
                     value.setTableFiltered(false);
                     checkXid(logEvent, logEventType, value);
@@ -58,8 +62,17 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                     transactionCache.markTransactionTableRelated(false);
                     value.setNotRelease(true);
                 }
+            } else {
+                if (value.isTransactionTableRelated()) {
+                    circularBreak = true;
+                }
+                if (circularBreak) {
+                    transactionCache.add(logEvent);
+                    value.setNotRelease(true);
+                }
             }
         } else {
+            circularBreak = false;
             checkXid(logEvent, logEventType, value);
             transactionCache.add(logEvent); //persist log event
             value.setNotRelease(true);
@@ -81,6 +94,12 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
         } else if (xid_log_event == logEventType) {
             value.setGtid(StringUtils.EMPTY);
         }
+    }
+
+    @Override
+    public void reset() {
+        circularBreak = false;
+        super.reset();
     }
 
 }

@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObservable;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.transaction.Resettable;
+import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
@@ -110,6 +110,7 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
         tableFiltered = false;
         transactionTableRelated = false;
         transactionCache.reset();
+        filterChain.reset();
     }
 
     @VisibleForTesting

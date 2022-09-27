@@ -159,13 +159,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             if (LogEventType.gtid_log_event == logEventType) {
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
-            } else {
-                try {
-                    logEvent.release();
-                } catch (Exception e) {
-                    logger.error("released logEventType of {} error when release redundant events", logEventType, e);
-                }
-                iterator.remove();
+                break;
             }
         }
     }
