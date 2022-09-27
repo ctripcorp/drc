@@ -32,6 +32,10 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
             return noRowFiltered;
         }
 
+        if (value.isSkipEvent()) {
+            return true;
+        }
+
         if (noRowFiltered) {
             channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos() - eventHeaderLengthVersionGt1, value.getEventSize()).retain());
         } else {

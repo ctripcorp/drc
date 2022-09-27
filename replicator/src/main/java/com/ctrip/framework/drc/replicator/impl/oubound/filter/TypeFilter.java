@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 
@@ -22,6 +23,11 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
+        if (ConsumeType.Applier == consumeType && LogEventUtils.isApplierIgnored(value.getEventType())) {
+            value.setFilteredEventSize(0);
+            value.setSkipEvent(true);
+            return doNext(value, true);
+        }
         if (ConsumeType.Applier != consumeType || !shouldFilterRows) {
             value.setNoRowFiltered(true);
         }

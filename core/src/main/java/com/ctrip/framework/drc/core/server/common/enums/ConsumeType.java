@@ -18,7 +18,7 @@ public enum ConsumeType {
         }
     }, // InstanceStatus.ACTIVE
 
-    Slave(1) {
+    Replicator(1) {
         @Override
         public boolean shouldHeartBeat() {
             return false;

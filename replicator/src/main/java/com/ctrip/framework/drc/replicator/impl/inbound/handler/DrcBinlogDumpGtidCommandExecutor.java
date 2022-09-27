@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.handler;
 
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
@@ -19,7 +20,8 @@ public class DrcBinlogDumpGtidCommandExecutor extends BinlogDumpGtidCommandExecu
     @Override
     protected ServerCommandPacket getPacket(String queryString) {
         ApplierDumpCommandPacket dumpCommandPacket = new ApplierDumpCommandPacket(String.valueOf(slaveId), gtidSet);
-        dumpCommandPacket.setConsumeType(ConsumeType.Slave.getCode());
+        dumpCommandPacket.setConsumeType(ConsumeType.Replicator.getCode());
+        dumpCommandPacket.setRegion(RegionConfig.getInstance().getRegion());
         return dumpCommandPacket;
     }
 }

@@ -128,7 +128,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         when(nettyClient.channel()).thenReturn(channel);
         when(channel.remoteAddress()).thenReturn(socketAddress);
         when(channel.closeFuture()).thenReturn(channelFuture);
-        when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Slave.getCode());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Replicator.getCode());
         when(dumpCommandPacket.getProperties()).thenReturn(String.format(ROW_FILTER_PROPERTIES, RowsFilterType.None.getName()));
         when(dumpCommandPacket.getApplyMode()).thenReturn(ApplyMode.set_gtid.getType());
         when(dumpCommandPacket.getGtidSet()).thenReturn(EXCLUDED_GTID);
@@ -158,7 +158,6 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         verify(channel, times(2 * 2 + 1 + 2)).writeAndFlush(any(DefaultFileRegion.class));  //gtid and drc_uuid_log in last two files, and format_log、 previous_log in last file, switch file will send empty msg
         verify(outboundMonitorReport, times(2)).addOutboundGtid(anyString(), anyString());
         verify(outboundMonitorReport, times(2)).addOneCount();
-        verify(outboundMonitorReport, times(2 * 2 + 2)).addSize(any(Long.class)); // +2 for drc_uuid_log
         verify(channelAttributeKey, times(1)).setHeartBeat(false);
     }
 
@@ -286,7 +285,7 @@ public class ApplierRegisterCommandHandlerTest extends AbstractTransactionTest {
         int ddlId = (maxGtidId - 1) / 2;
         GtidSet gtidSet = new GtidSet(UUID_STRING + ":1-" + (ddlId + 1));
         when(dumpCommandPacket.getGtidSet()).thenReturn(gtidSet);
-        when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Slave.getCode());
+        when(dumpCommandPacket.getConsumeType()).thenReturn(ConsumeType.Replicator.getCode());
 
         applierRegisterCommandHandler.handle(dumpCommandPacket, nettyClient);
         Thread.sleep(250);

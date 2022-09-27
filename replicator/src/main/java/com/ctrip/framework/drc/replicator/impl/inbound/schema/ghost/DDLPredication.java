@@ -6,6 +6,8 @@ package com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost;
  */
 public class DDLPredication {
 
+    private static final String UNDER_LINE = "_";
+
     private static final String GHOST_CHANGE_LOG = "_ghc";
 
     private static final String GHOST_TABLE = "_gho";
@@ -159,7 +161,7 @@ public class DDLPredication {
         public boolean isGhostDml(String dbAndTable) {
             if (dbAndTable != null) {
                 String newDbAndTable = dbAndTable.toLowerCase().trim();
-                if (newDbAndTable.endsWith(GHOST_CHANGE_LOG) || newDbAndTable.endsWith(GHOST_TABLE)) {
+                if (newDbAndTable.endsWith(GHOST_CHANGE_LOG) || newDbAndTable.endsWith(GHOST_TABLE) || newDbAndTable.endsWith(GHOST_DEL)) {
                     return true;
                 }
             }

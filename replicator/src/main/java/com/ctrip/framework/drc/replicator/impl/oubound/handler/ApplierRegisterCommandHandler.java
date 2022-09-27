@@ -38,7 +38,6 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.Gate;
 import com.ctrip.xpipe.utils.OffsetNotifier;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -195,7 +194,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Slave);
+            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Replicator);
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.applierRegion = dumpCommandPacket.getRegion();
@@ -239,13 +238,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
         }
 
-        private boolean skipEvent(GtidSet excludedSet, ByteBuf byteBuf, String gtid, boolean in_exclude_group) {
-            LogEventType logEventType = LogEventUtils.parseNextLogEventType(byteBuf);
-            if (logEventType == LogEventType.gtid_log_event) {
+        private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid, boolean in_exclude_group) {
+            if (eventType == gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
             }
 
-            if (logEventType == drc_gtid_log_event) {
+            if (eventType == drc_gtid_log_event) {
                 return skipDrcGtidLogEvent || new GtidSet(gtid).isContainedWithin(excludedSet);
             }
             return in_exclude_group;
@@ -402,7 +400,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
 
-                if (!isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, headByteBuf, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
+                if (!isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, eventType, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
                     Pair<Boolean, String> res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
                     in_exclude_group = res.getKey();
                     gtidForLog = res.getValue();
@@ -463,7 +461,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     transactionSize += eventSize;
                     updateMonitorStatis(eventSize, previousGtidLogEvent);
                 } else {
-                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion), eventSize);
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
                 }
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
@@ -483,13 +481,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
 
                 if (xid_log_event == eventType) {
-                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(sendingSchema, replicatorRegion, applierRegion), transactionSize);
+                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(sendingSchema, replicatorRegion, applierRegion, consumeType.name()), transactionSize);
                     transactionSize = 0;
                 }
 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
-                outboundMonitorReport.addSize(eventSize);
-
             }
             lastEventType = eventType;
             return previousGtidLogEvent;
@@ -597,7 +593,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             frequencySend.addOne();
             outboundMonitorReport.addOutboundGtid(applierName, previousGtidLogEvent);
             outboundMonitorReport.addOneCount();
-            outboundMonitorReport.addSize(eventSize);
         }
 
         private void trySkip(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, GtidSet excludedSet) throws IOException {
