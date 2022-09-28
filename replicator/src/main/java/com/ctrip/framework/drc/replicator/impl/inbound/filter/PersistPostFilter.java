@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.gtid_log_event;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.BLACK_TABLE_NAME_F;
 
 /**
  * post filter
@@ -19,6 +20,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.x
 public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEventContext> {
 
     public static final long FAKE_XID_PARAM = 100l;
+
     public static final long FAKE_SERVER_PARAM = 1l;
 
     private TransactionCache transactionCache;
@@ -45,17 +47,14 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
                 transactionCache.add(gtidLogEvent);
                 value.setNotRelease(true);
-                value.setGtid(StringUtils.EMPTY);
             } else if (xid_log_event == logEventType) {
                 circularBreak = false;
-                if (value.isTableFiltered()) {  // persist xid_log_event, no need fake another one
-                    value.setTableFiltered(false);
+                if (value.isBlackTableFiltered() || value.isGtidFiltered()) {  // persist xid_log_event, no need fake another one
                     checkXid(logEvent, logEventType, value);
                     transactionCache.add(logEvent);
                     value.setNotRelease(true);
                 }
                 if (value.isTransactionTableRelated()) {
-                    value.setTransactionTableRelated(false);
                     checkXid(logEvent, logEventType, value);
                     transactionCache.markTransactionTableRelated(true);
                     transactionCache.add(logEvent);
@@ -63,8 +62,10 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                     value.setNotRelease(true);
                 }
             } else {
-                if (value.isTransactionTableRelated()) {
+                if (value.isTransactionTableRelated() || value.isGtidFiltered()) {
                     circularBreak = true;
+                } else {
+                    circularBreak = false;
                 }
                 if (circularBreak) {
                     transactionCache.add(logEvent);
@@ -87,7 +88,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
             if (StringUtils.isNotBlank(previousGtid) && previousGtid.contains(":")) {  //check if fake XidLogEvent
                 XidLogEvent fakeXidLogEvent = new XidLogEvent(FAKE_SERVER_PARAM, FAKE_XID_PARAM, FAKE_XID_PARAM);
                 transactionCache.add(fakeXidLogEvent);
-                value.setTableFiltered(false);
+                value.unmark(BLACK_TABLE_NAME_F); // handle transaction without xid event
             }
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
             value.setGtid(gtidLogEvent.getGtid());

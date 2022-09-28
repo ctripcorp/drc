@@ -111,7 +111,8 @@ import java.util.HashMap;
         DelayMonitorCommandHandlerTest.class,
         HeartBeatCommandHandlerTest.class,
         ChannelAttributeKeyTest.class,
-        CommandHandlerManagerTest.class
+        CommandHandlerManagerTest.class,
+        TransactionFlagsTest.class
 
 })
 public class AllTests {

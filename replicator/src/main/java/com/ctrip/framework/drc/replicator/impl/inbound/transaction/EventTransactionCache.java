@@ -70,6 +70,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
     public boolean add(LogEvent logEvent) {
         switch (logEvent.getLogEventType()) {
             case gtid_log_event:
+            case drc_gtid_log_event:
                 flush();// flush last events
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 put(logEvent);
@@ -77,11 +78,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
                 break;
             case xid_log_event:
                 put(logEvent);
-                flush();
-                break;
-            case drc_gtid_log_event:
-                put(logEvent);
-                currentGtid = ((GtidLogEvent) logEvent).getGtid();
                 flush();
                 break;
             default:

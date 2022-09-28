@@ -48,7 +48,7 @@ public class BlackTableNameFilterTest extends MockTest {
         tableMapLogEvent = new TableMapLogEvent().read(byteBuf);
         byteBuf.release();
 
-        value = new InboundLogEventContext(tableMapLogEvent, null, false, false, false, "");
+        value = new InboundLogEventContext(tableMapLogEvent, null, new TransactionFlags(), "");
     }
 
     @After
@@ -60,7 +60,7 @@ public class BlackTableNameFilterTest extends MockTest {
     public void doGhostFilter() {
         Assert.assertTrue(tableNameFilter.doFilter(value));
         Assert.assertTrue(value.isInExcludeGroup());
-        Assert.assertTrue(value.isTableFiltered());
+        Assert.assertTrue(value.isBlackTableFiltered());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class BlackTableNameFilterTest extends MockTest {
         EXCLUDED_DB.add(BLACK_DB);
         Assert.assertTrue(tableNameFilter.doFilter(value));
         Assert.assertTrue(value.isInExcludeGroup());
-        Assert.assertTrue(value.isTableFiltered());
+        Assert.assertTrue(value.isBlackTableFiltered());
         EXCLUDED_DB.remove(BLACK_DB);
     }
 
@@ -80,19 +80,19 @@ public class BlackTableNameFilterTest extends MockTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, QMQ_TABLE, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        InboundLogEventContext eventWithGroupFlag = new InboundLogEventContext(tableMapLogEvent, null, false, false, false, "");
+        InboundLogEventContext eventWithGroupFlag = new InboundLogEventContext(tableMapLogEvent, null, new TransactionFlags(), "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
-        Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
+        Assert.assertTrue(eventWithGroupFlag.isBlackTableFiltered());
 
         tableNameFilter.getEXCLUDED_CUSTOM_TABLE().add(testDbName + DOT + testTableName);
         tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, testDbName, testTableName, Lists.newArrayList(), null, table_map_log_event, 0
         );
-        eventWithGroupFlag = new InboundLogEventContext(tableMapLogEvent, null, false, false, false, "");
+        eventWithGroupFlag = new InboundLogEventContext(tableMapLogEvent, null, new TransactionFlags(), "");
         Assert.assertTrue(tableNameFilter.doFilter(eventWithGroupFlag));
         Assert.assertTrue(eventWithGroupFlag.isInExcludeGroup());
-        Assert.assertTrue(eventWithGroupFlag.isTableFiltered());
+        Assert.assertTrue(eventWithGroupFlag.isBlackTableFiltered());
 
     }
 

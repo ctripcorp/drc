@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.core.server.common.filter.Resettable;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.impl.oubound.observer.MonitorEventObservable;
@@ -42,11 +43,7 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
 
     private String currentGtid = StringUtils.EMPTY;
 
-    private boolean inExcludeGroup = false;
-
-    private boolean tableFiltered = false;
-
-    private boolean transactionTableRelated = false;
+    private TransactionFlags flags = new TransactionFlags();
 
     /**
      * write and release
@@ -54,13 +51,9 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
     @Override
     public synchronized void onLogEvent(LogEvent logEvent, LogEventCallBack logEventCallBack, BinlogDumpGtidException exception) {
 
-        InboundLogEventContext eventWithGroupFlag = new InboundLogEventContext(logEvent, logEventCallBack, inExcludeGroup, tableFiltered, transactionTableRelated, currentGtid);
-
-        inExcludeGroup = filterChain.doFilter(eventWithGroupFlag);
-
+        InboundLogEventContext eventWithGroupFlag = new InboundLogEventContext(logEvent, logEventCallBack, flags, currentGtid);
+        filterChain.doFilter(eventWithGroupFlag);
         currentGtid = eventWithGroupFlag.getGtid();
-        tableFiltered = eventWithGroupFlag.isTableFiltered();
-        transactionTableRelated = eventWithGroupFlag.isTransactionTableRelated();
     }
 
     @Override
@@ -106,9 +99,6 @@ public class ReplicatorLogEventHandler implements ObservableLogEventHandler, Gti
     @Override
     public void reset() {
         currentGtid = StringUtils.EMPTY;
-        inExcludeGroup = false;
-        tableFiltered = false;
-        transactionTableRelated = false;
         transactionCache.reset();
         filterChain.reset();
     }

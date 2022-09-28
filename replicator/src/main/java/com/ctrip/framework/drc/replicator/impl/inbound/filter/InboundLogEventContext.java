@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventCallBack;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
+import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
 
@@ -11,28 +12,22 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGG
  * Created by mingdongli
  * 2019/10/9 上午10:27.
  */
-public class InboundLogEventContext {
+public class InboundLogEventContext implements Resettable {
 
     private LogEvent logEvent;
 
     private LogEventCallBack callBack;
 
-    private boolean inExcludeGroup;
-
-    private boolean tableFiltered;
-
-    private boolean transactionTableRelated;
+    private TransactionFlags flags;
 
     private String gtid;
 
     private boolean notRelease = false;
 
-    public InboundLogEventContext(LogEvent logEvent, LogEventCallBack callBack, boolean inExcludeGroup, boolean tableFiltered, boolean transactionTableRelated, String gtid) {
+    public InboundLogEventContext(LogEvent logEvent, LogEventCallBack callBack, TransactionFlags flags, String gtid) {
         this.logEvent = logEvent;
         this.callBack = callBack;
-        this.inExcludeGroup = inExcludeGroup;
-        this.tableFiltered = tableFiltered;
-        this.transactionTableRelated = transactionTableRelated;
+        this.flags = flags;
         this.gtid = gtid;
     }
 
@@ -45,27 +40,31 @@ public class InboundLogEventContext {
     }
 
     public boolean isInExcludeGroup() {
-        return inExcludeGroup;
+        return flags.filtered();
     }
 
-    public void setInExcludeGroup(boolean inExcludeGroup) {
-        this.inExcludeGroup = inExcludeGroup;
+    public void mark(int flag) {
+        flags.mark(flag);
     }
 
-    public boolean isTableFiltered() {
-        return tableFiltered;
+    public void unmark(int flag) {
+        flags.unmark(flag);
     }
 
-    public void setTableFiltered(boolean tableFiltered) {
-        this.tableFiltered = tableFiltered;
+    public boolean isBlackTableFiltered() {
+        return flags.blackTableFiltered();
     }
 
     public boolean isTransactionTableRelated() {
-        return transactionTableRelated;
+        return flags.transactionTableFiltered();
     }
 
-    public void setTransactionTableRelated(boolean transactionTableRelated) {
-        this.transactionTableRelated = transactionTableRelated;
+    public boolean isGtidFiltered() {
+        return flags.gtidFiltered();
+    }
+
+    public boolean isOtherFiltered() {
+        return flags.otherFiltered();
     }
 
     public String getGtid() {
@@ -90,13 +89,18 @@ public class InboundLogEventContext {
             EVENT_LOGGER.error("release {} of {} error", logEventType, gtid, e);
         } finally {
             setNotRelease(false);
-            if (logEventType == LogEventType.xid_log_event || LogEventUtils.isDrcEvent(logEventType)) {
-                setInExcludeGroup(false);
+            if (logEventType == LogEventType.xid_log_event || isOtherFiltered() || (LogEventUtils.isDrcEvent(logEventType) && !LogEventUtils.isDrcGtidLogEvent(logEventType))) {
+                reset();
             }
         }
     }
 
     public void setNotRelease(boolean notRelease) {
         this.notRelease = notRelease;
+    }
+
+    @Override
+    public void reset() {
+        flags.reset();
     }
 }
