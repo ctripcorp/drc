@@ -39,6 +39,7 @@ public class TripUserService implements UserService {
         put("PW","SIN");
         put("SG","SIN");
         put("SH","SHA");
+        put("errorUdl","errorRegion");
         }
     };
 
