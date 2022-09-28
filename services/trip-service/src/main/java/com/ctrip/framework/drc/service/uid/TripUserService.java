@@ -86,10 +86,6 @@ public class TripUserService implements UserService {
                     return RowsFilterResult.Status.from(false);
                 }
                 Region region = regionFor(userAttr);
-                logger.info(
-                        "[UserService] for {},attr:{},region:{},locations",
-                        this.getClass().getSimpleName(), userAttr, region.name()
-                );
                 if (region == null) {
                     return Illegal;
                 }
@@ -144,10 +140,8 @@ public class TripUserService implements UserService {
 //            Optional<String> region = ctx.getRequestRegion();
             String region = udl2regionMap.get(attr);
             if (StringUtils.isBlank(region)) {
-                logger.info("[UdlFilter] ucsStrategyId:{},noRegion find for udl:{}",drcStrategyId,attr);
                 return Region.SHA;
             }
-            logger.info("[UdlFilter] ucsStrategyId:{},region:{} find for udl:{}",drcStrategyId,region,attr);
             return Region.nameFor(region.toUpperCase());
         }
     }
