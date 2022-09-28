@@ -34,6 +34,7 @@
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.5</dal.version>
+        <ucs.version>0.5.0-SNAPSHOT</ucs.version>
         <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
         <tomcat.version>8.0.33</tomcat.version>
@@ -326,6 +327,11 @@
             </dependency>
 
             <!-- third party -->
+            <dependency>
+                <groupId>com.ctrip.framework.fx</groupId>
+                <artifactId>ucs-client</artifactId>
+                <version>${ucs.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.spring.platform</groupId>
                 <artifactId>platform-bom</artifactId>

@@ -120,7 +120,6 @@
         <dependency>
             <groupId>com.ctrip.framework.fx</groupId>
             <artifactId>ucs-client</artifactId>
-            <version>0.5.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
