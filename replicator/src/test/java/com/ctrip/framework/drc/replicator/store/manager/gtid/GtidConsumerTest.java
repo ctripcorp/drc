@@ -176,7 +176,7 @@ public class GtidConsumerTest extends AbstractTransactionTest {
         gtidConsumer.offer(logEvent2);
         gtidConsumer.offer(logEvent3);
         gtidConsumer.add(testGtid4);
-        GtidSet gtidSet = gtidConsumer.getGtidSet();
+        GtidSet gtidSet = gtidConsumer.getGtidEventSet();
         Assert.assertFalse(gtidSet.add(testGtid1));
         Assert.assertFalse(gtidSet.add(testGtid2));
         Assert.assertFalse(gtidSet.add(testGtid3));
