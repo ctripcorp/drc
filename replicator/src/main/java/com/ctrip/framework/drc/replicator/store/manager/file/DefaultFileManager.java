@@ -376,7 +376,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             gtidLogEvent.read(compositeByteBuf);
                             long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
                             if (fileChannel.position() + nextTransactionOffset <= endPos) {  //one transaction or just drc_gtid_log_event
-                                if (nextTransactionOffset > 0 || LogEventUtils.isDrcGtidLogEvent(eventType)) {
+                                if (nextTransactionOffset < 0) {
                                     fileChannel.position(fileChannel.position() + nextTransactionOffset);
                                     gtidEventConsumer.offer(gtidLogEvent);
                                     if (logger.isDebugEnabled()) {
