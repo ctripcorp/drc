@@ -15,6 +15,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,6 +33,14 @@ public class TripUserService implements UserService {
     private static final int RETRY_TIME = 2;
 
     private static UcsClient ucsClient = UcsClientFactory.getInstance().getUcsClient();
+    
+    private static Map<String,String> udl2regionMap = new HashMap<String,String>(){
+        {
+        put("PW","SIN");
+        put("SG","SIN");
+        put("SH","SHA");
+        }
+    };
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext userContext) throws Exception {
@@ -128,15 +138,16 @@ public class TripUserService implements UserService {
             if (StringUtils.isBlank(attr)) {
                 return Region.SHA;
             }
-            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
-            RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
-            Optional<String> region = ctx.getRequestRegion();
-            if (region.isEmpty()) {
-                logger.info("[UdlFilter] ucsStrategyId:{},noRegion find for udl:{}",drcStrategyId,udlKey);
+//            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
+//            RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
+//            Optional<String> region = ctx.getRequestRegion();
+            String region = udl2regionMap.get(attr);
+            if (StringUtils.isBlank(region)) {
+                logger.info("[UdlFilter] ucsStrategyId:{},noRegion find for udl:{}",drcStrategyId,attr);
                 return Region.SHA;
             }
-            logger.info("[UdlFilter] ucsStrategyId:{},region:{} find for udl:{}",drcStrategyId,region.get().toUpperCase(),udlKey);
-            return Region.nameFor(region.get().toUpperCase());
+            logger.info("[UdlFilter] ucsStrategyId:{},region:{} find for udl:{}",drcStrategyId,region,attr);
+            return Region.nameFor(region.toUpperCase());
         }
     }
 }
