@@ -63,7 +63,8 @@ public class TrafficStatisticKey {
 
         if (!Objects.equals(dbName, that.dbName)) return false;
         if (!Objects.equals(srcRegion, that.srcRegion)) return false;
-        return Objects.equals(dstRegion, that.dstRegion);
+        if (!Objects.equals(dstRegion, that.dstRegion)) return false;
+        return Objects.equals(dstType, that.dstType);
     }
 
     @Override
@@ -71,6 +72,7 @@ public class TrafficStatisticKey {
         int result = dbName != null ? dbName.hashCode() : 0;
         result = 31 * result + (srcRegion != null ? srcRegion.hashCode() : 0);
         result = 31 * result + (dstRegion != null ? dstRegion.hashCode() : 0);
+        result = 31 * result + (dstType != null ? dstType.hashCode() : 0);
         return result;
     }
 

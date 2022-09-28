@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.gtid;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.concurrent.NamedThreadFactory;
 import com.google.common.collect.Sets;
@@ -23,7 +24,7 @@ public class GtidConsumer {
 
     private GtidSet gtidSet = new GtidSet(new LinkedHashMap<>());
 
-    private ExecutorService gtidService = Executors.newCachedThreadPool(new NamedThreadFactory("Gtid-Consume"));
+    private ExecutorService gtidService = ThreadUtils.newSingleThreadExecutor("Gtid-Consume");
 
     private Set<String> gtidSetString = Sets.newHashSet();
 
