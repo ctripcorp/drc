@@ -462,8 +462,12 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 previousGtidLogEvent = gtidLogEvent.getGtid();
                 if (gtid_log_event == eventType) {
                     transactionSize += eventSize;
-                    updateMonitorStatis(eventSize, previousGtidLogEvent);
+                    updateMonitorStatis(previousGtidLogEvent);
                 } else {
+                    if (consumeType == ConsumeType.Replicator) {
+                        transactionSize += eventSize;
+                        updateMonitorStatis(previousGtidLogEvent);
+                    }
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
                 }
             } else {  // two cases: partial transaction and filtered db
@@ -591,7 +595,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return Pair.from(in_exclude_group, previousGtidLogEvent);
         }
 
-        private void updateMonitorStatis(long eventSize, String previousGtidLogEvent) {
+        private void updateMonitorStatis(String previousGtidLogEvent) {
             GTID_LOGGER.info("[S] G, {}", previousGtidLogEvent);
             frequencySend.addOne();
             outboundMonitorReport.addOutboundGtid(applierName, previousGtidLogEvent);
