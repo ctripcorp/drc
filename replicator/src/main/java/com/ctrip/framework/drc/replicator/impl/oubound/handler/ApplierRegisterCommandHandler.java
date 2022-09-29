@@ -410,6 +410,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     channelAttributeKey.handleEvent(true);
                     if (drc_gtid_log_event == eventType && consumeType != ConsumeType.Replicator) {
                         in_exclude_group = true;
+                        outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
+                        transactionSize = 0;
                     }
                 }
 
@@ -460,16 +462,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
-                if (gtid_log_event == eventType) {
-                    transactionSize += eventSize;
-                    updateMonitorStatis(previousGtidLogEvent);
-                } else {
-                    if (consumeType == ConsumeType.Replicator) {
-                        transactionSize += eventSize;
-                        updateMonitorStatis(previousGtidLogEvent);
-                    }
-                    outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
-                }
+                transactionSize += eventSize;
+                updateMonitorStatis(previousGtidLogEvent);
             } else {  // two cases: partial transaction and filtered db
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
                         || processNameFilter(fileChannel, eventSize, eventType, headByteBuf))) {
