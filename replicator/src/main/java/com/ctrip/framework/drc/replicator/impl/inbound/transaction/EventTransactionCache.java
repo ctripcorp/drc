@@ -30,8 +30,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
     private int indexMask;
 
-    private boolean transactionTableRelated;
-
     private LogEvent[] entries;
 
     private AtomicLong putSequence = new AtomicLong(INIT_SEQUENCE);
@@ -130,9 +128,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }
-            if (transactionTableRelated) {
-                convertToDrcGtidLogEvent(transaction);
-            }
             try {
                 filterChain.doFilter(transaction);
                 transaction.write(ioCache);
@@ -167,10 +162,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         } else {
             return true;
         }
-    }
-
-    public void markTransactionTableRelated(boolean transactionTableRelated) {
-        this.transactionTableRelated = transactionTableRelated;
     }
 
     private int getIndex(long sequence) {

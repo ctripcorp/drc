@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableMarkedXidLogEvent;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import org.apache.commons.lang3.StringUtils;
 
@@ -41,7 +42,6 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
 
         if (filtered) {
             if (gtid_log_event == logEventType) {  //persist drc_gtid_log_event
-                circularBreak = true;
                 checkXid(logEvent, logEventType, value);
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
@@ -56,17 +56,11 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                 }
                 if (value.isTransactionTableRelated()) {
                     checkXid(logEvent, logEventType, value);
-                    transactionCache.markTransactionTableRelated(true);
-                    transactionCache.add(logEvent);
-                    transactionCache.markTransactionTableRelated(false);
+                    transactionCache.add(new TransactionTableMarkedXidLogEvent((XidLogEvent) logEvent));
                     value.setNotRelease(true);
                 }
             } else {
-                if (value.isTransactionTableRelated() || value.isGtidFiltered()) {
-                    circularBreak = true;
-                } else {
-                    circularBreak = false;
-                }
+                circularBreak = value.isCircularBreak() ? true : false;
                 if (circularBreak) {
                     transactionCache.add(logEvent);
                     value.setNotRelease(true);

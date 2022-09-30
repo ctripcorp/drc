@@ -14,6 +14,9 @@ public class DefaultTransactionFilterChainFactory {
         DdlIndexFilter ddlIndexFilter = new DdlIndexFilter();
         ddlIndexFilter.setSuccessor(transactionOffsetFilter);
 
-        return ddlIndexFilter;
+        TypeConvertFilter typeConvertFilter = new TypeConvertFilter();
+        typeConvertFilter.setSuccessor(ddlIndexFilter);
+
+        return typeConvertFilter;
     }
 }

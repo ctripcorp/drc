@@ -59,6 +59,10 @@ public class InboundLogEventContext implements Resettable {
         return flags.transactionTableFiltered();
     }
 
+    public boolean isCircularBreak() {
+        return isTransactionTableRelated() || isGtidFiltered();
+    }
+
     public boolean isGtidFiltered() {
         return flags.gtidFiltered();
     }
