@@ -78,7 +78,8 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         context.updateGtidSet(set);
     }
 
-    private void updateGtidSet(GtidSet gtidset) {
+    @VisibleForTesting
+    protected void updateGtidSet(GtidSet gtidset) {
         GtidSet set = context.fetchGtidSet();
         loggerTT.info("[Skip] update gtidset in db before, context gtidset: {}, merged gtidset in db: {}", set.toString(), gtidset.toString());
         context.updateGtidSet(set.union(gtidset));
