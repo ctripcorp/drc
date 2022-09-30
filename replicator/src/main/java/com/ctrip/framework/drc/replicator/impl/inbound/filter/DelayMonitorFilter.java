@@ -43,9 +43,7 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
                     break;
                 case update_rows_event_v2:
                     UpdateRowsEvent updateRowsEvent = (UpdateRowsEvent) logEvent;
-                    if(delayMonitor.onUpdateRowsEvent(updateRowsEvent, previousGtid)){
-                        previousGtid = StringUtils.EMPTY;
-                    }
+                    delayMonitor.onUpdateRowsEvent(updateRowsEvent, previousGtid);
                     break;
                 default:
                     break;

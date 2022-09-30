@@ -27,13 +27,12 @@ public class DelayMonitorLogEventTest {
     public void setUp() {
         ByteBuf eventByteBuf = initByteBuf();
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        delayMonitorLogEvent.setNeedReleased(true);
         delayMonitorLogEvent.setSrcDcName("fat");
         eventByteBuf.release();
     }
 
     @Test
-    public void testReadWrite() throws InterruptedException {
+    public void testReadWrite() {
         ByteBuf headerBuf = delayMonitorLogEvent.getLogEventHeader().getHeaderBuf();
         headerBuf.readerIndex(0);
 
@@ -84,9 +83,8 @@ public class DelayMonitorLogEventTest {
         });
 
         clone.release();
-        if (delayMonitorLogEvent.isNeedReleased() && "fat".equalsIgnoreCase(delayMonitorLogEvent.getSrcDcName())) {
-            delayMonitorLogEvent.release();
-        }
+        delayMonitorLogEvent.release();
+
         Assert.assertEquals(0, clone.getLogEventHeader().getHeaderBuf().refCnt());
         Assert.assertEquals(0, clone.getPayloadBuf().refCnt());
         Assert.assertEquals(0, clone.getUpdateRowsEvent().getLogEventHeader().getHeaderBuf().refCnt());
