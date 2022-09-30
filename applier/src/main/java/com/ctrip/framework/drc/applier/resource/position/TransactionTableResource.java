@@ -117,7 +117,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @Override
-    public void mergeRecord(String uuid, boolean needRetry) {
+    public GtidSet mergeRecord(String uuid, boolean needRetry) {
         GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT][{}] query gtid set error, shutdown server", registryKey);
@@ -128,7 +128,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
             }
             loggerTT.info("[TT][{}] merge gtid record in db success: {}", registryKey, gtidSet.toString());
         }
-
+        return gtidSet;
     }
 
     @Override
