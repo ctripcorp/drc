@@ -33,15 +33,6 @@ public class TripUserService implements UserService {
     private static final int RETRY_TIME = 2;
 
     private static UcsClient ucsClient = UcsClientFactory.getInstance().getUcsClient();
-    
-    private static Map<String,String> udl2regionMap = new HashMap<String,String>(){
-        {
-        put("PW","SIN");
-        put("SG","SIN");
-        put("SH","SHA");
-        put("errorUdl","errorRegion");
-        }
-    };
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext userContext) throws Exception {
