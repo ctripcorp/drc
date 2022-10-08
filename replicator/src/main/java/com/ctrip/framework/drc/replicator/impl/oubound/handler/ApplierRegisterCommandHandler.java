@@ -413,11 +413,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 } else {
                     gtidForLog = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf);
                     channelAttributeKey.handleEvent(true);
-                    if (drc_gtid_log_event == eventType && consumeType != ConsumeType.Replicator) {
-                        in_exclude_group = true;
-                        outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
-                        transactionSize = 0;
-                    }
                 }
 
                 releaseCompositeByteBuf(eventPair.getValue());
