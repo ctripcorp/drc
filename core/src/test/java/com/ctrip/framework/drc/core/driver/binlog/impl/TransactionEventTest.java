@@ -68,6 +68,11 @@ public class TransactionEventTest extends MockTest {
         System.setProperty("io.netty.buffer.checkAccessible", "true");
     }
 
+    @After
+    public void tearDown() {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
+    }
+
     @Test
     public void writeAndRelease() {
         transactionEvent.addLogEvent(gtidLogEvent);
