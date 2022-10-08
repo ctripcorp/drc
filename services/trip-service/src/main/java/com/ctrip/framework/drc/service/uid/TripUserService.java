@@ -135,14 +135,13 @@ public class TripUserService implements UserService {
             if (StringUtils.isBlank(attr)) {
                 return Region.SHA;
             }
-//            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
-//            RequestContext ctx = ucsClient.buildRequestContext(drcStrategyId, udlKey);
-//            Optional<String> region = ctx.getRequestRegion();
-            String region = udl2regionMap.get(attr);
-            if (StringUtils.isBlank(region)) {
+            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
+            RequestContext ctx = ucsClient.buildDrcContext(drcStrategyId, udlKey);
+            Optional<String> region = ctx.getRequestRegion();
+            if (region.isEmpty()) {
                 return Region.SHA;
             }
-            return Region.nameFor(region.toUpperCase());
+            return Region.nameFor(region.get().toUpperCase());
         }
     }
 }
