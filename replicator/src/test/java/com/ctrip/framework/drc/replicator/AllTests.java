@@ -234,6 +234,7 @@ public class AllTests {
     public static void setUp() {
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         System.setProperty(SystemConfig.PREVIOUS_GTID_INTERVAL, String.valueOf(previous_gtidset_interval));
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         try {
             server = new TestingServer(12181, true);
 
@@ -262,6 +263,7 @@ public class AllTests {
     @AfterClass
     public static void tearDown()
     {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         try {
             srcDb.stop();

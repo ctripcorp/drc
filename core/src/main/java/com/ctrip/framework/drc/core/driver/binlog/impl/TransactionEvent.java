@@ -7,8 +7,8 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
@@ -29,26 +29,30 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     @Override
     public void write(IoCache ioCache) {
-        List<ByteBuf> byteBufs = new ArrayList<>(logEvents.size() * 2);
+        ByteBuf[] byteBufs = new ByteBuf[logEvents.size() * 2];
+        int index = -1;
+
         for (LogEvent logEvent : logEvents) {
             LogEventHeader logEventHeader = logEvent.getLogEventHeader();
             ByteBuf headerBuf;
 
             if (logEventHeader != null) {
                 headerBuf = logEventHeader.getHeaderBuf();
+                headerBuf.readerIndex(0);
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
 
             ByteBuf payload = logEvent.getPayloadBuf();
+            payload.readerIndex(0);
             if (payload != null && headerBuf != null) {
-                byteBufs.add(headerBuf);
-                byteBufs.add(payload);
+                byteBufs[++index] = headerBuf;
+                byteBufs[++index] = payload;
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
-        ioCache.write(byteBufs, isDdl);
+        ioCache.write(Lists.newArrayList(PooledByteBufAllocator.DEFAULT.compositeDirectBuffer().addComponents(true, byteBufs)), isDdl);
     }
 
     @Override
