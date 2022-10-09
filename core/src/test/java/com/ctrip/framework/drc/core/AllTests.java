@@ -32,6 +32,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeTypeTest;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
@@ -79,6 +80,9 @@ import org.junit.runners.Suite;
         AuthenticateResultHandlerTest.class,
         HandshakeInitializationHandlerTest.class,
         CharsetConversionTest.class,
+
+        // messenger
+        ConsumeTypeTest.class,
 
         // binlog package
 
@@ -304,6 +308,7 @@ public class AllTests {
 
     @BeforeClass
     public static void setUp() {
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         try {
             //for db
             srcDb = getDb(SRC_PORT);
@@ -319,6 +324,7 @@ public class AllTests {
     @AfterClass
     public static void tearDown()
     {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
         try {
             srcDb.stop();
             server.stop();

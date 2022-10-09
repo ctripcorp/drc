@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,18 +42,12 @@ public class TransactionEventTest extends MockTest {
 
     @Before
     public void setUp() throws Exception {
-        System.setProperty("io.netty.buffer.checkAccessible", "false");
         super.initMocks();
         when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(logEventHeader.getHeaderBuf()).thenReturn(headerBuf);
         when(gtidLogEvent.getPayloadBuf()).thenReturn(payloadBuf);
         when(xidLogEvent.getPayloadBuf()).thenReturn(payloadBuf);
-    }
-
-    @After
-    public void tearDown() {
-        System.setProperty("io.netty.buffer.checkAccessible", "true");
     }
 
     @Test
