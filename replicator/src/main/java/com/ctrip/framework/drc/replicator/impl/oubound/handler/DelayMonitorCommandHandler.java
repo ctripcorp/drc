@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
@@ -215,8 +214,8 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private void release(LogEvent logEvent) {
             try {
-                if (logEvent instanceof DelayMonitorLogEvent) {
-                    ((DelayMonitorLogEvent) logEvent).release();
+                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
+                    ((ReferenceCountedDelayMonitorLogEvent) logEvent).release();
                 } else {
                     logEvent.release();
                 }
