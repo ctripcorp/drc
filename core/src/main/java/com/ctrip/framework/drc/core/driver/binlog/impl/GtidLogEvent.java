@@ -161,7 +161,7 @@ public class GtidLogEvent extends AbstractLogEvent {
         final ByteBuf nextTransactionOffsetByteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(BINLOG_TRANSACTION_OFFSET_LENGTH);
         nextTransactionOffsetByteBuf.writeIntLE((int) nextTransactionOffset);
 
-        ByteBuf modifiedPayload =  Unpooled.wrappedBuffer(postHeader, nextTransactionOffsetByteBuf, realPayload).slice();
+        ByteBuf modifiedPayload =  Unpooled.wrappedBuffer(postHeader, nextTransactionOffsetByteBuf, realPayload).retainedSlice();
         modifiedPayload.skipBytes(modifiedPayload.readableBytes());
         setPayloadBuf(modifiedPayload);
         ReferenceCountUtil.release(payloadBuf);

@@ -11,6 +11,8 @@ import io.netty.buffer.PooledByteBufAllocator;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2020/4/23
@@ -29,9 +31,7 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     @Override
     public void write(IoCache ioCache) {
-        ByteBuf[] byteBufs = new ByteBuf[logEvents.size() * 2];
-        int index = -1;
-
+        compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
         for (LogEvent logEvent : logEvents) {
             LogEventHeader logEventHeader = logEvent.getLogEventHeader();
             ByteBuf headerBuf;
@@ -46,20 +46,21 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
             ByteBuf payload = logEvent.getPayloadBuf();
             payload.readerIndex(0);
             if (payload != null && headerBuf != null) {
-                byteBufs[++index] = headerBuf;
-                byteBufs[++index] = payload;
+                compositeByteBuf.addFlattenedComponents(true, headerBuf);
+                compositeByteBuf.addFlattenedComponents(true, payload);
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
-        compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer().addComponents(true, byteBufs);
         ioCache.write(Lists.newArrayList(compositeByteBuf), isDdl);
     }
 
     @Override
     public void release() {
-        if (compositeByteBuf != null) {
+        try {
             compositeByteBuf.release();
+        } catch (Exception e) {
+            EVENT_LOGGER.error("released compositeByteBuf error", e);
         }
     }
 
