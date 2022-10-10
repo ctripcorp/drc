@@ -6,16 +6,16 @@ import com.ctrip.framework.drc.applier.event.ApplierWriteRowsEvent;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 /**
  * Created by jixinwang on 2022/2/9
@@ -24,16 +24,10 @@ public class TransactionTableApplierDumpEventActivityTest {
 
     private TransactionTableApplierDumpEventActivity dumpEventActivity;
 
-
     private TransactionTable transactionTable = Mockito.mock(TransactionTableResource.class);
 
-    @BeforeClass
-    public static void setUp() {
-        System.setProperty(SystemConfig.TRANSACTION_TABLE_SIZE, "2");
-    }
-
     @Before
-    public void setUp2() {
+    public void setUp() {
         dumpEventActivity = new TransactionTableApplierDumpEventActivity();
     }
 
@@ -88,7 +82,9 @@ public class TransactionTableApplierDumpEventActivityTest {
         Assert.assertTrue(dumpEventActivity.isNeedFilter());
         dumpEventActivity.handleApplierGtidEvent(gtidEvent2);
         Assert.assertTrue(dumpEventActivity.isNeedFilter());
-        dumpEventActivity.handleApplierGtidEvent(gtidEvent3);
+        for(int i = 0; i < TRANSACTION_TABLE_SIZE; i++) {
+            dumpEventActivity.handleApplierGtidEvent(gtidEvent3);
+        }
         Assert.assertFalse(dumpEventActivity.isNeedFilter());
     }
 }
