@@ -16,15 +16,17 @@ public class TypeConvertFilter extends AbstractTransactionFilter {
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
         List<LogEvent> logEvents = transactionEvent.getEvents();
-        int lastIndex = logEvents.size() - 1;
-        if (logEvents != null && (logEvents.get(lastIndex) instanceof TransactionTableMarkedXidLogEvent)) {
-            for (int i = lastIndex; i >= 0; i--) {
-                LogEvent logEvent = logEvents.get(i);
-                LogEventType logEventType = logEvent.getLogEventType();
-                if (LogEventType.gtid_log_event == logEventType) {
-                    GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
-                    gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
-                    break;
+        if (logEvents != null && !logEvents.isEmpty()) {
+            int lastIndex = logEvents.size() - 1;
+            if ((logEvents.get(lastIndex) instanceof TransactionTableMarkedXidLogEvent)) {
+                for (int i = lastIndex; i >= 0; i--) {
+                    LogEvent logEvent = logEvents.get(i);
+                    LogEventType logEventType = logEvent.getLogEventType();
+                    if (LogEventType.gtid_log_event == logEventType) {
+                        GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
+                        gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
+                        break;
+                    }
                 }
             }
         }
