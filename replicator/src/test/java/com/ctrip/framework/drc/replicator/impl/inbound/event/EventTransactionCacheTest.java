@@ -93,7 +93,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
             eventTransactionCache.add(getDrcGtidLogEvent());
         }
 
-        verify(ioCache, times(transactionSize * loop)).write(any(Collection.class), any(Boolean.class));
+        verify(ioCache, times(transactionSize * loop - 1)).write(any(Collection.class), any(Boolean.class));  // not flush after put drc_gtid_log_event
 
         eventTransactionCache.stop();
         eventTransactionCache.dispose();
@@ -155,7 +155,7 @@ public class EventTransactionCacheTest extends AbstractEventTest {
         eventTransactionCache.convertToDrcGtidLogEvent(transaction);
         List<LogEvent> logEvents = transaction.getEvents();
 
-        Assert.assertEquals(1, logEvents.size());
+        Assert.assertEquals(3, logEvents.size());
         Assert.assertTrue(LogEventType.drc_gtid_log_event == logEvents.get(0).getLogEventType());
     }
 

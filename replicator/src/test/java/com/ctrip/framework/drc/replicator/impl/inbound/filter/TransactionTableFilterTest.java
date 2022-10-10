@@ -30,7 +30,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, "drcmonitordb", "gtid_executed", Lists.newArrayList(), null, table_map_log_event, 0
         );
-        value = new InboundLogEventContext(tableMapLogEvent, null, false, false, false, GTID);
+        value = new InboundLogEventContext(tableMapLogEvent, null, new TransactionFlags(), GTID);
 
         transactionTableFilter.doFilter(value);
         Assert.assertTrue(value.isInExcludeGroup());
@@ -42,7 +42,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent(
                 1L, 813, 123, "drcmonitordb", "delaymonitor", Lists.newArrayList(), null, table_map_log_event, 0
         );
-        value = new InboundLogEventContext(tableMapLogEvent, null,false, false, false, GTID);
+        value = new InboundLogEventContext(tableMapLogEvent, null,new TransactionFlags(), GTID);
 
         transactionTableFilter.doFilter(value);
         Assert.assertFalse(value.isInExcludeGroup());
@@ -51,7 +51,7 @@ public class TransactionTableFilterTest extends AbstractFilterTest {
 
     @Test
     public void doFilterGtidLogEvent() throws IOException {
-        value = new InboundLogEventContext(gtidLogEvent, null,false, false, false, GTID);
+        value = new InboundLogEventContext(gtidLogEvent, null,new TransactionFlags(), GTID);
 
         transactionTableFilter.doFilter(value);
         Assert.assertFalse(value.isInExcludeGroup());

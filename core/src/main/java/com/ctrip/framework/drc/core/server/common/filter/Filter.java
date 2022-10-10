@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
  * Created by mingdongli
  * 2019/10/9 上午10:07.
  */
-public abstract class Filter<T> implements Releasable {
+public abstract class Filter<T> implements Releasable, Resettable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -28,6 +28,14 @@ public abstract class Filter<T> implements Releasable {
         Filter<T> successor = getSuccessor();
         while (successor != null) {
             successor.release();
+            successor = successor.getSuccessor();
+        }
+    }
+
+    public void reset() {
+        Filter<T> successor = getSuccessor();
+        while (successor != null) {
+            successor.reset();
             successor = successor.getSuccessor();
         }
     }

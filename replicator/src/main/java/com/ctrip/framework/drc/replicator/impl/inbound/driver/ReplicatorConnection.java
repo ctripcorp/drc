@@ -18,7 +18,7 @@ import com.ctrip.framework.drc.core.server.observer.uuid.UuidObservable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverter;
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.*;
-import com.ctrip.framework.drc.replicator.impl.inbound.transaction.Resettable;
+import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;

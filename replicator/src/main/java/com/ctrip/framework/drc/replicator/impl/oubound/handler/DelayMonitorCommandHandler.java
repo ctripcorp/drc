@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
@@ -189,8 +190,8 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             if (observable instanceof MonitorEventObservable && args instanceof LogEvent) {
                 LogEvent logEvent = (LogEvent) args;
 
-                if (logEvent instanceof DelayMonitorLogEvent) {
-                    DelayMonitorLogEvent delayMonitorLogEvent = (DelayMonitorLogEvent) logEvent;
+                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
+                    ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) logEvent;
                     String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
                     if (delayMonitorSrcDcName == null) {
                         delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
@@ -199,7 +200,6 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         ((DelayMonitorLogEvent) logEvent).release(1);
                         return;
                     }
-                    delayMonitorLogEvent.setNeedReleased(false);
                 }
 
                 boolean added = delayBlockingQueue.offer(logEvent);

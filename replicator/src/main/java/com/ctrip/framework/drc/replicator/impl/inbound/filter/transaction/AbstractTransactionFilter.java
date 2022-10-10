@@ -4,12 +4,12 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_ddl_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 
 /**
  * @Author limingdong
@@ -33,13 +33,13 @@ public abstract class AbstractTransactionFilter extends Filter<ITransactionEvent
         }
 
         LogEvent head = logEvents.get(0);
-        if (!(head instanceof GtidLogEvent)) {
+        if (!(head instanceof GtidLogEvent)) {  // with two type
             return false;
         }
 
         int eventSize = logEvents.size();
         LogEvent tail = logEvents.get(eventSize - 1);
-        if (!(tail instanceof XidLogEvent)) {
+        if (xid_log_event != tail.getLogEventType()) { // with two event
             return false;
         }
 
