@@ -214,11 +214,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private void release(LogEvent logEvent) {
             try {
-                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
-                    ((ReferenceCountedDelayMonitorLogEvent) logEvent).release();
-                } else {
-                    logEvent.release();
-                }
+                logEvent.release();
             } catch (Exception e) {
                 logger.error("[Release] logEvent error", e);
             }
