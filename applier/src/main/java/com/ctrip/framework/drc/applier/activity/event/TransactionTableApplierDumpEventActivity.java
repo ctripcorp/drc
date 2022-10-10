@@ -14,6 +14,8 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
+
 /**
  * Created by jixinwang on 2021/8/20
  */
@@ -22,6 +24,10 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     private String lastUuid;
+
+    private int filterCount;
+
+    private boolean needFilter;
 
     @InstanceResource
     public TransactionTable transactionTable;
@@ -47,13 +53,23 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
             GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
             updateGtidSet(gtidSet);
             lastUuid = currentUuid;
+            filterCount = 0;
+            needFilter = true;
         }
 
-        String gtid =  ((ApplierGtidEvent) event).getGtid();
-        GtidSet set = context.fetchGtidSet();
+        if (needFilter) {
+            String gtid =  ((ApplierGtidEvent) event).getGtid();
+            GtidSet gtidSet = context.fetchGtidSet();
 
-        if (skipEvent = new GtidSet(gtid).isContainedWithin(set)) {
-            loggerTT.info("[Skip] skip gtid: {}", gtid);
+            if (skipEvent = new GtidSet(gtid).isContainedWithin(gtidSet)) {
+                loggerTT.info("[Skip] skip gtid: {}", gtid);
+            }
+            if (filterCount < TRANSACTION_TABLE_SIZE) {
+                filterCount++;
+            } else {
+                needFilter = false;
+                skipEvent = false;
+            }
         }
 
         super.handleApplierGtidEvent(event);
@@ -84,5 +100,10 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         loggerTT.info("[Skip] update gtidset in db before, context gtidset: {}, merged gtidset in db: {}", set.toString(), gtidset.toString());
         context.updateGtidSet(set.union(gtidset));
         loggerTT.info("[Skip] update gtidset in db after, union result: {}", context.fetchGtidSet().toString());
+    }
+
+    @VisibleForTesting
+    public boolean isNeedFilter() {
+        return needFilter;
     }
 }
