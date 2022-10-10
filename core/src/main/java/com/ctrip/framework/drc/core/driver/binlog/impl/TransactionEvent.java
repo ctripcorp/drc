@@ -46,8 +46,8 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
             ByteBuf payload = logEvent.getPayloadBuf();
             payload.readerIndex(0);
             if (payload != null && headerBuf != null) {
-                compositeByteBuf.addFlattenedComponents(true, headerBuf);
-                compositeByteBuf.addFlattenedComponents(true, payload);
+                compositeByteBuf.addComponent(true, headerBuf);
+                compositeByteBuf.addComponent(true, payload);
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
