@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.store;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
@@ -71,11 +70,6 @@ public class FilePersistenceEventStore extends AbstractLifecycle implements Even
     @Override
     public void write(Collection<ByteBuf> byteBuf, TransactionContext context) {
         writerDelegate.write(byteBuf, context);
-    }
-
-    @Override
-    public void write(LogEvent logEvent) {
-        writerDelegate.write(logEvent);
     }
 
     @Override

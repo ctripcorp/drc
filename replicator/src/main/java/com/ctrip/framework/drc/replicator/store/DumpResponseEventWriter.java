@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.store;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -26,11 +25,6 @@ public class DumpResponseEventWriter extends AbstractLifecycle implements EventW
         this.fileManager = fileManager;
     }
 
-    /**
-     * XID之类的事件，可以直接传递byteBuf, for log_event
-     *
-     * @param byteBuf
-     */
     @Override
     public void write(Collection<ByteBuf> byteBuf) {
         this.write(byteBuf, new TransactionContext(false));
@@ -43,16 +37,6 @@ public class DumpResponseEventWriter extends AbstractLifecycle implements EventW
         } catch (IOException e) {
             logger.info("append {} error", byteBuf.toString(), e);
         }
-    }
-
-    /**
-     * TableMapEvent是需要转换的，所以需要传递事件
-     *
-     * @param logEvent
-     */
-    @Override
-    public void write(LogEvent logEvent) {
-
     }
 
     @Override

@@ -73,7 +73,6 @@ public class GtidLogEvent extends AbstractLogEvent {
     @Override
     public void write(IoCache ioCache) {
         super.write(ioCache);
-        ioCache.write(this);
     }
 
     public boolean isCommitFlag() {
