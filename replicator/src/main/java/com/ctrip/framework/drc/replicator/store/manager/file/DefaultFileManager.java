@@ -146,8 +146,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     }
 
     public synchronized boolean append(ByteBuf byteBuf) throws IOException {
-
-        return this.append(Lists.newArrayList(byteBuf), false);
+        List<ByteBuf> byteBufs = new ArrayList<>();
+        byteBufs.add(byteBuf);
+        return this.append(byteBufs, false);
     }
 
     public synchronized boolean append(Collection<ByteBuf> byteBufs, boolean isDdl) throws IOException {

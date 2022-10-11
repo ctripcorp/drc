@@ -9,6 +9,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
@@ -21,7 +22,9 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private List<LogEvent> logEvents = Lists.newArrayList();
 
-    private CompositeByteBuf compositeByteBuf;
+    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+
+    private List<ByteBuf> eventByteBufs = new ArrayList<>();
 
     private boolean isDdl = false;
 
@@ -31,7 +34,6 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     @Override
     public void write(IoCache ioCache) {
-        compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
         for (LogEvent logEvent : logEvents) {
             LogEventHeader logEventHeader = logEvent.getLogEventHeader();
             ByteBuf headerBuf;
@@ -52,7 +54,9 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
-        ioCache.write(Lists.newArrayList(compositeByteBuf), isDdl);
+
+        eventByteBufs.add(compositeByteBuf);
+        ioCache.write(eventByteBufs, isDdl);
     }
 
     @Override
