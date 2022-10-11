@@ -35,6 +35,9 @@ import java.util.concurrent.TimeUnit;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_DELAY_MONITOR;
 
 /**
+ * for bidirectional replication with 1 <-> N, start only one connection for delay monitor;
+ * for multi directional replication which greater than 2, filter ReferenceCountedDelayMonitorLogEvent which not belongs to its region
+ *
  * Created by mingdongli
  * 2019/12/12 下午7:33.
  */
@@ -186,37 +189,27 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         @Override
         public void update(Object args, Observable observable) {
-            if (observable instanceof MonitorEventObservable && args instanceof LogEvent) {
-                LogEvent logEvent = (LogEvent) args;
-
-                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
-                    ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) logEvent;
-                    String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
-                    if (delayMonitorSrcDcName == null) {
-                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-                    }
-                    if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
-                        ((ReferenceCountedDelayMonitorLogEvent) logEvent).release(1);
-                        return;
-                    }
+            if (observable instanceof MonitorEventObservable && args instanceof ReferenceCountedDelayMonitorLogEvent) {
+                ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
+                String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
+                if (delayMonitorSrcDcName == null) {
+                    delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                }
+                if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                    delayMonitorLogEvent.release(1);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
+                    return;
                 }
 
-                boolean added = delayBlockingQueue.offer(logEvent);
+                boolean added = delayBlockingQueue.offer(delayMonitorLogEvent);
                 if (!added) {
-                    release(logEvent);
+                    delayMonitorLogEvent.release(1);
                 }
+
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce", key.toString());
                 if (logger.isDebugEnabled()) {
                     logger.debug("[Offer] LogEvent to delayBlockingQueue with result {}", added);
                 }
-            }
-        }
-
-        private void release(LogEvent logEvent) {
-            try {
-                logEvent.release();
-            } catch (Exception e) {
-                logger.error("[Release] logEvent error", e);
             }
         }
 
