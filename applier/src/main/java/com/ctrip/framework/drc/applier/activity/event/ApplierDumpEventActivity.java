@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.fetcher.activity.event.DumpEventActivity;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
-import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
@@ -28,8 +27,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     @InstanceResource
     public Progress progress;
 
-    @InstanceConfig(path = "skipEvent")
-    public String skipEvent = "false";
+    public boolean skipEvent = false;
 
     @Override
     protected FetcherSlaveServer getFetcherSlaveServer() {
@@ -80,7 +78,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
     }
 
     protected boolean shouldSkip(FetcherEvent logEvent) {
-        return "true".equalsIgnoreCase(skipEvent);
+        return false;
     }
 
     @Override

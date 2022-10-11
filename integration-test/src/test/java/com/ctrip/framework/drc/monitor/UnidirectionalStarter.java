@@ -41,7 +41,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         TestConfig customConfig = new TestConfig();
 
         // applyMode
-        customConfig.setApplyMode(ApplyMode.set_gtid);
+        customConfig.setApplyMode(ApplyMode.transaction_table);
         return customConfig;
     }
 
