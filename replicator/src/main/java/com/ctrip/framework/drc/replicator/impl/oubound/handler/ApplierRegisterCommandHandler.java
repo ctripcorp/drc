@@ -79,6 +79,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private static final String DRC_GTID_EVENT_DB_NAME = "drc_gtid_db";
 
+    private static final String DRC_FILTERED_DB_NAME = "drc_filtered_db";
+
     private GtidManager gtidManager;
 
     private FileManager fileManager;
@@ -462,9 +464,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
+                transactionSize = 0;
                 if (drc_gtid_log_event == eventType && consumeType != ConsumeType.Replicator) {
                     in_exclude_group = true;
-                    transactionSize = 0;
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
                 } else {
                     transactionSize += eventSize;
@@ -488,7 +490,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 if (xid_log_event == eventType) {
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(sendingSchema, replicatorRegion, applierRegion, consumeType.name()), transactionSize);
-                    transactionSize = 0;
                 }
 
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
@@ -544,12 +545,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            sendingSchema = tableMapLogEvent.getSchemaName();
             if (aviatorFilter != null && !aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
+                sendingSchema = DRC_FILTERED_DB_NAME;
                 shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
                 GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
             } else {
+                sendingSchema = tableMapLogEvent.getSchemaName();
                 fileChannel.position(fileChannel.position() - (eventSize - eventHeaderLengthVersionGt1));  // back body size
             }
             releaseCompositeByteBuf(compositeByteBuf);
