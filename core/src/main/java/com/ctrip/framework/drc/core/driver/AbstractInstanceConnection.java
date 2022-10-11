@@ -33,6 +33,7 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
             @Override
             public void onFailure(Throwable t) {
                 logger.error("listenableFuture error", t);
+                dump(callBack);
             }
         });
 
