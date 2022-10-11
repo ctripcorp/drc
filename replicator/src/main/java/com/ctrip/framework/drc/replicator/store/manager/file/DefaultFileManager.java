@@ -101,7 +101,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private boolean everSeeDdl = false;
 
-    private boolean inBigTransaction = false;
+    private volatile boolean inBigTransaction = false;
 
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
@@ -623,9 +623,10 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     logger.info("[Persist] drc index log event {} for {} at position {} of file {}", indices, registryKey, position, logFileWrite.getName());
                 }
             }
-            inBigTransaction = bigTransaction;
         } catch (Exception e) {
             logger.error("writeIndex error", e);
+        } finally {
+            inBigTransaction = bigTransaction;
         }
     }
 
@@ -667,7 +668,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         // Roll the log file if we exceed the size limit
         long logSize = getCurrentLogSize();
 
-        if (logSize > BINLOG_SIZE_LIMIT) {
+        if (logSize > BINLOG_SIZE_LIMIT && !inBigTransaction) {
             rollLog();
             this.logFileSize.set(0);
             logger.info("rbinlog size limit reached : {} and clear logFileSize", logSize);
