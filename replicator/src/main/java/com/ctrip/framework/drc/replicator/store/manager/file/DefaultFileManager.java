@@ -624,6 +624,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         } catch (Exception e) {
             logger.error("writeIndex error", e);
         } finally {
+            if (bigTransaction != inBigTransaction) {
+                logger.info("[inBigTransaction] set to {} for {} of file {}", bigTransaction, registryKey, logFileWrite.getName());
+            }
             inBigTransaction = bigTransaction;
         }
     }
