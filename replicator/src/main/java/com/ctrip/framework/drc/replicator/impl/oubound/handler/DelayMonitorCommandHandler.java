@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
@@ -24,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -156,29 +154,12 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         logger.info("channelClosed and return MonitorEventTask");
                         return;
                     }
-                    logEvent.write(new IoCache() {
-                        @Override
-                        public void write(byte[] data) {
-
+                    logEvent.write(byteBufs -> {
+                        for (ByteBuf b : byteBufs) {
+                            b.readerIndex(0);
+                            channel.write(b);
                         }
-
-                        @Override
-                        public void write(Collection<ByteBuf> byteBufs) {
-                            for (ByteBuf b : byteBufs) {
-                                b.readerIndex(0);
-                                channel.write(b);
-                            }
-                            channel.flush();
-                        }
-
-                        @Override
-                        public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-                        }
-
-                        @Override
-                        public void write(LogEvent logEvent) {
-
-                        }
+                        channel.flush();
                     });
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.consume", key.toString());
                 }

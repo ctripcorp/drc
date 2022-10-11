@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -104,9 +103,6 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private boolean inBigTransaction = false;
 
-    private int BIG_TRANSACTION_SIZE = EventTransactionCache.bufferSize * 2;
-
-
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
     private ScheduledExecutorService flushService;
@@ -148,17 +144,18 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     public synchronized boolean append(ByteBuf byteBuf) throws IOException {
         List<ByteBuf> byteBufs = new ArrayList<>();
         byteBufs.add(byteBuf);
-        return this.append(byteBufs, false);
+        return this.append(byteBufs, new TransactionContext(false));
     }
 
-    public synchronized boolean append(Collection<ByteBuf> byteBufs, boolean isDdl) throws IOException {
+    @Override
+    public synchronized boolean append(Collection<ByteBuf> byteBufs, TransactionContext context) throws IOException {
 
         createFileIfNecessary();
 
-        if (isDdl && !everSeeDdl) {
+        if (context.isDdl() && !everSeeDdl) {
             everSeeDdl = true;
         }
-        checkIndices(false, byteBufs.size() == BIG_TRANSACTION_SIZE);
+        checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
 
         int totalSize = 0;
 
@@ -639,31 +636,16 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private void doWriteLogEvent(LogEvent logEvent, boolean append) {
 
         try {
-            logEvent.write(new IoCache() {
-                @Override
-                public void write(byte[] data) {
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBufs) {
-                    for (ByteBuf byteBuf : byteBufs) {
-                        try {
-                            if (append) {
-                                logFileSize.addAndGet(byteBuf.writerIndex());
-                            }
-                            logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
-                        } catch (IOException e) {
-                            logger.error("write previous gtid set error", e);
+            logEvent.write(byteBufs -> {
+                for (ByteBuf byteBuf : byteBufs) {
+                    try {
+                        if (append) {
+                            logFileSize.addAndGet(byteBuf.writerIndex());
                         }
+                        logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
+                    } catch (IOException e) {
+                        logger.error("write previous gtid set error", e);
                     }
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-                }
-
-                @Override
-                public void write(LogEvent logEvent) {
                 }
             });
 
@@ -880,4 +862,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         return byteBuf;
     }
 
+    @VisibleForTesting
+    public boolean isInBigTransaction() {
+        return inBigTransaction;
+    }
 }

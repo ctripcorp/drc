@@ -28,6 +28,8 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private boolean isDdl = false;
 
+    private int eventSize = 0;
+
     public void addLogEvent(LogEvent logEvent) {
         logEvents.add(logEvent);
     }
@@ -50,19 +52,23 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
                 payload.readerIndex(0);
                 compositeByteBuf.addComponent(true, headerBuf);
                 compositeByteBuf.addComponent(true, payload);
+                eventSize++;
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
 
         eventByteBufs.add(compositeByteBuf);
-        ioCache.write(eventByteBufs, isDdl);
+        ioCache.write(eventByteBufs, new TransactionContext(isDdl, eventSize));
     }
 
     @Override
     public void release() {
         try {
             compositeByteBuf.release();
+            isDdl = false;
+            eventSize = 0;
+            logEvents.clear();
         } catch (Exception e) {
             EVENT_LOGGER.error("released compositeByteBuf error", e);
         }

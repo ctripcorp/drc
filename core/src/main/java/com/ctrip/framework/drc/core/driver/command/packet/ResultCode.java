@@ -1,13 +1,9 @@
 package com.ctrip.framework.drc.core.driver.command.packet;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
-
-import java.util.Collection;
 
 /**
  * Created by mingdongli
@@ -74,25 +70,10 @@ public enum ResultCode {
     public void sendResultCode(Channel channel, Logger logger) {
         DrcErrorLogEvent errorLogEvent = new DrcErrorLogEvent(this.getCode(), this.getMessage());
         try {
-            errorLogEvent.write(new IoCache() {
-                @Override
-                public void write(byte[] data) {
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBufs) {
-                    for (ByteBuf byteBuf : byteBufs) {
-                        byteBuf.readerIndex(0);
-                        channel.writeAndFlush(byteBuf);
-                    }
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-                }
-
-                @Override
-                public void write(LogEvent logEvent) {
+            errorLogEvent.write(byteBufs -> {
+                for (ByteBuf byteBuf : byteBufs) {
+                    byteBuf.readerIndex(0);
+                    channel.writeAndFlush(byteBuf);
                 }
             });
         } catch (Exception e) {
