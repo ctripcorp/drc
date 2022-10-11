@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.core.monitor.column;
 
-import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.google.common.collect.Lists;
@@ -26,14 +26,14 @@ public class DelayMonitorColumn {
         columns.add(columnUpdateTime);
     }
 
-    public static List<List<Object>> getAfterPresentRowsValues(DelayMonitorLogEvent delayMonitorLogEvent) {
+    public static List<List<Object>> getAfterPresentRowsValues(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         delayMonitorLogEvent.getUpdateRowsEvent().getPayloadBuf().readerIndex(0);
         delayMonitorLogEvent.load(columns);
         UpdateRowsEvent updateRowsEvent = delayMonitorLogEvent.getUpdateRowsEvent();
         return updateRowsEvent.getAfterPresentRowsValues();
     }
 
-    public static String getDelayMonitorSrcDcName(DelayMonitorLogEvent delayMonitorLogEvent) {
+    public static String getDelayMonitorSrcDcName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         List<List<Object>> rowValues = getAfterPresentRowsValues(delayMonitorLogEvent);
         List<Object> values = rowValues.get(0);
         return  (String) values.get(1);

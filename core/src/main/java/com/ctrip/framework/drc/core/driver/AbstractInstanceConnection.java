@@ -33,6 +33,10 @@ public abstract class AbstractInstanceConnection extends AbstractMySQLConnection
             @Override
             public void onFailure(Throwable t) {
                 logger.error("listenableFuture error", t);
+                if (getLifecycleState().isInitialized()) {
+                    logger.info("[Schedule] dump task for {}", mySQLSlaveConfig.getRegistryKey());
+                    scheduledExecutorService.schedule(() -> dump(callBack), 1, TimeUnit.SECONDS);
+                }
             }
         });
 

@@ -13,10 +13,13 @@ public class TrafficStatisticKey {
 
     private String dstRegion;
 
-    public TrafficStatisticKey(String dbName, String srcRegion, String dstRegion) {
+    private String dstType;
+
+    public TrafficStatisticKey(String dbName, String srcRegion, String dstRegion, String dstType) {
         this.dbName = dbName;
         this.srcRegion = srcRegion;
         this.dstRegion = dstRegion;
+        this.dstType = dstType;
     }
 
     public String getDbName() {
@@ -43,6 +46,14 @@ public class TrafficStatisticKey {
         this.dstRegion = dstRegion;
     }
 
+    public String getDstType() {
+        return dstType;
+    }
+
+    public void setDstType(String dstType) {
+        this.dstType = dstType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -52,7 +63,8 @@ public class TrafficStatisticKey {
 
         if (!Objects.equals(dbName, that.dbName)) return false;
         if (!Objects.equals(srcRegion, that.srcRegion)) return false;
-        return Objects.equals(dstRegion, that.dstRegion);
+        if (!Objects.equals(dstRegion, that.dstRegion)) return false;
+        return Objects.equals(dstType, that.dstType);
     }
 
     @Override
@@ -60,6 +72,7 @@ public class TrafficStatisticKey {
         int result = dbName != null ? dbName.hashCode() : 0;
         result = 31 * result + (srcRegion != null ? srcRegion.hashCode() : 0);
         result = 31 * result + (dstRegion != null ? dstRegion.hashCode() : 0);
+        result = 31 * result + (dstType != null ? dstType.hashCode() : 0);
         return result;
     }
 
@@ -69,6 +82,7 @@ public class TrafficStatisticKey {
                 "dbName='" + dbName + '\'' +
                 ", srcRegion='" + srcRegion + '\'' +
                 ", dstRegion='" + dstRegion + '\'' +
+                ", dstType='" + dstType + '\'' +
                 '}';
     }
 }

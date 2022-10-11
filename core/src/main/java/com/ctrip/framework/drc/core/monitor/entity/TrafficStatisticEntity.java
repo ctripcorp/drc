@@ -19,6 +19,9 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
     @NotNull(message = "dstRegion cannot be null")
     private String dstRegion;
 
+    @NotNull(message = "dstType cannot be null")
+    private String dstType;
+
     protected AtomicLong send = new AtomicLong(0);
 
     public TrafficStatisticEntity(Builder builder) {
@@ -35,6 +38,7 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
         this.dbName = builder.dbName;
         this.srcRegion = builder.srcRegion;
         this.dstRegion = builder.dstRegion;
+        this.dstType = builder.dstType;
     }
 
     public static final class Builder {
@@ -47,6 +51,7 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
         private String dbName;
         private String srcRegion;
         private String dstRegion;
+        private String dstType;
         private String mha;
         private String registryKey;
 
@@ -97,6 +102,11 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
             return this;
         }
 
+        public Builder dstType(String val) {
+            this.dstType = val;
+            return this;
+        }
+
         public Builder mha(String val) {
             this.mha = val;
             return this;
@@ -122,6 +132,10 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
 
     public String getDstRegion() {
         return dstRegion;
+    }
+
+    public String getDstType() {
+        return dstType;
     }
 
     public long getSend() {
@@ -175,6 +189,10 @@ public class TrafficStatisticEntity extends BaseEndpointEntity {
             String dstRegion = getDstRegion();
             if(null != dstRegion) {
                 tags.put("dstRegion", dstRegion);
+            }
+            String dstType = getDstType();
+            if(null != dstType) {
+                tags.put("dstType", dstType);
             }
         }
         return tags;

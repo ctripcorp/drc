@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.store;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.google.common.collect.Lists;
@@ -148,7 +149,7 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBufs.add(byteBuf);
         res += byteBuf.writerIndex();
 
-        fileManager.append(byteBufs, false);
+        fileManager.append(byteBufs, new TransactionContext(false));
         for (ByteBuf bb : byteBufs) {
             bb.release();
         }
@@ -185,7 +186,7 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBufs.add(xidByteBuf);
 
 
-        fileManager.append(byteBufs, false);
+        fileManager.append(byteBufs, new TransactionContext(false));
         for (ByteBuf bb : byteBufs) {
             bb.release();
         }
@@ -205,7 +206,7 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBufs.add(gtidHeader);
         byteBufs.add(gtidPayload);
 
-        fileManager.append(byteBufs, false);
+        fileManager.append(byteBufs, new TransactionContext(false));
         for (ByteBuf bb : byteBufs) {
             bb.release();
         }
@@ -244,7 +245,7 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBufs.add(byteBuf);
         res += byteBuf.writerIndex();
 
-        fileManager.append(byteBufs, true);
+        fileManager.append(byteBufs, new TransactionContext(true));
         for (ByteBuf bb : byteBufs) {
             bb.release();
         }
@@ -327,13 +328,24 @@ public abstract class AbstractTransactionTest extends AbstractEventTest {
         byteBufs.add(byteBuf);
         res += byteBuf.writerIndex();
 
-        fileManager.append(byteBufs, true);
+        fileManager.append(byteBufs, new TransactionContext(false));
 
         for (ByteBuf byteBuf1 : byteBufs) {
             byteBuf1.release();
         }
 
         return res;
+    }
+
+    protected List<ByteBuf> getBigTransaction() {
+        List<ByteBuf> byteBufs = Lists.newArrayList();
+        for (int i = 0; i < EventTransactionCache.bufferSize; ++i) {
+            ByteBuf byteBuf = getGtidEvent();
+            GtidLogEvent gtidLogEvent = new GtidLogEvent().read(byteBuf);
+            byteBufs.add(gtidLogEvent.getLogEventHeader().getHeaderBuf());
+            byteBufs.add(gtidLogEvent.getPayloadBuf());
+        }
+        return byteBufs;
     }
 
     protected void writePreviousGtid() throws Exception {

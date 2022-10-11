@@ -13,6 +13,7 @@ import java.util.Set;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.BLACK_TABLE_NAME_F;
 
 /**
  * @Author limingdong
@@ -49,12 +50,10 @@ public class BlackTableNameFilter extends AbstractLogEventFilter<InboundLogEvent
             inboundMonitorReport.addTable(dbAndTable);
 
             if (EXCLUDED_DB.contains(dbName) || EXCLUDED_TABLE.contains(tableName) || EXCLUDED_CUSTOM_TABLE.contains(dbAndTable)) {
-                value.setInExcludeGroup(true);
-                value.setTableFiltered(true);
+                value.mark(BLACK_TABLE_NAME_F);
                 inboundMonitorReport.addDbFilter(dbAndTable);
             } else if (DDLPredication.isGhostTable(dbAndTable)) {
-                value.setInExcludeGroup(true);
-                value.setTableFiltered(true);
+                value.mark(BLACK_TABLE_NAME_F);
                 inboundMonitorReport.addGhostDbFilter(dbAndTable);
             }
         }

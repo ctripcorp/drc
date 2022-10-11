@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcUuidLogEvent;
 import com.google.common.collect.Sets;
 import org.junit.Assert;
@@ -30,6 +31,7 @@ public class UuidFilterTest extends AbstractFilterTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
 
         Set<UUID> uuidSet = Sets.newHashSet();
         uuidSet.add(UUID.fromString(UUID_1));
@@ -59,7 +61,7 @@ public class UuidFilterTest extends AbstractFilterTest {
         uuids.add(UUID.randomUUID().toString());
         drcUuidLogEvent = new DrcUuidLogEvent(uuids, 0, 10);
 
-        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcUuidLogEvent, null, false, false, false, "");
+        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcUuidLogEvent, null, new TransactionFlags(), "");
         boolean skip = uuidFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 

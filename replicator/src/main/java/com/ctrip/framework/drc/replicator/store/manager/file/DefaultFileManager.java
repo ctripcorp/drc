@@ -1,8 +1,8 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
@@ -40,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.unknown_log_event;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.getFormatDescriptionLogEvent;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
@@ -55,8 +55,6 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private static long PREVIOUS_GTID_BULK = 50 * 1024 * 1024;
 
     public static final String LOG_PATH = System.getProperty(SystemConfig.KEY_REPLICATOR_PATH, SystemConfig.REPLICATOR_PATH);
-
-    public static final int FORMAT_LOG_EVENT_SIZE = 119;
 
     public static final String LOG_FILE_PREFIX = "rbinlog";
 
@@ -102,10 +100,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private boolean everSeeDdl = false;
 
-    private boolean inBigTransaction = false;
-
-    private int BIG_TRANSACTION_SIZE = EventTransactionCache.bufferSize * 2;
-
+    private volatile boolean inBigTransaction = false;
 
     private List<Observer> observers = Lists.newCopyOnWriteArrayList();
 
@@ -129,9 +124,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             BINLOG_SIZE_LIMIT = Long.parseLong(fileLimit);
         }
 
-        String binlogPurgeScaleout = System.getProperty(SystemConfig.REPLICATOR_BINLOG_PURGE_SCALE_OUT);
-        if (binlogPurgeScaleout != null) {
-            BINLOG_PURGE_SCALE_OUT = Long.parseLong(binlogPurgeScaleout);
+        String binlogPurgeScaleOut = System.getProperty(SystemConfig.REPLICATOR_BINLOG_PURGE_SCALE_OUT);
+        if (binlogPurgeScaleOut != null) {
+            BINLOG_PURGE_SCALE_OUT = Long.parseLong(binlogPurgeScaleOut);
         }
 
         String previousGtidInterval = System.getProperty(SystemConfig.PREVIOUS_GTID_INTERVAL);
@@ -146,18 +141,20 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     }
 
     public synchronized boolean append(ByteBuf byteBuf) throws IOException {
-
-        return this.append(Lists.newArrayList(byteBuf), false);
+        List<ByteBuf> byteBufs = new ArrayList<>();
+        byteBufs.add(byteBuf);
+        return this.append(byteBufs, new TransactionContext(false));
     }
 
-    public synchronized boolean append(Collection<ByteBuf> byteBufs, boolean isDdl) throws IOException {
+    @Override
+    public synchronized boolean append(Collection<ByteBuf> byteBufs, TransactionContext context) throws IOException {
 
         createFileIfNecessary();
 
-        if (isDdl && !everSeeDdl) {
+        if (context.isDdl() && !everSeeDdl) {
             everSeeDdl = true;
         }
-        checkIndices(false, byteBufs.size() == BIG_TRANSACTION_SIZE);
+        checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
 
         int totalSize = 0;
 
@@ -343,7 +340,6 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 CompositeByteBuf compositeByteBuf;
                 LogEventType eventType = LogEventUtils.parseNextLogEventType(headerByteBuf);
                 if (unknown_log_event == eventType) {
-                    logger.error("read unknown_log_event and begin to truncate");
                     if (truncatePosition == TRUNCATE_FLAG) {
                         truncatePosition = fileChannel.position() - eventHeaderLengthVersionGt1;
                         logger.error("[Truncate] position set to {}", truncatePosition);
@@ -419,7 +415,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     int bodySize = (int)eventSize - eventHeaderLengthVersionGt1;
                     ByteBuffer tmpBodyBuffer = ByteBuffer.allocateDirect(bodySize);
                     ByteBuf tmpBodyByteBuf = Unpooled.wrappedBuffer(tmpBodyBuffer);
-                    int readSize = fileChannel.read(tmpBodyBuffer);
+                    fileChannel.read(tmpBodyBuffer);
                     compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
                     compositeByteBuf.addComponents(true, headerByteBuf, tmpBodyByteBuf);
                     if (LogEventType.drc_ddl_log_event == eventType) {
@@ -625,9 +621,10 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     logger.info("[Persist] drc index log event {} for {} at position {} of file {}", indices, registryKey, position, logFileWrite.getName());
                 }
             }
-            inBigTransaction = bigTransaction;
         } catch (Exception e) {
             logger.error("writeIndex error", e);
+        } finally {
+            inBigTransaction = bigTransaction;
         }
     }
 
@@ -638,31 +635,16 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
     private void doWriteLogEvent(LogEvent logEvent, boolean append) {
 
         try {
-            logEvent.write(new IoCache() {
-                @Override
-                public void write(byte[] data) {
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBufs) {
-                    for (ByteBuf byteBuf : byteBufs) {
-                        try {
-                            if (append) {
-                                logFileSize.addAndGet(byteBuf.writerIndex());
-                            }
-                            logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
-                        } catch (IOException e) {
-                            logger.error("write previous gtid set error", e);
+            logEvent.write(byteBufs -> {
+                for (ByteBuf byteBuf : byteBufs) {
+                    try {
+                        if (append) {
+                            logFileSize.addAndGet(byteBuf.writerIndex());
                         }
+                        logChannel.write(byteBuf.nioBuffer(0, byteBuf.writerIndex()));
+                    } catch (IOException e) {
+                        logger.error("write previous gtid set error", e);
                     }
-                }
-
-                @Override
-                public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-                }
-
-                @Override
-                public void write(LogEvent logEvent) {
                 }
             });
 
@@ -684,7 +666,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         // Roll the log file if we exceed the size limit
         long logSize = getCurrentLogSize();
 
-        if (logSize > BINLOG_SIZE_LIMIT) {
+        if (logSize > BINLOG_SIZE_LIMIT && !inBigTransaction) {
             rollLog();
             this.logFileSize.set(0);
             logger.info("rbinlog size limit reached : {} and clear logFileSize", logSize);
@@ -718,14 +700,11 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         int flushPeriod = 1000;
         int flushInitialDelay = random.nextInt(flushPeriod);
         logger.info("[Flush] {} with initialDelay {}ms", destination, flushInitialDelay);
-        flushService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    flush();
-                } catch (IOException e) {
-                    logger.error("flush error for {}", destination, e);
-                }
+        flushService.scheduleAtFixedRate(() -> {
+            try {
+                flush();
+            } catch (IOException e) {
+                logger.error("flush error for {}", destination, e);
             }
         }, flushInitialDelay, flushPeriod, TimeUnit.MILLISECONDS);
 
@@ -847,36 +826,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         return res;
     }
 
-    private ByteBuf getFormatDescriptionLogEvent() {
-        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(FORMAT_LOG_EVENT_SIZE);
-        byte[] bytes = new byte[] {
-                (byte) 0x6d, (byte) 0xe3, (byte) 0x7c, (byte) 0x5d,
-                (byte) 0x0f, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x77, (byte) 0x00, (byte) 0x00,
-
-                (byte) 0x00, (byte) 0x7b, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x04,
-                (byte) 0x00, (byte) 0x35, (byte) 0x2e, (byte) 0x37, (byte) 0x2e, (byte) 0x32, (byte) 0x37, (byte) 0x2d,
-
-                (byte) 0x6c, (byte) 0x6f, (byte) 0x67, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x13,
-
-                (byte) 0x38, (byte) 0x0d, (byte) 0x00, (byte) 0x08, (byte) 0x00, (byte) 0x12, (byte) 0x00, (byte) 0x04,
-                (byte) 0x04, (byte) 0x04, (byte) 0x04, (byte) 0x12, (byte) 0x00, (byte) 0x00, (byte) 0x5f, (byte) 0x00,
-
-                (byte) 0x04, (byte) 0x1a, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x08,
-                (byte) 0x08, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0a, (byte) 0x0a, (byte) 0x0a,
-
-                (byte) 0x2e, (byte) 0x2a, (byte) 0x00, (byte) 0x12, (byte) 0x34, (byte) 0x00, (byte) 0x01, (byte) 0xbf,
-                (byte) 0xa0, (byte) 0xb5, (byte) 0xc4
-        };
-        byteBuf.writeBytes(bytes);
-
-        return byteBuf;
+    @VisibleForTesting
+    public boolean isInBigTransaction() {
+        return inBigTransaction;
     }
-
 }

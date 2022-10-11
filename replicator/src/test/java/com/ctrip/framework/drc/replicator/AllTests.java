@@ -15,6 +15,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventH
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapLogEventTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableMarkedXidLogEventTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeConvertFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
@@ -97,6 +99,8 @@ import java.util.HashMap;
         DdlFilterTest.class,
         BlackTableNameFilterTest.class,
         DdlIndexFilterTest.class,
+        TypeConvertFilterTest.class,
+        TransactionTableMarkedXidLogEventTest.class,
         TransactionTableFilterTest.class,
 
         // ddl
@@ -111,7 +115,8 @@ import java.util.HashMap;
         DelayMonitorCommandHandlerTest.class,
         HeartBeatCommandHandlerTest.class,
         ChannelAttributeKeyTest.class,
-        CommandHandlerManagerTest.class
+        CommandHandlerManagerTest.class,
+        TransactionFlagsTest.class
 
 })
 public class AllTests {
@@ -229,6 +234,7 @@ public class AllTests {
     public static void setUp() {
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         System.setProperty(SystemConfig.PREVIOUS_GTID_INTERVAL, String.valueOf(previous_gtidset_interval));
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         try {
             server = new TestingServer(12181, true);
 
@@ -257,6 +263,7 @@ public class AllTests {
     @AfterClass
     public static void tearDown()
     {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         try {
             srcDb.stop();

@@ -1,8 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
 import com.ctrip.framework.drc.core.driver.command.handler.CommandHandler;
@@ -24,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -35,6 +33,9 @@ import java.util.concurrent.TimeUnit;
 import static com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND.COM_DELAY_MONITOR;
 
 /**
+ * for bidirectional replication with 1 <-> N, start only one connection for delay monitor;
+ * for multi directional replication which greater than 2, filter ReferenceCountedDelayMonitorLogEvent which not belongs to its region
+ *
  * Created by mingdongli
  * 2019/12/12 下午7:33.
  */
@@ -153,29 +154,12 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         logger.info("channelClosed and return MonitorEventTask");
                         return;
                     }
-                    logEvent.write(new IoCache() {
-                        @Override
-                        public void write(byte[] data) {
-
+                    logEvent.write(byteBufs -> {
+                        for (ByteBuf b : byteBufs) {
+                            b.readerIndex(0);
+                            channel.write(b);
                         }
-
-                        @Override
-                        public void write(Collection<ByteBuf> byteBufs) {
-                            for (ByteBuf b : byteBufs) {
-                                b.readerIndex(0);
-                                channel.write(b);
-                            }
-                            channel.flush();
-                        }
-
-                        @Override
-                        public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-                        }
-
-                        @Override
-                        public void write(LogEvent logEvent) {
-
-                        }
+                        channel.flush();
                     });
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.consume", key.toString());
                 }
@@ -186,42 +170,27 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         @Override
         public void update(Object args, Observable observable) {
-            if (observable instanceof MonitorEventObservable && args instanceof LogEvent) {
-                LogEvent logEvent = (LogEvent) args;
-
-                if (logEvent instanceof DelayMonitorLogEvent) {
-                    DelayMonitorLogEvent delayMonitorLogEvent = (DelayMonitorLogEvent) logEvent;
-                    String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
-                    if (delayMonitorSrcDcName == null) {
-                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-                    }
-                    if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
-                        ((DelayMonitorLogEvent) logEvent).release(1);
-                        return;
-                    }
-                    delayMonitorLogEvent.setNeedReleased(false);
+            if (observable instanceof MonitorEventObservable && args instanceof ReferenceCountedDelayMonitorLogEvent) {
+                ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
+                String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
+                if (delayMonitorSrcDcName == null) {
+                    delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                }
+                if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                    delayMonitorLogEvent.release(1);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
+                    return;
                 }
 
-                boolean added = delayBlockingQueue.offer(logEvent);
+                boolean added = delayBlockingQueue.offer(delayMonitorLogEvent);
                 if (!added) {
-                    release(logEvent);
+                    delayMonitorLogEvent.release(1);
                 }
+
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce", key.toString());
                 if (logger.isDebugEnabled()) {
                     logger.debug("[Offer] LogEvent to delayBlockingQueue with result {}", added);
                 }
-            }
-        }
-
-        private void release(LogEvent logEvent) {
-            try {
-                if (logEvent instanceof DelayMonitorLogEvent) {
-                    ((DelayMonitorLogEvent) logEvent).release();
-                } else {
-                    logEvent.release();
-                }
-            } catch (Exception e) {
-                logger.error("[Release] logEvent error", e);
             }
         }
 

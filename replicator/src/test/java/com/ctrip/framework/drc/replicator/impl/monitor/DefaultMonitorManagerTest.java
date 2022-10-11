@@ -59,8 +59,7 @@ public class DefaultMonitorManagerTest extends AbstractTransactionTest {
     @Test
     public void filterMonitorUpdateEvent() {
         delayMonitor.onTableMapLogEvent(tableMapLogEvent);
-        boolean release = delayMonitor.onUpdateRowsEvent(updateRowsEvent, GTID);
-        Assert.assertTrue(release);
+        delayMonitor.onUpdateRowsEvent(updateRowsEvent, GTID);
         verify(monitorEventObserver1, times(1)).update(anyObject(), anyObject());
         verify(monitorEventObserver2, times(1)).update(anyObject(), anyObject());
     }
