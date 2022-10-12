@@ -170,21 +170,24 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         @Override
         public void update(Object args, Observable observable) {
-            if (observable instanceof MonitorEventObservable && args instanceof ReferenceCountedDelayMonitorLogEvent) {
-                ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
-                String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
-                if (delayMonitorSrcDcName == null) {
-                    delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-                }
-                if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
-                    delayMonitorLogEvent.release(1);
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
-                    return;
+            if (observable instanceof MonitorEventObservable && args instanceof LogEvent) { // monitor delay event and truncate event
+                LogEvent logEvent = (LogEvent) args;
+                if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
+                    ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
+                    String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
+                    if (delayMonitorSrcDcName == null) {
+                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                    }
+                    if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                        delayMonitorLogEvent.release(1);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
+                        return;
+                    }
                 }
 
-                boolean added = delayBlockingQueue.offer(delayMonitorLogEvent);
+                boolean added = delayBlockingQueue.offer(logEvent);
                 if (!added) {
-                    delayMonitorLogEvent.release(1);
+                    release(logEvent);
                 }
 
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.produce", key.toString());
@@ -198,14 +201,18 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             logEventHandler.removeObserver(this);
             while (!delayBlockingQueue.isEmpty()) {
                 LogEvent logEvent = delayBlockingQueue.poll();
-                try {
-                    logEvent.release();
-                } catch (Exception e) {
-                    logger.error("[Release] logEvent error", e);
-                }
+                release(logEvent);
             }
             NettyClient nettyClient = delayMonitorClient.remove(key);
             nettyClient.channel().close();
+        }
+
+        private void release(LogEvent logEvent) {
+            try {
+                logEvent.release();
+            } catch (Exception e) {
+                logger.error("[Release] logEvent error", e);
+            }
         }
 
         @Override
