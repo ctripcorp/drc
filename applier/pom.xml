@@ -15,10 +15,10 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.ctrip.framework.drc</groupId>
-            <artifactId>trip-service</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.framework.drc</groupId>-->
+<!--            <artifactId>trip-service</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
