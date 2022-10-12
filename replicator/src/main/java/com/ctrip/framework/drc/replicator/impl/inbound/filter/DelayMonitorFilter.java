@@ -38,8 +38,10 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
                     previousGtid = ((GtidLogEvent) logEvent).getGtid();
                     break;
                 case table_map_log_event:
-                    TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
-                    delayMonitor.onTableMapLogEvent(tableMapLogEvent);
+                    if (logEvent instanceof TableMapLogEvent) {
+                        TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+                        delayMonitor.onTableMapLogEvent(tableMapLogEvent);
+                    }
                     break;
                 case update_rows_event_v2:
                     UpdateRowsEvent updateRowsEvent = (UpdateRowsEvent) logEvent;

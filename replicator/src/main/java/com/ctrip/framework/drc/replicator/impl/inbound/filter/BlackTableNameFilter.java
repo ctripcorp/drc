@@ -38,7 +38,7 @@ public class BlackTableNameFilter extends AbstractLogEventFilter<InboundLogEvent
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
 
-        if (table_map_log_event == logEventType) {
+        if (table_map_log_event == logEventType && logEvent instanceof TableMapLogEvent) {
             TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
             String dbName = tableMapLogEvent.getSchemaName();
             String dbAndTable = tableMapLogEvent.getSchemaNameDotTableName();
