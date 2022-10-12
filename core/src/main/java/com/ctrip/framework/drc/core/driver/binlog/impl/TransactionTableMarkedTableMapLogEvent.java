@@ -103,6 +103,10 @@ public class TransactionTableMarkedTableMapLogEvent implements LogEvent {
         return delegate.getIdentifiers();
     }
 
+    public TableMapLogEvent getDelegate() {
+        return delegate;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

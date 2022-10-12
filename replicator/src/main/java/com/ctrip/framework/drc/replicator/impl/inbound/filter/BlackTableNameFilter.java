@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
@@ -38,8 +39,13 @@ public class BlackTableNameFilter extends AbstractLogEventFilter<InboundLogEvent
         LogEvent logEvent = value.getLogEvent();
         final LogEventType logEventType = logEvent.getLogEventType();
 
-        if (table_map_log_event == logEventType && logEvent instanceof TableMapLogEvent) {
-            TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+        if (table_map_log_event == logEventType) {
+            TableMapLogEvent tableMapLogEvent = null;
+            if (logEvent instanceof TableMapLogEvent) {
+                tableMapLogEvent = (TableMapLogEvent) logEvent;
+            } else if (logEvent instanceof TransactionTableMarkedTableMapLogEvent) {
+                tableMapLogEvent = ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
+            }
             String dbName = tableMapLogEvent.getSchemaName();
             String dbAndTable = tableMapLogEvent.getSchemaNameDotTableName();
             String tableName = tableMapLogEvent.getTableName();
