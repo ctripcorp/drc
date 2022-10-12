@@ -34,7 +34,7 @@ public class InboundFilterChainContext {
 
     private TableFilterConfiguration tableFilterConfiguration;
 
-    public InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
+    private InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
                                      SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
                                      TransactionCache transactionCache, DefaultMonitorManager monitorManager,
                                      String registryKey, TableFilterConfiguration tableFilterConfiguration,

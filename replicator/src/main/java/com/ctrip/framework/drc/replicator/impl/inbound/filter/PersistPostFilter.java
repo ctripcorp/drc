@@ -48,7 +48,7 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                 value.setNotRelease(true);
             } else if (xid_log_event == logEventType) {
                 circularBreak = false;
-                if (value.isBlackTableFiltered() || value.isGtidFiltered() || value.isTransactionTableRelated()) {  // persist xid_log_event, no need fake another one
+                if (value.isBlackTableFiltered() || value.isCircularBreak()) {  // persist xid_log_event, no need fake another one
                     checkXid(logEvent, logEventType, value);
                     transactionCache.add(logEvent);
                     value.setNotRelease(true);
