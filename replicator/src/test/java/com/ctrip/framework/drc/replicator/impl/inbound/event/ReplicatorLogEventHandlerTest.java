@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
@@ -133,6 +134,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
                 .registryKey(clusterName)
                 .tableFilterConfiguration(tableFilterConfiguration)
                 .applyMode(ApplyMode.set_gtid.getType()).build();
+        flagFilter = new EventFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }
