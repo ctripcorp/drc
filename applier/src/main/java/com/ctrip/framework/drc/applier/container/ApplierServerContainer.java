@@ -2,10 +2,7 @@ package com.ctrip.framework.drc.applier.container;
 
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
-import com.ctrip.framework.drc.applier.server.ApplierServer;
-import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
-import com.ctrip.framework.drc.applier.server.ApplierWatcher;
-import com.ctrip.framework.drc.applier.server.TransactionTableApplierServerInCluster;
+import com.ctrip.framework.drc.applier.server.*;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -88,6 +85,8 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         switch (applyMode) {
             case transaction_table:
                 return new TransactionTableApplierServerInCluster(config);
+            case mq:
+                return new MqServerInCluster(config);
             default:
                 return new ApplierServerInCluster(config);
         }
