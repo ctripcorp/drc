@@ -89,10 +89,10 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         uuidSet.add(UUID.fromString(UUID_1));
 
         filterChainContextWithGN = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilterWithGN = new InboundFilterChainFactory().createFilterChain(filterChainContextWithGN);
+        flagFilterWithGN = new EventFilterChainFactory().createFilterChain(filterChainContextWithGN);
 
         filterChainContextWithTT = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.transaction_table.getType());
-        flagFilterWithTT = new InboundFilterChainFactory().createFilterChain(filterChainContextWithTT);
+        flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
     }
 
     @Test

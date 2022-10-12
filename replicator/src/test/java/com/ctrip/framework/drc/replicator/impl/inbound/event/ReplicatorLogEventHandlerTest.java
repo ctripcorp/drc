@@ -14,9 +14,9 @@ import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurat
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -77,7 +77,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private Set<UUID> uuids = Sets.newHashSet();
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain(ApplyMode.transaction_table.getType());
+    private Filter<ITransactionEvent> filterChain = new TransactionFilterChainFactory().createFilterChain(
+            new InboundFilterChainContext.Builder().applyMode(ApplyMode.transaction_table.getType()).build());
 
     private FilePersistenceEventStore filePersistenceEventStore;
 
@@ -124,7 +125,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         deleteFiles(logDir);
 
         filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
+        flagFilter = new EventFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }
