@@ -77,7 +77,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private Set<UUID> uuids = Sets.newHashSet();
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
+    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain(ApplyMode.transaction_table.getType());
 
     private FilePersistenceEventStore filePersistenceEventStore;
 

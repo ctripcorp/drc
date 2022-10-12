@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableMarkedXidLogEvent;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import org.apache.commons.lang3.StringUtils;
 
@@ -49,14 +48,9 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
                 value.setNotRelease(true);
             } else if (xid_log_event == logEventType) {
                 circularBreak = false;
-                if (value.isBlackTableFiltered() || value.isGtidFiltered()) {  // persist xid_log_event, no need fake another one
+                if (value.isBlackTableFiltered() || value.isGtidFiltered() || value.isTransactionTableRelated()) {  // persist xid_log_event, no need fake another one
                     checkXid(logEvent, logEventType, value);
                     transactionCache.add(logEvent);
-                    value.setNotRelease(true);
-                }
-                if (value.isTransactionTableRelated()) {
-                    checkXid(logEvent, logEventType, value);
-                    transactionCache.add(new TransactionTableMarkedXidLogEvent((XidLogEvent) logEvent));
                     value.setNotRelease(true);
                 }
             } else {

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 
 import java.util.List;
 
@@ -16,18 +17,17 @@ public class TypeConvertFilter extends AbstractTransactionFilter {
     @Override
     public boolean doFilter(ITransactionEvent transactionEvent) {
         List<LogEvent> logEvents = transactionEvent.getEvents();
-        if (logEvents != null && !logEvents.isEmpty()) {
-            int lastIndex = logEvents.size() - 1;
-            if ((logEvents.get(lastIndex) instanceof TransactionTableMarkedXidLogEvent)) {
-                for (int i = lastIndex; i >= 0; i--) {
-                    LogEvent logEvent = logEvents.get(i);
-                    LogEventType logEventType = logEvent.getLogEventType();
-                    if (LogEventType.gtid_log_event == logEventType) {
-                        GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
-                        gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
-                        break;
-                    }
+        LogEvent latestGtidEvent = null;
+        for (LogEvent logEvent : logEvents) {
+            LogEventType logEventType = logEvent.getLogEventType();
+            if (LogEventType.gtid_log_event == logEventType) {
+                latestGtidEvent = logEvent;
+            } else if (LogEventType.table_map_log_event == logEventType) {
+                if (logEvent instanceof TransactionTableMarkedTableMapLogEvent && latestGtidEvent != null) {
+                    GtidLogEvent gtidLogEvent = (GtidLogEvent) latestGtidEvent;
+                    gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
                 }
+                break; // break on first table_map_log_event
             }
         }
         return doNext(transactionEvent, false);

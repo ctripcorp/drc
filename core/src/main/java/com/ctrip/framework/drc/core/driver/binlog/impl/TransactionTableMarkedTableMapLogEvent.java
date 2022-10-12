@@ -1,25 +1,29 @@
-package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
+package com.ctrip.framework.drc.core.driver.binlog.impl;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
-import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * @Author limingdong
- * @create 2022/9/30
+ * @create 2022/10/12
  */
-public class TransactionTableMarkedXidLogEvent implements LogEvent {
+public class TransactionTableMarkedTableMapLogEvent implements LogEvent {
 
-    private XidLogEvent delegate;
+    private TableMapLogEvent delegate;
 
-    public TransactionTableMarkedXidLogEvent(XidLogEvent delegate) {
-        this.delegate = delegate;
+    public TransactionTableMarkedTableMapLogEvent() {
+        delegate = new TableMapLogEvent();
+    }
+
+    public TransactionTableMarkedTableMapLogEvent(TableMapLogEvent logEvent) {
+        this.delegate = logEvent;
     }
 
     @Override
@@ -43,7 +47,7 @@ public class TransactionTableMarkedXidLogEvent implements LogEvent {
     }
 
     @Override
-    public TransactionTableMarkedXidLogEvent read(ByteBuf byteBuf) {
+    public TransactionTableMarkedTableMapLogEvent read(ByteBuf byteBuf) {
         delegate.read(byteBuf);
         return this;
     }
@@ -63,19 +67,47 @@ public class TransactionTableMarkedXidLogEvent implements LogEvent {
         delegate.release();
     }
 
-    public long getXid() {
-        return delegate.getXid();
+    public long getTableId() {
+        return delegate.getTableId();
+    }
+
+    public int getFlags() {
+        return delegate.getFlags();
+    }
+
+    public String getSchemaName() {
+        return delegate.getSchemaName();
+    }
+
+    public String getTableName() {
+        return delegate.getTableName();
+    }
+
+    public String getSchemaNameDotTableName() {
+        return delegate.getSchemaNameDotTableName();
+    }
+
+    public long getColumnsCount() {
+        return delegate.getColumnsCount();
+    }
+
+    public List<TableMapLogEvent.Column> getColumns() {
+        return delegate.getColumns();
     }
 
     public Long getChecksum() {
         return delegate.getChecksum();
     }
 
+    public List<List<String>> getIdentifiers() {
+        return delegate.getIdentifiers();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof TransactionTableMarkedXidLogEvent)) return false;
-        TransactionTableMarkedXidLogEvent that = (TransactionTableMarkedXidLogEvent) o;
+        if (!(o instanceof TransactionTableMarkedTableMapLogEvent)) return false;
+        TransactionTableMarkedTableMapLogEvent that = (TransactionTableMarkedTableMapLogEvent) o;
         return Objects.equals(delegate, that.delegate);
     }
 
@@ -84,4 +116,5 @@ public class TransactionTableMarkedXidLogEvent implements LogEvent {
 
         return Objects.hash(delegate);
     }
+
 }

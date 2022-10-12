@@ -37,12 +37,12 @@ public class TypeConvertFilterTest extends AbstractTransactionTest {
         ByteBuf byteBuf = getXidEvent();
         XidLogEvent xidLogEvent = new XidLogEvent().read(byteBuf);
 
-        TableMapLogEvent tableMapLogEvent = getDrcTableMapLogEvent();
+        TableMapLogEvent tableMapLogEvent = getFilteredTableMapLogEvent("1", "2", 1);
 
         eventList.add(gtidLogEventNotModify);
         eventList.add(gtidLogEvent);
-        eventList.add(tableMapLogEvent);
-        eventList.add(new TransactionTableMarkedXidLogEvent(xidLogEvent));
+        eventList.add(new TransactionTableMarkedTableMapLogEvent(tableMapLogEvent));
+        eventList.add(xidLogEvent);
 
         iTransactionEvent.setEvents(eventList);
     }
