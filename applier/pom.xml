@@ -17,6 +17,11 @@
     <dependencies>
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
+            <artifactId>trip-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ctrip.framework.drc</groupId>
             <artifactId>fetcher</artifactId>
         </dependency>
         <dependency>
@@ -47,6 +52,16 @@
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.muise.schema</groupId>
+            <artifactId>ttd.actproductdb.canal-schema</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.7.7</version>
         </dependency>
     </dependencies>
 
