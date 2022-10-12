@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurat
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
@@ -124,8 +123,16 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilter = new EventFilterChainFactory().createFilterChain(filterChainContext);
+        filterChainContext = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(clusterName)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.set_gtid.getType()).build();
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }
