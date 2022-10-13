@@ -12,9 +12,8 @@ import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.monitor.column.Idc;
+import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
-import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
@@ -23,7 +22,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.sql.SQLException;
+
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +69,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     /**
      * due to legacy, src_ip means dc, dest_ip means mhaName
      */
-    public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE src_ip = '%s',datachange_lasttime = '%s';";
+    public static final String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE src_ip = '%s',dest_ip = '%s',datachange_lasttime = '%s';";
     private final Map<String ,Long> mhaName2IdMap = Maps.newHashMap();
 
     /**
@@ -130,7 +129,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     String mhaName = metaKey.getMhaName();
                     String dcName = metaKey.getDc();
                     String region = consoleConfig.getRegionForDc(dcName);
-                    Idc idc = new Idc(dcName, region);
+                    DelayInfo mhaDelayInfo = new DelayInfo(dcName, region,mhaName);
                     WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
                     Long mhaId = mhaName2IdMap.get(mhaName);
                     if (mhaId == null) {
@@ -145,9 +144,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     Timestamp timestamp = new Timestamp(timestampInMillis);
                     String sql;
                     if (mhaGrayConfig.gray(mhaName)) {
-                        sql = String.format(UPSERT_SQL,mhaId, Codec.DEFAULT.encode(idc),mhaName,Codec.DEFAULT.encode(idc),timestamp);
+                        sql = String.format(UPSERT_SQL,mhaId, dcName,Codec.DEFAULT.encode(mhaDelayInfo),dcName,Codec.DEFAULT.encode(mhaDelayInfo),timestamp);
                     } else {
-                        sql = String.format(UPSERT_SQL,mhaId, dcName,mhaName,dcName,timestamp);
+                        sql = String.format(UPSERT_SQL,mhaId, dcName,mhaName,dcName,mhaName,timestamp);
                     }
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
