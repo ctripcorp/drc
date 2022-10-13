@@ -1,8 +1,12 @@
 package com.ctrip.framework.drc.console.monitor.delay;
 
+import com.ctrip.framework.drc.core.monitor.column.Idc;
+import com.ctrip.xpipe.api.codec.Codec;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.sql.Timestamp;
 
 /**
  * @author shenhaibo
@@ -56,5 +60,15 @@ public class DelayMapTest{
         delayMap.clear(drcDirection1);
         Assert.assertEquals(0, delayMap.avg(drcDirection1), 0.0);
         Assert.assertEquals(0, delayMap.size(drcDirection1));
+    }
+    
+    @Test 
+    public void testJson() {
+        Idc idc = new Idc("shaxy", "sha");
+        String UPSERT_SQL = "INSERT INTO `drcmonitordb`.`delaymonitor`(`id`, `src_ip`, `dest_ip`) VALUES(%s, '%s', '%s') ON DUPLICATE KEY UPDATE src_ip = '%s',datachange_lasttime = '%s';";
+        long timestampInMillis = System.currentTimeMillis();
+        Timestamp timestamp = new Timestamp(timestampInMillis);
+        String sql = String.format(UPSERT_SQL,3306, Codec.DEFAULT.encode(idc),"mhaName",Codec.DEFAULT.encode(idc),timestamp);
+        System.out.println(sql);
     }
 }

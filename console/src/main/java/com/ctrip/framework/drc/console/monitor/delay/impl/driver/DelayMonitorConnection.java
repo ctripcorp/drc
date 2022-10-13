@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.monitor.delay.impl.driver;
 
+import com.ctrip.framework.drc.console.config.ConsoleConfig;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.convertor.DelayMonitorByteBufConverter;
 import com.ctrip.framework.drc.console.monitor.delay.impl.handler.command.DelayMonitorCommandHandler;
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.AbstractInstanceConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
@@ -18,6 +21,8 @@ import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * @author shenhaibo
@@ -77,7 +82,7 @@ public class DelayMonitorConnection extends AbstractInstanceConnection implement
         DelayMonitorCommandPacket commandPacket = new DelayMonitorCommandPacket(SERVER_COMMAND.COM_DELAY_MONITOR.getCode());
         commandPacket.setDcName(config.getDc());
         commandPacket.setClusterName(config.getCluster());
-        commandPacket.setRegion("" /*TODO*/);
+        commandPacket.setRegion(RegionConfig.getInstance().getRegionForDc(config.getDc()));
         CommandFuture<ResultCode> commandFuture = delayMonitorCommandHandler.handle(commandPacket, simpleObjectPool);
         return commandFuture;
     }

@@ -11,8 +11,10 @@ import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
+import com.ctrip.framework.drc.core.monitor.column.Idc;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
 import com.ctrip.xpipe.api.cluster.LeaderAware;
+import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,6 +125,8 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     String registryKey = metaKey.getClusterId();
                     String mhaName = metaKey.getMhaName();
                     String dcName = metaKey.getDc();
+                    String region = consoleConfig.getRegionForDc(dcName);
+                    Idc idc = new Idc(dcName, region);
                     WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
                     Long mhaId = mhaName2IdMap.get(mhaName);
                     if (mhaId == null) {
@@ -135,7 +139,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql = String.format(UPSERT_SQL,mhaId,dcName,mhaName,dcName,timestamp);
+                    String sql = String.format(UPSERT_SQL,mhaId, Codec.DEFAULT.encode(idc),mhaName,UPSERT_SQL,Codec.DEFAULT.encode(idc),timestamp);
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
                         CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
