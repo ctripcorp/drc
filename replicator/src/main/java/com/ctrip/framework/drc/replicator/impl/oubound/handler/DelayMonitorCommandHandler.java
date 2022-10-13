@@ -178,9 +178,9 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                     ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
                     String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
                     if (delayMonitorSrcDcName == null) {
+                        logger.warn("[delayMonitorSrcDcName] is null");
                         delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
                     }
-                    delayMonitorSrcDcName = DelayMonitorColumn.transform(delayMonitorSrcDcName);
                     if (!key.region.equalsIgnoreCase(delayMonitorSrcDcName)) {
                         delayMonitorLogEvent.release(1);
                         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
