@@ -9,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.GTID_F;
+
 /**
  * @Author limingdong
  * @create 2020/4/24
@@ -54,7 +56,7 @@ public class TransactionDefaultMonitorManagerFilterTest extends AbstractFilterTe
 
     @Test
     public void testGtidTrue() {
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         Assert.assertTrue(transactionMonitorFilter.doFilter(logEventWithGroupFlag));
         verify(inboundMonitorReport, times(1)).addSize(EVENT_SIZE);
         verify(inboundMonitorReport, times(1)).addOneCount();
@@ -64,7 +66,7 @@ public class TransactionDefaultMonitorManagerFilterTest extends AbstractFilterTe
 
     @Test
     public void testGtidTrueFakeXid() {
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         logEventWithGroupFlag.setGtid(GTID);
         Assert.assertTrue(transactionMonitorFilter.doFilter(logEventWithGroupFlag));
         verify(inboundMonitorReport, times(1)).addSize(EVENT_SIZE);
@@ -85,7 +87,7 @@ public class TransactionDefaultMonitorManagerFilterTest extends AbstractFilterTe
     @Test
     public void testXidTrue() {
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         Assert.assertTrue(transactionMonitorFilter.doFilter(logEventWithGroupFlag));
         verify(inboundMonitorReport, times(1)).addSize(EVENT_SIZE);
         verify(inboundMonitorReport, times(1)).addInboundXid(1);

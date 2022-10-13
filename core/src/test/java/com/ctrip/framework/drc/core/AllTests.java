@@ -116,6 +116,7 @@ import org.junit.runners.Suite;
         DelayMonitorLogEventTest.class,
         TransactionEventTest.class,
         ParsedDdlLogEventTest.class,
+        TransactionTableMarkedTableMapLogEventTest.class,
 
         // command package
         ApplierDumpCommandPacketTest.class,
@@ -282,6 +283,7 @@ public class AllTests {
 
     @BeforeClass
     public static void setUp() {
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         try {
             //for db
             srcDb = getDb(SRC_PORT);
@@ -297,6 +299,7 @@ public class AllTests {
     @AfterClass
     public static void tearDown()
     {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
         try {
             srcDb.stop();
             server.stop();

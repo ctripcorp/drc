@@ -22,6 +22,7 @@ import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
  * @Author limingdong
@@ -64,7 +65,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         } else if (drc_schema_snapshot_log_event == logEventType) {
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
             schemaManager.recovery(snapshotLogEvent);
-            value.setInExcludeGroup(true);  // just init schema
+            value.mark(OTHER_F);  // just init schema
         } else if (drc_ddl_log_event == logEventType) {
             DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
             doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER);
@@ -149,11 +150,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     public boolean parseQueryEvent(QueryLogEvent event) {
         String queryString = event.getQuery();
         if (StringUtils.startsWithIgnoreCase(queryString, BEGIN)      ||
-            StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
-            StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT)  ||
-            StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK)||
-            StringUtils.endsWithIgnoreCase(queryString, XA_START)     ||
-            StringUtils.endsWithIgnoreCase(queryString, XA_END)) {
+                StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT)  ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK)||
+                StringUtils.endsWithIgnoreCase(queryString, XA_START)     ||
+                StringUtils.endsWithIgnoreCase(queryString, XA_END)) {
             return false;
         } else {
             QueryLogEvent.QueryStatus queryStatus = event.getQueryStatus();

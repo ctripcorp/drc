@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -38,14 +39,14 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
                     previousGtid = ((GtidLogEvent) logEvent).getGtid();
                     break;
                 case table_map_log_event:
-                    TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+                    TableMapLogEvent tableMapLogEvent = logEvent instanceof TableMapLogEvent
+                            ? (TableMapLogEvent) logEvent
+                            : ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
                     delayMonitor.onTableMapLogEvent(tableMapLogEvent);
                     break;
                 case update_rows_event_v2:
                     UpdateRowsEvent updateRowsEvent = (UpdateRowsEvent) logEvent;
-                    if(delayMonitor.onUpdateRowsEvent(updateRowsEvent, previousGtid)){
-                        previousGtid = StringUtils.EMPTY;
-                    }
+                    delayMonitor.onUpdateRowsEvent(updateRowsEvent, previousGtid);
                     break;
                 default:
                     break;
@@ -55,5 +56,10 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
         return filtered;
     }
 
+    @Override
+    public void reset() {
+        previousGtid = StringUtils.EMPTY;
+        super.reset();
+    }
 
 }

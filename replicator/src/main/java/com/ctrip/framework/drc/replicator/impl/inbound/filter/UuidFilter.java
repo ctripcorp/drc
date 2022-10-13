@@ -15,7 +15,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_gtid_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.gtid_log_event;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.GTID_F;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
  * Created by mingdongli
@@ -35,12 +37,13 @@ public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> i
         if (logEvent instanceof GtidLogEvent) {
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
             LogEventType logEventType = gtidLogEvent.getLogEventType();
-            if (drc_gtid_log_event == logEventType) {
-                value.setInExcludeGroup(false);
-            } else {
+            value.reset();
+            if (gtid_log_event == logEventType) {
                 UUID uuid = gtidLogEvent.getServerUUID();
                 boolean skip = !whiteList.contains(uuid);
-                value.setInExcludeGroup(skip);
+                if (skip) {
+                    value.mark(GTID_F);
+                }
             }
         } else if (logEvent instanceof DrcUuidLogEvent) {
             DrcUuidLogEvent uuidLogEvent = (DrcUuidLogEvent) logEvent;
@@ -48,7 +51,7 @@ public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> i
             if (uuids != null && !uuids.isEmpty()) {
                 String previousUuids = whiteList.toString();
                 this.whiteList.addAll(uuids.stream().map(uuid -> UUID.fromString(uuid)).collect(Collectors.toSet()));
-                value.setInExcludeGroup(true);
+                value.mark(OTHER_F);
                 logger.info("[Uuids] update from {} to {}", previousUuids, whiteList);
             }
         }

@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.core.driver;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import io.netty.buffer.ByteBuf;
 
 import java.util.Collection;
@@ -12,12 +12,16 @@ import java.util.Collection;
  */
 public interface IoCache {
 
-    void write(byte[] data);
-
+    /**
+     * write single log event
+     * @param byteBuf
+     */
     void write(Collection<ByteBuf> byteBuf);
 
-    void write(Collection<ByteBuf> byteBuf, boolean isDdl);
-
-    void write(LogEvent logEvent);
-
+    /**
+     * write transaction
+     * @param byteBuf
+     * @param transactionContext
+     */
+    default void write(Collection<ByteBuf> byteBuf, TransactionContext transactionContext) {}
 }

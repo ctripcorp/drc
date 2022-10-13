@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_TABLE_NAME;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
  * @Author limingdong
@@ -53,7 +54,7 @@ public class DelayMonitorFilterTest extends AbstractFilterTest {
     public void doFilterTrue() {
         when(tableMapLogEvent.getTableName()).thenReturn(DRC_DELAY_MONITOR_TABLE_NAME);
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(OTHER_F);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
 
         boolean skip = delayMonitorFilter.doFilter(logEventWithGroupFlag);
@@ -62,7 +63,7 @@ public class DelayMonitorFilterTest extends AbstractFilterTest {
         logEventWithGroupFlag.releaseEvent();
         verify(tableMapLogEvent, times(1)).release();
 
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(OTHER_F);
         logEventWithGroupFlag.setLogEvent(updateRowsEvent);
         when(updateRowsEvent.getLogEventType()).thenReturn(LogEventType.update_rows_event_v2);
         when(updateRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
@@ -80,7 +81,7 @@ public class DelayMonitorFilterTest extends AbstractFilterTest {
         delayMonitor.addObserver(monitorEventObserver);
         when(tableMapLogEvent.getTableName()).thenReturn(DRC_DELAY_MONITOR_TABLE_NAME);
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(OTHER_F);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
 
         boolean skip = delayMonitorFilter.doFilter(logEventWithGroupFlag);
@@ -90,7 +91,7 @@ public class DelayMonitorFilterTest extends AbstractFilterTest {
         verify(tableMapLogEvent, times(1)).release();
 
         UpdateRowsEvent realUpdateRowsEvent = new UpdateRowsEvent().read(initByteBuf());
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(OTHER_F);
         logEventWithGroupFlag.setLogEvent(realUpdateRowsEvent);
 
         skip = delayMonitorFilter.doFilter(logEventWithGroupFlag);

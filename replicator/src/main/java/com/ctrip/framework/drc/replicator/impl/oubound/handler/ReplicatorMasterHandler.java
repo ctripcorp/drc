@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -21,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -117,33 +114,18 @@ public class ReplicatorMasterHandler extends SimpleChannelInboundHandler<ByteBuf
     protected void handleWriterIdle(ChannelHandlerContext ctx) {
         DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0);
         Channel channel = ctx.channel();
-        drcHeartbeatLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    byteBuf.readerIndex(0);
-                    ChannelFuture future = ctx.writeAndFlush(byteBuf);
-                    future.addListener((GenericFutureListener) f -> {
-                        if (!f.isSuccess()) {
-                            ctx.close();
-                            logger.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
-                        } else {
-                            logger.info("[WriterIdle] send heartbeat to {}", channel);
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
+        drcHeartbeatLogEvent.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                byteBuf.readerIndex(0);
+                ChannelFuture future = ctx.writeAndFlush(byteBuf);
+                future.addListener((GenericFutureListener) f -> {
+                    if (!f.isSuccess()) {
+                        ctx.close();
+                        logger.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
+                    } else {
+                        logger.info("[WriterIdle] send heartbeat to {}", channel);
+                    }
+                });
             }
         });
     }

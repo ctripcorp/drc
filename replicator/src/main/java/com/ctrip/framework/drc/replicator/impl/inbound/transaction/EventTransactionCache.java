@@ -30,8 +30,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
     private int indexMask;
 
-    private boolean transactionTableRelated;
-
     private LogEvent[] entries;
 
     private AtomicLong putSequence = new AtomicLong(INIT_SEQUENCE);
@@ -70,6 +68,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
     public boolean add(LogEvent logEvent) {
         switch (logEvent.getLogEventType()) {
             case gtid_log_event:
+            case drc_gtid_log_event:
                 flush();// flush last events
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 put(logEvent);
@@ -77,11 +76,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
                 break;
             case xid_log_event:
                 put(logEvent);
-                flush();
-                break;
-            case drc_gtid_log_event:
-                put(logEvent);
-                currentGtid = ((GtidLogEvent) logEvent).getGtid();
                 flush();
                 break;
             default:
@@ -134,9 +128,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             for (long next = start; next <= end; next++) {
                 transaction.addLogEvent(this.entries[getIndex(next)]);
             }
-            if (transactionTableRelated) {
-                convertToDrcGtidLogEvent(transaction);
-            }
             try {
                 filterChain.doFilter(transaction);
                 transaction.write(ioCache);
@@ -159,13 +150,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
             if (LogEventType.gtid_log_event == logEventType) {
                 GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
                 gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
-            } else {
-                try {
-                    logEvent.release();
-                } catch (Exception e) {
-                    logger.error("released logEventType of {} error when release redundant events", logEventType, e);
-                }
-                iterator.remove();
+                break;
             }
         }
     }
@@ -177,10 +162,6 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
         } else {
             return true;
         }
-    }
-
-    public void markTransactionTableRelated(boolean transactionTableRelated) {
-        this.transactionTableRelated = transactionTableRelated;
     }
 
     private int getIndex(long sequence) {

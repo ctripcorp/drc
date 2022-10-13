@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -9,7 +7,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
@@ -51,28 +48,13 @@ public class PreviousGtidsLogEventTest {
         final PreviousGtidsLogEvent constructPreviousGtidsLogEvent = new PreviousGtidsLogEvent(10000L, 123, initGtidSet());
 
         final ByteBuf writeByteBuf = ByteBufAllocator.DEFAULT.directBuffer();
-        constructPreviousGtidsLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    final byte[] bytes = new byte[byteBuf.writerIndex()];
-                    for (int i = 0; i < byteBuf.writerIndex(); i++) {
-                        bytes[i] = byteBuf.getByte(i);
-                    }
-                    writeByteBuf.writeBytes(bytes);
+        constructPreviousGtidsLogEvent.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                final byte[] bytes = new byte[byteBuf.writerIndex()];
+                for (int i = 0; i < byteBuf.writerIndex(); i++) {
+                    bytes[i] = byteBuf.getByte(i);
                 }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
+                writeByteBuf.writeBytes(bytes);
             }
         });
 

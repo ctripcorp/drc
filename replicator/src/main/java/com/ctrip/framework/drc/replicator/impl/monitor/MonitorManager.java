@@ -13,7 +13,7 @@ public interface MonitorManager {
 
     void onTableMapLogEvent(TableMapLogEvent tableMapLogEvent);
 
-    boolean onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid);
+    void onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid);
 
     void onDdlEvent(String schema, String tableName, String ddl, QueryType queryType);
 }

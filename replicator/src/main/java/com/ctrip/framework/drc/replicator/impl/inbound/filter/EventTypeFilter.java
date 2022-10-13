@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import java.util.HashSet;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
  * Created by mingdongli
@@ -30,9 +31,14 @@ public class EventTypeFilter extends AbstractLogEventFilter<InboundLogEventConte
         if (DRC_HEARTBEAT_EVENT_TYPE.contains(logEventType)) {
             value.getCallBack().onHeartHeat();
             skip = true;
-        } else if (NOT_SKIP_EVENT_TYPE.contains(logEventType)) {  //when receive heartbeat_log_event, not set inExcludeGroup, or will exclude gtid event.
+        } else if (NOT_SKIP_EVENT_TYPE.contains(logEventType)) {  //when receive drc_ddl_log_event, not set inExcludeGroup, or will exclude gtid event.
+            value.reset();
             skip = false;
-            value.setInExcludeGroup(false);
+        }
+
+        if (skip) {
+            value.reset();
+            value.mark(OTHER_F);
         }
 
         return doNext(value, skip);

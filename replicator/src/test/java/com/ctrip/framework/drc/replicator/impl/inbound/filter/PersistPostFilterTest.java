@@ -9,6 +9,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.BLACK_TABLE_NAME_F;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.GTID_F;
+
 /**
  * @Author limingdong
  * @create 2020/4/24
@@ -31,7 +34,7 @@ public class PersistPostFilterTest extends AbstractFilterTest {
         when(gtidLogEvent.getGtid()).thenReturn(GTID);
         when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
 
-        logEventWithGroupFlag.setInExcludeGroup(false);
+        logEventWithGroupFlag.reset();
         boolean skip = persistPostFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
         verify(transactionCache, times(1)).add(any(LogEvent.class));
@@ -50,16 +53,16 @@ public class PersistPostFilterTest extends AbstractFilterTest {
         when(gtidLogEvent.getGtid()).thenReturn(GTID);
         when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
 
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         boolean skip = persistPostFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
         verify(transactionCache, times(1)).add(any(LogEvent.class));
-        Assert.assertEquals(logEventWithGroupFlag.getGtid(), StringUtils.EMPTY);
+        Assert.assertEquals(logEventWithGroupFlag.getGtid(), GTID);
 
-        skip = persistPostFilter.doFilter(logEventWithGroupFlag);  //not persist xid
+        skip = persistPostFilter.doFilter(logEventWithGroupFlag);  //fake xid
         Assert.assertTrue(skip);
-        verify(transactionCache, times(2)).add(any(LogEvent.class));
-        Assert.assertEquals(logEventWithGroupFlag.getGtid(), StringUtils.EMPTY);
+        verify(transactionCache, times(3)).add(any(LogEvent.class));
+        Assert.assertEquals(logEventWithGroupFlag.getGtid(), GTID);
 
         verify(gtidLogEvent, times(0)).release();
     }
@@ -67,7 +70,7 @@ public class PersistPostFilterTest extends AbstractFilterTest {
     @Test
     public void doXidFilterReleaseFalse() {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
-        logEventWithGroupFlag.setInExcludeGroup(false);
+        logEventWithGroupFlag.reset();
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         logEventWithGroupFlag.setNotRelease(false);
 
@@ -91,34 +94,34 @@ public class PersistPostFilterTest extends AbstractFilterTest {
     @Test
     public void doXidFilterReleaseTrue() {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         logEventWithGroupFlag.setNotRelease(false);
 
         boolean skip = persistPostFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
-        verify(transactionCache, times(0)).add(any(LogEvent.class));
+        verify(transactionCache, times(1)).add(any(LogEvent.class));
         Assert.assertEquals(logEventWithGroupFlag.getGtid(), StringUtils.EMPTY);
         logEventWithGroupFlag.releaseEvent();
-        verify(xidLogEvent, times(1)).release();
+        verify(xidLogEvent, times(0)).release();
 
 
         logEventWithGroupFlag.setNotRelease(false);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         skip = persistPostFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
-        verify(transactionCache, times(0)).add(any(LogEvent.class));
+        verify(transactionCache, times(2)).add(any(LogEvent.class));
         Assert.assertEquals(logEventWithGroupFlag.getGtid(), StringUtils.EMPTY);
 
         logEventWithGroupFlag.releaseEvent();
-        verify(xidLogEvent, times(2)).release();
+        verify(xidLogEvent, times(0)).release();
     }
 
     @Test
     public void doXidFilterReleaseTrueAndTabelFilteredTrue() {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
-        logEventWithGroupFlag.setInExcludeGroup(true);
-        logEventWithGroupFlag.setTableFiltered(true);  //first invoke and then set false
+        logEventWithGroupFlag.mark(GTID_F);
+        logEventWithGroupFlag.unmark(BLACK_TABLE_NAME_F);  //first invoke and then set false
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         logEventWithGroupFlag.setNotRelease(false);
 
@@ -131,14 +134,14 @@ public class PersistPostFilterTest extends AbstractFilterTest {
         verify(xidLogEvent, times(0)).release();
 
         logEventWithGroupFlag.setNotRelease(false);
-        logEventWithGroupFlag.setInExcludeGroup(true);
+        logEventWithGroupFlag.mark(GTID_F);
         skip = persistPostFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
-        verify(transactionCache, times(1)).add(any(LogEvent.class));
+        verify(transactionCache, times(2)).add(any(LogEvent.class));
         Assert.assertEquals(logEventWithGroupFlag.getGtid(), StringUtils.EMPTY);
 
         logEventWithGroupFlag.releaseEvent();
-        verify(xidLogEvent, times(1)).release();
+        verify(xidLogEvent, times(0)).release();
     }
 
 }

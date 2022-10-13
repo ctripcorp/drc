@@ -2,11 +2,12 @@ package com.ctrip.framework.drc.core.driver.binlog.impl;
 
 import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,13 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private List<LogEvent> logEvents = Lists.newArrayList();
 
+    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+
+    private List<ByteBuf> eventByteBufs = new ArrayList<>();
+
     private boolean isDdl = false;
+
+    private int eventSize = 0;
 
     public void addLogEvent(LogEvent logEvent) {
         logEvents.add(logEvent);
@@ -29,7 +36,6 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     @Override
     public void write(IoCache ioCache) {
-        List<ByteBuf> byteBufs = new ArrayList<>(logEvents.size() * 2);
         for (LogEvent logEvent : logEvents) {
             LogEventHeader logEventHeader = logEvent.getLogEventHeader();
             ByteBuf headerBuf;
@@ -42,26 +48,30 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
             ByteBuf payload = logEvent.getPayloadBuf();
             if (payload != null && headerBuf != null) {
-                byteBufs.add(headerBuf);
-                byteBufs.add(payload);
+                headerBuf.readerIndex(0);
+                payload.readerIndex(0);
+                compositeByteBuf.addComponent(true, headerBuf);
+                compositeByteBuf.addComponent(true, payload);
+                eventSize++;
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
         }
-        ioCache.write(byteBufs, isDdl);
+
+        eventByteBufs.add(compositeByteBuf);
+        ioCache.write(eventByteBufs, new TransactionContext(isDdl, eventSize));
     }
 
     @Override
     public void release() {
-        logEvents.forEach(logEvent -> {
-            LogEventType logEventType = logEvent.getLogEventType();
-            try {
-                logEvent.release();
-            } catch (Exception e) {
-                EVENT_LOGGER.error("released logEventType of {} error", logEventType, e);
-            }
-        });
-
+        try {
+            compositeByteBuf.release();
+            isDdl = false;
+            eventSize = 0;
+            logEvents.clear();
+        } catch (Exception e) {
+            EVENT_LOGGER.error("released compositeByteBuf error", e);
+        }
     }
 
     @Override

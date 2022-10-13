@@ -88,11 +88,29 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         super.initMocks();
         uuidSet.add(UUID.fromString(UUID_1));
 
-        filterChainContextWithGN = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilterWithGN = new InboundFilterChainFactory().createFilterChain(filterChainContextWithGN);
+        filterChainContextWithGN = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(CLUSTER_NAME)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.set_gtid.getType()).build();
+        flagFilterWithGN = new EventFilterChainFactory().createFilterChain(filterChainContextWithGN);
 
-        filterChainContextWithTT = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.transaction_table.getType());
-        flagFilterWithTT = new InboundFilterChainFactory().createFilterChain(filterChainContextWithTT);
+        filterChainContextWithTT = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(CLUSTER_NAME)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.transaction_table.getType()).build();
+        flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
     }
 
     @Test
@@ -104,7 +122,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, new TransactionFlags(), StringUtils.EMPTY);
         boolean skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 
@@ -117,7 +135,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         String ALTER_TABLE = "alter /* gh-ost */ table `ghostdb`.`_test1g_gho` ADD COLUMN addcol119 VARCHAR(255) DEFAULT NULL COMMENT '添加普通列测试'";
         when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(queryLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -127,7 +144,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
         when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -137,7 +153,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
         when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(writeRowsEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -147,7 +162,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -167,7 +181,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, new TransactionFlags(), StringUtils.EMPTY);
         boolean skip = flagFilterWithTT.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 
@@ -180,7 +194,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         String ALTER_TABLE = "alter /* gh-ost */ table `ghostdb`.`_test1g_gho` ADD COLUMN addcol119 VARCHAR(255) DEFAULT NULL COMMENT '添加普通列测试'";
         when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(queryLogEvent);
         skip = flagFilterWithTT.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -191,7 +204,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(tableMapLogEvent.getTableName()).thenReturn(tableName);
         when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
         skip = flagFilterWithTT.doFilter(logEventWithGroupFlag);
         boolean expectedSkip = DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName) ? true : false;
@@ -203,7 +215,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
         when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(writeRowsEvent);
         skip = flagFilterWithTT.doFilter(logEventWithGroupFlag);
         Assert.assertEquals(skip, expectedSkip);
@@ -213,7 +224,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilterWithTT.doFilter(logEventWithGroupFlag);
         Assert.assertEquals(skip, expectedSkip);
@@ -228,7 +238,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent,  null,false, false, false, StringUtils.EMPTY);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent,  null,new TransactionFlags(), StringUtils.EMPTY);
         boolean skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 
@@ -240,7 +250,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         String ALTER_TABLE = "alter /* gh-ost */ table `ghostdb`.`_test1g_gho` ADD COLUMN addcol119 VARCHAR(255) DEFAULT NULL COMMENT '添加普通列测试'";
         when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(queryLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -250,7 +259,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
         when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -260,7 +268,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
         when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(writeRowsEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -270,7 +277,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilterWithGN.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -290,7 +296,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
 
-        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, false, false, false, GTID);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, new TransactionFlags(), GTID);
         boolean skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
 
@@ -302,7 +308,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         String ALTER_TABLE = "alter /* gh-ost */ table `ghostdb`.`_test1g_gho` ADD COLUMN addcol119 VARCHAR(255) DEFAULT NULL COMMENT '添加普通列测试'";
         when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(queryLogEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertFalse(skip);
@@ -314,7 +319,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(tableMapLogEvent.getSchemaName()).thenReturn("configdb");
         when(tableMapLogEvent.getSchemaNameDotTableName()).thenReturn("configdb.healthcheck");
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -324,7 +328,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
         when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(writeRowsEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
@@ -334,7 +337,6 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
 
-        logEventWithGroupFlag.setInExcludeGroup(skip);
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);

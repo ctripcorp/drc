@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.BLACK_TABLE_NAME_F;
 
 /**
  * @Author limingdong
@@ -38,7 +40,9 @@ public class BlackTableNameFilter extends AbstractLogEventFilter<InboundLogEvent
         final LogEventType logEventType = logEvent.getLogEventType();
 
         if (table_map_log_event == logEventType) {
-            TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
+            TableMapLogEvent tableMapLogEvent = logEvent instanceof TableMapLogEvent
+                    ? (TableMapLogEvent) logEvent
+                    : ((TransactionTableMarkedTableMapLogEvent) logEvent).getDelegate();
             String dbName = tableMapLogEvent.getSchemaName();
             String dbAndTable = tableMapLogEvent.getSchemaNameDotTableName();
             String tableName = tableMapLogEvent.getTableName();
@@ -49,12 +53,10 @@ public class BlackTableNameFilter extends AbstractLogEventFilter<InboundLogEvent
             inboundMonitorReport.addTable(dbAndTable);
 
             if (EXCLUDED_DB.contains(dbName) || EXCLUDED_TABLE.contains(tableName) || EXCLUDED_CUSTOM_TABLE.contains(dbAndTable)) {
-                value.setInExcludeGroup(true);
-                value.setTableFiltered(true);
+                value.mark(BLACK_TABLE_NAME_F);
                 inboundMonitorReport.addDbFilter(dbAndTable);
             } else if (DDLPredication.isGhostTable(dbAndTable)) {
-                value.setInExcludeGroup(true);
-                value.setTableFiltered(true);
+                value.mark(BLACK_TABLE_NAME_F);
                 inboundMonitorReport.addGhostDbFilter(dbAndTable);
             }
         }

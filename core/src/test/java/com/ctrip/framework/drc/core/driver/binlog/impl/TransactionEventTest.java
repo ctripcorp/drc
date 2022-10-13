@@ -6,10 +6,13 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+
+import java.nio.ByteOrder;
 
 /**
  * @Author limingdong
@@ -40,14 +43,29 @@ public class TransactionEventTest extends MockTest {
 
     private TransactionEvent transactionEvent = new TransactionEvent();
 
+    private static final int capacity = 10;
+
     @Before
     public void setUp() throws Exception {
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         super.initMocks();
         when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(logEventHeader.getHeaderBuf()).thenReturn(headerBuf);
         when(gtidLogEvent.getPayloadBuf()).thenReturn(payloadBuf);
         when(xidLogEvent.getPayloadBuf()).thenReturn(payloadBuf);
+
+        when(headerBuf.readableBytes()).thenReturn(capacity);
+        when(headerBuf.capacity()).thenReturn(capacity);
+        when(headerBuf.order(ByteOrder.BIG_ENDIAN)).thenReturn(headerBuf);
+        when(payloadBuf.readableBytes()).thenReturn(capacity);
+        when(payloadBuf.capacity()).thenReturn(capacity);
+        when(payloadBuf.order(ByteOrder.BIG_ENDIAN)).thenReturn(payloadBuf);
+    }
+
+    @After
+    public void tearDown() {
+        System.setProperty("io.netty.buffer.checkAccessible", "true");
     }
 
     @Test
@@ -57,8 +75,8 @@ public class TransactionEventTest extends MockTest {
         transactionEvent.write(ioCache);
 
         transactionEvent.release();
-        verify(gtidLogEvent, times(1)).release();
-        verify(xidLogEvent, times(1)).release();
+        verify(gtidLogEvent, times(0)).release();
+        verify(xidLogEvent, times(0)).release();
     }
 
     @Test
@@ -102,8 +120,6 @@ public class TransactionEventTest extends MockTest {
 
         Assert.assertEquals(nextEventSize, gtidLogEvent.getNextTransactionOffset());
 
-        gtidByteBuf.release();
-        xidByteBuf.release();
         transactionEvent.release();
 
     }

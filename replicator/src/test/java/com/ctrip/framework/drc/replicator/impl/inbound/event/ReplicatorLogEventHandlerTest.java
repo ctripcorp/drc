@@ -13,10 +13,10 @@ import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfiguration;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundLogEventContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
@@ -41,11 +41,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_SERVER_PARAM;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.PersistPostFilter.FAKE_XID_PARAM;
-import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
 /**
@@ -77,7 +77,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private Set<UUID> uuids = Sets.newHashSet();
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
+    private Filter<ITransactionEvent> filterChain = new TransactionFilterChainFactory().createFilterChain(
+            new InboundFilterChainContext.Builder().applyMode(ApplyMode.transaction_table.getType()).build());
 
     private FilePersistenceEventStore filePersistenceEventStore;
 
@@ -123,8 +124,17 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         File logDir = fileManager.getDataDir();
         deleteFiles(logDir);
 
-        filterChainContext = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, clusterName, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilter = new InboundFilterChainFactory().createFilterChain(filterChainContext);
+        filterChainContext = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(clusterName)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.set_gtid.getType()).build();
+        flagFilter = new EventFilterChainFactory().createFilterChain(filterChainContext);
 
         logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, flagFilter);
     }
@@ -158,7 +168,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * (GTID_ZISE + 4));
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE));
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
     }
@@ -183,7 +193,8 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
         File file = fileManager.getCurrentLogFile();
         long length = file.length();
-        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * (GTID_ZISE + 4));
+        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * ((GTID_ZISE + 4) + XID_ZISE)); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid)
+//        Assert.assertEquals(length, LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE + FORMAT_LOG_EVENT_SIZE + 3 * ((GTID_ZISE + 4) + XID_ZISE) + 3 * (GTID_ZISE + 4)); // 3 * drc_gtid_log_event + 3 * (gtid_log_event + xid)
 
         logDir = fileManager.getDataDir();
         deleteFiles(logDir);
@@ -297,7 +308,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
         XidLogEvent xidLogEvent = getXidLogEvent();
         logEventHandler.onLogEvent(gtidLogEvent, null, null);
         String currentGtid = logEventHandler.getCurrentGtid();
-        Assert.assertTrue(!filtered ? currentGtid.length() > 0 : currentGtid.length() == 0);
+        Assert.assertTrue(currentGtid.length() > 0);
         logEventHandler.onLogEvent(xidLogEvent, null, null);
         currentGtid = logEventHandler.getCurrentGtid();
         Assert.assertTrue(currentGtid.length() == 0);

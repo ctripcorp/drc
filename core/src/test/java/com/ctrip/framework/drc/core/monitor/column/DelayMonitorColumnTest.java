@@ -22,7 +22,6 @@ public class DelayMonitorColumnTest {
     public void setUp() {
         ByteBuf eventByteBuf = initByteBuf();
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        delayMonitorLogEvent.setNeedReleased(true);
         delayMonitorLogEvent.setSrcDcName("ntgxh");
         eventByteBuf.release();
     }

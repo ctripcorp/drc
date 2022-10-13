@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.HeartBeatCallBack;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.ServerCommandPacket;
@@ -21,7 +19,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.GenericFutureListener;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
@@ -130,38 +127,23 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
 
         int flags = shouldTouchProgress(channel) ? APPLIER_TOUCH_PROGRESS : 0;
         DrcHeartbeatLogEvent drcHeartbeatLogEvent = new DrcHeartbeatLogEvent(0, flags);
-        drcHeartbeatLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    byteBuf.readerIndex(0);
-                    ChannelFuture future = channel.writeAndFlush(byteBuf);
-                    future.addListener((GenericFutureListener) f -> {
-                        if (!f.isSuccess()) {
-                            removeHeartBeatContext(channel);
-                            HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
-                        } else {
-                            HeartBeatContext prev = null;
-                            if (!responses.containsKey(channel)) {
-                                HeartBeatContext context = newHeartBeatContext();
-                                prev = responses.putIfAbsent(channel, context);
-                            }
-                            HEARTBEAT_LOGGER.info("[Send] heartbeat to {}:{}, prev:{}", channel, responses.get(channel), prev);
+        drcHeartbeatLogEvent.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                byteBuf.readerIndex(0);
+                ChannelFuture future = channel.writeAndFlush(byteBuf);
+                future.addListener((GenericFutureListener) f -> {
+                    if (!f.isSuccess()) {
+                        removeHeartBeatContext(channel);
+                        HEARTBEAT_LOGGER.error("[Remove] {} due to sending drcHeartbeatLogEvent error", channel);
+                    } else {
+                        HeartBeatContext prev = null;
+                        if (!responses.containsKey(channel)) {
+                            HeartBeatContext context = newHeartBeatContext();
+                            prev = responses.putIfAbsent(channel, context);
                         }
-                    });
-                }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
+                        HEARTBEAT_LOGGER.info("[Send] heartbeat to {}:{}, prev:{}", channel, responses.get(channel), prev);
+                    }
+                });
             }
         });
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.heartbeat.request", registerKey + ":" + channel.remoteAddress());
