@@ -34,5 +34,7 @@ public class DelayMonitorCommandPacketTest extends AbstractCommandPacketTest {
         clone.read(byteBuf);
         Assert.assertArrayEquals(delayMonitorCommandPacket.getBody(), clone.getBody());
         Assert.assertEquals(clone.getRegion(), REGION_NAME);
+        Assert.assertEquals(clone.getDcName(), DC_NAME);
+        Assert.assertEquals(clone.getClusterName(), CLUSTER_NAME);
     }
 }

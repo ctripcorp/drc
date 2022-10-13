@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.monitor.column;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.xpipe.api.codec.Codec;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
@@ -17,8 +18,6 @@ public class DelayMonitorColumnTest {
     private static final String gtid = "abcde123-5678-1234-abcd-abcd1234abcd:123456789";
 
     private static final String idc = "ntgxh";
-
-    private static final String region_json = "{\"idc\":\"ntgxh\",\"region\":\"sha\"}";
 
     private DelayMonitorLogEvent delayMonitorLogEvent;
 
@@ -40,7 +39,9 @@ public class DelayMonitorColumnTest {
     @Test
     public void testRegion() {
         Assert.assertEquals(DelayMonitorColumn.transform(idc), idc);
-        Assert.assertEquals(DelayMonitorColumn.transform(region_json), "sha");
+        String region = "sha";
+        Idc idcObject = new Idc(idc, region);
+        Assert.assertEquals(DelayMonitorColumn.transform(Codec.DEFAULT.encode(idcObject)), region);
     }
 
     /**
