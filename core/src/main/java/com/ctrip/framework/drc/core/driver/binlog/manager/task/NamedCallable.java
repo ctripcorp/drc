@@ -19,7 +19,7 @@ public interface NamedCallable<V> extends Callable<V> {
     }
 
     default void afterException(Throwable t) {
-        DDL_LOGGER.error("exec {} error", name(), t);
+        getLogger().error("exec {} error", name(), t);
     }
 
     default void afterFail() {
@@ -27,6 +27,10 @@ public interface NamedCallable<V> extends Callable<V> {
     }
 
     default void afterSuccess(int retryTime) {
-        DDL_LOGGER.info("{} success with retryTime {}", name(), retryTime);
+        getLogger().info("{} success with retryTime {}", name(), retryTime);
+    }
+
+    default Logger getLogger() {
+        return DDL_LOGGER;
     }
 }
