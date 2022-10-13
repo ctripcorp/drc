@@ -20,8 +20,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.driver.BackupReplicatorPo
 import com.ctrip.framework.drc.replicator.impl.inbound.driver.ReplicatorPooledConnector;
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventHandler;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainFactory;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.EventFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupEventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
@@ -87,13 +87,14 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
             mySQLConnector = new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
         }
 
-
         replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);
 
         DefaultMonitorManager delayMonitor = new DefaultMonitorManager(clusterName);
+        int applyMode = mySQLSlaveConfig.getApplyMode();
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
-        transactionCache = isMaster ? new EventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain())
-                : new BackupEventTransactionCache(eventStore, DefaultTransactionFilterChainFactory.createFilterChain());
+        InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
+        transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
+                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -105,9 +106,17 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         outboundMonitorReport.setDelayMonitorReport(delayMonitorReport);
 
         GtidManager gtidManager = eventStore.getGtidManager();
-        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new InboundFilterChainFactory().createFilterChain(
-                new InboundFilterChainContext(gtidManager.toUUIDSet(), replicatorConfig.getTableNames(), schemaManager, inboundMonitorReport,
-                        transactionCache, delayMonitor, clusterName, tableFilterConfiguration, mySQLSlaveConfig.getApplyMode())));
+        logEventHandler = new ReplicatorLogEventHandler(transactionCache, delayMonitor, new EventFilterChainFactory().createFilterChain(
+                new InboundFilterChainContext.Builder()
+                        .whiteUUID(gtidManager.toUUIDSet())
+                        .tableNames(replicatorConfig.getTableNames())
+                        .schemaManager(schemaManager)
+                        .inboundMonitorReport(inboundMonitorReport)
+                        .transactionCache(transactionCache)
+                        .monitorManager(delayMonitor)
+                        .registryKey(clusterName)
+                        .tableFilterConfiguration(tableFilterConfiguration)
+                        .applyMode(applyMode).build()));
 
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory
         replicatorSlaveServer.setLogEventHandler(logEventHandler);

@@ -88,11 +88,29 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         super.initMocks();
         uuidSet.add(UUID.fromString(UUID_1));
 
-        filterChainContextWithGN = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.set_gtid.getType());
-        flagFilterWithGN = new InboundFilterChainFactory().createFilterChain(filterChainContextWithGN);
+        filterChainContextWithGN = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(CLUSTER_NAME)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.set_gtid.getType()).build();
+        flagFilterWithGN = new EventFilterChainFactory().createFilterChain(filterChainContextWithGN);
 
-        filterChainContextWithTT = new InboundFilterChainContext(uuidSet, tableNames, schemaManager, inboundMonitorReport, transactionCache, delayMonitor, CLUSTER_NAME, tableFilterConfiguration, ApplyMode.transaction_table.getType());
-        flagFilterWithTT = new InboundFilterChainFactory().createFilterChain(filterChainContextWithTT);
+        filterChainContextWithTT = new InboundFilterChainContext.Builder()
+                .whiteUUID(uuidSet)
+                .tableNames(tableNames)
+                .schemaManager(schemaManager)
+                .inboundMonitorReport(inboundMonitorReport)
+                .transactionCache(transactionCache)
+                .monitorManager(delayMonitor)
+                .registryKey(CLUSTER_NAME)
+                .tableFilterConfiguration(tableFilterConfiguration)
+                .applyMode(ApplyMode.transaction_table.getType()).build();
+        flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
     }
 
     @Test

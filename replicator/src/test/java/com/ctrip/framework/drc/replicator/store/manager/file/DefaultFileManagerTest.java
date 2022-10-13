@@ -7,11 +7,13 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
@@ -68,7 +70,8 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
     @Mock
     private UuidConfig uuidConfig;
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
+    private Filter<ITransactionEvent> filterChain = new TransactionFilterChainFactory().createFilterChain(
+            new InboundFilterChainContext.Builder().applyMode(ApplyMode.transaction_table.getType()).build());
 
     private Set<UUID> uuids = Sets.newHashSet();
 

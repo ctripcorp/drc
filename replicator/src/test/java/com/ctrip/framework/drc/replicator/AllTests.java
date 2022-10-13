@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorLogEventH
 import com.ctrip.framework.drc.replicator.impl.inbound.event.ReplicatorTableMapLogEventTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DdlIndexFilterTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableMarkedXidLogEventTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeConvertFilterTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
@@ -100,7 +99,6 @@ import java.util.HashMap;
         BlackTableNameFilterTest.class,
         DdlIndexFilterTest.class,
         TypeConvertFilterTest.class,
-        TransactionTableMarkedXidLogEventTest.class,
         TransactionTableFilterTest.class,
 
         // ddl
