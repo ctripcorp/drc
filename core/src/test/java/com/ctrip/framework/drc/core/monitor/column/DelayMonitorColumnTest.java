@@ -38,10 +38,11 @@ public class DelayMonitorColumnTest {
 
     @Test
     public void testRegion() {
-        Assert.assertEquals(DelayMonitorColumn.transform(idc), idc);
+        Assert.assertEquals(DelayMonitorColumn.transform(idc, ""), idc);
         String region = "sha";
-        Idc idcObject = new Idc(idc, region);
-        Assert.assertEquals(DelayMonitorColumn.transform(Codec.DEFAULT.encode(idcObject)), region);
+        String mha = "mha";
+        DelayInfo idcObject = new DelayInfo(idc, region, mha);
+        Assert.assertEquals(DelayMonitorColumn.transform("", Codec.DEFAULT.encode(idcObject)), region);
     }
 
     /**

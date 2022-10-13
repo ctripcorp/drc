@@ -37,15 +37,15 @@ public class DelayMonitorColumn {
     public static String getDelayMonitorSrcDcName(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
         List<List<Object>> rowValues = getAfterPresentRowsValues(delayMonitorLogEvent);
         List<Object> values = rowValues.get(0);
-        return transform((String) values.get(1));
+        return transform((String) values.get(1), (String) values.get(2));
     }
 
-    public static String transform(String locationString) {
+    public static String transform(String src, String dst) {
         try {
-            Idc idc = Codec.DEFAULT.decode(locationString, Idc.class);
-            return idc.getRegion();
+            DelayInfo idc = Codec.DEFAULT.decode(dst, DelayInfo.class);
+            return idc.getR();
         } catch (Exception e) {
-            return locationString;
+            return src;
         }
     }
 
