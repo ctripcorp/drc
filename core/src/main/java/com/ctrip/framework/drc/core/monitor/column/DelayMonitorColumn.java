@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.monitor.column;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ReferenceCountedDelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -37,6 +38,15 @@ public class DelayMonitorColumn {
         List<List<Object>> rowValues = getAfterPresentRowsValues(delayMonitorLogEvent);
         List<Object> values = rowValues.get(0);
         return  (String) values.get(1);
+    }
+
+    public static String transform(String locationString) {
+        try {
+            Idc idc = Codec.DEFAULT.decode(locationString, Idc.class);
+            return idc.getRegion();
+        } catch (Exception e) {
+            return locationString;
+        }
     }
 
 }

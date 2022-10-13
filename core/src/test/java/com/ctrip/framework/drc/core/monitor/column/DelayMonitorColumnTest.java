@@ -16,23 +16,32 @@ public class DelayMonitorColumnTest {
 
     private static final String gtid = "abcde123-5678-1234-abcd-abcd1234abcd:123456789";
 
+    private static final String idc = "ntgxh";
+
+    private static final String region_json = "{\"idc\":\"ntgxh\",\"region\":\"sha\"}";
+
     private DelayMonitorLogEvent delayMonitorLogEvent;
 
     @Before
     public void setUp() {
         ByteBuf eventByteBuf = initByteBuf();
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        delayMonitorLogEvent.setSrcDcName("ntgxh");
+        delayMonitorLogEvent.setSrcDcName(idc);
         eventByteBuf.release();
     }
 
     @Test
     public void getDelayMonitorSrcDcName() {
         String srcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-        Assert.assertEquals("ntgxh", srcDcName);
+        Assert.assertEquals(idc, srcDcName);
         delayMonitorLogEvent.release();
     }
 
+    @Test
+    public void testRegion() {
+        Assert.assertEquals(DelayMonitorColumn.transform(idc), idc);
+        Assert.assertEquals(DelayMonitorColumn.transform(region_json), "sha");
+    }
 
     /**
      * # at 4956664

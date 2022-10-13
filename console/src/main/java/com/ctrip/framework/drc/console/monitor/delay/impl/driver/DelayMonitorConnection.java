@@ -77,6 +77,7 @@ public class DelayMonitorConnection extends AbstractInstanceConnection implement
         DelayMonitorCommandPacket commandPacket = new DelayMonitorCommandPacket(SERVER_COMMAND.COM_DELAY_MONITOR.getCode());
         commandPacket.setDcName(config.getDc());
         commandPacket.setClusterName(config.getCluster());
+        commandPacket.setRegion("" /*TODO*/);
         CommandFuture<ResultCode> commandFuture = delayMonitorCommandHandler.handle(commandPacket, simpleObjectPool);
         return commandFuture;
     }
