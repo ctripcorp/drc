@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,8 +80,9 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
     private DelayMonitorKey getKey(DelayMonitorCommandPacket monitorCommandPacket, String ip) {
         String dcName = monitorCommandPacket.getDcName();
+        String region = monitorCommandPacket.getRegion();
         String clusterName = monitorCommandPacket.getClusterName();
-        return new DelayMonitorKey(dcName, clusterName, ip);
+        return new DelayMonitorKey(dcName, region, clusterName, ip);
     }
 
     @Override
@@ -174,13 +176,10 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                 LogEvent logEvent = (LogEvent) args;
                 if (logEvent instanceof ReferenceCountedDelayMonitorLogEvent) {
                     ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = (ReferenceCountedDelayMonitorLogEvent) args;
-                    String delayMonitorSrcDcName = delayMonitorLogEvent.getSrcDcName();
-                    if (delayMonitorSrcDcName == null) {
-                        delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-                    }
-                    if (!key.srcDcName.equalsIgnoreCase(delayMonitorSrcDcName)) {
+                    String delayMonitorSrcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
+                    if (!key.region.equalsIgnoreCase(delayMonitorSrcDcName)) {
                         delayMonitorLogEvent.release(1);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + delayMonitorSrcDcName);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.discard", key.toString() + ":" + delayMonitorSrcDcName);
                         return;
                     }
                 }
@@ -234,12 +233,15 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
 
         private String srcDcName;
 
+        private String region;
+
         private String clusterName;
 
         private String ip;
 
-        public DelayMonitorKey(String srcDcName, String clusterName, String ip) {
+        public DelayMonitorKey(String srcDcName, String region, String clusterName, String ip) {
             this.srcDcName = srcDcName;
+            this.region = StringUtils.isBlank(region) ? srcDcName : region;
             this.clusterName = clusterName;
             this.ip = ip;
         }
@@ -249,7 +251,7 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
             if (this == o) return true;
             if (!(o instanceof DelayMonitorKey)) return false;
             DelayMonitorKey that = (DelayMonitorKey) o;
-            return Objects.equals(srcDcName, that.srcDcName) &&
+            return Objects.equals(region, that.region) &&
                     Objects.equals(clusterName, that.clusterName) &&
                     Objects.equals(ip, that.ip);
         }
@@ -257,13 +259,14 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
         @Override
         public int hashCode() {
 
-            return Objects.hash(srcDcName, clusterName, ip);
+            return Objects.hash(region, clusterName, ip);
         }
 
         @Override
         public String toString() {
             return "DelayMonitorKey{" +
                     "srcDcName='" + srcDcName + '\'' +
+                    ", region='" + region + '\'' +
                     ", clusterName='" + clusterName + '\'' +
                     ", ip='" + ip + '\'' +
                     '}';

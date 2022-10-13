@@ -82,7 +82,7 @@ public class CommandHandlerManagerTest extends AbstractServerTest {
     }
 
     private ByteBuf getDelayMonitorCommandPacket() throws IOException {
-        DelayMonitorCommandPacket monitorCommandPacket = new DelayMonitorCommandPacket("ntgxh", "test_dalcluster");
+        DelayMonitorCommandPacket monitorCommandPacket = new DelayMonitorCommandPacket("ntgxh", "test_dalcluster", "sha");
         ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
         monitorCommandPacket.write(byteBuf);
 

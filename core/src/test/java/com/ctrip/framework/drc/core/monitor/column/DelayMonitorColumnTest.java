@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.monitor.column;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.UpdateRowsEvent;
+import com.ctrip.xpipe.api.codec.Codec;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
@@ -16,23 +17,33 @@ public class DelayMonitorColumnTest {
 
     private static final String gtid = "abcde123-5678-1234-abcd-abcd1234abcd:123456789";
 
+    private static final String idc = "ntgxh";
+
     private DelayMonitorLogEvent delayMonitorLogEvent;
 
     @Before
     public void setUp() {
         ByteBuf eventByteBuf = initByteBuf();
         delayMonitorLogEvent = new DelayMonitorLogEvent(gtid, new UpdateRowsEvent().read(eventByteBuf));
-        delayMonitorLogEvent.setSrcDcName("ntgxh");
+        delayMonitorLogEvent.setSrcDcName(idc);
         eventByteBuf.release();
     }
 
     @Test
     public void getDelayMonitorSrcDcName() {
         String srcDcName = DelayMonitorColumn.getDelayMonitorSrcDcName(delayMonitorLogEvent);
-        Assert.assertEquals("ntgxh", srcDcName);
+        Assert.assertEquals(idc, srcDcName);
         delayMonitorLogEvent.release();
     }
 
+    @Test
+    public void testRegion() {
+        Assert.assertEquals(DelayMonitorColumn.transform(idc, ""), idc);
+        String region = "sha";
+        String mha = "mha";
+        DelayInfo idcObject = new DelayInfo(idc, region, mha);
+        Assert.assertEquals(DelayMonitorColumn.transform("", Codec.DEFAULT.encode(idcObject)), region);
+    }
 
     /**
      * # at 4956664
