@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
@@ -54,6 +55,9 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+    
+    @Autowired
+    private MhaGrayConfig mhaGrayConfig;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -139,7 +143,12 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql = String.format(UPSERT_SQL,mhaId, Codec.DEFAULT.encode(idc),mhaName,UPSERT_SQL,Codec.DEFAULT.encode(idc),timestamp);
+                    String sql;
+                    if (mhaGrayConfig.gray(mhaName)) {
+                        sql = String.format(UPSERT_SQL,mhaId, Codec.DEFAULT.encode(idc),mhaName,Codec.DEFAULT.encode(idc),timestamp);
+                    } else {
+                        sql = String.format(UPSERT_SQL,mhaId, dcName,mhaName,dcName,timestamp);
+                    }
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
                         CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
