@@ -63,6 +63,27 @@
             <artifactId>avro</artifactId>
             <version>1.7.7</version>
         </dependency>
+
+        <!-- qmq client -->
+        <dependency>
+            <groupId>qunar.tc</groupId>
+            <artifactId>qmq-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.101tec</groupId>
+                    <artifactId>zkclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>dubbo</artifactId>
+                    <groupId>org.apache.dubbo</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>qunar.tc</groupId>
+            <artifactId>qmq-dal</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

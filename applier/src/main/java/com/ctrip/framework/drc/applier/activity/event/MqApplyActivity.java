@@ -5,14 +5,13 @@ import com.ctrip.framework.drc.applier.resource.context.MqTransactionContextReso
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
-import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
 /**
  * Created by jixinwang on 2022/10/12
  */
 public class MqApplyActivity extends EventActivity<Transaction, Transaction> {
 
-    @InstanceResource
+    // this file just for derive
     public DataSource dataSource;
 
     @InstanceConfig(path = "registryKey")

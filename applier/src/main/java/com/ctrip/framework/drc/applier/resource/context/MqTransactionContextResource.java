@@ -1,12 +1,10 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.ctrip.framework.drc.applier.mq.EventColumn;
+import com.ctrip.framework.drc.applier.mq.EventData;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.google.common.collect.Lists;
-import muise.ctrip.canal.ColumnData;
-import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,27 +19,30 @@ public class MqTransactionContextResource extends TransactionContextResource {
     private final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     @Override
+    public void doInitialize() throws Exception {
+    }
+
+    @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
-        List<String> rowsData = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.INSERT);
-        loggerTT.info("insert rows date: {}", rowsData);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.INSERT);
+        loggerTT.info("insert event data: {}", eventDatas);
     }
 
 
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
-        List<String> rowsData = transfer(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, EventType.UPDATE);
-        loggerTT.info("update rows date: {}", rowsData);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, EventType.UPDATE);
+        loggerTT.info("update event data: {}", eventDatas);
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
-        List<String> rowsData = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.DELETE);
-        loggerTT.info("delete rows date: {}", rowsData);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.DELETE);
+        loggerTT.info("delete event data: {}", eventDatas);
     }
 
-
-    private List<String> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns, EventType eventType) {
-        List<String> rowsData = Lists.newArrayList();
+    private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns, EventType eventType) {
+        List<EventData> eventDatas = Lists.newArrayList();
         Bitmap bitmapOfIdentifier = columns.getBitmapsOfIdentifier().get(0);
 
         for (int i = 0; i < beforeRows.size(); i++) {
@@ -51,14 +52,14 @@ public class MqTransactionContextResource extends TransactionContextResource {
                 afterRow = afterRows.get(i);
             }
 
-            DataChange dataChange = new DataChange();
-            dataChange.setSchemaName(tableKey.getDatabaseName());
-            dataChange.setTableName(tableKey.getTableName());
-            dataChange.setEventType(eventType.toString());
-            List<ColumnData> beforeList = new ArrayList<>();
-            List<ColumnData> afterList = new ArrayList<>();
-            dataChange.setBeforeColumnList(beforeList);
-            dataChange.setAfterColumnList(afterList);
+            EventData eventData = new EventData();
+            eventData.setSchemaName(tableKey.getDatabaseName());
+            eventData.setTableName(tableKey.getTableName());
+            eventData.setEventType(eventType);
+            List<EventColumn> beforeList = new ArrayList<>();
+            List<EventColumn> afterList = new ArrayList<>();
+            eventData.setBeforeColumns(beforeList);
+            eventData.setAfterColumns(afterList);
 
             List<String> names = columns.getNames();
             for (int j = 0; j < names.size(); j++) {
@@ -69,17 +70,15 @@ public class MqTransactionContextResource extends TransactionContextResource {
                     }
                 }
 
-                boolean isNull = beforeRow.get(j) == null;
-                beforeList.add(new ColumnData(names.get(j), isNull ? null : beforeRow.get(j).toString(), true, isKey, isNull));
+                boolean beforeIsNull = beforeRow.get(j) == null;
+                beforeList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
                 if (afterRow != null) {
-                    afterList.add(new ColumnData(names.get(j), afterRow.get(j).toString(), true, isKey, false));
+                    boolean afterIsNull = afterRow.get(j) == null;
+                    afterList.add(new EventColumn(names.get(j), afterIsNull ? null : afterRow.get(j).toString(), afterIsNull, isKey, true));
                 }
             }
-
-            JSONObject jsonObject = JSON.parseObject(dataChange.toString());
-            rowsData.add(jsonObject.toJSONString());
+            eventDatas.add(eventData);
         }
-
-        return rowsData;
+        return eventDatas;
     }
 }
