@@ -34,6 +34,17 @@ public class RowsFilterMappingTblDao extends AbstractDao<RowsFilterMappingTbl> {
 		return client.query(builder,new DalHints());
 	}
 	
+	public List<RowsFilterMappingTbl> queryBy(Long groupId,int applierType,Integer deleted)throws SQLException {
+		if (null == groupId) {
+			throw new IllegalArgumentException("build sql: query RowsFilterMappingTbl By groupId and type, but groupId is empty.");
+		}
+		RowsFilterMappingTbl sample = new RowsFilterMappingTbl();
+		sample.setApplierGroupId(groupId);
+		sample.setType(applierType);
+		sample.setDeleted(deleted);
+		return queryBy(sample);
+	}
+		
     public List<RowsFilterMappingTbl> queryByDataMediaIds(List<Long> dataMediaIds, Integer deleted) throws SQLException {
 		if (CollectionUtils.isEmpty(dataMediaIds)) {
 			throw new IllegalArgumentException("build sql: query RowsFilterMappingTbl By dataMediaIds, but dataMediaIds is empty.");
