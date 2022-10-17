@@ -14,7 +14,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
  * postFilter
  * TransactionMonitorFilter(read) -> DelayMonitorFilter(read) -> PersistPostFilter(write) -> EventReleaseFilter(release)
  */
-public class InboundFilterChainFactory implements FilterChainFactory<InboundFilterChainContext, InboundLogEventContext> {
+public class EventFilterChainFactory implements FilterChainFactory<InboundFilterChainContext, InboundLogEventContext> {
 
     public Filter<InboundLogEventContext> createFilterChain(InboundFilterChainContext context) {
 

@@ -1,6 +1,7 @@
-package com.ctrip.framework.drc.core.driver.binlog.impl;
+package com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
@@ -9,22 +10,16 @@ import org.junit.Test;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 
 /**
- * Created by @author zhuYongMing on 2019/9/12.
+ * @Author limingdong
+ * @create 2022/9/30
  */
-public class XidLogEventTest {
+public class TransactionTableMarkedXidLogEventTest {
 
     @Test
     public void readTest() {
-        final ByteBuf byteBuf = initByteBuf();
-        final XidLogEvent xidLogEvent = new XidLogEvent().read(byteBuf);
-
-        if (null == xidLogEvent) {
-            Assert.fail();
-        }
-
-        if (null == xidLogEvent.getLogEventHeader()) {
-            Assert.fail();
-        }
+        ByteBuf byteBuf = initByteBuf();
+        XidLogEvent delegate = new XidLogEvent().read(byteBuf);
+        TransactionTableMarkedXidLogEvent xidLogEvent = new TransactionTableMarkedXidLogEvent(delegate);
 
         // valid
         Assert.assertEquals(xid_log_event, LogEventType.getLogEventType(xidLogEvent.getLogEventHeader().getEventType()));
@@ -36,8 +31,9 @@ public class XidLogEventTest {
     }
 
     @Test
-    public void constructXidLogEventAndWriteTest() throws InterruptedException {
-        final XidLogEvent constructXidLogEvent = new XidLogEvent(1L, 100, 1092);
+    public void constructXidLogEventAndWriteTest() {
+        final XidLogEvent delegate = new XidLogEvent(1L, 100, 1092);
+        TransactionTableMarkedXidLogEvent constructXidLogEvent = new TransactionTableMarkedXidLogEvent(delegate);
 
         final ByteBuf writeByteBuf = ByteBufAllocator.DEFAULT.directBuffer();
         constructXidLogEvent.write(byteBufs -> {
@@ -50,7 +46,7 @@ public class XidLogEventTest {
             }
         });
 
-        final XidLogEvent readXidLogEvent = new XidLogEvent().read(writeByteBuf);
+        final TransactionTableMarkedXidLogEvent readXidLogEvent = new TransactionTableMarkedXidLogEvent(new XidLogEvent()).read(writeByteBuf);
         Assert.assertEquals(constructXidLogEvent, readXidLogEvent);
     }
 

@@ -1,28 +1,27 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcIndexLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.DefaultTransactionFilterChainFactory;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.InboundFilterChainContext;
+import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -44,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.*;
@@ -70,7 +70,8 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
     @Mock
     private UuidConfig uuidConfig;
 
-    private Filter<ITransactionEvent> filterChain = DefaultTransactionFilterChainFactory.createFilterChain();
+    private Filter<ITransactionEvent> filterChain = new TransactionFilterChainFactory().createFilterChain(
+            new InboundFilterChainContext.Builder().applyMode(ApplyMode.transaction_table.getType()).build());
 
     private Set<UUID> uuids = Sets.newHashSet();
 
@@ -388,28 +389,11 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
         GtidLogEvent gtidLogEvent = new GtidLogEvent().read(byteBuf);
         gtidLogEvent.setEventType(LogEventType.drc_gtid_log_event.getType());
         String gtid = gtidLogEvent.getGtid();
-        gtidLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                try {
-                    fileManager.append(byteBufs, false);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
+        gtidLogEvent.write(byteBufs -> {
+            try {
+                fileManager.append(byteBufs, new TransactionContext(false));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         });
         GtidSet gtidSet = new GtidSet("");
@@ -485,6 +469,34 @@ public class DefaultFileManagerTest extends AbstractTransactionTest {
 
         res = fileManager.gtidExecuted(currentFile, new GtidSet("c372080a-1804-11ea-8add-98039bbedf9c:1-1400:1402-1600"));
         Assert.assertFalse(res);
+
+    }
+
+    @Test
+    public void bigTransaction() throws IOException {
+        File logDir = fileManager.getDataDir();
+        deleteFiles(logDir);
+
+        CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+        List<ByteBuf> bigTransaction = getBigTransaction();
+        long size = 0;
+        for (ByteBuf byteBuf : bigTransaction) {
+            byteBuf.readerIndex(0);
+            size += byteBuf.readableBytes();
+            compositeByteBuf.addComponent(true, byteBuf);
+        }
+
+        List<ByteBuf> events = new ArrayList<>();
+        events.add(compositeByteBuf);
+        fileManager.append(events, new TransactionContext(false, bigTransaction.size() / 2));
+        Assert.assertTrue(((DefaultFileManager)fileManager).isInBigTransaction());
+
+        List<File> files = FileUtil.sortDataDir(logDir.listFiles(), DefaultFileManager.LOG_FILE_PREFIX, false);
+        int total = 0;
+        for (File file : files) {
+            total += file.length();
+        }
+        Assert.assertEquals(total,  (LOG_EVENT_START + EMPTY_PREVIOUS_GTID_EVENT_SIZE + EMPTY_SCHEMA_EVENT_SIZE + EMPTY_DRC_UUID_EVENT_SIZE + FORMAT_LOG_EVENT_SIZE + DrcIndexLogEvent.FIX_SIZE) * files.size() + size);
 
     }
 

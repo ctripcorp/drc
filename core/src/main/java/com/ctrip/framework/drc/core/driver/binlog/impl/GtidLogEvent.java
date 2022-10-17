@@ -73,7 +73,6 @@ public class GtidLogEvent extends AbstractLogEvent {
     @Override
     public void write(IoCache ioCache) {
         super.write(ioCache);
-        ioCache.write(this);
     }
 
     public boolean isCommitFlag() {
@@ -161,7 +160,7 @@ public class GtidLogEvent extends AbstractLogEvent {
         final ByteBuf nextTransactionOffsetByteBuf = PooledByteBufAllocator.DEFAULT.directBuffer(BINLOG_TRANSACTION_OFFSET_LENGTH);
         nextTransactionOffsetByteBuf.writeIntLE((int) nextTransactionOffset);
 
-        ByteBuf modifiedPayload =  Unpooled.wrappedBuffer(postHeader, nextTransactionOffsetByteBuf, realPayload).retainedSlice();
+        ByteBuf modifiedPayload =  Unpooled.wrappedBuffer(postHeader, nextTransactionOffsetByteBuf, realPayload).slice();
         modifiedPayload.skipBytes(modifiedPayload.readableBytes());
         setPayloadBuf(modifiedPayload);
         ReferenceCountUtil.release(payloadBuf);

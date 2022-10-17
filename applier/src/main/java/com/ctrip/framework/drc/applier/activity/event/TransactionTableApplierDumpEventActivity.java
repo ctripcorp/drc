@@ -7,10 +7,14 @@ import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.activity.replicator.FetcherSlaveServer;
+import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.ctrip.framework.drc.applier.resource.position.TransactionTableResource.TRANSACTION_TABLE_SIZE;
 
 /**
  * Created by jixinwang on 2021/8/20
@@ -20,6 +24,10 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
     protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     private String lastUuid;
+
+    private int filterCount;
+
+    private boolean needFilter;
 
     @InstanceResource
     public TransactionTable transactionTable;
@@ -42,8 +50,26 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
         String currentUuid = ((ApplierGtidEvent) event).getServerUUID().toString();
         if (!currentUuid.equalsIgnoreCase(lastUuid)) {
             loggerTT.info("[{}]uuid has changed, old uuid is: {}, new uuid is: {}", registryKey, lastUuid, currentUuid);
-            transactionTable.mergeRecord(currentUuid, true);
+            GtidSet gtidSet = transactionTable.mergeRecord(currentUuid, true);
+            updateGtidSet(gtidSet);
             lastUuid = currentUuid;
+            filterCount = 0;
+            needFilter = true;
+        }
+
+        if (needFilter) {
+            String gtid =  ((ApplierGtidEvent) event).getGtid();
+            GtidSet gtidSet = context.fetchGtidSet();
+
+            if (skipEvent = new GtidSet(gtid).isContainedWithin(gtidSet)) {
+                loggerTT.info("[Skip] skip gtid: {}", gtid);
+            }
+            if (filterCount < TRANSACTION_TABLE_SIZE) {
+                filterCount++;
+            } else {
+                needFilter = false;
+                skipEvent = false;
+            }
         }
 
         super.handleApplierGtidEvent(event);
@@ -51,12 +77,33 @@ public class TransactionTableApplierDumpEventActivity extends ApplierDumpEventAc
 
     @Override
     protected boolean shouldSkip(FetcherEvent event) {
-        return (event instanceof ApplierDrcGtidEvent);
+        if (event instanceof ApplierDrcGtidEvent) {
+            return true;
+        }
+        if (skipEvent && event instanceof ApplierXidEvent) {
+            skipEvent = false;
+            return true;
+        }
+        return skipEvent;
     }
 
+    @VisibleForTesting
     protected void updateGtidSet(String gtid) {
         GtidSet set = context.fetchGtidSet();
         set.add(gtid);
         context.updateGtidSet(set);
+    }
+
+    @VisibleForTesting
+    protected void updateGtidSet(GtidSet gtidset) {
+        GtidSet set = context.fetchGtidSet();
+        loggerTT.info("[Skip] update gtidset in db before, context gtidset: {}, merged gtidset in db: {}", set.toString(), gtidset.toString());
+        context.updateGtidSet(set.union(gtidset));
+        loggerTT.info("[Skip] update gtidset in db after, union result: {}", context.fetchGtidSet().toString());
+    }
+
+    @VisibleForTesting
+    public boolean isNeedFilter() {
+        return needFilter;
     }
 }

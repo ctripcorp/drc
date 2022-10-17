@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 
-import static com.ctrip.framework.drc.core.monitor.datasource.AbstractDataSource.setCommonProperty;
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 
@@ -36,7 +35,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     protected final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
-    private static final int TRANSACTION_TABLE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.TRANSACTION_TABLE_SIZE, SystemConfig.DEFAULT_TRANSACTION_TABLE_SIZE));
+    public static final int TRANSACTION_TABLE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.TRANSACTION_TABLE_SIZE, SystemConfig.DEFAULT_TRANSACTION_TABLE_SIZE));
 
     private static final int TRANSACTION_TABLE_MERGE_SIZE = Integer.parseInt(System.getProperty(SystemConfig.TRANSACTION_TABLE_MERGE_SIZE, SystemConfig.DEFAULT_TRANSACTION_TABLE_MERGE_SIZE));
 
@@ -117,7 +116,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
     }
 
     @Override
-    public void mergeRecord(String uuid, boolean needRetry) {
+    public GtidSet mergeRecord(String uuid, boolean needRetry) {
         GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT][{}] query gtid set error, shutdown server", registryKey);
@@ -128,7 +127,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
             }
             loggerTT.info("[TT][{}] merge gtid record in db success: {}", registryKey, gtidSet.toString());
         }
-
+        return gtidSet;
     }
 
     @Override

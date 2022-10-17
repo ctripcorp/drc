@@ -1,14 +1,11 @@
 package com.ctrip.framework.drc.core.driver.binlog.header;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
@@ -53,37 +50,21 @@ public class LogEventHeaderTest {
         Assert.assertEquals(12246, header.getNextEventStartPosition());
         Assert.assertEquals(0, header.getFlags());
 
-        header.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
+        header.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                Assert.assertEquals(eventHeaderLengthVersionGt1, byteBuf.readerIndex());
+                Assert.assertEquals(eventHeaderLengthVersionGt1, byteBuf.writerIndex());
 
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    Assert.assertEquals(eventHeaderLengthVersionGt1, byteBuf.readerIndex());
-                    Assert.assertEquals(eventHeaderLengthVersionGt1, byteBuf.writerIndex());
-
-                    final byte[] initBytes = initBytes();
-                    for (int i = 0; i < byteBuf.writerIndex(); i++) {
-                        // timestamp, flags ignore
-                        List<Integer> ignoreIndex = Lists.newArrayList(0, 1, 2, 3, 17, 18);
-                        if (!ignoreIndex.contains(i)) {
-                            final byte expectedByte = initBytes[i];
-                            final byte actualByte = (byte) byteBuf.getUnsignedByte(i);
-                            Assert.assertEquals(expectedByte, actualByte);
-                        }
+                final byte[] initBytes = initBytes();
+                for (int i = 0; i < byteBuf.writerIndex(); i++) {
+                    // timestamp, flags ignore
+                    List<Integer> ignoreIndex = Lists.newArrayList(0, 1, 2, 3, 17, 18);
+                    if (!ignoreIndex.contains(i)) {
+                        final byte expectedByte = initBytes[i];
+                        final byte actualByte = (byte) byteBuf.getUnsignedByte(i);
+                        Assert.assertEquals(expectedByte, actualByte);
                     }
                 }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
             }
         });
 

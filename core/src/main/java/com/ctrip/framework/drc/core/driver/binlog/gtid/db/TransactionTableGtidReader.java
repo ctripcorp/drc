@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.core.driver.binlog.gtid.db;
 
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -20,8 +19,6 @@ public class TransactionTableGtidReader implements GtidReader {
     protected Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String SELECT_TRANSACTION_TABLE_GTID_SET = "select `server_uuid`, `gtidset` from `drcmonitordb`.`gtid_executed` where `id` = -1;";
-
-    private static final String SELECT_TRANSACTION_TABLE_GTID = "select `server_uuid`, `gno` from `drcmonitordb`.`gtid_executed` where `id` > -1;";
 
     private static final String SELECT_TRANSACTION_TABLE_SPECIFIC_GTID_SET = "select `gno`, `gtidset` from `drcmonitordb`.`gtid_executed` where `server_uuid` = \"%s\";";
 
@@ -57,25 +54,6 @@ public class TransactionTableGtidReader implements GtidReader {
             }
             return executedGtidSet;
         });
-    }
-
-    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private GtidSet selectUnMergedGtidSet(Connection connection) {
-        GtidConsumer gtidConsumer = new GtidConsumer(true);
-        DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
-        {
-            try (Statement statement = connection.createStatement()) {
-                try (ResultSet resultSet = statement.executeQuery(SELECT_TRANSACTION_TABLE_GTID)) {
-                    while (resultSet.next()) {
-                        gtidConsumer.offer(String.format("%s:%s", resultSet.getString(1), resultSet.getString(2)));
-                    }
-                }
-            } catch (SQLException e) {
-                logger.warn("execute select sql error, sql is: {}", SELECT_TRANSACTION_TABLE_GTID, e);
-            }
-        });
-        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.consumer.unmerged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
-                gtidConsumer.getGtidSet());
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
