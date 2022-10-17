@@ -18,11 +18,13 @@ public class DelayMonitorCommandPacketTest extends AbstractCommandPacketTest {
 
     private static final String CLUSTER_NAME = "cluster name test";
 
+    private static final String REGION_NAME = "region name test";
+
     private DelayMonitorCommandPacket delayMonitorCommandPacket;
 
     @Before
     public void setup() {
-        delayMonitorCommandPacket = new DelayMonitorCommandPacket(DC_NAME, CLUSTER_NAME);
+        delayMonitorCommandPacket = new DelayMonitorCommandPacket(DC_NAME, CLUSTER_NAME, REGION_NAME);
     }
 
     @Test
@@ -31,5 +33,8 @@ public class DelayMonitorCommandPacketTest extends AbstractCommandPacketTest {
         DelayMonitorCommandPacket clone  = new DelayMonitorCommandPacket();
         clone.read(byteBuf);
         Assert.assertArrayEquals(delayMonitorCommandPacket.getBody(), clone.getBody());
+        Assert.assertEquals(clone.getRegion(), REGION_NAME);
+        Assert.assertEquals(clone.getDcName(), DC_NAME);
+        Assert.assertEquals(clone.getClusterName(), CLUSTER_NAME);
     }
 }

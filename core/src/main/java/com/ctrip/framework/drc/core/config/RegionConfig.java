@@ -65,6 +65,11 @@ public class RegionConfig extends AbstractConfigBean {
         });
     }
 
+    public String getRegionForDc(String dc) {
+        Map<String, String> dc2regionMap = getDc2regionMap();
+        return dc2regionMap.get(dc);
+    }
+    
 
     public static RegionConfig getInstance() {
         return RegionConfigHolder.INSTANCE;

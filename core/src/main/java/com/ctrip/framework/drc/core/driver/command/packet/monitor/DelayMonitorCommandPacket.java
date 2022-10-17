@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.AbstractServerCommandWithHead
 import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import io.netty.buffer.ByteBuf;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -22,16 +23,19 @@ public class DelayMonitorCommandPacket extends AbstractServerCommandWithHeadPack
      */
     private String dcName;
 
+    private String region = StringUtils.EMPTY;
+
     private String clusterName;
 
     public DelayMonitorCommandPacket() { super(SERVER_COMMAND.COM_DELAY_MONITOR.getCode()); }
 
     public DelayMonitorCommandPacket(byte command) { super(command); }
 
-    public DelayMonitorCommandPacket(String dcName, String clusterName) {
+    public DelayMonitorCommandPacket(String dcName, String clusterName, String region) {
         super(SERVER_COMMAND.COM_DELAY_MONITOR.getCode());
         this.dcName = dcName;
         this.clusterName = clusterName;
+        this.region = region;
     }
 
     @Override
@@ -73,6 +77,11 @@ public class DelayMonitorCommandPacket extends AbstractServerCommandWithHeadPack
         out.write((byte) clusterNameBytesLength);
         ByteHelper.writeFixedLengthBytesFromStart(clusterNameBytes, clusterNameBytesLength, out);
 
+        byte[] regionBytes = region.getBytes();
+        int regionBytesLength = regionBytes.length;
+        out.write((byte) regionBytesLength);
+        ByteHelper.writeFixedLengthBytesFromStart(regionBytes, regionBytesLength, out);
+
         return out.toByteArray();
     }
 
@@ -92,6 +101,15 @@ public class DelayMonitorCommandPacket extends AbstractServerCommandWithHeadPack
         length = data[index++];
         byte[] clusterNameByte = ByteHelper.readFixedLengthBytes(data, index, length);
         clusterName = new String(clusterNameByte);
+        index += length;
+
+        // 4. read region
+        if (data.length > index) {
+            length = data[index++];
+            byte[] regionByte = ByteHelper.readFixedLengthBytes(data, index, length);
+            region = new String(regionByte);
+            index += length;
+        }
     }
 
     public String getDcName() {
@@ -110,12 +128,20 @@ public class DelayMonitorCommandPacket extends AbstractServerCommandWithHeadPack
         this.clusterName = clusterName;
     }
 
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
     @Override
     public String toString() {
         return "DelayMonitorCommandPacket{" +
                 "dcName='" + dcName + '\'' +
+                ", region='" + region + '\'' +
                 ", clusterName='" + clusterName + '\'' +
-                ", headerPacket=" + headerPacket +
-                '}';
+                "} " + super.toString();
     }
 }

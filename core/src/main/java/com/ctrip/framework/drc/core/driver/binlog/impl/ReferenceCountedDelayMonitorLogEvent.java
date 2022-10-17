@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.IoCache;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
@@ -169,6 +170,7 @@ public class ReferenceCountedDelayMonitorLogEvent extends AbstractRowsEvent impl
         return srcDcName;
     }
 
+    @VisibleForTesting
     public void setSrcDcName(String srcDcName) {
         this.srcDcName = srcDcName;
     }

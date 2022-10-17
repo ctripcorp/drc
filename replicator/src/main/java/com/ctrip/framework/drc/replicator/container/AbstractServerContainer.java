@@ -18,11 +18,13 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFacto
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
 import com.ctrip.xpipe.api.cluster.LeaderElector;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.api.lifecycle.ComponentRegistry;
 import com.ctrip.xpipe.exception.ErrorMessage;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.utils.OsUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -167,11 +169,13 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
     }
 
     private void register(ReplicatorServer replicatorServer) throws Exception {
-        ComponentRegistryHolder.getComponentRegistry().add(replicatorServer);
+        ComponentRegistry registry = ComponentRegistryHolder.getComponentRegistry();
+        registry.add(replicatorServer);
     }
 
     private void deRegister(DrcServer drcServer) throws Exception {
-        ComponentRegistryHolder.getComponentRegistry().remove(drcServer);
+        ComponentRegistry registry = ComponentRegistryHolder.getComponentRegistry();
+        registry.remove(drcServer);
     }
 
     private void cacheServer(String key, int port, ReplicatorServer replicatorServer) {
@@ -236,16 +240,18 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
             replicatorServer = getReplicatorServer(config);
             register(replicatorServer);
             cacheServer(registryKey, config.getApplierPort(), replicatorServer);
-            logger.info("[Add] replicator {} successfully at port {}", registryKey, port);
+            getLogger().info("[Add] replicator {} successfully at port {}", registryKey, port);
             DefaultEventMonitorHolder.getInstance().logEvent("Register", registryKey);
             return true;
         }
 
+        @Override
         public void afterFail() {
             NamedCallable.super.afterFail();
-            logger.error("[Add] server {} error", config.getRegistryKey());
+            getLogger().error("[Add] server {} error", config.getRegistryKey());
         }
 
+        @Override
         public void afterException(Throwable t) {
             NamedCallable.super.afterException(t);
             releaseResource();
@@ -254,10 +260,17 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
         private void releaseResource() {
             try {
                 stopMySQLSchemaManager(config.getRegistryKey());
-                deRegister(replicatorServer);
+                if (replicatorServer != null) {
+                    deRegister(replicatorServer);
+                }
             } catch (Throwable t) {
-                logger.error("releaseResource error", t);
+                getLogger().error("releaseResource error", t);
             }
+        }
+
+        @Override
+        public Logger getLogger() {
+            return logger;
         }
     }
 }

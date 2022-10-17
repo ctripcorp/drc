@@ -4,6 +4,7 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
@@ -69,6 +70,9 @@ public class PeriodicalUpdateDbTaskTest {
 
     @Mock
     private MetaInfoServiceImpl metaInfoService;
+    
+    @Mock
+    private MhaGrayConfig mhaGrayConfig;
 
 //    @Mock
 //    private MetaInfoServiceImpl metaInfoService;
@@ -168,6 +172,7 @@ public class PeriodicalUpdateDbTaskTest {
         Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getDelayMonitorUpdatedbSwitch();
+        Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
 
         MhaTbl mhaTbl1 = new MhaTbl();
         mhaTbl1.setMhaName(MHA1DC1);
