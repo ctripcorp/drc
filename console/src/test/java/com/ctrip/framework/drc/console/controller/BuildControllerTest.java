@@ -101,7 +101,7 @@ public class BuildControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetRowsFilterMappingVos() throws Exception {
-        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong())).thenReturn(null);
+        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong(),Mockito.eq(1))).thenReturn(null);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/rowsFilterMappings/1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
@@ -111,7 +111,7 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
 
-        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong())).thenThrow(new SQLException());
+        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong(),Mockito.eq(1))).thenThrow(new SQLException());
         mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/rowsFilterMappings/1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
@@ -185,6 +185,7 @@ public class BuildControllerTest extends AbstractControllerTest {
     public void testGetConflictTables() throws Exception {
         Mockito.when(rowsFilterService.getLogicalTables(
                 Mockito.anyLong(),
+                Mockito.anyInt(),
                 Mockito.anyLong(),
                 Mockito.anyString(),
                 Mockito.anyString(),

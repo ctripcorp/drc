@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
+import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
@@ -80,7 +81,7 @@ public class BuildController {
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
         Long id = Long.valueOf(applierGroupId);
         try {
-            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id);
+            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id, ApplierTypeEnum.APPLIER.getCode());
             return ApiResult.getSuccessInstance(dataMediaVos);
         } catch (SQLException e) {
             logger.error("sql error",e);
@@ -163,11 +164,12 @@ public class BuildController {
             @RequestParam Long dataMediaId,
             @RequestParam String mhaName,
             @RequestParam String namespace,
-            @RequestParam String name) {
+            @RequestParam String name,
+            @RequestParam int applierType) {
 
         try {
             List<String> logicalTables =
-                    rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);
+                    rowsFilterService.getLogicalTables(applierGroupId, applierType,dataMediaId, namespace, name, mhaName);
             logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
             List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,String.join(",",logicalTables));
             return ApiResult.getSuccessInstance(conflictTables);
