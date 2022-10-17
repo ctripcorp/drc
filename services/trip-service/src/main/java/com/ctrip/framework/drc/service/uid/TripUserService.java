@@ -128,7 +128,7 @@ public class TripUserService implements UserService {
             RequestContext ctx = ucsClient.buildDrcContext(drcStrategyId, udlKey);
             Optional<String> region = ctx.getRequestRegion();
             if (region.isEmpty()) {
-                return Region.SHA;
+                throw new IllegalArgumentException("region is empty for udl:" + attr);
             }
             return Region.nameFor(region.get().toUpperCase());
         }
