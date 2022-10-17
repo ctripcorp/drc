@@ -73,7 +73,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.getXmlConfiguration(anyLong())).thenReturn("xml");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("cloudRegion"));
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
-        Mockito.when(rowsFilterService.generateRowsFiltersConfig(anyLong())).thenReturn(null);
+        Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0))).thenReturn(null);
     }
 
     @Test

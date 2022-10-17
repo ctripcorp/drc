@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.server.config.applier.dto;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKey;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -41,6 +42,8 @@ public class ApplierConfigDtoTest {
             config.setSkipEvent("false");
         });
         assertEquals(config1.toString(), config2.toString());
+
+        System.out.println(JsonUtils.toJson(config1));
 
         config2.target.username = "hello";
         config2.setIncludedDbs(RandomStringUtils.randomAlphabetic(30));

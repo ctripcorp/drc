@@ -31,6 +31,12 @@
             <MenuItem name="/accessV2" to="/accessV2">
               <span>DRC配置</span>
             </MenuItem>
+            <MenuItem name="/mhaMessengers" to="/mhaMessengers">
+              <span>MQ投递集群</span>
+            </MenuItem>
+            <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">
+              <span>MQ投递配置</span>
+            </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
             </MenuItem>
@@ -140,8 +146,10 @@ export default {
       case '/deletedDrcClusters':
       case '/proxyRouteCluster':
       case '/proxyRouteManagement':
+      case '/accessV2':
+      case '/mhaMessengers':
+      case '/buildMhaMessenger':
       case '/access': this.openNames = ['0']; break
-      case '/accessV2': this.openNames = ['0']; break
       case '/incrementDataConsistencyResult':
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':

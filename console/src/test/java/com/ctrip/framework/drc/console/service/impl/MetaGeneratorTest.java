@@ -71,7 +71,7 @@ public class MetaGeneratorTest {
         MockitoAnnotations.openMocks(this);
         Mockito.doReturn(DC1).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
-        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong());
+        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0));
     }
 
     // this test needs to be run after TransferServiceImplTest

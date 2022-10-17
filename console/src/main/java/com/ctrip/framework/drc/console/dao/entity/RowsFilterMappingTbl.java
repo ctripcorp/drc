@@ -51,6 +51,15 @@ public class RowsFilterMappingTbl implements DalPojo {
 	@Type(value = Types.BIGINT)
 	private Long applierGroupId;
 
+
+	/**
+	 * 0 applier，1 messenger
+	 * default 0
+	 */
+	@Column(name = "type")
+	@Type(value = Types.TINYINT)
+	private Integer type;
+
     /**
      * 是否删除, 0:否; 1:是
      */
@@ -126,5 +135,13 @@ public class RowsFilterMappingTbl implements DalPojo {
 
 	public void setApplierGroupId(Long applierGroupId) {
 		this.applierGroupId = applierGroupId;
+	}
+
+	public Integer getType() {
+		return type;
+	}
+
+	public void setType(Integer type) {
+		this.type = type;
 	}
 }
