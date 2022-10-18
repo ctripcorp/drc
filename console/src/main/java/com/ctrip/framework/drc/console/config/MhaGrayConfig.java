@@ -36,9 +36,9 @@ public class MhaGrayConfig extends AbstractConfigBean{
      * @return Set of mha which would be gray migrated
      */
     private Set<String> getMhaGraySet() {
-        // applierGroupIdSet
-        String idString = getProperty(MHA_MIGRATE_GRAY, "");
-        return Sets.newHashSet(idString.split(","));
+        // mhasStringSet
+        String mhasStringSet = getProperty(MHA_MIGRATE_GRAY, "");
+        return Sets.newHashSet(mhasStringSet.split(","));
     }
 
     private boolean getMhaMigrateSwitch() {
