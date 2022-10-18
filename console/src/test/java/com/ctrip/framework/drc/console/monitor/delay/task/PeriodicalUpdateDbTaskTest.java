@@ -71,8 +71,6 @@ public class PeriodicalUpdateDbTaskTest {
     @Mock
     private MetaInfoServiceImpl metaInfoService;
     
-    @Mock
-    private MhaGrayConfig mhaGrayConfig;
 
 //    @Mock
 //    private MetaInfoServiceImpl metaInfoService;
@@ -118,7 +116,7 @@ public class PeriodicalUpdateDbTaskTest {
     private static final String CREATE_TABLE = "CREATE TABLE `delaymonitor` (\n" +
             "  `id` bigint(20) NOT NULL AUTO_INCREMENT,\n" +
             "  `src_ip` varchar(15) NOT NULL,\n" +
-            "  `dest_ip` varchar(15) NOT NULL,\n" +
+            "  `dest_ip` varchar(255) NOT NULL,\n" +
             "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n" +
             "  PRIMARY KEY (`id`)\n" +
             ") ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;";
@@ -150,29 +148,15 @@ public class PeriodicalUpdateDbTaskTest {
                 .mhaName(MHA1DC2)
                 .build();
 
-//        String drcXmlStr = "<?xml version='1.0' encoding='utf-8' ?> <drc> <dc id=\"ntgxh\">     <clusterManager ip=\"127.0.0.1\" port=\"8080\" master=\"true\"/>     <zkServer address=\"127.0.0.1:2181\"/>     <dbClusters>         <dbCluster name=\"drc-Test01\" mhaName=\"fxdrc\">             <dbs readUser=\"rroot\" readPassword=\"rroot\" writeUser=\"wroot\" writePassword=\"wroot\"  monitorUser=\"root\" monitorPassword=\"\">                 <db ip=\"127.0.0.1\" port=\"9876\" master=\"true\" uuid=\"\" />                 <db ip=\"127.0.0.1\" port=\"10086\" master=\"false\" uuid=\"\" />             </dbs>             <replicator ip=\"127.0.0.1\" port=\"8080\" applierPort=\"8383\" gtidSkip=\"12344dfasfas\"/> <replicatorMonitor ip=\"127.0.0.1\" port=\"18080\" applierPort=\"18383\" gtidSkip=\"123\" />        </dbCluster>     </dbClusters> </dc> <dc id=\"shajq\">     <clusterManager ip=\"127.0.0.1\" port=\"8080\" master=\"true\"/>     <zkServer address=\"127.0.0.1:2181\"/>     <dbClusters>         <dbCluster name=\"drc-Test01\" mhaName=\"fxdrcrb\">             <dbs readUser=\"root\" readPassword=\"root\" writeUser=\"root\" writePassword=\"root\"  monitorUser=\"root\" monitorPassword=\"1234\">  <db ip=\"127.0.0.1\" port=\"13306\" master=\"true\" uuid=\"\" />   <db ip=\"127.0.0.1\" port=\"10087\" master=\"false\" uuid=\"\" />    </dbs>  <replicator ip=\"127.0.0.2\" port=\"8080\" applierPort=\"8383\" gtidSkip=\"dsfjkjweopuewf\"/> <replicatorMonitor ip=\"127.0.0.2\" port=\"18383\" applierPort=\"8384\" gtidSkip=\"\"/>  </dbCluster> </dbClusters> </dc> </drc>";
-//        drc = DefaultSaxParser.parse(drcXmlStr);
-//        List<DbCluster> dbClusters = Lists.newArrayList();
-//        Map<String, Dc> dcs = drc.getDcs();
-//        for(Dc dc : dcs.values()) {
-//            if("ntgxh".equalsIgnoreCase(dc.getId())) {
-//                dbClusters = Lists.newArrayList(dc.getDbClusters().values());
-//                break;
-//            }
-//        }
-
-//        Map<String, Endpoint> mapper = Maps.newConcurrentMap();
-//        mapper.put(CLUSTER+'.'+MHA_NT1, new DefaultEndPoint("127.0.0.1", 9876, "root", ""));
-
         MockitoAnnotations.openMocks(this);
         task.setLocalDcName(DC1);
-        Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
-        Mockito.doReturn(Sets.newHashSet("dc-readMhaFromConfig")).when(consoleConfig).getLocalConfigCloudDc();
-        Mockito.doReturn("sha").when(consoleConfig).getRegion();
-        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
+        Mockito.when(sourceProvider.getLocalDcName()).thenReturn(DC1);
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("dc-readMhaFromConfig"));
+        Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
+        Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(Sets.newHashSet(Lists.newArrayList(DC1)));
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
-        Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getDelayMonitorUpdatedbSwitch();
-        Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
+        Mockito.when(monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch()).thenReturn(SWITCH_STATUS_ON);
 
         MhaTbl mhaTbl1 = new MhaTbl();
         mhaTbl1.setMhaName(MHA1DC1);
@@ -180,103 +164,11 @@ public class PeriodicalUpdateDbTaskTest {
         MhaTbl mhaTbl2 = new MhaTbl();
         mhaTbl2.setId(2L);
         mhaTbl2.setMhaName(MHA1DC2);
-        
+
         Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(metaInfoService).getMhas(Mockito.eq(DC1));
         Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(metaInfoService).getMhas(Mockito.eq(DC2));
         task.isleader();
-//        when(metaInfoService.getEstablishedDbEndpointMap("ntgxh")).thenReturn(mapper);
-
-//        // data consistency
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl1 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl1.setId(1);
-//        dataConsistencyMonitorTbl1.setMhaId(1);
-//        dataConsistencyMonitorTbl1.setMonitorSchemaName("schema1");
-//        dataConsistencyMonitorTbl1.setMonitorTableName("table1");
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl2 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl2.setId(2);
-//        dataConsistencyMonitorTbl2.setMhaId(2);
-//        dataConsistencyMonitorTbl2.setMonitorSchemaName("schema2");
-//        dataConsistencyMonitorTbl2.setMonitorTableName("table2");
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl3 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl3.setId(3);
-//        dataConsistencyMonitorTbl3.setMhaId(2);
-//        dataConsistencyMonitorTbl3.setMonitorSchemaName("schema3");
-//        dataConsistencyMonitorTbl3.setMonitorTableName("table3");
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl4 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl4.setId(4);
-//        dataConsistencyMonitorTbl4.setMhaId(3);
-//        dataConsistencyMonitorTbl4.setMonitorSchemaName("schema4");
-//        dataConsistencyMonitorTbl4.setMonitorTableName("table4");
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl5 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl5.setId(5);
-//        dataConsistencyMonitorTbl5.setMhaId(1);
-//        dataConsistencyMonitorTbl5.setMonitorSchemaName("schema5");
-//        dataConsistencyMonitorTbl5.setMonitorTableName("table5");
-//        DataConsistencyMonitorTbl dataConsistencyMonitorTbl6 = new DataConsistencyMonitorTbl();
-//        dataConsistencyMonitorTbl6.setId(6);
-//        dataConsistencyMonitorTbl6.setMhaId(4);
-//        dataConsistencyMonitorTbl6.setMonitorSchemaName("schema6");
-//        dataConsistencyMonitorTbl6.setMonitorTableName("table6");
-//
-//        mhaIdsInSameGroup = Sets.newHashSet(Arrays.asList(1L, 2L));
-//        delayMonitorConfig1 = new DelayMonitorConfig();
-//        delayMonitorConfig1.setSchema("`schema1`");
-//        delayMonitorConfig1.setTable("`table1`");
-//        delayMonitorConfig1.setKey("id1");
-//        delayMonitorConfig1.setOnUpdate("onupdate1");
-//        delayMonitorConfig3 = new DelayMonitorConfig();
-//        delayMonitorConfig3.setSchema("`schema3`");
-//        delayMonitorConfig3.setTable("`table3`");
-//        delayMonitorConfig3.setKey("id3");
-//        delayMonitorConfig3.setOnUpdate("onupdate3");
-//        delayMonitorConfigs = new HashMap<>() {{
-//            put("`schema1`.`table1`", delayMonitorConfig1);
-//            put("`schema3`.`table3`", delayMonitorConfig3);
-//        }};
-//        Mockito.when(metaService.getDataConsistencyMonitorTbls()).thenReturn(Arrays.asList(
-//                dataConsistencyMonitorTbl2, dataConsistencyMonitorTbl3, dataConsistencyMonitorTbl4, dataConsistencyMonitorTbl5, dataConsistencyMonitorTbl6
-//        ));
     }
-
-//    @Test
-//    public void testAddAndDeleteConsistencyMeta() throws SQLException {
-//        MhaTbl mhaTbl1 = new MhaTbl();
-//        mhaTbl1.setId(1L);
-//        mhaTbl1.setMhaName(MHA_NT1);
-//        MhaTbl mhaTbl2 = new MhaTbl();
-//        mhaTbl2.setId(2L);
-//        mhaTbl2.setMhaName(MHA_ST1);
-//        List<MhaTbl> mhaTblsInSameGroup = Arrays.asList(mhaTbl1, mhaTbl2);
-//
-//        Mockito.doNothing().when(monitorService).addDataConsistencyMonitor(MHA_NT1, MHA_ST1, delayMonitorConfig1);
-//        Mockito.doThrow(new SQLException()).when(monitorService).addDataConsistencyMonitor(MHA_NT1, MHA_ST1, delayMonitorConfig3);
-//        Mockito.doNothing().when(monitorService).deleteDataConsistencyMonitor(anyInt());
-//        Pair<Integer, Integer> addDeletePair = task.addAndDeleteConsistencyMeta(mhaTblsInSameGroup, delayMonitorConfigs);
-//        Assert.assertEquals(1, addDeletePair.getKey().intValue());
-//        Assert.assertEquals(2, addDeletePair.getValue().intValue());
-//
-//        Mockito.doThrow(new SQLException()).when(monitorService).deleteDataConsistencyMonitor(anyInt());
-//        addDeletePair = task.addAndDeleteConsistencyMeta(mhaTblsInSameGroup, delayMonitorConfigs);
-//        Assert.assertEquals(1, addDeletePair.getKey().intValue());
-//        Assert.assertEquals(0, addDeletePair.getValue().intValue());
-//    }
-//
-//    @Test
-//    public void testGetIdsToBeDeleted() throws SQLException {
-//        List<Integer> idsToBeDeleted = task.getIdsToBeDeleted(mhaIdsInSameGroup, delayMonitorConfigs);
-//        Assert.assertEquals(2, idsToBeDeleted.size());
-//        List<Integer> expectedIds = Arrays.asList(2, 5);
-//        for(int id : idsToBeDeleted) {
-//            Assert.assertTrue(expectedIds.contains(id));
-//        }
-//    }
-//
-//    @Test
-//    public void testGetDelayMonitorConfigsToBeAdded() throws SQLException {
-//        List<DelayMonitorConfig> delayMonitorConfigsToBeAdded = task.getDelayMonitorConfigsToBeAdded(mhaIdsInSameGroup, delayMonitorConfigs);
-//        Assert.assertEquals(1, delayMonitorConfigsToBeAdded.size());
-//        Assert.assertEquals(delayMonitorConfig1, delayMonitorConfigsToBeAdded.get(0));
-//    }
 
     @Test
     public void testReconnect() throws Exception {
@@ -285,12 +177,10 @@ public class PeriodicalUpdateDbTaskTest {
         task.setInitialDelay(0);
         task.setPeriod(100);
         task.setTimeUnit(TimeUnit.MILLISECONDS);
-
-        task.start();
         String timestamp1 = getTimestamp();
-        Thread.sleep(300);
+        task.start();
+        Thread.sleep(1000);
         String timestamp2 = getTimestamp();
-//        task.getScheduledFuture().cancel(true);
         System.out.println("time1: " + timestamp1 + ", time2: " + timestamp2);
         Assert.assertNotEquals(timestamp1, timestamp2);
 
@@ -301,7 +191,7 @@ public class PeriodicalUpdateDbTaskTest {
         logger.info("db is stopped for simulation");
         createDb();
         String timestamp3 = getTimestamp();
-        Thread.sleep(200);
+        Thread.sleep(1000);
         String timestamp4 = getTimestamp();
         System.out.println("time3: " + timestamp3 + ", time4: " + timestamp4);
         Assert.assertNotEquals(timestamp3, timestamp4);
