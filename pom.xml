@@ -60,6 +60,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
+        <hickwall.version>0.1.9</hickwall.version>
     </properties>
 
     <dependencyManagement>
@@ -353,6 +354,13 @@
                 <artifactId>fastsql</artifactId>
                 <version>${fastsql.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.ctrip.ops</groupId>
+                <artifactId>hickwall-sdk</artifactId>
+                <version>${hickwall.version}</version>
+            </dependency>
+
 
             <!-- for regex expression -->
             <dependency>

@@ -55,8 +55,6 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
     
-    @Autowired
-    private MhaGrayConfig mhaGrayConfig;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -142,12 +140,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                     }
                     long timestampInMillis = System.currentTimeMillis();
                     Timestamp timestamp = new Timestamp(timestampInMillis);
-                    String sql;
-                    if (mhaGrayConfig.gray(mhaName)) {
-                        sql = String.format(UPSERT_SQL,mhaId, dcName,Codec.DEFAULT.encode(mhaDelayInfo),dcName,Codec.DEFAULT.encode(mhaDelayInfo),timestamp);
-                    } else {
-                        sql = String.format(UPSERT_SQL,mhaId, dcName,mhaName,dcName,mhaName,timestamp);
-                    }
+                    String sql = String.format(UPSERT_SQL,mhaId, dcName,Codec.DEFAULT.encode(mhaDelayInfo),dcName,Codec.DEFAULT.encode(mhaDelayInfo),timestamp);
                     GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                     try {
                         CONSOLE_DELAY_MONITOR_LOGGER.info("[[monitor=delay,endpoint={},dc={},cluster={}]][Update DB] timestamp: {}", endpoint.getSocketAddress(), localDcName, registryKey, timestamp);
