@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.config.ConfigSource;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
+import com.ctrip.framework.drc.core.mq.ProducerFactory;
 import com.ctrip.framework.drc.core.server.common.filter.service.UserService;
 
 /**
@@ -30,5 +31,9 @@ public class ServicesUtil extends com.ctrip.xpipe.utils.ServicesUtil {
 
     public static UserService getUidService(){
         return load(UserService.class);
+    }
+
+    public static ProducerFactory getProducerFactory() {
+        return load(ProducerFactory.class);
     }
 }

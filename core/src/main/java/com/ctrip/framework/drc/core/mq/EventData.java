@@ -1,6 +1,4 @@
-package com.ctrip.framework.drc.applier.mq;
-
-import com.ctrip.framework.drc.applier.resource.context.EventType;
+package com.ctrip.framework.drc.core.mq;
 
 import java.util.List;
 
@@ -18,6 +16,11 @@ public class EventData {
     private List<EventColumn> beforeColumns;
 
     private List<EventColumn> afterColumns;
+
+    private String orderKey;
+
+    // primary key value after change
+    private List<EventColumn> keys;
 
     public String getTableName() {
         return tableName;
@@ -57,5 +60,21 @@ public class EventData {
 
     public void setAfterColumns(List<EventColumn> afterColumns) {
         this.afterColumns = afterColumns;
+    }
+
+    public String getOrderKey() {
+        return orderKey;
+    }
+
+    public void setOrderKey(String orderKey) {
+        this.orderKey = orderKey;
+    }
+
+    public List<EventColumn> getKeys() {
+        return keys;
+    }
+
+    public void setKeys(List<EventColumn> keys) {
+        this.keys = keys;
     }
 }

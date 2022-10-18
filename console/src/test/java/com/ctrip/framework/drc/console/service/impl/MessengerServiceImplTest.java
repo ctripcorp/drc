@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.meta.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -23,7 +23,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 public class MessengerServiceImplTest {
-    
+
     @InjectMocks
     private MessengerServiceImpl messengerService;
 
@@ -38,7 +38,7 @@ public class MessengerServiceImplTest {
 
     @Mock
     private DataMediaPairService dataMediaPairService;
-    
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -55,7 +55,7 @@ public class MessengerServiceImplTest {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("ip1");
         Mockito.when( resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl);
-        
+
     }
 
 
@@ -76,9 +76,9 @@ public class MessengerServiceImplTest {
      *         }
      *     ]
      * }
-     * 
+     *
      */
-    
+
     @Test
     public void testGenerateMessengers() throws SQLException {
         List<Messenger> messengers = messengerService.generateMessengers(1L);
@@ -86,14 +86,14 @@ public class MessengerServiceImplTest {
         System.out.println(messengers.get(0).getProperties());
     }
 
-    
+
     private MessengerGroupTbl mockMessengerGroupTbl() {
         MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
         messengerGroupTbl.setId(1L);
         messengerGroupTbl.setGtidExecuted("uuid1:1-10");
         return messengerGroupTbl;
     }
-    
+
     private MessengerProperties mockMessengerProperties() {
         MessengerProperties messengerProperties = new MessengerProperties();
         MqConfig mqConfig = new MqConfig();

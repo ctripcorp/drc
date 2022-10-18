@@ -1,5 +1,8 @@
-package com.ctrip.framework.drc.applier.mq;
+package com.ctrip.framework.drc.service.mq;
 
+import com.ctrip.framework.drc.core.mq.EventColumn;
+import com.ctrip.framework.drc.core.mq.EventData;
+import com.ctrip.framework.drc.core.mq.IProducer;
 import muise.ctrip.canal.ColumnData;
 import muise.ctrip.canal.DataChange;
 
