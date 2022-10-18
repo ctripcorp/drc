@@ -354,11 +354,13 @@
                 <artifactId>fastsql</artifactId>
                 <version>${fastsql.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.ctrip.ops</groupId>
                 <artifactId>hickwall-sdk</artifactId>
                 <version>${hickwall.version}</version>
             </dependency>
+
 
             <!-- for regex expression -->
             <dependency>
