@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.applier.mq;
+package com.ctrip.framework.drc.core.mq;
 
 /**
  * Created by jixinwang on 2022/10/17

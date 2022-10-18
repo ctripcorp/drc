@@ -6,9 +6,8 @@ import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
-import com.ctrip.framework.drc.core.meta.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -28,19 +27,19 @@ import java.util.Set;
  */
 @Service
 public class DataMediaPairServiceImpl implements DataMediaPairService {
-    
+
     @Autowired
     private DataMediaPairTblDao dataMediaPairTblDao;
-    
+
     @Autowired
     private RowsFilterService rowsFilterService;
 
-    
+
     @Override
     public MessengerProperties generateMessengerProperties(Long messengerGroupId) throws SQLException {
         List<MqConfig> mqConfigs = Lists.newArrayList();
         Set<String> tables = Sets.newHashSet();
-        
+
         // mqConfigs
         List<DataMediaPairTbl> dataMediaPairTbls = dataMediaPairTblDao.queryByGroupId(messengerGroupId);
         for (DataMediaPairTbl dataMediaPairTbl : dataMediaPairTbls ) {
@@ -53,10 +52,10 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         }
         MessengerProperties messengerProperties = new MessengerProperties();
         messengerProperties.setMqConfigs(mqConfigs);
-        
+
         //nameFilter
         messengerProperties.setNameFilter(StringUtils.join(tables,","));
-        
+
         //rowsFilters
         DataMediaConfig dataMediaConfig = new DataMediaConfig();
         dataMediaConfig.setRowsFilters(

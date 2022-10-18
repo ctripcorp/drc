@@ -18,64 +18,7 @@ public class DataMediaConfigTest {
      {"rowsFilters":[{"mode":"trip_udl","tables":"table1","parameters":{"columns":["columnA","columnB","cloumnC"],"context":"regre1"},"configs":{"parameterList":[{"columns":["columnA","columnB","cloumnC"],"context":"regre1"}]}},{"mode":"aviator_regex","tables":"table2","parameters":{"columns":["cloumnA"],"context":"regre2"},"configs":{"parameters":[{"columns":["cloumnA"],"context":"regre2"}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
      */
 
-    public static final String MEDIA_CONFIG = "{\n" +
-            "  \"rowsFilters\": [\n" +
-            "    {\n" +
-            "      \"mode\": \"trip_udl\",\n" +
-            "      \"tables\": \"table1\",\n" +
-            "      \"parameters\": {\n" +
-            "        \"columns\": [\n" +
-            "          \"columnA\",\n" +
-            "          \"columnB\",\n" +
-            "          \"cloumnC\"\n" +
-            "        ],\n" +
-            "        \"context\": \"regre1\"\n" +
-            "      },\n" +
-            "      \"configs\": {\n" +
-            "        \"parameterList\": [\n" +
-            "          {\n" +
-            "            \"columns\": [\n" +
-            "              \"columnA\",\n" +
-            "              \"columnB\",\n" +
-            "              \"cloumnC\"\n" +
-            "            ],\n" +
-            "            \"context\": \"regre1\"\n" +
-            "          }\n" +
-            "        ]\n" +
-            "      }\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"mode\": \"aviator_regex\",\n" +
-            "      \"tables\": \"table2\",\n" +
-            "      \"parameters\": {\n" +
-            "        \"columns\": [\n" +
-            "          \"cloumnA\"\n" +
-            "        ],\n" +
-            "        \"context\": \"regre2\"\n" +
-            "      },\n" +
-            "      \"configs\": {\n" +
-            "        \"parameterList\": [\n" +
-            "          {\n" +
-            "            \"columns\": [\n" +
-            "              \"cloumnA\"\n" +
-            "            ],\n" +
-            "            \"context\": \"regre2\"\n" +
-            "          }\n" +
-            "        ]\n" +
-            "      }\n" +
-            "    }\n" +
-            "  ],\n" +
-            "  \"talbePairs\": [\n" +
-            "    {\n" +
-            "      \"source\": \"sourceTableName1\",\n" +
-            "      \"target\": \"targetTableName1\"\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"source\": \"sourceTableName2\",\n" +
-            "      \"target\": \"targetTableName2\"\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+    public static final String MEDIA_CONFIG = "";
 
     private DataMediaConfig rowsFilterConfigs;
 

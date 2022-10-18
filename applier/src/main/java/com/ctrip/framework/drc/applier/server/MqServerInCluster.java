@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.server;
 import com.ctrip.framework.drc.applier.activity.event.*;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
+import com.ctrip.framework.drc.applier.mq.MqResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
@@ -35,6 +36,7 @@ public class MqServerInCluster extends ApplierServerInCluster {
                 .with(CapacityResource.class)
                 .with(ListenableDirectMemoryResource.class)
                 .with(TransformerContextResource.class)
+                .with(MqResource.class)
                 .with(MetricsActivity.class)
                 .with(LoadEventActivity.class)
                 .link(InvolveActivity.class)

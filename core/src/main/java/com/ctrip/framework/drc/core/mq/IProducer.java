@@ -1,6 +1,4 @@
-package com.ctrip.framework.drc.applier.mq;
-
-import muise.ctrip.canal.DataChange;
+package com.ctrip.framework.drc.core.mq;
 
 import java.util.List;
 

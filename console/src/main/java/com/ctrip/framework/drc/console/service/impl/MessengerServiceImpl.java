@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.meta.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,19 +26,19 @@ import java.util.List;
  */
 @Service
 public class MessengerServiceImpl implements MessengerService {
-    
+
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
-    
+
     @Autowired
     private MessengerTblDao messengerTblDao;
-    
+
     @Autowired
     private ResourceTblDao resourceTblDao;
-    
+
     @Autowired
     private DataMediaPairService dataMediaPairService;
-    
+
 
     @Override
     public List<Messenger> generateMessengers(Long mhaId) throws SQLException {

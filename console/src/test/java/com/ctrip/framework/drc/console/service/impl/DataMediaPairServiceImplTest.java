@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
-import com.ctrip.framework.drc.core.meta.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -28,7 +28,7 @@ public class DataMediaPairServiceImplTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        
+
         List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
         Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(dataMediaPairTbls);
 
@@ -54,7 +54,7 @@ public class DataMediaPairServiceImplTest {
          * }
          */
     }
-    
+
     private List<DataMediaPairTbl> mockDataMediaPairTbls() {
         DataMediaPairTbl dataMediaPairTbl = new DataMediaPairTbl();
         dataMediaPairTbl.setSrcDataMediaName("db1.t1");
@@ -72,5 +72,5 @@ public class DataMediaPairServiceImplTest {
         return Lists.newArrayList(dataMediaPairTbl);
 
     }
-    
+
 }
