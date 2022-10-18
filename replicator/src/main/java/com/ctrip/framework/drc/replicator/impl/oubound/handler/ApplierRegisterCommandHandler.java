@@ -195,6 +195,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private Filter<OutboundLogEventContext> filterChain;
 
+        boolean in_exclude_group = false;
+
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
             this.dumpCommandPacket = dumpCommandPacket;
@@ -380,7 +382,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private boolean sendEvents(FileChannel fileChannel, GtidSet excludedSet, long endPos) throws Exception {
 
-            boolean in_exclude_group = false;
             String gtidForLog = StringUtils.EMPTY;
 
             while (endPos > fileChannel.position() && !channelClosed) {  //read event in while
