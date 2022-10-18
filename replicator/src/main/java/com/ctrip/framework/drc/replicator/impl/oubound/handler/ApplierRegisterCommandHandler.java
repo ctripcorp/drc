@@ -246,7 +246,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
         }
 
-        private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid, boolean in_exclude_group) {
+        private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {
             if (eventType == gtid_log_event) {
                 return new GtidSet(gtid).isContainedWithin(excludedSet);
             }
@@ -407,16 +407,13 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
 
-                Pair<Boolean, String> res;
-                if (!isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, eventType, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null, in_exclude_group))))) {
-                    res = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, in_exclude_group);
+                if (!isSlaveConcerned && (isIndexLogEvent || (excludedSet != null && (in_exclude_group = skipEvent(excludedSet, eventType, eventPair.getKey() != null ? eventPair.getKey().getGtid() : null))))) {
+                    gtidForLog = handleNotSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog);
                     channelAttributeKey.handleEvent(false);
                 } else {
-                    res = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf, in_exclude_group);
+                    gtidForLog = handleSend(fileChannel, eventPair.getKey(), eventSize, eventType, gtidForLog, headByteBuf);
                     channelAttributeKey.handleEvent(true);
                 }
-                in_exclude_group = res.getKey();
-                gtidForLog = res.getValue();
 
                 releaseCompositeByteBuf(eventPair.getValue());
                 endPos = fileChannel.size();
@@ -461,7 +458,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return Pair.from(null, null);
         }
 
-        private Pair<Boolean, String> handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf, boolean in_exclude_group) throws Exception {
+        private String handleSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, ByteBuf headByteBuf) throws Exception {
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
@@ -478,7 +475,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 if (!LogEventUtils.isDrcEvent(eventType) && (checkPartialTransaction(fileChannel, eventSize, eventType)
                         || processNameFilter(fileChannel, eventSize, eventType, headByteBuf))) {
                     lastEventType = eventType;
-                    return Pair.from(in_exclude_group, previousGtidLogEvent);
+                    return previousGtidLogEvent;
                 }
 
                 // read header already
@@ -498,7 +495,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
             logGtid(previousGtidLogEvent, eventType);
             lastEventType = eventType;
-            return Pair.from(in_exclude_group, previousGtidLogEvent);
+            return previousGtidLogEvent;
         }
 
         private boolean processNameFilter(FileChannel fileChannel, long eventSize, LogEventType eventType, ByteBuf headByteBuf) throws IOException {
@@ -577,7 +574,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             releaseCompositeByteBuf(compositeByteBuf);
         }
 
-        private Pair<Boolean, String> handleNotSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent, boolean in_exclude_group) throws IOException {
+        private String handleNotSend(FileChannel fileChannel, GtidLogEvent gtidLogEvent, long eventSize, LogEventType eventType, String previousGtidLogEvent) throws IOException {
             if (gtidLogEvent == null) {  // no need to read body
                 fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
                 if (xid_log_event == eventType) {  //skip all transaction, clear in_exclude_group
@@ -596,7 +593,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 }
             }
 
-            return Pair.from(in_exclude_group, previousGtidLogEvent);
+            return previousGtidLogEvent;
         }
 
         private void trySkip(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf, GtidSet excludedSet) throws IOException {
