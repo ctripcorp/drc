@@ -195,7 +195,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private Filter<OutboundLogEventContext> filterChain;
 
-        boolean in_exclude_group = false;
+        private boolean in_exclude_group = false;
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
