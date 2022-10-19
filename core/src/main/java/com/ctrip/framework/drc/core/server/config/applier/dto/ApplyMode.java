@@ -7,7 +7,8 @@ package com.ctrip.framework.drc.core.server.config.applier.dto;
 public enum ApplyMode {
 
     set_gtid(0, "set_gtid"),
-    transaction_table(1, "transaction_table");
+    transaction_table(1, "transaction_table"),
+    mq(2, "mq");
 
     public static ApplyMode getApplyMode(final int type) {
         for(ApplyMode applyMode : values()) {

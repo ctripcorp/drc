@@ -69,11 +69,11 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
     
     @Override
-    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException {
+    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException {
         ArrayList<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
-                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
-
+                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
+        
         for (RowsFilterMappingTbl mapping :  rowsFilterMappingTbls) {
             RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
             
@@ -120,13 +120,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     
 
     @Override
-    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException {
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException {
         List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
         if (applierGroupId == null) {
             return mappingVos;
         }
         List<RowsFilterMappingTbl> rowsFilterMappingTbls =
-                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
+                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
         for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             List<DataMediaTbl> dataMediaTbls =
                     dataMediaTblDao.queryByIdsAndType(
@@ -214,11 +214,12 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Override
     public List<String> getLogicalTables(
             Long applierGroupId, 
+            int applierType,
             Long dataMediaId, 
             String namespace, 
             String name,
             String mhaName) throws SQLException {
-        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId);
+        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId,applierType);
         List<String> logicalTables = Lists.newArrayList();
         if (dataMediaId == 0) { // add
             logicalTables = rowsFilterMappingVos.stream().

@@ -2,9 +2,11 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
@@ -40,6 +42,9 @@ public class MetaGenerator {
     
     @Autowired
     private RowsFilterService rowsFilterService;
+    
+    @Autowired
+    private MessengerService messengerService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -256,7 +261,7 @@ public class MetaGenerator {
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().
                 filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ApplierTypeEnum.APPLIER.getCode());
         DataMediaConfig properties = new DataMediaConfig();
         properties.setRowsFilters(rowsFilterConfigs);
         String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
@@ -282,6 +287,14 @@ public class MetaGenerator {
         }
     }
 
+    private void generateMessengers(DbCluster dbCluster, MhaTbl mhaTbl) throws SQLException {
+        List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
+        for (Messenger messenger : messengers) {
+            dbCluster.addMessenger(messenger);
+        }
+    }
+
+
     private void generateDbClusters(Dc dc, Long dcId) throws SQLException {
         List<MhaTbl> localMhaTbls = mhaTbls.stream().filter(mhaTbl -> (mhaTbl.getDcId().equals(dcId))).collect(Collectors.toList());
         for(MhaTbl mhaTbl : localMhaTbls) {
@@ -300,11 +313,14 @@ public class MetaGenerator {
             DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
             Dbs dbs = generateDbs(dbCluster, mhaGroupTblList.iterator().next(), mhaTbl);
             generateDb(dbs, mhaTbl);
+            
+            generateMessengers(dbCluster,mhaTbl);
             generateReplicators(dbCluster, mhaTbl);
             generateAppliers(dbCluster, mhaTbl);
         }
     }
 
+    
     private void generateDc(Drc drc, Long dcId, String dcName) throws Exception {
         DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.meta", dcName, new Task() {
             @Override
