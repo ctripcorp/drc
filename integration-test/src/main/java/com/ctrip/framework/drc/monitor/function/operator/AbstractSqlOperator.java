@@ -477,7 +477,7 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                         "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '',\n" +
                         "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '',\n" +
                         "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '',\n" +
-                        "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
+                        "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT 'Name',\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='test';",
