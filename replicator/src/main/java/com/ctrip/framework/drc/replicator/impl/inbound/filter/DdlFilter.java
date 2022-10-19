@@ -150,11 +150,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
     public boolean parseQueryEvent(QueryLogEvent event) {
         String queryString = event.getQuery();
         if (StringUtils.startsWithIgnoreCase(queryString, BEGIN)      ||
-            StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
-            StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT)  ||
-            StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK)||
-            StringUtils.endsWithIgnoreCase(queryString, XA_START)     ||
-            StringUtils.endsWithIgnoreCase(queryString, XA_END)) {
+                StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_COMMIT)  ||
+                StringUtils.startsWithIgnoreCase(queryString, XA_ROLLBACK)||
+                StringUtils.endsWithIgnoreCase(queryString, XA_START)     ||
+                StringUtils.endsWithIgnoreCase(queryString, XA_END)) {
             return false;
         } else {
             QueryLogEvent.QueryStatus queryStatus = event.getQueryStatus();

@@ -124,6 +124,7 @@ import org.junit.runners.Suite;
         DelayMonitorLogEventTest.class,
         TransactionEventTest.class,
         ParsedDdlLogEventTest.class,
+        TransactionTableMarkedTableMapLogEventTest.class,
 
         // command package
         ApplierDumpCommandPacketTest.class,

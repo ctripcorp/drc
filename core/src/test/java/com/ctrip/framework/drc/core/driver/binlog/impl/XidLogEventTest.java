@@ -1,14 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Collection;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 
@@ -44,30 +40,13 @@ public class XidLogEventTest {
         final XidLogEvent constructXidLogEvent = new XidLogEvent(1L, 100, 1092);
 
         final ByteBuf writeByteBuf = ByteBufAllocator.DEFAULT.directBuffer();
-        constructXidLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    final byte[] bytes = new byte[byteBuf.writerIndex()];
-                    for (int i = 0; i < byteBuf.writerIndex(); i++) {
-                        bytes[i] = byteBuf.getByte(i);
-                    }
-                    writeByteBuf.writeBytes(bytes);
+        constructXidLogEvent.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                final byte[] bytes = new byte[byteBuf.writerIndex()];
+                for (int i = 0; i < byteBuf.writerIndex(); i++) {
+                    bytes[i] = byteBuf.getByte(i);
                 }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
+                writeByteBuf.writeBytes(bytes);
             }
         });
 

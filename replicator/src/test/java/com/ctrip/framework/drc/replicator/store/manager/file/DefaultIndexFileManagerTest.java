@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.ctrip.framework.drc.core.driver.util.ByteHelper.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_DRC_UUID_EVENT_SIZE;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EMPTY_PREVIOUS_GTID_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.AllTests.previous_gtidset_interval;
-import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.FORMAT_LOG_EVENT_SIZE;
 import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager.LOG_EVENT_START;
 
 /**

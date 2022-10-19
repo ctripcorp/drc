@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionTableMarkedTableMapLogEvent;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
@@ -26,6 +27,7 @@ public class TransactionTableFilter extends AbstractLogEventFilter<InboundLogEve
             TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
             String tableName = tableMapLogEvent.getTableName();
             if (DRC_TRANSACTION_TABLE_NAME.equalsIgnoreCase(tableName)) {
+                value.setLogEvent(new TransactionTableMarkedTableMapLogEvent(tableMapLogEvent));
                 value.mark(TRANSACTION_TABLE_F);
             }
         }

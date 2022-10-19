@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.replicator.store;
 
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
@@ -58,24 +58,18 @@ public class FilePersistenceEventStore extends AbstractLifecycle implements Even
         LifecycleHelper.startIfPossible(writerDelegate);
     }
 
-    @Override
-    public void write(byte[] data) {
-        writerDelegate.write(data);
-    }
-
+    /**
+     * for log_event
+     * @param byteBuf
+     */
     @Override
     public void write(Collection<ByteBuf> byteBuf) {
-        this.write(byteBuf, false);
+        this.write(byteBuf, new TransactionContext(false));
     }
 
     @Override
-    public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-        writerDelegate.write(byteBuf, isDdl);
-    }
-
-    @Override
-    public void write(LogEvent logEvent) {
-        writerDelegate.write(logEvent);
+    public void write(Collection<ByteBuf> byteBuf, TransactionContext context) {
+        writerDelegate.write(byteBuf, context);
     }
 
     @Override

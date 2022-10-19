@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.xpipe.tuple.Pair;
@@ -12,7 +10,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -80,28 +77,13 @@ public class TableMapLogEventTest {
         );
 
         final ByteBuf writeByteBuf = ByteBufAllocator.DEFAULT.directBuffer();
-        constructorTableMapLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                for (ByteBuf byteBuf : byteBufs) {
-                    final byte[] bytes = new byte[byteBuf.writerIndex()];
-                    for (int i = 0; i < byteBuf.writerIndex(); i++) {
-                        bytes[i] = byteBuf.getByte(i);
-                    }
-                    writeByteBuf.writeBytes(bytes);
+        constructorTableMapLogEvent.write(byteBufs -> {
+            for (ByteBuf byteBuf : byteBufs) {
+                final byte[] bytes = new byte[byteBuf.writerIndex()];
+                for (int i = 0; i < byteBuf.writerIndex(); i++) {
+                    bytes[i] = byteBuf.getByte(i);
                 }
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
+                writeByteBuf.writeBytes(bytes);
             }
         });
 

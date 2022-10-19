@@ -34,10 +34,7 @@ public class InboundFilterChainContext {
 
     private TableFilterConfiguration tableFilterConfiguration;
 
-    public InboundFilterChainContext() {
-    }
-
-    public InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
+    private InboundFilterChainContext(Set<UUID> whiteUUID, Set<String> tableNames,
                                      SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
                                      TransactionCache transactionCache, DefaultMonitorManager monitorManager,
                                      String registryKey, TableFilterConfiguration tableFilterConfiguration,
@@ -123,5 +120,81 @@ public class InboundFilterChainContext {
 
     public void registerBlackTableNameFilter(BlackTableNameFilter filter) {
         tableFilterConfiguration.register(registryKey, filter);
+    }
+
+    public static class Builder {
+
+        private Set<UUID> whiteUUID = Sets.newConcurrentHashSet();
+
+        private Set<String> tableNames = Sets.newConcurrentHashSet();
+
+        private SchemaManager schemaManager;
+
+        private String registryKey;
+
+        private int applyMode;
+
+        private InboundMonitorReport inboundMonitorReport;
+
+        private TransactionCache transactionCache;
+
+        private DefaultMonitorManager monitorManager;
+
+        private TableFilterConfiguration tableFilterConfiguration;
+
+        public Builder whiteUUID(Set<UUID> whiteUUID){
+            this.whiteUUID = whiteUUID;
+            return this;
+        }
+
+        public Builder tableNames(Set<String> tableNames){
+            this.tableNames = tableNames;
+            return this;
+        }
+
+        public Builder schemaManager(SchemaManager schemaManager){
+            this.schemaManager = schemaManager;
+            return this;
+        }
+
+        public Builder registryKey(String registryKey){
+            this.registryKey = registryKey;
+            return this;
+        }
+
+        public Builder applyMode(int applyMode){
+            this.applyMode = applyMode;
+            return this;
+        }
+
+        public Builder inboundMonitorReport(InboundMonitorReport inboundMonitorReport){
+            this.inboundMonitorReport = inboundMonitorReport;
+            return this;
+        }
+
+        public Builder transactionCache(TransactionCache transactionCache){
+            this.transactionCache = transactionCache;
+            return this;
+        }
+
+        public Builder monitorManager(DefaultMonitorManager monitorManager){
+            this.monitorManager = monitorManager;
+            return this;
+        }
+
+        public Builder tableFilterConfiguration(TableFilterConfiguration tableFilterConfiguration){
+            this.tableFilterConfiguration = tableFilterConfiguration;
+            return this;
+        }
+
+        public InboundFilterChainContext build() {
+            return new InboundFilterChainContext(
+                    whiteUUID, tableNames,
+                    schemaManager, inboundMonitorReport,
+                    transactionCache, monitorManager,
+                    registryKey, tableFilterConfiguration,
+                    applyMode);
+        }
+
     }
 }

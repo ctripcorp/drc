@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.CompositeByteBuf;
@@ -9,8 +7,6 @@ import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collection;
 
 /**
  * @author shenhaibo
@@ -60,27 +56,7 @@ public class DelayMonitorLogEventTest {
         Assert.assertNotEquals(0, delayMonitorLogEvent.getUpdateRowsEvent().getPayloadBuf().refCnt());
 
         // test send header and payload together
-        clone.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf) {
-                Assert.assertEquals(byteBuf.size(), 1);
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
-            }
-        });
+        clone.write(byteBuf -> Assert.assertEquals(byteBuf.size(), 1));
 
         clone.release();
         delayMonitorLogEvent.release();

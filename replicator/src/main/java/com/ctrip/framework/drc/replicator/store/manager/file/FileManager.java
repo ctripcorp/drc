@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.store.manager.file;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObservable;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
@@ -19,7 +20,7 @@ import java.util.Collection;
  */
 public interface FileManager extends GtidReader, GtidObservable, Flushable, Destroyable, Lifecycle {
 
-    boolean append(Collection<ByteBuf> byteBufs, boolean isDdl) throws IOException;
+    boolean append(Collection<ByteBuf> byteBufs, TransactionContext context) throws IOException;
 
     boolean append(ByteBuf byteBuf) throws IOException;
 

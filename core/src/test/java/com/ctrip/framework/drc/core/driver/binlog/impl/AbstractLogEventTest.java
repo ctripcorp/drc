@@ -1,13 +1,10 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
-import com.ctrip.framework.drc.core.driver.IoCache;
-import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
@@ -54,26 +51,7 @@ public class AbstractLogEventTest {
 
         // write
         final AtomicInteger writeCount = new AtomicInteger(0);
-        gtidLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBufs) {
-                writeCount.incrementAndGet();
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
-            }
-        });
+        gtidLogEvent.write(byteBufs -> writeCount.incrementAndGet());
         Assert.assertEquals(1, writeCount.get());
 
         // release
@@ -89,25 +67,7 @@ public class AbstractLogEventTest {
     @Test(expected = IllegalStateException.class)
     public void writeBeforeFinishedReading() {
         final GtidLogEvent gtidLogEvent = new GtidLogEvent();
-        gtidLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf>  byteBufs) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
-            }
+        gtidLogEvent.write(byteBufs -> {
         });
     }
 
@@ -124,26 +84,7 @@ public class AbstractLogEventTest {
 
         // write
         final AtomicInteger writeCount = new AtomicInteger(0);
-        gtidLogEvent.write(new IoCache() {
-            @Override
-            public void write(byte[] data) {
-
-            }
-
-            @Override
-            public void write(Collection<ByteBuf>  byteBufs) {
-                writeCount.incrementAndGet();
-            }
-
-            @Override
-            public void write(Collection<ByteBuf> byteBuf, boolean isDdl) {
-            }
-
-            @Override
-            public void write(LogEvent logEvent) {
-
-            }
-        });
+        gtidLogEvent.write(byteBufs -> writeCount.incrementAndGet());
         Assert.assertEquals(1, writeCount.get());
 
         // release

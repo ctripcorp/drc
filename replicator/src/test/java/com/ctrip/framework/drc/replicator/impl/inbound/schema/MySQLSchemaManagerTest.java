@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
-import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
@@ -294,7 +291,7 @@ public class MySQLSchemaManagerTest extends MockTest {
     public void recovery() throws IOException {
         final ByteBuf byteBuf = initByteBuf();
         final GtidLogEvent gtidLogEvent = new GtidLogEvent().read(byteBuf);
-        fileManager.append(Lists.newArrayList(gtidLogEvent.getLogEventHeader().getHeaderBuf(), gtidLogEvent.getPayloadBuf()), false);
+        fileManager.append(Lists.newArrayList(gtidLogEvent.getLogEventHeader().getHeaderBuf(), gtidLogEvent.getPayloadBuf()), new TransactionContext(false));
 
         MySQLSchemaManager sm = new MySQLSchemaManager(endpoint, APPLIER_PORT + 1001, "test", null);
         FileManager fm = new DefaultFileManager(sm, CLUSTER_NAME);
