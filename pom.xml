@@ -61,7 +61,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
-        <hickwall.version>0.1.9</hickwall.version>
+        <hickwall.version>0.1.13</hickwall.version>
     </properties>
 
     <dependencyManagement>

@@ -346,7 +346,21 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                 DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, config.getMeasurement());
                 DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, 0L, DRC_DELAY_EXCEPTION_MESUREMENT);
                 if (null != gtid) {
-                    logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\nGTID: {}\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, gtid, formatter.format(rTime), delayString);
+                    logger.info("[[" +
+                                    "monitor=delay,direction={}({}):{}({})," +
+                                    "cluster={}," +
+                                    "replicator={}:{}," +
+                                    "measurement={},slow={}]]" +
+                            "\n[Report Delay] {}ms" +
+                            "\nGTID: {}" +
+                            "\ndelay = currentTime({}) - datachange_lasttime({})" +
+                            "[or commitTime]",
+                            mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
+                            config.getCluster(),
+                            config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                            config.getMeasurement(), delay > SLOW_THRESHOLD,
+                            delay, gtid, 
+                            formatter.format(rTime), delayString);
                 } else {
                     logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
                 }
