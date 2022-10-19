@@ -42,13 +42,11 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
             if (logEventHeader != null) {
                 headerBuf = logEventHeader.getHeaderBuf();
-                headerBuf.readerIndex(0);
             } else {
                 throw new IllegalStateException("haven’t init this event, can’t start write.");
             }
 
             ByteBuf payload = logEvent.getPayloadBuf();
-            payload.readerIndex(0);
             if (payload != null && headerBuf != null) {
                 headerBuf.readerIndex(0);
                 payload.readerIndex(0);
