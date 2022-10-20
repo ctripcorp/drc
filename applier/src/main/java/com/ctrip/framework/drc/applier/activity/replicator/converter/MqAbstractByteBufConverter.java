@@ -7,8 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConve
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
-import com.ctrip.framework.drc.fetcher.event.ApplierDrcGtidEvent;
-import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
+import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import io.netty.buffer.ByteBuf;
 
@@ -22,11 +21,11 @@ public class MqAbstractByteBufConverter extends AbstractByteBufConverter {
         final LogEventType nextLogEventType = LogEventUtils.parseNextLogEventType(byteBuf);
         switch (nextLogEventType) {
             case gtid_log_event:
-                return new MqApplierGtidEvent();
+                return new MqApplierGtidEvent(DcTag.LOCAL);
             case drc_gtid_log_event:
-                return new ApplierDrcGtidEvent();
+                return new MqApplierGtidEvent(DcTag.PEER);
             case table_map_log_event:
-                return new ApplierTableMapEvent();
+                return new MqApplierTableMapEvent();
             case write_rows_event_v2:
                 return new ApplierWriteRowsEvent();
             case update_rows_event_v2:

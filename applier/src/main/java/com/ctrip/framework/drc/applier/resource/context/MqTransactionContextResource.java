@@ -1,12 +1,9 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.core.mq.EventColumn;
-import com.ctrip.framework.drc.core.mq.EventData;
-import com.ctrip.framework.drc.applier.mq.Mq;
+import com.ctrip.framework.drc.core.mq.*;
+import com.ctrip.framework.drc.applier.mq.MqProvider;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
-import com.ctrip.framework.drc.core.mq.EventType;
-import com.ctrip.framework.drc.core.mq.IProducer;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -23,7 +20,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
     private final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
 
     @InstanceResource
-    public Mq mq;
+    public MqProvider mqProvider;
 
     @Override
     public void doInitialize() throws Exception {
@@ -52,15 +49,20 @@ public class MqTransactionContextResource extends TransactionContextResource {
     }
 
     private void sendEventDatas(List<EventData> eventDatas) {
-        List<IProducer> producers = mq.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
-        for (IProducer producer : producers) {
+        List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
+        for (Producer producer : producers) {
             producer.send(eventDatas);
         }
     }
 
     private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns, EventType eventType) {
+        DcTag dcTag = fetchDcTag();
         List<EventData> eventDatas = Lists.newArrayList();
+        //TODO:确认主键，不存在？
         Bitmap bitmapOfIdentifier = columns.getBitmapsOfIdentifier().get(0);
+        if (bitmapOfIdentifier == null) {
+            bitmapOfIdentifier = new Bitmap();
+        }
 
         for (int i = 0; i < beforeRows.size(); i++) {
             List<Object> beforeRow = beforeRows.get(i);
@@ -73,6 +75,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
             eventData.setSchemaName(tableKey.getDatabaseName());
             eventData.setTableName(tableKey.getTableName());
             eventData.setEventType(eventType);
+            eventData.setDcTag(dcTag);
             List<EventColumn> beforeList = new ArrayList<>();
             List<EventColumn> afterList = new ArrayList<>();
             eventData.setBeforeColumns(beforeList);

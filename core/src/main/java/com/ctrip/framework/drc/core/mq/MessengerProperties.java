@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.core.mq;
 
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
-import com.ctrip.framework.drc.core.monitor.util.ServicesUtil;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -21,7 +20,6 @@ import java.util.Map;
  */
 public class MessengerProperties {
 
-
     private String nameFilter;
 
     private DataMediaConfig dataMediaConfig;
@@ -29,19 +27,16 @@ public class MessengerProperties {
     private List<MqConfig> mqConfigs;
 
     @JsonIgnore
-    private ProducerFactory producerFactory = ServicesUtil.getProducerFactory();
+    private Map<String, MqConfig> table2Config = Maps.newConcurrentMap();  // regex : mqConfig
 
     @JsonIgnore
-    private Map<String, MqConfig> table2Config = Maps.newHashMap();  // regex : mqConfig
+    private Map<String, AviatorRegexFilter> table2Filter = Maps.newConcurrentMap();  // regex : AviatorRegexFilter
 
     @JsonIgnore
-    private Map<String, AviatorRegexFilter> table2Filter = Maps.newHashMap();  // regex : AviatorRegexFilter
+    private Map<String, Producer> table2Producer = Maps.newConcurrentMap();  // regex : Producer
 
     @JsonIgnore
-    private Map<String, IProducer> table2Producer = Maps.newHashMap();  // regex : Producer
-
-    @JsonIgnore
-    private Map<String, List<IProducer>> tableName2Producers = Maps.newHashMap(); // tableName :  Producers
+    private Map<String, List<Producer>> tableName2Producers = Maps.newConcurrentMap(); // tableName :  Producers
 
     public String getNameFilter() {
         return nameFilter;
@@ -89,16 +84,16 @@ public class MessengerProperties {
         }
     }
 
-    public List<IProducer> getProducers(String tableName) {
-        List<IProducer> producers = tableName2Producers.get(tableName);
+    public List<Producer> getProducers(String tableName) {
+        List<Producer> producers = tableName2Producers.get(tableName);
         if (producers == null) {
-            List<IProducer> toCreateProducers = Lists.newArrayList();
+            List<Producer> toCreateProducers = Lists.newArrayList();
             for (Map.Entry<String, MqConfig> entry : table2Config.entrySet()) {
                 String tableRegex = entry.getKey();
                 if (table2Filter.get(tableRegex).filter(tableName)) {
-                    IProducer producer = table2Producer.get(tableRegex);
+                    Producer producer = table2Producer.get(tableRegex);
                     if (producer == null) {
-                        producer = producerFactory.createProducer(table2Config.get(tableName));
+                        producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(tableName));
                         table2Producer.put(tableRegex, producer);
                     }
                     toCreateProducers.add(producer);
