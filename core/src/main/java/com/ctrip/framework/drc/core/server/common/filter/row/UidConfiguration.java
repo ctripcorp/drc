@@ -41,10 +41,10 @@ public class UidConfiguration extends AbstractConfigBean {
         return UidConfigurationHolder.INSTANCE;
     }
 
-    public boolean filterRowsWithBlackList(UidContext uidContext) throws Exception {
+    public boolean filterRowsWithBlackList(UserContext uidContext) throws Exception {
         try {
             String registryKey = uidContext.getRegistryKey();
-            String uid = uidContext.getUid();
+            String uid = uidContext.getUserAttr();
             Preconditions.checkArgument(StringUtils.isNotBlank(uid));
             Set<String> blackListUids = blackListCache.get(registryKey, () -> getList(String.format(UID_BLACKLIST, registryKey)));
             boolean res = !blackListUids.contains(uid.trim().toLowerCase());
@@ -57,10 +57,10 @@ public class UidConfiguration extends AbstractConfigBean {
         }
     }
 
-    public boolean filterRowsWithWhiteList(UidContext uidContext) throws Exception {
+    public boolean filterRowsWithWhiteList(UserContext uidContext) throws Exception {
         try {
             String registryKey = uidContext.getRegistryKey();
-            String uid = uidContext.getUid();
+            String uid = uidContext.getUserAttr();
             Preconditions.checkArgument(StringUtils.isNotBlank(uid));
             Set<String> whiteListUids = whiteListCache.get(registryKey, () -> getList(String.format(UID_WHITELIST, registryKey)));
             return whiteListUids.contains(uid.trim().toLowerCase());

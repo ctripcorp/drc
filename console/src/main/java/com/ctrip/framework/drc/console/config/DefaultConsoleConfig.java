@@ -89,8 +89,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     
     private static String CONFLICT_RECORD_SEARCH_TIME = "conflict.mha.record.search.time";
     private static int DEFAULT_CONFLICT_RECORD_SEARCH_TIME = 120;
+    
 
-    public DefaultConsoleConfig(Config config) {
+    // only for test
+    protected DefaultConsoleConfig(Config config) {
         super(config);
     }
 
@@ -408,4 +410,5 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public String getSwitchMetaRollBack() {
         return getProperty(SWITCH_META_ROLL_BACK,SWITCH_OFF);
     }
+    
 }

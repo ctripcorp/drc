@@ -1,17 +1,21 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
+import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +32,9 @@ public class LocalController {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+
+    @Autowired
+    private RowsFilterService rowsFilterService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
     

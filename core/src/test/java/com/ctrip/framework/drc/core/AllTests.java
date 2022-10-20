@@ -32,6 +32,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
 import com.ctrip.framework.drc.core.server.config.ApplierRegistryKeyTest;
@@ -65,6 +66,9 @@ import org.junit.runners.Suite;
         DataMediaConfigTest.class,
         AbstractRowsFilterRuleTest.class,
         UidConfigurationTest.class,
+        RowsFilterTypeTest.class,
+        AbstractRowsFilterRuleForUdlTest.class,
+        AbstractRowsFilterRuleForUidTest.class,
         //schema
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
@@ -239,32 +243,50 @@ import org.junit.runners.Suite;
 
 })
 public class AllTests {
+    /**
+     {"rowsFilters":[{"mode":"%s","tables":"drc1.insert1","parameters":{"columns":["id","one"],"fetchMode":0,"context":"%s"},"configs":{"parameterList":[{"columns":["id","one"],"fetchMode":0,"context":"%s","userFilterMode":"uid","drcStrategyId":1,"routeStrategyId":1}]}}],"talbePairs":[{"source":"sourceTableName1","target":"targetTableName1"},{"source":"sourceTableName2","target":"targetTableName2"}]}
+     */
 
-    public static final String ROW_FILTER_PROPERTIES = "{" +
-            "  \"rowsFilters\": [" +
-            "    {" +
-            "      \"mode\": \"%s\"," +
-            "      \"tables\": \"drc1.insert1\"," +
-            "      \"parameters\": {" +
-            "        \"columns\": [" +
-            "          \"id\"," +
-            "          \"one\"" +
-            "        ]," +
-            "        \"fetchMode\": 0," +
-            "        \"context\": \"%s\"" +
-            "      }" +
-            "    }" +
-            "  ]," +
-            "  \"talbePairs\": [" +
-            "    {" +
-            "      \"source\": \"sourceTableName1\"," +
-            "      \"target\": \"targetTableName1\"" +
-            "    }," +
-            "    {" +
-            "      \"source\": \"sourceTableName2\"," +
-            "      \"target\": \"targetTableName2\"" +
-            "    }" +
-            "  ]" +
+    public static final String ROW_FILTER_PROPERTIES = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"%s\",\n" +
+            "      \"tables\": \"drc1.insert1\",\n" +
+            "      \"parameters\": {\n" +
+            "        \"columns\": [\n" +
+            "          \"id\",\n" +
+            "          \"one\"\n" +
+            "        ],\n" +
+            "        \"fetchMode\": 0,\n" +
+            "        \"context\": \"%s\"\n" +
+            "      },\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"id\",\n" +
+            "              \"one\"\n" +
+            "            ],\n" +
+            "            \"fetchMode\": 0,\n" +
+            "            \"context\": \"%s\",\n" +
+            "            \"userFilterMode\": \"uid\",\n" +
+            "            \"drcStrategyId\" : 1,\n" +
+            "            \"routeStrategyId\" : 1\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"talbePairs\": [\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName1\",\n" +
+            "      \"target\": \"targetTableName1\"\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"source\": \"sourceTableName2\",\n" +
+            "      \"target\": \"targetTableName2\"\n" +
+            "    }\n" +
+            "  ]\n" +
             "}";
 
     public static int ZK_PORT = 2182;

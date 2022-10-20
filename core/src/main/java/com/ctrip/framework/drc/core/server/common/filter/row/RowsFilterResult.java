@@ -6,20 +6,20 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
  */
 public class RowsFilterResult<V> {
 
-    private boolean noRowFiltered;
+    private Status noRowFiltered;
 
     private V res;
 
-    public RowsFilterResult(boolean noRowFiltered) {
+    public RowsFilterResult(Status noRowFiltered) {
         this.noRowFiltered = noRowFiltered;
     }
 
-    public RowsFilterResult(boolean noRowFiltered, V res) {
+    public RowsFilterResult(Status noRowFiltered, V res) {
         this.noRowFiltered = noRowFiltered;
         this.res = res;
     }
 
-    public boolean isNoRowFiltered() {
+    public Status isNoRowFiltered() {
         return noRowFiltered;
     }
 
@@ -29,5 +29,28 @@ public class RowsFilterResult<V> {
 
     public void setRes(V res) {
         this.res = res;
+    }
+
+    public enum Status {
+
+        No_Filtered(true),
+
+        Filtered(false),
+
+        Illegal(false);
+
+        private boolean noRowFiltered;
+
+        Status(boolean noRowFiltered) {
+            this.noRowFiltered = noRowFiltered;
+        }
+
+        public boolean noRowFiltered() {
+            return noRowFiltered;
+        }
+
+        public static Status from(boolean res) {
+            return res ? No_Filtered : Filtered;
+        }
     }
 }

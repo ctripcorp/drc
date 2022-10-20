@@ -5,7 +5,10 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
-import com.ctrip.xpipe.codec.JsonCodec;
+import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -39,6 +42,12 @@ public class RowsFilterMappingVo {
     
     private List<String> columns;
     
+    private List<String> udlColumns;
+
+    private Integer drcStrategyId;
+
+    private Integer routeStrategyId;
+    
     private String context;
     
     private boolean illegalArgument;
@@ -65,15 +74,47 @@ public class RowsFilterMappingVo {
     
     public void setRowsFilter(RowsFilterTbl rowsFilterTbl) {
         this.rowsFilterId = rowsFilterTbl.getId();
-        this.mode = rowsFilterTbl.getMode();
-        RowsFilterConfig.Parameters parameters = 
-                JsonCodec.INSTANCE.decode(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class);
-        this.columns = parameters.getColumns();
-        this.context = parameters.getContext();
-        this.illegalArgument = parameters.getIllegalArgument();
-        this.fetchMode = parameters.getFetchMode();
-    }
+        this.columns = Lists.newArrayList();
+        this.udlColumns = Lists.newArrayList();
 
+        RowsFilterConfig.Configs configs;
+        // for migrate
+        if (RowsFilterType.TripUid.getName().equals(rowsFilterTbl.getMode())) {
+            this.mode = RowsFilterType.TripUdl.getName();
+            configs = new RowsFilterConfig.Configs();
+            configs.setParameterList(Lists.newArrayList(
+                    JsonUtils.fromJson(rowsFilterTbl.getParameters(), RowsFilterConfig.Parameters.class)
+            ));
+        } else {
+            this.mode = rowsFilterTbl.getMode();
+            configs =  JsonUtils.fromJson(rowsFilterTbl.getConfigs(), RowsFilterConfig.Configs.class);
+        }
+
+        this.drcStrategyId = configs.getDrcStrategyId();
+        this.routeStrategyId = configs.getRouteStrategyId();
+        
+        List<RowsFilterConfig.Parameters> parametersList= configs.getParameterList();
+        if (RowsFilterType.TripUdl.getName().equalsIgnoreCase(rowsFilterTbl.getMode())) {
+            for (RowsFilterConfig.Parameters parameters : parametersList) {
+                this.context = parameters.getContext();
+                this.illegalArgument = parameters.getIllegalArgument();
+                this.fetchMode = parameters.getFetchMode();
+                if (UserFilterMode.Uid.getName().equals(parameters.getUserFilterMode())) {
+                    this.columns = parameters.getColumns();
+                } 
+                if(UserFilterMode.Udl.getName().equals(parameters.getUserFilterMode())){
+                    this.udlColumns = parameters.getColumns();
+                }
+            }
+        } else {
+            RowsFilterConfig.Parameters parameters = parametersList.get(0);
+            this.columns = parameters.getColumns();
+            this.context = parameters.getContext();
+            this.illegalArgument = parameters.getIllegalArgument();
+            this.fetchMode = parameters.getFetchMode();
+        }
+        
+    }
 
     @Override
     public String toString() {
@@ -88,6 +129,9 @@ public class RowsFilterMappingVo {
                 ", rowsFilterId=" + rowsFilterId +
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
+                ", udlColumns=" + udlColumns +
+                ", drcStrategyId=" + drcStrategyId +
+                ", routeStrategyId=" + routeStrategyId +
                 ", context='" + context + '\'' +
                 ", illegalArgument=" + illegalArgument +
                 ", fetchMode=" + fetchMode +
@@ -196,5 +240,29 @@ public class RowsFilterMappingVo {
 
     public void setFetchMode(Integer fetchMode) {
         this.fetchMode = fetchMode;
+    }
+
+    public List<String> getUdlColumns() {
+        return udlColumns;
+    }
+
+    public void setUdlColumns(List<String> udlColumns) {
+        this.udlColumns = udlColumns;
+    }
+
+    public Integer getDrcStrategyId() {
+        return drcStrategyId;
+    }
+
+    public void setDrcStrategyId(Integer drcStrategyId) {
+        this.drcStrategyId = drcStrategyId;
+    }
+
+    public Integer getRouteStrategyId() {
+        return routeStrategyId;
+    }
+
+    public void setRouteStrategyId(Integer routeStrategyId) {
+        this.routeStrategyId = routeStrategyId;
     }
 }
