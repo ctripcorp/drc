@@ -124,14 +124,12 @@ public class TripUserService implements UserService {
             if (StringUtils.isBlank(attr)) {
                 return Region.SHA;
             }
-            logger.info("[udl] udl is :{}",attr);
             ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
             RequestContext ctx = ucsClient.buildDrcContext(drcStrategyId, udlKey);
             Optional<String> region = ctx.getRequestRegion();
             if (region.isEmpty()) {
                 throw new IllegalArgumentException("region is empty for udl:" + attr);
             }
-            logger.info(" no use cache,[udl] for udl:{},region is :{}",attr,region.get());
             return Region.nameFor(region.get().toUpperCase());
         }
     }
