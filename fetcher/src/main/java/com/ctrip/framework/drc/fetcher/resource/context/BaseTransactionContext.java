@@ -11,7 +11,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2021/3/5
  */
-public interface BaseTransactionContext extends TimeContext, TableKeyContext, TableKeyMapContext, SequenceNumberContext, GtidContext, TimeTraceContext {
+public interface BaseTransactionContext extends TimeContext, TableKeyContext, TableKeyMapContext, SequenceNumberContext, GtidContext, DcTagContext, TimeTraceContext {
 
     void setLastUnbearable(Throwable throwable);
 

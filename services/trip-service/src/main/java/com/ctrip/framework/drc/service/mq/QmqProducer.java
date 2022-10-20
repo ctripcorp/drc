@@ -5,8 +5,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
+import com.ctrip.framework.drc.core.mq.EventType;
 import muise.ctrip.canal.DataChange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
+import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
@@ -21,6 +25,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class QmqProducer extends AbstractProducer {
 
+    private static final Logger logger = LoggerFactory.getLogger(QmqProducer.class);
+
     private MessageProducerProvider provider;
 
     private final boolean persist;
@@ -29,18 +35,24 @@ public class QmqProducer extends AbstractProducer {
 
     private long delayTime;
 
+    private boolean isOrder;
+
+    private String orderKey;
+
     public QmqProducer(MqConfig mqConfig) {
         this.persist = mqConfig.isPersistent();
         this.topic = mqConfig.getTopic();
         this.delayTime = mqConfig.getDelayTime();
+        this.isOrder = mqConfig.isOrder();
+        this.orderKey = mqConfig.getOrderKey();
         init(persist, mqConfig.getPersistentDb());
     }
 
-    private void init(boolean persist, String realTitanKey) {
+    private void init(boolean persist, String dalClusterKey) {
         provider = new MessageProducerProvider();
         provider.init();
         if (persist) {
-            provider.setTransactionProvider(new DalTransactionProvider(realTitanKey));
+            provider.setTransactionProvider(new DalTransactionProvider(dalClusterKey));
         }
     }
 
@@ -51,27 +63,57 @@ public class QmqProducer extends AbstractProducer {
             JSONObject jsonObject = JSON.parseObject(dataChange.toString());
             Message message = provider.generateMessage(topic);
 
-            if(persist){
+            message.addTag(eventData.getDcTag().getName());
+
+            if (persist) {
                 message.setStoreAtFailed(true);
             }
-
-            if (eventData.getOrderKey() != null) {
-                message.setOrderKey(eventData.getOrderKey());
+            if (delayTime > 0) {
+                message.setDelayTime(delayTime, TimeUnit.SECONDS);
             }
+
             Map<String, Object> orderKeyMap = new HashMap<>();
             orderKeyMap.put("schemaName", eventData.getSchemaName());
             orderKeyMap.put("tableName", eventData.getTableName());
             List<String> keys = new ArrayList<>();
-            for (EventColumn column : eventData.getKeys()) {
-                keys.add(column.getColumnValue());
+
+            List<EventColumn> changedColumns = eventData.getEventType() == EventType.UPDATE ? eventData.getAfterColumns() : eventData.getBeforeColumns();
+            if (isOrder) {
+                for (EventColumn column : changedColumns) {
+                    if (column.getColumnName().equalsIgnoreCase(orderKey)) {
+                        message.setOrderKey(column.getColumnValue());
+                    }
+                    if (column.isKey()) {
+                        keys.add(column.getColumnValue());
+                    }
+                }
+            } else {
+                for (EventColumn column : changedColumns) {
+                    if (column.isKey()) {
+                        keys.add(column.getColumnValue());
+                    }
+                }
             }
+            if (eventData.getOrderKey() != null) {
+                message.setOrderKey(eventData.getOrderKey());
+            }
+
             orderKeyMap.put("pks", keys);
             jsonObject.put("orderKeyInfo", orderKeyMap);
+            jsonObject.put("drcSendTime", System.currentTimeMillis());
             message.setProperty("dataChange", jsonObject.toJSONString());
-            if (delayTime > 0) {
-                message.setDelayTime(delayTime, TimeUnit.SECONDS);
-            }
-            provider.sendMessage(message);
+
+            provider.sendMessage(message, new MessageSendStateListener() {
+
+                @Override
+                public void onSuccess(Message message) {
+                    logger.info("success: {}", message.getMessageId());
+                }
+                @Override
+                public void onFailed(Message message) {
+                    logger.error("failed: {}", message.getMessageId());
+                }
+            });
         }
     }
 }

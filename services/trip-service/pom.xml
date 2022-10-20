@@ -136,6 +136,12 @@
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>commons-compress</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                </exclusion>
+            </exclusions>
             <version>1.7.7</version>
         </dependency>
 
@@ -158,6 +164,12 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-dal</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>ctrip-dal-client</artifactId>
+                    <groupId>com.ctrip.platform</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

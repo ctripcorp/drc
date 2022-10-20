@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Created by jixinwang on 2022/10/17
  */
-public interface IProducer {
+public interface Producer {
 
     void send(List<EventData> eventDatas);
 }

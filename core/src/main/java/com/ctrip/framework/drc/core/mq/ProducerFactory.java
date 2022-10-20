@@ -8,5 +8,5 @@ import com.ctrip.xpipe.api.lifecycle.Ordered;
  */
 public interface ProducerFactory extends Ordered {
 
-    IProducer createProducer(MqConfig mqConfig);
+    Producer createProducer(MqConfig mqConfig);
 }
