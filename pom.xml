@@ -45,7 +45,7 @@
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
         <spring-platfrom-bom.version>2.0.5.RELEASE</spring-platfrom-bom.version>
-        <spring.version>4.3.6.RELEASE</spring.version>
+        <spring.version>4.3.4.RELEASE-ctrip.1</spring.version>
         <mariadb.version>2.4.0</mariadb.version>
         <wiremock.version>2.23.2</wiremock.version>
         <spring-boot.version>1.5.0.RELEASE</spring-boot.version>
