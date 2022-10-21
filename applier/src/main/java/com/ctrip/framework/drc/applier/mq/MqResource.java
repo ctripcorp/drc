@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.mq;
 
-import com.ctrip.framework.drc.core.mq.IProducer;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
+import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 
@@ -23,7 +23,7 @@ public class MqResource extends AbstractResource implements Mq {
     }
 
     @Override
-    public List<IProducer> getProducers(String tableName) {
+    public List<Producer> getProducers(String tableName) {
         return messengerProperties.getProducers(tableName);
     }
 }

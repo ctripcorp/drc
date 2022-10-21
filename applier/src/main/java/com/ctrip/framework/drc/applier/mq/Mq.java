@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.applier.mq;
 
-import com.ctrip.framework.drc.core.mq.IProducer;
+import com.ctrip.framework.drc.core.mq.Producer;
 
 import java.util.List;
 
@@ -9,5 +9,5 @@ import java.util.List;
  */
 public interface Mq {
 
-    List<IProducer> getProducers(String tableName);
+    List<Producer> getProducers(String tableName);
 }
