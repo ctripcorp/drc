@@ -60,4 +60,5 @@ DRC(Data Replicate Center)是携程框架架构研发部数据中心组推出的
   * [异地多活-携程MySQL实时双向(多向)复制](docs/_files/异地多活-携程MySQL实时双向(多向)复制.pdf)
 
 # Publication
+  * [携程海外MySQL数据复制实践](https://mp.weixin.qq.com/s/Yd3yqkdDCnK1EBIwpacaYw)
   * [携程异地多活-MySQL实时双向（多向）复制实践](https://mp.weixin.qq.com/s/_CYE1MGUeyFCn5lpcdklDg)
