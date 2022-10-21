@@ -7,7 +7,6 @@ package com.ctrip.framework.drc.core.meta;
  * @Version: $
  */
 public class MqConfig {
-    
     // qmq/kafka
     private String mqType;
     //schema.table
@@ -25,7 +24,7 @@ public class MqConfig {
     // orderKey / partition key
     private String orderKey;
     // qmq send message delayTime, unit:second
-    private int delayTime;
+    private long delayTime;
     // for otter eventProcessor
     private String processor;
 
@@ -109,7 +108,7 @@ public class MqConfig {
         this.orderKey = orderKey;
     }
 
-    public int getDelayTime() {
+    public long getDelayTime() {
         return delayTime;
     }
 

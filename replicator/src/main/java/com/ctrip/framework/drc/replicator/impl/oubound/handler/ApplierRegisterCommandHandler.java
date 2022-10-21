@@ -462,6 +462,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (gtidLogEvent != null) {
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
+                transactionSize = 0;
                 if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
                     in_exclude_group = true;
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);

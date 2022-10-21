@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.service.mq;
 
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
-import com.ctrip.framework.drc.core.mq.IProducer;
+import com.ctrip.framework.drc.core.mq.Producer;
 import muise.ctrip.canal.ColumnData;
 import muise.ctrip.canal.DataChange;
 
@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created by jixinwang on 2022/10/17
  */
-public abstract class AbstractProducer implements IProducer {
+public abstract class AbstractProducer implements Producer {
 
     public DataChange transfer(EventData eventData) {
         DataChange dataChange = new DataChange();

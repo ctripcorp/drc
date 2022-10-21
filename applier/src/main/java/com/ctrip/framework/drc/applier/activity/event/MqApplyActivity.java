@@ -1,44 +1,40 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
+import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.context.MqTransactionContextResource;
-import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
-import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
-import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
 /**
  * Created by jixinwang on 2022/10/12
  */
-public class MqApplyActivity extends EventActivity<Transaction, Transaction> {
+public class MqApplyActivity extends ApplyActivity {
 
-    // this file just for derive
-    public DataSource dataSource;
+    public MqTransactionContextResource transactionContext;
 
-    @InstanceConfig(path = "registryKey")
-    public String registryKey;
-
-    public MqTransactionContextResource mq;
+    @InstanceResource
+    public MqPositionResource mqPositionResource;
 
     @Override
     protected void doInitialize() throws Exception {
-        mq = (MqTransactionContextResource) derive(MqTransactionContextResource.class);
+        transactionContext = (MqTransactionContextResource) derive(MqTransactionContextResource.class);
     }
 
     @Override
     public Transaction doTask(Transaction transaction) throws InterruptedException {
-
         loggerTL.info("[{}] apply {}", registryKey, transaction.identifier());
-        boolean bigTransaction = transaction.isOverflowed();
 
-        switch (transaction.apply(mq)) {
+        switch (transaction.apply(transactionContext)) {
             case SUCCESS:
                 return onSuccess(transaction);
             default:
-                return onSuccess(transaction);
+                return onFailure(transaction);
         }
     }
 
+    @Override
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
-        return hand(transaction);
+//        mqPositionResource.update(transactionContext.fetchGtid());
+        return super.onSuccess(transaction);
     }
 }

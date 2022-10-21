@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.meta.MqConfig;
 public class BlankProducerFactory implements ProducerFactory {
 
     @Override
-    public IProducer createProducer(MqConfig mqConfig) {
+    public Producer createProducer(MqConfig mqConfig) {
         return null;
     }
 

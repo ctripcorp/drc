@@ -17,10 +17,9 @@ public class EventData {
 
     private List<EventColumn> afterColumns;
 
-    private String orderKey;
+    private DcTag dcTag;
 
-    // primary key value after change
-    private List<EventColumn> keys;
+    private String orderKey;
 
     public String getTableName() {
         return tableName;
@@ -62,19 +61,19 @@ public class EventData {
         this.afterColumns = afterColumns;
     }
 
+    public DcTag getDcTag() {
+        return dcTag;
+    }
+
+    public void setDcTag(DcTag dcTag) {
+        this.dcTag = dcTag;
+    }
+
     public String getOrderKey() {
         return orderKey;
     }
 
     public void setOrderKey(String orderKey) {
         this.orderKey = orderKey;
-    }
-
-    public List<EventColumn> getKeys() {
-        return keys;
-    }
-
-    public void setKeys(List<EventColumn> keys) {
-        this.keys = keys;
     }
 }

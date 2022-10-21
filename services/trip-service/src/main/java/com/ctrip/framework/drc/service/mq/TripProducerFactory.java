@@ -1,7 +1,8 @@
 package com.ctrip.framework.drc.service.mq;
 
 import com.ctrip.framework.drc.core.meta.MqConfig;
-import com.ctrip.framework.drc.core.mq.IProducer;
+import com.ctrip.framework.drc.core.mq.MqType;
+import com.ctrip.framework.drc.core.mq.Producer;
 import com.ctrip.framework.drc.core.mq.ProducerFactory;
 
 /**
@@ -10,11 +11,11 @@ import com.ctrip.framework.drc.core.mq.ProducerFactory;
 public class TripProducerFactory implements ProducerFactory {
 
     @Override
-    public IProducer createProducer(MqConfig mqConfig) {
-        if ("qmq".equalsIgnoreCase(mqConfig.getMqType())) {
+    public Producer createProducer(MqConfig mqConfig) {
+        if (MqType.qmq.name().equalsIgnoreCase(mqConfig.getMqType())) {
             return new QmqProducer(mqConfig);
         }
-        return null;
+        throw new UnsupportedOperationException("unSupport mq type: " + mqConfig.getMqType());
     }
 
     @Override

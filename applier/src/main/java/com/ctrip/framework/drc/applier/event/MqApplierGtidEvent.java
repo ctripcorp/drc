@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.event;
 
+import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 
@@ -8,8 +9,14 @@ import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
  */
 public class MqApplierGtidEvent extends ApplierGtidEvent {
 
+    private DcTag dcTag;
+
+    public MqApplierGtidEvent(DcTag dcTag) {
+        this.dcTag = dcTag;
+    }
+
     @Override
     protected void beginContext(TransactionContext context) {
-
+        context.updateDcTag(dcTag);
     }
 }
