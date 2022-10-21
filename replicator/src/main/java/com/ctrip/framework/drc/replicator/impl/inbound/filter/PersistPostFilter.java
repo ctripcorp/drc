@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.GtidLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.XidLogEvent;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
-import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TransactionTableMarkedXidLogEvent;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import org.apache.commons.lang3.StringUtils;
 
