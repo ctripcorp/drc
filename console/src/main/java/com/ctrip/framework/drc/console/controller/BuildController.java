@@ -1,21 +1,16 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,6 +178,25 @@ public class BuildController {
             } else {
                 return ApiResult.getFailInstance("other error");
                 
+            }
+        }
+    }
+
+    @GetMapping("dataMedia/conflictCheck/remote")
+    public ApiResult getConflictTables(
+            @RequestParam String mhaName,
+            @RequestParam String logicalTables) {
+        try {
+            logger.info("[[tag=conflictTables]] get conflictTables from {} in mha: {}",logicalTables, mhaName);
+            List<String> conflictTables =
+                    rowsFilterService.getConflictTables(mhaName, logicalTables);
+            return ApiResult.getSuccessInstance(conflictTables);
+        } catch (Exception e) {
+            logger.warn("[[tag=conflictTables]] get conflictTables error from {} in mha: {}",logicalTables, mhaName,e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else {
+                return ApiResult.getFailInstance("other error");
             }
         }
     }

@@ -53,9 +53,9 @@ public class UidConfigurationTest {
         Assert.assertTrue(cache.asMap().containsKey(registryKey + notExist));
     }
 
-    private UidContext fetchUidContext(String uid, String registryKey) {
-        UidContext uidContext = new UidContext();
-        uidContext.setUid(uid);
+    private UserContext fetchUidContext(String uid, String registryKey) {
+        UserContext uidContext = new UserContext();
+        uidContext.setUserAttr(uid);
         uidContext.setRegistryKey(registryKey);
         uidContext.setIllegalArgument(false);
 

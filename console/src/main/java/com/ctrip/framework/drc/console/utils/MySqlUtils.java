@@ -89,7 +89,7 @@ public class MySqlUtils {
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
-    private static final String GET_ON_UPDATE_COLUMN = " and EXTRA like 'on update%';";
+    private static final String GET_ON_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
     private static final int COLUMN_INDEX = 1;
     
     private static final String GTID_EXECUTED_COMMAND_V2 = "show global variables like \"gtid_executed\";";

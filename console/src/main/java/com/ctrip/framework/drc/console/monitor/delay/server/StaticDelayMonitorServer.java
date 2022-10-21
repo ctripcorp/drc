@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
+import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumn;
 import com.ctrip.framework.drc.core.monitor.entity.UnidirectionalEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -22,6 +23,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
+import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -309,7 +311,15 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     protected void reportHickwall(String gtid, List<List<Object>> rowValues, SimpleDateFormat formatter) {
         List<Object> values = rowValues.get(0);
-        String mhaString = (String) values.get(2);
+        String mhaDelayInfoJson = (String) values.get(2);
+        String mhaString;
+        try {
+            DelayInfo mhaDelayInfo = Codec.DEFAULT.decode(mhaDelayInfoJson, DelayInfo.class);
+            mhaString = mhaDelayInfo.getM();
+        } catch (Exception e) {
+            mhaString = mhaDelayInfoJson;
+        }
+        
         String delayString = (String) values.get(3);
         log("mha: " + mhaString + ", delayString: " + delayString + ", GTID: " + gtid, INFO, null);
 
@@ -336,7 +346,21 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                 DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay, config.getMeasurement());
                 DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, 0L, DRC_DELAY_EXCEPTION_MESUREMENT);
                 if (null != gtid) {
-                    logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\nGTID: {}\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, gtid, formatter.format(rTime), delayString);
+                    logger.info("[[" +
+                                    "monitor=delay,direction={}({}):{}({})," +
+                                    "cluster={}," +
+                                    "replicator={}:{}," +
+                                    "measurement={},slow={}]]" +
+                            "\n[Report Delay] {}ms" +
+                            "\nGTID: {}" +
+                            "\ndelay = currentTime({}) - datachange_lasttime({})" +
+                            "[or commitTime]",
+                            mhaString, config.getDc(), config.getDestMha(), config.getDestDc(),
+                            config.getCluster(),
+                            config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                            config.getMeasurement(), delay > SLOW_THRESHOLD,
+                            delay, gtid, 
+                            formatter.format(rTime), delayString);
                 } else {
                     logger.info("[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},slow={}]]\n[Report Delay] {}ms\ndelay = currentTime({}) - datachange_lasttime({})[or commitTime]", mhaString, config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), delay > SLOW_THRESHOLD, delay, formatter.format(rTime), delayString);
                 }
@@ -352,6 +376,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             log("Parse " + delayString + " exception, ", ERROR, e);
         }
     }
+    
+    
 
     private void log(String msg, String types, Throwable t) {
         String prefix = new StringBuilder().append(CLOG_TAGS).append(msg).toString();

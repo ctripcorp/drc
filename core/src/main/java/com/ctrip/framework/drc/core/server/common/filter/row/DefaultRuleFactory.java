@@ -15,26 +15,7 @@ public class DefaultRuleFactory implements RuleFactory {
     public RowsFilterRule createRowsFilterRule(RowsFilterConfig config) throws Exception {
 
         RowsFilterType rowFilterType = config.getRowsFilterType();
-        Class<? extends RowsFilterRule> rowsFilterRule;
-
-        switch (rowFilterType) {
-            case TripUid:
-                rowsFilterRule = UidRowsFilterRule.class;
-                break;
-            case AviatorRegex:
-                rowsFilterRule = AviatorRegexRowsFilterRule.class;
-                break;
-            case JavaRegex:
-                rowsFilterRule = JavaRegexRowsFilterRule.class;
-                break;
-            case Custom:
-                String clazz = System.getProperty(ROWS_FILTER_RULE);
-                rowsFilterRule = (Class<RowsFilterRule>) Class.forName(clazz);
-                break;
-            default:
-                rowsFilterRule = NoopRowsFilterRule.class;
-        }
-
+        Class<? extends RowsFilterRule> rowsFilterRule = rowFilterType.filterRuleClass();
         Constructor constructor = rowsFilterRule.getConstructor(new Class[]{RowsFilterConfig.class});
         return (RowsFilterRule) constructor.newInstance(config);
     }

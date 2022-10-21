@@ -38,7 +38,7 @@ public class DelayMonitorCommandHandlerTest {
         ObservableLogEventHandler logEventHandler = new ReplicatorLogEventHandler(null, defaultMonitorManager, null);
         DelayMonitorCommandHandler delayMonitorCommandHandler = new DelayMonitorCommandHandler(logEventHandler, "test_dalcluster");
         delayMonitorCommandHandler.initialize();
-        DelayMonitorCommandPacket monitorCommandPacket = new DelayMonitorCommandPacket("ntgxh", "test_dalcluster");
+        DelayMonitorCommandPacket monitorCommandPacket = new DelayMonitorCommandPacket("ntgxh", "test_dalcluster", "sha");
 
         NettyClient nettyClient = new DefaultNettyClient(channel);
         delayMonitorCommandHandler.handle(monitorCommandPacket, nettyClient);

@@ -52,18 +52,18 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         customConfig.setApplyMode(ApplyMode.transaction_table);
 
         // rowsFilter
-        customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX);
+        customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_WITH_UID_UDL);
         return customConfig;
     }
 
-    private static final String ROW_FILTER_PROPERTIES = "{" +
+    private static final String ROW_FILTER_PROPERTIES_OLD = "{" +
             "  \"rowsFilters\": [" +
             "    {" +
             "      \"mode\": \"trip_uid\"," +
-            "      \"tables\": \"(CommonOrderShard[1-9]DB|CommonOrderShard[1][0-2]DB)\\\\.(basicorder|basicorder_ext)\"," +
+            "      \"tables\": \"drc4.row_filter\"," +
             "      \"parameters\": {" +
             "        \"columns\": [" +
-            "          \"UID\"" +
+            "          \"uid\"" +
             "        ]," +
             "        \"illegalArgument\": false," +
             "        \"fetchMode\": 0," +
@@ -71,6 +71,81 @@ public class UnidirectionalStarter extends AbstractTestStarter {
             "      }" +
             "    }" +
             "  ]" +
+            "}";
+
+    /**
+     {"rowsFilters":[{"mode":"trip_uid","tables":"drc4.row_filter","parameters":{"columns":["uid"],"illegalArgument":false,"fetchMode":0,"context":"SIN"},"configs":{"parameters":[{"columns":["uid"],"illegalArgument":false,"fetchMode":0,"context":"SIN"}]}}]}
+     */
+    private static final String ROW_FILTER_PROPERTIES_NEW = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"trip_uid\",\n" +
+            "      \"tables\": \"drc4.row_filter\",\n" +
+            "      \"parameters\": {\n" +
+            "        \"columns\": [\n" +
+            "          \"uid\"\n" +
+            "        ],\n" +
+            "        \"illegalArgument\": false,\n" +
+            "        \"fetchMode\": 0,\n" +
+            "        \"context\": \"SIN\"\n" +
+            "      },\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"uid\"\n" +
+            "            ],\n" +
+            "            \"illegalArgument\": false,\n" +
+            "            \"fetchMode\": 0,\n" +
+            "            \"context\": \"SIN\"\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
+    /**
+     {"rowsFilters":[{"mode":"trip_udl","tables":"drc4.row_filter_udl","parameters":{"columns":["uid"],"illegalArgument":false,"fetchMode":0,"context":"SIN"},"configs":{"parameterList":[{"columns":["uid"],"illegalArgument":false,"fetchMode":0,"userFilterMode":"uid","context":"SIN"},{"columns":["udl"],"illegalArgument":false,"fetchMode":0,"userFilterMode":"udl","drcStrategyId":1,"context":"SIN"}]}}]}
+     */
+    private static final String ROW_FILTER_PROPERTIES_WITH_UID_UDL = "{\n" +
+            "  \"rowsFilters\": [\n" +
+            "    {\n" +
+            "      \"mode\": \"trip_udl\",\n" +
+            "      \"tables\": \"drc4.row_filter_udl\",\n" +
+            "      \"parameters\": {\n" +
+            "        \"columns\": [\n" +
+            "          \"uid\"\n" +
+            "        ],\n" +
+            "        \"illegalArgument\": false,\n" +
+            "        \"fetchMode\": 0,\n" +
+            "        \"context\": \"SIN\"\n" +
+            "      },\n" +
+            "      \"configs\": {\n" +
+            "        \"parameterList\": [\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"uid\"\n" +
+            "            ],\n" +
+            "            \"illegalArgument\": false,\n" +
+            "            \"fetchMode\": 0,\n" +
+            "            \"userFilterMode\": \"uid\",\n" +
+            "            \"context\": \"SIN\"\n" +
+            "          },\n" +
+            "          {\n" +
+            "            \"columns\": [\n" +
+            "              \"udl\"\n" +
+            "            ],\n" +
+            "            \"illegalArgument\": false,\n" +
+            "            \"fetchMode\": 0,\n" +
+            "            \"userFilterMode\": \"udl\",\n" +
+            "            \"drcStrategyId\": 1,\n" +
+            "            \"context\": \"SIN\"\n" +
+            "          }\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    }\n" +
+            "  ]\n" +
             "}";
 
 

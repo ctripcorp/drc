@@ -118,7 +118,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         }
 
         RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, rowsFilterContext);
-        boolean noRowFiltered = rowsFilterResult.isNoRowFiltered();
+        boolean noRowFiltered = rowsFilterResult.isNoRowFiltered().noRowFiltered();
 
         if (!noRowFiltered) {
             List<AbstractRowsEvent.Row> rows = rowsFilterResult.getRes();

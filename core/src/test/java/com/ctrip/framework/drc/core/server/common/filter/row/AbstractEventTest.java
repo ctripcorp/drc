@@ -56,7 +56,7 @@ public abstract class AbstractEventTest {
 
     @Before
     public void setUp() throws Exception {
-        dataMediaConfig = from(registryKey, String.format(getProperties(), getRowsFilterType().getName(), getContext()));
+        dataMediaConfig = from(registryKey, getFullProperties());
         ByteBuf tByteBuf = tableMapEventForWriteRowsEvent();
         tableMapLogEvent = new TableMapLogEvent().read(tByteBuf);
         ByteBuf wByteBuf = writeRowsEvent();
@@ -123,6 +123,10 @@ public abstract class AbstractEventTest {
 
     protected String getProperties() {
         return ROW_FILTER_PROPERTIES;
+    }
+
+    protected String getFullProperties() {
+        return String.format(getProperties(), getRowsFilterType().getName(), getContext(), getContext());
     }
 
     protected String getContext() {

@@ -34,7 +34,7 @@ public class AbstractRowsFilterRuleTest extends AbstractEventTest {
     public void filterRow() throws Exception {
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<AbstractRowsEvent.Row>> res = rowsFilterRule.filterRows(writeRowsEvent, rowsFilterContext);
-        Assert.assertFalse(res.isNoRowFiltered());
+        Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
         Assert.assertEquals(res.getRes(), result);
     }
 

@@ -32,12 +32,12 @@ public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 		return (Long) keyHolder.getKey();
 	}
 	
-	public List<DataMediaTbl> queryByIdsAndType (List<Long> dataMediaMappingIds,Integer type, Integer deleted) throws SQLException {
-		if(CollectionUtils.isEmpty(dataMediaMappingIds)) {
+	public List<DataMediaTbl> queryByIdsAndType (List<Long> dataMediaIds,Integer type, Integer deleted) throws SQLException {
+		if(CollectionUtils.isEmpty(dataMediaIds)) {
 			throw new IllegalArgumentException("build sql: query DataMediaTbl By MappingIds ,but mappingIds is empty");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
-		builder.selectAll().in("id", dataMediaMappingIds, Types.BIGINT)
+		builder.selectAll().in("id", dataMediaIds, Types.BIGINT)
 				.and().equal("type",type, Types.TINYINT)
 				.and().equal("deleted", deleted, Types.TINYINT);
 		return client.query(builder,new DalHints());

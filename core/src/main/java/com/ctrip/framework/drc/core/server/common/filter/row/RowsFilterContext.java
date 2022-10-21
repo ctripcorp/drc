@@ -8,7 +8,7 @@ import java.util.HashMap;
  * @Author limingdong
  * @create 2022/5/23
  */
-public class RowsFilterContext extends HashMap<Object, Boolean> {
+public class RowsFilterContext extends HashMap<Object, RowsFilterResult.Status> {
 
     private TableMapLogEvent drcTableMapLogEvent;
 
