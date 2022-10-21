@@ -33,7 +33,7 @@
         <framework.bom.version>5.42.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
-        <dal.version>2.4.5</dal.version>
+        <dal.version>2.3.30</dal.version>
         <ucs.version>0.5.0</ucs.version>
         <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
