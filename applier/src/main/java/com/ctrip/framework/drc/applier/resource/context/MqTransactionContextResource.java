@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.applier.mq.MqProvider;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
@@ -21,6 +22,8 @@ public class MqTransactionContextResource extends TransactionContextResource {
 
     @InstanceResource
     public MqProvider mqProvider;
+
+    public MqPosition mqPosition;
 
     @Override
     public void doInitialize() throws Exception {

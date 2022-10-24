@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.activity.event;
 
 import com.ctrip.framework.drc.applier.event.transaction.Transaction;
-import com.ctrip.framework.drc.applier.mq.MqPositionResource;
+import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.applier.resource.context.MqTransactionContextResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
@@ -13,7 +13,7 @@ public class MqApplyActivity extends ApplyActivity {
     public MqTransactionContextResource transactionContext;
 
     @InstanceResource
-    public MqPositionResource mqPositionResource;
+    public MqPosition mqPosition;
 
     @Override
     protected void doInitialize() throws Exception {
@@ -34,7 +34,7 @@ public class MqApplyActivity extends ApplyActivity {
 
     @Override
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
-//        mqPositionResource.update(transactionContext.fetchGtid());
+        mqPosition.updatePosition(transactionContext.fetchGtid());
         return super.onSuccess(transaction);
     }
 }

@@ -30,6 +30,10 @@ public interface GlobalConfig {
 
     String REPLICATOR_UUIDS_PATH = "/replicator/config/uuids";
 
+    String MESSENGER_REGISTER_PATH = "/opt/data/drc/messenger";
+
+    String MESSENGER_POSITIONS_PATH = "/messenger/config/positions";
+
     String BU = "BBZ";
 
     String DC = "SHAOY";
