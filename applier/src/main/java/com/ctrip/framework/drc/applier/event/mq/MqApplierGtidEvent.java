@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.applier.event;
+package com.ctrip.framework.drc.applier.event.mq;
 
 import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.fetcher.event.ApplierGtidEvent;

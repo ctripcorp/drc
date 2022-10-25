@@ -27,6 +27,12 @@ public class MessengerProperties {
     private List<MqConfig> mqConfigs;
 
     @JsonIgnore
+    private static final String DELAY_MONITOR_TABLE = "drcmonitordb.delaymonitor";
+
+    @JsonIgnore
+    private static final String DELAY_MONITOR_TOPIC = "bbz.drc.otter.mqtest";
+
+    @JsonIgnore
     private Map<String, MqConfig> table2Config = Maps.newConcurrentMap();  // regex : mqConfig
 
     @JsonIgnore
@@ -87,6 +93,13 @@ public class MessengerProperties {
     public List<Producer> getProducers(String tableName) {
         List<Producer> producers = tableName2Producers.get(tableName);
         if (producers == null) {
+            if (DELAY_MONITOR_TABLE.equalsIgnoreCase(tableName)) {
+                Producer monitorProducer = createMonitorProducer();
+                List<Producer> monitorProducers = Lists.newArrayList(monitorProducer);
+                tableName2Producers.put(DELAY_MONITOR_TABLE, monitorProducers);
+                return monitorProducers;
+            }
+
             List<Producer> toCreateProducers = Lists.newArrayList();
             for (Map.Entry<String, MqConfig> entry : table2Config.entrySet()) {
                 String tableRegex = entry.getKey();
@@ -103,5 +116,13 @@ public class MessengerProperties {
             return toCreateProducers;
         }
         return producers;
+    }
+
+    private Producer createMonitorProducer() {
+        MqConfig monitorMqConfig = new MqConfig();
+        monitorMqConfig.setMqType(MqType.qmq.name());
+        monitorMqConfig.setTopic(DELAY_MONITOR_TOPIC);
+        monitorMqConfig.setSerialization("arvo");
+        return DefaultProducerFactoryHolder.getInstance().createProducer(monitorMqConfig);
     }
 }

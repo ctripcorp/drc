@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.applier.activity.replicator.converter;
 
 import com.ctrip.framework.drc.applier.event.*;
+import com.ctrip.framework.drc.applier.event.mq.MqApplierDrcTableMapEvent;
+import com.ctrip.framework.drc.applier.event.mq.MqApplierGtidEvent;
+import com.ctrip.framework.drc.applier.event.mq.MqApplierTableMapEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConverter;
@@ -35,7 +38,7 @@ public class MqAbstractByteBufConverter extends AbstractByteBufConverter {
             case xid_log_event:
                 return new ApplierXidEvent();
             case drc_table_map_log_event:
-                return new ApplierDrcTableMapEvent();
+                return new MqApplierDrcTableMapEvent();
             case drc_error_log_event:
                 return new DrcErrorLogEvent();
             case drc_heartbeat_log_event:

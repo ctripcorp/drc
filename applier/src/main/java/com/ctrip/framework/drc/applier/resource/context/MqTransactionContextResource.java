@@ -1,15 +1,19 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
+import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivity;
+import com.ctrip.framework.drc.applier.activity.monitor.MqMonitorContext;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.applier.mq.MqProvider;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,10 +27,21 @@ public class MqTransactionContextResource extends TransactionContextResource {
     @InstanceResource
     public MqProvider mqProvider;
 
-    public MqPosition mqPosition;
+    @InstanceActivity
+    public MqMetricsActivity mqMetricsActivity;
+
+    private int rowsSize;
 
     @Override
     public void doInitialize() throws Exception {
+        rowsSize = 0;
+    }
+
+    @Override
+    public void doDispose() {
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", rowsSize, 0);
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "gtid", 1, 0);
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "xid", 1, 0);
     }
 
     @Override
@@ -55,6 +70,8 @@ public class MqTransactionContextResource extends TransactionContextResource {
         List<Producer> producers = mqProvider.getProducers(tableKey.getDatabaseName() + "." + tableKey.getTableName());
         for (Producer producer : producers) {
             producer.send(eventDatas);
+            rowsSize += eventDatas.size();
+            reportHickWall(eventDatas);
         }
     }
 
@@ -103,5 +120,13 @@ public class MqTransactionContextResource extends TransactionContextResource {
             eventDatas.add(eventData);
         }
         return eventDatas;
+    }
+
+    private void reportHickWall(List<EventData> eventDatas) {
+        if (!eventDatas.isEmpty()) {
+            EventData eventData = eventDatas.get(0);
+            MqMonitorContext mqMonitorContext = new MqMonitorContext(eventData.getSchemaName(), eventData.getTableName(), eventDatas.size(), eventData.getEventType(), eventData.getDcTag());
+            mqMetricsActivity.report(mqMonitorContext);
+        }
     }
 }

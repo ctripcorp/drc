@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.applier.server;
 
 import com.ctrip.framework.drc.applier.activity.event.*;
-import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
+import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.mq.MqProviderResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
@@ -34,7 +34,7 @@ public class MqServerInCluster extends ApplierServerInCluster {
                 .with(ListenableDirectMemoryResource.class)
                 .with(MqProviderResource.class)
                 .with(MqPositionResource.class)
-                .with(MetricsActivity.class)
+                .with(MqMetricsActivity.class)
                 .with(LoadEventActivity.class)
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
