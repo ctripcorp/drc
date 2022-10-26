@@ -45,7 +45,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     protected Endpoint inMemoryEndpoint;
 
     public AbstractSchemaManager(Endpoint endpoint, int port, String registryKey) {
-        this.port = port + PORT_STEP;
+        this.port = transformPort(port);
         logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
         this.registryKey = registryKey;
@@ -84,10 +84,10 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public boolean apply(String schema, String ddl) {
+    public boolean apply(String schema, String ddl, String gtid) {
         tableInfoMap.clear();
         synchronized (this) {
-            Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
+            Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, gtid, ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? false : res.booleanValue();
         }
     }
@@ -102,5 +102,9 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", registryKey, current, future);
         }
         return same;
+    }
+
+    public static int transformPort(int port) {
+        return port + PORT_STEP;
     }
 }

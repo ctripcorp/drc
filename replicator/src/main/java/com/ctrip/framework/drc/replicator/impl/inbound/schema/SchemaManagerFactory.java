@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.google.common.collect.Maps;
@@ -31,18 +30,17 @@ public class SchemaManagerFactory {
             logger.info("return previous MySQLSchemaManager for {}", clusterName);
             return mySQLSchemaManager;
         }
-        MySQLMasterConfig mySQLMasterConfig = replicatorConfig.getMySQLMasterConfig();
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
         boolean isMaster = mySQLSlaveConfig.isMaster();
 
         if (isMaster) {
             if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER))) {
-                mySQLSchemaManager = new LocalSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+                mySQLSchemaManager = new LocalSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
             } else {
-                mySQLSchemaManager = new MySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+                mySQLSchemaManager = new MySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
             }
         } else {
-            mySQLSchemaManager = new BackupMySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+            mySQLSchemaManager = new BackupMySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
         }
 
         schemaManagerMap.put(clusterName, mySQLSchemaManager);

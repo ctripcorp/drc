@@ -2,15 +2,25 @@ package com.ctrip.framework.drc.core.server.utils;
 
 import com.google.common.collect.Lists;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.Serializable;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Created by mingdongli
  * 2019/9/16 下午9:14.
  */
 public class FileUtil {
+
+    private static final String pid_postfix = "bin/mysqld.pid";
 
     public static List<File> sortDataDir(File[] files, String prefix, boolean ascending) {
         if (files == null) {
@@ -36,6 +46,34 @@ public class FileUtil {
             }
         }
         return fileNum;
+    }
+
+    public static FileContext restore(String dir) throws Exception {
+        File mysqlDir = new File(dir);
+        File[] files = mysqlDir.listFiles();
+
+        FileTime latestTime = FileTime.fromMillis(1);
+        long pid = -1;
+        String realPath = null;
+
+        for (File file : files) {
+            String tmpName = file.getAbsolutePath();
+            File pidFile = new File(String.format("%s/%s", tmpName, pid_postfix));
+            BasicFileAttributes attr = Files.readAttributes(pidFile.toPath(), BasicFileAttributes.class);
+            FileTime fileTime = attr.creationTime();
+            if (fileTime.compareTo(latestTime) > 0) {
+                latestTime = fileTime;
+                BufferedReader in = new BufferedReader(new FileReader(pidFile));
+                StringBuffer sb = new StringBuffer(in.readLine());
+                pid = Long.parseLong(sb.toString());
+                realPath = tmpName;
+            }
+        }
+
+        if (pid == -1 || realPath == null) {
+            throw new RuntimeException("not found");
+        }
+        return new FileContext(realPath, pid);
     }
 
     /**
@@ -68,4 +106,18 @@ public class FileUtil {
 
     }
 
+    public static void deleteFiles(File logDir) {
+        File[] files = logDir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isFile()) {
+                file.delete();
+            } else {
+                deleteFiles(file);
+            }
+        }
+        logDir.delete();
+    }
 }

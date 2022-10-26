@@ -16,7 +16,9 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.ghost.DDLPredication;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractor;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.MySQLInstance;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
@@ -24,7 +26,6 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Sets;
-import com.wix.mysql.EmbeddedMysql;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
@@ -44,8 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractColumns;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractValues;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemaSnapshotTask.SHOW_TABLES_QUERY;
-import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
-import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
+import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.*;
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager.SchemaStatus.*;
@@ -67,7 +67,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     private AtomicReference<Map<String, Map<String, String>>> schemaCache = new AtomicReference<>();
 
-    private EmbeddedMysql embeddedDb;
+    private MySQLInstance embeddedDb;
 
     private TransactionCache transactionCache;
 
@@ -82,16 +82,17 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     protected void doInitialize() {
-        embeddedDb = new RetryTask<>(new DbInitTask(port, registryKey)).call();
-        if (embeddedDb == null) {
-            throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
-        }
         inMemoryEndpoint = new DefaultEndPoint(host, port, user, password);
         PoolProperties poolProperties = getDefaultPoolProperties(inMemoryEndpoint);
         String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         poolProperties.setConnectionProperties(timeout);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
 
+        embeddedDb = isUsed(port) ? new RetryTask<>(new DbRestoreTask(port, registryKey)).call()
+                                  : new RetryTask<>(new DbCreateTask(port, registryKey)).call();
+        if (embeddedDb == null) {
+            throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
+        }
     }
 
     @Override
@@ -258,7 +259,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     protected void doDispose() {
         tableInfoMap.clear();
         inMemoryDataSource.close(true);
-        embeddedDb.stop();
+        embeddedDb.destroy();
         ddlMonitorExecutorService.shutdown();
     }
 

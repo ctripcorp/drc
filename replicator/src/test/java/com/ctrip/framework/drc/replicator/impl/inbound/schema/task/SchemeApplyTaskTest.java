@@ -40,7 +40,7 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
     public void setUp() throws Exception {
         super.initMocks();
 
-        schemeApplyTask = new SchemeApplyTaskMock(inMemoryEndpoint, inMemoryDataSource, SCHEMA, DDL, ddlMonitorExecutorService, baseEndpointEntity);
+        schemeApplyTask = new SchemeApplyTaskMock(inMemoryEndpoint, inMemoryDataSource, SCHEMA, DDL, "", ddlMonitorExecutorService, baseEndpointEntity);
         retryTask = new RetryTask<>(schemeApplyTask);
     }
 
@@ -100,8 +100,10 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
 
     class SchemeApplyTaskMock extends SchemeApplyTask {
 
-        public SchemeApplyTaskMock(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource, String schema, String ddl, ExecutorService ddlMonitorExecutorService, BaseEndpointEntity baseEndpointEntity) {
-            super(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity);
+        public SchemeApplyTaskMock(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
+                                   String schema, String ddl, String gtid,
+                                   ExecutorService ddlMonitorExecutorService, BaseEndpointEntity baseEndpointEntity) {
+            super(inMemoryEndpoint, inMemoryDataSource, schema, ddl, gtid, ddlMonitorExecutorService, baseEndpointEntity);
         }
 
         @Override

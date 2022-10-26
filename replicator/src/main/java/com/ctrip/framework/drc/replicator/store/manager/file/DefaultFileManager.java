@@ -421,7 +421,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     if (LogEventType.drc_ddl_log_event == eventType) {
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
-                        schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl());
+                        schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), gtid);
                         ddlLogEvent.release();
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();

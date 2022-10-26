@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.replicator;
 
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
 import com.ctrip.xpipe.api.lifecycle.ComponentRegistry;
 import com.ctrip.xpipe.lifecycle.CreatedComponentRedistry;
 import com.ctrip.xpipe.lifecycle.DefaultRegistry;
@@ -58,7 +57,6 @@ public class ReplicatorContainerApplication {
                     logger.error("[run][shutdown][dispose]", e);
                 }
 
-                SchemaManagerFactory.clear();  // clear last, or will making drc_table_map_log_event persist error
             }
         }));
 

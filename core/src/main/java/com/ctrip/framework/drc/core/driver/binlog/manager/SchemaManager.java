@@ -16,7 +16,7 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     TableInfo find(String schema, String table);
 
-    boolean apply(String schema, String ddl);
+    boolean apply(String schema, String ddl, String gtid);
 
     /**
      * for recovery

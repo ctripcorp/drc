@@ -58,18 +58,18 @@ public class ReplicatorByteBufConverter extends AbstractByteBufConverter {
             case previous_gtids_log_event:
                 logEvent = new PreviousGtidsLogEvent();
                 break;
-            case drc_schema_snapshot_log_event:
-                logEvent = new DrcSchemaSnapshotLogEvent();
-                break;
             case drc_uuid_log_event:
                 logEvent = new DrcUuidLogEvent();
                 break;
             case drc_error_log_event:
                 logEvent =  new DrcErrorLogEvent();
-                return logEvent;
+                break;
+            case drc_schema_snapshot_log_event:
+                logEvent = new DrcSchemaSnapshotLogEvent();
+                break;
             case drc_ddl_log_event:
                 logEvent =  new DrcDdlLogEvent();
-                return logEvent;
+                break;
             default:
                 return null;
         }

@@ -194,7 +194,7 @@ public class MySQLSchemaManagerTest extends MockTest {
     @Test
     public void testFindSchema() throws Exception {
         testInstance(mySQLSchemaManager);
-        mySQLSchemaManager.apply("drc1", ALTER_SQL);
+        mySQLSchemaManager.apply("drc1", ALTER_SQL, "");
 
         TableInfo remoteTableInfo = mySQLSchemaManager.queryTableInfoByIS(remoteDataSource, "drc1", "t");
         TableInfo localTableInfo = mySQLSchemaManager.find("drc1", "t");
