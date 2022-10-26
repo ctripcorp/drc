@@ -27,6 +27,10 @@
 							<artifactId>kafka-clients</artifactId>
 							<groupId>org.apache.kafka</groupId>
 						</exclusion>
+						<exclusion>
+							<artifactId>ctrip-dal-client</artifactId>
+							<groupId>com.ctrip.platform</groupId>
+						</exclusion>
 					</exclusions>
 				</dependency>
 				<dependency>
