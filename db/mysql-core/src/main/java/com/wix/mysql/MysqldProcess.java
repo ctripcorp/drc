@@ -69,7 +69,10 @@ public class MysqldProcess extends AbstractProcess<MysqldConfig, MysqldExecutabl
         }
     }
 
-
+    @Override
+    protected void onBeforeProcessStart(ProcessBuilder processBuilder, MysqldConfig config, IRuntimeConfig runtimeConfig) {
+        logger.info("isDaemonProcess is {}", runtimeConfig.isDaemonProcess());
+    }
 
     @Override
     protected List<String> getCommandLine(Distribution distribution, MysqldConfig config, IExtractedFileSet exe) throws IOException {

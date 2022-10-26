@@ -28,14 +28,20 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
 
     private String ddl;
 
+    private String gtid;
+
     private ExecutorService ddlMonitorExecutorService;
 
     private BaseEndpointEntity baseEndpointEntity;
 
-    public SchemeApplyTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource, String schema, String ddl, ExecutorService ddlMonitorExecutorService, BaseEndpointEntity baseEndpointEntity) {
+    public SchemeApplyTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
+                           String schema, String ddl, String gtid,
+                           ExecutorService ddlMonitorExecutorService,
+                           BaseEndpointEntity baseEndpointEntity) {
         super(inMemoryEndpoint, inMemoryDataSource);
         this.schema = schema;
         this.ddl = ddl;
+        this.gtid = gtid;
         this.ddlMonitorExecutorService = ddlMonitorExecutorService;
         this.baseEndpointEntity = baseEndpointEntity;
     }

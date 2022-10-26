@@ -46,7 +46,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     protected Endpoint inMemoryEndpoint;
 
     public AbstractSchemaManager(Endpoint endpoint, int port, String registryKey) {
-        this.port = port + PORT_STEP;
+        this.port = transformPort(port);
         logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
         this.registryKey = registryKey;
@@ -85,7 +85,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public ApplyResult apply(String schema, String ddl, QueryType queryType) {
+    public ApplyResult apply(String schema, String ddl, QueryType queryType, String gtid) {
         if (QueryType.ALTER == queryType) {
             if (TablePartitionManager.transformAlterPartition(ddl)) {
                 return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
@@ -99,7 +99,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         }
         tableInfoMap.clear();
         synchronized (this) {
-            Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
+            Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, gtid, ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
                                : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
         }
@@ -133,5 +133,9 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             }
         }
         return res;
+    }
+
+    public static int transformPort(int port) {
+        return port + PORT_STEP;
     }
 }

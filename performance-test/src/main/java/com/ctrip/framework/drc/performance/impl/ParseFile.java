@@ -186,7 +186,8 @@ public class ParseFile extends FetcherSlaveServer {
                     if (LogEventType.drc_ddl_log_event == eventType) {
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
-                        schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), null);                        ddlLogEvent.release();
+                        schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), null, "");                        ddlLogEvent.release();
+                        ddlLogEvent.release();
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         if (firstLoadFile) {
                             DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();
