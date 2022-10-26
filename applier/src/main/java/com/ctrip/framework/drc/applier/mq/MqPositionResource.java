@@ -13,6 +13,7 @@ import com.ctrip.xpipe.zk.ZkClient;
 import com.ctrip.xpipe.zk.impl.SpringZkClient;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.CreateMode;
 import org.springframework.context.ApplicationContext;
@@ -110,7 +111,10 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
     }
 
     private String getPositionFromFile() throws IOException {
-        return FileUtils.readFileToString(positionFile);
+        if (positionFile.exists()) {
+            return FileUtils.readFileToString(positionFile);
+        }
+        return StringUtils.EMPTY;
     }
 
     private void updatePositionInFile() throws IOException {
@@ -150,5 +154,10 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
             curatorFramework.inTransaction().check().forPath(zkPositionPath).and().setData().forPath(zkPositionPath, Codec.DEFAULT.encodeAsBytes(currentPosition)).and().commit();
             return true;
         }
+    }
+
+    @Override
+    protected void doDispose() throws Exception {
+        persistPosition();
     }
 }

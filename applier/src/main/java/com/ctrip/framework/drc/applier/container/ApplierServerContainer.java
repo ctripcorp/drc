@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.container;
 
+import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.applier.server.*;
@@ -228,6 +229,13 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                 if (transactionTableResource != null) {
                     transactionTableResource.dispose();
                     logger.info("dispose transaction for {} before shutdown", registryKey);
+                }
+
+                // persist mq position
+                MqPositionResource mqPositionResource = serverInCluster.getMqPositionResource();
+                if (mqPositionResource != null) {
+                    mqPositionResource.dispose();
+                    logger.info("dispose mq position for {} before shutdown", registryKey);
                 }
 
                 if (leaderElector != null) {
