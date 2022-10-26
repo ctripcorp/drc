@@ -137,6 +137,12 @@
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
             <version>1.7.7</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>commons-compress</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- qmq client -->
