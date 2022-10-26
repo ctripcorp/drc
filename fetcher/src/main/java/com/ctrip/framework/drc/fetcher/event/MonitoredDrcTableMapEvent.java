@@ -22,7 +22,7 @@ public class MonitoredDrcTableMapEvent extends TableMapLogEvent implements MetaE
     }
 
     protected void logEvent() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "drc table map", 1, 0);
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("db.event", "drc table map", 1, 0);
     }
 
     @Override

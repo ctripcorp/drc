@@ -11,12 +11,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * @Author Slight
  * Nov 07, 2019
  */
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.ctrip.framework.drc.applier","com.ctrip.framework.drc.core.utils"})
 public class ApplierApp {
 
     private static Logger logger = LoggerFactory.getLogger(ApplierApp.class);

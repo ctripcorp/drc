@@ -10,7 +10,6 @@ import muise.ctrip.canal.DataChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import qunar.tc.qmq.Message;
-import qunar.tc.qmq.MessageSendStateListener;
 import qunar.tc.qmq.dal.DalTransactionProvider;
 import qunar.tc.qmq.producer.MessageProducerProvider;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class QmqProducer extends AbstractProducer {
 
-    private static final Logger logger = LoggerFactory.getLogger(QmqProducer.class);
+    private static final Logger loggerMSG = LoggerFactory.getLogger("MESSENGER");
 
     private MessageProducerProvider provider;
 
@@ -100,20 +99,17 @@ public class QmqProducer extends AbstractProducer {
 
             orderKeyMap.put("pks", keys);
             jsonObject.put("orderKeyInfo", orderKeyMap);
-            jsonObject.put("drcSendTime", System.currentTimeMillis());
-            message.setProperty("dataChange", jsonObject.toJSONString());
 
-            provider.sendMessage(message, new MessageSendStateListener() {
+            long currentTime = System.currentTimeMillis();
+            jsonObject.put("otterParseTime", currentTime);
+            jsonObject.put("otterSendTime", currentTime);
+            jsonObject.put("drcSendTime", currentTime);
 
-                @Override
-                public void onSuccess(Message message) {
-                    logger.info("success: {}", message.getMessageId());
-                }
-                @Override
-                public void onFailed(Message message) {
-                    logger.error("failed: {}", message.getMessageId());
-                }
-            });
+            String dataChangeToSend = jsonObject.toJSONString();
+            message.setProperty("dataChange", dataChangeToSend);
+
+            provider.sendMessage(message);
+            loggerMSG.info("[[{}]]send messenger success: {}", topic, dataChangeToSend);
         }
     }
 }

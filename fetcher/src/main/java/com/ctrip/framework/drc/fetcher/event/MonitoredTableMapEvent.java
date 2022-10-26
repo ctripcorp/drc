@@ -60,7 +60,7 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
     }
 
     protected void logTableMapEvent() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "table map", 1, 0);
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("db.event", "table map", 1, 0);
     }
 
     protected void logEvent() {

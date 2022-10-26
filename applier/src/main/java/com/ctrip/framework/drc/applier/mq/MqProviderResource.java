@@ -15,7 +15,7 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
     @InstanceConfig(path = "properties")
     public String properties;
 
-    MessengerProperties messengerProperties;
+    private MessengerProperties messengerProperties;
 
     @Override
     protected void doInitialize() throws Exception {
@@ -24,7 +24,6 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
 
     @Override
     public List<Producer> getProducers(String tableName) {
-        //TODO: 延迟监控，考虑其他监控参数
         return messengerProperties.getProducers(tableName);
     }
 }

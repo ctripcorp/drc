@@ -6,14 +6,12 @@ import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.AccessServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
-import com.ctrip.framework.drc.console.utils.SpringUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
-import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -35,7 +33,7 @@ public class AccessControllerTest extends AbstractControllerTest {
 
     @Mock
     private AccessServiceImpl accessService;
-    
+
     @Mock
     private SSOService ssoServiceImpl;
 
@@ -59,7 +57,7 @@ public class AccessControllerTest extends AbstractControllerTest {
         Mockito.when(accessService.registerDalCluster(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(res);
         Mockito.when(accessService.deployDns(Mockito.anyString())).thenReturn(res);
         Mockito.when(accessService.applyPreCheck(Mockito.anyString())).thenReturn(res);
-        
+
     }
 
     @Test
@@ -71,7 +69,7 @@ public class AccessControllerTest extends AbstractControllerTest {
         dto.setMySQLInstance(new MhaInstanceGroupDto.MySQLInstance());
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/mha/machineInfo")
                 .contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).accept(MediaType.APPLICATION_JSON)).andReturn();
-        
+
         int status = mvcResult.getResponse().getStatus();
         String response = mvcResult.getResponse().getContentAsString();
         Assert.assertEquals(200, status);
@@ -79,7 +77,7 @@ public class AccessControllerTest extends AbstractControllerTest {
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
 
-        
+
         Mockito.when(drcMaintenanceService.recordMhaInstances(Mockito.any(MhaInstanceGroupDto.class))).thenThrow(new SQLException("testSqlException"));
         dto.setMaster(false);
         mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/access/mha/machineInfo")
@@ -90,7 +88,7 @@ public class AccessControllerTest extends AbstractControllerTest {
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
     }
-    
+
     @Test
     public void testPreCheck() throws Exception {
         String requestBody = "{\n" +
@@ -258,7 +256,7 @@ public class AccessControllerTest extends AbstractControllerTest {
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
     }
-    
+
     @Test
     public  void testSSODegrade() throws Exception {
         Mockito.doReturn(ApiResult.getSuccessInstance(null)).when(ssoServiceImpl).degradeAllServer(true);

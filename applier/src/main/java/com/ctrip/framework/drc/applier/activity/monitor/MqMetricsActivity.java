@@ -33,7 +33,7 @@ public class MqMetricsActivity extends TaskQueueActivity<MqMonitorContext, Boole
     public MqMonitorContext doTask(MqMonitorContext context) {
         tags.put("db", context.getDbName());
         tags.put("table", context.getTableName());
-        tags.put("type", context.getEventType().getValue());
+        tags.put("type", context.getEventType().name());
         tags.put("dcTag", context.getDcTag().getName());
 
         DefaultReporterHolder.getInstance().reportResetCounter(tags, (long)context.getValue(), measurement);

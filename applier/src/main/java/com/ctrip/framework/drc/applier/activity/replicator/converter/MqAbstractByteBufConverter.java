@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.event.mq.MqApplierDrcTableMapEvent;
 import com.ctrip.framework.drc.applier.event.mq.MqApplierGtidEvent;
 import com.ctrip.framework.drc.applier.event.mq.MqApplierTableMapEvent;
+import com.ctrip.framework.drc.applier.event.mq.MqApplierXidEvent;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.converter.AbstractByteBufConverter;
@@ -11,7 +12,6 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.DrcErrorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.mq.DcTag;
-import com.ctrip.framework.drc.fetcher.event.ApplierXidEvent;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -26,7 +26,7 @@ public class MqAbstractByteBufConverter extends AbstractByteBufConverter {
             case gtid_log_event:
                 return new MqApplierGtidEvent(DcTag.LOCAL);
             case drc_gtid_log_event:
-                return new MqApplierGtidEvent(DcTag.PEER);
+                return new MqApplierGtidEvent(DcTag.NON_LOCAL);
             case table_map_log_event:
                 return new MqApplierTableMapEvent();
             case write_rows_event_v2:
@@ -36,7 +36,7 @@ public class MqAbstractByteBufConverter extends AbstractByteBufConverter {
             case delete_rows_event_v2:
                 return new ApplierDeleteRowsEvent();
             case xid_log_event:
-                return new ApplierXidEvent();
+                return new MqApplierXidEvent();
             case drc_table_map_log_event:
                 return new MqApplierDrcTableMapEvent();
             case drc_error_log_event:

@@ -5,6 +5,8 @@ import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.applier.resource.context.MqTransactionContextResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by jixinwang on 2022/10/12
  */
@@ -28,7 +30,7 @@ public class MqApplyActivity extends ApplyActivity {
             case SUCCESS:
                 return onSuccess(transaction);
             default:
-                return onFailure(transaction);
+                return onRetry(transaction);
         }
     }
 
@@ -36,5 +38,12 @@ public class MqApplyActivity extends ApplyActivity {
     protected Transaction onSuccess(Transaction transaction) throws InterruptedException {
         mqPosition.updatePosition(transactionContext.fetchGtid());
         return super.onSuccess(transaction);
+    }
+
+    protected Transaction onRetry(Transaction transaction) throws InterruptedException {
+        return retry(transaction, TimeUnit.SECONDS, 0, 1, 2, 3, (trx) -> {
+            logger.error("- MQ UNLIKELY - task ({}) retries exceeds limit.", transaction.identifier());
+            return super.onFailure(trx);
+        });
     }
 }

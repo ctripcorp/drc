@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.applier.mq;
 
-import com.ctrip.framework.drc.applier.container.SpringContextHolder;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.utils.SpringUtils;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
@@ -132,7 +132,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private void initZkClient() {
         try {
-            ApplicationContext applicationContext = SpringContextHolder.getApplicationContext();
+            ApplicationContext applicationContext = SpringUtils.getApplicationContext();
             if (applicationContext != null) {
                 zkClient = applicationContext.getBean(SpringZkClient.class);
             }

@@ -6,7 +6,7 @@ package com.ctrip.framework.drc.core.mq;
 public enum DcTag {
 
     LOCAL(0, "local"),
-    PEER(1, "peer");
+    NON_LOCAL(1, "non_local");
 
     public static DcTag getApplyMode(final int type) {
         for(DcTag dcTag : values()) {

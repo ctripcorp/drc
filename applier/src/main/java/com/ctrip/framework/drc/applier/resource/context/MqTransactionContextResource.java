@@ -13,7 +13,6 @@ import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
 
     @Override
     public void doDispose() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", rowsSize, 0);
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "rows", rowsSize, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "gtid", 1, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("mq.event", "xid", 1, 0);
     }

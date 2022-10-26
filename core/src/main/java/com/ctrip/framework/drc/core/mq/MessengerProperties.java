@@ -30,7 +30,7 @@ public class MessengerProperties {
     private static final String DELAY_MONITOR_TABLE = "drcmonitordb.delaymonitor";
 
     @JsonIgnore
-    private static final String DELAY_MONITOR_TOPIC = "bbz.drc.otter.mqtest";
+    private static final String DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
 
     @JsonIgnore
     private Map<String, MqConfig> table2Config = Maps.newConcurrentMap();  // regex : mqConfig
@@ -91,28 +91,29 @@ public class MessengerProperties {
     }
 
     public List<Producer> getProducers(String tableName) {
-        List<Producer> producers = tableName2Producers.get(tableName);
+        String formatTableName = tableName.toLowerCase();
+        List<Producer> producers = tableName2Producers.get(formatTableName);
         if (producers == null) {
-            if (DELAY_MONITOR_TABLE.equalsIgnoreCase(tableName)) {
+            if (DELAY_MONITOR_TABLE.equalsIgnoreCase(formatTableName)) {
                 Producer monitorProducer = createMonitorProducer();
                 List<Producer> monitorProducers = Lists.newArrayList(monitorProducer);
-                tableName2Producers.put(DELAY_MONITOR_TABLE, monitorProducers);
+                tableName2Producers.put(formatTableName, monitorProducers);
                 return monitorProducers;
             }
 
             List<Producer> toCreateProducers = Lists.newArrayList();
             for (Map.Entry<String, MqConfig> entry : table2Config.entrySet()) {
-                String tableRegex = entry.getKey();
-                if (table2Filter.get(tableRegex).filter(tableName)) {
+                String tableRegex = entry.getKey().trim().toLowerCase();
+                if (table2Filter.get(tableRegex).filter(formatTableName)) {
                     Producer producer = table2Producer.get(tableRegex);
                     if (producer == null) {
-                        producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(tableName));
+                        producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(formatTableName));
                         table2Producer.put(tableRegex, producer);
                     }
                     toCreateProducers.add(producer);
                 }
             }
-            tableName2Producers.put(tableName, toCreateProducers);
+            tableName2Producers.put(formatTableName, toCreateProducers);
             return toCreateProducers;
         }
         return producers;
