@@ -31,6 +31,8 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private static final int RETRY_TIME = 3;
 
+    private static final int PERSIST_POSITION_PERIOD_TIME = 10;
+
     @InstanceConfig(path="gtidExecuted")
     public String initialGtidExecuted = "";
 
@@ -45,9 +47,9 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     private String zkPositionPath;
 
-    private ExecutorService gtidService = ThreadUtils.newSingleThreadExecutor("Gtid-Consume");
+    private ExecutorService gtidService = ThreadUtils.newSingleThreadExecutor("MQ-Update-Position");
 
-    public ScheduledExecutorService timer = ThreadUtils.newSingleThreadScheduledExecutor("Update-Position-Task");
+    private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("MQ-Persist-Position-Task");
 
     @Override
     protected void doInitialize() throws Exception {
@@ -75,23 +77,24 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
     }
 
     private void startUpdatePositionSchedule() {
-        timer.scheduleWithFixedDelay(() -> {
+        scheduledExecutorService.scheduleWithFixedDelay(() -> {
             try {
                 persistPosition();
+                logger.info("[MQ][{}] persist position schedule success", registryKey);
             } catch (Throwable t) {
-                logger.error("persist position schedule error", t);
+                logger.error("[MQ][{}] persist position schedule error", registryKey, t);
             }
-        }, 3, 10, TimeUnit.SECONDS);
+        }, PERSIST_POSITION_PERIOD_TIME, PERSIST_POSITION_PERIOD_TIME, TimeUnit.SECONDS);
     }
 
     private void persistPosition() {
         Boolean res = new RetryTask<>(new ZkPositionUpdateTask(), RETRY_TIME).call();
         if (res == null) {
-            logger.error("persist position in zk error");
+            logger.error("[MQ][{}] persist position in zk error", registryKey);
             try {
                 updatePositionInFile();
             } catch (IOException e) {
-                logger.error("persist position error");
+                logger.error("[MQ][{}] persist position error", registryKey);
             }
         }
     }
@@ -105,7 +108,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
             byte[] uuidArray = curatorFramework.getData().forPath(zkPositionPath);
             return Codec.DEFAULT.decode(uuidArray, String.class);
         } catch (Exception e) {
-            logger.error("getUuids error for {}", registryKey, e);
+            logger.error("[MQ][{}] get position from zk error", registryKey, e);
         }
         return "";
     }
@@ -141,7 +144,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
                 zkClient = applicationContext.getBean(SpringZkClient.class);
             }
         } catch (Exception e) {
-            logger.error("initMetaManager error", e);
+            logger.error("[MQ][{}]  init zk client error", registryKey, e);
         }
     }
 
@@ -159,5 +162,15 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
     @Override
     protected void doDispose() throws Exception {
         persistPosition();
+        logger.info("[MQ][{}] persist mq position when mq position resource dispose", registryKey);
+
+        if (gtidService != null) {
+            gtidService.shutdown();
+            gtidService = null;
+        }
+        if (scheduledExecutorService != null) {
+            scheduledExecutorService.shutdown();
+            scheduledExecutorService = null;
+        }
     }
 }
