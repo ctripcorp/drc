@@ -21,8 +21,8 @@ import org.springframework.context.ApplicationContext;
 import java.io.*;
 import java.util.concurrent.*;
 
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.MESSENGER_POSITIONS_PATH;
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.MESSENGER_REGISTER_PATH;
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.APPLIER_POSITIONS_PATH;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.APPLIER_PATH;
 
 /**
  * Created by jixinwang on 2022/10/19
@@ -53,9 +53,9 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
 
     @Override
     protected void doInitialize() throws Exception {
-        zkPositionPath = MESSENGER_POSITIONS_PATH + "/" + registryKey;
+        zkPositionPath = APPLIER_POSITIONS_PATH + "/" + registryKey;
         executedGtidSet = new GtidSet(initialGtidExecuted);
-        String filePositionPath = MESSENGER_REGISTER_PATH + "/" + registryKey;
+        String filePositionPath = APPLIER_PATH + registryKey;
         positionFile = new File(filePositionPath);
         initZkClient();
         persistPosition();
