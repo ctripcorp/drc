@@ -89,6 +89,11 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             schemaName = parsedSchemaName;
         }
 
+        String oriSchemaName = results.get(0).getOriSchemaName();
+        if (oriSchemaName != null) {
+            schemaName = oriSchemaName;
+        }
+
         String tableCharset = results.get(0).getTableCharset();
         if (QueryType.CREATE == type && tableCharset == null && !DEFAULT_CHARACTER_SET_SERVER.equalsIgnoreCase(charset)) {  //not set and serverCollation != DEFAULT_CHARACTER_SET_SERVER
             String previousQueryString = queryString;
