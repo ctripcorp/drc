@@ -212,4 +212,22 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQuery()).thenReturn(ALTER_TABLE);
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent));
     }
+
+    @Test
+    public void testRenameDdl() {
+        String oriSchemaName = "drc1";
+        String RENAME_DDL = "rename table insert1 to drc1.insert1;";
+
+        String dbName = "drc1";
+        String tableName = "insert1";
+        TableInfo tableInfo = new TableInfo();
+        tableInfo.setDbName(dbName);
+        tableInfo.setTableName(tableName);
+        when(queryLogEvent.getQuery()).thenReturn(RENAME_DDL);
+        when(queryLogEvent.getSchemaName()).thenReturn(oriSchemaName);
+        when(schemaManager.find(dbName, tableName)).thenReturn(tableInfo);
+        Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
+        verify(schemaManager, times(1)).apply(dbName, RENAME_DDL);
+        verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
+    }
 }
