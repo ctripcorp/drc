@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.meta;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import com.ctrip.xpipe.api.observer.Observable;
@@ -40,6 +37,8 @@ public interface CurrentMetaManager extends Observable {
 
     List<Replicator> getSurviveReplicators(String clusterId);
 
+    List<Messenger> getSurviveMessengers(String clusterId);
+
     List<Applier> getSurviveAppliers(String clusterId, String backupClusterId);
 
     String getCurrentMetaDesc();
@@ -52,9 +51,13 @@ public interface CurrentMetaManager extends Observable {
 
     void setSurviveAppliers(String registryKey, List<Applier> surviveAppliers, Applier activeApplier);
 
+    void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger);
+
     boolean watchReplicatorIfNotWatched(String registryKey);
 
     boolean watchApplierIfNotWatched(String registryKey);
+
+    boolean watchMessengerIfNotWatched(String registryKey);
 
     void setApplierMaster(String registryKey, String backupRegistryKey, String ip, int port);
 

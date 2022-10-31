@@ -74,7 +74,7 @@ public class MultiDcNotifierTest extends AbstractDbClusterTest {
         multiDcNotifier.replicatorActiveElected(CLUSTER_ID, null);
         verify(clusterManagerMultiDcService, times(0)).upstreamChange(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, replicator.getIp(), replicator.getApplierPort());
 
-        multiDcNotifier.replicatorActiveElected(CLUSTER_ID, replicator);
+        multiDcNotifier.messengerActiveElected(CLUSTER_ID, replicator);
         Thread.sleep(100);
         verify(clusterManagerMultiDcService, times(1)).upstreamChange(CLUSTER_ID, BACKUP_DAL_CLUSTER_ID, replicator.getIp(), replicator.getApplierPort());
     }

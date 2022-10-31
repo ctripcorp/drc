@@ -51,18 +51,18 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
     @Test
     public void replicatorActiveElected() {
         when(currentMetaManager.hasCluster(CLUSTER_ID)).thenReturn(false);
-        stateChangeHandler.replicatorActiveElected(CLUSTER_ID, newReplicator);
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newReplicator);
         verify(instanceStateController, times(0)).addReplicator(CLUSTER_ID, newReplicator);
 
         when(currentMetaManager.hasCluster(CLUSTER_ID)).thenReturn(true);
         when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(null);
-        stateChangeHandler.replicatorActiveElected(CLUSTER_ID, newReplicator);
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newReplicator);
         verify(instanceStateController, times(0)).addReplicator(CLUSTER_ID, newReplicator);
 
 
         when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
         when(currentMetaManager.getSurviveReplicators(CLUSTER_ID)).thenReturn(Lists.newArrayList(newReplicator));
-        stateChangeHandler.replicatorActiveElected(CLUSTER_ID, newReplicator);
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newReplicator);
         verify(instanceStateController, times(1)).addReplicator(CLUSTER_ID, newReplicator);
     }
 

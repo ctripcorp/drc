@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -11,6 +8,7 @@ import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifier;
+import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifier;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
@@ -70,6 +68,20 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         STATE_LOGGER.info("[addReplicator] for {}", body);
         executors.submit(() -> replicatorNotifier.notifyAdd(body));
+        return body;
+    }
+
+    @Override
+    public DbCluster addMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[addMessenger] for {}", body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
+            return body;
+        }
+        executors.submit(() -> messengerNotifier.notifyAdd(body));
         return body;
     }
 
@@ -212,6 +224,30 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         if (mysqlMaster != null) {
             setMySQL(clone, mysqlMaster);
         }
+
+        return clone;
+    }
+
+    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
+        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
+        DbCluster clone = MetaClone.clone(dbCluster);
+        clone.getMessengers().clear();
+        clone.getMessengers().add(messenger);
+
+        Replicator master = currentMetaManager.getActiveReplicator(clusterId);
+        if (master != null) {
+            STATE_LOGGER.info("[getMessengerMaster] for {} is {}:{}", clusterId, master.getIp(), master.getPort());
+        } else {
+            STATE_LOGGER.error("[getMessengerMaster] null, do nothing for {}", clusterId);
+            return clone;
+        }
+
+        clone.getReplicators().clear();
+        Replicator replicator = new Replicator();
+        replicator.setMaster(true);
+        replicator.setIp(master.getIp());
+        replicator.setApplierPort(master.getPort());
+        clone.getReplicators().add(replicator);
 
         return clone;
     }

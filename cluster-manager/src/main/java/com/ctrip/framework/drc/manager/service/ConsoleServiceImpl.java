@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.manager.service;
 
 import com.ctrip.framework.drc.core.entity.Applier;
+import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
@@ -50,6 +51,11 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
                 }
             }
         }
+    }
+
+    @Override
+    public void messengerActiveElected(String clusterId, Messenger messenger) {
+
     }
 
     @Override

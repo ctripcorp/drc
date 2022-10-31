@@ -49,6 +49,11 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.setSurviveReplicators(surviveReplicators, activeReplicator);
     }
 
+    public boolean setSurviveMessengers(String clusterId, List<Messenger> surviveMessengers, Messenger activeMessenger) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.setSurviveMessengers(surviveMessengers, activeMessenger);
+    }
+
     public void setSurviveAppliers(String clusterId, List<Applier> surviveAppliers, Applier activeApplier) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         currentShardMeta.setSurviveAppliers(surviveAppliers, activeApplier);
@@ -58,6 +63,11 @@ public class CurrentMeta implements Releasable {
     public boolean watchReplicatorIfNotWatched(String clusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         return currentShardMeta.watchReplicatorIfNotWatched();
+    }
+
+    public boolean watchMessengerIfNotWatched(String clusterId) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.watchMessengerIfNotWatched();
     }
 
     public boolean watchApplierIfNotWatched(String clusterId) {
@@ -74,6 +84,11 @@ public class CurrentMeta implements Releasable {
     public List<Replicator> getSurviveReplicators(String clusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         return currentShardMeta.getSurviveReplicators();
+    }
+
+    public List<Messenger> getSurviveMessengers(String clusterId) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.getSurviveMessengers();
     }
 
     public List<Applier> getSurviveAppliers(String clusterId, String backupClusterId) {
@@ -194,9 +209,13 @@ public class CurrentMeta implements Releasable {
 
         private AtomicBoolean replicatorWatched = new AtomicBoolean(false);
 
+        private AtomicBoolean messengerWatched = new AtomicBoolean(false);
+
         private String clusterId;
 
         private List<Replicator> surviveReplicators = Lists.newArrayList();  // all replicators
+
+        private List<Messenger> surviveMessengers = Lists.newArrayList();  // all messengers
 
         private Endpoint mysqlMaster;  //mysql master
 
@@ -230,6 +249,10 @@ public class CurrentMeta implements Releasable {
             return replicatorWatched.compareAndSet(false, true);
         }
 
+        public boolean watchMessengerIfNotWatched() {
+            return messengerWatched.compareAndSet(false, true);
+        }
+
         public boolean watchApplierIfNotWatched(String clusterId) {
             AtomicBoolean applierWatched = appliersWatched.get(clusterId);
             if (applierWatched == null) {
@@ -256,6 +279,21 @@ public class CurrentMeta implements Releasable {
             } else {
                 logger.info("[setSurviveReplicators][survive replicator none, clear]{},{},{}", clusterId, surviveReplicators, activeReplicator);
                 this.surviveReplicators.clear();
+                return false;
+            }
+        }
+
+        public boolean setSurviveMessengers(List<Messenger> surviveMessengers, Messenger activeMessenger) {
+            if (surviveMessengers.size() > 0) {
+                if (!checkIn(surviveMessengers, activeMessenger)) {
+                    throw new IllegalArgumentException("active not in all survivors " + activeMessenger + ", all:" + this.surviveMessengers);
+                }
+                this.surviveMessengers = (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
+                logger.info("[setSurviveMessengers]{},{},{}", clusterId, surviveMessengers, activeMessenger);
+                return doSetActive(clusterId, activeMessenger, this.surviveMessengers);
+            } else {
+                logger.info("[setSurviveMessengers][survive messenger none, clear]{},{},{}", clusterId, surviveMessengers, activeMessenger);
+                this.surviveMessengers.clear();
                 return false;
             }
         }
@@ -326,7 +364,7 @@ public class CurrentMeta implements Releasable {
                         return survive;
                     }
                 }
-            } 
+            }
             return null;
         }
 
@@ -382,6 +420,10 @@ public class CurrentMeta implements Releasable {
 
         public List<Replicator> getSurviveReplicators() {
             return (List<Replicator>) MetaClone.clone((Serializable) surviveReplicators);
+        }
+
+        public List<Messenger> getSurviveMessengers() {
+            return (List<Messenger>) MetaClone.clone((Serializable) surviveMessengers);
         }
 
         public List<Applier> getSurviveAppliers(String backupClusterId) {
