@@ -124,6 +124,8 @@ public class MessengerProperties {
         monitorMqConfig.setMqType(MqType.qmq.name());
         monitorMqConfig.setTopic(DELAY_MONITOR_TOPIC);
         monitorMqConfig.setSerialization("arvo");
+        monitorMqConfig.setOrder(true);
+        monitorMqConfig.setOrderKey("id");
         return DefaultProducerFactoryHolder.getInstance().createProducer(monitorMqConfig);
     }
 }
