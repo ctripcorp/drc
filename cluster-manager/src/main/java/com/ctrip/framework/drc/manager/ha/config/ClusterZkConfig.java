@@ -29,10 +29,4 @@ public class ClusterZkConfig {
         String path = String.format("%s/%s", APPLIER_REGISTER_PATH, registryPath);
         return path;
     }
-
-    public static String getMessengerLeaderLatchPath(String registryPath){
-        String path = String.format("%s/%s", MESSENGER_REGISTER_PATH, registryPath);
-        return path;
-    }
-
 }

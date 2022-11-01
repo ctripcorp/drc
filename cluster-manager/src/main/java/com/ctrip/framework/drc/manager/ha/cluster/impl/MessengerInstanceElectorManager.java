@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.Constants;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -25,7 +26,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
     @Override
     protected String getLeaderPath(String clusterId) {
-        return ClusterZkConfig.getMessengerLeaderLatchPath(clusterId);
+        return ClusterZkConfig.getApplierLeaderLatchPath(clusterId);
     }
 
     @Override
@@ -35,17 +36,35 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
 
     @Override
     protected boolean watchIfNotWatched(String clusterId) {
-        return currentMetaManager.watchApplierIfNotWatched(clusterId);
+        return currentMetaManager.watchMessengerIfNotWatched(clusterId);
+    }
+
+    @Override
+    protected void handleClusterAdd(DbCluster dbCluster) {
+        String clusterId = dbCluster.getId();
+        try {
+            List<Messenger> messengers = dbCluster.getMessengers();
+            if (!messengers.isEmpty()) {
+                String registryKey = clusterId + "." + "mq";
+                observerClusterLeader(registryKey);
+            }
+        } catch (Exception e) {
+            logger.error("[handleClusterAdd]" + clusterId, e);
+        }
     }
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
 
         String clusterId = comparator.getCurrent().getId();
-        observerClusterLeader(clusterId);
+        String registryKey = clusterId + "." + "mq";
+        observerClusterLeader(registryKey);
     }
 
-    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String clusterId){
+    protected void updateClusterLeader(String leaderLatchPath, List<ChildData> childrenData, String tmpClusterId){
+        RegistryKey registryKey = RegistryKey.from(tmpClusterId);
+        String clusterId = registryKey.toString();
+        logger.info("[Transfer] {} to {}", tmpClusterId, clusterId);
 
         List<String> childrenPaths = new LinkedList<>();
         childrenData.forEach(childData -> childrenPaths.add(childData.getPath()));

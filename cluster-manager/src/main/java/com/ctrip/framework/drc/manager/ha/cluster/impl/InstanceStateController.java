@@ -19,11 +19,15 @@ public interface InstanceStateController extends Lifecycle {
 
     DbCluster addReplicator(String clusterId, Replicator replicator);
 
-    DbCluster addMessenger(String clusterId, Messenger messenger);
-
     DbCluster registerReplicator(String clusterId, Replicator replicator);
 
     void removeReplicator(String clusterId, Replicator replicator);
+
+    DbCluster addMessenger(String clusterId, Messenger messenger);
+
+    DbCluster registerMessenger(String clusterId, Messenger messenger);
+
+    void removeMessenger(String clusterId, Messenger messenger);
 
     DbCluster addApplier(String clusterId, Applier applier);
 

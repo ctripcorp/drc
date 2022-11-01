@@ -26,8 +26,6 @@ public interface GlobalConfig {
 
     String APPLIER_REGISTER_PATH = "/applier/instances";
 
-    String MESSENGER_REGISTER_PATH = "/messenger/instances";
-
     String MANAGER_REGISTER_PATH = "/manager/instances";
 
     String REPLICATOR_UUIDS_PATH = "/replicator/config/uuids";

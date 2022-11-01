@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifier;
@@ -101,6 +100,21 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     /**
+     * notify messenger to register zookeeper
+     * @param clusterId
+     * @param messenger
+     * @return
+     */
+    @Override
+    public DbCluster registerMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[registerMessenger] for {}", body);
+        executors.submit(() -> messengerNotifier.notifyRegister(body));
+        return body;
+    }
+
+    /**
      * notify applier to register zookeeper
      * @param clusterId
      * @param applier
@@ -151,6 +165,17 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         ReplicatorNotifier replicatorNotifier = ReplicatorNotifier.getInstance();
         STATE_LOGGER.info("[removeReplicator] for {},{}", clusterId, replicator);
         executors.submit(() -> replicatorNotifier.notifyRemove(clusterId, replicator, true));
+    }
+
+    @Override
+    public void removeMessenger(String clusterId, Messenger messenger) {
+        if (config.getMigrationBlackIps().contains(messenger.getIp())) {
+            logger.info("[skipRemove] black ips are: {}, messenger ip is:{}", config.getMigrationBlackIps(), messenger.getIp());
+            return;
+        }
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        STATE_LOGGER.info("[removeMessenger] for {},{}", clusterId, messenger);
+        executors.submit(() -> messengerNotifier.notifyRemove(clusterId, messenger, true));
     }
 
     @Override
