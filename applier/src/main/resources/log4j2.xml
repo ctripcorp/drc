@@ -328,6 +328,9 @@
         <Logger name="qunar.tc.qconfig.client" level="warn" additivity="false">
             <AppenderRef ref="Warn"/>
         </Logger>
+        <Logger name="qunar.tc.qmq.producer" level="info" additivity="false">
+            <AppenderRef ref="messenger"/>
+        </Logger>
         <Logger name="ROWS" additivity="false">
             <AppenderRef ref="rows"/>
         </Logger>
