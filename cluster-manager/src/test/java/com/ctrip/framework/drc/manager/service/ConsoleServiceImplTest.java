@@ -54,11 +54,11 @@ public class ConsoleServiceImplTest extends AbstractDbClusterTest {
 
         consoleService.replicatorActiveElected(CLUSTER_ID, null);
         verify(clusterManagerConfig, times(0)).getConsoleRegionInfos();
-        consoleService.messengerActiveElected(CLUSTER_ID, newReplicator);
+        consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
         verify(clusterManagerConfig, times(1)).getConsoleRegionInfos();
 
         regionInfoMap.put(TARGET_DC, new RegionInfo("http://127.0.0.1:8080"));
-        consoleService.messengerActiveElected(CLUSTER_ID, newReplicator);
+        consoleService.replicatorActiveElected(CLUSTER_ID, newReplicator);
         verify(clusterManagerConfig, times(2)).getConsoleRegionInfos();
 
 
