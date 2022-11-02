@@ -95,22 +95,34 @@ public class MessengerProperties {
         List<Producer> producers = tableName2Producers.get(formatTableName);
         if (producers == null) {
             if (DELAY_MONITOR_TABLE.equalsIgnoreCase(formatTableName)) {
-                Producer monitorProducer = createMonitorProducer();
-                List<Producer> monitorProducers = Lists.newArrayList(monitorProducer);
-                tableName2Producers.put(formatTableName, monitorProducers);
-                return monitorProducers;
+                synchronized (this) {
+                    producers = tableName2Producers.get(formatTableName);
+                    if (producers != null) {
+                        return producers;
+                    }
+                    Producer monitorProducer = createMonitorProducer();
+                    List<Producer> monitorProducers = Lists.newArrayList(monitorProducer);
+                    tableName2Producers.put(formatTableName, monitorProducers);
+                    return monitorProducers;
+                }
             }
 
             List<Producer> toCreateProducers = Lists.newArrayList();
             for (Map.Entry<String, MqConfig> entry : table2Config.entrySet()) {
                 String tableRegex = entry.getKey().trim().toLowerCase();
                 if (table2Filter.get(tableRegex).filter(formatTableName)) {
-                    Producer producer = table2Producer.get(tableRegex);
-                    if (producer == null) {
-                        producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(formatTableName));
-                        table2Producer.put(tableRegex, producer);
+                    synchronized (this) {
+                        producers = tableName2Producers.get(formatTableName);
+                        if (producers != null) {
+                            return producers;
+                        }
+                        Producer producer = table2Producer.get(tableRegex);
+                        if (producer == null) {
+                            producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(formatTableName));
+                            table2Producer.put(tableRegex, producer);
+                        }
+                        toCreateProducers.add(producer);
                     }
-                    toCreateProducers.add(producer);
                 }
             }
             tableName2Producers.put(formatTableName, toCreateProducers);
