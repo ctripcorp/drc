@@ -89,8 +89,9 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             schemaName = parsedSchemaName;
         }
 
+        // fix ddl: use drc1; rename table test1 to drc2.test1;
         String oriSchemaName = results.get(0).getOriSchemaName();
-        if (oriSchemaName != null) {
+        if (type == QueryType.RENAME && StringUtils.isNotBlank(oriSchemaName)) {
             schemaName = oriSchemaName;
         }
 
@@ -137,7 +138,13 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 }
                 return false;
             } else {
-                doPersistColumnInfo(schemaName, tableName, queryString);
+                // fix ddl: use drc1; rename table test1 to drc2.test1;
+                String persistSchemaName = schemaName;
+                String toSchemaName = results.get(0).getSchemaName();
+                if (type == QueryType.RENAME && results.size() == 1 && StringUtils.isNotBlank(toSchemaName)) {
+                    persistSchemaName = toSchemaName;
+                }
+                doPersistColumnInfo(persistSchemaName, tableName, queryString);
             }
 
             return true;
