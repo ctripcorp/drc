@@ -332,6 +332,27 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 
+        // the previous event was filtered, this event should not be filtered
+        when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+        when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
+        when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(tableMapLogEvent.getSchemaName()).thenReturn("testdb");
+        when(tableMapLogEvent.getSchemaNameDotTableName()).thenReturn("testdb.testtable");
+
+        logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
+        skip = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip);
+
+        when(logEventHeader.getEventType()).thenReturn(LogEventType.write_rows_event_v2.getType());
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+        when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
+        when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
+
+        logEventWithGroupFlag.setLogEvent(writeRowsEvent);
+        skip = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip);
+
         when(logEventHeader.getEventType()).thenReturn(LogEventType.xid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
@@ -339,7 +360,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
 
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
-        Assert.assertTrue(skip);
+        Assert.assertFalse(skip);
     }
 
 }

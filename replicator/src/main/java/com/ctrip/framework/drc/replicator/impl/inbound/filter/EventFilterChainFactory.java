@@ -9,7 +9,7 @@ import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
  * 2019/10/9 上午10:30.
  *
  * preFilter
- * TransactionMonitorFilter -> EventTypeFilter -> UuidFilter/TransactionTableFilter -> DdlFilter -> BlackTableNameFilter
+ * TransactionMonitorFilter -> FlagFilter -> EventTypeFilter -> UuidFilter/TransactionTableFilter -> DdlFilter -> BlackTableNameFilter
  *
  * postFilter
  * TransactionMonitorFilter(read) -> DelayMonitorFilter(read) -> PersistPostFilter(write) -> EventReleaseFilter(release)
@@ -29,8 +29,11 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         TransactionMonitorFilter transactionMonitorFilter = new TransactionMonitorFilter(context.getInboundMonitorReport());
         delayMonitorFilter.setSuccessor(transactionMonitorFilter);
 
+        FlagFilter flagFilter = new FlagFilter();
+        transactionMonitorFilter.setSuccessor(flagFilter);
+
         EventTypeFilter eventTypeFilter = new EventTypeFilter();
-        transactionMonitorFilter.setSuccessor(eventTypeFilter);
+        flagFilter.setSuccessor(eventTypeFilter);
 
         Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode() ? new UuidFilter(context.getWhiteUUID()) : new TransactionTableFilter();
         eventTypeFilter.setSuccessor(circularBreakFilter);
