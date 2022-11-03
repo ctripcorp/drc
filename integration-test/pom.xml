@@ -12,6 +12,12 @@
     <artifactId>integration-test</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>com.ctrip.framework</groupId>
+            <artifactId>vi-server</artifactId>
+            <version>0.2.5</version>
+        </dependency>
+
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->
