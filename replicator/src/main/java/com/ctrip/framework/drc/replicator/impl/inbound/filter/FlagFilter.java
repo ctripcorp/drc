@@ -19,8 +19,9 @@ public class FlagFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
         if (table_map_log_event == logEventType) {
             value.unmark(BLACK_TABLE_NAME_F);
+            return doNext(value, value.isInExcludeGroup());
         }
 
-        return doNext(value, value.isInExcludeGroup());
+        return doNext(value, false);
     }
 }
