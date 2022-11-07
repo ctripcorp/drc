@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.driver.binlog.manager.exception.DdlException;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
@@ -41,6 +42,7 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
     public void afterException(Throwable t) {
         super.afterException(t);
         DDL_LOGGER.warn("apply {} failed {}", ddl, t);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.failed", String.format("DDL:%s\nEXCEPTION:%s", ddl, t.getCause()));
     }
 
     @Override
