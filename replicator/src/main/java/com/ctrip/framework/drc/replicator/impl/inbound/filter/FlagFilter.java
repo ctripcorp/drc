@@ -22,7 +22,7 @@ public class FlagFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             return doNext(value, value.isInExcludeGroup());
         }
 
-        // guarantee that every transaction will go through UuidFilter or TransactionTableFilter reset
+        // guarantee that every transaction will go through UuidFilter or TransactionTableFilter reset, including empty transaction
         return doNext(value, false);
     }
 }
