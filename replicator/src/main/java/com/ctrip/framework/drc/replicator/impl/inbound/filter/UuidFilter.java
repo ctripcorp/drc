@@ -37,6 +37,7 @@ public class UuidFilter extends AbstractLogEventFilter<InboundLogEventContext> i
         if (logEvent instanceof GtidLogEvent) {
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
             LogEventType logEventType = gtidLogEvent.getLogEventType();
+            // every transaction needs to be reset here or in TransactionTableFilter
             value.reset();
             if (gtid_log_event == logEventType) {
                 UUID uuid = gtidLogEvent.getServerUUID();
