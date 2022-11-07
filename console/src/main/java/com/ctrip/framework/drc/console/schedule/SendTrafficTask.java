@@ -51,6 +51,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private static final String AWS_PROVIDER = "aws";
     private static final String ALIYUN_PROVIDER = "aliyun";
+    private static final String TRIP_PROVIDER = "trip";
 
     private static final int batchSize = 100;
 
@@ -162,6 +163,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         // sha->sha
         HickWallTrafficContext shaToShaContext = getHickWallTrafficContext(SHA, SHA);
         List<HickWallTrafficEntity> shaToSha = opsApiService.getTrafficFromHickWall(shaToShaContext);
+        sendToKafKa(shaToSha, TRIP_PROVIDER, SHAXY, CostType.storage, 1);
         sendToCat(shaToSha);
 
         // sha->sin
