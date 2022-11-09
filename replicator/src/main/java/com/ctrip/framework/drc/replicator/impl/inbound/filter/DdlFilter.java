@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.QueryLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
@@ -109,10 +110,14 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 return false;
             }
-            boolean res = schemaManager.apply(schemaName, queryString);
+            ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type);
+            if (applyResult == ApplyResult.PARTITION_SKIP) {
+                DDL_LOGGER.info("[Apply] skip DDL {} for table partition", queryString);
+                return false;
+            }
             String tableName = results.get(0).getTableName();
             schemaManager.persistDdl(schemaName, tableName, queryString);
-            DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, res);
+            DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
 
             if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
                 DDL_LOGGER.info("[Skip] ddl for one of blank {}.{} with query {}", schemaName, tableName, queryString);

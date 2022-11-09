@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
@@ -8,6 +9,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
@@ -84,11 +86,21 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public boolean apply(String schema, String ddl) {
+    public ApplyResult apply(String schema, String ddl, QueryType queryType) {
+        if (QueryType.ALTER == queryType) {
+            if (TablePartitionManager.transformAlterPartition(ddl)) {
+                return ApplyResult.PARTITION_SKIP;
+            }
+        } else if (QueryType.CREATE == queryType) {
+            Pair<Boolean, String> transformRes = TablePartitionManager.transformCreatePartition(ddl);
+            if (transformRes.getKey()) {
+                ddl = transformRes.getValue();
+            }
+        }
         tableInfoMap.clear();
         synchronized (this) {
             Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
-            return res == null ? false : res.booleanValue();
+            return res == null ? ApplyResult.FAIL : ApplyResult.SUCCESS;
         }
     }
 

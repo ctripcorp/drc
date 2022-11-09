@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.QueryLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.replicator.MockTest;
@@ -51,7 +52,7 @@ public class DdlFilterTest extends MockTest {
     @Before
     public void setUp() {
         super.initMocks();
-        when(schemaManager.apply(anyString(), anyString())).thenReturn(true);
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.SUCCESS);
         when(schemaManager.find(anyObject(), anyObject())).thenReturn(tableInfo);
         doNothing().when(schemaManager).persistColumnInfo(any(TableInfo.class), any(Boolean.class));
         doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString());
@@ -117,14 +118,14 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQueryStatus()).thenReturn(queryStatus);
         when(queryStatus.getServerCollation()).thenReturn(33);  //utf8
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply("ghostdb", CREATE_TABLE);
+        verify(schemaManager, times(1)).apply("ghostdb", CREATE_TABLE, QueryType.CREATE);
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB CHARSET=utf8";
         when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(45);  //utf8mb4
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply("test1", CREATE_TABLE);
+        verify(schemaManager, times(1)).apply("test1", CREATE_TABLE, QueryType.CREATE);
 
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB";
@@ -133,14 +134,14 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(33);  //utf8
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply("test1", MODIFIED_CREATE_TABLE);
+        verify(schemaManager, times(1)).apply("test1", MODIFIED_CREATE_TABLE, QueryType.CREATE);
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB";
         when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(45);  //utf8
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply("test1", CREATE_TABLE);
+        verify(schemaManager, times(1)).apply("test1",  CREATE_TABLE, QueryType.CREATE);
 
     }
 
@@ -202,7 +203,7 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getSchemaName()).thenReturn(wrongDbName);
         when(schemaManager.find(dbName, tableName)).thenReturn(tableInfo);
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply(dbName, CREATE_TABLE);
+        verify(schemaManager, times(1)).apply(dbName,  CREATE_TABLE, QueryType.CREATE);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 
@@ -229,8 +230,70 @@ public class DdlFilterTest extends MockTest {
         when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
 
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
-        verify(schemaManager, times(1)).apply(oriSchemaName, RENAME_DDL);
+        verify(schemaManager, times(1)).apply(oriSchemaName, RENAME_DDL, QueryType.RENAME);
         verify(schemaManager, times(1)).persistDdl(oriSchemaName, tableName, RENAME_DDL);
+        verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
+    }
+
+    @Test
+    public void testAlterTablePartition() {
+        String schemaName = "drc1";
+        String tableName = "ts";
+        String DDL = "CREATE TABLE ts (id INT, purchased DATE)\n" +
+                "    PARTITION BY RANGE( YEAR(purchased) )\n" +
+                "    SUBPARTITION BY HASH( TO_DAYS(purchased) ) (\n" +
+                "        PARTITION p0 VALUES LESS THAN (1990) (\n" +
+                "            SUBPARTITION s0,\n" +
+                "            SUBPARTITION s1\n" +
+                "        ),\n" +
+                "        PARTITION p1 VALUES LESS THAN (2000) (\n" +
+                "            SUBPARTITION s2,\n" +
+                "            SUBPARTITION s3\n" +
+                "        ),\n" +
+                "        PARTITION p2 VALUES LESS THAN MAXVALUE (\n" +
+                "            SUBPARTITION s4,\n" +
+                "            SUBPARTITION s5\n" +
+                "        )\n" +
+                "    );";
+
+        TableInfo tableInfo = new TableInfo();
+        tableInfo.setDbName(schemaName);
+        tableInfo.setTableName(tableName);
+        when(queryLogEvent.getQuery()).thenReturn(DDL);
+        when(queryLogEvent.getSchemaName()).thenReturn(schemaName);
+        when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
+        when(schemaManager.apply(schemaName, DDL, QueryType.CREATE)).thenReturn(ApplyResult.PARTITION_SKIP);
+
+        Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent));
+        verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL);
+    }
+
+    @Test
+    public void testCreateTablePartition() {
+        String schemaName = "drc1";
+        String tableName = "employees";
+        String DDL = "CREATE TABLE employees (\n" +
+                "    id INT NOT NULL,\n" +
+                "    fname VARCHAR(30),\n" +
+                "    lname VARCHAR(30),\n" +
+                "    hired DATE NOT NULL DEFAULT '1970-01-01',\n" +
+                "    separated DATE NOT NULL DEFAULT '9999-12-31',\n" +
+                "    job_code INT,\n" +
+                "    store_id INT\n" +
+                ")\n" +
+                "PARTITION BY HASH(store_id)\n" +
+                "PARTITIONS 4;";
+
+        TableInfo tableInfo = new TableInfo();
+        tableInfo.setDbName(schemaName);
+        tableInfo.setTableName(tableName);
+        when(queryLogEvent.getQuery()).thenReturn(DDL);
+        when(queryLogEvent.getSchemaName()).thenReturn(schemaName);
+        when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
+        when(schemaManager.apply(schemaName, DDL, QueryType.CREATE)).thenReturn(ApplyResult.SUCCESS);
+
+        Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent));
+        verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 }
