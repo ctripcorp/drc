@@ -30,11 +30,24 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
 
     private Producer<String, String> producer;
 
+    private Producer<String, String> relationCostProducer;
+
     public TripTrafficStatisticsService() {
         init();
     }
 
     private void init() {
+        Properties properties = getProperties();
+        Properties relationCostProperties = getProperties();
+        try {
+            producer = KafkaClientFactory.newProducer(TOPIC, properties);
+            relationCostProducer = KafkaClientFactory.newProducer(RELATION_COST_TOPIC, relationCostProperties);
+        } catch (Throwable t) {
+            trafficLogger.error("[cost] get kafka producer error", t);
+        }
+    }
+
+    private Properties getProperties() {
         Properties properties = new Properties();
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
@@ -42,11 +55,7 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
         properties.put(ProducerConfig.LINGER_MS_CONFIG, "200");
         properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "30000");
         properties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "15000");
-        try {
-            producer = KafkaClientFactory.newProducer(TOPIC, properties);
-        } catch (Throwable t) {
-            trafficLogger.error("[cost] get kafka producer error", t);
-        }
+        return properties;
     }
 
     @Override
@@ -77,7 +86,7 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
     @Override
     public void send(RelationCostMetric metric) {
         String value = JsonUtils.toJson(metric);
-        producer.send(new ProducerRecord<>(RELATION_COST_TOPIC, null, JsonUtils.toJson(metric)), new Callback() {
+        relationCostProducer.send(new ProducerRecord<>(RELATION_COST_TOPIC, null, JsonUtils.toJson(metric)), new Callback() {
             @Override
             public void onCompletion(RecordMetadata recordMetadata, Exception e) {
                 if (e == null) {
