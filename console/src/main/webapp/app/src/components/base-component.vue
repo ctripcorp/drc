@@ -32,10 +32,10 @@
               <span>DRC配置</span>
             </MenuItem>
             <MenuItem name="/mhaMessengers" to="/mhaMessengers">
-              <span>MQ投递集群</span>
+              <span>Messenger集群</span>
             </MenuItem>
             <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">
-              <span>MQ投递配置</span>
+              <span>Messenger配置</span>
             </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>

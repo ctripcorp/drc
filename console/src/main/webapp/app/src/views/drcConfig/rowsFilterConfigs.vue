@@ -309,7 +309,7 @@ export default {
       this.axios.post('/api/drc/v1/build/simplexDrc/' + this.drc.srcMha + '/' + this.drc.destMha)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('获取或创建该方向同步!')
+            window.alert('获取或创建该方向同步失败!')
           } else {
             const vo = response.data.data
             this.drc.srcDc = vo.srcDc

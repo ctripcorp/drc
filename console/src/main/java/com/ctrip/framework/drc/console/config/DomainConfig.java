@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.config;
 
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
@@ -55,6 +56,12 @@ public class DomainConfig extends AbstractConfigBean {
 
     private static final String TRAFFIC_FROM_HICK_WALL_URL = "traffic.from.hick.wall.url";
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
+    
+    private static final String QMQ_APPLICATION_URL = "qmq.application.url";
+    private static final String DEFAULT_QMQ_APPLICATION_URL = "http://localhost:8080/qmq";
+    private static final String TOPIC_SUFFIX = "/api/subject/save";
+    private static final String PRODUCER_SUFFIX = "/api/producer/save";
+    private static final String BU_SUFFIX = "/api/producer/getBuList";
 
     public String getCmsGetServerUrl() {
         return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
@@ -118,6 +125,21 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getTrafficFromHickWall() {
         return getProperty(TRAFFIC_FROM_HICK_WALL_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_URL);
+    }
+
+    public String getQmqBuListUrl() {
+        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+        return qmqUrl + BU_SUFFIX;
+    }
+    
+    public String getQmqTopicApplicationUrl() {
+        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+        return qmqUrl + TOPIC_SUFFIX;
+    }
+    
+    public String getQmqProducerApplicationUrl() {
+        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+        return qmqUrl + PRODUCER_SUFFIX;
     }
 
 }

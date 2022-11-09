@@ -9,6 +9,8 @@ import java.util.List;
 public interface MonitorService {
 
     void switchMonitors(List<Long> mhaGroupIds, String status) throws SQLException;
+    
+    void switchMonitors(String mhaName, String status) throws SQLException;
 
     List<String> queryMhaNamesToBeMonitored() throws SQLException;
 

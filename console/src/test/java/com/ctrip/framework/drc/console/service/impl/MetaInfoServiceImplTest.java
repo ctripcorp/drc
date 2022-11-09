@@ -190,11 +190,11 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testGetResourcesMethods() throws Exception {
         
-        List<String> r = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "R");
+        List<String> r = metaInfoService.getResourcesInRegionOfMha("fat-fx-drc1", "R");
         System.out.println("r in dc: " + r);
         Assert.assertEquals(5, r.size());
 
-        List<String> a = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "A");
+        List<String> a = metaInfoService.getResourcesInRegionOfMha("fat-fx-drc1", "A");
         System.out.println("a in dc: " + a);
         Assert.assertEquals(5, a.size());
 

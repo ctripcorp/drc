@@ -44,7 +44,7 @@ public class MessengerServiceImplTest {
         MockitoAnnotations.openMocks(this);
 
         MessengerGroupTbl messengerGroupTbl = mockMessengerGroupTbl();
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(1L))).thenReturn(messengerGroupTbl);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(1L),Mockito.anyInt())).thenReturn(messengerGroupTbl);
 
         MessengerProperties messengerProperties = mockMessengerProperties();
         Mockito.when(dataMediaPairService.generateMessengerProperties(Mockito.eq(1L))).thenReturn(messengerProperties);

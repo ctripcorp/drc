@@ -25,6 +25,10 @@ const routes = [
     component: () => import('../views/drcclusters.vue')
   },
   {
+    path: '/mhaMessengers',
+    component: () => import('../views/mhaMessengers.vue')
+  },
+  {
     path: '/deletedDrcClusters',
     component: () => import('../views/deletedDrcClusters.vue')
   },
@@ -35,6 +39,10 @@ const routes = [
   {
     path: '/accessV2',
     component: () => import('../views/accessV2.vue')
+  },
+  {
+    path: '/buildMhaMessenger',
+    component: () => import('../views/buildMessenger.vue')
   },
   {
     path: '/proxyRouteCluster',
@@ -122,6 +130,11 @@ const routes = [
     path: '/rowsFilterConfigs',
     name: 'rowsFilterConfigs',
     component: () => import('../views/drcConfig/rowsFilterConfigs.vue')
+  },
+  {
+    path: '/mqConfigs',
+    name: 'mqConfigs',
+    component: () => import('../views/drcConfig/mqConfigs.vue')
   },
   {
     path: '/',

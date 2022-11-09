@@ -62,11 +62,23 @@ public class MonitorServiceImpl implements MonitorService {
     }
 
     @Override
+    public void switchMonitors(String mhaName, String status) throws SQLException {
+        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
+        mhaTbl.setMonitorSwitch(monitorSwitch);
+        dalUtils.getMhaTblDao().update(mhaTbl);
+    }
+
+    @Override
     public List<String> queryMhaNamesToBeMonitored() throws SQLException {
         List<Long> mhaIdsTobeMonitored = queryMhaIdsToBeMonitored();
         MhaTbl mhaTbl = new MhaTbl();
         mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        // switch control by mhaGroup
         List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(mhaTbl);
+        // switch control by mha
+        mhaTbl.setMonitorSwitch(1);
+        mhaTbls.addAll(dalUtils.getMhaTblDao().queryBy(mhaTbl));
         return mhaTbls.stream().filter(p -> mhaIdsTobeMonitored.contains(p.getId()))
                 .map(MhaTbl::getMhaName).collect(Collectors.toList());
     }
@@ -84,7 +96,6 @@ public class MonitorServiceImpl implements MonitorService {
         List<GroupMappingTbl> groupMappingTbls = dalUtils.getGroupMappingTblDao().queryBy(groupMappingTbl);
         List<Long> mhaIdsTobeMonitored = groupMappingTbls.stream().filter(p -> mhaGroupIdsTobeMonitored
                 .contains(p.getMhaGroupId())).map(GroupMappingTbl::getMhaId).collect(Collectors.toList());
-        
         return mhaIdsTobeMonitored;
     }
 

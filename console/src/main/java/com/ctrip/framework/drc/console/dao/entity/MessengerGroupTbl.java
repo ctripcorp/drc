@@ -16,7 +16,7 @@ import java.sql.Types;
  */
 @Entity
 @Database(name = "fxdrcmetadb_w")
-@Table(name = "dc_tbl")
+@Table(name = "messenger_group_tbl")
 public class MessengerGroupTbl implements DalPojo{
 
     /**
@@ -33,9 +33,16 @@ public class MessengerGroupTbl implements DalPojo{
      */
     @Id
     @Column(name = "mha_id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Type(value = Types.BIGINT)
     private Long mhaId;
+
+    /**
+     * replicator group id
+     */
+    @Column(name = "replicator_group_id")
+    @Type(value = Types.BIGINT)
+    private Long replicatorGroupId;
+    
     
     /**
      * gtid_executed
@@ -81,6 +88,14 @@ public class MessengerGroupTbl implements DalPojo{
 
     public void setMhaId(Long mhaId) {
         this.mhaId = mhaId;
+    }
+
+    public Long getReplicatorGroupId() {
+        return replicatorGroupId;
+    }
+
+    public void setReplicatorGroupId(Long replicatorGroupId) {
+        this.replicatorGroupId = replicatorGroupId;
     }
 
     public String getGtidExecuted() {

@@ -62,15 +62,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
-    @Autowired
-    private UdlMigrateConfiguration udlMigrateConfig;
     
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
     
     @Override
     public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException {
-        ArrayList<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
+        List<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
                 rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
         
@@ -84,33 +82,22 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
-            if (udlMigrateConfig.gray(applierGroupId)) {// new rowsFilterConfig  trip_udl & configs & updateDb
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
-                rowsFilterConfig.setMode(
-                        TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
-                );
-                String configsJson = rowsFilterTbl.getConfigs();
-                if (StringUtils.isBlank(configsJson)) {
-                    Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
-                    Configs configs = new Configs();
-                    configs.setParameterList(Lists.newArrayList(parameters));
-                    rowsFilterConfig.setConfigs(configs);
-                    
-                    migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
-                } else {
-                    rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
-                }
-                
-            } else {// old rowsFilterConfig trip_uid & parameters
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} still work in old config",applierGroupId);
-                rowsFilterConfig.setMode(
-                        TRIP_UDL.equalsIgnoreCase(originalMode) ? TRIP_UID : originalMode
-                );
+            // new rowsFilterConfig  trip_udl & configs & updateDb
+            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
+            rowsFilterConfig.setMode(
+                    TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
+            );
+            String configsJson = rowsFilterTbl.getConfigs();
+            if (StringUtils.isBlank(configsJson)) {
                 Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
-                rowsFilterConfig.setParameters(parameters);
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to udl mode",applierGroupId);
+                Configs configs = new Configs();
+                configs.setParameterList(Lists.newArrayList(parameters));
+                rowsFilterConfig.setConfigs(configs);
+                
+                migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
+            } else {
+                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
             }
-            
             rowsFilterConfigs.add(rowsFilterConfig);
         }
 
@@ -132,7 +119,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                     dataMediaTblDao.queryByIdsAndType(
                             Lists.newArrayList(mapping.getDataMediaId()),
                             DataMediaTypeEnum.ROWS_FILTER.getType(),
-                            BooleanEnum.FALSE.getCode());
+                            BooleanEnum.FALSE.getCode()
+                    );
             RowsFilterTbl rowsFilterTbl =
                     rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             if (!CollectionUtils.isEmpty(dataMediaTbls) && rowsFilterTbl != null) {

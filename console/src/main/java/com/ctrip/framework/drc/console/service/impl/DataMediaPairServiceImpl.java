@@ -2,7 +2,10 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
+import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -33,8 +36,8 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
 
     @Autowired
     private RowsFilterService rowsFilterService;
-
-
+    
+    
     @Override
     public MessengerProperties generateMessengerProperties(Long messengerGroupId) throws SQLException {
         List<MqConfig> mqConfigs = Lists.newArrayList();
@@ -50,19 +53,71 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
             mqConfig.setProcessor(dataMediaPairTbl.getProcessor());
             mqConfigs.add(mqConfig);
         }
-        MessengerProperties messengerProperties = new MessengerProperties();
+        MessengerProperties messengerProperties = new MessengerProperties(); // todo if mqconfig is empty set null;
         messengerProperties.setMqConfigs(mqConfigs);
 
         //nameFilter
-        messengerProperties.setNameFilter(StringUtils.join(tables,","));
+        messengerProperties.setNameFilter(StringUtils.join(tables,",")); // todo if mqconfig is empty set null;
 
         //rowsFilters
         DataMediaConfig dataMediaConfig = new DataMediaConfig();
         dataMediaConfig.setRowsFilters(
-                rowsFilterService.generateRowsFiltersConfig(messengerGroupId, ApplierTypeEnum.MESSENGER.getCode())
+                rowsFilterService.generateRowsFiltersConfig(messengerGroupId, ApplierTypeEnum.MESSENGER.getType())
         );
         messengerProperties.setDataMediaConfig(dataMediaConfig);
 
         return messengerProperties;
+    }
+
+    @Override
+    public String addMqConfig(MqConfigDto dto) throws SQLException {
+        DataMediaPairTbl dataMediaPairTbl = transfer(dto);
+        int affectRows = dataMediaPairTblDao.insert(dataMediaPairTbl);
+        return affectRows == 1 ?  "addMqConfig success" : "addMqConfig fail";
+    }
+
+    @Override
+    public String updateMqConfig(MqConfigDto dto) throws SQLException {
+        DataMediaPairTbl dataMediaPairTbl = transfer(dto);
+        int affectRows = dataMediaPairTblDao.update(dataMediaPairTbl);
+        return affectRows == 1 ?  "updateMqConfig success" : "updateMqConfig fail";
+    }
+
+    @Override
+    public String deleteMqConfig(Long dataMediaPairId) throws SQLException {
+        DataMediaPairTbl sample = new DataMediaPairTbl();
+        sample.setId(dataMediaPairId);
+        sample.setDeleted(BooleanEnum.TRUE.getCode());
+        int affectRows = dataMediaPairTblDao.update(sample);
+        return affectRows == 1 ?  "deleteMqConfig success" : "deleteMqConfig fail";
+    }
+
+    @Override
+    public List<DataMediaPairTbl> getDataMediaPairs(Long messengerGroupId) throws SQLException {
+       return dataMediaPairTblDao.queryByGroupId(messengerGroupId);
+    }
+    
+    private DataMediaPairTbl transfer(MqConfigDto dto) throws IllegalArgumentException {
+        DataMediaPairTbl dataMediaPair = new DataMediaPairTbl();
+        
+        dataMediaPair.setId(dto.getId() == 0 ? null : dto.getId());
+        dataMediaPair.setType(DataMediaPairTypeEnum.DB_TO_MQ.getType());
+        dataMediaPair.setSrcDataMediaName(dto.getTable());
+        dataMediaPair.setDestDataMediaName(dto.getTopic());
+        dataMediaPair.setGroupId(dto.getMessengerGroupId());
+        dataMediaPair.setProcessor(dto.getProcessor());
+        
+        MqConfig mqConfig = new MqConfig();
+        mqConfig.setMqType(dto.getMqType());
+        mqConfig.setSerialization(dto.getSerialization());
+        mqConfig.setOrder(dto.isOrder());
+        mqConfig.setOrderKey(dto.getOrderKey());
+        mqConfig.setPersistent(dto.isPersistent());
+        mqConfig.setPersistentDb(dto.getPersistentDb());
+        mqConfig.setDelayTime(dto.getDelayTime());
+        String mqJsonString = JsonUtils.toJson(mqConfig);
+
+        dataMediaPair.setProperties(mqJsonString);
+        return dataMediaPair;
     }
 }
