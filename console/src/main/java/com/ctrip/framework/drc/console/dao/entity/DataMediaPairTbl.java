@@ -29,7 +29,8 @@ public class DataMediaPairTbl implements DalPojo {
     private Long id;
 
     /**
-     * 0 db->db，1 db->mq
+     * 0:db->db，1:db->mq
+     * default 1
      */
     @Column(name = "type")
     @Type(value = Types.TINYINT)
@@ -44,7 +45,7 @@ public class DataMediaPairTbl implements DalPojo {
     private Long groupId;
 
     /**
-     * see dataMediaTbl
+     * 
      */
     @Column(name = "src_data_media_name")
     @Type(value = Types.VARCHAR)
@@ -55,6 +56,15 @@ public class DataMediaPairTbl implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String destDataMediaName;
     
+    
+    /**
+     * json保存 相关配置
+     * 由type 决定 类型
+     */
+    @Column(name = "properties")
+    @Type(value = Types.LONGVARCHAR)
+    private String properties;
+
     /**
      *  保存 java 文件
      *  兼容Otter EventProcessor
@@ -62,20 +72,10 @@ public class DataMediaPairTbl implements DalPojo {
     @Column(name = "processor")
     @Type(value = Types.LONGVARCHAR)
     private String processor;
-
-    
-    /**
-     * json
-     * 保存 相关配置
-     * 由type 决定 类型
-     */
-    @Column(name = "properties")
-    @Type(value = Types.LONGVARCHAR)
-    private String properties;
-    
     
     /**
      * 是否删除, 0:否; 1:是
+     * 默认 0
      */
     @Column(name = "deleted")
     @Type(value = Types.TINYINT)

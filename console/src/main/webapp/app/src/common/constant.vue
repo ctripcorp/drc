@@ -2,58 +2,59 @@
 const dcList = [
   {
     value: 'shaoy',
-    key: '上海欧阳'
+    label: '上海欧阳'
   },
   {
     value: 'shaxy',
-    key: '上海新源'
+    label: '上海新源'
   },
   {
     value: 'sharb',
-    key: '上海日版'
+    label: '上海日版'
   },
   {
     value: 'shajq',
-    key: '上海金桥'
+    label: '上海金桥'
   },
   {
     value: 'shafq',
-    key: '上海福泉'
+    label: '上海福泉'
   },
   {
     value: 'shajz',
-    key: '上海金钟'
+    label: '上海金钟'
   },
   {
     value: 'ntgxh',
-    key: 'ntgxh'
+    label: 'ntgxh'
   },
   {
     value: 'ntgxy',
-    key: 'ntgxy'
+    label: 'ntgxy'
   },
   {
     value: 'fraaws',
-    key: 'fraaws'
+    label: 'fraaws'
   },
   {
     value: 'shali',
-    key: '上海阿里'
+    label: '上海阿里'
   },
   {
     value: 'sinibuaws',
-    key: 'IBU-VPC'
+    label: 'IBU-VPC'
   },
   {
     value: 'sinibualiyun',
-    key: 'IBU-VPC(aliyun)'
+    label: 'IBU-VPC(aliyun)'
   },
   {
     value: 'sinaws',
-    key: 'sinaws'
+    label: 'sinaws'
   }
 ]
 export default {
+  name: 'constant',
   dcList
 }
 </script>

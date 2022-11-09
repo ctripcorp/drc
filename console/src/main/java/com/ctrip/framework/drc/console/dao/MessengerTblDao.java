@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.dao;
 
+import com.ctrip.framework.drc.console.dao.entity.ApplierTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -31,4 +34,16 @@ public class MessengerTblDao extends AbstractDao<MessengerTbl> {
         sample.setDeleted(BooleanEnum.FALSE.getCode());
         return queryBy(sample);
     }
+
+    public Long insertMessenger(int port, Long resourceId, Long messengerGroupId) throws SQLException {
+        MessengerTbl pojo = new MessengerTbl();
+        pojo.setPort(port);
+        pojo.setResourceId(resourceId);
+        pojo.setMessengerGroupId(messengerGroupId);
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, pojo);
+        return (Long) keyHolder.getKey();
+    }
+    
+    
 }

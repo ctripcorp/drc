@@ -8,10 +8,11 @@ import java.util.Objects;
  */
 public class DelayInfo {
 
+    // dc
     private String d;
-
+    // region
     private String r;
-
+    // mhaName
     private String m;
 
     public DelayInfo() {

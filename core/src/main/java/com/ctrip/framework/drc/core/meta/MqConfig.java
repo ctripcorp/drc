@@ -7,12 +7,16 @@ package com.ctrip.framework.drc.core.meta;
  * @Version: $
  */
 public class MqConfig {
-    // qmq/kafka
-    private String mqType;
+    
     //schema.table
     private String table;
     // mq topic
     private String topic;
+    // for otter eventProcessor
+    private String processor;
+    
+    // qmq/kafka
+    private String mqType;
     //json/arvo
     private String serialization;
     // qmq store message when send fail
@@ -25,8 +29,7 @@ public class MqConfig {
     private String orderKey;
     // qmq send message delayTime, unit:second
     private long delayTime;
-    // for otter eventProcessor
-    private String processor;
+    
 
     @Override
     public String toString() {
@@ -112,7 +115,7 @@ public class MqConfig {
         return delayTime;
     }
 
-    public void setDelayTime(int delayTime) {
+    public void setDelayTime(long delayTime) {
         this.delayTime = delayTime;
     }
 

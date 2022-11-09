@@ -2,11 +2,23 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.BuTblDao;
+import com.ctrip.framework.drc.console.dao.ClusterMhaMapTblDao;
+import com.ctrip.framework.drc.console.dao.ClusterTblDao;
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.ClusterMhaMapTbl;
+import com.ctrip.framework.drc.console.dao.entity.ClusterTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.DalClusterDto;
 import com.ctrip.framework.drc.console.dto.DalClusterShard;
 import com.ctrip.framework.drc.console.dto.DalMhaDto;
+import com.ctrip.framework.drc.console.dto.MhaDto;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
@@ -16,16 +28,20 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.enums.BooleanEnum.FALSE;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 
 /**
@@ -36,14 +52,21 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Service
 public class MhaServiceImpl extends AbstractMonitor implements MhaService {
 
-    @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired private DefaultConsoleConfig defaultConsoleConfig;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     
-    @Autowired
-    private DomainConfig domainConfig;
+    @Autowired private DomainConfig domainConfig;
+    
+    @Autowired private MhaTblDao mhaTblDao;
+    
+    @Autowired private ClusterMhaMapTblDao clusterMhaMapTblDao;
+    
+    @Autowired private ClusterTblDao clusterTblDao;
+    
+    @Autowired private BuTblDao buTblDao;
+    
+    private DalUtils dalUtils = DalUtils.getInstance();
     
     private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
@@ -230,6 +253,41 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
         }
         logger.info("Cannot find dc for zoneId: {}", zoneId);
         return zoneId;
+    }
+
+    @Override
+    public ApiResult recordMha(MhaDto mhaDto) {
+        try {
+            MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaDto.getMhaName(), FALSE.getCode());
+            if (null != mhaTbl) {
+                return ApiResult.getFailInstance(null,"mha already exist!");
+            }
+            Long dcId = dalUtils.updateOrCreateDc(mhaDto.getDc());
+            Long buId = dalUtils.updateOrCreateBu(mhaDto.getBuName());
+            Long clusterId = dalUtils.updateOrCreateCluster(mhaDto.getDalClusterName(), mhaDto.getAppid(), buId);
+            Long mhaId = dalUtils.updateOrCreateMha(mhaDto.getMhaName(), dcId);
+            dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
+            return ApiResult.getSuccessInstance(null);
+            
+        } catch (SQLException e) {
+            logger.error("recordMha error,mhaDto:{}",mhaDto,e);
+            return  ApiResult.getFailInstance(null,"sql exception");
+        }
+    }
+
+    @Override
+    public MhaDto queryMhaInfo(Long mhaId) throws SQLException{
+        MhaDto mhaDto = new MhaDto();
+        MhaTbl mhaTbl = mhaTblDao.queryByPk(mhaId);
+        mhaDto.setMhaName(mhaTbl.getMhaName());
+        mhaDto.setMonitorSwitch(mhaTbl.getMonitorSwitch());
+        
+        List<ClusterMhaMapTbl> clusterMhaMapTbls = clusterMhaMapTblDao.queryByMhaIds(
+                Lists.newArrayList(mhaId), BooleanEnum.FALSE.getCode());
+        ClusterTbl clusterTbl = clusterTblDao.queryByPk(clusterMhaMapTbls.get(0).getClusterId());
+        BuTbl buTbl = buTblDao.queryByPk(clusterTbl.getBuId());
+        mhaDto.setBuName(buTbl.getBuName());
+        return mhaDto;
     }
 
     private int getShardStart(int shardIndex, String dbName){

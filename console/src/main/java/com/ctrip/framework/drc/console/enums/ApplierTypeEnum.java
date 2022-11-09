@@ -4,11 +4,11 @@ public enum ApplierTypeEnum {
     APPLIER(0,"apply to db"),
     MESSENGER(1,"apply to mq");
 
-    private final int code;
+    private final int type;
     private final String comment;
 
     ApplierTypeEnum(int code, String comment) {
-        this.code = code;
+        this.type = code;
         this.comment = comment;
     }
 
@@ -16,7 +16,7 @@ public enum ApplierTypeEnum {
         return comment;
     }
 
-    public int getCode() {
-        return code;
+    public int getType() {
+        return type;
     }
 }

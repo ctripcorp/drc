@@ -117,7 +117,7 @@ public class MetaControllerTest extends AbstractControllerTest {
         List<Integer> instances = new ArrayList<>() {{
            add(8888);
         }};
-        Mockito.when(metaInfoService.getResourcesInDcOfMha(MHA, "R")).thenReturn(rResources);
+        Mockito.when(metaInfoService.getResourcesInRegionOfMha(MHA, "R")).thenReturn(rResources);
         Mockito.when(metaInfoService.getResourcesInUse(MHA, "", "R")).thenReturn(rResources);
         doReturn(rResources).when(metaInfoService).getReplicatorResources(DC);
         doReturn(aResources).when(metaInfoService).getApplierResources(DC);

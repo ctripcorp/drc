@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -34,17 +35,16 @@ import java.util.stream.Collectors;
 public class MetaGenerator {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired
-    private DataCenterService dataCenterService;
+    @Autowired private DataCenterService dataCenterService;
     
-    @Autowired
-    private RowsFilterService rowsFilterService;
+    @Autowired private RowsFilterService rowsFilterService;
     
-    @Autowired
-    private MessengerService messengerService;
+    @Autowired private MessengerService messengerService;
+    
+    @Autowired private MonitorTableSourceProvider monitorConfigProvider;
+    
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -205,13 +205,23 @@ public class MetaGenerator {
     private Dbs generateDbs(DbCluster dbCluster, MhaGroupTbl mhaGroupTbl, MhaTbl mhaTbl) {
         logger.debug("generate dbs for mha: {}", mhaTbl.getMhaName());
         Dbs dbs = new Dbs();
-        dbs.setReadUser(mhaGroupTbl.getReadUser())
-                .setReadPassword(mhaGroupTbl.getReadPassword())
-                .setWriteUser(mhaGroupTbl.getWriteUser())
-                .setWritePassword(mhaGroupTbl.getWritePassword())
-                .setMonitorUser(mhaGroupTbl.getMonitorUser())
-                .setMonitorPassword(mhaGroupTbl.getMonitorPassword());
-        dbCluster.setDbs(dbs);
+        if (mhaGroupTbl == null) {
+            dbs.setReadUser(monitorConfigProvider.getReadUserVal())
+                    .setReadPassword(monitorConfigProvider.getReadPasswordVal())
+                    .setWriteUser(monitorConfigProvider.getWriteUserVal())
+                    .setWritePassword(monitorConfigProvider.getWritePasswordVal())
+                    .setMonitorUser(monitorConfigProvider.getMonitorUserVal())
+                    .setMonitorPassword(monitorConfigProvider.getMonitorPasswordVal());
+            dbCluster.setDbs(dbs);
+        } else {
+            dbs.setReadUser(mhaGroupTbl.getReadUser())
+                    .setReadPassword(mhaGroupTbl.getReadPassword())
+                    .setWriteUser(mhaGroupTbl.getWriteUser())
+                    .setWritePassword(mhaGroupTbl.getWritePassword())
+                    .setMonitorUser(mhaGroupTbl.getMonitorUser())
+                    .setMonitorPassword(mhaGroupTbl.getMonitorPassword());
+            dbCluster.setDbs(dbs);
+        }
         return dbs;
     }
 
@@ -261,7 +271,7 @@ public class MetaGenerator {
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().
                 filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ApplierTypeEnum.APPLIER.getCode());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ApplierTypeEnum.APPLIER.getType());
         DataMediaConfig properties = new DataMediaConfig();
         properties.setRowsFilters(rowsFilterConfigs);
         String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
@@ -307,16 +317,22 @@ public class MetaGenerator {
                                     p.getDrcEstablishStatus().equals(EstablishStatusEnum.BUILT_NEW_MHA.getCode())))
                     .collect(Collectors.toList());
             if (mhaGroupTblList.size() == 0) {
-                logger.debug("skip, mha group for {} is not established yet", mhaTbl.getMhaName());
-                continue;
+                // only messenger
+                DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
+                Dbs dbs = generateDbs(dbCluster,null, mhaTbl);
+                generateDb(dbs, mhaTbl);
+                generateReplicators(dbCluster, mhaTbl);
+                generateMessengers(dbCluster,mhaTbl);
+            } else {
+                // 
+                DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
+                Dbs dbs = generateDbs(dbCluster, mhaGroupTblList.iterator().next(), mhaTbl);
+                generateDb(dbs, mhaTbl);
+                generateMessengers(dbCluster,mhaTbl);
+                generateReplicators(dbCluster, mhaTbl);
+                generateAppliers(dbCluster, mhaTbl);
             }
-            DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
-            Dbs dbs = generateDbs(dbCluster, mhaGroupTblList.iterator().next(), mhaTbl);
-            generateDb(dbs, mhaTbl);
             
-            generateMessengers(dbCluster,mhaTbl);
-            generateReplicators(dbCluster, mhaTbl);
-            generateAppliers(dbCluster, mhaTbl);
         }
     }
 
