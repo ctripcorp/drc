@@ -10,4 +10,6 @@ public interface TrafficStatisticsService extends Ordered {
     void send(KafKaTrafficMetric metric);
 
     void send(CatTrafficMetric metric);
+
+    void send(RelationCostMetric metric);
 }

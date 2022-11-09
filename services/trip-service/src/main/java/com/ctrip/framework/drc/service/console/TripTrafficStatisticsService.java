@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.console;
 import com.ctrip.framework.ckafka.client.KafkaClientFactory;
 import com.ctrip.framework.drc.core.service.statistics.traffic.CatTrafficMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.KafKaTrafficMetric;
+import com.ctrip.framework.drc.core.service.statistics.traffic.RelationCostMetric;
 import com.ctrip.framework.drc.core.service.statistics.traffic.TrafficStatisticsService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.dianping.cat.Cat;
@@ -20,6 +21,8 @@ import java.util.Properties;
 public class TripTrafficStatisticsService implements TrafficStatisticsService {
 
     private static final String TOPIC = "ops.cost.insight.share.unit.detail.hourly";
+
+    private static final String RELATION_COST_TOPIC = "ops.cost.insight.cost.share.relation.hourly";
 
     private static final String KPI_TYPE = "DRC.Traffic";
 
@@ -69,6 +72,21 @@ public class TripTrafficStatisticsService implements TrafficStatisticsService {
         t.addProperty("size", metric.getSize().toString());
         t.complete();
         trafficLogger.info("[cost][cat] send value success: {}", metric);
+    }
+
+    @Override
+    public void send(RelationCostMetric metric) {
+        String value = JsonUtils.toJson(metric);
+        producer.send(new ProducerRecord<>(RELATION_COST_TOPIC, null, JsonUtils.toJson(metric)), new Callback() {
+            @Override
+            public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+                if (e == null) {
+                    trafficLogger.info("[relation][kafka] send value success: {}", value);
+                } else {
+                    trafficLogger.error("[relation][kafka] send value error: {}", value, e);
+                }
+            }
+        });
     }
 
     @Override
