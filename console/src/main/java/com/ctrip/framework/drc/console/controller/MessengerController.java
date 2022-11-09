@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import qunar.api.open.annotation.RequestParam;
 
 import java.sql.SQLException;
 import java.util.List;

@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.google.triplog.shaded.common.collect.Lists;
+import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
