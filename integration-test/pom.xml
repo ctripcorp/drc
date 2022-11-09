@@ -92,16 +92,16 @@
             <artifactId>mariaDB4j</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.ctrip.platform</groupId>
-            <artifactId>ctrip-datasource</artifactId>
-            <version>2.4.28.2-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ctrip.platform</groupId>
-            <artifactId>dal-client</artifactId>
-            <version>2.4.28.2-SNAPSHOT</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>ctrip-datasource</artifactId>-->
+<!--            <version>2.4.28.2-SNAPSHOT</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>dal-client</artifactId>-->
+<!--            <version>2.4.28.2-SNAPSHOT</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>
