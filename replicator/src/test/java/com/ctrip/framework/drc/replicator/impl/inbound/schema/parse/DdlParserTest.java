@@ -317,4 +317,11 @@ public class DdlParserTest {
         Assert.assertNotNull(result);
         Assert.assertEquals("drc1", result.getSchemaName());
     }
+
+    @Test
+    public void testPartitionAlter() {
+        String queryString = "ALTER TABLE trb4 truncate PARTITION p1;";
+        DdlResult result = DdlParser.parse(queryString, "db0").get(0);
+        Assert.assertEquals(result.getType(), QueryType.ALTER);
+    }
 }
