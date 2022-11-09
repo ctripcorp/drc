@@ -15,6 +15,11 @@ public class BlankTrafficStatisticsService implements TrafficStatisticsService {
     }
 
     @Override
+    public void send(RelationCostMetric metric) {
+
+    }
+
+    @Override
     public int getOrder() {
         return 1;
     }

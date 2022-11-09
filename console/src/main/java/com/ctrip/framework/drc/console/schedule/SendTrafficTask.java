@@ -53,6 +53,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String ALIYUN_PROVIDER = "aliyun";
     private static final String TRIP_PROVIDER = "trip";
 
+    private static final String serviceType = "drc";
+
     private static final int batchSize = 100;
 
     private static final int initialDelay = 5 * 60;
@@ -108,7 +110,9 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
                         DefaultTransactionMonitorHolder.getInstance().logTransaction("Schedule", "SendTraffic", new Task() {
                             @Override
                             public void go() throws Exception {
+                                currentTimeRoundToHour = System.currentTimeMillis() / 1000 / (60 * 60) * (60 * 60);
                                 dbMap = getDbInfo();
+                                sendRelationCost();
                                 sendTraffic();
                                 updateSendTime();
                             }
@@ -136,8 +140,43 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         return dbMap;
     }
 
+    private void sendRelationCost() {
+        List<String> apps = configService.getRelationCostApp();
+        sendRelationCostToKafka("app", apps);
+
+        List<String> mysqls = configService.getRelationCostMysql();
+        sendRelationCostToKafka("mysql", mysqls);
+
+        List<String> slbs = configService.getRelationCostSlb();
+        sendRelationCostToKafka("slb", slbs);
+
+        List<String> cats = configService.getRelationCostCat();
+        sendRelationCostToKafka("cat", cats);
+    }
+
+    private void sendRelationCostToKafka(String referedName, List<String> referedInstances) {
+        String costGroup = CostType.storage.getName();
+        for (String instance : referedInstances) {
+            RelationCostMetric metric = new RelationCostMetric();
+            metric.setTimestamp(currentTimeRoundToHour);
+            metric.setService_type(serviceType);
+            metric.setCost_group(costGroup);
+            metric.setRefered_service_type(referedName);
+            metric.setRefered_app_instance(instance);
+            metric.setRelation_group(String.format("%s.%s", serviceType, costGroup));
+            metric.setParent_relation_group("");
+            metric.set_schema_version(schemaVersion);
+
+            try {
+                statisticsService.send(metric);
+            } catch (Exception e) {
+                logger.error("[[task=sendTraffic]] send relation to kafka error: {}", metric, e);
+            }
+        }
+    }
+
+
     private void sendTraffic() throws Exception {
-        currentTimeRoundToHour = System.currentTimeMillis() / 1000 / (60 * 60) * (60 * 60);
         logger.info("[[task=sendTraffic]] current time round to hour: {}", currentTimeRoundToHour);
 
         // sin->sha
@@ -222,8 +261,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.setCloud_provider(provider);
             metric.setRegion(region);
             metric.setZone("");
-            metric.setApp_name("drc");
-            metric.setService_type("drc");
+            metric.setApp_name(serviceType);
+            metric.setService_type(serviceType);
             metric.setApp_platform(costType.getName());
             metric.setApp_instance(dbName);
             metric.setShare_unit_type(costType.getName());
