@@ -37,7 +37,7 @@ public class TablePartitionManagerTest {
                 "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`),\n" +
                 "  KEY `ix_uid` (`uid`)\n" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT=''\n" +
-                "/*!50100 PARTITION BY RANGE (to_days(datachange_lasttime))\n" +
+                "/*!50100 PARTITIon  BY RANGE (to_days(datachange_lasttime))\n" +
                 "(PARTITION p20220321 VALUES LESS THAN (738607) ENGINE = InnoDB,\n" +
                 " PARTITION p20220328 VALUES LESS THAN (738614) ENGINE = InnoDB,\n" +
                 " PARTITION p20220404 VALUES LESS THAN (738621) ENGINE = InnoDB,\n" +
@@ -106,11 +106,11 @@ public class TablePartitionManagerTest {
 
         queryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
                 "    ParTITION   BY RANGE( YEAR(purchased) )\n" +
-                "    SUBPARTITION BY HASH( TO_DAYS(purchased) )\n" +
+                "    SUBPARTItiON BY HASH( TO_DAYS(purchased) )\n" +
                 "    SUBPARTITIONS 2 (\n" +
                 "        PARTITION p0 VALUES LESS THAN (1990),\n" +
                 "        PARTITION p1 VALUES LESS THAN (2000),\n" +
-                "        PARTITION p2 VALUES LESS THAN MAXVALUE\n" +
+                "        ParTITION p2 VALUES LESS THAN MAXVALUE\n" +
                 "    );";
 
         res = transformCreatePartition(queryString);
@@ -124,7 +124,7 @@ public class TablePartitionManagerTest {
 
 
         queryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
-                "    PARTITION BY RANGE( YEAR(purchased) )\n" +
+                "    paRTITION    BY RANGE( YEAR(purchased) )\n" +
                 "    SUBPARTITION BY HASH( TO_DAYS(purchased) ) (\n" +
                 "        PARTITION p0 VALUES LESS THAN (1990) (\n" +
                 "            SUBPARTITION s0,\n" +
@@ -159,7 +159,7 @@ public class TablePartitionManagerTest {
                 "    job_code INT,\n" +
                 "    store_id INT\n" +
                 ")\n" +
-                "PARTITION BY LIST(store_id) (\n" +
+                "PARTITION\n BY LIST(store_id) (\n" +
                 "    PARTITION pNorth VALUES IN (3,5,6,9,17),\n" +
                 "    PARTITION pEast VALUES IN (1,2,10,11,19,20),\n" +
                 "    PARTITION pWest VALUES IN (4,12,13,14,18),\n" +
@@ -193,7 +193,7 @@ public class TablePartitionManagerTest {
                 "    store_id INT\n" +
                 ")\n" +
                 "PARTITION BY HASH(store_id)\n" +
-                "PARTITIONS 4;";
+                "pARTITIONS \n4;";
 
         res = transformCreatePartition(queryString);
         Assert.assertTrue(res.getKey());

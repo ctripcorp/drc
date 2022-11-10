@@ -5,6 +5,8 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2022/11/9
