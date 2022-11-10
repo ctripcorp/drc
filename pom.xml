@@ -30,7 +30,7 @@
     </modules>
 
     <properties>
-        <framework.bom.version>5.42.0</framework.bom.version>
+        <framework.bom.version>6.37.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.5</dal.version>
