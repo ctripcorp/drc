@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -37,10 +38,15 @@ public class MessengerGroupTblDao extends AbstractDao<MessengerGroupTbl> {
         return CollectionUtils.isEmpty(messengerGroupTbls) ? null : messengerGroupTbls.get(0);
     }
 
+    // srcReplicatorGroupId current is useless
     public Long upsertIfNotExist(Long mhaId,Long srcReplicatorGroupId,String gtidExecuted) throws SQLException {
         MessengerGroupTbl mGroupTbl =
                 queryByMhaId(mhaId,BooleanEnum.FALSE.getCode());
         if (mGroupTbl != null) {
+            if(StringUtils.isNotBlank(gtidExecuted)) {
+                mGroupTbl.setGtidExecuted(gtidExecuted);
+                update(mGroupTbl);
+            }
             return mGroupTbl.getId();
         } else {
             MessengerGroupTbl mGroupTblDeleted =
