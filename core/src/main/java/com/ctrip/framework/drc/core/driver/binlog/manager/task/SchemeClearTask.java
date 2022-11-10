@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2021/4/7

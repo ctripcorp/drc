@@ -7,6 +7,8 @@ import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2021/4/7
