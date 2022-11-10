@@ -149,7 +149,6 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-client</artifactId>
-            <version>6.1.9-ctrip</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.101tec</groupId>
