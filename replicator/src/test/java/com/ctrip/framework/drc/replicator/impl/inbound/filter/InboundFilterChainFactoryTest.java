@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.*;
 
 /**
  * @Author limingdong
@@ -363,4 +364,50 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         Assert.assertFalse(skip);
     }
 
+    @Test
+    public void testResetAfterEachGtidEvent() {
+        doTestResetAfterEachGtidEvent(flagFilterWithGN);
+        doTestResetAfterEachGtidEvent(flagFilterWithTT);
+    }
+
+    public void doTestResetAfterEachGtidEvent(Filter<InboundLogEventContext> flagFilter) {
+        when(gtidLogEvent.getServerUUID()).thenReturn(UUID.fromString(UUID_1));
+        when(gtidLogEvent.getGtid()).thenReturn(GTID);
+        when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
+        when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+
+        // reset GTID_F
+        TransactionFlags setGtidFlag = new TransactionFlags();
+        setGtidFlag.mark(GTID_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, setGtidFlag, GTID);
+        boolean skip1 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip1);
+        Assert.assertFalse(setGtidFlag.filtered());
+
+        // reset TRANSACTION_TABLE_F
+        TransactionFlags transactionTableFlag = new TransactionFlags();
+        transactionTableFlag.mark(TRANSACTION_TABLE_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, transactionTableFlag, GTID);
+        boolean skip2 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip2);
+        Assert.assertFalse(transactionTableFlag.filtered());
+
+        // reset BLACK_TABLE_NAME_F
+        TransactionFlags blackTableFlag = new TransactionFlags();
+        blackTableFlag.mark(BLACK_TABLE_NAME_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, blackTableFlag, GTID);
+        boolean skip3 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip3);
+        Assert.assertFalse(blackTableFlag.filtered());
+
+        // reset OTHER_F
+        TransactionFlags otherFlag = new TransactionFlags();
+        otherFlag.mark(OTHER_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, otherFlag, GTID);
+        boolean skip4 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip4);
+        Assert.assertFalse(otherFlag.filtered());
+    }
 }
