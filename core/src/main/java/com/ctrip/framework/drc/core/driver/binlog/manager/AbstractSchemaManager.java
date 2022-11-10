@@ -12,12 +12,11 @@ import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
@@ -25,8 +24,6 @@ import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadNam
  * 2019/9/29 下午8:27.
  */
 public abstract class AbstractSchemaManager extends AbstractLifecycle implements SchemaManager {
-
-    protected static final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
 
@@ -94,6 +91,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         } else if (QueryType.CREATE == queryType) {
             Pair<Boolean, String> transformRes = TablePartitionManager.transformCreatePartition(ddl);
             if (transformRes.getKey()) {
+                DDL_LOGGER.info("[Transform] partition from {} to {}", ddl, transformRes.getValue());
                 ddl = transformRes.getValue();
             }
         }

@@ -16,13 +16,12 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
@@ -30,8 +29,6 @@ import static com.ctrip.framework.drc.replicator.impl.inbound.filter.Transaction
  * @create 2020/2/24
  */
 public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
-
-    protected final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     public static final String XA_START = "XA START";
 
@@ -111,8 +108,8 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 return false;
             }
             ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type);
-            if (applyResult == ApplyResult.PARTITION_SKIP) {
-                DDL_LOGGER.info("[Apply] skip DDL {} for table partition", queryString);
+            if (ApplyResult.PARTITION_SKIP == applyResult) {
+                DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
             }
             String tableName = results.get(0).getTableName();

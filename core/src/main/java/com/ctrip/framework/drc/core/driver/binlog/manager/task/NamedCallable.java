@@ -2,17 +2,16 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 
 /**
  * @Author limingdong
  * @create 2021/4/7
  */
 public interface NamedCallable<V> extends Callable<V> {
-
-    Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     default String name() {
         return getClass().getSimpleName();
