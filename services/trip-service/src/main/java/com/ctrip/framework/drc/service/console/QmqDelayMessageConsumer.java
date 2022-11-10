@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
-import com.ctrip.framework.vi.server.VIServer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
