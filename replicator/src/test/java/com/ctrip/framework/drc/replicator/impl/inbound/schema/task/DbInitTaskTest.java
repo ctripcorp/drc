@@ -63,6 +63,8 @@ public class DbInitTaskTest {
                 }
 
             }
+        } catch (Exception e) {
+            // nothing to be done
         }
 
     }
