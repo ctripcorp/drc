@@ -48,6 +48,7 @@ import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_D
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager.SchemaStatus.*;
 import static ctrip.framework.drc.mysql.EmbeddedDb.*;
 

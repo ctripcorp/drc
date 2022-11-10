@@ -9,6 +9,7 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import java.util.List;
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SEMICOLON;
 
 /**

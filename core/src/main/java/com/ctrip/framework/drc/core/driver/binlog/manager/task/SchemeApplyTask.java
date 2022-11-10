@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2021/4/7
