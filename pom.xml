@@ -30,10 +30,11 @@
     </modules>
 
     <properties>
-        <framework.bom.version>6.37.0</framework.bom.version>
+        <framework.bom.version>5.42.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.5</dal.version>
+        <qmq.version>6.1.9-ctrip</qmq.version>
         <ucs.version>0.5.0</ucs.version>
         <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
@@ -365,6 +366,28 @@
                 <groupId>com.ctrip.ops</groupId>
                 <artifactId>hickwall-sdk</artifactId>
                 <version>${hickwall.version}</version>
+            </dependency>
+
+            <!--QMQ-->
+            <dependency>
+                <groupId>qunar.tc</groupId>
+                <artifactId>qmq-api</artifactId>
+                <version>${qmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>qunar.tc</groupId>
+                <artifactId>qmq-client</artifactId>
+                <version>${qmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>qunar.tc</groupId>
+                <artifactId>qmq-common</artifactId>
+                <version>${qmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>qunar.tc</groupId>
+                <artifactId>qmq-dal</artifactId>
+                <version>${qmq.version}</version>
             </dependency>
 
 
