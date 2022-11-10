@@ -149,6 +149,7 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-client</artifactId>
+            <version>6.1.9-ctrip</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.101tec</groupId>
@@ -157,17 +158,6 @@
                 <exclusion>
                     <artifactId>dubbo</artifactId>
                     <groupId>org.apache.dubbo</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.ctrip.framework</groupId>
-            <artifactId>vi-server</artifactId>
-            <version>0.11.41</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>javax.servlet-api</artifactId>
-                    <groupId>javax.servlet</groupId>
                 </exclusion>
             </exclusions>
         </dependency>

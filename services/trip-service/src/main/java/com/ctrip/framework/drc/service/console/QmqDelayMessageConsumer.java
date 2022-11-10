@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
-import com.ctrip.framework.vi.server.VIServer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -41,8 +40,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     @Override
     public void initConsumer(){
         try {
-            VIServer viServer = new VIServer(9999);//Listener 模式需要启动VI;
-            viServer.start();
             String subject = "bbz.drc.delaymonitor";
             String consumerGroup = "100023928";
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
