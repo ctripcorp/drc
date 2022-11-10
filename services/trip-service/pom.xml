@@ -165,6 +165,12 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-dal</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>qunar.tc</groupId>
+                    <artifactId>qmq-client</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
