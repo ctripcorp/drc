@@ -429,7 +429,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                         ddlLogEvent.read(compositeByteBuf);
                         List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
                         ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), ddlResults.get(0).getType());
-                        if (ApplyResult.PARTITION_SKIP == applyResult) {
+                        if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                             DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
                         }
                         ddlLogEvent.release();

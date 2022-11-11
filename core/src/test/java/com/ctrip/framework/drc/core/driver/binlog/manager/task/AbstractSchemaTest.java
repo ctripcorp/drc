@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.junit.Assert;
 import org.junit.Before;
 
@@ -15,6 +16,8 @@ import java.sql.Statement;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.AllTests.*;
+import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.getDefaultPoolProperties;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 
 /**
  * @Author limingdong
@@ -31,7 +34,10 @@ public abstract class AbstractSchemaTest {
     @Before
     public void setUp() throws Exception {
         inMemoryEndpoint = new DefaultEndPoint(IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD);
-        inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint);
+        PoolProperties poolProperties = getDefaultPoolProperties(inMemoryEndpoint);
+        String timeout = String.format("connectTimeout=%s;socketTimeout=%s", CONNECTION_TIMEOUT, 60);
+        poolProperties.setConnectionProperties(timeout);
+        inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
         abstractSchemaTask = getAbstractSchemaTask();
     }
 

@@ -4,11 +4,35 @@ package com.ctrip.framework.drc.core.driver.binlog.manager;
  * @Author limingdong
  * @create 2022/11/9
  */
-public enum ApplyResult {
+public class ApplyResult {
 
-    SUCCESS,
+    private Status status;
 
-    FAIL,
+    private String ddl;
 
-    PARTITION_SKIP
+    public ApplyResult(Status status, String ddl) {
+        this.status = status;
+        this.ddl = ddl;
+    }
+
+    public static ApplyResult from(Status key, String value) {
+        return new ApplyResult(key, value);
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public String getDdl() {
+        return ddl;
+    }
+
+    public enum Status {
+
+        SUCCESS,
+
+        FAIL,
+
+        PARTITION_SKIP
+    }
 }
