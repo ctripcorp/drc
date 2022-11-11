@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -174,8 +175,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        STATE_LOGGER.info("[removeMessenger] for {},{}", clusterId, messenger);
-        executors.submit(() -> messengerNotifier.notifyRemove(clusterId, messenger, true));
+        String newClusterId = RegistryKey.from(clusterId, ApplyMode.mq.getName());
+        STATE_LOGGER.info("[removeMessenger] for {},{}", newClusterId, messenger);
+        executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, true));
     }
 
     @Override
@@ -271,7 +273,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         Replicator replicator = new Replicator();
         replicator.setMaster(true);
         replicator.setIp(master.getIp());
-        replicator.setApplierPort(master.getPort());
+        replicator.setApplierPort(master.getApplierPort());
         clone.getReplicators().add(replicator);
 
         return clone;
