@@ -5,9 +5,7 @@ import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
-import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
-import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionInfo;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.server.ClusterManagerMultiDcService;
@@ -48,12 +46,6 @@ public class MultiDcNotifier implements StateChangeHandler {
     @Autowired
     public DataCenterService dataCenter;
 
-    @Autowired
-    private CurrentMetaManager currentMetaManager;
-
-    @Autowired
-    private InstanceStateController instanceStateController;
-
     @Override
     public void replicatorActiveElected(String clusterId, Replicator activeReplicator) {
         if (activeReplicator == null) {
@@ -79,17 +71,6 @@ public class MultiDcNotifier implements StateChangeHandler {
             executors.execute(new BackupDcNotifyTask(clusterManagerMultiDcService, clusterId, backupClusterId, activeReplicator));
         }
 
-        // notify messenger in local dc
-        Messenger activeMessenger = currentMetaManager.getActiveMessenger(clusterId);
-        if (activeMessenger == null) {
-            NOTIFY_LOGGER.info("[replicatorActiveElected][no active messenger, do nothing]{}", clusterId);
-            return;
-        }
-        if (!activeMessenger.isMaster()) {
-            throw new IllegalStateException("[replicatorActiveElected][active messenger not active]{}" + activeMessenger);
-        }
-        NOTIFY_LOGGER.info("[replicatorActiveElected][notify local dc messenger]{}, {}", clusterId, activeMessenger);
-        instanceStateController.addMessenger(clusterId, activeMessenger);
     }
 
     @Override

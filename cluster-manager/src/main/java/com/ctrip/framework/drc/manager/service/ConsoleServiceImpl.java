@@ -21,7 +21,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGG
  * @Author limingdong
  * @create 2020/7/1
  */
-@Order(2)
+@Order(3)
 @Component
 public class ConsoleServiceImpl extends AbstractService implements StateChangeHandler {
 
