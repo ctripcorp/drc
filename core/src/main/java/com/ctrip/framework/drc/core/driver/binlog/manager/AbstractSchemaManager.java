@@ -86,19 +86,20 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     public ApplyResult apply(String schema, String ddl, QueryType queryType) {
         if (QueryType.ALTER == queryType) {
             if (TablePartitionManager.transformAlterPartition(ddl)) {
-                return ApplyResult.PARTITION_SKIP;
+                return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
             }
         } else if (QueryType.CREATE == queryType) {
             Pair<Boolean, String> transformRes = TablePartitionManager.transformCreatePartition(ddl);
             if (transformRes.getKey()) {
-                DDL_LOGGER.info("[Transform] partition from {} to {}", ddl, transformRes.getValue());
+                DDL_LOGGER.info("[Transform] partition from {} to {} in {}", ddl, transformRes.getValue(), getClass().getSimpleName());
                 ddl = transformRes.getValue();
             }
         }
         tableInfoMap.clear();
         synchronized (this) {
             Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
-            return res == null ? ApplyResult.FAIL : ApplyResult.SUCCESS;
+            return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
+                               : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
         }
     }
 

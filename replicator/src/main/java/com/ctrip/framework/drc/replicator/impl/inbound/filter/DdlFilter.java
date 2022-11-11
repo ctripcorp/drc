@@ -108,11 +108,12 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 return false;
             }
             ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type);
-            if (ApplyResult.PARTITION_SKIP == applyResult) {
+            if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
             }
             String tableName = results.get(0).getTableName();
+            queryString = applyResult.getDdl();
             schemaManager.persistDdl(schemaName, tableName, queryString);
             DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
 
