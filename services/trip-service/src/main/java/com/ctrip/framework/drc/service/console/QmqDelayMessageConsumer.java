@@ -43,10 +43,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     public synchronized void initConsumer(){
         if (!initialized) {
             try {
-                logger.info("start vi server");
-                VIServer viServer = new VIServer(19999);
-                viServer.start();
-                logger.info("start vi server done");
                 String subject = "bbz.drc.delaymonitor";
                 String consumerGroup = "100023928";
                 SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
