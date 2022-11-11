@@ -514,7 +514,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     protected Long configureMessengerGroup(MhaTbl mhaTbl, Long replicatorGroupId, String gtidExecuted) throws SQLException {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
-        logger.info("[[mha={}, mhaId={}replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
+        logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
         gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getGtidInit(mhaTbl) : gtidExecuted;
         return messengerGroupTblDao.upsertIfNotExist(mhaId,replicatorGroupId,gtidExecuted);
     }
