@@ -127,6 +127,11 @@ public class CurrentMeta implements Releasable {
         return currentShardMeta.getActiveAppliers();
     }
 
+    public Messenger getActiveMessenger(String clusterId) {
+        CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
+        return currentShardMeta.getActiveMessenger();
+    }
+
     public Replicator getActiveReplicator(String clusterId) {
         CurrentClusterMeta currentShardMeta = getCurrentClusterMetaOrThrowException(clusterId);
         return currentShardMeta.getActiveReplicator();
@@ -378,6 +383,15 @@ public class CurrentMeta implements Releasable {
                 }
             }
             return appliers;
+        }
+
+        public Messenger getActiveMessenger() {
+            for (Messenger survive : surviveMessengers) {
+                if (survive.isMaster()) {
+                    return survive;
+                }
+            }
+            return null;
         }
 
         public Replicator getActiveReplicator() {

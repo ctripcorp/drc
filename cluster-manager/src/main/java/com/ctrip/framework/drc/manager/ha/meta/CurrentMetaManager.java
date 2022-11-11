@@ -29,6 +29,8 @@ public interface CurrentMetaManager extends Observable {
 
     Applier getActiveApplier(String clusterId, String backupClusterId);
 
+    Messenger getActiveMessenger(String clusterId);
+
     List<Applier> getActiveAppliers(String clusterId);
 
     Replicator getActiveReplicator(String clusterId);

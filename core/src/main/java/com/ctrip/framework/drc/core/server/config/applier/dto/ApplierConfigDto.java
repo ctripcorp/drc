@@ -148,6 +148,7 @@ public class ApplierConfigDto extends ApplierMeta {
                 ", routeInfo='" + routeInfo + '\'' +
                 ", managerIp='" + managerIp + '\'' +
                 ", managerPort=" + managerPort +
+                ", mhaName=" + mhaName +
                 ", replicator=" + replicator +
                 ", target=" + target +
                 ", name='" + name + '\'' +

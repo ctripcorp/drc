@@ -67,12 +67,14 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
             config.replicator.port = replicator.getApplierPort();
         }
 
-        config.replicator.mhaName = "mq";
+        config.replicator.mhaName = ApplyMode.mq.getName();
 
         for (Messenger messenger : dbCluster.getMessengers()) {
             if (ipAndPort.equals(messenger.getIp() + ":" + messenger.getPort())) {
                 config.ip = messenger.getIp();
                 config.port = messenger.getPort();
+                config.setGtidExecuted(messenger.getGtidExecuted());
+                config.setProperties(messenger.getProperties());
             }
         }
 

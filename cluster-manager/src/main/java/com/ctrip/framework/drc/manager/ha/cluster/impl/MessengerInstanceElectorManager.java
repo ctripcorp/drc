@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.Constants;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.container.ZookeeperValue;
 import com.ctrip.framework.drc.manager.ha.config.ClusterZkConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -45,7 +46,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
         try {
             List<Messenger> messengers = dbCluster.getMessengers();
             if (!messengers.isEmpty()) {
-                String registryKey = clusterId + "." + "mq";
+                String registryKey = RegistryKey.from(clusterId, ApplyMode.mq.getName());
                 observerClusterLeader(registryKey);
             }
         } catch (Exception e) {
@@ -57,7 +58,7 @@ public class MessengerInstanceElectorManager extends AbstractInstanceElectorMana
     protected void handleClusterModified(ClusterComparator comparator) {
 
         String clusterId = comparator.getCurrent().getId();
-        String registryKey = clusterId + "." + "mq";
+        String registryKey = RegistryKey.from(clusterId, ApplyMode.mq.getName());
         observerClusterLeader(registryKey);
     }
 

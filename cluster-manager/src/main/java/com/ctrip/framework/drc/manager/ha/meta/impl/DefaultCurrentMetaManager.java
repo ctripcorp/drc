@@ -253,6 +253,11 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
+    public Messenger getActiveMessenger(String clusterId) {
+        return currentMeta.getActiveMessenger(clusterId);
+    }
+
+    @Override
     public List<Applier> getActiveAppliers(String clusterId) {
         return currentMeta.getActiveAppliers(clusterId);
     }
