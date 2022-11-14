@@ -12,6 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
+
 /**
  * @ClassName MessengerProperties
  * @Author haodongPan
@@ -27,19 +29,13 @@ public class MessengerProperties {
     private List<MqConfig> mqConfigs;
 
     @JsonIgnore
-    private static final String DELAY_MONITOR_TABLE = "drcmonitordb.delaymonitor";
+    private Map<String, List<MqConfig>> regex2Configs = Maps.newConcurrentMap();  // regex : mqConfigs
 
     @JsonIgnore
-    private static final String DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
+    private Map<String, AviatorRegexFilter> regex2Filter = Maps.newConcurrentMap();  // regex : AviatorRegexFilter
 
     @JsonIgnore
-    private Map<String, MqConfig> table2Config = Maps.newConcurrentMap();  // regex : mqConfig
-
-    @JsonIgnore
-    private Map<String, AviatorRegexFilter> table2Filter = Maps.newConcurrentMap();  // regex : AviatorRegexFilter
-
-    @JsonIgnore
-    private Map<String, Producer> table2Producer = Maps.newConcurrentMap();  // regex : Producer
+    private Map<String, List<Producer>> regex2Producers = Maps.newConcurrentMap();  // regex : Producers
 
     @JsonIgnore
     private Map<String, List<Producer>> tableName2Producers = Maps.newConcurrentMap(); // tableName :  Producers
@@ -68,6 +64,10 @@ public class MessengerProperties {
         this.mqConfigs = mqConfigs;
     }
 
+    public Map<String, List<Producer>> getRegex2Producers() {
+        return regex2Producers;
+    }
+
     public static MessengerProperties from(String properties) throws Exception {
         MessengerProperties messengerProperties;
         if (StringUtils.isNotBlank(properties)) {
@@ -85,59 +85,57 @@ public class MessengerProperties {
         }
         for (MqConfig mqConfig : mqConfigs) {
             String tableRegex = mqConfig.getTable().trim().toLowerCase();
-            table2Config.put(tableRegex, mqConfig);
-            table2Filter.put(tableRegex, new AviatorRegexFilter(tableRegex));
+            List<MqConfig> mqConfigs = regex2Configs.get(tableRegex);
+            if (mqConfigs == null) {
+                mqConfigs = Lists.newArrayList(mqConfig);
+            } else {
+                mqConfigs.add(mqConfig);
+            }
+            regex2Configs.put(tableRegex, mqConfigs);
+
+            AviatorRegexFilter filter = regex2Filter.get(tableRegex);
+            if (filter == null) {
+                regex2Filter.put(tableRegex, new AviatorRegexFilter(tableRegex));
+            }
         }
     }
 
     public List<Producer> getProducers(String tableName) {
         String formatTableName = tableName.toLowerCase();
-        List<Producer> producers = tableName2Producers.get(formatTableName);
-        if (producers == null) {
-            if (DELAY_MONITOR_TABLE.equalsIgnoreCase(formatTableName)) {
-                synchronized (this) {
-                    producers = tableName2Producers.get(formatTableName);
-                    if (producers != null) {
-                        return producers;
-                    }
-                    Producer monitorProducer = createMonitorProducer();
-                    List<Producer> monitorProducers = Lists.newArrayList(monitorProducer);
-                    tableName2Producers.put(formatTableName, monitorProducers);
-                    return monitorProducers;
-                }
-            }
-
-            List<Producer> toCreateProducers = Lists.newArrayList();
-            for (Map.Entry<String, MqConfig> entry : table2Config.entrySet()) {
-                String tableRegex = entry.getKey().trim().toLowerCase();
-                if (table2Filter.get(tableRegex).filter(formatTableName)) {
-                    synchronized (this) {
-                        producers = tableName2Producers.get(formatTableName);
-                        if (producers != null) {
-                            return producers;
-                        }
-                        Producer producer = table2Producer.get(tableRegex);
-                        if (producer == null) {
-                            producer = DefaultProducerFactoryHolder.getInstance().createProducer(table2Config.get(formatTableName));
-                            table2Producer.put(tableRegex, producer);
-                        }
-                        toCreateProducers.add(producer);
-                    }
-                }
-            }
-            tableName2Producers.put(formatTableName, toCreateProducers);
-            return toCreateProducers;
+        List<Producer> tableNameProducers = tableName2Producers.get(formatTableName);
+        if (tableNameProducers != null) {
+            return tableNameProducers;
         }
-        return producers;
-    }
 
-    private Producer createMonitorProducer() {
-        MqConfig monitorMqConfig = new MqConfig();
-        monitorMqConfig.setMqType(MqType.qmq.name());
-        monitorMqConfig.setTopic(DELAY_MONITOR_TOPIC);
-        monitorMqConfig.setSerialization("arvo");
-        monitorMqConfig.setOrder(true);
-        monitorMqConfig.setOrderKey("id");
-        return DefaultProducerFactoryHolder.getInstance().createProducer(monitorMqConfig);
+        if (DRC_DELAY_MONITOR_NAME.equalsIgnoreCase(formatTableName)) {
+            return DelayMessageProducer.getInstance();
+        }
+
+        List<Producer> toCreateProducers = Lists.newArrayList();
+        for (Map.Entry<String, List<MqConfig>> entry : regex2Configs.entrySet()) {
+            String tableRegex = entry.getKey().trim().toLowerCase();
+            if (regex2Filter.get(tableRegex).filter(formatTableName)) {
+                synchronized (this) {
+                    tableNameProducers = tableName2Producers.get(formatTableName);
+                    if (tableNameProducers != null) {
+                        return tableNameProducers;
+                    }
+                    List<Producer> regexProducers = regex2Producers.get(tableRegex);
+                    if (regexProducers == null) {
+                        for (MqConfig mqConfig : entry.getValue()) {
+                            Producer producer = DefaultProducerFactoryHolder.getInstance().createProducer(mqConfig);
+                            toCreateProducers.add(producer);
+                        }
+                        regex2Producers.put(tableRegex, toCreateProducers);
+                        tableName2Producers.put(formatTableName, toCreateProducers);
+                        return toCreateProducers;
+                    } else {
+                        tableName2Producers.put(formatTableName, regexProducers);
+                        return regexProducers;
+                    }
+                }
+            }
+        }
+        return toCreateProducers;
     }
 }

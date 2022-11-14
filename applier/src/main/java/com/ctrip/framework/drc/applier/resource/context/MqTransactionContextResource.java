@@ -21,7 +21,7 @@ import java.util.List;
  */
 public class MqTransactionContextResource extends TransactionContextResource {
 
-    private final Logger loggerTT = LoggerFactory.getLogger("TRANSACTION TABLE");
+    private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
 
     @InstanceResource
     public MqProvider mqProvider;
@@ -46,7 +46,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.INSERT);
-        loggerTT.info("insert event data: {}", eventDatas);
+        loggerMsgSend.info("insert event data: {}", eventDatas);
         sendEventDatas(eventDatas);
     }
 
@@ -54,14 +54,14 @@ public class MqTransactionContextResource extends TransactionContextResource {
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, EventType.UPDATE);
-        loggerTT.info("update event data: {}", eventDatas);
+        loggerMsgSend.info("update event data: {}", eventDatas);
         sendEventDatas(eventDatas);
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.DELETE);
-        loggerTT.info("delete event data: {}", eventDatas);
+        loggerMsgSend.info("delete event data: {}", eventDatas);
         sendEventDatas(eventDatas);
     }
 
@@ -77,7 +77,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
     private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns, EventType eventType) {
         DcTag dcTag = fetchDcTag();
         List<EventData> eventDatas = Lists.newArrayList();
-        //TODO:确认主键，不存在？
+
         Bitmap bitmapOfIdentifier = columns.getBitmapsOfIdentifier().get(0);
         if (bitmapOfIdentifier == null) {
             bitmapOfIdentifier = new Bitmap();

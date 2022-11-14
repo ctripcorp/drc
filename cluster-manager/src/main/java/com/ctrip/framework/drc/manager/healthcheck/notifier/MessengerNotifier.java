@@ -8,10 +8,12 @@ import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplierConfigDto;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
 
 /**
@@ -74,6 +76,13 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
                 config.ip = messenger.getIp();
                 config.port = messenger.getPort();
                 config.setGtidExecuted(messenger.getGtidExecuted());
+                String nameFilter = messenger.getNameFilter();
+                if (StringUtils.isNotBlank(nameFilter)) {
+                    if (!nameFilter.toLowerCase().contains(DRC_DELAY_MONITOR_NAME)) {
+                        nameFilter = DRC_DELAY_MONITOR_NAME + "," + nameFilter;
+                    }
+                }
+                config.setNameFilter(nameFilter);
                 config.setProperties(messenger.getProperties());
             }
         }

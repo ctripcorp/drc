@@ -8,4 +8,6 @@ import java.util.List;
 public interface Producer {
 
     void send(List<EventData> eventDatas);
+
+    void destroy();
 }
