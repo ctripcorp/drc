@@ -212,6 +212,22 @@ public class TablePartitionManagerTest {
                 ";";
 
         Assert.assertEquals(exceptedQueryString, finalQueryString);
+
+
+        queryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
+                "    ParTITION   BY RANGE( YEAR(purchased) )\n" +
+                "    SUBPARTItiON BY HASH( TO_DAYS(purchased) )\n" +
+                "    SUBPARTITIONS 2";
+
+        res = transformCreatePartition(queryString);
+        Assert.assertTrue(res.getKey());
+        finalQueryString = res.getValue();
+
+        exceptedQueryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
+                "    \n" +
+                "    ";
+
+        Assert.assertEquals(exceptedQueryString, finalQueryString);
     }
 
 }

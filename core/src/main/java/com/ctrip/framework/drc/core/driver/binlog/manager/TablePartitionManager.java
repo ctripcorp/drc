@@ -5,9 +5,8 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
-
 /**
+ * https://dev.mysql.com/doc/refman/8.0/en/create-table.html
  * @Author limingdong
  * @create 2022/11/9
  */
@@ -23,6 +22,7 @@ public class TablePartitionManager {
 
     public static final List<String> CREATE_PARTITION_MANAGEMENT = Lists.newArrayList(
             "(?i)PARTITION[\\s]*BY[\\s\\S]*\\)",
+            "(?i)SUBPARTITIONS[\\s]*[1-9][0-9]*",
             "(?i)PARTITIONS[\\s]*[1-9][0-9]*");
 
     public static boolean transformAlterPartition(String queryString) {
