@@ -179,6 +179,11 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
             curatorFramework.inTransaction().check().forPath(zkPositionPath).and().setData().forPath(zkPositionPath, currentPosition.getBytes()).and().commit();
             return true;
         }
+
+        @Override
+        public void afterSuccess(int retryTime) {
+            loggerMsg.info("[MQ][{}] {} success with retryTime {}", registryKey, name(), retryTime);
+        }
     }
 
     @Override
