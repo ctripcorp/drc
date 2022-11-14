@@ -35,7 +35,7 @@
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.5</dal.version>
         <qmq.version>6.1.9-ctrip</qmq.version>
-        <vi.version>0.11.48-SNAPSHOT</vi.version>
+        <vi.version>0.11.47</vi.version>
         <ucs.version>0.5.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
         <tomcat.version>8.0.33</tomcat.version>

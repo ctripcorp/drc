@@ -76,4 +76,17 @@ public class EventData {
     public void setOrderKey(String orderKey) {
         this.orderKey = orderKey;
     }
+
+    @Override
+    public String toString() {
+        return "EventData{" +
+                "tableName='" + tableName + '\'' +
+                ", schemaName='" + schemaName + '\'' +
+                ", eventType=" + eventType +
+                ", beforeColumns=" + beforeColumns +
+                ", afterColumns=" + afterColumns +
+                ", dcTag=" + dcTag +
+                ", orderKey='" + orderKey + '\'' +
+                '}';
+    }
 }

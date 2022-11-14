@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.mq;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.ctrip.framework.drc.core.meta.MqConfig;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.EventColumn;
 import com.ctrip.framework.drc.core.mq.EventData;
 import com.ctrip.framework.drc.core.mq.EventType;
@@ -25,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 public class QmqProducer extends AbstractProducer {
 
     private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
+
+    private static final Logger loggerMsg = LoggerFactory.getLogger("MESSENGER");
 
     private MessageProducerProvider provider;
 
@@ -58,6 +61,8 @@ public class QmqProducer extends AbstractProducer {
     @Override
     public void send(List<EventData> eventDatas) {
         for (EventData eventData : eventDatas) {
+            String schema = eventData.getSchemaName();
+            String table = eventData.getTableName();
             DataChange dataChange = transfer(eventData);
             JSONObject jsonObject = JSON.parseObject(dataChange.toString());
             Message message = provider.generateMessage(topic);
@@ -72,19 +77,27 @@ public class QmqProducer extends AbstractProducer {
             }
 
             Map<String, Object> orderKeyMap = new HashMap<>();
-            orderKeyMap.put("schemaName", eventData.getSchemaName());
-            orderKeyMap.put("tableName", eventData.getTableName());
+            orderKeyMap.put("schemaName", schema);
+            orderKeyMap.put("tableName", table);
             List<String> keys = new ArrayList<>();
 
             List<EventColumn> changedColumns = eventData.getEventType() == EventType.UPDATE ? eventData.getAfterColumns() : eventData.getBeforeColumns();
             if (isOrder) {
+                boolean hasOrderKey = false;
                 for (EventColumn column : changedColumns) {
                     if (column.getColumnName().equalsIgnoreCase(orderKey)) {
                         message.setOrderKey(column.getColumnValue());
+                        hasOrderKey = true;
                     }
                     if (column.isKey()) {
                         keys.add(column.getColumnValue());
                     }
+                }
+
+                if (!hasOrderKey) {
+                    String schemaDotTable = String.format("%s.%s", schema, table);
+                    loggerMsg.error("[MQ] order key is absent for table: {}", schemaDotTable);
+                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.order.key.absent", schemaDotTable);
                 }
             } else {
                 for (EventColumn column : changedColumns) {
@@ -117,5 +130,6 @@ public class QmqProducer extends AbstractProducer {
     @Override
     public void destroy() {
         provider.destroy();
+        loggerMsg.info("[MQ] destroy provider for topic: {}", topic);
     }
 }
