@@ -306,7 +306,7 @@ export default {
   methods: {
     getOrInitSimplexDrc () {
       console.log(this.drc.srcMha + '/' + this.drc.destMha)
-      this.axios.post('/api/drc/v1/build/simplexDrc/' + this.drc.srcMha + '/' + this.drc.destMha)
+      this.axios.post('/api/drc/v1/build/simplexDrc?srcMha=' + this.drc.srcMha + '&destMha=' + this.drc.destMha)
         .then(response => {
           if (response.data.status === 1) {
             window.alert('获取或创建该方向同步失败!')
