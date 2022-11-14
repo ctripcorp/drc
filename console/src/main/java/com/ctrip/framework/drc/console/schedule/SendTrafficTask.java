@@ -144,26 +144,18 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         List<String> apps = configService.getRelationCostApp();
         sendRelationCostToKafka("app-docker", apps);
 
-        List<String> mysqlVm = configService.getRelationCostMysqlVm();
-        sendRelationCostToKafka("mysql-vm", mysqlVm);
+        List<String> mysqls = configService.getRelationCostMysql();
+        sendRelationCostToKafka("mysql-vm", mysqls);
+        sendRelationCostToKafka("mysql-bm", mysqls);
+        sendRelationCostToKafka("mysql-amazonrds", mysqls);
 
-        List<String> mysqlBm = configService.getRelationCostMysqlBm();
-        sendRelationCostToKafka("mysql-bm", mysqlBm);
+        List<String> slbs = configService.getRelationCostSlb();
+        sendRelationCostToKafka("slb-shared", slbs);
+        sendRelationCostToKafka("slb-wormhole", slbs);
 
-        List<String> mysqlAmazonrds = configService.getRelationCostMysqlAmazonrds();
-        sendRelationCostToKafka("mysql-amazonrds", mysqlAmazonrds);
-
-        List<String> slbShared = configService.getRelationCostSlbShared();
-        sendRelationCostToKafka("slb-shared", slbShared);
-
-        List<String> slbWormhole = configService.getRelationCostSlbWormhole();
-        sendRelationCostToKafka("slb-wormhole", slbWormhole);
-
-        List<String> catTree = configService.getRelationCostCatTree();
-        sendRelationCostToKafka("cat-tree", catTree);
-
-        List<String> catLog = configService.getRelationCostCatLog();
-        sendRelationCostToKafka("cat-log", catLog);
+        List<String> cats = configService.getRelationCostCat();
+        sendRelationCostToKafka("cat-tree", cats);
+        sendRelationCostToKafka("cat-log", cats);
     }
 
     private void sendRelationCostToKafka(String referedName, List<String> referedInstances) {

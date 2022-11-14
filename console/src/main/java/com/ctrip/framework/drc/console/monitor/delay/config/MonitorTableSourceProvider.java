@@ -185,15 +185,11 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String RELATION_COST_APP = "relation.cost.app";
 
-    private static final String RELATION_COST_MYSQL_VM = "relation.cost.mysql.vm";
-    private static final String RELATION_COST_MYSQL_BM = "relation.cost.mysql.bm";
-    private static final String RELATION_COST_MYSQL_AMAZONRDS = "relation.cost.mysql.amazonrds";
+    private static final String RELATION_COST_MYSQL = "relation.cost.mysql";
 
-    private static final String RELATION_COST_SLB_SHARED = "relation.cost.slb.shared";
-    private static final String RELATION_COST_SLB_WORMHOLE = "relation.cost.slb.wormhole";
+    private static final String RELATION_COST_SLB = "relation.cost.slb";
 
-    private static final String RELATION_COST_CAT_TREE = "relation.cost.cat.tree";
-    private static final String RELATION_COST_CAT_LOG = "relation.cost.cat.log";
+    private static final String RELATION_COST_CAT = "relation.cost.cat";
 
     public String getDrcMetaXmlUpdateSwitch() {
         return getProperty(DRC_META_XML_UPDATE_SWITCH, SWITCH_STATUS_ON);
@@ -518,8 +514,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         }
     }
 
-    public List<String> getRelationCostMysqlVm() {
-        String mysqlString = getProperty(RELATION_COST_MYSQL_VM, "");
+    public List<String> getRelationCostMysql() {
+        String mysqlString = getProperty(RELATION_COST_MYSQL, "");
         if (StringUtils.isBlank(mysqlString)) {
             return Lists.newArrayList();
         } else {
@@ -527,26 +523,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         }
     }
 
-    public List<String> getRelationCostMysqlBm() {
-        String mysqlString = getProperty(RELATION_COST_MYSQL_BM, "");
-        if (StringUtils.isBlank(mysqlString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(mysqlString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostMysqlAmazonrds() {
-        String mysqlString = getProperty(RELATION_COST_MYSQL_AMAZONRDS, "");
-        if (StringUtils.isBlank(mysqlString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(mysqlString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostSlbShared() {
-        String slbString = getProperty(RELATION_COST_SLB_SHARED, "");
+    public List<String> getRelationCostSlb() {
+        String slbString = getProperty(RELATION_COST_SLB, "");
         if (StringUtils.isBlank(slbString)) {
             return Lists.newArrayList();
         } else {
@@ -554,26 +532,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
         }
     }
 
-    public List<String> getRelationCostSlbWormhole() {
-        String slbString = getProperty(RELATION_COST_SLB_WORMHOLE, "");
-        if (StringUtils.isBlank(slbString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(slbString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostCatTree() {
-        String catString = getProperty(RELATION_COST_CAT_TREE, "");
-        if (StringUtils.isBlank(catString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(catString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostCatLog() {
-        String catString = getProperty(RELATION_COST_CAT_LOG, "");
+    public List<String> getRelationCostCat() {
+        String catString = getProperty(RELATION_COST_CAT, "");
         if (StringUtils.isBlank(catString)) {
             return Lists.newArrayList();
         } else {
