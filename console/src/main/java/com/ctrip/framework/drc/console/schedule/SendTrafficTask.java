@@ -142,16 +142,20 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private void sendRelationCost() {
         List<String> apps = configService.getRelationCostApp();
-        sendRelationCostToKafka("app", apps);
+        sendRelationCostToKafka("app-docker", apps);
 
         List<String> mysqls = configService.getRelationCostMysql();
-        sendRelationCostToKafka("mysql", mysqls);
+        sendRelationCostToKafka("mysql-vm", mysqls);
+        sendRelationCostToKafka("mysql-bm", mysqls);
+        sendRelationCostToKafka("mysql-amazonrds", mysqls);
 
         List<String> slbs = configService.getRelationCostSlb();
-        sendRelationCostToKafka("slb", slbs);
+        sendRelationCostToKafka("slb-shared", slbs);
+        sendRelationCostToKafka("slb-wormhole", slbs);
 
         List<String> cats = configService.getRelationCostCat();
-        sendRelationCostToKafka("cat", cats);
+        sendRelationCostToKafka("cat-tree", cats);
+        sendRelationCostToKafka("cat-log", cats);
     }
 
     private void sendRelationCostToKafka(String referedName, List<String> referedInstances) {
