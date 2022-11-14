@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
-import com.ctrip.framework.vi.server.VIServer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -37,27 +36,29 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private static final int DATA_CHANGE_TIME_INDEX = 3;
 
     private ListenerHolder listenerHolder;
+    private boolean initialized = false;
     
     @Override
-    public void initConsumer(){
-        try {
-            logger.info("start vi server");
-            VIServer viServer = new VIServer(19999);
-            viServer.start();
-            logger.info("start vi server done");
-            String subject = "bbz.drc.delaymonitor";
-            String consumerGroup = "100023928";
-            SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
-                    setTagType(TagType.AND).
-                    setTags(Sets.newHashSet("local")).
-                    create();
+    public synchronized void initConsumer(){
+        if (!initialized) {
+            try {
+                String subject = "bbz.drc.delaymonitor";
+                String consumerGroup = "100023928";
+                SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
+                        setTagType(TagType.AND).
+                        setTags(Sets.newHashSet("local")).
+                        create();
 
-            MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;  
-            consumerProvider.init();
-            listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
-            logger.info("qmq consumer init over");
-        } catch (Exception e) {
-           logger.error("unexpected exception occur",e);
+                MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
+                consumerProvider.init();
+                listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
+                logger.info("qmq consumer init over");
+                initialized = true;
+            } catch (Exception e) {
+                logger.error("unexpected exception occur in initConsumer",e);
+            }
+        } else {
+            logger.info("qmq consumer init already");
         }
         
     }
