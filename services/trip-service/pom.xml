@@ -155,6 +155,21 @@
             <artifactId>vi-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.ctrip.framework</groupId>
+            <artifactId>vi-server</artifactId>
+            <version>0.2.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.ctrip.framework</groupId>
+                    <artifactId>vi-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.ctrip.framework</groupId>
+                    <artifactId>vi</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-client</artifactId>
             <exclusions>
@@ -172,6 +187,12 @@
         <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-dal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.ctrip.framework</groupId>
+            <artifactId>vi-server</artifactId>
+            <version>0.2.5</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
