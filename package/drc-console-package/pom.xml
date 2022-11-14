@@ -65,7 +65,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<mainClass>com.ctrip.framework.drc.console.ConsoleApplication</mainClass>
-					<!--<executable>true</executable>-->
+					<executable>true</executable>
 				</configuration>
 			</plugin>
 			<plugin>
