@@ -147,14 +147,6 @@
 
         <!-- qmq client -->
         <dependency>
-            <groupId>com.ctrip.framework</groupId>
-            <artifactId>vi</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.ctrip.framework</groupId>
-            <artifactId>vi-core</artifactId>
-        </dependency>
-        <dependency>
             <groupId>qunar.tc</groupId>
             <artifactId>qmq-client</artifactId>
             <exclusions>
