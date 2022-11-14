@@ -3,19 +3,21 @@ package com.ctrip.framework.drc.service.console;
 
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
-import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
+import com.ctrip.framework.vi.server.VIServer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import qunar.tc.qmq.*;
 import qunar.tc.qmq.consumer.MessageConsumerProvider;
 
 
+import javax.annotation.PostConstruct;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +29,8 @@ import java.util.List;
  * @Date 2022/10/27 20:58
  * @Version: $
  */
-public class QmqDelayMessageConsumer implements DelayMessageConsumer {
+@Service
+public class QmqDelayMessageConsumer  {
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -37,18 +40,20 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     private ListenerHolder listenerHolder;
     private boolean initialized = false;
+
     
-    @Override
+    @PostConstruct
     public synchronized void initConsumer(){
         if (!initialized) {
             try {
+                VIServer viServer = new VIServer(19999);
+                viServer.start();
                 String subject = "bbz.drc.delaymonitor";
                 String consumerGroup = "100023928";
                 SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
                         setTagType(TagType.AND).
                         setTags(Sets.newHashSet("local")).
                         create();
-
                 MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
                 consumerProvider.init();
                 listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
@@ -63,7 +68,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         
     }
     
-    @Override
+    
     public boolean stopListen() {
         if (listenerHolder == null) {
             return false;
@@ -71,7 +76,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         listenerHolder.stopListen();
         return true;
     }
-    @Override
+    
     public boolean resumeListen(){
         if (listenerHolder == null) {
             return false;
@@ -118,11 +123,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
     }
 
-    @Override
-    public int getOrder() {
-        return 0;
-    }
-
+   
 
     private static class ConsumerProviderHolder {
         private static final MessageConsumerProvider instance = new MessageConsumerProvider();

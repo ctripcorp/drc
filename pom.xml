@@ -36,7 +36,6 @@
         <dal.version>2.4.5</dal.version>
         <vi.version>0.11.48-SNAPSHOT</vi.version>
         <ucs.version>0.5.0</ucs.version>
-        <version.mysql.binlog>0.19.1</version.mysql.binlog>
         <xpipe.version>1.2.4</xpipe.version>
         <tomcat.version>8.0.33</tomcat.version>
         <disruptor.version>3.4.4</disruptor.version>
@@ -342,11 +341,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>com.github.shyiko</groupId>
-                <artifactId>mysql-binlog-connector-java</artifactId>
-                <version>${version.mysql.binlog}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>${netty-all.version}</version>
@@ -378,7 +372,6 @@
                 <artifactId>vi-core</artifactId>
                 <version>${vi.version}</version>
             </dependency>
-
 
             <!-- for regex expression -->
             <dependency>
