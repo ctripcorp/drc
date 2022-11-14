@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class QmqProducer extends AbstractProducer {
 
-    private static final Logger loggerMSG = LoggerFactory.getLogger("MESSENGER");
+    private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
 
     private MessageProducerProvider provider;
 
@@ -108,8 +108,14 @@ public class QmqProducer extends AbstractProducer {
             String dataChangeToSend = jsonObject.toJSONString();
             message.setProperty("dataChange", dataChangeToSend);
 
+            long start = System.currentTimeMillis();
             provider.sendMessage(message);
-            loggerMSG.info("[[{}]]send messenger success: {}", topic, dataChangeToSend);
+            loggerMsgSend.info("[[{}]]send messenger cost: {}ms, value: {}", topic, System.currentTimeMillis() - start, dataChangeToSend);
         }
+    }
+
+    @Override
+    public void destroy() {
+        provider.destroy();
     }
 }
