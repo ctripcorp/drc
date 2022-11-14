@@ -36,7 +36,7 @@ public class MqProviderResource extends AbstractResource implements MqProvider {
         List<Producer> producers = messengerProperties.getProducers(tableName);
         if (producers.isEmpty()) {
             loggerMsg.error("[MQ][{}] get empty producers for table: {}", registryKey, tableName);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.produce.get.empty", tableName);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.empty", tableName);
         }
         return producers;
     }

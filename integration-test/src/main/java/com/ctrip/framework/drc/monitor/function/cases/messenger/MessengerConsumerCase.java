@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.monitor.function.cases.messenger;
 
 //import com.ctrip.datasource.message.BinlogMessage;
 //import com.ctrip.framework.dal.cluster.client.message.NonLocalBinlogConsumer;
-import com.ctrip.framework.vi.server.VIServer;
+//import com.ctrip.framework.vi.server.VIServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
