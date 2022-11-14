@@ -104,7 +104,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
             for (int j = 0; j < names.size(); j++) {
                 boolean isKey = false;
                 if (j < bitmapOfIdentifier.size()) {
-                    if (bitmapOfIdentifier.get(i)) {
+                    if (bitmapOfIdentifier.get(j)) {
                         isKey = bitmapOfIdentifier.get(j);
                     }
                 }
