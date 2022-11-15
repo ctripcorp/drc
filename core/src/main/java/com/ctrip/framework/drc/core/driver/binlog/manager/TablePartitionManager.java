@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 
@@ -26,6 +27,9 @@ public class TablePartitionManager {
             "(?i)PARTITIONS[\\s]*[1-9][0-9]*");
 
     public static boolean transformAlterPartition(String queryString) {
+        if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
+            return false;
+        }
         queryString = queryString.toUpperCase();
         for (String action : ALTER_PARTITION_MANAGEMENT) {
             if (queryString.matches(action)) {
@@ -36,6 +40,9 @@ public class TablePartitionManager {
     }
 
     public static Pair<Boolean, String> transformCreatePartition(String queryString) {
+        if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
+            return Pair.from(false, queryString);
+        }
         boolean transformed = false;
         String newQueryString = queryString;
         for (String action : CREATE_PARTITION_MANAGEMENT) {
