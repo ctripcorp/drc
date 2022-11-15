@@ -34,7 +34,6 @@
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
         <dal.version>2.4.5</dal.version>
-        <qmq.version>6.1.9-ctrip</qmq.version>
         <vi.version>0.11.47</vi.version>
         <ucs.version>0.5.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
@@ -363,7 +362,6 @@
                 <version>${hickwall.version}</version>
             </dependency>
 
-            <!--QMQ-->
             <dependency>
                 <groupId>com.ctrip.framework</groupId>
                 <artifactId>vi</artifactId>
@@ -373,26 +371,6 @@
                 <groupId>com.ctrip.framework</groupId>
                 <artifactId>vi-core</artifactId>
                 <version>${vi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>qunar.tc</groupId>
-                <artifactId>qmq-api</artifactId>
-                <version>${qmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>qunar.tc</groupId>
-                <artifactId>qmq-client</artifactId>
-                <version>${qmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>qunar.tc</groupId>
-                <artifactId>qmq-common</artifactId>
-                <version>${qmq.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>qunar.tc</groupId>
-                <artifactId>qmq-dal</artifactId>
-                <version>${qmq.version}</version>
             </dependency>
 
             <!-- for regex expression -->

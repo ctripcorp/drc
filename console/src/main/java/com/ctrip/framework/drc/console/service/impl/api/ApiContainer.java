@@ -61,11 +61,11 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
         return TrafficStatisticsServiceHolder.INSTANCE;
     }
 
-//    private static class DelayMessageConsumerHolder {
-//        public static final DelayMessageConsumer INSTANCE = load(DelayMessageConsumer.class);
-//    }
-//    public static  DelayMessageConsumer getDelayMessageConsumer(){
-//        return DelayMessageConsumerHolder.INSTANCE;
-//    }
+    private static class DelayMessageConsumerHolder {
+        public static final DelayMessageConsumer INSTANCE = load(DelayMessageConsumer.class);
+    }
+    public static  DelayMessageConsumer getDelayMessageConsumer(){
+        return DelayMessageConsumerHolder.INSTANCE;
+    }
     
 }
