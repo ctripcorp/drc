@@ -121,9 +121,9 @@ public class QmqProducer extends AbstractProducer {
             String dataChangeToSend = jsonObject.toJSONString();
             message.setProperty("dataChange", dataChangeToSend);
 
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             provider.sendMessage(message);
-            loggerMsgSend.info("[[{}]]send messenger cost: {}ms, value: {}", topic, System.currentTimeMillis() - start, dataChangeToSend);
+            loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, dataChangeToSend);
         }
     }
 

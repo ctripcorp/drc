@@ -46,7 +46,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.INSERT);
-        loggerMsgSend.info("insert event data: {}", eventDatas);
+        loggerMsgSend.info("[GTID][{}] insert event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
 
@@ -54,14 +54,14 @@ public class MqTransactionContextResource extends TransactionContextResource {
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, EventType.UPDATE);
-        loggerMsgSend.info("update event data: {}", eventDatas);
+        loggerMsgSend.info("[GTID][{}] update event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
         List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.DELETE);
-        loggerMsgSend.info("delete event data: {}", eventDatas);
+        loggerMsgSend.info("[GTID][{}] delete event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
 
@@ -104,7 +104,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
             for (int j = 0; j < names.size(); j++) {
                 boolean isKey = false;
                 if (j < bitmapOfIdentifier.size()) {
-                    if (bitmapOfIdentifier.get(i)) {
+                    if (bitmapOfIdentifier.get(j)) {
                         isKey = bitmapOfIdentifier.get(j);
                     }
                 }
