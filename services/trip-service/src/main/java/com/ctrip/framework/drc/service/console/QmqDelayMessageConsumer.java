@@ -54,8 +54,8 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
                 consumerProvider.init();
                 listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
-                logger.info("qmq consumer init over");
-                initialized = true;
+                listenerHolder.stopListen();
+                logger.info("qmq consumer init over,stop wait for leadership gain");
             } catch (Exception e) {
                 logger.error("unexpected exception occur in initConsumer",e);
             }
