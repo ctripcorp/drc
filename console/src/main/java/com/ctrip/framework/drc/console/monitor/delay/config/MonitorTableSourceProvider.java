@@ -179,6 +179,8 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
 
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
+    
+    private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
 
 
     public String getDrcMetaXmlUpdateSwitch (){
@@ -493,5 +495,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     public String getSendTrafficSwitch() {
         return getProperty(SEND_TRAFFIC_SWITCH,SWITCH_STATUS_OFF);
 
+    }
+    
+    public String getMqDelayMonitorSwitch() {
+        return getProperty(DELAY_MONITOR_UPDATEDB_SWITCH,SWITCH_STATUS_ON);
     }
 }

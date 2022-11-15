@@ -1,11 +1,13 @@
 package com.ctrip.framework.drc.console.monitor.delay;
 
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.xpipe.api.cluster.LeaderAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,8 @@ import org.springframework.stereotype.Component;
 @Order(0)
 @Component("mqDelayMonitorServer")
 public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
+    
+    @Autowired private MonitorTableSourceProvider monitorProvider;
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -32,8 +36,10 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
 
     @Override
     public void isleader() {
-        boolean b = consumer.resumeListen();
-        logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
+        if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
+            boolean b = consumer.resumeListen();
+            logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
+        }
     }
     
     @Override
