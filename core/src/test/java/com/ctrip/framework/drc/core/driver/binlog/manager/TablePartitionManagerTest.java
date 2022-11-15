@@ -21,6 +21,12 @@ public class TablePartitionManagerTest {
         Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 REPAIR \nPARTITION p0,p1"));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE trb3 \nCHECK PARTITION p1;".toUpperCase()));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE trb4 \ntruncate PARTITION"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 REBuILDPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  OPTIMIZEpARTITION \n p0, p1;\n"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 ANALYZEPARTITION p3;\n".toLowerCase()));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 REPAIRPARTITION p0,p1"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE trb3 \nCHECKPARTITION p1;".toUpperCase()));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE trb4 \ntruncatePARTITION"));
     }
 
     @Test
@@ -226,6 +232,20 @@ public class TablePartitionManagerTest {
         exceptedQueryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
                 "    \n" +
                 "    ";
+
+        Assert.assertEquals(exceptedQueryString, finalQueryString);
+
+        // not match
+        queryString = "CREATE TABLE ts (id INT, purchased DATE)\n" +
+                "    ParTITIONBY RANGE( YEAR(purchased) )\n" +
+                "    SUBPARTItiONBY HASH( TO_DAYS(purchased) )\n" +
+                "    SUBPARTITIONS2";
+
+        res = transformCreatePartition(queryString);
+        Assert.assertFalse(res.getKey());
+        finalQueryString = res.getValue();
+
+        exceptedQueryString = queryString;
 
         Assert.assertEquals(exceptedQueryString, finalQueryString);
     }

@@ -14,17 +14,17 @@ import java.util.List;
 public class TablePartitionManager {
 
     public static final List<String> ALTER_PARTITION_MANAGEMENT = Lists.newArrayList(
-            "(?i)[\\s\\S]*REBUILD[\\s]*PARTITION[\\s\\S]*",
-            "(?i)[\\s\\S]*OPTIMIZE[\\s]*PARTITION[\\s\\S]*",
-            "(?i)[\\s\\S]*ANALYZE[\\s]*PARTITION[\\s\\S]*",
-            "(?i)[\\s\\S]*REPAIR[\\s]*PARTITION[\\s\\S]*",
-            "(?i)[\\s\\S]*CHECK[\\s]*PARTITION[\\s\\S]*",
-            "(?i)[\\s\\S]*TRUNCATE[\\s]*PARTITION[\\s\\S]*");
+            "(?i)[\\s\\S]*REBUILD[\\s]+PARTITION[\\s\\S]*",
+            "(?i)[\\s\\S]*OPTIMIZE[\\s]+PARTITION[\\s\\S]*",
+            "(?i)[\\s\\S]*ANALYZE[\\s]+PARTITION[\\s\\S]*",
+            "(?i)[\\s\\S]*REPAIR[\\s]+PARTITION[\\s\\S]*",
+            "(?i)[\\s\\S]*CHECK[\\s]+PARTITION[\\s\\S]*",
+            "(?i)[\\s\\S]*TRUNCATE[\\s]+PARTITION[\\s\\S]*");
 
     public static final List<String> CREATE_PARTITION_MANAGEMENT = Lists.newArrayList(
-            "(?i)PARTITION[\\s]*BY[\\s\\S]*\\)",
-            "(?i)SUBPARTITIONS[\\s]*[1-9][0-9]*",
-            "(?i)PARTITIONS[\\s]*[1-9][0-9]*");
+            "(?i)PARTITION[\\s]+BY[\\s\\S]*\\)",
+            "(?i)SUBPARTITIONS[\\s]+[1-9][0-9]*",
+            "(?i)PARTITIONS[\\s]+[1-9][0-9]*");
 
     public static boolean transformAlterPartition(String queryString) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
