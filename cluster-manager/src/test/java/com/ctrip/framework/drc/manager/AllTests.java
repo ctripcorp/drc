@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.manager.healthcheck.DefaultMySQLMasterManagerTest
 import com.ctrip.framework.drc.manager.healthcheck.datasource.DataSourceManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ConsoleNotifierTest;
+import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTrackerImplTest;
 import com.ctrip.framework.drc.manager.service.ConsoleServiceImplTest;
@@ -56,6 +57,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultInstanceStateControllerTest.class,
         ApplierNotifierTest.class,
         ReplicatorNotifierTest.class,
+        MessengerNotifierTest.class,
         DbClusterSourceProviderTest.class,
         DefaultMySQLMasterManagerTest.class,
         DefaultInstanceActiveElectAlgorithmTest.class,
@@ -100,8 +102,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultRegionCacheTest.class,
         DefaultDrcManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
+        MessengerInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,
-        ReplicatorComparatorTest.class
+        ReplicatorComparatorTest.class,
+        MessengerComparatorTest.class
 })
 public class AllTests {
 
