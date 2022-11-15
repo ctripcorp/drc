@@ -22,6 +22,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -44,18 +45,18 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     private ListenerHolder listenerHolder;
     
+    private Set<String> mhasRelated = Sets.newHashSet();
+    
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
     private ScheduledExecutorService checkScheduledExecutor = 
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
     
     @Override
-    public void initConsumer(){
+    public void initConsumer(String subject, String consumerGroup){
         try {
             VIServer viServer = new VIServer(19999);
             viServer.start();
-            String subject = "bbz.drc.delaymonitor";
-            String consumerGroup = "100023928";
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
                     setTagType(TagType.AND).
                     setTags(Sets.newHashSet("local")).
@@ -83,10 +84,11 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     @Override
-    public boolean resumeListen(){
+    public boolean resumeListen(Set<String> mhasToBeMonitored){
         if (listenerHolder == null) {
             return false;
         }
+        mhasRelated = mhasToBeMonitored;
         listenerHolder.resumeListen();
         return true;
     }
@@ -120,9 +122,10 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             long delayTime = receiveTime - updateDbTime.getTime();
             logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName,
                     delayTime);
-            DefaultReporterHolder.getInstance()
-                    .reportMessengerDelay(mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
-
+            if (mhasRelated.contains(mhaName)) {
+                DefaultReporterHolder.getInstance()
+                        .reportMessengerDelay(mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
+            }
         } else {
             logger.info("[[monitor=delay]] discard delay monitor message which is not update");
         }

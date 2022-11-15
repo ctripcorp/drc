@@ -181,10 +181,22 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
     
     private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
+    private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
+    private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
 
 
     public String getDrcMetaXmlUpdateSwitch (){
         return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_ON);
+    }
+
+    public String getMqDelaySubject() {
+        return getProperty(MQ_DELAY_MONITOR_SUBJECT,DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
+    public String getMqDelayConsumerGroup() {
+        return getProperty(MQ_DELAY_MONITOR_CONSUMER_GROUP,DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP);
     }
 
 
