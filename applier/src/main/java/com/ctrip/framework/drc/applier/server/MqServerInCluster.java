@@ -19,12 +19,15 @@ import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
  */
 public class MqServerInCluster extends ApplierServerInCluster {
 
+    private static final int MQ_APPLY_SIZE = Integer.parseInt(System.getProperty("mq.apply.size", "1"));
+
     public MqServerInCluster(ApplierConfigDto config) throws Exception {
         super(config);
     }
 
     @Override
     public void define() throws Exception {
+        logger.info("[MQ] apply size is: {}", MQ_APPLY_SIZE);
         source(MqApplierDumpEventActivity.class)
                 .with(ExecutorResource.class)
                 .with(LinkContextResource.class)
@@ -39,7 +42,7 @@ public class MqServerInCluster extends ApplierServerInCluster {
                 .link(InvolveActivity.class)
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
-                .link(MqApplyActivity.class, 1)
+                .link(MqApplyActivity.class, MQ_APPLY_SIZE)
                 .link(CommitActivity.class);
         check();
     }

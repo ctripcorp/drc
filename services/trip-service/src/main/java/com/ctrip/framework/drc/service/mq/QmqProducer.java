@@ -123,7 +123,7 @@ public class QmqProducer extends AbstractProducer {
 
             long start = System.nanoTime();
             provider.sendMessage(message);
-            loggerMsgSend.info("[[{}]]send messenger cost: {}ns, value: {}", topic, System.nanoTime() - start, dataChangeToSend);
+            loggerMsgSend.info("[[{}]]send messenger cost: {}us, value: {}", topic, (System.nanoTime() - start) / 1000, dataChangeToSend);
         }
     }
 

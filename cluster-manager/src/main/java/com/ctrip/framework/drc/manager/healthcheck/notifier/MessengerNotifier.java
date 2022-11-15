@@ -13,8 +13,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
 /**
  * Created by jixinwang on 2022/10/31
@@ -69,7 +68,7 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
             config.replicator.port = replicator.getApplierPort();
         }
 
-        config.replicator.mhaName = ApplyMode.mq.getName();
+        config.replicator.mhaName = DRC_MQ;
 
         for (Messenger messenger : dbCluster.getMessengers()) {
             if (ipAndPort.equals(messenger.getIp() + ":" + messenger.getPort())) {

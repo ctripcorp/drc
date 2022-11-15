@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
-import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
@@ -23,6 +22,7 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
 
 /**
@@ -175,7 +175,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
             return;
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        String newClusterId = RegistryKey.from(clusterId, ApplyMode.mq.getName());
+        String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
         STATE_LOGGER.info("[removeMessenger] for {},{}", newClusterId, messenger);
         executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, true));
     }
