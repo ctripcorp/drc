@@ -19,39 +19,6 @@
     </properties>
 
     <dependencies>
-<!--&lt;!&ndash;for-trip-loaclRunning&ndash;&gt;-->
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.framework.drc</groupId>-->
-<!--            <artifactId>trip-service</artifactId>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>kafka-clients</artifactId>-->
-<!--                    <groupId>org.apache.kafka</groupId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.kafka</groupId>-->
-<!--            <artifactId>kafka-clients</artifactId>-->
-<!--            <version>2.0.1</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.platform</groupId>-->
-<!--            <artifactId>ctrip-dal-client</artifactId>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.ctrip.platform</groupId>-->
-<!--                    <artifactId>ctrip-datasource</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--            <version>${dal.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.ctrip.platform</groupId>-->
-<!--            <artifactId>ctrip-datasource</artifactId>-->
-<!--            <version>${dal.version}</version>-->
-<!--        </dependency>-->
-
         <!-- spring boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -177,6 +144,43 @@
     <profiles>
         <profile>
             <id>trip</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.ctrip.framework.drc</groupId>
+                    <artifactId>trip-service</artifactId>
+                    <exclusions>
+                        <exclusion>
+                            <artifactId>kafka-clients</artifactId>
+                            <groupId>org.apache.kafka</groupId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>ctrip-dal-client</artifactId>
+                            <groupId>com.ctrip.platform</groupId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka-clients</artifactId>
+                    <version>2.0.1</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.ctrip.platform</groupId>
+                    <artifactId>ctrip-dal-client</artifactId>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.ctrip.platform</groupId>
+                            <artifactId>ctrip-datasource</artifactId>
+                        </exclusion>
+                    </exclusions>
+                    <version>${dal.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.ctrip.platform</groupId>
+                    <artifactId>ctrip-datasource</artifactId>
+                    <version>${dal.version}</version>
+                </dependency>
+            </dependencies>
             <build>
                 <resources>
                     <resource>
@@ -194,6 +198,7 @@
     </profiles>
 
     <build>
+        <finalName>drc-${project.artifactId}-package-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -217,6 +222,32 @@
                                     <directory>${basedir}/src/main/webapp/app/dist</directory>
                                 </resource>
                             </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.ctrip.framework.drc.console.ConsoleApplication</mainClass>
+                    <executable>true</executable>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>drc-${project.artifactId}-package-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/assembly/assembly-descriptor.xml</descriptor>
+                            </descriptors>
                         </configuration>
                     </execution>
                 </executions>
