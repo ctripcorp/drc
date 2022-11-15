@@ -48,6 +48,8 @@ public class QmqProducer extends AbstractProducer {
         this.isOrder = mqConfig.isOrder();
         this.orderKey = mqConfig.getOrderKey();
         init(persist, mqConfig.getPersistentDb());
+        loggerMsg.info("[MQ] create provider for topic: {}", topic);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mq.producer.create", topic);
     }
 
     private void init(boolean persist, String dalClusterKey) {

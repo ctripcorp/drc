@@ -19,7 +19,7 @@ import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
  */
 public class MqServerInCluster extends ApplierServerInCluster {
 
-    private static final int MQ_APPLY_SIZE = Integer.parseInt(System.getProperty("mq.apply.size", "1"));
+    private static final int MQ_APPLY_SIZE = Integer.parseInt(System.getProperty("mq.apply.size", "10"));
 
     public MqServerInCluster(ApplierConfigDto config) throws Exception {
         super(config);
