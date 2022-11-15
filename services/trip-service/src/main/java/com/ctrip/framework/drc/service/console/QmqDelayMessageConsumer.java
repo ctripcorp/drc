@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.EventType;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
@@ -18,8 +19,12 @@ import qunar.tc.qmq.consumer.MessageConsumerProvider;
 
 
 import java.sql.Timestamp;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -35,49 +40,55 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private static final int DC_INDEX = 1;
     private static final int DELAY_INFO_INDEX = 2;
     private static final int DATA_CHANGE_TIME_INDEX = 3;
+    private static final long TOLERANCE_TIME = 5 * 60000L;
+    private static final long HUGE_VAL = 60 * 60000L;
 
     private ListenerHolder listenerHolder;
-    private boolean initialized = false;
-
     
-    public synchronized void initConsumer(){
-        if (!initialized) {
-            try {
-                VIServer viServer = new VIServer(19999);
-                viServer.start();
-                String subject = "bbz.drc.delaymonitor";
-                String consumerGroup = "100023928";
-                SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
-                        setTagType(TagType.AND).
-                        setTags(Sets.newHashSet("local")).
-                        create();
-                MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
-                consumerProvider.init();
-                listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
-                listenerHolder.stopListen();
-                logger.info("qmq consumer init over,stop wait for leadership gain");
-            } catch (Exception e) {
-                logger.error("unexpected exception occur in initConsumer",e);
-            }
-        } else {
-            logger.info("qmq consumer init already");
+    private Set<String> mhasRelated = Sets.newHashSet();
+    
+    // k: mhaInfo ,v :receiveTime
+    private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
+    private ScheduledExecutorService checkScheduledExecutor = 
+            ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
+    
+    @Override
+    public void initConsumer(String subject, String consumerGroup){
+        try {
+            VIServer viServer = new VIServer(19999);
+            viServer.start();
+            SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
+                    setTagType(TagType.AND).
+                    setTags(Sets.newHashSet("local")).
+                    create();
+            MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
+            consumerProvider.init();
+            listenerHolder =  consumerProvider.addListener(subject, consumerGroup, this::processMessage, param);
+            checkScheduledExecutor.scheduleWithFixedDelay(this::checkDelayLoss,5,1, TimeUnit.SECONDS);
+            listenerHolder.stopListen();
+            logger.info("qmq consumer init over,stop and wait for leadership gain");
+        } catch (Exception e) {
+            logger.error("unexpected exception occur in initConsumer",e);
         }
-        
     }
-    
-    
+
+
+    @Override
     public boolean stopListen() {
         if (listenerHolder == null) {
             return false;
         }
         listenerHolder.stopListen();
+        receiveTimeMap.clear();
         return true;
     }
-    
-    public boolean resumeListen(){
+
+    @Override
+    public boolean resumeListen(Set<String> mhasToBeMonitored){
         if (listenerHolder == null) {
             return false;
         }
+        mhasRelated = mhasToBeMonitored;
         listenerHolder.resumeListen();
         return true;
     }
@@ -104,19 +115,34 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 mhaName = mhaInfoJson;
             }
 
-            HashMap<String, String> tags = Maps.newHashMap();
-            tags.put("mhaName", mhaName);
-            tags.put("dc", dc);
-
+            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
+            receiveTimeMap.put(mhaInfo,receiveTime);
+            
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
             logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName,
                     delayTime);
-            DefaultReporterHolder.getInstance()
-                    .reportMessengerDelay(tags, delayTime, "fx.drc.messenger.delay");
-
+            if (mhasRelated.contains(mhaName)) {
+                DefaultReporterHolder.getInstance()
+                        .reportMessengerDelay(mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
+            }
         } else {
             logger.info("[[monitor=delay]] discard delay monitor message which is not update");
+        }
+    }
+
+
+    private void checkDelayLoss() {
+        for (Map.Entry<MhaInfo, Long> entry : receiveTimeMap.entrySet()) {
+            MhaInfo mhaInfo = entry.getKey();
+            long receiveTime = entry.getValue();
+            long curTime = System.currentTimeMillis();
+            long timeDiff = curTime - receiveTime;
+            if (timeDiff > TOLERANCE_TIME) {
+                logger.error("[[monitor=delay]] mha:{}, delayMessageLoss, report Huge to trigger alarm",mhaInfo.getMhaName());
+                DefaultReporterHolder.getInstance()
+                        .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, "fx.drc.messenger.delay");
+            }
         }
     }
 
@@ -128,6 +154,57 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
 
     private static class ConsumerProviderHolder {
         private static final MessageConsumerProvider instance = new MessageConsumerProvider();
+    }
+    
+    private static class MhaInfo {
+
+        private Map<String, String> tags;
+        private String mhaName;
+        private String dc;
+        
+        
+        public Map<String,String> getTags() {
+            if (tags == null) {
+                tags = Maps.newHashMap();
+                tags.put("mhaName",mhaName);
+                tags.put("dc",dc);
+            }
+            return tags;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MhaInfo mhaInfo = (MhaInfo) o;
+            return Objects.equals(mhaName, mhaInfo.mhaName) && Objects.equals(dc, mhaInfo.dc);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(mhaName, dc);
+        }
+
+        public MhaInfo(String mhaName, String dc) {
+            this.mhaName = mhaName;
+            this.dc = dc;
+        }
+
+        public String getMhaName() {
+            return mhaName;
+        }
+
+        public void setMhaName(String mhaName) {
+            this.mhaName = mhaName;
+        }
+
+        public String getDc() {
+            return dc;
+        }
+
+        public void setDc(String dc) {
+            this.dc = dc;
+        }
     }
 
 

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.core.mq;
 
+import java.util.Set;
+
 /**
  * @ClassName BlankDelayMessageConsumer
  * @Author haodongPan
@@ -8,7 +10,7 @@ package com.ctrip.framework.drc.core.mq;
  */
 public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     @Override
-    public void initConsumer() {}
+    public void initConsumer(String subject, String consumerGroup) {}
 
     @Override
     public boolean stopListen() {
@@ -16,7 +18,7 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     @Override
-    public boolean resumeListen() {
+    public boolean resumeListen(Set<String> mhasToBeMonitored) {
         return false;
     }
 
