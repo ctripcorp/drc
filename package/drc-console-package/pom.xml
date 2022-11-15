@@ -64,7 +64,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>com.ctrip.framework.drc.console.ConsoleApplication</mainClass>
+					<mainClass>com.ctrip.framework.drc.console.Starter</mainClass>
 					<executable>true</executable>
 				</configuration>
 			</plugin>
@@ -86,18 +86,6 @@
 					</execution>
 				</executions>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Class-Path>BOOT-INF/lib/console-0.0.1.jar</Class-Path>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
 		</plugins>
 	</build>
 
