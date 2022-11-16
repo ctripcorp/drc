@@ -42,10 +42,11 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private static final int DATA_CHANGE_TIME_INDEX = 3;
     private static final long TOLERANCE_TIME = 5 * 60000L;
     private static final long HUGE_VAL = 60 * 60000L;
+    private static final String MQ_DELAY_MEASUREMENT = "fx.drc.messenger.delay";
 
     private ListenerHolder listenerHolder;
     
-    private Set<String> mhasRelated = Sets.newHashSet();
+    private Set<String> dcsRelated = Sets.newHashSet();
     
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
@@ -53,8 +54,9 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
     
     @Override
-    public void initConsumer(String subject, String consumerGroup){
+    public void initConsumer(String subject, String consumerGroup, Set<String> dcs){
         try {
+            dcsRelated = dcs;
             VIServer viServer = new VIServer(19999);
             viServer.start();
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
@@ -84,11 +86,10 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     @Override
-    public boolean resumeListen(Set<String> mhasToBeMonitored){
+    public boolean resumeListen(){
         if (listenerHolder == null) {
             return false;
         }
-        mhasRelated = mhasToBeMonitored;
         listenerHolder.resumeListen();
         return true;
     }
@@ -111,21 +112,22 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                 DelayInfo delayInfo = JsonUtils.fromJson(mhaInfoJson, DelayInfo.class);
                 mhaName = delayInfo.getM();
             } catch (Exception e) {
-                // for old version column compatible
-                mhaName = mhaInfoJson;
+                mhaName = mhaInfoJson;// for old version column compatible
             }
 
-            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
-            receiveTimeMap.put(mhaInfo,receiveTime);
+            if (!dcsRelated.contains(dc.toLowerCase())) {
+                return;
+            }
             
+            MhaInfo mhaInfo = new MhaInfo(mhaName, dc);
             Timestamp updateDbTime = Timestamp.valueOf(timeColumn.getValue());
             long delayTime = receiveTime - updateDbTime.getTime();
-            logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName,
-                    delayTime);
-            if (mhasRelated.contains(mhaName)) {
-                DefaultReporterHolder.getInstance()
-                        .reportMessengerDelay(mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
-            }
+            DefaultReporterHolder.getInstance().reportMessengerDelay(
+                    mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
+            logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName, delayTime);
+
+            
+            receiveTimeMap.put(mhaInfo,receiveTime);
         } else {
             logger.info("[[monitor=delay]] discard delay monitor message which is not update");
         }
@@ -141,7 +143,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             if (timeDiff > TOLERANCE_TIME) {
                 logger.error("[[monitor=delay]] mha:{}, delayMessageLoss, report Huge to trigger alarm",mhaInfo.getMhaName());
                 DefaultReporterHolder.getInstance()
-                        .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, "fx.drc.messenger.delay");
+                        .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
             }
         }
     }

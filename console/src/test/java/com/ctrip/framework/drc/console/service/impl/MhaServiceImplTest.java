@@ -259,6 +259,13 @@ public class MhaServiceImplTest {
         mhaService.getAllDbsAndDals("testMhaName", "fat", "oy");
 
     }
-    
 
+
+    @Test
+    public void testRecordMha() {
+    }
+
+    @Test
+    public void testQueryMhaInfo() {
+    }
 }

@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
@@ -36,8 +35,6 @@ public class MetaGenerator {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired private DefaultConsoleConfig consoleConfig;
-
-    @Autowired private DataCenterService dataCenterService;
     
     @Autowired private RowsFilterService rowsFilterService;
     
