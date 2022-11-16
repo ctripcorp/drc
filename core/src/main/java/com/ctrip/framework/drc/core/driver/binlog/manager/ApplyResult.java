@@ -35,4 +35,12 @@ public class ApplyResult {
 
         PARTITION_SKIP
     }
+
+    @Override
+    public String toString() {
+        return "ApplyResult{" +
+                "status=" + status +
+                ", ddl='" + ddl + '\'' +
+                '}';
+    }
 }
