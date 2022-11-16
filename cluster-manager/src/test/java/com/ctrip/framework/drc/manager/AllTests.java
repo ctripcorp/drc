@@ -103,6 +103,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultDcCacheTest.class,
         DefaultRegionCacheTest.class,
         DefaultDrcManagerTest.class,
+        MessengerInstanceManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
         MessengerInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,

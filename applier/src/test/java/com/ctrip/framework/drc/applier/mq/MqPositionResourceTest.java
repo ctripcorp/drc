@@ -9,6 +9,9 @@ import static org.junit.Assert.*;
  */
 public class MqPositionResourceTest {
 
+    private MqPositionResource mqPosition = new MqPositionResource();
+
+
     @Test
     public void updatePosition() {
     }
