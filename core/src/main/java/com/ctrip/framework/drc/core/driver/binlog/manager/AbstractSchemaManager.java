@@ -16,6 +16,8 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformComment;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
@@ -89,7 +91,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
                 return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
             }
         } else if (QueryType.CREATE == queryType) {
-            Pair<Boolean, String> transformRes = TablePartitionManager.transformCreatePartition(ddl);
+            Pair<Boolean, String> transformRes = transformCreatePartition(ddl);
             if (transformRes.getKey()) {
                 DDL_LOGGER.info("[Transform] partition from {} to {} in {}", ddl, transformRes.getValue(), getClass().getSimpleName());
                 ddl = transformRes.getValue();
@@ -105,6 +107,8 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     private boolean isSame(Map<String, Map<String, String>> future) {
         Map<String, Map<String, String>> current = doSnapshot(inMemoryEndpoint);
+        current = transformPartition(current);
+        future = transformPartition(future);
         boolean same = current.equals(future);
         if (same) {
             DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", registryKey);
@@ -113,5 +117,21 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", registryKey, current, future);
         }
         return same;
+    }
+
+    public static Map<String, Map<String, String>> transformPartition(Map<String, Map<String, String>> schemas) {
+        Map<String, Map<String, String>> res = Maps.newHashMap();
+        for (Map.Entry<String, Map<String, String>> dbEntry : schemas.entrySet()) {
+            Map<String, String> tables = Maps.newHashMap();
+            res.put(dbEntry.getKey(), tables);
+            for (Map.Entry<String, String> tableEntry : dbEntry.getValue().entrySet()) {
+                Pair<Boolean, String> transformRes = transformComment(tableEntry.getValue());
+                if (transformRes.getKey()) {
+                    DDL_LOGGER.info("[Transform] {}.{} from {} to {}", dbEntry.getKey(), tableEntry.getKey(), tableEntry.getValue(), transformRes.getValue().trim());
+                }
+                tables.put(tableEntry.getKey(), transformRes.getValue().trim());
+            }
+        }
+        return res;
     }
 }
