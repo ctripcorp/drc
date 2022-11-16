@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.BatchTask.MAX_BATCH_SIZE;
 import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.MAX_ACTIVE;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 
 /**
  * @Author limingdong
@@ -45,7 +46,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         NamedCallable.super.afterException(t);
         DataSourceManager.getInstance().clearDataSource(inMemoryEndpoint);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint);
-        NamedCallable.DDL_LOGGER.warn("[Clear] datasource and recreate for {}", inMemoryEndpoint);
+        DDL_LOGGER.warn("[Clear] datasource and recreate for {}", inMemoryEndpoint);
     }
 
     protected boolean doCreate(Collection<String> sqlCollection, Class<? extends BatchTask> clazz, boolean sync) throws Exception {

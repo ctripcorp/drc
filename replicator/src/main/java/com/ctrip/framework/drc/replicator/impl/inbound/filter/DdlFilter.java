@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.QueryLogEvent;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
@@ -15,13 +16,12 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.monitor.MonitorManager;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
@@ -29,8 +29,6 @@ import static com.ctrip.framework.drc.replicator.impl.inbound.filter.Transaction
  * @create 2020/2/24
  */
 public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
-
-    protected final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     public static final String XA_START = "XA START";
 
@@ -109,10 +107,15 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 return false;
             }
-            boolean res = schemaManager.apply(schemaName, queryString);
+            ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type);
+            if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
+                DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
+                return false;
+            }
             String tableName = results.get(0).getTableName();
+            queryString = applyResult.getDdl();
             schemaManager.persistDdl(schemaName, tableName, queryString);
-            DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, res);
+            DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
 
             if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
                 DDL_LOGGER.info("[Skip] ddl for one of blank {}.{} with query {}", schemaName, tableName, queryString);

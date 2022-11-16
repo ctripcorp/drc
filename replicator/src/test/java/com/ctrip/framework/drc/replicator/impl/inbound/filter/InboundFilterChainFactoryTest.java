@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
@@ -112,6 +114,8 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
                 .tableFilterConfiguration(tableFilterConfiguration)
                 .applyMode(ApplyMode.transaction_table.getType()).build();
         flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
+
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
     }
 
     @Test

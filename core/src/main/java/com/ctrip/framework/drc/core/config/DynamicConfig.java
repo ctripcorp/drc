@@ -14,14 +14,16 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String DATASOURCE_SOCKET_TIMEOUT = "datasource.socket.timeout";
 
+    private static final String TABLE_PARTITION_SWITCH = "table.partition.switch";
+
     private DynamicConfig() {}
 
-    private static class TaskConfigHolder {
+    private static class ConfigHolder {
         public static final DynamicConfig INSTANCE = new DynamicConfig();
     }
 
     public static DynamicConfig getInstance() {
-        return TaskConfigHolder.INSTANCE;
+        return ConfigHolder.INSTANCE;
     }
 
     public int getConcurrency(String key) {
@@ -30,5 +32,9 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public int getDatasourceSocketTimeout() {
         return getIntProperty(DATASOURCE_SOCKET_TIMEOUT, SOCKET_TIMEOUT);
+    }
+
+    public boolean getTablePartitionSwitch() {
+        return getBooleanProperty(TABLE_PARTITION_SWITCH, true);
     }
 }

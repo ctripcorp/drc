@@ -14,6 +14,7 @@ import java.util.Map;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.SchemaExtractor.extractValues;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.SHOW_DATABASES_QUERY;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 
 /**
  * @Author limingdong

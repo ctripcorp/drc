@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
@@ -14,6 +15,8 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.observer.gtid.GtidObserver;
 import com.ctrip.framework.drc.core.server.utils.FileUtil;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParser;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlResult;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.xpipe.api.observer.Observer;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -21,7 +24,10 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.netty.buffer.*;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -421,7 +427,11 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     if (LogEventType.drc_ddl_log_event == eventType) {
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
-                        schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl());
+                        List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
+                        ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), ddlResults.get(0).getType());
+                        if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
+                            DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
+                        }
                         ddlLogEvent.release();
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();

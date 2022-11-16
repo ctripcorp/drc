@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
 import com.ctrip.framework.drc.core.driver.ConnectionObserver;
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
@@ -16,7 +17,7 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     TableInfo find(String schema, String table);
 
-    boolean apply(String schema, String ddl);
+    ApplyResult apply(String schema, String ddl, QueryType queryType);
 
     /**
      * for recovery

@@ -87,6 +87,10 @@ public class SystemConfig {
 
     public static final Logger STATE_LOGGER = LoggerFactory.getLogger(STATE_CONTROLLER_LOG);
 
+    public static final String DDL_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter";
+
+    public static final Logger DDL_LOGGER = LoggerFactory.getLogger(DDL_LOG);
+
     public static final String HEARTBEAT_LOG = "HEARTBEAT";
 
     public static final Logger HEARTBEAT_LOGGER = LoggerFactory.getLogger(HEARTBEAT_LOG);
