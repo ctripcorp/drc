@@ -1,9 +1,12 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
+import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.server.config.SystemConfig;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.observer.NodeAdded;
@@ -16,6 +19,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 
 /**
  * Created by jixinwang on 2022/11/15
@@ -73,7 +78,7 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     public void handleClusterAdded() throws InterruptedException {
         messengerInstanceElectorManager.update(new NodeAdded<>(dbCluster), null);
 
-        persistentNode = new PersistentNode(curatorFramework, CreateMode.EPHEMERAL, false, messengerInstanceElectorManager.getLeaderPath(CLUSTER_ID + "." + SystemConfig.DRC_MQ) + "/leader", Codec.DEFAULT.encodeAsBytes(zookeeperValue));
+        persistentNode = new PersistentNode(curatorFramework, CreateMode.EPHEMERAL, false, messengerInstanceElectorManager.getLeaderPath(RegistryKey.from(CLUSTER_ID, DRC_MQ)) + "/leader", Codec.DEFAULT.encodeAsBytes(zookeeperValue));
         persistentNode.start();
 
         Thread.sleep(1000);
@@ -83,12 +88,16 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     @Test
     public void handleClusterDelete() {
         messengerInstanceElectorManager.update(new NodeDeleted<>(dbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject());
+        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject(), true);
     }
 
     @Test
     public void handleClusterModify() {
-        messengerInstanceElectorManager.update(new NodeDeleted<>(dbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject());
+        DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
+        newMessenger.setIp("12.21.12.21");
+        newMessenger.setPort(4321);
+        cloneDbCluster.getMessengers().add(newMessenger);
+        messengerInstanceElectorManager.update(new ClusterComparator(dbCluster, cloneDbCluster), null);
+        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject(), true);
     }
 }

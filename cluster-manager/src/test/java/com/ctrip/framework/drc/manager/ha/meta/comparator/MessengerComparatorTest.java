@@ -63,7 +63,7 @@ public class MessengerComparatorTest extends AbstractDbClusterTest {
     }
 
     @Test
-    public void compareAddReplicator() {
+    public void compareAddMessenger() {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         newMessenger.setIp("12.21.12.21");
         newMessenger.setPort(4321);
@@ -78,7 +78,7 @@ public class MessengerComparatorTest extends AbstractDbClusterTest {
     }
 
     @Test
-    public void compareRemoveReplicator() {
+    public void compareRemoveMessenger() {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         cloneDbCluster.getMessengers().clear();
 

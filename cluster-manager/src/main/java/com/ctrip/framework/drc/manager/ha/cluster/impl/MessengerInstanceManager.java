@@ -54,7 +54,7 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
 
     private void removeMessenger(String clusterId, Messenger messenger) {
         try {
-            instanceStateController.removeMessenger(clusterId, messenger);
+            instanceStateController.removeMessenger(clusterId, messenger, true);
         } catch (Exception e) {
             logger.error(String.format("[addMessenger]%s,%s", clusterId, messenger), e);
         }

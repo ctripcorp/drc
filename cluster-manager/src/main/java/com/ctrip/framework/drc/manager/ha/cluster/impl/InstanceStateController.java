@@ -27,7 +27,7 @@ public interface InstanceStateController extends Lifecycle {
 
     DbCluster registerMessenger(String clusterId, Messenger messenger);
 
-    void removeMessenger(String clusterId, Messenger messenger);
+    void removeMessenger(String clusterId, Messenger messenger, boolean delete);
 
     DbCluster addApplier(String clusterId, Applier applier);
 
