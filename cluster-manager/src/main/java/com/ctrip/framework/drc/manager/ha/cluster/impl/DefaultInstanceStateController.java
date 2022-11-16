@@ -71,20 +71,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         return body;
     }
 
-    @Override
-    public DbCluster addMessenger(String clusterId, Messenger messenger) {
-        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[addMessenger] for {}", body);
-        List<Replicator> replicators = body.getReplicators();
-        if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
-            return body;
-        }
-        executors.submit(() -> messengerNotifier.notifyAdd(body));
-        return body;
-    }
-
     /**
      * notify replicator to register zookeeper
      * @param clusterId
@@ -101,21 +87,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     /**
-     * notify messenger to register zookeeper
-     * @param clusterId
-     * @param messenger
-     * @return
-     */
-    @Override
-    public DbCluster registerMessenger(String clusterId, Messenger messenger) {
-        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
-        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[registerMessenger] for {}", body);
-        executors.submit(() -> messengerNotifier.notifyRegister(body));
-        return body;
-    }
-
-    /**
      * notify applier to register zookeeper
      * @param clusterId
      * @param applier
@@ -127,6 +98,21 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
         STATE_LOGGER.info("[registerApplier] for {}", body);
         executors.submit(() -> applierNotifier.notifyRegister(body));
+        return body;
+    }
+
+    /**
+     * notify messenger to register zookeeper
+     * @param clusterId
+     * @param messenger
+     * @return
+     */
+    @Override
+    public DbCluster registerMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[registerMessenger] for {}", body);
+        executors.submit(() -> messengerNotifier.notifyRegister(body));
         return body;
     }
 
@@ -158,6 +144,27 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     @Override
+    public DbCluster addMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[addMessenger] for {}", body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
+            return body;
+        }
+        executors.submit(() -> messengerNotifier.notifyAdd(body));
+
+        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
+        for (Messenger m : messengers) {
+            if (!m.equalsWithIpPort(messenger)) {
+                removeMessenger(clusterId, m, false);
+            }
+        }
+        return body;
+    }
+
+    @Override
     public void removeReplicator(String clusterId, Replicator replicator) {
         if (config.getMigrationBlackIps().contains(replicator.getIp())) {
             logger.info("[skipRemove] black ips are: {}, replicator ip is:{}", config.getMigrationBlackIps(), replicator.getIp());
@@ -169,7 +176,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     @Override
-    public void removeMessenger(String clusterId, Messenger messenger) {
+    public void removeMessenger(String clusterId, Messenger messenger, boolean delete) {
         if (config.getMigrationBlackIps().contains(messenger.getIp())) {
             logger.info("[skipRemove] black ips are: {}, messenger ip is:{}", config.getMigrationBlackIps(), messenger.getIp());
             return;
@@ -177,7 +184,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
         STATE_LOGGER.info("[removeMessenger] for {},{}", newClusterId, messenger);
-        executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, true));
+        executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, delete));
     }
 
     @Override
@@ -255,30 +262,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         return clone;
     }
 
-    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
-        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
-        DbCluster clone = MetaClone.clone(dbCluster);
-        clone.getMessengers().clear();
-        clone.getMessengers().add(messenger);
-
-        Replicator master = currentMetaManager.getActiveReplicator(clusterId);
-        if (master != null) {
-            STATE_LOGGER.info("[getMessengerMaster] for {} is {}:{}", clusterId, master.getIp(), master.getPort());
-        } else {
-            STATE_LOGGER.error("[getMessengerMaster] null, do nothing for {}", clusterId);
-            return clone;
-        }
-
-        clone.getReplicators().clear();
-        Replicator replicator = new Replicator();
-        replicator.setMaster(true);
-        replicator.setIp(master.getIp());
-        replicator.setApplierPort(master.getApplierPort());
-        clone.getReplicators().add(replicator);
-
-        return clone;
-    }
-
     private DbCluster getDbClusterWithRefreshApplier(String clusterId, Applier applier) {
         return getDbClusterWithRefreshApplier(clusterId, applier, getMySQLMaster(clusterId));
     }
@@ -312,6 +295,31 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         if (mysqlMaster != null) {
             setMySQL(clone, mysqlMaster);
         }
+
+        return clone;
+    }
+
+    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
+        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
+        DbCluster clone = MetaClone.clone(dbCluster);
+        clone.getMessengers().clear();
+        clone.getMessengers().add(messenger);
+
+        //add local dc replicator
+        clone.getReplicators().clear();
+        Replicator master = currentMetaManager.getActiveReplicator(clusterId);
+        if (master != null) {
+            STATE_LOGGER.info("[getMessengerMaster] for {} is {}:{}", clusterId, master.getIp(), master.getPort());
+        } else {
+            STATE_LOGGER.error("[getMessengerMaster] null, do nothing for {}", clusterId);
+            return clone;
+        }
+
+        Replicator replicator = new Replicator();
+        replicator.setMaster(true);
+        replicator.setIp(master.getIp());
+        replicator.setApplierPort(master.getApplierPort());
+        clone.getReplicators().add(replicator);
 
         return clone;
     }

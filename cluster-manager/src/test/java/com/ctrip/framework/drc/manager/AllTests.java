@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.manager.ha.DefaultStateChangeHandlerTest;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.*;
 import com.ctrip.framework.drc.manager.ha.cluster.task.*;
 import com.ctrip.framework.drc.manager.ha.config.DefaultClusterManagerConfigTest;
+import com.ctrip.framework.drc.manager.ha.localdc.LocalDcNotifierTest;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.*;
 import com.ctrip.framework.drc.manager.ha.meta.impl.*;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceManagerTest;
@@ -20,6 +21,7 @@ import com.ctrip.framework.drc.manager.healthcheck.DefaultMySQLMasterManagerTest
 import com.ctrip.framework.drc.manager.healthcheck.datasource.DataSourceManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ConsoleNotifierTest;
+import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifierTest;
 import com.ctrip.framework.drc.manager.healthcheck.tracker.HeartBeatTrackerImplTest;
 import com.ctrip.framework.drc.manager.service.ConsoleServiceImplTest;
@@ -56,6 +58,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultInstanceStateControllerTest.class,
         ApplierNotifierTest.class,
         ReplicatorNotifierTest.class,
+        MessengerNotifierTest.class,
         DbClusterSourceProviderTest.class,
         DefaultMySQLMasterManagerTest.class,
         DefaultInstanceActiveElectAlgorithmTest.class,
@@ -72,6 +75,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultSlotManagerTest.class,
         DefaultStateChangeHandlerTest.class,
         MultiDcNotifierTest.class,
+        LocalDcNotifierTest.class,
         DefaultDcApplierMasterChooserAlgorithmTest.class,
         CompositeApplierMasterChooserAlgorithmTest.class,
         DefaultConfigApplierMasterChooserAlgorithmTest.class,
@@ -100,8 +104,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         DefaultRegionCacheTest.class,
         DefaultDrcManagerTest.class,
         ReplicatorInstanceElectorManagerTest.class,
+        MessengerInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,
-        ReplicatorComparatorTest.class
+        ReplicatorComparatorTest.class,
+        MessengerComparatorTest.class
 })
 public class AllTests {
 

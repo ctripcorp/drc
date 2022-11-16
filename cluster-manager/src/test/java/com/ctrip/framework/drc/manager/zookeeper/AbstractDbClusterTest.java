@@ -32,6 +32,8 @@ public abstract class AbstractDbClusterTest extends AbstractZkTest {
 
     protected Applier newApplier = new Applier();
 
+    protected Messenger newMessenger = new Messenger();
+
     protected String LOCAL_IP = "127.0.0.1";
 
     protected int backupPort = 8080;
@@ -64,6 +66,11 @@ public abstract class AbstractDbClusterTest extends AbstractZkTest {
         newApplier.setMaster(true);
         newApplier.setIp(LOCAL_IP);
         newApplier.setPort(backupPort);
+
+
+        newMessenger.setMaster(true);
+        newMessenger.setIp(LOCAL_IP);
+        newMessenger.setPort(backupPort);
 
         applierMaster = new Pair<>(newReplicator.getIp(), newReplicator.getApplierPort());
 
