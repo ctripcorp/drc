@@ -75,7 +75,6 @@ public class MultiDcNotifier implements StateChangeHandler {
 
     @Override
     public void messengerActiveElected(String clusterId, Messenger messenger) {
-
     }
 
     @Override

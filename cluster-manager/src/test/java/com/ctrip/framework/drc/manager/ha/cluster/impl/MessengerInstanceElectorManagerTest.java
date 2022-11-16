@@ -88,7 +88,7 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
     @Test
     public void handleClusterDelete() {
         messengerInstanceElectorManager.update(new NodeDeleted<>(dbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject(), true);
+        verify(instanceStateController, times(0)).removeMessenger(RegistryKey.from(dbCluster.getId(), DRC_MQ), dbCluster.getMessengers().get(0), true);
     }
 
     @Test
@@ -98,6 +98,6 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         newMessenger.setPort(4321);
         cloneDbCluster.getMessengers().add(newMessenger);
         messengerInstanceElectorManager.update(new ClusterComparator(dbCluster, cloneDbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(anyString(), anyObject(), true);
+        verify(instanceStateController, times(0)).removeMessenger(RegistryKey.from(dbCluster.getId(), DRC_MQ), dbCluster.getMessengers().get(0), true);
     }
 }
