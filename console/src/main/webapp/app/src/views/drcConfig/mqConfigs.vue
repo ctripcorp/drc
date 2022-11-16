@@ -522,7 +522,8 @@ export default {
         delayTime: this.mqConfig.delayTime === null ? 0 : this.mqConfig.delayTime,
         processor: this.mqConfig.processor === '' ? null : this.processor,
 
-        messengerGroupId: this.drc.messengerGroupId
+        messengerGroupId: this.drc.messengerGroupId,
+        mhaName: this.drc.mhaName
 
       }
       // submit

@@ -354,4 +354,12 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
+
+    @Test
+    public void testTestGetOrBuildSimplexDrc() {
+    }
+
+    @Test
+    public void testSubmitConfig() {
+    }
 }

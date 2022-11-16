@@ -9,8 +9,9 @@ import java.util.Set;
  * @Version: $
  */
 public class BlankDelayMessageConsumer implements DelayMessageConsumer {
+    
     @Override
-    public void initConsumer(String subject, String consumerGroup) {}
+    public void initConsumer(String subject, String consumerGroup, Set<String> dcs) {}
 
     @Override
     public boolean stopListen() {
@@ -18,7 +19,7 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     }
 
     @Override
-    public boolean resumeListen(Set<String> mhasToBeMonitored) {
+    public boolean resumeListen() {
         return false;
     }
 

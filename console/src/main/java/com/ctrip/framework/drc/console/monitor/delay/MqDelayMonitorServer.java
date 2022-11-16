@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.monitor.delay;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
+import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.xpipe.api.cluster.LeaderAware;
 import com.google.common.collect.Sets;
@@ -14,7 +16,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
-import java.util.List;
 
 
 /**
@@ -28,8 +29,7 @@ import java.util.List;
 public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     @Autowired private MonitorTableSourceProvider monitorProvider;
-    
-    @Autowired private MonitorService monitorService;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
 
@@ -38,19 +38,18 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         logger.info("[[monitor=delay]] mq consumer starting");
-        consumer.initConsumer(monitorProvider.getMqDelaySubject(),monitorProvider.getMqDelayConsumerGroup());
+        consumer.initConsumer(
+                monitorProvider.getMqDelaySubject(),
+                monitorProvider.getMqDelayConsumerGroup(),
+                consoleConfig.getDcsInLocalRegion()
+        );
     }
 
     @Override
     public void isleader() {
         if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
-            try {
-                List<String> mhaNamesToBeMonitored = monitorService.getMhaNamesToBeMonitored();
-                boolean b = consumer.resumeListen(Sets.newHashSet(mhaNamesToBeMonitored));
-                logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
-            } catch (SQLException e) {
-                logger.error("[[monitor=delay]] is leader,getMhaTobMonitor fail",e);
-            }
+            boolean b = consumer.resumeListen();
+            logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
         }
     }
     

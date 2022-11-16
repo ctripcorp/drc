@@ -24,9 +24,12 @@ public interface MhaService {
 
     List<String> getAllDbs(String clusterName, String env);
 
+    @Deprecated
     String getDcForMha(String mha);
 
     ApiResult recordMha(MhaDto mhaDto);
     
     MhaDto queryMhaInfo(Long mhaId) throws SQLException;
+    
+    String getDcNameForMha(String mha) throws SQLException;;
 }

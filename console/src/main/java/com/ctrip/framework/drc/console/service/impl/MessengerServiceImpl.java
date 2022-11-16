@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MhaService;
+import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MessengerVo;
 import com.ctrip.framework.drc.console.vo.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
@@ -193,8 +194,9 @@ public class MessengerServiceImpl implements MessengerService {
         return "remove success";
     }
 
-    private boolean initTopic(MqConfigDto dto) throws Exception {
-        String topicApplicationUrl = domainConfig.getQmqTopicApplicationUrl();
+    private boolean initTopic(MqConfigDto dto) throws SQLException {
+        String dcNameForMha = mhaService.getDcNameForMha(dto.getMhaName());
+        String topicApplicationUrl = domainConfig.getQmqTopicApplicationUrl(dcNameForMha);
         LinkedHashMap<String, String> requestBody = Maps.newLinkedHashMap();
         requestBody.put("subject",dto.getTopic());
         requestBody.put("cluster",dto.isOrder() ? "ordered" : "default");
@@ -215,8 +217,9 @@ public class MessengerServiceImpl implements MessengerService {
         return true;
     }
     
-    private boolean initProducer(MqConfigDto dto) throws Exception {
-        String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl();
+    private boolean initProducer(MqConfigDto dto) throws SQLException {
+        String dcNameForMha = mhaService.getDcNameForMha(dto.getMhaName());
+        String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("appCode","100023500");
         requestBody.put("subject",dto.getTopic());

@@ -1,8 +1,12 @@
 package com.ctrip.framework.drc.console.config;
 
+import com.ctrip.xpipe.api.codec.GenericTypeReference;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @ClassName DomainConifg
@@ -12,6 +16,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DomainConfig extends AbstractConfigBean {
+    
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
     private static final String DAL_SERVICE_PREFIX = "dal.service.prefix";
     private static final String DEFAULT_DAL_SERVICE_PREFIX = "http://localhost:8080/database/";
@@ -58,7 +64,6 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
     
     private static final String QMQ_APPLICATION_URL = "qmq.application.url";
-    private static final String DEFAULT_QMQ_APPLICATION_URL = "http://localhost:8080/qmq";
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
     private static final String BU_SUFFIX = "/api/producer/getBuList";
@@ -128,18 +133,26 @@ public class DomainConfig extends AbstractConfigBean {
     }
 
     public String getQmqBuListUrl() {
-        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+        String qmqUrl = getQmqUrlByRegion("sha");
         return qmqUrl + BU_SUFFIX;
     }
     
-    public String getQmqTopicApplicationUrl() {
-        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+    public String getQmqTopicApplicationUrl(String dc) {
+        String region = consoleConfig.getRegionForDc(dc);
+        String qmqUrl = getQmqUrlByRegion(region);
         return qmqUrl + TOPIC_SUFFIX;
     }
     
-    public String getQmqProducerApplicationUrl() {
-        String qmqUrl = getProperty(QMQ_APPLICATION_URL, DEFAULT_QMQ_APPLICATION_URL);
+    public String getQmqProducerApplicationUrl(String dc) {
+        String region = consoleConfig.getRegionForDc(dc);
+        String qmqUrl = getQmqUrlByRegion(region);
         return qmqUrl + PRODUCER_SUFFIX;
+    }
+
+    public String getQmqUrlByRegion(String region) {
+        Map<String, String> qmqUrls = JsonCodec.INSTANCE.decode(getProperty(QMQ_APPLICATION_URL, "{}"), 
+                new GenericTypeReference<Map<String, String>>() {});
+        return qmqUrls.get(region);
     }
 
 }

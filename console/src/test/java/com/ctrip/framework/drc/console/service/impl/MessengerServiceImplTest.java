@@ -1,12 +1,15 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
+import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
@@ -27,17 +30,19 @@ public class MessengerServiceImplTest {
     @InjectMocks
     private MessengerServiceImpl messengerService;
 
-    @Mock
-    private MessengerGroupTblDao messengerGroupTblDao;
+    @Mock private DataMediaPairService dataMediaPairService;
 
-    @Mock
-    private MessengerTblDao messengerTblDao;
+    @Mock private MhaService mhaService;
 
-    @Mock
-    private ResourceTblDao resourceTblDao;
+    @Mock private DomainConfig domainConfig;
 
-    @Mock
-    private DataMediaPairService dataMediaPairService;
+    @Mock private MessengerGroupTblDao messengerGroupTblDao;
+
+    @Mock private MessengerTblDao messengerTblDao;
+
+    @Mock private ResourceTblDao resourceTblDao;
+
+    @Mock private MhaTblDao mhaTblDao;
 
     @Before
     public void setUp() throws Exception {
@@ -80,6 +85,38 @@ public class MessengerServiceImplTest {
      */
 
     @Test
+    public void testGetMessengerIps() {
+        
+    }
+
+    @Test
+    public void testGetMqConfigVos() {
+        
+    }
+
+    @Test
+    public void testGetBusFromQmq() {
+        
+    }
+
+    @Test
+    public void testProcessAddMqConfig() {
+        
+    }
+
+    @Test
+    public void testProcessUpdateMqConfig() {
+    }
+
+    @Test
+    public void testProcessDeleteMqConfig() {
+    }
+
+    @Test
+    public void testGetAllMessengerVos() {
+    }
+
+    @Test
     public void testGenerateMessengers() throws SQLException {
         List<Messenger> messengers = messengerService.generateMessengers(1L);
         Assert.assertEquals(1,messengers.size());
@@ -117,4 +154,6 @@ public class MessengerServiceImplTest {
         messengerTbl.setPort(8080);
         return Lists.newArrayList(messengerTbl);
     }
+
+    
 }

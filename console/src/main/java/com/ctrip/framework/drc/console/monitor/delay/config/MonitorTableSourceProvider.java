@@ -510,6 +510,6 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
     
     public String getMqDelayMonitorSwitch() {
-        return getProperty(DELAY_MONITOR_UPDATEDB_SWITCH,SWITCH_STATUS_ON);
+        return getProperty(MQ_DELAY_MONITOR_SWITCH,SWITCH_STATUS_ON);
     }
 }

@@ -38,6 +38,8 @@ import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 
 
 public class MetaInfoServiceImplTest extends AbstractTest {
+    
+    // todo
 
     public static final String MHA1OY = "fat-fx-drc1";
 

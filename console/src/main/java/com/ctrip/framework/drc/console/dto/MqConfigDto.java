@@ -23,6 +23,7 @@ public class MqConfigDto {
     private String processor;
     
     private long messengerGroupId;
+    private String mhaName;
 
     @Override
     public String toString() {
@@ -40,6 +41,7 @@ public class MqConfigDto {
                 ", delayTime=" + delayTime +
                 ", processor='" + processor + '\'' +
                 ", messengerGroupId=" + messengerGroupId +
+                ", mhaName='" + mhaName + '\'' +
                 '}';
     }
 
@@ -146,5 +148,13 @@ public class MqConfigDto {
 
     public void setMessengerGroupId(long messengerGroupId) {
         this.messengerGroupId = messengerGroupId;
+    }
+
+    public String getMhaName() {
+        return mhaName;
+    }
+
+    public void setMhaName(String mhaName) {
+        this.mhaName = mhaName;
     }
 }

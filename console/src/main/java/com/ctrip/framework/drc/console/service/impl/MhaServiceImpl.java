@@ -2,14 +2,8 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.BuTblDao;
-import com.ctrip.framework.drc.console.dao.ClusterMhaMapTblDao;
-import com.ctrip.framework.drc.console.dao.ClusterTblDao;
-import com.ctrip.framework.drc.console.dao.MhaTblDao;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.ClusterMhaMapTbl;
-import com.ctrip.framework.drc.console.dao.entity.ClusterTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.DalClusterDto;
 import com.ctrip.framework.drc.console.dto.DalClusterShard;
 import com.ctrip.framework.drc.console.dto.DalMhaDto;
@@ -65,6 +59,8 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
     @Autowired private ClusterTblDao clusterTblDao;
     
     @Autowired private BuTblDao buTblDao;
+    
+    @Autowired private DcTblDao dcTblDao;
     
     private DalUtils dalUtils = DalUtils.getInstance();
     
@@ -288,6 +284,13 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
         BuTbl buTbl = buTblDao.queryByPk(clusterTbl.getBuId());
         mhaDto.setBuName(buTbl.getBuName());
         return mhaDto;
+    }
+
+    @Override
+    public String getDcNameForMha(String mha) throws SQLException {
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mha, FALSE.getCode());
+        DcTbl dcTbl = dcTblDao.queryByPk(mhaTbl.getDcId());
+        return dcTbl.getDcName();
     }
 
     private int getShardStart(int shardIndex, String dbName){
