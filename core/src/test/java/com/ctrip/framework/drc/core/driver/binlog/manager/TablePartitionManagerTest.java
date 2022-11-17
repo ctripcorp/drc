@@ -19,12 +19,31 @@ public class TablePartitionManagerTest {
 
     @Test
     public void testTransformAlterPartition() {
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 ADd   \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 DROP   \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  dISCARD \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  IMPORT \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  coALESCE \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  REORGANIZE \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  exCHANGE \nPARTITiON p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  REMOVE \nPARTITIONING p0, p1;"));
+        Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  UPGRADE \nPARTITIONING p0, p1;"));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 REBuILD   \nPARTITiON p0, p1;"));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE t1  OPTIMIZE     pARTITION \n p0, p1;\n"));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 ANALYZE PARTITION p3;\n".toLowerCase()));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE t1 REPAIR \nPARTITION p0,p1"));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE trb3 \nCHECK PARTITION p1;".toUpperCase()));
         Assert.assertTrue(transformAlterPartition("ALTER TABLE trb4 \ntruncate PARTITION"));
+
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 ADdPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 DrOPPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  dISCARDPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  IMPORtPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  coALESCEPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  REORGANIZEPARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  exCHANGEpARTITiON p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  REMOVEPARTITIONING p0, p1;"));
+        Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  UPGRADepARTITIONING p0, p1;"));
         Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 REBuILDPARTITiON p0, p1;"));
         Assert.assertFalse(transformAlterPartition("ALTER TABLE t1  OPTIMIZEpARTITION \n p0, p1;\n"));
         Assert.assertFalse(transformAlterPartition("ALTER TABLE t1 ANALYZEPARTITION p3;\n".toLowerCase()));
