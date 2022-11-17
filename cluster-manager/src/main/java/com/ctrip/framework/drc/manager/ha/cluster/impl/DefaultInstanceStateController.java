@@ -183,7 +183,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
-        STATE_LOGGER.info("[removeMessenger] for {},{}", newClusterId, messenger);
+        STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", newClusterId, messenger, delete);
         executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, delete));
     }
 

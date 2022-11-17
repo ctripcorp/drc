@@ -2,33 +2,27 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Messenger;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
-import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.observer.NodeAdded;
 import com.ctrip.xpipe.observer.NodeDeleted;
 import com.ctrip.xpipe.zk.ZkClient;
-import org.apache.curator.framework.recipes.nodes.PersistentNode;
-import org.apache.zookeeper.CreateMode;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
-
 /**
- * Created by jixinwang on 2022/11/15
+ * Created by jixinwang on 2022/11/16
  */
-public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
+public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
     @InjectMocks
-    private MessengerInstanceElectorManager messengerInstanceElectorManager = new MessengerInstanceElectorManager();
+    private MessengerInstanceManager messengerInstanceManager = new MessengerInstanceManager();
 
     @Mock
     private ZkClient zkClient;
@@ -57,8 +51,8 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         Messenger messenger = dbCluster.getMessengers().get(0);
         zookeeperValue.setPort(messenger.getPort());
         zookeeperValue.setIp(messenger.getIp());
-        messengerInstanceElectorManager.initialize();
-        messengerInstanceElectorManager.start();
+        messengerInstanceManager.initialize();
+        messengerInstanceManager.start();
     }
 
     @After
@@ -67,28 +61,24 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
             if (persistentNode != null) {
                 persistentNode.close();
             }
-            messengerInstanceElectorManager.stop();
-            messengerInstanceElectorManager.dispose();
+            messengerInstanceManager.stop();
+            messengerInstanceManager.dispose();
         } catch (Exception e) {
 
         }
     }
 
+
     @Test
     public void handleClusterAdded() throws InterruptedException {
-        messengerInstanceElectorManager.update(new NodeAdded<>(dbCluster), null);
-
-        persistentNode = new PersistentNode(curatorFramework, CreateMode.EPHEMERAL, false, messengerInstanceElectorManager.getLeaderPath(RegistryKey.from(CLUSTER_ID, DRC_MQ)) + "/leader", Codec.DEFAULT.encodeAsBytes(zookeeperValue));
-        persistentNode.start();
-
-        Thread.sleep(1500);
-        verify(currentMetaManager, times(1)).setSurviveMessengers(anyString(), anyObject(), anyObject());
+        messengerInstanceManager.update(new NodeAdded<>(dbCluster), null);
+        verify(instanceStateController, times(1)).registerMessenger(anyString(), anyObject());
     }
 
     @Test
     public void handleClusterDelete() {
-        messengerInstanceElectorManager.update(new NodeDeleted<>(dbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
+        messengerInstanceManager.update(new NodeDeleted<>(dbCluster), null);
+        verify(instanceStateController, times(1)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
     }
 
     @Test
@@ -96,8 +86,11 @@ public class MessengerInstanceElectorManagerTest extends AbstractDbClusterTest {
         DbCluster cloneDbCluster = MetaClone.clone(dbCluster);
         newMessenger.setIp("12.21.12.21");
         newMessenger.setPort(4321);
+        cloneDbCluster.getMessengers().clear();
         cloneDbCluster.getMessengers().add(newMessenger);
-        messengerInstanceElectorManager.update(new ClusterComparator(dbCluster, cloneDbCluster), null);
-        verify(instanceStateController, times(0)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
+        ClusterComparator clusterComparator = new ClusterComparator(dbCluster, cloneDbCluster);
+        clusterComparator.compare();
+        messengerInstanceManager.update(clusterComparator, null);
+        verify(instanceStateController, times(1)).removeMessenger(dbCluster.getId(), dbCluster.getMessengers().get(0), true);
     }
 }

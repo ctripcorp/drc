@@ -118,6 +118,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                         if (!file.exists()) {
                             Files.createParentDirs(file);
                             Files.touch(file);
+                            logger.info("create file for {}", registryKey);
                         } else {
                             logger.info("skip touch file for {}", registryKey);
                         }
@@ -142,6 +143,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         try {
             File file = new File(SystemConfig.APPLIER_PATH + FilenameUtils.normalize(registryKey));
             file.delete();
+            logger.info("delete file for {}", registryKey);
         } catch (Exception e) {
             logger.info("delete {} error", registryKey, e);
         }
