@@ -26,6 +26,7 @@ import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTas
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
+import com.ctrip.framework.drc.core.meta.MessengerPropertiesTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
@@ -243,7 +244,10 @@ import org.junit.runners.Suite;
         WriteFieldYearTypeTest.class,
         WriteFieldDateTypeTest.class,
         WriteFieldEnumMeta1TypeTest.class,
-        WriteFieldEnumMeta2TypeTest.class
+        WriteFieldEnumMeta2TypeTest.class,
+
+        //mq
+        MessengerPropertiesTest.class
 
 })
 public class AllTests {

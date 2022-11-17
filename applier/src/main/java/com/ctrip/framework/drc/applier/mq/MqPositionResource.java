@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.utils.SpringUtils;
 import com.ctrip.framework.drc.fetcher.resource.context.MqPosition;
 import com.ctrip.framework.drc.fetcher.system.AbstractResource;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.ctrip.xpipe.zk.ZkClient;
 import com.ctrip.xpipe.zk.impl.SpringZkClient;
 import org.apache.commons.io.FileUtils;
@@ -42,7 +43,7 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
     @InstanceConfig(path = "registryKey")
     public String registryKey;
 
-    private GtidSet executedGtidSet;
+    private GtidSet executedGtidSet = new GtidSet(StringUtils.EMPTY);
 
     private ZkClient zkClient;
 
@@ -109,7 +110,8 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
         }
     }
 
-    private String getCurrentPosition() {
+    @VisibleForTesting
+    protected String getCurrentPosition() {
         return executedGtidSet.toString();
     }
 
@@ -200,5 +202,10 @@ public class MqPositionResource extends AbstractResource implements MqPosition {
             scheduledExecutorService.shutdown();
             scheduledExecutorService = null;
         }
+    }
+
+    @VisibleForTesting
+    protected void setZkClient(ZkClient zkClient) {
+        this.zkClient = zkClient;
     }
 }

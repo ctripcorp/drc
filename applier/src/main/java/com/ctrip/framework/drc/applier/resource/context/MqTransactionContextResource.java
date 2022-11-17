@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.applier.mq.MqProvider;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
@@ -19,7 +20,7 @@ import java.util.List;
 /**
  * Created by jixinwang on 2022/10/12
  */
-public class MqTransactionContextResource extends TransactionContextResource {
+public class MqTransactionContextResource extends TransactionContextResource implements SQLUtil {
 
     private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
 
@@ -100,7 +101,7 @@ public class MqTransactionContextResource extends TransactionContextResource {
             eventData.setBeforeColumns(beforeList);
             eventData.setAfterColumns(afterList);
 
-            List<String> names = columns.getNames();
+            List<String> names = selectColumnNames(columns.getNames(), beforeBitmap);
             for (int j = 0; j < names.size(); j++) {
                 boolean isKey = false;
                 if (j < bitmapOfIdentifier.size()) {
