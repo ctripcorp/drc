@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -35,23 +37,20 @@ import static org.mockito.ArgumentMatchers.anyLong;
 
 public class DrcBuildServiceImplTest extends AbstractTest {
 
-    @InjectMocks
-    private DrcBuildServiceImpl drcBuildService;
+    @InjectMocks private DrcBuildServiceImpl drcBuildService;
 
-    @Mock
-    private MetaInfoServiceImpl metaInfoService;
+    @Mock private MetaInfoServiceImpl metaInfoService;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock
-    private DataCenterService dataCenterService;
+    @Mock private DataCenterService dataCenterService;
     
-    @Mock
-    private RowsFilterService rowsFilterService;
+    @Mock private RowsFilterService rowsFilterService;
+    
+    @Mock private MessengerService messengerService;
+    @Mock private DbClusterSourceProvider dbClusterSourceProvider;
 
-    @InjectMocks
-    private MetaGenerator metaService = new MetaGenerator();
+    @InjectMocks private MetaGenerator metaService = new MetaGenerator();
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -74,6 +73,8 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("cloudRegion"));
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
         Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0))).thenReturn(null);
+        Mockito.when(messengerService.generateMessengers(Mockito.anyLong())).thenReturn(Lists.newArrayList());
+        Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
     }
 
     @Test

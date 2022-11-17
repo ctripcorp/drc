@@ -2,12 +2,12 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
-import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
@@ -32,11 +32,9 @@ public class BuildController {
     private Logger logger = LoggerFactory.getLogger(getClass());
     
     
-    @Autowired
-    private RowsFilterService rowsFilterService;
+    @Autowired private RowsFilterService rowsFilterService;
     
-    @Autowired
-    private DrcBuildService drcBuildService;
+    @Autowired private DrcBuildService drcBuildService;
     
     @PostMapping("simplexDrc") 
     public ApiResult getOrBuildSimplexDrc(@RequestParam(value = "srcMha", defaultValue = "") String srcMha,
@@ -78,7 +76,7 @@ public class BuildController {
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
         Long id = Long.valueOf(applierGroupId);
         try {
-            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id, ApplierTypeEnum.APPLIER.getType());
+            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id, ConsumeType.Applier.getCode());
             return ApiResult.getSuccessInstance(dataMediaVos);
         } catch (SQLException e) {
             logger.error("sql error",e);

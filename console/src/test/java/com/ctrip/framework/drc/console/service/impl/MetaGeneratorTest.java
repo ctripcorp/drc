@@ -8,11 +8,14 @@ import com.ctrip.framework.drc.console.dto.ProxyDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Route;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,17 +31,16 @@ import java.util.stream.Collectors;
 
 public class MetaGeneratorTest {
 
-    @InjectMocks
-    private MetaGenerator metaGenerator;
+    @InjectMocks private MetaGenerator metaGenerator;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock
-    private DataCenterService dataCenterService;
+    @Mock private DataCenterService dataCenterService;
     
-    @Mock
-    private RowsFilterService rowsFilterService;
+    @Mock private RowsFilterService rowsFilterService;
+    @Mock private MessengerService messengerService;
+    
+    @Mock private MonitorTableSourceProvider monitorConfigProvider;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -72,6 +74,7 @@ public class MetaGeneratorTest {
         Mockito.doReturn(DC1).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
         Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0));
+        Mockito.doReturn(Lists.newArrayList()).when(messengerService).generateMessengers(Mockito.anyLong());
     }
 
     // this test needs to be run after TransferServiceImplTest

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
+import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -35,7 +36,7 @@ public class DataMediaPairServiceImplTest {
     }
 
     @Test
-    public void testGenerateMqConfigs() throws SQLException {
+    public void testGenerateMessengerProperties() throws SQLException {
         MessengerProperties messengerProperties = dataMediaPairService.generateMessengerProperties(1L);
         Assert.assertEquals(1,messengerProperties.getMqConfigs().size());
         System.out.println(JsonUtils.toJson(messengerProperties.getMqConfigs().get(0)));
@@ -53,6 +54,25 @@ public class DataMediaPairServiceImplTest {
          *     "processor": "java file content"
          * }
          */
+    }
+    
+    @Test
+    public void testAddMqConfig() {
+    }
+
+    @Test
+    public void testUpdateMqConfig() {
+        
+    }
+
+    @Test
+    public void testDeleteMqConfig() {
+        
+    }
+
+    @Test
+    public void testGetDataMediaPairs() {
+        
     }
 
     private List<DataMediaPairTbl> mockDataMediaPairTbls() {
@@ -72,5 +92,24 @@ public class DataMediaPairServiceImplTest {
         return Lists.newArrayList(dataMediaPairTbl);
 
     }
-
+    
+    private MqConfigDto mockDto(){
+        MqConfigDto mqConfigDto = new MqConfigDto();
+        mqConfigDto.setId(0);
+        mqConfigDto.setBu("fx");
+        mqConfigDto.setMqType("qmq");
+        mqConfigDto.setTable("db1\\.t1");
+        mqConfigDto.setTopic("dr");
+        mqConfigDto.setSerialization("json");
+        mqConfigDto.setPersistent(false);
+        mqConfigDto.setPersistentDb(null);
+        mqConfigDto.setOrder(true);
+        mqConfigDto.setOrderKey("id");
+        mqConfigDto.setDelayTime(0L);
+        mqConfigDto.setProcessor(null);
+        mqConfigDto.setMessengerGroupId(1L);
+        mqConfigDto.setMhaName("mha1");
+        return mqConfigDto;
+    }
+    
 }

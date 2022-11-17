@@ -214,6 +214,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         res.put("drcTables", MySqlUtils.checkDrcTables(endpoint));
         res.put("autoIncrementStep", MySqlUtils.checkAutoIncrementStep(endpoint));
         res.put("autoIncrementOffset", MySqlUtils.checkAutoIncrementOffset(endpoint));
+        res.put("binlogRowImage", MySqlUtils.checkBinlogRowImage(endpoint));
         List<Endpoint> endpoints = dbClusterSourceProvider.getMasterEndpointsInAllAccounts(mha);
         if (CollectionUtils.isEmpty(endpoints) || endpoints.size() != 3) {
             logger.error("[[tag=preCheck]] preCHeckDrcAccounts from mha:{},db not exist",mha);

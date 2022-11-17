@@ -71,16 +71,12 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public List<String> queryMhaNamesToBeMonitored() throws SQLException {
-        List<Long> mhaIdsTobeMonitored = queryMhaIdsToBeMonitored();
+        // switch control by mha
         MhaTbl mhaTbl = new MhaTbl();
         mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        // switch control by mhaGroup
-        List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(mhaTbl);
-        // switch control by mha
         mhaTbl.setMonitorSwitch(1);
-        mhaTbls.addAll(dalUtils.getMhaTblDao().queryBy(mhaTbl));
-        return mhaTbls.stream().filter(p -> mhaIdsTobeMonitored.contains(p.getId()))
-                .map(MhaTbl::getMhaName).collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(mhaTbl);
+        return mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
     }
 
     @Override

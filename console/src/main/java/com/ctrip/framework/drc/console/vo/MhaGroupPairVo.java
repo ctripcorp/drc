@@ -13,9 +13,15 @@ public class MhaGroupPairVo {
 
     private Integer drcEstablishStatus;
 
+    @Deprecated
     private int unitVerificationSwitch;
 
+    @Deprecated
     private int monitorSwitch;
+    
+    private int srcMhaMonitorSwitch;
+    
+    private int destMhaMonitorSwitch;
 
     private Long mhaGroupId;
     
@@ -24,10 +30,14 @@ public class MhaGroupPairVo {
     private Long BuId;
     
     
-    public MhaGroupPairVo exchangeMha() {
+    public MhaGroupPairVo exchangeMhaPosition() {
         String tmp = srcMha;
         setSrcMha(destMha);
         setDestMha(tmp);
+        
+        int tmpSwitch = srcMhaMonitorSwitch;
+        setSrcMhaMonitorSwitch(destMhaMonitorSwitch);
+        setDestMhaMonitorSwitch(tmpSwitch);
         return this;
     }
 
@@ -83,6 +93,22 @@ public class MhaGroupPairVo {
         return monitorSwitch;
     }
 
+    public int getSrcMhaMonitorSwitch() {
+        return srcMhaMonitorSwitch;
+    }
+
+    public void setSrcMhaMonitorSwitch(int srcMhaMonitorSwitch) {
+        this.srcMhaMonitorSwitch = srcMhaMonitorSwitch;
+    }
+
+    public int getDestMhaMonitorSwitch() {
+        return destMhaMonitorSwitch;
+    }
+
+    public void setDestMhaMonitorSwitch(int destMhaMonitorSwitch) {
+        this.destMhaMonitorSwitch = destMhaMonitorSwitch;
+    }
+
     public void setMonitorSwitch(int monitorSwitch) {
         this.monitorSwitch = monitorSwitch;
     }
@@ -98,13 +124,13 @@ public class MhaGroupPairVo {
 
     public MhaGroupPairVo() {
     }
-    
-    public MhaGroupPairVo(String srcMha, String destMha, Integer drcEstablishStatus, int unitVerificationSwitch, int monitorSwitch, Long mhaGroupId) {
+
+    public MhaGroupPairVo(String srcMha, String destMha, Integer drcEstablishStatus, int srcMhaMonitorSwitch, int destMhaMonitorSwitch, Long mhaGroupId) {
         this.srcMha = srcMha;
         this.destMha = destMha;
         this.drcEstablishStatus = drcEstablishStatus;
-        this.unitVerificationSwitch = unitVerificationSwitch;
-        this.monitorSwitch = monitorSwitch;
+        this.srcMhaMonitorSwitch = srcMhaMonitorSwitch;
+        this.destMhaMonitorSwitch = destMhaMonitorSwitch;
         this.mhaGroupId = mhaGroupId;
     }
 }

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
-import com.ctrip.framework.drc.console.enums.ApplierTypeEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
@@ -11,6 +10,7 @@ import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -53,16 +53,16 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
             mqConfig.setProcessor(dataMediaPairTbl.getProcessor());
             mqConfigs.add(mqConfig);
         }
-        MessengerProperties messengerProperties = new MessengerProperties(); // todo if mqconfig is empty set null;
+        MessengerProperties messengerProperties = new MessengerProperties();
         messengerProperties.setMqConfigs(mqConfigs);
 
         //nameFilter
-        messengerProperties.setNameFilter(StringUtils.join(tables,",")); // todo if mqconfig is empty set null;
+        messengerProperties.setNameFilter(StringUtils.join(tables,","));
 
         //rowsFilters
         DataMediaConfig dataMediaConfig = new DataMediaConfig();
         dataMediaConfig.setRowsFilters(
-                rowsFilterService.generateRowsFiltersConfig(messengerGroupId, ApplierTypeEnum.MESSENGER.getType())
+                rowsFilterService.generateRowsFiltersConfig(messengerGroupId, ConsumeType.Applier.getCode())
         );
         messengerProperties.setDataMediaConfig(dataMediaConfig);
 
