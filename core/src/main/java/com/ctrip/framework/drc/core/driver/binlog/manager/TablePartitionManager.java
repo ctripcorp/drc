@@ -26,6 +26,10 @@ public class TablePartitionManager {
             "(?i)SUBPARTITIONS[\\s]+[1-9][0-9]*",
             "(?i)PARTITIONS[\\s]+[1-9][0-9]*");
 
+    public static final List<String> COMMENT_MANAGEMENT = Lists.newArrayList(
+            "(?i)/\\*[\\s\\S]*\\*/",
+            "\n");
+
     public static boolean transformAlterPartition(String queryString) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
             return false;
@@ -40,13 +44,21 @@ public class TablePartitionManager {
     }
 
     public static Pair<Boolean, String> transformCreatePartition(String queryString) {
+        return doTransform(queryString, CREATE_PARTITION_MANAGEMENT);
+    }
+
+    public static Pair<Boolean, String> transformComment(String queryString) {
+        return doTransform(queryString, COMMENT_MANAGEMENT);
+    }
+
+    public static Pair<Boolean, String> doTransform(String queryString, List<String> patterns) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
             return Pair.from(false, queryString);
         }
         boolean transformed = false;
         String newQueryString = queryString;
-        for (String action : CREATE_PARTITION_MANAGEMENT) {
-            newQueryString = newQueryString.replaceFirst(action, "");
+        for (String action : patterns) {
+            newQueryString = newQueryString.replaceAll(action, "");
             if (!newQueryString.equalsIgnoreCase(queryString) && !transformed) {
                 transformed = true;
             }

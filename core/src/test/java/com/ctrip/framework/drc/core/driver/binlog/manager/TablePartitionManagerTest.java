@@ -1,9 +1,13 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
 import com.ctrip.xpipe.tuple.Pair;
+import com.google.common.collect.Maps;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Map;
+
+import static com.ctrip.framework.drc.core.driver.binlog.manager.AbstractSchemaManager.transformPartition;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformAlterPartition;
 import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
 
@@ -248,6 +252,48 @@ public class TablePartitionManagerTest {
         exceptedQueryString = queryString;
 
         Assert.assertEquals(exceptedQueryString, finalQueryString);
+    }
+
+    @Test
+    public void testSnapshotTransform() {
+        Map<String, Map<String, String>> future = Maps.newHashMap();
+        Map<String, String> tables1 = Maps.newHashMap();
+        future.put("db1", tables1);
+        tables1.put("table1", "CREATE TABLE employees (\n" +
+                "    id INT NOT NULL,\n" +
+                "    fname VARCHAR(30),\n" +
+                "    lname VARCHAR(30),\n" +
+                "    hired DATE NOT NULL DEFAULT '1970-01-01',\n" +
+                "    separated DATE NOT NULL DEFAULT '9999-12-31',\n" +
+                "    job_code INT,\n" +
+                "    store_id INT\n" +
+                ")\n" +
+                "/*!50100 PARTITION BY LIST(store_id) (\n" +
+                "    PARTITION pNorth VALUES IN (3,5,6,9,17),\n" +
+                "    PARTITION pEast VALUES IN (1,2,10,11,19,20),\n" +
+                "    PARTITION pWest VALUES IN (4,12,13,14,18),\n" +
+                "    PARTITION pCentral VALUES IN (7,8,15,16)\n" +
+                ")  */");
+
+
+
+        Map<String, Map<String, String>> current = Maps.newHashMap();
+        Map<String, String> currentTables1 = Maps.newHashMap();
+        current.put("db1", currentTables1);
+        currentTables1.put("table1", "CREATE TABLE employees (" +
+                "    id INT NOT NULL," +
+                "    fname VARCHAR(30)," +
+                "    lname VARCHAR(30)," +
+                "    hired DATE NOT NULL DEFAULT '1970-01-01'," +
+                "    separated DATE NOT NULL DEFAULT '9999-12-31'," +
+                "    job_code INT," +
+                "    store_id INT" +
+                ")");
+
+
+        future = transformPartition(future);
+        current = transformPartition(current);
+        Assert.assertEquals(future, current);
     }
 
 }
