@@ -68,7 +68,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
         when(replicatorConfig.getRegistryKey()).thenReturn("");
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
-        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
     }
 
     private void init() throws Exception {

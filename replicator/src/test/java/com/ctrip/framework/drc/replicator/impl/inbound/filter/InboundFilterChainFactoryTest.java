@@ -115,7 +115,7 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
                 .applyMode(ApplyMode.transaction_table.getType()).build();
         flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
 
-        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
     }
 
     @Test
