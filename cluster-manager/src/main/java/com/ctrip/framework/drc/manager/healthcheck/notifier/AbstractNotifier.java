@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Instance;
+import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -84,7 +85,7 @@ public abstract class AbstractNotifier implements Notifier {
         int port = instance.getPort();
         String url = String.format(NOTIFY_URL, ip + ":" + port, getUrlPath());
         String deleteUrl = url + "/" + clusterId + "/";
-        if (instance instanceof Applier && !deleted) {
+        if ((instance instanceof Applier || instance instanceof Messenger) && !deleted) {
             deleteUrl += deleted;
         }
         DeleteSend deleteSend = new DeleteSend(deleteUrl);
