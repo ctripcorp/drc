@@ -31,7 +31,7 @@
             <MenuItem name="/accessV2" to="/accessV2">
               <span>DRC配置</span>
             </MenuItem>
-            <MenuItem name="/mhaMessengers" to="/mhaMessengers">
+            <MenuItem name="/messengers" to="/messengers">
               <span>Messenger集群</span>
             </MenuItem>
             <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">
