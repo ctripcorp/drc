@@ -39,6 +39,9 @@
         <FormItem label="BTD [SHOULD BE: writeSet]">
           <Input v-model="configCheck.binlogTransactionDependency" readonly/>
         </FormItem>
+        <FormItem label="BinlogRowImage [SHOULD BE: FULL]">
+          <Input v-model="configCheck.binlogRowImage" readonly/>
+        </FormItem>
         <FormItem label="BTDHS [SHOULD BE: 100k]">
           <Input v-model="configCheck.binlogTransactionDependencyHistorySize" readonly/>
         </FormItem>
@@ -102,6 +105,7 @@ export default {
         binlogFormat: '',
         binlogVersion1: '',
         binlogTransactionDependency: '',
+        binlogRowImage: '',
         binlogTransactionDependencyHistorySize: 0,
         gtidMode: '',
         drcTables: 0,
@@ -243,6 +247,7 @@ export default {
           this.configCheck.binlogFormat = result.binlogFormat
           this.configCheck.binlogVersion1 = result.binlogVersion1
           this.configCheck.binlogTransactionDependency = result.binlogTransactionDependency
+          this.configCheck.binlogRowImage = result.binlogRowImage
           this.configCheck.binlogTransactionDependencyHistorySize = result.binlogTransactionDependencyHistorySize
           this.configCheck.gtidMode = result.gtidMode
           this.configCheck.drcTables = result.drcTables

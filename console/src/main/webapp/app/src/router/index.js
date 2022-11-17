@@ -25,8 +25,8 @@ const routes = [
     component: () => import('../views/drcclusters.vue')
   },
   {
-    path: '/mhaMessengers',
-    component: () => import('../views/mhaMessengers.vue')
+    path: '/messengers',
+    component: () => import('../views/messengers.vue')
   },
   {
     path: '/deletedDrcClusters',

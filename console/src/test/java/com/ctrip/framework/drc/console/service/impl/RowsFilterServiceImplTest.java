@@ -58,6 +58,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         super.setUp();
         MockitoAnnotations.openMocks(this);
     }
+    
     @Test
     public void testGenerateRowsFiltersConfig() throws SQLException {
         // mock
@@ -66,7 +67,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         rowsFilterMappingTbl.setRowsFilterId(1L);
         rowsFilterMappingTbl.setDataMediaId(1L);
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = Lists.newArrayList(rowsFilterMappingTbl);
-        Mockito.when(rowsFilterMappingTblDao.queryByApplierGroupIds(Mockito.anyList(),Mockito.anyInt())).
+        Mockito.when(rowsFilterMappingTblDao.queryBy(Mockito.anyLong(),Mockito.anyInt(),Mockito.anyInt())).
                 thenReturn(rowsFilterMappingTbls);
         
         
@@ -149,12 +150,6 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Assert.assertEquals(2,rowsFilterConfigs.get(0).getConfigs().getParameterList().size());
         Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
         
-        //mock
-        Mockito.when(udlMigrateConfig.gray(Mockito.eq(1L))).thenReturn(false);
-        // test 3
-        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L,0);
-        System.out.println("test3" +JsonUtils.toJson(rowsFilterConfigs.get(0)));
-        Assert.assertEquals(RowsFilterType.TripUid.getName(),rowsFilterConfigs.get(0).getMode());
     }
     
 }

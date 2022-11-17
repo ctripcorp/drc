@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.console;
 
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
+import com.ctrip.framework.drc.core.mq.DcTag;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.mq.EventType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -50,7 +51,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
-    private ScheduledExecutorService checkScheduledExecutor = 
+    private final ScheduledExecutorService checkScheduledExecutor = 
             ThreadUtils.newSingleThreadScheduledExecutor("MessengerDelayMonitor");
     
     @Override
@@ -61,7 +62,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
             viServer.start();
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
                     setTagType(TagType.AND).
-                    setTags(Sets.newHashSet("local")).
+                    setTags(Sets.newHashSet(DcTag.LOCAL.getName())).
                     create();
             MessageConsumerProvider consumerProvider = ConsumerProviderHolder.instance;
             consumerProvider.init();

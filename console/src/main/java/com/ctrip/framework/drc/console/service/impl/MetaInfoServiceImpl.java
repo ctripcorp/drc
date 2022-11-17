@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
@@ -297,8 +298,14 @@ MetaInfoServiceImpl implements MetaInfoService {
             if (null == mhaTbls || mhaTbls.size() != 2) {
                 continue;
             }
-            MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(mhaTbls.get(0).getMhaName(), mhaTbls.get(1).getMhaName(),
-                    mhaGroupTbl.getDrcEstablishStatus(), mhaGroupTbl.getUnitVerificationSwitch() ,mhaGroupTbl.getMonitorSwitch(), mhaGroupTbl.getId());
+            MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(
+                    mhaTbls.get(0).getMhaName(), 
+                    mhaTbls.get(1).getMhaName(),
+                    mhaGroupTbl.getDrcEstablishStatus(),
+                    mhaTbls.get(0).getMonitorSwitch(),
+                    mhaTbls.get(1).getMonitorSwitch(), 
+                    mhaGroupTbl.getId()
+            );
             mhaGroupPairVos.add(mhaGroupPair);
         }
         return mhaGroupPairVoSort(mhaGroupPairVos);
@@ -720,7 +727,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ApplierTypeEnum.APPLIER.getType());
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ConsumeType.Applier.getCode());
         DataMediaConfig properties = new DataMediaConfig();
         properties.setRowsFilters(rowsFilterConfigs);
         String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
@@ -1227,15 +1234,23 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public List<MhaGroupPairVo> getMhaGroupPariVos(List<String> mhas, List<Long> dcIds, String clusterName, Long buId, String type) throws SQLException {
         List<MhaGroupPairVo> pairVos = Lists.newArrayList();
-        List<MhaGroupTbl> mhaGroupTbls = dalUtils.getMhaGroupTblDao().queryAll().stream().filter(predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaGroupTbl> mhaGroupTbls = dalUtils.getMhaGroupTblDao().queryAll().stream().filter(
+                predicate -> predicate.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        
         for (MhaGroupTbl mhaGroupTbl : mhaGroupTbls) {
             Long mhaGroupTblId = mhaGroupTbl.getId();
             List<MhaTbl> mhaTbls = getMhaTblsByMhaGroupId(mhaGroupTblId, BooleanEnum.FALSE.getCode());
             if (null == mhaTbls || mhaTbls.size() != 2) {
                 continue;
             }
-            MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(mhaTbls.get(0).getMhaName(), mhaTbls.get(1).getMhaName(),
-                    mhaGroupTbl.getDrcEstablishStatus(), mhaGroupTbl.getUnitVerificationSwitch() ,mhaGroupTbl.getMonitorSwitch(), mhaGroupTbl.getId());
+            MhaGroupPairVo mhaGroupPair = new MhaGroupPairVo(
+                    mhaTbls.get(0).getMhaName(), 
+                    mhaTbls.get(1).getMhaName(),
+                    mhaGroupTbl.getDrcEstablishStatus(), 
+                    mhaTbls.get(0).getMonitorSwitch(),
+                    mhaTbls.get(1).getMonitorSwitch(),
+                    mhaGroupTbl.getId()
+            );
             //filter mhaNames
             List<String> actualMhaNames = mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
             if (mhas != null && mhas.size() != 0 && !actualMhaNames.containsAll(mhas)) {
@@ -1255,7 +1270,8 @@ MetaInfoServiceImpl implements MetaInfoService {
                 actualClusters.add(dalUtils.getClusterTblDao().queryByPk(clusterId));
             }
             mhaGroupPair.setBuId(actualClusters.get(0).getBuId());
-            if (StringUtils.isNotBlank(clusterName) && actualClusters.stream().noneMatch(p -> p.getClusterName().equalsIgnoreCase(clusterName))){
+            if (StringUtils.isNotBlank(clusterName) 
+                    && actualClusters.stream().noneMatch(p -> p.getClusterName().equalsIgnoreCase(clusterName))){
                 continue;
             }
             if (buId != null && actualClusters.stream().noneMatch(p -> p.getBuId().equals(buId))) {
@@ -1319,7 +1335,7 @@ MetaInfoServiceImpl implements MetaInfoService {
             String mhaName1 = pairVo.getDestMha();
             if(srcNameNumMap.get(mhaName1) > 1){
                 List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName1, new ArrayList<MhaGroupPairVo>());
-                list.add(pairVo.exchangeMha());
+                list.add(pairVo.exchangeMhaPosition());
                 srcNameListMap.put(mhaName1,list);
             }else {
                 List<MhaGroupPairVo> list = srcNameListMap.getOrDefault(mhaName0, new ArrayList<MhaGroupPairVo>());

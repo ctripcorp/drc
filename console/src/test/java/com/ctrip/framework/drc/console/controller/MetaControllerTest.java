@@ -181,7 +181,7 @@ public class MetaControllerTest extends AbstractControllerTest {
     public void testGetAllOrderedGroupsAfterFilter() throws Exception {
         List<MhaGroupPairVo> mhaGroupPairVos = new ArrayList<>() {{
             add(new MhaGroupPairVo("mha1", "mha2", EstablishStatusEnum.BUILT_NEW_MHA.getCode(), 0, 0, 0L));
-            add(new MhaGroupPairVo("mha1", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME.getCode(), 0, 0, 0L));
+            add(new MhaGroupPairVo("mha1", "mha3", EstablishStatusEnum.CONFIGURED_DB_DOMAIN_NAME.getCode(), 0,0 ,0L));
             add(new MhaGroupPairVo("mha5", "mha6", EstablishStatusEnum.ESTABLISHED.getCode(), 0, 0, 0L));
         }};
 

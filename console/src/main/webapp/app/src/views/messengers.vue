@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/mhaMessengers">MQ投递集群</BreadcrumbItem>
+      <BreadcrumbItem to="/messengers">MQ投递集群</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
@@ -55,7 +55,7 @@
 
 <script>
 export default {
-  name: 'mhaMessengers',
+  name: 'messengers',
   data () {
     return {
       cluster: {
@@ -70,6 +70,7 @@ export default {
       current: 1,
       size: 100,
       tableData: [],
+      switchOneInfo: {},
       columns: [
         {
           title: '序号',
@@ -273,7 +274,7 @@ export default {
         } else {
           this.$Message.info('监控操作失败')
         }
-        this.getMhaGroups()
+        this.getAllMessengerVos()
       })
     }
   },

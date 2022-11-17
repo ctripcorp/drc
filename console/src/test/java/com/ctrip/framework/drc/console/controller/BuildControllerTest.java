@@ -77,7 +77,7 @@ public class BuildControllerTest extends AbstractControllerTest {
         Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.eq(1L))).thenReturn(1L);
         Mockito.when(applierGroupTblDao.upsertIfNotExist(Mockito.eq(1L),Mockito.eq(2L))).thenReturn(1L);
 
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc/srcMha/destMha")
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc?srcMha=srcMha&destMha=destMha")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -88,7 +88,7 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertNotNull(response);
 
         Mockito.when(dalUtils.getId(Mockito.any(),Mockito.eq("srcMha"))).thenThrow(new SQLException());
-        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc/srcMha/destMha")
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc?srcMha=srcMha&destMha=destMhaa")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -203,7 +203,8 @@ public class BuildControllerTest extends AbstractControllerTest {
                                 "&srcDc=" + "notPulicDc" +
                                 "&mhaName=" + "mha1" +
                                 "&namespace=" + "db1" +
-                                "&name=" + ".*" )
+                                "&name=" + ".*"+
+                                "&dataMediaId=" + 1)
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -220,7 +221,8 @@ public class BuildControllerTest extends AbstractControllerTest {
                                     "&srcDc=" + "publicDc" +
                                     "&mhaName=" + "mha1" +
                                     "&namespace=" + "db1" +
-                                    "&name=" + ".*" )
+                                    "&name=" + ".*" + 
+                                     "&dataMediaId=" + 1)
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();

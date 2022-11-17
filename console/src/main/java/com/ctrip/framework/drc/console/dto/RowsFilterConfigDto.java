@@ -25,7 +25,7 @@ public class RowsFilterConfigDto {
     
     private Long applierGroupId;
     
-    // see ApplierTypeEnum,default 0
+    // see ConsumerType,default 0
     private int applierType = 0;
     
     private Long dataMediaId;
