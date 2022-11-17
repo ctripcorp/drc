@@ -94,9 +94,13 @@ public class OPSApiServiceImpl implements OPSApiService {
         requestBody.put("access_token", context.getAccessToken());
         requestBody.put("request_body", null);
         String baseUrl = context.getBaseUrl();
-        String formatUrl = baseUrl + "?query=sum_over_time(fx.drc.traffic.statistic_rcount%7BsrcRegion=%22" + context.getSrcRegion()
-                + "%22,%20dstRegion=%22" + context.getDstRegion() + "%22%7D%5B1h%5D)&start=" + context.getEndTime() + "&end=" + context.getEndTime()
-                + "&step=1&db=APM-FX";
+        String formatUrl = baseUrl + "?query=sum_over_time(fx.drc.traffic.statistic_rcount" +
+                "%7BsrcRegion=%22" + context.getSrcRegion() +
+                "%22,%20dstRegion=%22" + context.getDstRegion() +
+                "%22,%20dstType=%22" + "Applier" +
+                "%22%7D%5B1h%5D)&start=" + context.getEndTime() +
+                "&end=" + context.getEndTime() +
+                "&step=1&db=APM-FX";
 
         OkHttpClient client = new OkHttpClient().newBuilder()
                 .build();

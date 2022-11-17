@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
@@ -8,14 +9,16 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformComment;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
 /**
@@ -23,8 +26,6 @@ import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadNam
  * 2019/9/29 下午8:27.
  */
 public abstract class AbstractSchemaManager extends AbstractLifecycle implements SchemaManager {
-
-    protected static final Logger DDL_LOGGER = LoggerFactory.getLogger("com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter");
 
     protected Map<TableId, TableInfo> tableInfoMap = Maps.newConcurrentMap();
 
@@ -84,16 +85,30 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public boolean apply(String schema, String ddl) {
+    public ApplyResult apply(String schema, String ddl, QueryType queryType) {
+        if (QueryType.ALTER == queryType) {
+            if (TablePartitionManager.transformAlterPartition(ddl)) {
+                return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
+            }
+        } else if (QueryType.CREATE == queryType) {
+            Pair<Boolean, String> transformRes = transformCreatePartition(ddl);
+            if (transformRes.getKey()) {
+                DDL_LOGGER.info("[Transform] partition from {} to {} in {}", ddl, transformRes.getValue(), getClass().getSimpleName());
+                ddl = transformRes.getValue();
+            }
+        }
         tableInfoMap.clear();
         synchronized (this) {
             Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
-            return res == null ? false : res.booleanValue();
+            return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
+                               : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
         }
     }
 
     private boolean isSame(Map<String, Map<String, String>> future) {
         Map<String, Map<String, String>> current = doSnapshot(inMemoryEndpoint);
+        current = transformPartition(current);
+        future = transformPartition(future);
         boolean same = current.equals(future);
         if (same) {
             DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", registryKey);
@@ -102,5 +117,21 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
             DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", registryKey, current, future);
         }
         return same;
+    }
+
+    public static Map<String, Map<String, String>> transformPartition(Map<String, Map<String, String>> schemas) {
+        Map<String, Map<String, String>> res = Maps.newHashMap();
+        for (Map.Entry<String, Map<String, String>> dbEntry : schemas.entrySet()) {
+            Map<String, String> tables = Maps.newHashMap();
+            res.put(dbEntry.getKey(), tables);
+            for (Map.Entry<String, String> tableEntry : dbEntry.getValue().entrySet()) {
+                Pair<Boolean, String> transformRes = transformComment(tableEntry.getValue());
+                if (transformRes.getKey()) {
+                    DDL_LOGGER.info("[Transform] {}.{} from {} to {}", dbEntry.getKey(), tableEntry.getKey(), tableEntry.getValue(), transformRes.getValue().trim());
+                }
+                tables.put(tableEntry.getKey(), transformRes.getValue().trim());
+            }
+        }
+        return res;
     }
 }

@@ -1,14 +1,17 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.exception.DdlException;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.util.List;
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SEMICOLON;
 
 /**
@@ -45,6 +48,11 @@ public class SchemeCloneTask extends AbstractSchemaTask<Boolean> implements Name
         List<String> sqls = Lists.newArrayList();
         for (Map<String, String> tables : ddlSchemas.values()) {
             for (String tableCreate : tables.values()) {
+                Pair<Boolean, String> transformRes = TablePartitionManager.transformCreatePartition(tableCreate);
+                if (transformRes.getKey()) {
+                    DDL_LOGGER.info("[Transform] partition from {} to {} in {}", tableCreate, transformRes.getValue(), getClass().getSimpleName());
+                    tableCreate = transformRes.getValue();
+                }
                 sqls.add(trim(tableCreate));
             }
         }

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableId;
@@ -194,7 +195,7 @@ public class MySQLSchemaManagerTest extends MockTest {
     @Test
     public void testFindSchema() throws Exception {
         testInstance(mySQLSchemaManager);
-        mySQLSchemaManager.apply("drc1", ALTER_SQL);
+        mySQLSchemaManager.apply("drc1",  ALTER_SQL, QueryType.ALTER);
 
         TableInfo remoteTableInfo = mySQLSchemaManager.queryTableInfoByIS(remoteDataSource, "drc1", "t");
         TableInfo localTableInfo = mySQLSchemaManager.find("drc1", "t");

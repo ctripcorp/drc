@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.monitor.kpi.InboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
@@ -21,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_TRANSACTION_TABLE_NAME;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.*;
 
 /**
  * @Author limingdong
@@ -111,6 +114,8 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
                 .tableFilterConfiguration(tableFilterConfiguration)
                 .applyMode(ApplyMode.transaction_table.getType()).build();
         flagFilterWithTT = new EventFilterChainFactory().createFilterChain(filterChainContextWithTT);
+
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
     }
 
     @Test
@@ -332,6 +337,27 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
         skip = flagFilter.doFilter(logEventWithGroupFlag);
         Assert.assertTrue(skip);
 
+        // the previous event was filtered, this event should not be filtered
+        when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+        when(tableMapLogEvent.getLogEventType()).thenReturn(LogEventType.table_map_log_event);
+        when(tableMapLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(tableMapLogEvent.getSchemaName()).thenReturn("testdb");
+        when(tableMapLogEvent.getSchemaNameDotTableName()).thenReturn("testdb.testtable");
+
+        logEventWithGroupFlag.setLogEvent(tableMapLogEvent);
+        skip = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip);
+
+        when(logEventHeader.getEventType()).thenReturn(LogEventType.write_rows_event_v2.getType());
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+        when(writeRowsEvent.getLogEventType()).thenReturn(LogEventType.write_rows_event_v2);
+        when(writeRowsEvent.getLogEventHeader()).thenReturn(logEventHeader);
+
+        logEventWithGroupFlag.setLogEvent(writeRowsEvent);
+        skip = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip);
+
         when(logEventHeader.getEventType()).thenReturn(LogEventType.xid_log_event.getType());
         when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
         when(xidLogEvent.getLogEventType()).thenReturn(LogEventType.xid_log_event);
@@ -339,7 +365,53 @@ public class InboundFilterChainFactoryTest extends AbstractFilterTest {
 
         logEventWithGroupFlag.setLogEvent(xidLogEvent);
         skip = flagFilter.doFilter(logEventWithGroupFlag);
-        Assert.assertTrue(skip);
+        Assert.assertFalse(skip);
     }
 
+    @Test
+    public void testResetAfterEachGtidEvent() {
+        doTestResetAfterEachGtidEvent(flagFilterWithGN);
+        doTestResetAfterEachGtidEvent(flagFilterWithTT);
+    }
+
+    public void doTestResetAfterEachGtidEvent(Filter<InboundLogEventContext> flagFilter) {
+        when(gtidLogEvent.getServerUUID()).thenReturn(UUID.fromString(UUID_1));
+        when(gtidLogEvent.getGtid()).thenReturn(GTID);
+        when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
+        when(gtidLogEvent.getLogEventType()).thenReturn(LogEventType.gtid_log_event);
+        when(logEventHeader.getEventType()).thenReturn(LogEventType.gtid_log_event.getType());
+        when(logEventHeader.getEventSize()).thenReturn(EVENT_SIZE);
+
+        // reset GTID_F
+        TransactionFlags setGtidFlag = new TransactionFlags();
+        setGtidFlag.mark(GTID_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, setGtidFlag, GTID);
+        boolean skip1 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip1);
+        Assert.assertFalse(setGtidFlag.filtered());
+
+        // reset TRANSACTION_TABLE_F
+        TransactionFlags transactionTableFlag = new TransactionFlags();
+        transactionTableFlag.mark(TRANSACTION_TABLE_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, transactionTableFlag, GTID);
+        boolean skip2 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip2);
+        Assert.assertFalse(transactionTableFlag.filtered());
+
+        // reset BLACK_TABLE_NAME_F
+        TransactionFlags blackTableFlag = new TransactionFlags();
+        blackTableFlag.mark(BLACK_TABLE_NAME_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, blackTableFlag, GTID);
+        boolean skip3 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip3);
+        Assert.assertFalse(blackTableFlag.filtered());
+
+        // reset OTHER_F
+        TransactionFlags otherFlag = new TransactionFlags();
+        otherFlag.mark(OTHER_F);
+        logEventWithGroupFlag = new InboundLogEventContext(gtidLogEvent, null, otherFlag, GTID);
+        boolean skip4 = flagFilter.doFilter(logEventWithGroupFlag);
+        Assert.assertFalse(skip4);
+        Assert.assertFalse(otherFlag.filtered());
+    }
 }

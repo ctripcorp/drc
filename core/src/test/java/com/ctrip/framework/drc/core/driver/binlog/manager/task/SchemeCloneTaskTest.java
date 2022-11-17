@@ -37,6 +37,10 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
 
     private static final String TABLE_CREATE = "CREATE TABLE `%s`.`%s`(`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30),`four` char(255),`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8; ; ";
 
+    private static final String PARTITION_TABLE_NAME = TABLE_NAME + "partition";
+
+    private static final String TABLE_CREATE_PARTITION = "CREATE TABLE `drc3`.`utnamepartition`(`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30),`four` char(255),`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 PARTITION BY HASH(id) PARTITIONS 4;";
+
     private int DB1_SIZE = MAX_BATCH_SIZE * MAX_ACTIVE + 20;
 
     private int DB2_SIZE = MAX_BATCH_SIZE * 3 + 20;
@@ -62,6 +66,7 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
             String tableName = TABLE_NAME + i;
             table1.put(tableName, String.format(TABLE_CREATE, DB_NAME_1, tableName));
         }
+        table1.put(PARTITION_TABLE_NAME, TABLE_CREATE_PARTITION);
         ddlSchemas.put(DB_NAME_1, table1);
 
         Map<String, String> table2 = Maps.newHashMap();
@@ -139,7 +144,7 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
             Assert.assertTrue(databases.contains(DB_NAME_1));
             Assert.assertTrue(databases.contains(DB_NAME_2));
 
-            assertResultSize(connection, DB_NAME_1, DB1_SIZE);
+            assertResultSize(connection, DB_NAME_1, DB1_SIZE + 1/*add one partitioned table*/);
             assertResultSize(connection, DB_NAME_2, DB2_SIZE);
 
             // clear schema
@@ -179,8 +184,12 @@ public class SchemeCloneTaskTest extends AbstractSchemaTest {
         Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_1));
         Assert.assertTrue(ddlSchemas.containsKey(DB_NAME_2));
 
-        Assert.assertEquals(ddls.get(DB_NAME_1).size(), DB1_SIZE);
+        Assert.assertEquals(ddls.get(DB_NAME_1).size(), DB1_SIZE + 1/*add one partitioned table*/);
         Assert.assertEquals(ddls.get(DB_NAME_2).size(), DB2_SIZE);
+
+        String createSql = ddls.get(DB_NAME_1).get(PARTITION_TABLE_NAME);
+        Assert.assertNotNull(createSql);
+        Assert.assertFalse(createSql.contains("PARTITION"));
     }
 
     static class MockBatchTask extends BatchTask {
