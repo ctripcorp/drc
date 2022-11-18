@@ -223,8 +223,10 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         public void run() {
             try {
                 DataSourceResource dataSourceResource = serverInCluster.getDataSourceResource(); //resource just has initialize and dispose
-                dataSourceResource.dispose();
-                logger.info("close datasource for {}", registryKey);
+                if (dataSourceResource != null) {
+                    dataSourceResource.dispose();
+                    logger.info("close datasource for {}", registryKey);
+                }
 
                 // merge transaction table if need
                 TransactionTableResource transactionTableResource = serverInCluster.getTransactionTableResource();
