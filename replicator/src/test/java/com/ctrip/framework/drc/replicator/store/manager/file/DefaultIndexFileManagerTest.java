@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcIndexLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ITransactionEvent;
+import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -66,6 +68,7 @@ public class DefaultIndexFileManagerTest extends AbstractTransactionTest {
         when(replicatorConfig.getRegistryKey()).thenReturn("");
         when(uuidOperator.getUuids(anyString())).thenReturn(uuidConfig);
         when(uuidConfig.getUuids()).thenReturn(Sets.newHashSet());
+        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class))).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
     }
 
     private void init() throws Exception {

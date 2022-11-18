@@ -2,11 +2,14 @@ package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,7 +59,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final int DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD = 600;
 
     private static final String SWITCH_DRC_TASK_SYNC_MHA = "switch.drc.task.syncmha";
-    private static final String SWITCH_SYNC_MHA_UPDATEALL= "switch.syncmha.updateall";
+    private static final String SWITCH_SYNC_MHA_UPDATEALL = "switch.syncmha.updateall";
     private static final String DEFAULT_SWITCH_SYNC_MHA_UPDATEALL = "off";
 
     private static final String SWITCH_SALVE_MACHINE_OFFLINE_SYNC = "switch.slaveMachineOffline.sync";
@@ -186,9 +189,16 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
     private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
 
+    private static final String RELATION_COST_APP = "relation.cost.app";
 
-    public String getDrcMetaXmlUpdateSwitch (){
-        return getProperty(DRC_META_XML_UPDATE_SWITCH,SWITCH_STATUS_ON);
+    private static final String RELATION_COST_MYSQL = "relation.cost.mysql";
+
+    private static final String RELATION_COST_SLB = "relation.cost.slb";
+
+    private static final String RELATION_COST_CAT = "relation.cost.cat";
+
+    public String getDrcMetaXmlUpdateSwitch() {
+        return getProperty(DRC_META_XML_UPDATE_SWITCH, SWITCH_STATUS_ON);
     }
 
     public String getMqDelaySubject() {
@@ -290,7 +300,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public int getGtidMonitorPeriod() {
-        return getIntProperty(GTID_MONITOR_PERIOD,DEFAULT_GTID_MONITOR_PERIOD);
+        return getIntProperty(GTID_MONITOR_PERIOD, DEFAULT_GTID_MONITOR_PERIOD);
     }
 
     public String getIncrementIdMonitorSwitch() {
@@ -302,7 +312,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public int getTableConsistencyMonitorPeriod() {
-        return getIntProperty(TABLE_CONSISTENCY_MONITOR_PERIOD,DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD);
+        return getIntProperty(TABLE_CONSISTENCY_MONITOR_PERIOD, DEFAULT_TABLE_CONSISTENCY_MONITOR_PERIOD);
     }
 
     public String getSyncMhaSwitch() {
@@ -310,7 +320,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public String getSwitchSyncMhaUpdateAll() {
-        return getProperty(SWITCH_SYNC_MHA_UPDATEALL,DEFAULT_SWITCH_SYNC_MHA_UPDATEALL);
+        return getProperty(SWITCH_SYNC_MHA_UPDATEALL, DEFAULT_SWITCH_SYNC_MHA_UPDATEALL);
     }
 
     public String getSyncTableConfigSwitch() {
@@ -492,21 +502,57 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     }
 
     public String getApplyModeMigrateSwitch() {
-        return getProperty(APPLY_MODE_MIGRATE_SWITCH,SWITCH_STATUS_OFF);
+        return getProperty(APPLY_MODE_MIGRATE_SWITCH, SWITCH_STATUS_OFF);
     }
 
     public String getSyncDbInfoSwitch() {
-        return getProperty(SYNC_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
+        return getProperty(SYNC_DB_INFO_SWITCH, SWITCH_STATUS_OFF);
     }
 
     public String getUpdateDbInfoSwitch() {
-        return getProperty(UPDATE_DB_INFO_SWITCH,SWITCH_STATUS_OFF);
+        return getProperty(UPDATE_DB_INFO_SWITCH, SWITCH_STATUS_OFF);
 
     }
 
     public String getSendTrafficSwitch() {
-        return getProperty(SEND_TRAFFIC_SWITCH,SWITCH_STATUS_OFF);
+        return getProperty(SEND_TRAFFIC_SWITCH, SWITCH_STATUS_OFF);
 
+    }
+
+    public List<String> getRelationCostApp() {
+        String appString = getProperty(RELATION_COST_APP, "");
+        if (StringUtils.isBlank(appString)) {
+            return Lists.newArrayList();
+        } else {
+            return Arrays.asList(appString.split(","));
+        }
+    }
+
+    public List<String> getRelationCostMysql() {
+        String mysqlString = getProperty(RELATION_COST_MYSQL, "");
+        if (StringUtils.isBlank(mysqlString)) {
+            return Lists.newArrayList();
+        } else {
+            return Arrays.asList(mysqlString.split(","));
+        }
+    }
+
+    public List<String> getRelationCostSlb() {
+        String slbString = getProperty(RELATION_COST_SLB, "");
+        if (StringUtils.isBlank(slbString)) {
+            return Lists.newArrayList();
+        } else {
+            return Arrays.asList(slbString.split(","));
+        }
+    }
+
+    public List<String> getRelationCostCat() {
+        String catString = getProperty(RELATION_COST_CAT, "");
+        if (StringUtils.isBlank(catString)) {
+            return Lists.newArrayList();
+        } else {
+            return Arrays.asList(catString.split(","));
+        }
     }
     
     public String getMqDelayMonitorSwitch() {

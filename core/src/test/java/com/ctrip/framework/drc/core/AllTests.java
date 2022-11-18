@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
+import com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManagerTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
@@ -72,6 +73,7 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleForUdlTest.class,
         AbstractRowsFilterRuleForUidTest.class,
         //schema
+        TablePartitionManagerTest.class,
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
         //proxy

@@ -22,6 +22,7 @@ public class TransactionTableFilter extends AbstractLogEventFilter<InboundLogEve
         final LogEventType logEventType = logEvent.getLogEventType();
 
         if (LogEventUtils.isGtidLogEvent(logEventType)) {
+            // every transaction needs to be reset here or in UuidFilter
             value.reset();
         } else if (table_map_log_event == logEventType) {
             TableMapLogEvent tableMapLogEvent = (TableMapLogEvent) logEvent;
