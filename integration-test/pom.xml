@@ -104,25 +104,7 @@
 <!--        </dependency>-->
     </dependencies>
 
-    <profiles>
-        <profile>
-            <id>trip</id>
-            <dependencies>
-                <dependency>
-                    <groupId>com.ctrip.framework.drc</groupId>
-                    <artifactId>trip-service</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>com.ctrip.framework.drc</groupId>
-                    <artifactId>trip-integration-test</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
-
     <build>
-        <finalName>drc-${project.artifactId}-package-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -169,32 +151,6 @@
                         <version>2.6.1</version>
                     </dependency>
                 </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>com.ctrip.framework.drc.console.ConsoleApplication</mainClass>
-                    <executable>true</executable>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <finalName>drc-${project.artifactId}-package-${project.version}</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <descriptors>
-                                <descriptor>src/assembly/assembly-descriptor.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
