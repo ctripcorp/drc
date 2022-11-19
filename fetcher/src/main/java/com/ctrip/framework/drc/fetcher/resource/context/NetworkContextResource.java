@@ -15,7 +15,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CO
  */
 public class NetworkContextResource extends AbstractContext implements EventGroupContext {
 
-    @InstanceConfig(path="gtidExecuted")
+    @InstanceConfig(path = "gtidExecuted")
     public String initialGtidExecuted;
 
     @InstanceConfig(path = "registryKey")
