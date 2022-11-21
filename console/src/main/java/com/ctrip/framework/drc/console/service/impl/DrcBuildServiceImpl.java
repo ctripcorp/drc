@@ -370,6 +370,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     continue;
                 }
                 int applierPort = metaInfoService.findAvailableApplierPort(ip);
+                // todo 查询
                 String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getGtidInit(targetMhaTbl);
                 logger.info("[[mha={}]]configure replicator instance: {}:{}", mhaName, ip, applierPort);
                 dalUtils.insertReplicator(DEFAULT_REPLICATOR_PORT, applierPort, gtidInit, resourceId, replicatorGroupId, BooleanEnum.FALSE);
@@ -516,7 +517,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
-        gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getGtidInit(mhaTbl) : gtidExecuted;
+        gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getGtidInit(mhaTbl) : formatGtid(gtidExecuted);
         return messengerGroupTblDao.upsertIfNotExist(mhaId,replicatorGroupId,gtidExecuted);
     }
 

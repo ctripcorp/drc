@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.monitor.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.GroupMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
@@ -34,14 +35,13 @@ public class MonitorServiceImpl implements MonitorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DbClusterSourceProvider sourceProvider;
 
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired
-    private OpenService openService;
+    @Autowired private OpenService openService;
+    
+    @Autowired private MhaTblDao mhaTblDao;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -63,10 +63,10 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public void switchMonitors(String mhaName, String status) throws SQLException {
-        MhaTbl mhaTbl = dalUtils.getMhaTblDao().queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
         mhaTbl.setMonitorSwitch(monitorSwitch);
-        dalUtils.getMhaTblDao().update(mhaTbl);
+        mhaTblDao.update(mhaTbl);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class MonitorServiceImpl implements MonitorService {
         MhaTbl mhaTbl = new MhaTbl();
         mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
         mhaTbl.setMonitorSwitch(1);
-        List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(mhaTbl);
+        List<MhaTbl> mhaTbls = mhaTblDao.queryBy(mhaTbl);
         return mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
     }
 

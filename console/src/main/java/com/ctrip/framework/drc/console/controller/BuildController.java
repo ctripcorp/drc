@@ -48,7 +48,7 @@ public class BuildController {
     }
 
     
-    @PostMapping("/replicatorIps/check")
+    @PostMapping("replicatorIps/check")
     public ApiResult preCheckBeforeBuildDrc(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] preCheck meta config for  {}", dto);
         try {
@@ -60,7 +60,7 @@ public class BuildController {
     }
 
 
-    @PostMapping("/config")
+    @PostMapping("config")
     public ApiResult submitConfig(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] submit meta config for {}", dto);
         try {

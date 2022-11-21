@@ -8,11 +8,11 @@ package com.ctrip.framework.drc.core.meta;
  */
 public class MqConfig {
     
-    //schema.table
+    //schema.table,store at dataMediaPair
     private String table;
-    // mq topic
+    // mq topic,store at dataMediaPair
     private String topic;
-    // for otter eventProcessor
+    // for otter eventProcessor,store at dataMediaPair
     private String processor;
     
     // qmq/kafka

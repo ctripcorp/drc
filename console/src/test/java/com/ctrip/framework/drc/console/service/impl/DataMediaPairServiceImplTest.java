@@ -57,22 +57,29 @@ public class DataMediaPairServiceImplTest {
     }
     
     @Test
-    public void testAddMqConfig() {
+    public void testAddMqConfig() throws SQLException {
+        Mockito.when(dataMediaPairTblDao.insert(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
+        MqConfigDto mqConfigDto = generateDto();
+        Assert.assertEquals("addMqConfig success",dataMediaPairService.addMqConfig(mqConfigDto));
     }
 
     @Test
-    public void testUpdateMqConfig() {
-        
+    public void testUpdateMqConfig() throws SQLException  {
+        Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(0);
+        MqConfigDto mqConfigDto = generateDto();
+        Assert.assertEquals("updateMqConfig success",dataMediaPairService.updateMqConfig(mqConfigDto));
     }
 
     @Test
-    public void testDeleteMqConfig() {
-        
+    public void testDeleteMqConfig() throws SQLException {
+        Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
+        Assert.assertEquals("deleteMqConfig success",dataMediaPairService.deleteMqConfig(1L));
     }
 
     @Test
-    public void testGetDataMediaPairs() {
-        
+    public void testGetDataMediaPairs() throws SQLException {
+        Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(null);
+        dataMediaPairService.getDataMediaPairs(1L);
     }
 
     private List<DataMediaPairTbl> mockDataMediaPairTbls() {
@@ -93,7 +100,7 @@ public class DataMediaPairServiceImplTest {
 
     }
     
-    private MqConfigDto mockDto(){
+    private MqConfigDto generateDto(){
         MqConfigDto mqConfigDto = new MqConfigDto();
         mqConfigDto.setId(0);
         mqConfigDto.setBu("fx");

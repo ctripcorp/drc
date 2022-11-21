@@ -53,8 +53,8 @@ public class RowsFilterMappingTbl implements DalPojo {
 
 
 	/**
-	 * 0 applier，1 messenger
-	 * default 0
+	 * 0 applier，3 messenger
+	 * default 0, see ConsumerType
 	 */
 	@Column(name = "type")
 	@Type(value = Types.TINYINT)
