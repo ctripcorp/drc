@@ -151,7 +151,7 @@ export default {
           }
         },
         {
-          title: '监控',
+          title: '集群A监控',
           key: 'srcMhaMonitorSwitch',
           width: 100,
           align: 'center',
@@ -184,7 +184,7 @@ export default {
           }
         },
         {
-          title: '监控',
+          title: '集群B监控',
           key: 'destMhaMonitorSwitch',
           width: 100,
           align: 'center',
