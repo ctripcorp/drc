@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask.MAX_RETRY;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 
 /**
  * @Author limingdong

@@ -217,6 +217,9 @@ public class DdlParser {
         if (StringUtils.isBlank(charset)) {
             return query;
         }
+        if (query.toLowerCase().indexOf("PARTITION BY".toLowerCase()) != -1) {
+            return query;
+        }
         query = query.trim();
         if (query.endsWith(";")) {
             int index = query.lastIndexOf(";");

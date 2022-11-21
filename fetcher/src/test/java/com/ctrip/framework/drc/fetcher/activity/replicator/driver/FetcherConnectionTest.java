@@ -17,8 +17,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * @Author limingdong
@@ -90,11 +89,11 @@ public class FetcherConnectionTest {
         Mockito.verify(networkContextResource, times(0)).fetchGtidSet();  //connected
         stopReplicatorServer(replicatorServer);
         Thread.sleep(1100);
-        Mockito.verify(networkContextResource, times(1)).fetchGtidSet();  //no binlog, so no exception, stop server, reconnect
+        Mockito.verify(networkContextResource, atLeast(1)).fetchGtidSet();  //no binlog, so no exception, stop server, reconnect
 
         replicatorServer = getReplicatorServer();
 
-        Mockito.verify(networkContextResource, times(1)).fetchGtidSet();
+        Mockito.verify(networkContextResource, atLeast(1)).fetchGtidSet();
         stopReplicatorServer(replicatorServer);
     }
 

@@ -47,6 +47,7 @@ public class TransactionEventTest extends MockTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("io.netty.buffer.checkAccessible", "false");
         super.initMocks();
         when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(xidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);

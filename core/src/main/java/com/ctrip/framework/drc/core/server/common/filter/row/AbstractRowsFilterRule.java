@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_ddl_log_event;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.update_rows_event_v2;
 import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.*;
 
@@ -72,7 +71,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             for (int j = 0; j < columns.size(); ++j) {
                 String colName = columns.get(j).getName();
                 if (colName.equalsIgnoreCase(fields.get(i))) {
-                    integerMap.put(colName, j);
+                    integerMap.put(colName.toLowerCase(), j);
                     found++;
                     break;
                 }
@@ -109,7 +108,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             parameters = parametersList.get(i);
             List<String> fieldList = parameters.getColumns();
             if (fieldList != null && !fieldList.isEmpty()) {
-                Integer index = indices.get(fieldList.get(0));
+                Integer index = indices.get(fieldList.get(0).toLowerCase());
                 if (index == null) {
                     continue;
                 }
