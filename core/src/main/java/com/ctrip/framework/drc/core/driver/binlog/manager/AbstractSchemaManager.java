@@ -16,8 +16,8 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformComment;
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformComment;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformCreatePartition;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
@@ -87,7 +87,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     @Override
     public ApplyResult apply(String schema, String ddl, QueryType queryType, String gtid) {
         if (QueryType.ALTER == queryType) {
-            if (TablePartitionManager.transformAlterPartition(ddl)) {
+            if (TableOperationManager.transformAlterPartition(ddl)) {
                 return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
             }
         } else if (QueryType.CREATE == queryType) {
