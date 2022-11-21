@@ -31,11 +31,9 @@ import java.util.Set;
 @Service
 public class DataMediaPairServiceImpl implements DataMediaPairService {
 
-    @Autowired
-    private DataMediaPairTblDao dataMediaPairTblDao;
+    @Autowired private DataMediaPairTblDao dataMediaPairTblDao;
 
-    @Autowired
-    private RowsFilterService rowsFilterService;
+    @Autowired private RowsFilterService rowsFilterService;
     
     
     @Override

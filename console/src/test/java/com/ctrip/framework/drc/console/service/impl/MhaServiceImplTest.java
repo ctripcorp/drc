@@ -287,6 +287,7 @@ public class MhaServiceImplTest {
         ApiResult apiResult = mhaService.recordMha(mockDto);
         Assert.assertEquals("mha already exist!",apiResult.getMessage());
 
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString(),Mockito.anyInt())).thenReturn(null);
         Mockito.when(dalUtils.updateOrCreateDc(Mockito.anyString())).thenReturn(1L);
         Mockito.when(dalUtils.updateOrCreateBu(Mockito.anyString())).thenReturn(1L);
         Mockito.when(dalUtils.updateOrCreateCluster(Mockito.anyString(),Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);

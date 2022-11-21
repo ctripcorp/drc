@@ -31,9 +31,9 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     @Autowired private MonitorTableSourceProvider monitorProvider;
     @Autowired private DefaultConsoleConfig consoleConfig;
 
-    private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
-
     private final DelayMessageConsumer consumer = ApiContainer.getDelayMessageConsumer();
+
+    private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
     
     @Override
     public void afterPropertiesSet() throws Exception {

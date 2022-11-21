@@ -840,6 +840,7 @@ MetaInfoServiceImpl implements MetaInfoService {
         generateMessengers(dbCluster, mhaTbl);
     }
 
+    @Deprecated
     public Endpoint getMasterEndpoint(MhaTbl mhaTbl) throws SQLException {
         MhaGroupTbl mhaGroupTbl = getMhaGroupForMha(mhaTbl.getMhaName());
         MachineTbl machineTbl = dalUtils.getMachineTblDao().queryAll().stream().filter(m -> (m.getDeleted().equals(BooleanEnum.FALSE.getCode()) && m.getMhaId().equals(mhaTbl.getId()) && m.getMaster().equals(BooleanEnum.TRUE.getCode()))).findFirst().get();

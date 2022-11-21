@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -23,8 +24,9 @@ public class DataMediaPairServiceImplTest {
     @InjectMocks
     private DataMediaPairServiceImpl dataMediaPairService;
 
-    @Mock
-    private DataMediaPairTblDao dataMediaPairTblDao;
+    @Mock private DataMediaPairTblDao dataMediaPairTblDao;
+    
+    @Mock private RowsFilterService rowsFilterService;
 
     @Before
     public void setUp() throws Exception {
@@ -32,7 +34,8 @@ public class DataMediaPairServiceImplTest {
 
         List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
         Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(dataMediaPairTbls);
-
+        Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.eq(1L),Mockito.eq(0))).
+                thenReturn(Lists.newArrayList());
     }
 
     @Test
@@ -65,7 +68,7 @@ public class DataMediaPairServiceImplTest {
 
     @Test
     public void testUpdateMqConfig() throws SQLException  {
-        Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(0);
+        Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
         MqConfigDto mqConfigDto = generateDto();
         Assert.assertEquals("updateMqConfig success",dataMediaPairService.updateMqConfig(mqConfigDto));
     }

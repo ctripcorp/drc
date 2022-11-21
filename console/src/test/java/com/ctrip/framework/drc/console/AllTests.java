@@ -24,6 +24,7 @@ import com.ctrip.framework.drc.console.monitor.consistency.instance.DefaultConsi
 import com.ctrip.framework.drc.console.monitor.consistency.sql.operator.SqlOperatorTest;
 import com.ctrip.framework.drc.console.monitor.consistency.table.DefaultTableProviderTest;
 import com.ctrip.framework.drc.console.monitor.delay.DelayMapTest;
+import com.ctrip.framework.drc.console.monitor.delay.MqDelayMonitorServerTest;
 import com.ctrip.framework.drc.console.monitor.delay.config.*;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnectorTest;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -113,6 +114,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ConsistencyConsistencyMonitorServiceImplTest.class,
         MonitorServiceImplTest.class,
         MySqlServiceImplTest.class,
+        MessengerServiceImplTest.class,
+        DataMediaPairServiceImplTest.class,
 
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
@@ -135,6 +138,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MonitorControllerTest.class,
         OpenApiControllerTest.class,
         RowsFilterServiceImplTest.class,
+        MessengerControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,
@@ -151,6 +155,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DdlMonitorTest.class,
         UnitVerificationManagerTest.class,
         UuidMonitorTest.class,
+        MqDelayMonitorServerTest.class,
 
         // config
         DefaultConsoleConfigTest.class,

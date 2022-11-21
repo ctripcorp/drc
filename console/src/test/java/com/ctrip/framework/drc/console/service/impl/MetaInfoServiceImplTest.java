@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
@@ -39,7 +40,6 @@ import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 
 public class MetaInfoServiceImplTest extends AbstractTest {
     
-    // todo
 
     public static final String MHA1OY = "fat-fx-drc1";
 
@@ -59,26 +59,21 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @InjectMocks
     private MetaInfoServiceImpl metaInfoService;
 
-    @Mock
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
-    private MetaGenerator metaService;
+    @Mock private MetaGenerator metaService;
 
-    @Mock
-    private DalServiceImpl dalService;
+    @Mock private DalServiceImpl dalService;
     
-    @Mock
-    private RowsFilterServiceImpl rowsFilterService;
+    @Mock private RowsFilterServiceImpl rowsFilterService;
 
-    @Mock
-    private DefaultConsoleConfig defaultConsoleConfig;
+    @Mock private DefaultConsoleConfig defaultConsoleConfig;
 
-    @Mock
-    private DbClusterSourceProvider dbClusterSourceProvider;
+    @Mock private DbClusterSourceProvider dbClusterSourceProvider;
 
-    @Mock
-    private OpenService openService;
+    @Mock private OpenService openService;
+
+    @Mock private MessengerService messengerService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
