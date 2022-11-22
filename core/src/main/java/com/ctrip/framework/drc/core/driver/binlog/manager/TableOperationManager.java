@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -67,11 +68,11 @@ public class TableOperationManager {
     }
 
     public static Pair<Boolean, String> transformCreatePartition(String queryString) {
-        return doTransform(queryString, CREATE_PARTITION_MANAGEMENT, "", true);
+        return doTransform(queryString, CREATE_PARTITION_MANAGEMENT, "", false);
     }
 
     public static Pair<Boolean, String> transformComment(String queryString) {
-        return doTransform(queryString, COMMENT_MANAGEMENT, "", true);
+        return doTransform(queryString, COMMENT_MANAGEMENT, "", false);
     }
 
     public static Pair<Boolean, String> doTransform(String queryString, List<String> patterns, String replaceString, boolean orPredication) {
@@ -117,7 +118,11 @@ public class TableOperationManager {
     public static String queryTableComment(Connection connection, String schema, String table) throws SQLException {
         try(Statement statement = connection.createStatement()) {
             try(ResultSet resultSet = statement.executeQuery(String.format(SELECT_TABLE_COMMENT, schema, table))) {
-                return resultSet.getString(1);
+                if (resultSet.next()) {
+                    return resultSet.getString(1);
+                } else {
+                    return StringUtils.EMPTY;
+                }
             }
         }
     }

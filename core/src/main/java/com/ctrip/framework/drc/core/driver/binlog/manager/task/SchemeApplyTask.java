@@ -87,7 +87,7 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
                 try {
                     DefaultReporterHolder.getInstance().reportAlterTable(baseEndpointEntity, 1L);
                 } catch (Exception e) {
-                    DDL_LOGGER.error("hickwallReporter error for {}", ddl, e);
+                    DDL_LOGGER.error("[Reporter] error for {}", commentedDdl.getValue(), e);
                 }
             });
         }
