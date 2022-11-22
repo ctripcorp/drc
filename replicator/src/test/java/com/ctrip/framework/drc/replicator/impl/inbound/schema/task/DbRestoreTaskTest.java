@@ -41,7 +41,7 @@ public class DbRestoreTaskTest {
     }
 
     @Test
-    public void call() throws Exception {
+    public void testDbRestoreTask() throws Exception {
         dbRestoreTask = new DbRestoreTask(port, name);
         restoredMysql = dbRestoreTask.call();
         Assert.assertNotNull(restoredMysql);

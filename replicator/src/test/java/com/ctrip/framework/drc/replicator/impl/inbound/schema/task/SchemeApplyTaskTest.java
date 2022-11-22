@@ -10,7 +10,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
@@ -34,6 +36,9 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
     @Mock
     private SQLException sqlException;
 
+    @Mock
+    private ResultSet resultSet;
+
     public static final String SCHEMA = "db1";
 
     public static final String TABLE = "table1";
@@ -43,6 +48,9 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+
+        when(statement.executeQuery(anyString())).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(false);
 
         schemeApplyTask = new SchemeApplyTaskMock(inMemoryEndpoint, inMemoryDataSource, SCHEMA, TABLE, DDL, "123", QueryType.ALTER, ddlMonitorExecutorService, baseEndpointEntity);
         retryTask = new RetryTask<>(schemeApplyTask);
@@ -88,12 +96,12 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
     @Test
     public void testExecuteApplyWithException() throws Exception {
         String origin = schemeApplyTask.getDdl();
-        String tmpDdl = "truncate table table1;";
+        String tmpDdl = "truncate table table1";
         schemeApplyTask.setDdl(tmpDdl);
         when(inMemoryDataSource.getConnection()).thenReturn(connection);
         when(connection.createStatement()).thenReturn(statement);
         when(statement.execute(anyString())).thenReturn(true);
-        when(statement.execute(tmpDdl)).thenThrow(sqlException);
+        when(statement.execute(Mockito.startsWith(tmpDdl))).thenThrow(sqlException);
         when(sqlException.getMessage()).thenReturn("test exception");
 
         Boolean res = retryTask.call();
