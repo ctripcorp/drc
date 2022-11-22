@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -130,6 +127,27 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
     }
 
     @Test
+    public void registerMessengerWithMasterNull() throws InterruptedException {
+        Messenger messenger = new Messenger();
+        messenger.setMaster(true);
+        messenger.setIp(LOCAL_IP);
+        messenger.setPort(backupPort);
+
+        when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(null);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+
+        DbCluster body = instanceStateController.registerMessenger(CLUSTER_ID, messenger);
+
+        Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
+        Assert.assertNotEquals(body.getReplicators(), dbCluster.getReplicators());
+        List<Messenger> messengers = body.getMessengers();
+        Assert.assertEquals(messengers.size(), 1);
+        Assert.assertEquals(messengers.get(0), messenger);
+
+        Thread.sleep(100);
+    }
+
+    @Test
     public void registerApplierWithMasterNotNull() throws InterruptedException {
         Applier applier = new Applier();
         applier.setTargetMhaName("mockTargetMha_*&^%");
@@ -154,6 +172,27 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         List<Applier> appliers = body.getAppliers();
         Assert.assertEquals(appliers.size(), 1);
         Assert.assertEquals(appliers.get(0), applier);
+
+        Thread.sleep(100);
+    }
+
+    @Test
+    public void registerMessengerWithMasterNotNull() throws InterruptedException {
+        Messenger messenger = new Messenger();
+        messenger.setMaster(true);
+        messenger.setIp(LOCAL_IP);
+        messenger.setPort(backupPort);
+
+        when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(dbCluster.getReplicators().get(0));
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+
+        DbCluster body = instanceStateController.registerMessenger(CLUSTER_ID, messenger);
+
+        Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
+        Assert.assertNotEquals(body.getReplicators(), dbCluster.getReplicators());
+        List<Messenger> messengers = body.getMessengers();
+        Assert.assertEquals(messengers.size(), 1);
+        Assert.assertEquals(messengers.get(0), messenger);
 
         Thread.sleep(100);
     }
@@ -185,6 +224,26 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         Thread.sleep(100);
     }
 
+    @Test
+    public void addMessengerWithMasterNull() throws InterruptedException {
+        Messenger messenger = new Messenger();
+        messenger.setMaster(true);
+        messenger.setIp(LOCAL_IP);
+        messenger.setPort(backupPort);
+
+        when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(null);
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+
+        DbCluster body = instanceStateController.addMessenger(CLUSTER_ID, messenger);
+
+        Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
+        Assert.assertNotEquals(body.getReplicators(), dbCluster.getReplicators());
+        List<Messenger> messengers = body.getMessengers();
+        Assert.assertEquals(messengers.size(), 1);
+        Assert.assertEquals(messengers.get(0), messenger);
+
+        Thread.sleep(100);
+    }
 
     @Test
     public void addApplierWithMasterNotNull() throws InterruptedException {
@@ -230,6 +289,27 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         List<Applier> appliers = body.getAppliers();
         Assert.assertEquals(appliers.size(), 1);
         Assert.assertEquals(appliers.get(0), applier);
+
+        Thread.sleep(100);
+    }
+
+    @Test
+    public void addMessengerWithMasterNotNull() throws InterruptedException {
+        Messenger messenger = new Messenger();
+        messenger.setMaster(true);
+        messenger.setIp(LOCAL_IP);
+        messenger.setPort(backupPort);
+
+        when(currentMetaManager.getActiveReplicator(anyString())).thenReturn(dbCluster.getReplicators().get(0));
+        when(regionMetaCache.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+
+        DbCluster body = instanceStateController.addMessenger(CLUSTER_ID, messenger);
+
+        Assert.assertEquals(body.getDbs(), dbCluster.getDbs());
+        Assert.assertNotEquals(body.getReplicators(), dbCluster.getReplicators());
+        List<Messenger> messengers = body.getMessengers();
+        Assert.assertEquals(messengers.size(), 1);
+        Assert.assertEquals(messengers.get(0), messenger);
 
         Thread.sleep(100);
     }
@@ -314,4 +394,11 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         instanceStateController.removeApplier(CLUSTER_ID, newApplier, false);
         Thread.sleep(50);
     }
+
+    @Test
+    public void testRemoveMessenger() throws InterruptedException {
+        instanceStateController.removeMessenger(CLUSTER_ID, newMessenger, false);
+        Thread.sleep(50);
+    }
+
 }

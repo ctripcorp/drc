@@ -28,7 +28,7 @@ public class OpenApiController {
     private OpenApiService openApiService;
     
     
-    @GetMapping("/info/mhas")
+    @GetMapping("info/mhas")
     @ResponseBody
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {

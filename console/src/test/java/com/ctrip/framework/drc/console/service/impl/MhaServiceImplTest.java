@@ -2,27 +2,34 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.ClusterMhaMapTbl;
+import com.ctrip.framework.drc.console.dao.entity.ClusterTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dto.DalClusterDto;
 import com.ctrip.framework.drc.console.dto.DalClusterShard;
 import com.ctrip.framework.drc.console.dto.DalMhaDto;
+import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
-import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,21 +46,29 @@ import static org.mockito.Mockito.doReturn;
 
 public class MhaServiceImplTest {
 
-    @InjectMocks
-    private MhaServiceImpl mhaService;
+    @InjectMocks private MhaServiceImpl mhaService;
 
-    @Mock
-    private DefaultConsoleConfig defaultConsoleConfig;
+    @Mock private DefaultConsoleConfig defaultConsoleConfig;
 
-    @Mock
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
-    private OPSApiService opsApiServiceImpl;
-    @Mock
-    private DbClusterApiService dbClusterApiServiceImpl;
-    @Mock
-    private DomainConfig domainConfig;
+    @Mock private OPSApiService opsApiServiceImpl;
+    
+    @Mock private DbClusterApiService dbClusterApiServiceImpl;
+
+    @Mock private DomainConfig domainConfig;
+
+    @Mock private MhaTblDao mhaTblDao;
+
+    @Mock private ClusterMhaMapTblDao clusterMhaMapTblDao;
+
+    @Mock private ClusterTblDao clusterTblDao;
+
+    @Mock private BuTblDao buTblDao;
+
+    @Mock private DcTblDao dcTblDao;
+
+    @Mock private DalUtils dalUtils;
 
 
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -259,6 +274,53 @@ public class MhaServiceImplTest {
         mhaService.getAllDbsAndDals("testMhaName", "fat", "oy");
 
     }
-    
 
+
+    @Test
+    public void testRecordMha() throws SQLException {
+        MhaDto mockDto = new MhaDto();
+        mockDto.setMhaName("mha1");
+        mockDto.setDc("dc1");
+        mockDto.setBuName("bu1");
+        mockDto.setAppid(1L);
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString(),Mockito.anyInt())).thenReturn(new MhaTbl());
+        ApiResult apiResult = mhaService.recordMha(mockDto);
+        Assert.assertEquals("mha already exist!",apiResult.getMessage());
+
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString(),Mockito.anyInt())).thenReturn(null);
+        Mockito.when(dalUtils.updateOrCreateDc(Mockito.anyString())).thenReturn(1L);
+        Mockito.when(dalUtils.updateOrCreateBu(Mockito.anyString())).thenReturn(1L);
+        Mockito.when(dalUtils.updateOrCreateCluster(Mockito.anyString(),Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
+        Mockito.when(dalUtils.updateOrCreateMha(Mockito.anyString(),Mockito.anyLong())).thenReturn(1L);
+        Mockito.when(dalUtils.updateOrCreateClusterMhaMap(Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
+
+        apiResult = mhaService.recordMha(mockDto);
+        Assert.assertEquals(0,apiResult.getStatus().intValue());
+        
+    }
+
+    @Test
+    public void testQueryMhaInfo() throws SQLException {
+        MhaTbl mockMhaTbl = new MhaTbl();
+        mockMhaTbl.setMhaName("mha1");
+        mockMhaTbl.setMonitorSwitch(1);
+        ClusterMhaMapTbl mockClusterMhaMapTbl = new ClusterMhaMapTbl();
+        mockClusterMhaMapTbl.setClusterId(1L);
+        mockClusterMhaMapTbl.setMhaId(1L);
+        ClusterTbl mockClusterTbl = new ClusterTbl();
+        mockClusterTbl.setBuId(1L);
+        BuTbl mockBuTbl = new BuTbl();
+        mockBuTbl.setBuName("bu1");
+        
+        Mockito.when(mhaTblDao.queryByPk(Mockito.anyLong())).thenReturn(mockMhaTbl);
+        Mockito.when(clusterMhaMapTblDao.queryByMhaIds(Mockito.anyList(),Mockito.anyInt())).
+                thenReturn(Lists.newArrayList(mockClusterMhaMapTbl));
+        Mockito.when(clusterTblDao.queryByPk(Mockito.anyLong())).thenReturn(mockClusterTbl);
+        Mockito.when(buTblDao.queryByPk(Mockito.anyLong())).thenReturn(mockBuTbl);
+        MhaDto mhaDto = mhaService.queryMhaInfo(1L);
+        Assert.assertEquals("mha1",mhaDto.getMhaName());
+
+    }
+
+    
 }

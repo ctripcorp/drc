@@ -185,11 +185,25 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
 
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
+    
+    private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
+    private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
+    private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
+    private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
 
     private static final String RELATION_COST_APPS = "relation.cost.apps";
 
     public String getDrcMetaXmlUpdateSwitch() {
         return getProperty(DRC_META_XML_UPDATE_SWITCH, SWITCH_STATUS_ON);
+    }
+
+    public String getMqDelaySubject() {
+        return getProperty(MQ_DELAY_MONITOR_SUBJECT,DEFAULT_MQ_DELAY_MONITOR_SUBJECT);
+    }
+
+    public String getMqDelayConsumerGroup() {
+        return getProperty(MQ_DELAY_MONITOR_CONSUMER_GROUP,DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP);
     }
 
 
@@ -510,5 +524,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
             return JsonCodec.INSTANCE.decode(relationCostInfo, new GenericTypeReference<Map<String, Set<String>>>() {
             });
         }
+    }
+    
+    public String getMqDelayMonitorSwitch() {
+        return getProperty(MQ_DELAY_MONITOR_SWITCH,SWITCH_STATUS_ON);
     }
 }

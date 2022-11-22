@@ -3,10 +3,10 @@ package com.ctrip.framework.drc.applier.server;
 import com.ctrip.framework.drc.applier.activity.event.*;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
+import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
-import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
 import com.ctrip.framework.drc.fetcher.activity.event.InvolveActivity;
 import com.ctrip.framework.drc.fetcher.activity.event.LoadEventActivity;
@@ -62,6 +62,10 @@ public class ApplierServer extends AbstractLink {
 
     public TransactionTableResource getTransactionTableResource() {
         return ((TransactionTableResource) resources.get("TransactionTable"));
+    }
+
+    public MqPositionResource getMqPositionResource() {
+        return ((MqPositionResource) resources.get("MqPosition"));
     }
 
     public SystemStatus getTransactionTableStatus() {

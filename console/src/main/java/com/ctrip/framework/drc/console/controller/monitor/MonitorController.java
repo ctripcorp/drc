@@ -40,6 +40,16 @@ public class MonitorController {
         }
     }
 
+    @PostMapping("switch/{mhaName}/{status}")
+    public ApiResult switchMonitors(@PathVariable String mhaName, @PathVariable String status) {
+        try {
+            monitorService.switchMonitors(mhaName, status);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getInstance(null, ResultCode.HANDLE_FAIL.getCode(), e.toString());
+        }
+    }
+
     @GetMapping("switches/on")
     public ApiResult getMhaNamesToBeMonitored() {
 

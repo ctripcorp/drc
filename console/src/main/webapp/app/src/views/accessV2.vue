@@ -52,6 +52,7 @@ export default {
     return {
       current: 0,
       clusterPair: {
+        // due to leagcy, oldClusterName means first mhaName in mhaGroup
         oldClusterName: this.$route.query.clustername,
         newClusterName: this.$route.query.newclustername,
         env: '',

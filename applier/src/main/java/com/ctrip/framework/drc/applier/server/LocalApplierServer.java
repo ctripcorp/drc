@@ -2,7 +2,10 @@ package com.ctrip.framework.drc.applier.server;
 
 import com.ctrip.framework.drc.applier.activity.event.*;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
+import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
+import com.ctrip.framework.drc.applier.mq.MqPositionResource;
+import com.ctrip.framework.drc.applier.mq.MqProviderResource;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResource;
 import com.ctrip.framework.drc.applier.resource.condition.ProgressResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
@@ -36,7 +39,7 @@ public class LocalApplierServer extends ApplierServer {
     private ApplyMode applyMode;
 
     public LocalApplierServer() throws Exception {
-        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null));
+        this(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null, null));
     }
 
     public LocalApplierServer(int destMySQLPort, int replicatorPort, String destination, Set<String> includedDb, TestConfig dstConfig) throws Exception {
@@ -54,7 +57,13 @@ public class LocalApplierServer extends ApplierServer {
         config.setCluster("cluster");
         config.setName("[" + replicatorPort + "]->LOCAL_APPLIER->[" + destMySQLPort + "]");
         config.setIncludedDbs(StringUtils.join(includedDb, COMMA));
-        config.setProperties(dstConfig.getRowsFilter());
+
+        if (ApplyMode.mq == applyMode) {
+            config.setProperties(dstConfig.getProperties());
+        } else {
+            config.setProperties(dstConfig.getRowsFilter());
+        }
+
         config.setApplyMode(dstConfig.getApplyMode().getType());
 
         InstanceInfo replicator = new InstanceInfo();
@@ -84,6 +93,11 @@ public class LocalApplierServer extends ApplierServer {
 
         if (ApplyMode.transaction_table == applyMode) {
             defineTransactionTable();
+            return;
+        }
+
+        if (ApplyMode.mq == applyMode) {
+            defineMessenger();
         }
     }
 
@@ -105,6 +119,26 @@ public class LocalApplierServer extends ApplierServer {
                 .link(ApplierGroupActivity.class)
                 .link(DispatchActivity.class)
                 .link(TransactionTableApplyActivity.class, 100)
+                .link(CommitActivity.class);
+        check();
+    }
+
+    public void defineMessenger() throws Exception {
+        source(MqApplierDumpEventActivity.class)
+                .with(ExecutorResource.class)
+                .with(LinkContextResource.class)
+                .with(LWMResource.class)
+                .with(ProgressResource.class)
+                .with(CapacityResource.class)
+                .with(ListenableDirectMemoryResource.class)
+                .with(MqProviderResource.class)
+                .with(MqPositionResource.class)
+                .with(MqMetricsActivity.class)
+                .with(LoadEventActivity.class)
+                .link(InvolveActivity.class)
+                .link(ApplierGroupActivity.class)
+                .link(DispatchActivity.class)
+                .link(MqApplyActivity.class, 1)
                 .link(CommitActivity.class);
         check();
     }

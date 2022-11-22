@@ -49,10 +49,15 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         TestConfig customConfig = new TestConfig();
 
         // applyMode
-        customConfig.setApplyMode(ApplyMode.transaction_table);
+//        customConfig.setApplyMode(ApplyMode.transaction_table);
+        customConfig.setApplyMode(ApplyMode.mq);
 
         // rowsFilter
         customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_WITH_UID_UDL);
+
+        // messenger properties
+        customConfig.setProperties(MESSENGER_PROPERTIES);
+
         return customConfig;
     }
 
@@ -160,6 +165,23 @@ public class UnidirectionalStarter extends AbstractTestStarter {
             "        ]," +
             "        \"context\": \"trip.*\"" +
             "      }" +
+            "    }" +
+            "  ]" +
+            "}";
+
+    private static final String MESSENGER_PROPERTIES = "{" +
+            "  \"mqConfigs\": [" +
+            "    {" +
+            "      \"mqType\": \"qmq\"," +
+            "      \"table\": \"drc1.messenger\"," +
+            "      \"topic\": \"bbz.drc.fx.drc.qmq.test\"," +
+            "      \"serialization\": \"drc1.messenger\"," +
+            "      \"persistent\": false," +
+            "      \"persistentDb\": \"\"," +
+            "      \"order\": true," +
+            "      \"orderKey\": \"id\"," +
+            "      \"delayTime\": 0," +
+            "      \"processor\": \"\"" +
             "    }" +
             "  ]" +
             "}";

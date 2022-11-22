@@ -4,6 +4,7 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
@@ -70,14 +71,9 @@ public class BuildControllerTest extends AbstractControllerTest {
     
     @Test
     public void testGetOrBuildSimplexDrc() throws Exception {
-        Mockito.when(dalUtils.getId(Mockito.any(),Mockito.eq("srcMha"))).thenReturn(1L);
-        Mockito.when(dalUtils.getId(Mockito.any(),Mockito.eq("destMha"))).thenReturn(2L);
-        Mockito.when(metaInfoService.getDc(Mockito.eq("srcMha"))).thenReturn("dc1");
-        Mockito.when(metaInfoService.getDc(Mockito.eq("destMha"))).thenReturn("dc2");
-        Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.eq(1L))).thenReturn(1L);
-        Mockito.when(applierGroupTblDao.upsertIfNotExist(Mockito.eq(1L),Mockito.eq(2L))).thenReturn(1L);
+        Mockito.when(drcBuildService.getOrBuildSimplexDrc(Mockito.any(),Mockito.anyString())).thenReturn(null);
 
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc/srcMha/destMha")
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc?srcMha=srcMha&destMha=destMha")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -86,9 +82,19 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
         Assert.assertNotNull(response);
+        
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc?srcMha=srcMha")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        status = mvcResult.getResponse().getStatus();
+        response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
 
-        Mockito.when(dalUtils.getId(Mockito.any(),Mockito.eq("srcMha"))).thenThrow(new SQLException());
-        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc/srcMha/destMha")
+        Mockito.when(drcBuildService.getOrBuildSimplexDrc(Mockito.any(),Mockito.anyString())).thenThrow(new SQLException());
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/simplexDrc?srcMha=srcMha&destMha=destMhaa")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -100,8 +106,63 @@ public class BuildControllerTest extends AbstractControllerTest {
     }
 
     @Test
+    public void testSubmitConfig() throws Exception {
+        MessengerMetaDto dto = new MessengerMetaDto();
+        dto.setMhaName("mha1");
+
+        Mockito.when(drcBuildService.submitConfig(Mockito.any(MessengerMetaDto.class))).thenReturn(null);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/config").
+                contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).
+                accept(MediaType.APPLICATION_JSON)).andDo(MockMvcResultHandlers.print()).andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+        
+
+        Mockito.when(drcBuildService.submitConfig(Mockito.any(MessengerMetaDto.class))).thenThrow(new SQLException());
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/config").
+                contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).
+                accept(MediaType.APPLICATION_JSON)).andDo(MockMvcResultHandlers.print()).andReturn();
+        status = mvcResult.getResponse().getStatus();
+        response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+    }
+
+    @Test
+    public void testPreCheckBeforeBuildDrc() throws Exception {
+        MessengerMetaDto dto = new MessengerMetaDto();
+        dto.setMhaName("mha1");
+
+        Mockito.when(drcBuildService.preCheckBeReplicatorIps(Mockito.any(MessengerMetaDto.class))).thenThrow(new SQLException());
+        
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build/replicatorIps/check").
+                contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).
+                accept(MediaType.APPLICATION_JSON)).andDo(MockMvcResultHandlers.print()).andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+
+
+        Mockito.when(drcBuildService.preCheckBeReplicatorIps(Mockito.any())).thenThrow(new SQLException());
+        mvcResult = mvc.perform(MockMvcRequestBuilders.post("/api/drc/v1/build//replicatorIps/check").
+                contentType(MediaType.APPLICATION_JSON).content(getRequestBody(dto)).
+                accept(MediaType.APPLICATION_JSON)).andDo(MockMvcResultHandlers.print()).andReturn();
+        status = mvcResult.getResponse().getStatus();
+        response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+    }
+
+    @Test
     public void testGetRowsFilterMappingVos() throws Exception {
-        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong())).thenReturn(null);
+        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong(),Mockito.eq(1))).thenReturn(null);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/rowsFilterMappings/1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
@@ -111,7 +172,7 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
 
-        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong())).thenThrow(new SQLException());
+        Mockito.when(rowsFilterService.getRowsFilterMappingVos(Mockito.anyLong(),Mockito.eq(1))).thenThrow(new SQLException());
         mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/build/rowsFilterMappings/1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
@@ -185,6 +246,7 @@ public class BuildControllerTest extends AbstractControllerTest {
     public void testGetConflictTables() throws Exception {
         Mockito.when(rowsFilterService.getLogicalTables(
                 Mockito.anyLong(),
+                Mockito.anyInt(),
                 Mockito.anyLong(),
                 Mockito.anyString(),
                 Mockito.anyString(),
@@ -202,7 +264,9 @@ public class BuildControllerTest extends AbstractControllerTest {
                                 "&srcDc=" + "notPulicDc" +
                                 "&mhaName=" + "mha1" +
                                 "&namespace=" + "db1" +
-                                "&name=" + ".*" )
+                                "&name=" + ".*"+
+                                "&dataMediaId=" + 1 +
+                                "&applierType=" + 0)
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -219,7 +283,9 @@ public class BuildControllerTest extends AbstractControllerTest {
                                     "&srcDc=" + "publicDc" +
                                     "&mhaName=" + "mha1" +
                                     "&namespace=" + "db1" +
-                                    "&name=" + ".*" )
+                                    "&name=" + ".*" + 
+                                      "&dataMediaId=" + 1 +
+                                     "&applierType=" + 0)
                             .accept(MediaType.APPLICATION_JSON))
                     .andDo(MockMvcResultHandlers.print())
                     .andReturn();
@@ -353,4 +419,6 @@ public class BuildControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
     }
+    
+   
 }

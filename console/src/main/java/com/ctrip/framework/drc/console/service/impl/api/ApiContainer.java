@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl.api;
 
+import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.service.beacon.BeaconApiService;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.mysql.MySQLToolsApiService;
@@ -58,6 +59,13 @@ public class ApiContainer extends com.ctrip.xpipe.utils.ServicesUtil {
     }
     public static  TrafficStatisticsService getTrafficStatisticsService(){
         return TrafficStatisticsServiceHolder.INSTANCE;
+    }
+
+    private static class DelayMessageConsumerHolder {
+        public static final DelayMessageConsumer INSTANCE = load(DelayMessageConsumer.class);
+    }
+    public static  DelayMessageConsumer getDelayMessageConsumer(){
+        return DelayMessageConsumerHolder.INSTANCE;
     }
     
 }

@@ -84,7 +84,7 @@ public class ApplierTestWithMockedEvents implements ApplierColumnsRelatedTest {
 
     public class EmbeddedApplierServer extends LocalApplierServer {
         public EmbeddedApplierServer() throws Exception {
-            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null));
+            super(3306, 8383, SystemConfig.INTEGRITY_TEST, Sets.newHashSet(), new TestConfig(ApplyMode.set_gtid, null, null));
             MockEventActivity mock = new MockEventActivity();
             mock.setSystem(this);
             activities.put("DumpEventActivity", mock);

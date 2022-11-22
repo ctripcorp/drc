@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
@@ -38,6 +39,7 @@ import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 
 
 public class MetaInfoServiceImplTest extends AbstractTest {
+    
 
     public static final String MHA1OY = "fat-fx-drc1";
 
@@ -57,26 +59,21 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @InjectMocks
     private MetaInfoServiceImpl metaInfoService;
 
-    @Mock
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
-    private MetaGenerator metaService;
+    @Mock private MetaGenerator metaService;
 
-    @Mock
-    private DalServiceImpl dalService;
+    @Mock private DalServiceImpl dalService;
     
-    @Mock
-    private RowsFilterServiceImpl rowsFilterService;
+    @Mock private RowsFilterServiceImpl rowsFilterService;
 
-    @Mock
-    private DefaultConsoleConfig defaultConsoleConfig;
+    @Mock private DefaultConsoleConfig defaultConsoleConfig;
 
-    @Mock
-    private DbClusterSourceProvider dbClusterSourceProvider;
+    @Mock private DbClusterSourceProvider dbClusterSourceProvider;
 
-    @Mock
-    private OpenService openService;
+    @Mock private OpenService openService;
+
+    @Mock private MessengerService messengerService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -190,11 +187,11 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testGetResourcesMethods() throws Exception {
         
-        List<String> r = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "R");
+        List<String> r = metaInfoService.getResourcesInRegionOfMha("fat-fx-drc1", "R");
         System.out.println("r in dc: " + r);
         Assert.assertEquals(5, r.size());
 
-        List<String> a = metaInfoService.getResourcesInDcOfMha("fat-fx-drc1", "A");
+        List<String> a = metaInfoService.getResourcesInRegionOfMha("fat-fx-drc1", "A");
         System.out.println("a in dc: " + a);
         Assert.assertEquals(5, a.size());
 

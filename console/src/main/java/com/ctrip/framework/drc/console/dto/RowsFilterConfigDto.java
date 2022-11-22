@@ -25,12 +25,16 @@ public class RowsFilterConfigDto {
     
     private Long applierGroupId;
     
+    // see ConsumerType,default 0
+    private int applierType = 0;
+    
     private Long dataMediaId;
 
     private String namespace;
 
     private String name;
 
+    // see DataMediaTypeEnum
     private Integer type;
 
     private Long dataMediaSourceId;
@@ -60,6 +64,7 @@ public class RowsFilterConfigDto {
         RowsFilterMappingTbl rowsFilterMappingTbl = new RowsFilterMappingTbl();
         rowsFilterMappingTbl.setId(this.id);
         rowsFilterMappingTbl.setApplierGroupId(this.applierGroupId);
+        rowsFilterMappingTbl.setType(this.applierType);
         rowsFilterMappingTbl.setDataMediaId(this.dataMediaId);
         rowsFilterMappingTbl.setRowsFilterId(this.rowsFilterId);
         return rowsFilterMappingTbl;
@@ -120,13 +125,13 @@ public class RowsFilterConfigDto {
         rowsFilterTbl.setConfigs(JsonUtils.toJson(configs));
         return rowsFilterTbl;
     }
-    
-    
+
     @Override
     public String toString() {
         return "RowsFilterConfigDto{" +
                 "id=" + id +
                 ", applierGroupId=" + applierGroupId +
+                ", applierType=" + applierType +
                 ", dataMediaId=" + dataMediaId +
                 ", namespace='" + namespace + '\'' +
                 ", name='" + name + '\'' +
@@ -137,6 +142,8 @@ public class RowsFilterConfigDto {
                 ", mode='" + mode + '\'' +
                 ", columns=" + columns +
                 ", udlColumns=" + udlColumns +
+                ", drcStrategyId=" + drcStrategyId +
+                ", routeStrategyId=" + routeStrategyId +
                 ", context='" + context + '\'' +
                 ", illegalArgument=" + illegalArgument +
                 ", fetchMode=" + fetchMode +
@@ -149,6 +156,22 @@ public class RowsFilterConfigDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getApplierGroupId() {
+        return applierGroupId;
+    }
+
+    public void setApplierGroupId(Long applierGroupId) {
+        this.applierGroupId = applierGroupId;
+    }
+
+    public int getApplierType() {
+        return applierType;
+    }
+
+    public void setApplierType(int applierType) {
+        this.applierType = applierType;
     }
 
     public Long getDataMediaId() {
@@ -206,7 +229,6 @@ public class RowsFilterConfigDto {
     public void setRowsFilterId(Long rowsFilterId) {
         this.rowsFilterId = rowsFilterId;
     }
-    
 
     public String getMode() {
         return mode;
@@ -222,42 +244,6 @@ public class RowsFilterConfigDto {
 
     public void setColumns(List<String> columns) {
         this.columns = columns;
-    }
-
-    public String getContext() {
-        return context;
-    }
-
-    public void setContext(String context) {
-        this.context = context;
-    }
-
-    public Long getApplierGroupId() {
-        return applierGroupId;
-    }
-
-    public void setApplierGroupId(Long applierGroupId) {
-        this.applierGroupId = applierGroupId;
-    }
-
-    public boolean getIllegalArgument() {
-        return illegalArgument;
-    }
-
-    public void setIllegalArgument(boolean illegalArgument) {
-        this.illegalArgument = illegalArgument;
-    }
-
-    public boolean isIllegalArgument() {
-        return illegalArgument;
-    }
-
-    public Integer getFetchMode() {
-        return fetchMode;
-    }
-
-    public void setFetchMode(Integer fetchMode) {
-        this.fetchMode = fetchMode;
     }
 
     public List<String> getUdlColumns() {
@@ -282,5 +268,29 @@ public class RowsFilterConfigDto {
 
     public void setRouteStrategyId(Integer routeStrategyId) {
         this.routeStrategyId = routeStrategyId;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public boolean isIllegalArgument() {
+        return illegalArgument;
+    }
+
+    public void setIllegalArgument(boolean illegalArgument) {
+        this.illegalArgument = illegalArgument;
+    }
+
+    public Integer getFetchMode() {
+        return fetchMode;
+    }
+
+    public void setFetchMode(Integer fetchMode) {
+        this.fetchMode = fetchMode;
     }
 }

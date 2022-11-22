@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.config;
 
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.APPLIER_REGISTER_PATH;
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.REPLICATOR_REGISTER_PATH;
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.*;
 
 /**
  * @Author limingdong
@@ -30,5 +29,4 @@ public class ClusterZkConfig {
         String path = String.format("%s/%s", APPLIER_REGISTER_PATH, registryPath);
         return path;
     }
-
 }

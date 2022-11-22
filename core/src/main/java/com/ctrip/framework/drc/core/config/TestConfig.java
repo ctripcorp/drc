@@ -11,12 +11,15 @@ public class TestConfig {
 
     private String rowsFilter;
 
+    private String properties;
+
     public TestConfig() {
     }
 
-    public TestConfig(ApplyMode applyMode, String rowsFilter) {
+    public TestConfig(ApplyMode applyMode, String rowsFilter, String properties) {
         this.applyMode = applyMode;
         this.rowsFilter = rowsFilter;
+        this.properties = properties;
     }
 
     public ApplyMode getApplyMode() {
@@ -33,5 +36,13 @@ public class TestConfig {
 
     public void setRowsFilter(String rowsFilter) {
         this.rowsFilter = rowsFilter;
+    }
+
+    public String getProperties() {
+        return properties;
+    }
+
+    public void setProperties(String properties) {
+        this.properties = properties;
     }
 }

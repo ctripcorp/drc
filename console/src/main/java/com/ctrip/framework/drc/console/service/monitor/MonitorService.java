@@ -8,11 +8,13 @@ import java.util.List;
  */
 public interface MonitorService {
 
-    void switchMonitors(List<Long> mhaGroupIds, String status) throws SQLException;
+    @Deprecated void switchMonitors(List<Long> mhaGroupIds, String status) throws SQLException;
+    
+    void switchMonitors(String mhaName, String status) throws SQLException;
 
     List<String> queryMhaNamesToBeMonitored() throws SQLException;
 
-    List<Long> queryMhaIdsToBeMonitored() throws SQLException;
+    @Deprecated List<Long> queryMhaIdsToBeMonitored() throws SQLException;
 
     List<String> getMhaNamesToBeMonitored() throws SQLException;
 }

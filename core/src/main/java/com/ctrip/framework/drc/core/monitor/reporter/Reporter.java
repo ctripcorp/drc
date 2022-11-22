@@ -16,6 +16,8 @@ import java.util.Map;
 public interface Reporter extends Ordered {
 
     void reportDelay(@Valid UnidirectionalEntity unidirectionalEntity, Long delay, String measurement);
+    
+    void reportMessengerDelay(Map<String, String> tags,long delay,String measurement);
 
     void reportTraffic(@Valid TrafficEntity entity, Long bytes);
 

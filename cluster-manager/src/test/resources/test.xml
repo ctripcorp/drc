@@ -14,7 +14,9 @@
                     <db ip="127.0.0.1" port="13307" master="false" uuid="271c8a57-2a13-11eb-a686-506b4b362b7e,ec4b75e5-2a12-11eb-a3d3-506b4b47803c"/>
                 </dbs>
                 <replicator ip="127.0.0.1" port="8080" applierPort="8383" gtidSkip="" master="false"/>
-                <applier ip="127.0.0.1" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" targetName="integration-test" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0" 
+                <messenger ip="127.0.0.1" port="8080" gtidExecuted="f0eeea26-5043-11ed-921e-fa163e07317b:1-3202173,02cc3107-5062-11ed-830b-fa163eb9d18e:1-3047570" master="false" nameFilter="drc1\..*"
+                           properties="{&quot;nameFilter&quot;:&quot;drc1\\..*&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[]},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;drc1\\..*&quot;,&quot;topic&quot;:&quot;fx.drc.drc1.test_mq&quot;,&quot;processor&quot;:null,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;persistentDb&quot;:null,&quot;order&quot;:true,&quot;orderKey&quot;:&quot;id&quot;,&quot;delayTime&quot;:0}]}"/>
+                <applier ip="127.0.0.1" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" targetName="integration-test" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0"
                          properties="[{&quot;mode&quot;:&quot;0&quot;,&quot;tables&quot;:&quot;db[1-9]\\.table1|table2&quot;,&quot;parameters&quot;:{&quot;columns&quot;:[&quot;columnA&quot;,&quot;columnB&quot;],&quot;context&quot;:&quot;content abc&quot;}}]" />
             </dbCluster>
             <dbCluster id="integration-test.fxdrc2" name="integration-test" mhaName="fxdrc2" buName="BBZ" appId="100024819" applyMode="0" >
@@ -25,7 +27,7 @@
                 <replicator ip="127.0.0.2" port="8080" applierPort="8383" gtidSkip="" master="false"/>
                 <applier ip="127.0.0.2" port="8080" targetIdc="sharb" targetMhaName="fxdrcrb" targetName="integration-test" gtidExecuted="c5d2643f-73c2-11ea-9ef9-fa163eaa9d69:1-24" master="false" includedDbs="db1,db2" applyMode="0"
                          properties="[{&quot;mode&quot;:&quot;0&quot;,&quot;tables&quot;:&quot;db[1-9]\\.table1|table2&quot;,&quot;parameters&quot;:{&quot;columns&quot;:[&quot;columnA&quot;,&quot;columnB&quot;],&quot;context&quot;:&quot;content abc&quot;}}]"/>
-                
+
             </dbCluster>
             <dbCluster id="integration-test.fxdrc_multi" name="integration-test" mhaName="fxdrc_multi" buName="BBZ" appId="100024819" applyMode="0" >
                 <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">

@@ -1,16 +1,13 @@
 package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
-import com.ctrip.framework.drc.manager.ha.meta.DcCache;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifier;
+import com.ctrip.framework.drc.manager.healthcheck.notifier.MessengerNotifier;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifier;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
@@ -25,6 +22,7 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
 
 /**
@@ -104,6 +102,21 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     /**
+     * notify messenger to register zookeeper
+     * @param clusterId
+     * @param messenger
+     * @return
+     */
+    @Override
+    public DbCluster registerMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[registerMessenger] for {}", body);
+        executors.submit(() -> messengerNotifier.notifyRegister(body));
+        return body;
+    }
+
+    /**
      * notify active applier to pull replicator binlog
      * @param clusterId
      * @param applier
@@ -131,6 +144,27 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     }
 
     @Override
+    public DbCluster addMessenger(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        STATE_LOGGER.info("[addMessenger] for {}", body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
+            return body;
+        }
+        executors.submit(() -> messengerNotifier.notifyAdd(body));
+
+        List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
+        for (Messenger m : messengers) {
+            if (!m.equalsWithIpPort(messenger)) {
+                removeMessenger(clusterId, m, false);
+            }
+        }
+        return body;
+    }
+
+    @Override
     public void removeReplicator(String clusterId, Replicator replicator) {
         if (config.getMigrationBlackIps().contains(replicator.getIp())) {
             logger.info("[skipRemove] black ips are: {}, replicator ip is:{}", config.getMigrationBlackIps(), replicator.getIp());
@@ -139,6 +173,18 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         ReplicatorNotifier replicatorNotifier = ReplicatorNotifier.getInstance();
         STATE_LOGGER.info("[removeReplicator] for {},{}", clusterId, replicator);
         executors.submit(() -> replicatorNotifier.notifyRemove(clusterId, replicator, true));
+    }
+
+    @Override
+    public void removeMessenger(String clusterId, Messenger messenger, boolean delete) {
+        if (config.getMigrationBlackIps().contains(messenger.getIp())) {
+            logger.info("[skipRemove] black ips are: {}, messenger ip is:{}", config.getMigrationBlackIps(), messenger.getIp());
+            return;
+        }
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
+        STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", newClusterId, messenger, delete);
+        executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, delete));
     }
 
     @Override
@@ -249,6 +295,31 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         if (mysqlMaster != null) {
             setMySQL(clone, mysqlMaster);
         }
+
+        return clone;
+    }
+
+    private DbCluster getDbClusterWithRefreshMessenger(String clusterId, Messenger messenger) {
+        DbCluster dbCluster = regionMetaCache.getCluster(clusterId);
+        DbCluster clone = MetaClone.clone(dbCluster);
+        clone.getMessengers().clear();
+        clone.getMessengers().add(messenger);
+
+        //add local dc replicator
+        clone.getReplicators().clear();
+        Replicator master = currentMetaManager.getActiveReplicator(clusterId);
+        if (master != null) {
+            STATE_LOGGER.info("[getMessengerMaster] for {} is {}:{}", clusterId, master.getIp(), master.getPort());
+        } else {
+            STATE_LOGGER.error("[getMessengerMaster] null, do nothing for {}", clusterId);
+            return clone;
+        }
+
+        Replicator replicator = new Replicator();
+        replicator.setMaster(true);
+        replicator.setIp(master.getIp());
+        replicator.setApplierPort(master.getApplierPort());
+        clone.getReplicators().add(replicator);
 
         return clone;
     }

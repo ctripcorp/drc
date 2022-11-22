@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
@@ -21,6 +22,12 @@ public interface InstanceStateController extends Lifecycle {
     DbCluster registerReplicator(String clusterId, Replicator replicator);
 
     void removeReplicator(String clusterId, Replicator replicator);
+
+    DbCluster addMessenger(String clusterId, Messenger messenger);
+
+    DbCluster registerMessenger(String clusterId, Messenger messenger);
+
+    void removeMessenger(String clusterId, Messenger messenger, boolean delete);
 
     DbCluster addApplier(String clusterId, Applier applier);
 

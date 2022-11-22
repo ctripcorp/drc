@@ -151,8 +151,8 @@ export default {
           }
         },
         {
-          title: '监控',
-          key: 'monitorSwitch',
+          title: '集群A监控',
+          key: 'srcMhaMonitorSwitch',
           width: 100,
           align: 'center',
           render: (h, params) => {
@@ -161,7 +161,7 @@ export default {
             return h('i-switch', {
               props: {
                 size: 'large',
-                value: row.monitorSwitch === 1,
+                value: row.srcMhaMonitorSwitch === 1,
                 beforeChange: this.handleBeforeChange
               },
               scopedSlots: {
@@ -170,13 +170,46 @@ export default {
               },
               on: {
                 'on-change': () => {
-                  this.switchMonitor(row)
+                  this.switchMonitor(row.srcMha, row.srcMhaMonitorSwitch)
                 }
               },
               nativeOn: {
                 mousedown: () => { // 监听组件原生事件mousedown,此事件在click之前触发
                   this.switchOneInfo = {
-                    monitorSwitch: row.monitorSwitch
+                    srcMhaMonitorSwitch: row.srcMhaMonitorSwitch
+                  }
+                }
+              }
+            })
+          }
+        },
+        {
+          title: '集群B监控',
+          key: 'destMhaMonitorSwitch',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+
+            return h('i-switch', {
+              props: {
+                size: 'large',
+                value: row.destMhaMonitorSwitch === 1,
+                beforeChange: this.handleBeforeChange
+              },
+              scopedSlots: {
+                open: () => h('span', '开启'),
+                close: () => h('span', '关闭')
+              },
+              on: {
+                'on-change': () => {
+                  this.switchMonitor(row.destMha, row.destMhaMonitorSwitch)
+                }
+              },
+              nativeOn: {
+                mousedown: () => { // 监听组件原生事件mousedown,此事件在click之前触发
+                  this.switchOneInfo = {
+                    destMhaMonitorSwitch: row.destMhaMonitorSwitch
                   }
                 }
               }
@@ -459,19 +492,14 @@ export default {
         })
       })
     },
-    switchMonitor (row) {
-      const mhaGroupIds = []
-      mhaGroupIds.push(row.mhaGroupId)
-      const switchStatus = row.monitorSwitch === 0 ? 'on' : 'off'
-      this.switchMonitors(mhaGroupIds, switchStatus)
+    switchMonitor (mhaName, status) {
+      // 求反
+      const switchStatus = status === 0 ? 'on' : 'off'
+      this.doSwitchMonitor(mhaName, switchStatus)
     },
-    switchMonitors (mhaGroupIds, status) {
-      console.log(mhaGroupIds)
-      this.axios.post('/api/drc/v1/monitor/switches/' + status,
-        {
-          mhaGroupIds: mhaGroupIds
-        }
-      ).then(res => {
+    doSwitchMonitor (mhaName, status) {
+      console.log(mhaName)
+      this.axios.post('/api/drc/v1/monitor/switch/' + mhaName + '/' + status).then(res => {
         if (res.data.status === 0) {
           console.log(status)
           if (status === 'on') {

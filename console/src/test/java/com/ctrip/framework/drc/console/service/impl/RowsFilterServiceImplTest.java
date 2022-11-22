@@ -30,6 +30,8 @@ import java.util.List;
 
 
 public class RowsFilterServiceImplTest extends AbstractTest {
+    
+    // todo
 
     @Mock
     private DataMediaTblDao dataMediaTblDao;
@@ -56,6 +58,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         super.setUp();
         MockitoAnnotations.openMocks(this);
     }
+    
     @Test
     public void testGenerateRowsFiltersConfig() throws SQLException {
         // mock
@@ -64,7 +67,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         rowsFilterMappingTbl.setRowsFilterId(1L);
         rowsFilterMappingTbl.setDataMediaId(1L);
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = Lists.newArrayList(rowsFilterMappingTbl);
-        Mockito.when(rowsFilterMappingTblDao.queryByApplierGroupIds(Mockito.anyList(),Mockito.anyInt())).
+        Mockito.when(rowsFilterMappingTblDao.queryBy(Mockito.anyLong(),Mockito.anyInt(),Mockito.anyInt())).
                 thenReturn(rowsFilterMappingTbls);
         
         
@@ -101,7 +104,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Mockito.when(rowsFilterTblDao.queryById(Mockito.eq(Long.valueOf(1L)),Mockito.eq(BooleanEnum.FALSE.getCode()))).
                 thenReturn(rowsFilterTbl);
         
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L,0);
         System.out.println("test1" + JsonUtils.toJson(rowsFilterConfigs.get(0)));
         Assert.assertEquals(1,rowsFilterConfigs.size());
         Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
@@ -141,18 +144,12 @@ public class RowsFilterServiceImplTest extends AbstractTest {
                 "}\n");
         Mockito.when(rowsFilterTblDao.queryById(Mockito.eq(Long.valueOf(1L)),Mockito.eq(BooleanEnum.FALSE.getCode()))).
                 thenReturn(rowsFilterTbl);
-        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
+        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L,0);
         System.out.println("test2" + JsonUtils.toJson(rowsFilterConfigs.get(0)));
         Assert.assertEquals(1,rowsFilterConfigs.size());
         Assert.assertEquals(2,rowsFilterConfigs.get(0).getConfigs().getParameterList().size());
         Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
         
-        //mock
-        Mockito.when(udlMigrateConfig.gray(Mockito.eq(1L))).thenReturn(false);
-        // test 3
-        rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(1L);
-        System.out.println("test3" +JsonUtils.toJson(rowsFilterConfigs.get(0)));
-        Assert.assertEquals(RowsFilterType.TripUid.getName(),rowsFilterConfigs.get(0).getMode());
     }
     
 }
