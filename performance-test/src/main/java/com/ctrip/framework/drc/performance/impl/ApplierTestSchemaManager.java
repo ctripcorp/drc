@@ -56,12 +56,17 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     }
 
     @Override
-    public void persistDdl(String dbName, String tableName, String queryString) {
+    public void persistDdl(String dbName, String tableName, String queryString, String gtid) {
 
     }
 
     @Override
     public void update(Object args, Observable observable) {
 
+    }
+
+    @Override
+    protected boolean shouldInitEmbeddedMySQL() {
+        return false;
     }
 }

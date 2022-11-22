@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.ConnectionObservable;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
@@ -89,8 +90,9 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         poolProperties.setConnectionProperties(timeout);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
 
-        embeddedDb = isUsed(port) ? new RetryTask<>(new DbRestoreTask(port, registryKey)).call()
-                                  : new RetryTask<>(new DbCreateTask(port, registryKey)).call();
+        embeddedDb = isUsed(port) && DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)
+                            ? new RetryTask<>(new DbRestoreTask(port, registryKey)).call()
+                            : new RetryTask<>(new DbCreateTask(port, registryKey)).call();
         if (embeddedDb == null) {
             throw new DrcServerException(String.format("[EmbeddedDb] init error for %s", registryKey));
         }
@@ -172,7 +174,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
      * @param queryString
      */
     @Override
-    public void persistDdl(String dbName, String tableName, String queryString) {
+    public void persistDdl(String dbName, String tableName, String queryString, String gtid) {
         if (StringUtils.isBlank(dbName)) {
             dbName = StringUtils.EMPTY;
         }
@@ -181,7 +183,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         }
         try {
             if (StringUtils.isNotBlank(queryString)) {
-                DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent(dbName, queryString, 0, 0);
+                DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent(dbName, queryString, gtid, 0, 0);
                 transactionCache.add(ddlLogEvent);
             }
         } catch (IOException e) {
@@ -276,10 +278,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     }
 
     private boolean initEmbeddedMySQL() {
-        FileManager fileManager = eventStore.getFileManager();
-        File logDir = fileManager.getDataDir();
-        File[] files = logDir.listFiles();
-        if (files == null || files.length == 0) {
+        if (shouldInitEmbeddedMySQL()) {
             schemaStatus = Initialing;
             DDL_LOGGER.info("[SchemaStatus] set to Initialing for {}", registryKey);
             return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.replicator.schema.remote.dump", registryKey, () -> MySQLSchemaManager.this.clone(endpoint));
@@ -293,6 +292,14 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     public void setTransactionCache(TransactionCache transactionCache) {
         this.transactionCache = transactionCache;
+    }
+
+    @Override
+    protected boolean shouldInitEmbeddedMySQL() {
+        FileManager fileManager = eventStore.getFileManager();
+        File logDir = fileManager.getDataDir();
+        File[] files = logDir.listFiles();
+        return files == null || files.length == 0;
     }
 
     enum SchemaStatus {

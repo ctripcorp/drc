@@ -333,7 +333,7 @@ public abstract class AbstractEventTest extends AbstractZkTest {
 
     protected DrcDdlLogEvent getDrcDdlLogEvent() {
         try {
-            DrcDdlLogEvent drcDdlLogEvent = new DrcDdlLogEvent("ddl", "schemaName", 0, 0);
+            DrcDdlLogEvent drcDdlLogEvent = new DrcDdlLogEvent("ddl", "tableName", "schemaName", 0, 0);
             return drcDdlLogEvent;
         } catch (IOException e) {
         }

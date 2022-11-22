@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -428,7 +429,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
                         List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
-                        ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
+                        ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlResults.get(0).getTableName(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
                         if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                             DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
                         }
@@ -436,7 +437,11 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();
                         snapshotLogEvent.read(compositeByteBuf);
-                        schemaManager.recovery(snapshotLogEvent);
+                        if (DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+                            DDL_LOGGER.info("[Recover] skip schema snapshot log event for {}", registryKey);
+                        } else {
+                            schemaManager.recovery(snapshotLogEvent);
+                        }
                         snapshotLogEvent.release();
                     } else {
                         DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();

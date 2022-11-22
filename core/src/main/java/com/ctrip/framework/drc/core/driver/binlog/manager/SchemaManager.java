@@ -17,7 +17,7 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     TableInfo find(String schema, String table);
 
-    ApplyResult apply(String schema, String ddl, QueryType queryType, String gtid);
+    ApplyResult apply(String schema, String table, String ddl, QueryType queryType, String gtid);
 
     /**
      * for recovery
@@ -33,6 +33,6 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     void persistColumnInfo(TableInfo tableInfo, boolean writeDirect);
 
-    void persistDdl(String dbName, String tableName, String queryString);
+    void persistDdl(String dbName, String tableName, String queryString, String gtid);
 
 }

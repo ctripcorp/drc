@@ -54,10 +54,10 @@ public class DdlFilterTest extends MockTest {
     @Before
     public void setUp() {
         super.initMocks();
-        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
+        when(schemaManager.apply(anyString(), anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
         when(schemaManager.find(anyObject(), anyObject())).thenReturn(tableInfo);
         doNothing().when(schemaManager).persistColumnInfo(any(TableInfo.class), any(Boolean.class));
-        doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString());
+        doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString(), anyString());
         doNothing().when(monitorManager).onDdlEvent(anyString(), anyString(), anyString(), any(QueryType.class));
 
         ddlFilter = new DdlFilter(schemaManager, monitorManager);
@@ -120,14 +120,14 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQueryStatus()).thenReturn(queryStatus);
         when(queryStatus.getServerCollation()).thenReturn(33);  //utf8
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply("ghostdb", CREATE_TABLE, QueryType.CREATE, gtid);
+        verify(schemaManager, times(1)).apply("ghostdb", "_test1g_gho", CREATE_TABLE, QueryType.CREATE, gtid);
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB CHARSET=utf8";
         when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(45);  //utf8mb4
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply("test1", CREATE_TABLE, QueryType.CREATE, gtid);
+        verify(schemaManager, times(1)).apply("test1", "insert7", CREATE_TABLE, QueryType.CREATE, gtid);
 
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB";
@@ -136,14 +136,14 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(33);  //utf8
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply("test1", MODIFIED_CREATE_TABLE, QueryType.CREATE, gtid);
+        verify(schemaManager, times(1)).apply("test1", "insert7", MODIFIED_CREATE_TABLE, QueryType.CREATE, gtid);
 
         CREATE_TABLE = "CREATE TABLE `test1`.`insert7` (`id` int(11) NOT NULL AUTO_INCREMENT,`one` varchar(30) DEFAULT 'one',`two` varchar(1000) DEFAULT 'two',`three` char(30) DEFAULT NULL,`four` char(255) DEFAULT NULL,`datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',PRIMARY KEY (`id`)) ENGINE=InnoDB";
         when(queryLogEvent.getQuery()).thenReturn(CREATE_TABLE);
         when(queryLogEvent.getSchemaName()).thenReturn("test1");
         when(queryStatus.getServerCollation()).thenReturn(45);  //utf8
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply("test1",  CREATE_TABLE, QueryType.CREATE, gtid);
+        verify(schemaManager, times(1)).apply("test1", "insert7", CREATE_TABLE, QueryType.CREATE, gtid);
 
     }
 
@@ -205,7 +205,7 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getSchemaName()).thenReturn(wrongDbName);
         when(schemaManager.find(dbName, tableName)).thenReturn(tableInfo);
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply(dbName,  CREATE_TABLE, QueryType.CREATE, gtid);
+        verify(schemaManager, times(1)).apply(dbName, tableName, CREATE_TABLE, QueryType.CREATE, gtid);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 
@@ -230,11 +230,11 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQuery()).thenReturn(RENAME_DDL);
         when(queryLogEvent.getSchemaName()).thenReturn(oriSchemaName);
         when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
-        when(schemaManager.apply(anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, RENAME_DDL));
+        when(schemaManager.apply(anyString(), anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, RENAME_DDL));
 
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).apply(oriSchemaName, RENAME_DDL, QueryType.RENAME, gtid);
-        verify(schemaManager, times(1)).persistDdl(oriSchemaName, tableName, RENAME_DDL);
+        verify(schemaManager, times(1)).apply(oriSchemaName, tableName, RENAME_DDL, QueryType.RENAME, gtid);
+        verify(schemaManager, times(1)).persistDdl(oriSchemaName, tableName, RENAME_DDL, gtid);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 
@@ -265,10 +265,10 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQuery()).thenReturn(DDL);
         when(queryLogEvent.getSchemaName()).thenReturn(schemaName);
         when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
-        when(schemaManager.apply(schemaName, DDL, QueryType.CREATE, anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, DDL));
+        when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, DDL));
 
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL);
+        verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL, gtid);
     }
 
     @Test
@@ -293,10 +293,10 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQuery()).thenReturn(DDL);
         when(queryLogEvent.getSchemaName()).thenReturn(schemaName);
         when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
-        when(schemaManager.apply(schemaName, DDL, QueryType.CREATE, gtid)).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, DDL));
+        when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, gtid)).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, DDL));
 
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL);
+        verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL, gtid);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 }

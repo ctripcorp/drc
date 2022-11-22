@@ -329,7 +329,7 @@ public class TablePartitionManagerTest {
                 "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
                 "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
                 "  PRIMARY KEY (`id`)\n" +
-                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT =' gtid ' ;";
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT =' gtid ' DELAY_KEY_WRITE=1 ;";
         Pair<Boolean, String> res = transformTableComment(queryString, QueryType.CREATE, "123");
         String exceptedQueryString = "CREATE TABLE `insert3` (\n" +
                 "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
@@ -340,7 +340,7 @@ public class TablePartitionManagerTest {
                 "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
                 "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
                 "  PRIMARY KEY (`id`)\n" +
-                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\' ;";
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\' DELAY_KEY_WRITE=1 ;";
         Assert.assertTrue(res.getKey());
         Assert.assertEquals(exceptedQueryString, res.getValue());
 
@@ -406,7 +406,7 @@ public class TablePartitionManagerTest {
         Assert.assertEquals(queryString, res.getValue());
 
         // case 5 : alter comment
-        queryString = "ALTER TABLE t1 COMMENT = 'New table comment';";
+        queryString = "ALTER TABLE t1 comMENT = 'New table comment';";
         res = transformTableComment(queryString, QueryType.ALTER, "123");
         exceptedQueryString = "ALTER TABLE t1 COMMENT='123';";
         Assert.assertTrue(res.getKey());

@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
-import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
@@ -53,10 +53,12 @@ public class SchemaManagerFactory {
     }
 
     public static synchronized void clear() {
-        for (SchemaManager schemaManager : schemaManagerMap.values()) {
+        for (Map.Entry<String, MySQLSchemaManager> entry : schemaManagerMap.entrySet()) {
             try {
-                LifecycleHelper.stopIfPossible(schemaManager);
-                LifecycleHelper.disposeIfPossible(schemaManager);
+                if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(entry.getKey())) {
+                    LifecycleHelper.stopIfPossible(entry.getValue());
+                    LifecycleHelper.disposeIfPossible(entry.getValue());
+                }
             } catch (Exception e) {
             }
         }

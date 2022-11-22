@@ -5,6 +5,10 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**
@@ -45,6 +49,9 @@ public class TableOperationManager {
             "(?i)COMMENT[\\s]*=[\\s]*['|\"][\\s\\S]*['|\"]");
 
     public static final String TABLE_COMMENT_PATTERN = "[\\s\\S]*(?i)COMMENT[\\s]*=[\\s\\S]*";
+
+    public static final String SELECT_TABLE_COMMENT =
+            "SELECT table_comment FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='%s' AND table_name='%s'";
 
     public static boolean transformAlterPartition(String queryString) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
@@ -98,12 +105,20 @@ public class TableOperationManager {
         return Pair.from(true, newQueryString);
     }
 
-    public static Pair<Boolean, String> transformTableComment(String queryString, QueryType queryType, String gtid) {
-        String modifyString = String.format("COMMENT='%s'", gtid);
+    public static Pair<Boolean, String> transformTableComment(String queryString, QueryType queryType, String gtids) {
+        String modifyString = String.format("COMMENT='%s'", gtids);
         Pair<Boolean, String> replaceRes = doTransform(queryString, TABLE_COMMENT_MANAGEMENT, modifyString, queryString.matches(TABLE_COMMENT_PATTERN));
         if (!replaceRes.getKey()) {
             return appendTableComment(queryString, modifyString, queryType);
         }
         return replaceRes;
+    }
+
+    public static String queryTableComment(Connection connection, String schema, String table) throws SQLException {
+        try(Statement statement = connection.createStatement()) {
+            try(ResultSet resultSet = statement.executeQuery(String.format(SELECT_TABLE_COMMENT, schema, table))) {
+                return resultSet.getString(1);
+            }
+        }
     }
 }

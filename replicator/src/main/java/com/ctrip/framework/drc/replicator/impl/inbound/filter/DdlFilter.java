@@ -68,7 +68,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             value.mark(OTHER_F);  // just init schema
         } else if (drc_ddl_log_event == logEventType) {
             DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
-            doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
+            doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, ddlLogEvent.getGtid());
         }
 
         return doNext(value, value.isInExcludeGroup());
@@ -109,14 +109,14 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 return false;
             }
-            ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type, gtid);
+            String tableName = results.get(0).getTableName();
+            ApplyResult applyResult = schemaManager.apply(schemaName, tableName, queryString, type, gtid);
             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
             }
-            String tableName = results.get(0).getTableName();
             queryString = applyResult.getDdl();
-            schemaManager.persistDdl(schemaName, tableName, queryString);
+            schemaManager.persistDdl(schemaName, tableName, queryString, gtid);
             DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
 
             if (StringUtils.isBlank(schemaName) || StringUtils.isBlank(tableName)) {
