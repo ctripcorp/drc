@@ -1,15 +1,16 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.xpipe.api.codec.Codec;
+import com.ctrip.xpipe.api.codec.GenericTypeReference;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,8 @@ import java.util.stream.Collectors;
 public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     private static final String DELIMITER = ",";
+
+    private static final String EMPTY_STRING = "";
 
     private static final String DB_CLUSTER_MONITOR = "consistency.monitor.%s";
 
@@ -189,13 +192,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String MQ_DELAY_MONITOR_CONSUMER_GROUP = "mq.delay.monitor.consumer.group";
     private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
 
-    private static final String RELATION_COST_APP = "relation.cost.app";
-
-    private static final String RELATION_COST_MYSQL = "relation.cost.mysql";
-
-    private static final String RELATION_COST_SLB = "relation.cost.slb";
-
-    private static final String RELATION_COST_CAT = "relation.cost.cat";
+    private static final String RELATION_COST_APPS = "relation.cost.apps";
 
     public String getDrcMetaXmlUpdateSwitch() {
         return getProperty(DRC_META_XML_UPDATE_SWITCH, SWITCH_STATUS_ON);
@@ -519,39 +516,13 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     }
 
-    public List<String> getRelationCostApp() {
-        String appString = getProperty(RELATION_COST_APP, "");
-        if (StringUtils.isBlank(appString)) {
-            return Lists.newArrayList();
+    public Map<String, Set<String>> getRelationCostApps() {
+        String relationCostInfo = getProperty(RELATION_COST_APPS, EMPTY_STRING);
+        if (StringUtils.isEmpty(relationCostInfo)) {
+            return Maps.newHashMap();
         } else {
-            return Arrays.asList(appString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostMysql() {
-        String mysqlString = getProperty(RELATION_COST_MYSQL, "");
-        if (StringUtils.isBlank(mysqlString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(mysqlString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostSlb() {
-        String slbString = getProperty(RELATION_COST_SLB, "");
-        if (StringUtils.isBlank(slbString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(slbString.split(","));
-        }
-    }
-
-    public List<String> getRelationCostCat() {
-        String catString = getProperty(RELATION_COST_CAT, "");
-        if (StringUtils.isBlank(catString)) {
-            return Lists.newArrayList();
-        } else {
-            return Arrays.asList(catString.split(","));
+            return JsonCodec.INSTANCE.decode(relationCostInfo, new GenericTypeReference<Map<String, Set<String>>>() {
+            });
         }
     }
     
