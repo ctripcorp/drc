@@ -76,9 +76,11 @@ public class MessengerNotifier extends AbstractNotifier implements Notifier {
                 config.port = messenger.getPort();
                 config.setGtidExecuted(messenger.getGtidExecuted());
                 String nameFilter = messenger.getNameFilter();
+
                 if (StringUtils.isNotBlank(nameFilter)) {
-                    if (!nameFilter.toLowerCase().contains(DRC_DELAY_MONITOR_NAME)) {
-                        nameFilter = DRC_DELAY_MONITOR_NAME + "," + nameFilter;
+                    String formatNameFilter = nameFilter.trim().toLowerCase();
+                    if (!formatNameFilter.contains(DRC_DELAY_MONITOR_NAME) && !formatNameFilter.contains(DRC_DELAY_MONITOR_NAME_REGEX)) {
+                        nameFilter = DRC_DELAY_MONITOR_NAME_REGEX + "," + nameFilter;
                     }
                 }
                 config.setNameFilter(nameFilter);
