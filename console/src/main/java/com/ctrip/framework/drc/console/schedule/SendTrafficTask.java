@@ -68,6 +68,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
 
     private Map<String, DbTbl> dbMap = Maps.newHashMap();
 
+    private Map<String, String> parentRelationGroups = Maps.newHashMap();
+
     @Autowired
     private MonitorTableSourceProvider configService;
 
@@ -144,6 +146,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     }
 
     private void sendRelationCost() {
+        parentRelationGroups = configService.getParentRelationGroups();
         Map<String, Set<String>> apps = configService.getRelationCostApps();
         apps.forEach(this::sendRelationCostToKafka);
     }
@@ -158,7 +161,8 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             metric.setRefered_service_type(referedName);
             metric.setRefered_app_instance(instance);
             metric.setRelation_group(String.format("%s.%s", serviceTypeStorage, costGroup));
-            metric.setParent_relation_group("");
+            String parentRelationGroup = parentRelationGroups.get(referedName);
+            metric.setParent_relation_group(parentRelationGroup == null ? "" : parentRelationGroup);
             metric.set_schema_version(schemaVersion);
 
             try {
