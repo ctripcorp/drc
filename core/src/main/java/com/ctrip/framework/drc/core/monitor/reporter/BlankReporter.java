@@ -21,6 +21,11 @@ public class BlankReporter implements Reporter {
     }
 
     @Override
+    public void reportMessengerDelay(Map<String, String> tags, long delay, String measurement) {
+        
+    }
+
+    @Override
     public void reportTraffic(TrafficEntity entity, Long bytes) {
 
     }

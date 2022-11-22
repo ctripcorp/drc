@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.manager.ha.meta.impl;
 
-import com.ctrip.framework.drc.core.entity.Applier;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.core.entity.Route;
+import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.cluster.CurrentClusterServer;
@@ -256,6 +253,11 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
+    public Messenger getActiveMessenger(String clusterId) {
+        return currentMeta.getActiveMessenger(clusterId);
+    }
+
+    @Override
     public List<Applier> getActiveAppliers(String clusterId) {
         return currentMeta.getActiveAppliers(clusterId);
     }
@@ -278,6 +280,11 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     @Override
     public List<Replicator> getSurviveReplicators(String clusterId) {
         return currentMeta.getSurviveReplicators(clusterId);
+    }
+
+    @Override
+    public List<Messenger> getSurviveMessengers(String clusterId) {
+        return currentMeta.getSurviveMessengers(clusterId);
     }
 
     @Override
@@ -307,6 +314,12 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     }
 
     @Override
+    public void setSurviveMessengers(String registryKey, List<Messenger> surviveMessengers, Messenger activeMessenger) {
+        currentMeta.setSurviveMessengers(registryKey, surviveMessengers, activeMessenger);
+        notifyMessengerActiveElected(registryKey, activeMessenger);
+    }
+
+    @Override
     public void setSurviveAppliers(String registryKey, List<Applier> surviveAppliers, Applier activeApplier) {
         currentMeta.setSurviveAppliers(registryKey, surviveAppliers, activeApplier);
         notifyApplierActiveElected(registryKey, activeApplier);
@@ -315,6 +328,11 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
     @Override
     public boolean watchReplicatorIfNotWatched(String registryKey) {
         return currentMeta.watchReplicatorIfNotWatched(registryKey);
+    }
+
+    @Override
+    public boolean watchMessengerIfNotWatched(String registryKey) {
+        return currentMeta.watchMessengerIfNotWatched(registryKey);
     }
 
     @Override
@@ -442,6 +460,17 @@ public class DefaultCurrentMetaManager extends AbstractLifecycleObservable imple
                 stateHandler.replicatorActiveElected(clusterId, activeReplicator);
             } catch (Exception e) {
                 logger.error("[notifyReplicatorActiveElected]" + clusterId + "," + activeReplicator, e);
+            }
+        }
+    }
+
+    private void notifyMessengerActiveElected(String clusterId, Messenger activeMessenger) {
+
+        for(StateChangeHandler stateHandler : stateHandlers){
+            try {
+                stateHandler.messengerActiveElected(clusterId, activeMessenger);
+            } catch (Exception e) {
+                logger.error("[notifyMessengerActiveElected]" + clusterId + "," + activeMessenger, e);
             }
         }
     }

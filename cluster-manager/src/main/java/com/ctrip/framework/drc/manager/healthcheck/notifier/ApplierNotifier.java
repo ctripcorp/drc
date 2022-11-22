@@ -16,13 +16,14 @@ import com.ctrip.xpipe.proxy.ProxyEndpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.*;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.NOTIFY_LOGGER;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_DELAY_MONITOR_NAME;
 
 /**
  * Created by mingdongli
@@ -147,7 +148,15 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                 config.setGtidExecuted(applier.getGtidExecuted());
                 config.setIncludedDbs(applier.getIncludedDbs());
                 config.setApplyMode(dbCluster.getApplyMode());
-                config.setNameFilter(applier.getNameFilter());
+
+                String nameFilter = applier.getNameFilter();
+                if (StringUtils.isNotBlank(nameFilter)) {
+                    if (!nameFilter.toLowerCase().contains(DRC_DELAY_MONITOR_NAME)) {
+                        nameFilter = DRC_DELAY_MONITOR_NAME + "," + nameFilter;
+                    }
+                }
+                config.setNameFilter(nameFilter);
+
                 config.setNameMapping(applier.getNameMapping());
                 Route route = getRoute(dbCluster.getId(), applier.getTargetIdc());
                 config.setProperties(applier.getProperties());

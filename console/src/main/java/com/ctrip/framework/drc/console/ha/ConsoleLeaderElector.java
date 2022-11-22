@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.ha;
 
-import com.ctrip.framework.drc.console.utils.SpringUtils;
+import com.ctrip.framework.drc.core.utils.SpringUtils;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.xpipe.cluster.AbstractLeaderElector;
 import org.springframework.context.annotation.DependsOn;
@@ -17,21 +17,21 @@ import javax.annotation.PostConstruct;
  */
 // About Order:
 // 1 -> important monitor or schedule task
-// 2 -> other monitor or task 
+// 2 -> other monitor or task
 // 3 -> leaderElector
 @Component
 @Order(3)
 //@DependsOn({
 //        "springUtils", "periodicalUpdateDbTask", "listenReplicatorTask", "consistentMonitorContainer",
 //        "gtidMonitorTask", "checkTableConsistencyTask", "checkIncrementIdTask", "uuidMonitor",
-//        "btdhsMonitor", "ddlMonitor", "periodicalRegisterBeaconTask", "syncMhaTask", "syncTableConfigTask", 
+//        "btdhsMonitor", "ddlMonitor", "periodicalRegisterBeaconTask", "syncMhaTask", "syncTableConfigTask",
 //        "updateDataConsistencyMetaTask", "clearConflictLog"
 //})
 @DependsOn({"springUtils"})
 public class ConsoleLeaderElector extends AbstractLeaderElector {
-    
+
     public static final String CONSOLE_LEADER_ELECTOR_PATH = "/console/leader";
-    
+
     @PostConstruct
     public void leaderElectorInit(){
         try {
@@ -52,5 +52,5 @@ public class ConsoleLeaderElector extends AbstractLeaderElector {
     protected String getLeaderElectPath() {
         return CONSOLE_LEADER_ELECTOR_PATH;
     }
-    
+
 }

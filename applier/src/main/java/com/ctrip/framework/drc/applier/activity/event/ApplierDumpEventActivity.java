@@ -47,7 +47,7 @@ public class ApplierDumpEventActivity extends DumpEventActivity<FetcherEvent> {
         }
 
         if (event instanceof ApplierXidEvent) {
-            ((ApplierXidEvent) event).involve(context);
+            ((ApplierXidEvent) event).updateDumpPosition(context);
             return;
         }
 

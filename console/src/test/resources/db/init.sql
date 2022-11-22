@@ -63,6 +63,7 @@ CREATE TABLE `mha_tbl` (
  `id`                       bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
  `mha_name`                 varchar(50) COMMENT '集群mha名称',
  `mha_group_id`             bigint(20) COMMENT '集群mha group id，表示复制关系',
+ `monitor_switch` tinyint(4) not null default '0'  comment '是否开启监控, 0:否; 1:是',
  `dc_id`                    bigint(20) COMMENT '集群mha所在dc id',
  `dns_status`               tinyint(4) NOT NULL DEFAULT '0' COMMENT 'db分机房域名是否创建, 0:否; 1:是',
  `apply_mode`               tinyint NOT NULL DEFAULT 1 COMMENT 'apply mode, 0:set gtid; 1:transaction table',

@@ -71,6 +71,10 @@ public class SystemConfig {
 
     public static final String DRC_DELAY_MONITOR_NAME = DRC_MONITOR_SCHEMA_NAME + "." + DRC_DELAY_MONITOR_TABLE_NAME;
 
+    public static final String MESSENGER_DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
+
+    public static final String DRC_MQ = "_drc_mq";
+
     public static final String EVENT_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionMonitorFilter";
 
     public static final Logger EVENT_LOGGER = LoggerFactory.getLogger(EVENT_LOG);

@@ -1,11 +1,9 @@
 package com.ctrip.framework.drc.applier.container;
 
+import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
-import com.ctrip.framework.drc.applier.server.ApplierServer;
-import com.ctrip.framework.drc.applier.server.ApplierServerInCluster;
-import com.ctrip.framework.drc.applier.server.ApplierWatcher;
-import com.ctrip.framework.drc.applier.server.TransactionTableApplierServerInCluster;
+import com.ctrip.framework.drc.applier.server.*;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -88,6 +86,8 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         switch (applyMode) {
             case transaction_table:
                 return new TransactionTableApplierServerInCluster(config);
+            case mq:
+                return new MqServerInCluster(config);
             default:
                 return new ApplierServerInCluster(config);
         }
@@ -118,6 +118,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                         if (!file.exists()) {
                             Files.createParentDirs(file);
                             Files.touch(file);
+                            logger.info("create file for {}", registryKey);
                         } else {
                             logger.info("skip touch file for {}", registryKey);
                         }
@@ -142,6 +143,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         try {
             File file = new File(SystemConfig.APPLIER_PATH + FilenameUtils.normalize(registryKey));
             file.delete();
+            logger.info("delete file for {}", registryKey);
         } catch (Exception e) {
             logger.info("delete {} error", registryKey, e);
         }
@@ -221,14 +223,23 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         public void run() {
             try {
                 DataSourceResource dataSourceResource = serverInCluster.getDataSourceResource(); //resource just has initialize and dispose
-                dataSourceResource.dispose();
-                logger.info("close datasource for {}", registryKey);
+                if (dataSourceResource != null) {
+                    dataSourceResource.dispose();
+                    logger.info("close datasource for {}", registryKey);
+                }
 
                 // merge transaction table if need
                 TransactionTableResource transactionTableResource = serverInCluster.getTransactionTableResource();
                 if (transactionTableResource != null) {
                     transactionTableResource.dispose();
                     logger.info("dispose transaction for {} before shutdown", registryKey);
+                }
+
+                // persist mq position
+                MqPositionResource mqPositionResource = serverInCluster.getMqPositionResource();
+                if (mqPositionResource != null) {
+                    mqPositionResource.dispose();
+                    logger.info("dispose mq position for {} before shutdown", registryKey);
                 }
 
                 if (leaderElector != null) {

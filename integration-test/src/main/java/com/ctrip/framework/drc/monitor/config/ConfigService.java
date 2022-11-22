@@ -28,6 +28,7 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_AUTO_WRITE_SWITCH = "auto.write.switch";
     private static final String KEY_AUTO_BENCHMARK_SWITCH = "auto.benchmark.switch";
     private static final String KEY_AUTO_DDL_SWITCH = "auto.ddl.switch";
+    private static final String KEY_AUTO_MESSENGER_SWITCH = "auto.messenger.switch";
     private static final String KEY_AUTO_DAL_SWITCH = "auto.dal.switch";
     private static final String KEY_AUTO_UNI_SWITCH = "auto.uni.switch";
     private static final String KEY_AUTO_BI_SWITCH = "auto.bi.switch";
@@ -130,6 +131,10 @@ public class ConfigService extends AbstractConfigBean {
 
     public boolean getAutoDdlSwitch() {
         return getBooleanProperty(KEY_AUTO_DDL_SWITCH, DEFAULT_AUTO_DDL_SWITCH);
+    }
+
+    public boolean getAutoMessengerSwitch() {
+        return getBooleanProperty(KEY_AUTO_MESSENGER_SWITCH, false);
     }
 
     public boolean getAutoDalSwitch() {

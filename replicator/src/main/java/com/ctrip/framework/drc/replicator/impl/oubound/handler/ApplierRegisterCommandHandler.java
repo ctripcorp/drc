@@ -202,7 +202,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.skipDrcGtidLogEvent = setGitdMode && (consumeType != ConsumeType.Replicator);
+            this.skipDrcGtidLogEvent = setGitdMode && !consumeType.requestAllBinlog();
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
             this.applierRegion = dumpCommandPacket.getRegion();
@@ -463,7 +463,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 channel.writeAndFlush(new BinlogFileRegion(fileChannel, fileChannel.position() - eventSize, eventSize).retain());  //read all
                 previousGtidLogEvent = gtidLogEvent.getGtid();
                 transactionSize = 0;
-                if (drc_gtid_log_event == eventType && consumeType != ConsumeType.Replicator) {
+                if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
                     in_exclude_group = true;
                     outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(DRC_GTID_EVENT_DB_NAME, replicatorRegion, applierRegion, consumeType.name()), eventSize);
                 } else {

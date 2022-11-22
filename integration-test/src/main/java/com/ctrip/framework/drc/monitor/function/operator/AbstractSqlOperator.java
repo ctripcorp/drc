@@ -447,72 +447,72 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                 "CREATE DATABASE IF NOT EXISTS drc4;",
 
                 "CREATE TABLE `drc4`.`row_filter` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',\n" +
-                        "  `uid` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `charlt256` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chareq256` char(128) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chargt256` char(255) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '',\n" +
+                        "  `uid` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `charlt256` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `chareq256` char(128) DEFAULT NULL COMMENT '',\n" +
+                        "  `chargt256` char(255) DEFAULT NULL COMMENT '',\n" +
+                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '',\n" +
                         "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
-                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',\n" +
+                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '',\n" +
                         "  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',\n" +
                         "  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',\n" +
-                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',\n" +
-                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',\n" +
-                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',\n" +
-                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',\n" +
-                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',\n" +
-                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',\n" +
-                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',\n" +
-                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',\n" +
-                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',\n" +
-                        "  `drc_float_test` float DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_double_test` double DEFAULT '123' COMMENT '空',\n" +
+                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '',\n" +
+                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '',\n" +
+                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '',\n" +
+                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '',\n" +
+                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '',\n" +
+                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '',\n" +
+                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '',\n" +
+                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '',\n" +
+                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '',\n" +
+                        "  `drc_float_test` float DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_double_test` double DEFAULT '123' COMMENT '',\n" +
                         "  `drc_bit4_test` bit(4) DEFAULT b'11' COMMENT 'TEST',\n" +
-                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',\n" +
-                        "  `drc_real_test` double DEFAULT '234' COMMENT '空',\n" +
-                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',\n" +
-                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '空',\n" +
-                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',\n" +
-                        "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
+                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '',\n" +
+                        "  `drc_real_test` double DEFAULT '234' COMMENT '',\n" +
+                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '',\n" +
+                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '',\n" +
+                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '',\n" +
+                        "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT 'Name',\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
                         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='test';",
                 "CREATE TABLE `drc4`.`row_filter_udl` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',\n" +
-                        "  `uid` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `udl` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `charlt256` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chareq256` char(128) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chargt256` char(255) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '',\n" +
+                        "  `uid` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `udl` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `charlt256` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `chareq256` char(128) DEFAULT NULL COMMENT '',\n" +
+                        "  `chargt256` char(255) DEFAULT NULL COMMENT '',\n" +
+                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '',\n" +
                         "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
-                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',\n" +
+                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '',\n" +
                         "  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',\n" +
                         "  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',\n" +
-                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',\n" +
-                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',\n" +
-                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',\n" +
-                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',\n" +
-                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',\n" +
-                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',\n" +
-                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',\n" +
-                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',\n" +
-                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',\n" +
-                        "  `drc_float_test` float DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_double_test` double DEFAULT '123' COMMENT '空',\n" +
+                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '',\n" +
+                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '',\n" +
+                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '',\n" +
+                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '',\n" +
+                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '',\n" +
+                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '',\n" +
+                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '',\n" +
+                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '',\n" +
+                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '',\n" +
+                        "  `drc_float_test` float DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_double_test` double DEFAULT '123' COMMENT '',\n" +
                         "  `drc_bit4_test` bit(4) DEFAULT b'11' COMMENT 'TEST',\n" +
-                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',\n" +
-                        "  `drc_real_test` double DEFAULT '234' COMMENT '空',\n" +
-                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',\n" +
-                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '空',\n" +
-                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',\n" +
+                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '',\n" +
+                        "  `drc_real_test` double DEFAULT '234' COMMENT '',\n" +
+                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '',\n" +
+                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002' COMMENT '',\n" +
+                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '',\n" +
                         "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
@@ -525,35 +525,35 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                 "CREATE DATABASE IF NOT EXISTS drc4;",
 
                 "CREATE TABLE `drc4`.`grand_transaction` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',\n" +
-                        "  `charlt256` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chareq256` char(128) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chargt256` char(255) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '',\n" +
+                        "  `charlt256` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `chareq256` char(128) DEFAULT NULL COMMENT '',\n" +
+                        "  `chargt256` char(255) DEFAULT NULL COMMENT '',\n" +
+                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '',\n" +
                         "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
-                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',\n" +
+                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '',\n" +
                         "  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',\n" +
                         "  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',\n" +
-                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',\n" +
-                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',\n" +
-                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',\n" +
-                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',\n" +
-                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',\n" +
-                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',\n" +
-                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',\n" +
-                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',\n" +
-                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',\n" +
-                        "  `drc_float_test` float DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_double_test` double DEFAULT '123' COMMENT '空',\n" +
+                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '',\n" +
+                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '',\n" +
+                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '',\n" +
+                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '',\n" +
+                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '',\n" +
+                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '',\n" +
+                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '',\n" +
+                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '',\n" +
+                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '',\n" +
+                        "  `drc_float_test` float DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_double_test` double DEFAULT '123' COMMENT '',\n" +
                         "  `drc_bit4_test` bit(1) DEFAULT b'1' COMMENT 'TEST',\n" +
-                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',\n" +
-                        "  `drc_real_test` double DEFAULT '234' COMMENT '空',\n" +
-                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',\n" +
-                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0' COMMENT '空',\n" +
-                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',\n" +
+                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '',\n" +
+                        "  `drc_real_test` double DEFAULT '234' COMMENT '',\n" +
+                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '',\n" +
+                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0' COMMENT '',\n" +
+                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '',\n" +
                         "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +
@@ -634,35 +634,35 @@ public abstract class AbstractSqlOperator extends BaseSqlOperator implements Rea
                 "create database if not exists bbzdrcbenchmarkdb character set utf8;",
 
                 "CREATE TABLE IF NOT EXISTS `bbzdrcbenchmarkdb`.`benchmark1` (\n" +
-                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '空',\n" +
-                        "  `charlt256` char(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chareq256` char(128) DEFAULT NULL COMMENT '空',\n" +
-                        "  `chargt256` char(255) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '空',\n" +
-                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '空',\n" +
+                        "  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '',\n" +
+                        "  `charlt256` char(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `chareq256` char(128) DEFAULT NULL COMMENT '',\n" +
+                        "  `chargt256` char(255) DEFAULT NULL COMMENT '',\n" +
+                        "  `varcharlt256` varchar(30) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchareq256` varchar(256) DEFAULT NULL COMMENT '',\n" +
+                        "  `varchargt256` varchar(12000) CHARACTER SET utf8 DEFAULT NULL COMMENT '',\n" +
                         "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',\n" +
-                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '空',\n" +
+                        "  `drc_id_int` int(11) NOT NULL DEFAULT '1' COMMENT '',\n" +
                         "  `addcol1` varchar(64) DEFAULT 'default_addcol1' COMMENT 'test',\n" +
                         "  `addcol2` varchar(64) DEFAULT 'default_addcol2' COMMENT 'test',\n" +
-                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '空',\n" +
-                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '空',\n" +
-                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '空',\n" +
-                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '空',\n" +
-                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '空',\n" +
-                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '空',\n" +
-                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '空',\n" +
-                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '空',\n" +
-                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '空',\n" +
-                        "  `drc_float_test` float DEFAULT '12' COMMENT '空',\n" +
-                        "  `drc_double_test` double DEFAULT '123' COMMENT '空',\n" +
+                        "  `drc_char_test_2` char(30) DEFAULT 'char' COMMENT '',\n" +
+                        "  `drc_tinyint_test_2` tinyint(4) DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_bigint_test` bigint(20) DEFAULT '120' COMMENT '',\n" +
+                        "  `drc_integer_test` int(11) DEFAULT '11' COMMENT '',\n" +
+                        "  `drc_mediumint_test` mediumint(9) DEFAULT '12345' COMMENT '',\n" +
+                        "  `drc_time6_test` time DEFAULT '02:02:02' COMMENT '',\n" +
+                        "  `drc_datetime3_test` datetime(3) DEFAULT '2019-01-01 01:01:01.000' COMMENT '',\n" +
+                        "  `drc_year_test` year(4) DEFAULT '2020' COMMENT '',\n" +
+                        "  `hourly_rate_3` decimal(10,2) NOT NULL DEFAULT '1.00' COMMENT '',\n" +
+                        "  `drc_numeric10_4_test` decimal(10,4) DEFAULT '100.0000' COMMENT '',\n" +
+                        "  `drc_float_test` float DEFAULT '12' COMMENT '',\n" +
+                        "  `drc_double_test` double DEFAULT '123' COMMENT '',\n" +
                         "  `drc_bit4_test` bit(4) DEFAULT b'11' COMMENT 'TEST',\n" +
-                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '空',\n" +
-                        "  `drc_real_test` double DEFAULT '234' COMMENT '空',\n" +
-                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '空',\n" +
-                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0' COMMENT '空',\n" +
-                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '空',\n" +
+                        "  `drc_double10_4_test` double(10,4) DEFAULT '123.1245' COMMENT '',\n" +
+                        "  `drc_real_test` double DEFAULT '234' COMMENT '',\n" +
+                        "  `drc_real10_4_test` double(10,4) DEFAULT '23.4000' COMMENT '',\n" +
+                        "  `drc_binary200_test_2` binary(200) DEFAULT 'binary2002\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0\\0' COMMENT '',\n" +
+                        "  `drc_varbinary1800_test_2` varbinary(1800) DEFAULT 'varbinary1800' COMMENT '',\n" +
                         "  `addcol` varchar(50) DEFAULT 'addColName' COMMENT '添加普通Name',\n" +
                         "  PRIMARY KEY (`id`),\n" +
                         "  KEY `ix_DataChange_LastTime` (`datachange_lasttime`)\n" +

@@ -1,26 +1,20 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.dto.MhaDto;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -34,14 +28,20 @@ public class MhaController {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     
-    @Autowired
-    private MhaService mhaService;
+    @Autowired private MhaService mhaService;
 
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    @Autowired private MetaInfoServiceImpl metaInfoService;
     
-    @Autowired
-    private MySqlService mySqlService;
+    @Autowired private MySqlService mySqlService;
+    
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    
+    
+    @PostMapping()
+    public ApiResult recordMha(@RequestBody MhaDto mhaDto) {
+        return mhaService.recordMha(mhaDto);
+    }
     
     /**
      * Get all the mha names
@@ -87,7 +87,18 @@ public class MhaController {
             String[] mhaArrs = mhas.split(",");
             if (mhaArrs.length == 2) {
                 MhaGroupTbl mhaGroup = metaInfoService.getMhaGroup(mhaArrs[0], mhaArrs[1]);
-                return ApiResult.getSuccessInstance(MySqlUtils.getUuid(ip,port,mhaGroup.getReadUser(),mhaGroup.getReadPassword(),master));
+                return ApiResult.getSuccessInstance(
+                        MySqlUtils.getUuid(ip,port,mhaGroup.getReadUser(),mhaGroup.getReadPassword(),master)
+                );
+            } else {
+                return ApiResult.getSuccessInstance(
+                        MySqlUtils.getUuid(
+                                ip,
+                                port,
+                                monitorTableSourceProvider.getReadUserVal(),
+                                monitorTableSourceProvider.getReadPasswordVal(),
+                                master
+                        ));
             }
         } catch (Throwable e) {
             logger.error("Getting getRealUuid from {}:{} in mhas:{} error",ip,port,mhas,e);
