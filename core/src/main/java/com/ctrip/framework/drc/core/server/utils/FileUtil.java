@@ -24,7 +24,7 @@ public class FileUtil {
 
     public static List<File> sortDataDir(File[] files, String prefix, boolean ascending) {
         if (files == null) {
-            return new ArrayList<File>(0);
+            return new ArrayList<>(0);
         }
         List<File> fileList = Lists.newArrayList();
         for (File file : files) {
@@ -48,6 +48,7 @@ public class FileUtil {
         return fileNum;
     }
 
+    @SuppressWarnings("findbugs:NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public static FileContext restore(String dir) throws Exception {
         File mysqlDir = new File(dir);
         File[] files = mysqlDir.listFiles();
@@ -67,6 +68,7 @@ public class FileUtil {
                 StringBuffer sb = new StringBuffer(in.readLine());
                 pid = Long.parseLong(sb.toString());
                 realPath = tmpName;
+                in.close();
             }
         }
 

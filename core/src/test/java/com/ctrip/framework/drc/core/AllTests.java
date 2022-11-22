@@ -61,7 +61,6 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        CommentQueryTaskTest.class,
         JavaRegexRowsFilterRuleTest.class,
         AviatorRegexRowsFilterRuleTest.class,
         UidRowsFilterRuleTest.class,
@@ -76,6 +75,7 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleForUidTest.class,
         //schema
         TablePartitionManagerTest.class,
+        CommentQueryTaskTest.class,
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
         //proxy
