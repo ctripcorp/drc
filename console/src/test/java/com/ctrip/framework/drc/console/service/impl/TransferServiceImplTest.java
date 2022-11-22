@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.mock.helpers.DcComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -18,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -32,20 +35,19 @@ import static com.ctrip.framework.drc.console.AllTests.*;
 
 public class TransferServiceImplTest extends AbstractTest {
 
-    @InjectMocks
-    private TransferServiceImpl transferService;
+    @InjectMocks private TransferServiceImpl transferService;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock
-    private DataCenterService dataCenterService;
+    @Mock private DataCenterService dataCenterService;
 
-    @Mock
-    private MetaInfoServiceImpl metaInfoService = new MetaInfoServiceImpl();
+    @Mock private MetaInfoServiceImpl metaInfoService = new MetaInfoServiceImpl();
 
-    @Mock
-    private RowsFilterService rowsFilterService;
+    @Mock private RowsFilterService rowsFilterService;
+
+    @Mock private MessengerService messengerService;
+
+    @Mock private MonitorTableSourceProvider monitorConfigProvider;
 
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
@@ -59,7 +61,7 @@ public class TransferServiceImplTest extends AbstractTest {
         MockitoAnnotations.openMocks(this);
         Mockito.doReturn(IDC).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
-        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong());
+        Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0));
         AllTests.truncateAllMetaDb();
 
         /**

@@ -39,6 +39,11 @@ public class MonitoredXidEvent<T extends BaseTransactionContext> extends XidLogE
 
     @Override
     public void involve(EventGroupContext context) {
+//        gtid = context.fetchGtid();
+//        context.commit();
+    }
+
+    public void updateDumpPosition(EventGroupContext context) {
         gtid = context.fetchGtid();
         context.commit();
     }

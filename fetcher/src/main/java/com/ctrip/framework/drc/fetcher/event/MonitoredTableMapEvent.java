@@ -32,7 +32,7 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
     private DirectMemory directMemory;
 
     public MonitoredTableMapEvent() {
-        DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "table map", 1, 0);
+        logTableMapEvent();
     }
 
     private AtomicBoolean released = new AtomicBoolean(false);
@@ -56,6 +56,14 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
         setTableKey(TableKey.from(getSchemaName(), getTableName()));
         linkContext.updateTableKey(tableKey);
         linkContext.updateColumns(getColumns());
+        logEvent();
+    }
+
+    protected void logTableMapEvent() {
+        DefaultEventMonitorHolder.getInstance().logBatchEvent("db.event", "table map", 1, 0);
+    }
+
+    protected void logEvent() {
         DefaultEventMonitorHolder.getInstance().logBatchEvent("db", getSchemaName(), 1, 0);
         DefaultEventMonitorHolder.getInstance().logBatchEvent("table", getSchemaName() + "." + getTableName(), 1, 0);
     }

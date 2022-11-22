@@ -15,6 +15,8 @@ public class ClusterComparator extends AbstractMetaComparator<Instance, DbCluste
 
     private ReplicatorComparator replicatorComparator;
 
+    private MessengerComparator messengerComparator;
+
     private ApplierComparator applierComparator;
 
     private DbComparator dbComparator;
@@ -28,6 +30,9 @@ public class ClusterComparator extends AbstractMetaComparator<Instance, DbCluste
     public void compare() {
         replicatorComparator = new ReplicatorComparator(current, future);
         replicatorComparator.compare();
+
+        messengerComparator = new MessengerComparator(current, future);
+        messengerComparator.compare();
 
         applierComparator = new ApplierComparator(current, future);
         applierComparator.compare();
@@ -64,6 +69,10 @@ public class ClusterComparator extends AbstractMetaComparator<Instance, DbCluste
 
     public ReplicatorComparator getReplicatorComparator() {
         return replicatorComparator;
+    }
+
+    public MessengerComparator getMessengerComparator() {
+        return messengerComparator;
     }
 
     public ApplierComparator getApplierComparator() {

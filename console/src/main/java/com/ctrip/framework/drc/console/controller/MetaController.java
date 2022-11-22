@@ -207,9 +207,9 @@ public class MetaController {
     }
 
     @GetMapping("mhas/{mha}/resources/all/types/{type}")
-    public ApiResult getResourcesInDcOfMha(@PathVariable String mha, @PathVariable String type) {
-        logger.info("[meta] get {} resources in dc of mha({})", type, mha);
-        return ApiResult.getSuccessInstance(metaInfoService.getResourcesInDcOfMha(mha, type));
+    public ApiResult getResourcesInRegionOfMha(@PathVariable String mha, @PathVariable String type) {
+        logger.info("[meta] get {} resources in region of mha({})", type, mha);
+        return ApiResult.getSuccessInstance(metaInfoService.getResourcesInRegionOfMha(mha, type));
     }
 
     //just for dc migration
@@ -360,7 +360,11 @@ public class MetaController {
         logger.info("[meta] query meta config for {}", mhas);
         try {
             String[] mhaArr = mhas.split(",");
-            return ApiResult.getSuccessInstance(metaInfoService.getXmlConfiguration(mhaArr[0], mhaArr[1]));
+            if (mhaArr.length == 1) {
+                return ApiResult.getSuccessInstance(metaInfoService.getXmlConfiguration(mhaArr[0]));
+            } else {
+                return ApiResult.getSuccessInstance(metaInfoService.getXmlConfiguration(mhaArr[0], mhaArr[1]));
+            }
         } catch (Exception e) {
             logger.error("[meta] meta config for {}", mhas, e);
         }

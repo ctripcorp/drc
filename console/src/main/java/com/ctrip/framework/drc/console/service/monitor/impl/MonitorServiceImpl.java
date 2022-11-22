@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.monitor.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.GroupMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
@@ -34,14 +35,13 @@ public class MonitorServiceImpl implements MonitorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DbClusterSourceProvider sourceProvider;
 
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired
-    private OpenService openService;
+    @Autowired private OpenService openService;
+    
+    @Autowired private MhaTblDao mhaTblDao;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -62,13 +62,21 @@ public class MonitorServiceImpl implements MonitorService {
     }
 
     @Override
+    public void switchMonitors(String mhaName, String status) throws SQLException {
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
+        mhaTbl.setMonitorSwitch(monitorSwitch);
+        mhaTblDao.update(mhaTbl);
+    }
+
+    @Override
     public List<String> queryMhaNamesToBeMonitored() throws SQLException {
-        List<Long> mhaIdsTobeMonitored = queryMhaIdsToBeMonitored();
+        // switch control by mha
         MhaTbl mhaTbl = new MhaTbl();
         mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        List<MhaTbl> mhaTbls = dalUtils.getMhaTblDao().queryBy(mhaTbl);
-        return mhaTbls.stream().filter(p -> mhaIdsTobeMonitored.contains(p.getId()))
-                .map(MhaTbl::getMhaName).collect(Collectors.toList());
+        mhaTbl.setMonitorSwitch(1);
+        List<MhaTbl> mhaTbls = mhaTblDao.queryBy(mhaTbl);
+        return mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
     }
 
     @Override
@@ -84,7 +92,6 @@ public class MonitorServiceImpl implements MonitorService {
         List<GroupMappingTbl> groupMappingTbls = dalUtils.getGroupMappingTblDao().queryBy(groupMappingTbl);
         List<Long> mhaIdsTobeMonitored = groupMappingTbls.stream().filter(p -> mhaGroupIdsTobeMonitored
                 .contains(p.getMhaGroupId())).map(GroupMappingTbl::getMhaId).collect(Collectors.toList());
-        
         return mhaIdsTobeMonitored;
     }
 

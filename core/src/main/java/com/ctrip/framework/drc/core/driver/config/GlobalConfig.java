@@ -30,6 +30,8 @@ public interface GlobalConfig {
 
     String REPLICATOR_UUIDS_PATH = "/replicator/config/uuids";
 
+    String APPLIER_POSITIONS_PATH = "/applier/config/positions";
+
     String BU = "BBZ";
 
     String DC = "SHAOY";

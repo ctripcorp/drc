@@ -306,10 +306,10 @@ export default {
   methods: {
     getOrInitSimplexDrc () {
       console.log(this.drc.srcMha + '/' + this.drc.destMha)
-      this.axios.post('/api/drc/v1/build/simplexDrc/' + this.drc.srcMha + '/' + this.drc.destMha)
+      this.axios.post('/api/drc/v1/build/simplexDrc?srcMha=' + this.drc.srcMha + '&destMha=' + this.drc.destMha)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('获取或创建该方向同步!')
+            window.alert('获取或创建该方向同步失败!')
           } else {
             const vo = response.data.data
             this.drc.srcDc = vo.srcDc
@@ -526,14 +526,16 @@ export default {
         '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
         '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
-        '&name=' + this.rowsFilterConfig.name)
+        '&name=' + this.rowsFilterConfig.name +
+        '&applierType=' + 0)
       this.axios.get(
         '/api/drc/v1/build/dataMedia/conflictCheck?' +
         'applierGroupId=' + this.drc.applierGroupId +
         '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
         '&mhaName=' + this.drc.srcMha +
         '&namespace=' + this.rowsFilterConfig.namespace +
-        '&name=' + this.rowsFilterConfig.name)
+        '&name=' + this.rowsFilterConfig.name +
+        '&applierType=' + 0)
         .then(response => {
           if (response.data.status === 1) {
             window.alert('表匹配冲突校验失败，请勿配置重复表！！')

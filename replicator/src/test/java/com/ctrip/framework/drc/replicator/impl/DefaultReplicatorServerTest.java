@@ -99,7 +99,7 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
         Assert.assertTrue(pass);
     }
 
-    //    @Test
+//    @Test
     public void testStartMySQLMaster() throws Exception {
         replicatorServer.initialize();
         replicatorServer.start();

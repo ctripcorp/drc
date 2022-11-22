@@ -1,16 +1,14 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
-import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
-import com.ctrip.framework.drc.console.service.impl.*;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,54 +31,52 @@ import java.util.Set;
 public class BuildController {
     private Logger logger = LoggerFactory.getLogger(getClass());
     
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
     
-    @Autowired
-    private RowsFilterService rowsFilterService;
+    @Autowired private RowsFilterService rowsFilterService;
     
-    @Autowired
-    private DrcBuildService drcBuildService;
+    @Autowired private DrcBuildService drcBuildService;
     
-    private  DalUtils dalUtils = DalUtils.getInstance();
-    
-    private  ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
-    
-    private  ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
-    
-    
-    @PostMapping("simplexDrc/{srcMha}/{destMha}") 
-    public ApiResult getOrBuildSimplexDrc(@PathVariable String srcMha, @PathVariable String destMha) {
-        // if not exist add replicatorGroup[srcMha] and applierGroup[srcMha->destMha]
+    @PostMapping("simplexDrc") 
+    public ApiResult getOrBuildSimplexDrc(@RequestParam(value = "srcMha", defaultValue = "") String srcMha,
+                                          @RequestParam(value = "destMha", defaultValue = "") String destMha) {
         try {
-            Long srcMhaId = dalUtils.getId(TableEnum.MHA_TABLE, srcMha);
-            Long destMhaId = dalUtils.getId(TableEnum.MHA_TABLE, destMha);
-            String srcDc = metaInfoService.getDc(srcMha);
-            String destDc = metaInfoService.getDc(destMha);
-            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaId);
-            Long destApplierGroupId = applierGroupTblDao.upsertIfNotExist(srcReplicatorGroupId, destMhaId);
-            SimplexDrcBuildVo simplexDrcBuildVo = new SimplexDrcBuildVo(
-                    srcMha,
-                    destMha,
-                    srcDc,
-                    destDc,
-                    destApplierGroupId,
-                    srcReplicatorGroupId,
-                    srcMhaId
-            );
-            return ApiResult.getSuccessInstance(simplexDrcBuildVo);
+            return drcBuildService.getOrBuildSimplexDrc(srcMha,destMha);
         } catch (SQLException e) {
             logger.error("sql error", e);
             return ApiResult.getFailInstance("sql error");
         }
     }
 
+    
+    @PostMapping("replicatorIps/check")
+    public ApiResult preCheckBeforeBuildDrc(@RequestBody MessengerMetaDto dto) {
+        logger.info("[meta] preCheck meta config for  {}", dto);
+        try {
+            return ApiResult.getSuccessInstance(drcBuildService.preCheckBeReplicatorIps(dto));
+        } catch (SQLException e) {
+            logger.error("[meta] preCheck meta config for {}", dto,e);
+        }
+        return ApiResult.getFailInstance(null);
+    }
+
+
+    @PostMapping("config")
+    public ApiResult submitConfig(@RequestBody MessengerMetaDto dto) {
+        logger.info("[meta] submit meta config for {}", dto);
+        try {
+            return ApiResult.getSuccessInstance(drcBuildService.submitConfig(dto));
+        } catch (Exception e) {
+            logger.error("[meta] submit meta config for {}", dto, e);
+        }
+        return ApiResult.getFailInstance(null);
+    }
+    
 
     @GetMapping("rowsFilterMappings/{applierGroupId}")
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
         Long id = Long.valueOf(applierGroupId);
         try {
-            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id);
+            List<RowsFilterMappingVo> dataMediaVos = rowsFilterService.getRowsFilterMappingVos(id, ConsumeType.Applier.getCode());
             return ApiResult.getSuccessInstance(dataMediaVos);
         } catch (SQLException e) {
             logger.error("sql error",e);
@@ -143,7 +139,7 @@ public class BuildController {
                                     @RequestParam String name) {
         try {
             Set<String> commonColumns = drcBuildService.getCommonColumnInDataMedias(mhaName, namespace, name);
-            return ApiResult.getSuccessInstance(commonColumns);
+            return ApiResult.getSuccessInstance(Lists.newArrayList(commonColumns));
         } catch (Exception e) {
             logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name, mhaName,e);
             if (e instanceof CompileExpressionErrorException) {
@@ -163,11 +159,12 @@ public class BuildController {
             @RequestParam Long dataMediaId,
             @RequestParam String mhaName,
             @RequestParam String namespace,
-            @RequestParam String name) {
+            @RequestParam String name,
+            @RequestParam int applierType) {
 
         try {
             List<String> logicalTables =
-                    rowsFilterService.getLogicalTables(applierGroupId, dataMediaId, namespace, name, mhaName);
+                    rowsFilterService.getLogicalTables(applierGroupId, applierType,dataMediaId, namespace, name, mhaName);
             logger.info("[[tag=conflictTables]] get conflictTables {}\\.{} from {}", namespace, name, mhaName);
             List<String> conflictTables = rowsFilterService.getConflictTables(mhaName,String.join(",",logicalTables));
             return ApiResult.getSuccessInstance(conflictTables);

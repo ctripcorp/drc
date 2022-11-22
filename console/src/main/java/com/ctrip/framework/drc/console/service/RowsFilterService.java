@@ -10,21 +10,24 @@ import java.util.List;
 
 public interface RowsFilterService {
     
-    List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException;
+   
+    List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException;
     
     String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;
-
+    
     String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;
     
     String deleteRowsFilterConfig(Long id) throws SQLException;
-    
-    List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException;
+  
+    List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException;
 
     // forward by mhaName
     List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName);
 
+    
     List<String> getLogicalTables(
             Long applierGroupId,
+            int applierType,
             Long dataMediaId,
             String namespace,
             String name,

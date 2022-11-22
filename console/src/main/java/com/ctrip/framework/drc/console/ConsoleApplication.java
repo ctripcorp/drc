@@ -15,7 +15,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @ServletComponentScan
 @SpringBootApplication
 @EnableAspectJAutoProxy(proxyTargetClass = true)
-@ComponentScan(basePackages = {"com.ctrip.framework.drc.console","com.ctrip.framework.drc.service.console"})
+@ComponentScan(basePackages = {"com.ctrip.framework.drc.console","com.ctrip.framework.drc.service.console","com.ctrip.framework.drc.core.utils"})
 public class ConsoleApplication extends SpringBootServletInitializer {
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {

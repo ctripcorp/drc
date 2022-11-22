@@ -25,9 +25,17 @@ public class ApiResult<T> {
     public static <T> ApiResult getSuccessInstance( T data) {
         return getInstance(data, ResultCode.HANDLE_SUCCESS.getCode(), ResultCode.HANDLE_SUCCESS.getMessage());
     }
+    
+    public static <T> ApiResult getSuccessInstance( T data,String message) {
+        return getInstance(data, ResultCode.HANDLE_SUCCESS.getCode(), message);
+    }
 
     public static <T> ApiResult getFailInstance( T data) {
         return getInstance(data, ResultCode.HANDLE_FAIL.getCode(), ResultCode.HANDLE_FAIL.getMessage());
+    }
+
+    public static <T> ApiResult getFailInstance( T data,String message) {
+        return getInstance(data, ResultCode.HANDLE_FAIL.getCode(), message);
     }
 
     public Integer getStatus() {
