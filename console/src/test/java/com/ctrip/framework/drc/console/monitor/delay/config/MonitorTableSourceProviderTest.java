@@ -105,4 +105,10 @@ public class MonitorTableSourceProviderTest {
         Map<String, Set<String>> relationCostApps = monitorTableSourceProvider.getRelationCostApps();
         Assert.assertEquals(9, relationCostApps.size());
     }
+
+    @Test
+    public void getParentRelationGroups() {
+        Map<String, String> parentRelationGroups = monitorTableSourceProvider.getParentRelationGroups();
+        Assert.assertEquals(2, parentRelationGroups.size());
+    }
 }
