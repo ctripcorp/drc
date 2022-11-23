@@ -5,12 +5,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.boot.web.support.SpringBootServletInitializer;
 
 /**
  * Created by mingdongli
  * 2019/11/1 下午4:56.
  */
+@ServletComponentScan
 @SpringBootApplication
 public class MonitorStarter extends SpringBootServletInitializer {
 
