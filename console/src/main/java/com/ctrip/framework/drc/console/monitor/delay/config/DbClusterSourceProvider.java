@@ -292,8 +292,21 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         );
                         break;
                     }
-
                 }
+                
+                // record mhas which monitor switch on
+                Set<String> mhas = Sets.newHashSet();
+                for (Applier applier : appliers) {
+                    if (srcDc.equals(applier.getTargetIdc()) && mhasRelated.contains(applier.getTargetMhaName())) {
+                        mhas.add(applier.getTargetMhaName());
+                    }
+                }
+                ReplicatorWrapper replicatorWrapper = replicators.get(dbCluster.getId());
+                if (replicatorWrapper != null) {
+                    replicatorWrapper.setMhasRelated(mhas);
+                }
+
+
             }
         }
         return replicators;

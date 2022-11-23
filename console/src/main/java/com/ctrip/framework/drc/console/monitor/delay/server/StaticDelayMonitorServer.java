@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.monitor.delay.server;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
+import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -13,6 +14,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
@@ -25,6 +27,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +36,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
@@ -69,6 +74,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
      * key : srcMha, value: the time when Console receives the timestamp(receivedTime) sent by Replicator
      */
     private Map<String, Long> receiveTimeMap = Maps.newConcurrentMap();
+    
+    private Set<String> mhaRelated = Sets.newHashSet();
 
     private static final long TOLERANCE_TIME = 5 * 60000L;
 
@@ -84,7 +91,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static final int INITIAL_DELAY = 1;
 
-    private static final int PERIOD = 1;
+    private static final int PERIOD = 5;
 
     private DelayMonitorSlaveConfig config;
 
@@ -250,6 +257,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     long curTime = System.currentTimeMillis();
 
                     for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
+                        if (periodicalUpdateDbTask.getMhasRelated().contains(entry.getKey())) {
+                            logger.debug("mha:{} monitor switch off",entry.getKey());
+                            continue;
+                        }
                         Long receiveTime = entry.getValue();
                         long timeDiff = curTime - receiveTime;
                         if(timeDiff > toleranceTime) {
