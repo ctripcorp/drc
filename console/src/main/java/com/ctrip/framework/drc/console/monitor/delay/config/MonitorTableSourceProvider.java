@@ -185,7 +185,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
 
     private static final String SEND_TRAFFIC_SWITCH = "send.traffic.switch";
-    
+
     private static final String MQ_DELAY_MONITOR_SWITCH = "mq.delay.monitor.switch";
     private static final String MQ_DELAY_MONITOR_SUBJECT = "mq.delay.monitor.subject";
     private static final String DEFAULT_MQ_DELAY_MONITOR_SUBJECT = "bbz.drc.delaymonitor";
@@ -193,6 +193,9 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DEFAULT_MQ_DELAY_MONITOR_CONSUMER_GROUP = "100023928";
 
     private static final String RELATION_COST_APPS = "relation.cost.apps";
+    private static final String PARENT_RELATION_GROUPS = "parent.relation.groups";
+
+
 
     public String getDrcMetaXmlUpdateSwitch() {
         return getProperty(DRC_META_XML_UPDATE_SWITCH, SWITCH_STATUS_ON);
@@ -525,7 +528,17 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
             });
         }
     }
-    
+
+    public Map<String, String> getParentRelationGroups() {
+        String relationCostInfo = getProperty(PARENT_RELATION_GROUPS, EMPTY_STRING);
+        if (StringUtils.isEmpty(relationCostInfo)) {
+            return Maps.newHashMap();
+        } else {
+            return JsonCodec.INSTANCE.decode(relationCostInfo, new GenericTypeReference<Map<String, String>>() {
+            });
+        }
+    }
+
     public String getMqDelayMonitorSwitch() {
         return getProperty(MQ_DELAY_MONITOR_SWITCH,SWITCH_STATUS_ON);
     }
