@@ -36,12 +36,13 @@ public class DbRestoreTaskTest {
     }
 
     @Before
-    public void setUp() throws Exception {
-        embeddedMysql = new RetryTask<>(new DbCreateTask(port, name)).call();
+    public void setUp() {
+        deleteFiles(new File(mysqlInstanceDir(name, port)));
     }
 
     @Test
     public void testDbRestoreTask() throws Exception {
+        embeddedMysql = new RetryTask<>(new DbCreateTask(port, name)).call();
         dbRestoreTask = new DbRestoreTask(port, name);
         restoredMysql = dbRestoreTask.call();
         Assert.assertNotNull(restoredMysql);
