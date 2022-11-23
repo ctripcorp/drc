@@ -257,6 +257,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
                         if (!periodicalUpdateDbTask.getMhasRelated().contains(entry.getKey())) {
                             logger.debug("mha:{} monitor switch off",entry.getKey());
+                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(entry.getKey());
+                            DefaultReporterHolder.getInstance().removeHistogramDelay(unidirectionalEntity,config.getMeasurement());
                             continue;
                         }
                         Long receiveTime = entry.getValue();
