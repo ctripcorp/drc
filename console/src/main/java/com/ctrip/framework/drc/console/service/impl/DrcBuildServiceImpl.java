@@ -370,8 +370,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     continue;
                 }
                 int applierPort = metaInfoService.findAvailableApplierPort(ip);
-                // todo 查询
-                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getGtidInit(targetMhaTbl);
+                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getNativeGtid(mhaName);
                 logger.info("[[mha={}]]configure replicator instance: {}:{}", mhaName, ip, applierPort);
                 dalUtils.insertReplicator(DEFAULT_REPLICATOR_PORT, applierPort, gtidInit, resourceId, replicatorGroupId, BooleanEnum.FALSE);
                 replicatorInstancesAdded.add(ip+':'+applierPort);
@@ -468,9 +467,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     logger.info("[[mha={}]]UNLIKELY-applier resource({}) should already be loaded", mhaName, ip);
                     continue;
                 }
-                String gtidInit = StringUtils.isNotBlank(localGtidExecuted) ? localGtidExecuted : getGtidInit(mhaTbl);
                 logger.info("[[mha={}]]configure applier instance: {}", mhaName, ip);
-                dalUtils.insertApplier(DEFAULT_APPLIER_PORT, gtidInit, resourceId, applierGroupId);
+                dalUtils.insertApplier(DEFAULT_APPLIER_PORT, localGtidExecuted, resourceId, applierGroupId);
                 applierInstancesAdded.add(ip);
             } catch(Throwable t) {
                 logger.error("[[mha={}]]Failed add applier ip: {}", mhaName, ip, t);
@@ -630,6 +628,11 @@ public class DrcBuildServiceImpl implements DrcBuildService {
 
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaTbl.getMhaName());
         return MySqlUtils.getUnionExecutedGtid(endpoint);
+    }
+    
+    public String getNativeGtid(String mhaName) {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        return MySqlUtils.getExecutedGtid(endpoint);
     }
 
     public String submitProxyRouteConfig(RouteDto routeDto) {
