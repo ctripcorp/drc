@@ -9,11 +9,13 @@ import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpoint
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.unidal.tuple.Triple;
 
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @Author: hbshen 
@@ -22,6 +24,7 @@ import java.util.Set;
 public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeaderAwareMonitor implements MasterMySQLEndpointObserver {
 
     protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
+    protected Set<String> mhasRelated = Sets.newHashSet();
     
     protected String regionName;
     
@@ -56,6 +59,7 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
                 if (oldEndpoint != null) {
                     logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
                     clearOldEndpointResource(oldEndpoint);
+                    refreshMhasRelated();
                 }
                 masterMySQLEndpointMap.put(metaKey, masterMySQLEndpoint);
             } else if (ActionEnum.DELETE.equals(action)) {
@@ -65,12 +69,25 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
                     logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
                     clearOldEndpointResource(oldEndpoint);
                 }
+                refreshMhasRelated();
             }
         }
     }
     
     public Map<MetaKey, MySqlEndpoint> getMasterMySQLEndpointMap() {
         return masterMySQLEndpointMap;
+    }
+
+    public void setMasterMySQLEndpointMap(Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap) {
+        this.masterMySQLEndpointMap = masterMySQLEndpointMap;
+    }
+    
+    public Set<String> getMhasRelated() {
+        return mhasRelated;
+    }
+    
+    private void refreshMhasRelated() {
+        mhasRelated = masterMySQLEndpointMap.keySet().stream().map(MetaKey::getMhaName).collect(Collectors.toSet());
     }
 
     public void setLocalDcName(String localDcName) {
@@ -92,8 +109,5 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
         setLocalDcName();
         setLocalRegionInfo();
     }
-
-    public void setMasterMySQLEndpointMap(Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap) {
-        this.masterMySQLEndpointMap = masterMySQLEndpointMap;
-    }
+    
 }

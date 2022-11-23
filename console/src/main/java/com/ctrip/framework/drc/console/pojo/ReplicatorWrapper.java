@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.entity.Route;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class ReplicatorWrapper extends AbstractReplicatorWrapper implements DrcReplicatorWrapper {
     public Replicator replicator;
@@ -13,6 +14,16 @@ public class ReplicatorWrapper extends AbstractReplicatorWrapper implements DrcR
     public ReplicatorWrapper(Replicator replicator, String srcDcName, String dstDcName, String clusterName, String mhaName, String destMhaName, List<Route> routes) {
         super(srcDcName, dstDcName, clusterName, mhaName, destMhaName, routes);
         this.replicator = replicator;
+    }
+    
+    private Set<String> mhasRelated;
+
+    public Set<String> getMhasRelated() {
+        return mhasRelated;
+    }
+
+    public void setMhasRelated(Set<String> mhasRelated) {
+        this.mhasRelated = mhasRelated;
     }
 
     @Override
