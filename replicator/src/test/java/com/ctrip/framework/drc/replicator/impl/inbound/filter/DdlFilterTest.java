@@ -57,10 +57,10 @@ public class DdlFilterTest extends MockTest {
         when(schemaManager.apply(anyString(), anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, ""));
         when(schemaManager.find(anyObject(), anyObject())).thenReturn(tableInfo);
         doNothing().when(schemaManager).persistColumnInfo(any(TableInfo.class), any(Boolean.class));
-        doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString(), anyString());
+        doNothing().when(schemaManager).persistDdl(anyString(), anyString(), anyString());
         doNothing().when(monitorManager).onDdlEvent(anyString(), anyString(), anyString(), any(QueryType.class));
 
-        ddlFilter = new DdlFilter(schemaManager, monitorManager);
+        ddlFilter = new DdlFilter(schemaManager, monitorManager, "registryKey");
         value = new InboundLogEventContext(queryLogEvent, null, new TransactionFlags(), gtid);
 
         logEventHeader = new LogEventHeader(query_log_event.getType(), 1L, 64, 12246);
@@ -166,7 +166,6 @@ public class DdlFilterTest extends MockTest {
 
         when(drcDdlLogEvent.getDdl()).thenReturn(ALTER_TABLE);
         when(drcDdlLogEvent.getSchema()).thenReturn("ghostdb");
-        when(drcDdlLogEvent.getGtid()).thenReturn(gtid);
 
         InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcDdlLogEvent, null, new TransactionFlags(), gtid);
         Assert.assertFalse(ddlFilter.doFilter(logEventWithGroupFlag));
@@ -235,7 +234,7 @@ public class DdlFilterTest extends MockTest {
 
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
         verify(schemaManager, times(1)).apply(oriSchemaName, tableName, RENAME_DDL, QueryType.RENAME, gtid);
-        verify(schemaManager, times(1)).persistDdl(oriSchemaName, tableName, RENAME_DDL, gtid);
+        verify(schemaManager, times(1)).persistDdl(oriSchemaName, tableName, RENAME_DDL);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 
@@ -269,7 +268,7 @@ public class DdlFilterTest extends MockTest {
         when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, gtid)).thenReturn(ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, DDL));
 
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL, gtid);
+        verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL);
     }
 
     @Test
@@ -297,7 +296,7 @@ public class DdlFilterTest extends MockTest {
         when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, gtid)).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, DDL));
 
         Assert.assertTrue(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
-        verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL, gtid);
+        verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
 }

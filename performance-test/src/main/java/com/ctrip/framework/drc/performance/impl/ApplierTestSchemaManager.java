@@ -56,7 +56,7 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     }
 
     @Override
-    public void persistDdl(String dbName, String tableName, String queryString, String gtid) {
+    public void persistDdl(String dbName, String tableName, String queryString) {
 
     }
 

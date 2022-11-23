@@ -25,19 +25,16 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
 
     protected String ddl;
 
-    protected String gtid;
-
     public DrcDdlLogEvent() {
     }
 
-    public DrcDdlLogEvent(String schema, String ddl, String gtid, int serverId, long currentEventStartPosition) throws IOException {
-        this(schema, ddl, gtid, serverId, currentEventStartPosition, drc_ddl_log_event);
+    public DrcDdlLogEvent(String schema, String ddl, int serverId, long currentEventStartPosition) throws IOException {
+        this(schema, ddl, serverId, currentEventStartPosition, drc_ddl_log_event);
     }
 
-    public DrcDdlLogEvent(String schema, String ddl, String gtid, int serverId, long currentEventStartPosition, LogEventType logEventType) throws IOException {
+    public DrcDdlLogEvent(String schema, String ddl, int serverId, long currentEventStartPosition, LogEventType logEventType) throws IOException {
         this.schema = schema;
         this.ddl = ddl;
-        this.gtid = gtid;
 
         final byte[] payloadBytes = payloadToBytes();
         final int payloadLength = payloadBytes.length;
@@ -62,10 +59,6 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
         byte[] ddlBytes = ddl.getBytes();
         ByteHelper.writeUnsignedIntLittleEndian(ddlBytes.length, out);
         ByteHelper.writeFixedLengthBytesFromStart(ddlBytes, ddlBytes.length, out);
-
-        byte[] gtidBytes = gtid.getBytes();
-        ByteHelper.writeUnsignedIntLittleEndian(gtidBytes.length, out);
-        ByteHelper.writeFixedLengthBytesFromStart(gtidBytes, gtidBytes.length, out);
 
         return out.toByteArray();
     }
@@ -96,16 +89,6 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
         ddl = new String(ddlBytes);
         index += ddlBytes.length;
 
-        if (dst.length > index) {
-            // read gtid
-            long gtidLength = ByteHelper.readUnsignedIntLittleEndian(dst, index);
-            index += 4;
-
-            byte[] gtidBytes = ByteHelper.readFixedLengthBytes(dst, index, (int) gtidLength);
-            gtid = new String(gtidBytes);
-            index += gtidBytes.length;
-        }
-
         return this;
     }
 
@@ -126,7 +109,4 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
         return schema;
     }
 
-    public String getGtid() {
-        return gtid;
-    }
 }

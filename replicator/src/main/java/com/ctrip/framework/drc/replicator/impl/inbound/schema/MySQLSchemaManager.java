@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.ConnectionObservable;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcDdlLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
@@ -90,7 +89,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         poolProperties.setConnectionProperties(timeout);
         inMemoryDataSource = DataSourceManager.getInstance().getDataSource(inMemoryEndpoint, poolProperties);
 
-        embeddedDb = isUsed(port) && DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)
+        embeddedDb = isUsed(port)
                             ? new RetryTask<>(new DbRestoreTask(port, registryKey)).call()
                             : new RetryTask<>(new DbCreateTask(port, registryKey)).call();
         if (embeddedDb == null) {
@@ -174,7 +173,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
      * @param queryString
      */
     @Override
-    public void persistDdl(String dbName, String tableName, String queryString, String gtid) {
+    public void persistDdl(String dbName, String tableName, String queryString) {
         if (StringUtils.isBlank(dbName)) {
             dbName = StringUtils.EMPTY;
         }
@@ -183,7 +182,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
         }
         try {
             if (StringUtils.isNotBlank(queryString)) {
-                DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent(dbName, queryString, gtid, 0, 0);
+                DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent(dbName, queryString, 0, 0);
                 transactionCache.add(ddlLogEvent);
             }
         } catch (IOException e) {

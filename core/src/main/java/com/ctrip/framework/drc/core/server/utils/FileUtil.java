@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.server.utils;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -106,6 +107,13 @@ public class FileUtil {
             return ascending ? result : -result;
         }
 
+    }
+
+    public static void deleteDirectory(String directory) {
+        try {
+            FileUtils.deleteDirectory(new File(directory));
+        } catch (Exception e) {
+        }
     }
 
     public static void deleteFiles(File logDir) {

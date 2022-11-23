@@ -336,7 +336,7 @@ public abstract class AbstractEventTest extends AbstractZkTest {
             DrcDdlLogEvent drcDdlLogEvent = new DrcDdlLogEvent(
                     "dbName",
                     "CREATE TABLE `insert3` (`id` int(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB",
-                    "gtid", 0, 0);
+                    0, 0);
             return drcDdlLogEvent;
         } catch (IOException e) {
         }

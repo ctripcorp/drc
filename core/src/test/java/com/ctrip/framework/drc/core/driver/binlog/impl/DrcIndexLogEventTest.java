@@ -20,13 +20,19 @@ public class DrcIndexLogEventTest {
 
     private List<Long> index;
 
+    private List<Long> notRevisedIndices;
+
     @Before
     public void setUp() throws Exception {
         index = new ArrayList<>();
+        notRevisedIndices = new ArrayList<>();
         index.add(0L);
+        notRevisedIndices.add(0L);
         index.add(Long.MAX_VALUE / 2);
+        notRevisedIndices.add(Long.MAX_VALUE / 2);
         index.add(Long.MAX_VALUE);
-        drcIndexLogEvent = new DrcIndexLogEvent(index, 100, 100);
+        notRevisedIndices.add(Long.MAX_VALUE);
+        drcIndexLogEvent = new DrcIndexLogEvent(index, notRevisedIndices, 100, 100);
     }
 
     @Test
@@ -43,6 +49,10 @@ public class DrcIndexLogEventTest {
         List<Long> copyIndex = copy.getIndices();
         for (int i = 0; i < copyIndex.size(); ++i) {
             Assert.assertEquals(copyIndex.get(i), index.get(i));
+        }
+        List<Long> notRevisedIndices = copy.getNotRevisedIndices();
+        for (int i = 0; i < notRevisedIndices.size(); ++i) {
+            Assert.assertEquals(notRevisedIndices.get(i), notRevisedIndices.get(i));
         }
     }
 }

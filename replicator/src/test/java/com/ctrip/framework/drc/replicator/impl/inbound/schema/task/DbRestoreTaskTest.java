@@ -44,6 +44,9 @@ public class DbRestoreTaskTest {
     public void testDbRestoreTask() throws Exception {
         embeddedMysql = new RetryTask<>(new DbCreateTask(port, name)).call();
         dbRestoreTask = new DbRestoreTask(port, name);
+        if (dbRestoreTask == null) {
+            return;
+        }
         restoredMysql = dbRestoreTask.call();
         Assert.assertNotNull(restoredMysql);
         Assert.assertTrue(isUsed(port));

@@ -56,7 +56,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     @Override
     public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent) {
         if (!shouldInitEmbeddedMySQL() && DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to not empty for {}", registryKey);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to not empty or switch on for {}", registryKey);
             return true;
         }
 

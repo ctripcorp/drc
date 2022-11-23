@@ -15,8 +15,6 @@ public class DrcDdlLogEventTest {
 
     private static final String SCHEMA = "drc1";
 
-    private static final String GTID = "12345";
-
     private static final String DDL = "CREATE TABLE `drc1`.`insert1` (\n" +
             "                        `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
             "                        `one` varchar(30) DEFAULT \"one\",\n" +
@@ -31,7 +29,7 @@ public class DrcDdlLogEventTest {
 
     @Before
     public void setUp() throws Exception {
-        drcDdlLogEvent = new DrcDdlLogEvent(SCHEMA, DDL, GTID, 0, 0);
+        drcDdlLogEvent = new DrcDdlLogEvent(SCHEMA, DDL, 0, 0);
     }
 
     @Test
@@ -51,7 +49,6 @@ public class DrcDdlLogEventTest {
 
         Assert.assertEquals(clone.getSchema(), drcDdlLogEvent.getSchema());
         Assert.assertEquals(clone.getDdl(), drcDdlLogEvent.getDdl());
-        Assert.assertEquals(clone.getGtid(), GTID);
 
     }
 }

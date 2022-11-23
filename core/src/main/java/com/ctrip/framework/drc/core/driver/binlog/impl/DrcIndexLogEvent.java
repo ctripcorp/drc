@@ -25,17 +25,16 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
 
     private List<Long> indices;
 
+    private List<Long> notRevisedIndices;
+
     public DrcIndexLogEvent() {
     }
 
-    public DrcIndexLogEvent(List<Long> indices, int serverId, long currentEventStartPosition) {
+    public DrcIndexLogEvent(List<Long> indices, List<Long> notRevisedIndices, int serverId, long currentEventStartPosition) {
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int size = indices.size();
-        ByteHelper.writeUnsignedInt64LittleEndian(size, out);
-        for (long index : indices) {
-            ByteHelper.writeUnsignedInt64LittleEndian(index, out);
-        }
+        writeIndices(out, indices);
+        writeIndices(out, notRevisedIndices);
 
         byte[] indexBytes = out.toByteArray();
 
@@ -55,6 +54,7 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         setPayloadBuf(payloadByteBuf);
 
         this.indices = indices;
+        this.notRevisedIndices = notRevisedIndices;
     }
 
     @Override
@@ -70,7 +70,23 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         for (int i = 0; i < size; ++i) {
             indices.add(payloadBuf.readLongLE());
         }
+
+        if (payloadBuf.readableBytes() > 0) {
+            size = payloadBuf.readLongLE();
+            notRevisedIndices = new ArrayList<>();
+            for (int i = 0; i < size; ++i) {
+                notRevisedIndices.add(payloadBuf.readLongLE());
+            }
+        }
         return this;
+    }
+
+    private void writeIndices(ByteArrayOutputStream out, List<Long> indices) {
+        int size = indices.size();
+        ByteHelper.writeUnsignedInt64LittleEndian(size, out);
+        for (long index : indices) {
+            ByteHelper.writeUnsignedInt64LittleEndian(index, out);
+        }
     }
 
     @Override
@@ -80,5 +96,9 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
 
     public List<Long> getIndices() {
         return indices;
+    }
+
+    public List<Long> getNotRevisedIndices() {
+        return notRevisedIndices;
     }
 }

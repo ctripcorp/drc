@@ -30,7 +30,6 @@ public class ParsedDdlLogEvent extends DrcDdlLogEvent {
     public ParsedDdlLogEvent(String schema, String table, String ddl, QueryType queryType) {
         this.schema = schema;
         this.ddl = ddl;
-        this.gtid = "";
         if (table != null) {
             this.table = table;
         }
@@ -88,13 +87,6 @@ public class ParsedDdlLogEvent extends DrcDdlLogEvent {
         byte[] ddlBytes = ByteHelper.readFixedLengthBytes(dst, index, (int) ddlLength);
         ddl = new String(ddlBytes);
         index += ddlBytes.length;
-
-        long gtidLength = ByteHelper.readUnsignedIntLittleEndian(dst, index);
-        index += 4;
-
-        byte[] gtidBytes = ByteHelper.readFixedLengthBytes(dst, index, (int) gtidLength);
-        gtid = new String(gtidBytes);
-        index += gtidBytes.length;
 
         long tableLength = ByteHelper.readUnsignedIntLittleEndian(dst, index);
         index += 4;

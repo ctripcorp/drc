@@ -33,6 +33,6 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
 
     void persistColumnInfo(TableInfo tableInfo, boolean writeDirect);
 
-    void persistDdl(String dbName, String tableName, String queryString, String gtid);
+    void persistDdl(String dbName, String tableName, String queryString);
 
 }
