@@ -74,8 +74,6 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
      * key : srcMha, value: the time when Console receives the timestamp(receivedTime) sent by Replicator
      */
     private Map<String, Long> receiveTimeMap = Maps.newConcurrentMap();
-    
-    private Set<String> mhaRelated = Sets.newHashSet();
 
     private static final long TOLERANCE_TIME = 5 * 60000L;
 
@@ -91,7 +89,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static final int INITIAL_DELAY = 1;
 
-    private static final int PERIOD = 5;
+    private static final int PERIOD = 1;
 
     private DelayMonitorSlaveConfig config;
 
