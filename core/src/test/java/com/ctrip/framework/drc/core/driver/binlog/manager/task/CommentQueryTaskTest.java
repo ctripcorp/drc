@@ -33,8 +33,15 @@ public class CommentQueryTaskTest extends AbstractSchemaTest<String> {
     @Test
     public void testCommentQueryTaskCall() throws Exception {
         new DatabaseCreateTask(Lists.newArrayList(DB), inMemoryEndpoint, inMemoryDataSource).call();
-        new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource,
-                DB, TABLE, DDL, GTID, QueryType.CREATE, executorService, null).call();
+        SchemeApplyContext schemeApplyContext = new SchemeApplyContext.Builder()
+                .schema(DB)
+                .table(TABLE)
+                .ddl(DDL)
+                .gtid(GTID)
+                .queryType(QueryType.CREATE)
+                .registryKey("registryKey")
+                .build();
+        new SchemeApplyTask(schemeApplyContext, inMemoryEndpoint, inMemoryDataSource, executorService, null).call();
 
         String gtid = abstractSchemaTask.call();
         Assert.assertEquals(GTID, gtid);

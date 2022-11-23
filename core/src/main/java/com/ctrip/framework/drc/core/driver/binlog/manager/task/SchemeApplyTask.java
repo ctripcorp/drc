@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.manager.exception.DdlException;
@@ -36,22 +37,23 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
 
     private String gtid;
 
+    private String registryKey;
+
     private QueryType queryType;
 
     private ExecutorService ddlMonitorExecutorService;
 
     private BaseEndpointEntity baseEndpointEntity;
 
-    public SchemeApplyTask(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
-                           String schema, String table, String ddl, String gtid,
-                           QueryType queryType, ExecutorService ddlMonitorExecutorService,
-                           BaseEndpointEntity baseEndpointEntity) {
+    public SchemeApplyTask(SchemeApplyContext schemeApplyContext, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
+                           ExecutorService ddlMonitorExecutorService, BaseEndpointEntity baseEndpointEntity) {
         super(inMemoryEndpoint, inMemoryDataSource);
-        this.schema = schema;
-        this.table = table;
-        this.ddl = ddl;
-        this.gtid = gtid;
-        this.queryType = queryType;
+        this.schema = schemeApplyContext.getSchema();
+        this.table = schemeApplyContext.getTable();
+        this.ddl = schemeApplyContext.getDdl();
+        this.gtid = schemeApplyContext.getGtid();
+        this.queryType = schemeApplyContext.getQueryType();
+        this.registryKey = schemeApplyContext.getRegistryKey();
         this.ddlMonitorExecutorService = ddlMonitorExecutorService;
         this.baseEndpointEntity = baseEndpointEntity;
     }
@@ -59,7 +61,7 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
     @Override
     public void afterException(Throwable t) {
         super.afterException(t);
-        DDL_LOGGER.warn("apply {} failed {}", ddl, t);
+        DDL_LOGGER.warn("apply {} failed for {}", ddl, registryKey,  t);
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.ddl.failed", String.format("DDL:%s\nEXCEPTION:%s", ddl, t.getCause()));
     }
 
@@ -72,22 +74,25 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "create user")
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "alter user")
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "drop user")) {
-            Pair<Boolean, GtidSet> contained = shouldExecute();
-            if (contained.getKey()) {
-                return true;
+            if (DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+                Pair<Boolean, GtidSet> contained = shouldExecute();
+                if (contained.getKey()) {
+                    return true;
+                }
+                Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, contained.getValue().toString());
+                DDL_LOGGER.info("[Apply] {} transformed from {}", commentedDdl.getValue(), ddl);
+                ddl = commentedDdl.getValue();
             }
+
             if (StringUtils.isNotEmpty(schema)) {
                 doExecute(String.format(DDL_SQL, schema));
             }
-
-            Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, contained.getValue().toString());
-            DDL_LOGGER.info("[Apply] {} transformed from {}", commentedDdl.getValue(), ddl);
-            res = doExecute(commentedDdl.getValue());
+            res = doExecute(ddl);
             ddlMonitorExecutorService.submit(() -> {
                 try {
                     DefaultReporterHolder.getInstance().reportAlterTable(baseEndpointEntity, 1L);
                 } catch (Exception e) {
-                    DDL_LOGGER.error("[Reporter] error for {}", commentedDdl.getValue(), e);
+                    DDL_LOGGER.error("[Reporter] error for {}", ddl, e);
                 }
             });
         }

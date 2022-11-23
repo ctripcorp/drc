@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.inbound.schema.task;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeApplyContext;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeApplyTask;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -52,7 +53,15 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
         when(statement.executeQuery(anyString())).thenReturn(resultSet);
         when(resultSet.next()).thenReturn(false);
 
-        schemeApplyTask = new SchemeApplyTaskMock(inMemoryEndpoint, inMemoryDataSource, SCHEMA, TABLE, DDL, "123", QueryType.ALTER, ddlMonitorExecutorService, baseEndpointEntity);
+        SchemeApplyContext schemeApplyContext = new SchemeApplyContext.Builder()
+                .schema(SCHEMA)
+                .table(TABLE)
+                .ddl(DDL)
+                .gtid("123")
+                .queryType(QueryType.CREATE)
+                .registryKey("registryKey")
+                .build();
+        schemeApplyTask = new SchemeApplyTaskMock(schemeApplyContext, inMemoryEndpoint, inMemoryDataSource, ddlMonitorExecutorService, baseEndpointEntity);
         retryTask = new RetryTask<>(schemeApplyTask);
     }
 
@@ -112,10 +121,9 @@ public class SchemeApplyTaskTest extends AbstractSchemaTaskTest {
 
     class SchemeApplyTaskMock extends SchemeApplyTask {
 
-        public SchemeApplyTaskMock(Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
-                                   String schema, String table, String ddl, String gtid, QueryType queryType,
+        public SchemeApplyTaskMock(SchemeApplyContext schemeApplyContext, Endpoint inMemoryEndpoint, DataSource inMemoryDataSource,
                                    ExecutorService ddlMonitorExecutorService, BaseEndpointEntity baseEndpointEntity) {
-            super(inMemoryEndpoint, inMemoryDataSource, schema, table, ddl, gtid, queryType, ddlMonitorExecutorService, baseEndpointEntity);
+            super(schemeApplyContext, inMemoryEndpoint, inMemoryDataSource, ddlMonitorExecutorService, baseEndpointEntity);
         }
 
         @Override

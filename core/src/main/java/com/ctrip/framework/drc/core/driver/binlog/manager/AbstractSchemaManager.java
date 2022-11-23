@@ -101,9 +101,16 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         }
         tableInfoMap.clear();
         synchronized (this) {
+            SchemeApplyContext schemeApplyContext = new SchemeApplyContext.Builder()
+                    .schema(schema)
+                    .table(table)
+                    .ddl(ddl)
+                    .gtid(gtid)
+                    .queryType(queryType)
+                    .registryKey(registryKey)
+                    .build();
             Boolean res = new RetryTask<>(new SchemeApplyTask(
-                    inMemoryEndpoint, inMemoryDataSource,
-                    schema, table, ddl, gtid, queryType,
+                    schemeApplyContext, inMemoryEndpoint, inMemoryDataSource,
                     ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
                                : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
