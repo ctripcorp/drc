@@ -255,8 +255,9 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     long curTime = System.currentTimeMillis();
 
                     for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
-                        if (!periodicalUpdateDbTask.getMhasRelated().contains(entry.getKey())) {
-                            logger.debug("mha:{} monitor switch off",entry.getKey());
+                        String mhaName = entry.getKey();
+                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
+                            logger.debug("mha:{} monitor switch off",mhaName);
                             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(entry.getKey());
                             DefaultReporterHolder.getInstance().removeHistogramDelay(unidirectionalEntity,config.getMeasurement());
                             continue;
