@@ -166,8 +166,9 @@ public class DdlFilterTest extends MockTest {
 
         when(drcDdlLogEvent.getDdl()).thenReturn(ALTER_TABLE);
         when(drcDdlLogEvent.getSchema()).thenReturn("ghostdb");
+        when(drcDdlLogEvent.getGtid()).thenReturn(gtid);
 
-        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcDdlLogEvent, null, new TransactionFlags(), "");
+        InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(drcDdlLogEvent, null, new TransactionFlags(), gtid);
         Assert.assertFalse(ddlFilter.doFilter(logEventWithGroupFlag));
     }
 
@@ -265,7 +266,7 @@ public class DdlFilterTest extends MockTest {
         when(queryLogEvent.getQuery()).thenReturn(DDL);
         when(queryLogEvent.getSchemaName()).thenReturn(schemaName);
         when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
-        when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, DDL));
+        when(schemaManager.apply(schemaName, tableName, DDL, QueryType.CREATE, gtid)).thenReturn(ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, DDL));
 
         Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
         verify(schemaManager, times(0)).persistDdl(schemaName, tableName, DDL, gtid);
