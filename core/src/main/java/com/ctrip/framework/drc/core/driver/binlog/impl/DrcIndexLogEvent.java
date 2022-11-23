@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -20,6 +22,8 @@ import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.LOG_EVENT_
  * @create 2020/9/3
  */
 public class DrcIndexLogEvent extends AbstractLogEvent {
+
+    private static final Logger logger = LoggerFactory.getLogger(DrcIndexLogEvent.class);
 
     public static final int FIX_SIZE = 1024;
 
@@ -71,12 +75,17 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
             indices.add(payloadBuf.readLongLE());
         }
 
-        if (payloadBuf.readableBytes() > 0) {
-            size = payloadBuf.readLongLE();
+        try {
             notRevisedIndices = new ArrayList<>();
-            for (int i = 0; i < size; ++i) {
-                notRevisedIndices.add(payloadBuf.readLongLE());
+            size = payloadBuf.readLongLE();
+            logger.error("notRevisedIndices size is {}", size);
+            if (size > 0 && size <= 10) {
+                for (int i = 0; i < size; ++i) {
+                    notRevisedIndices.add(payloadBuf.readLongLE());
+                }
             }
+        } catch (Exception e) {
+            logger.error("[Parse] error", e);
         }
         return this;
     }
