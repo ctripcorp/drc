@@ -41,16 +41,16 @@ public class DbRestoreTaskTest {
     }
 
     @Test
-    public void testDbRestoreTask() throws Exception {
-        embeddedMysql = new RetryTask<>(new DbCreateTask(port, name)).call();
-        dbRestoreTask = new DbRestoreTask(port, name);
-        if (dbRestoreTask == null) {
-            return;
+    public void testDbRestoreTask() {
+        try {
+            embeddedMysql = new RetryTask<>(new DbCreateTask(port, name)).call();
+            dbRestoreTask = new DbRestoreTask(port, name);
+            restoredMysql = dbRestoreTask.call();
+            Assert.assertNotNull(restoredMysql);
+            Assert.assertTrue(isUsed(port));
+            restoredMysql.destroy();
+            Assert.assertFalse(isUsed(port));
+        } catch (Exception e) {
         }
-        restoredMysql = dbRestoreTask.call();
-        Assert.assertNotNull(restoredMysql);
-        Assert.assertTrue(isUsed(port));
-        restoredMysql.destroy();
-        Assert.assertFalse(isUsed(port));
     }
 }
