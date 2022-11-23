@@ -58,8 +58,6 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     public void initConsumer(String subject, String consumerGroup, Set<String> dcs){
         try {
             dcsRelated = dcs;
-            VIServer viServer = new VIServer(19999);
-            viServer.start();
             SubscribeParam param = new SubscribeParam.SubscribeParamBuilder().
                     setTagType(TagType.AND).
                     setTags(Sets.newHashSet(DcTag.LOCAL.getName())).
