@@ -361,9 +361,6 @@ export default {
     goToUpdateConfig  (row, index) {
       this.mqInitConfigInitFormRow(row, index)
       this.showMatchTables()
-      if (this.tableData.length !== 1) {
-        this.display.normalTopicForm = false
-      }
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = false
@@ -434,7 +431,7 @@ export default {
         db: tableInfo[0],
         table: tableInfo[1]
       }
-      this.display.normalTopicForm = row.topic.endsWith('.drc', 4) // 判断是否为规范topic
+      this.display.normalTopicForm = row.topic.endsWith('.drc') // 判断是否为规范topic
     },
     goToNormalTopicApplication () {
       this.display.normalTopicForm = true
@@ -607,6 +604,9 @@ export default {
             } else {
               console.log(response.data.data)
               this.tableData = response.data.data
+              if (this.display.normalTopicForm && this.tableData.length !== 1) {
+                this.display.normalTopicForm = false
+              }
               if (this.tableData.length === 0) {
                 window.alert('无匹配表 或 查询匹配表失败')
               }
