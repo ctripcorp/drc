@@ -272,9 +272,9 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
                         List<Route> routes = Lists.newArrayList();
                         for (String dcInLocalRegion : dcsInLocalRegion) {
-                             routes.addAll(RouteUtils.filterRoutes(
-                                     dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)
-                             ));
+                            routes.addAll(RouteUtils.filterRoutes(
+                                    dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)
+                            ));
                         }
                         replicators.put(
                                 dbCluster.getId(),
@@ -293,20 +293,6 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                         break;
                     }
                 }
-                
-                // record mhas which monitor switch on
-                Set<String> mhas = Sets.newHashSet();
-                for (Applier applier : appliers) {
-                    if (srcDc.equals(applier.getTargetIdc()) && mhasRelated.contains(applier.getTargetMhaName())) {
-                        mhas.add(applier.getTargetMhaName());
-                    }
-                }
-                ReplicatorWrapper replicatorWrapper = replicators.get(dbCluster.getId());
-                if (replicatorWrapper != null) {
-                    replicatorWrapper.setMhasRelated(mhas);
-                }
-
-
             }
         }
         return replicators;
