@@ -14,7 +14,7 @@ public class ReplicatorWrapper extends AbstractReplicatorWrapper implements DrcR
         super(srcDcName, dstDcName, clusterName, mhaName, destMhaName, routes);
         this.replicator = replicator;
     }
-
+    
     @Override
     public String getIp() {
         return replicator.getIp();

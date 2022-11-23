@@ -62,12 +62,14 @@
                    </Col>
                    <Col span="6">
                      <Input v-model="topic.db"  placeholder="库名">
-                       <template #prepend><span>.drc.</span></template>
+                       <template #prepend><span>.</span></template>
+                       <template #append><span>.</span></template>
                      </Input>
                    </Col>
                    <Col span="6">
                      <Input v-model="topic.table"  placeholder="表名">
                        <template #prepend><span>.</span></template>
+                       <template #append><span>.drc</span></template>
                      </Input>
                    </Col>
                    <Col span="4">
@@ -359,9 +361,6 @@ export default {
     goToUpdateConfig  (row, index) {
       this.mqInitConfigInitFormRow(row, index)
       this.showMatchTables()
-      if (this.tableData.length !== 1) {
-        this.display.normalTopicForm = false
-      }
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = false
@@ -432,7 +431,7 @@ export default {
         db: tableInfo[0],
         table: tableInfo[1]
       }
-      this.display.normalTopicForm = topicInfo[1] === 'drc' // 判断是否为规范topic
+      this.display.normalTopicForm = row.topic.endsWith('.drc') // 判断是否为规范topic
     },
     goToNormalTopicApplication () {
       this.display.normalTopicForm = true
@@ -503,7 +502,7 @@ export default {
       // config
       if (this.display.normalTopicForm) {
         this.mqConfig.table = this.topic.db + '\\.' + this.topic.table
-        this.mqConfig.topic = this.topic.bu + '.drc.' + this.topic.db + '.' + this.topic.table
+        this.mqConfig.topic = this.topic.bu + '.' + this.topic.db + '.' + this.topic.table + '.drc'
       } else {
         this.mqConfig.table = this.topic.db + '\\.' + this.topic.table
       }
@@ -605,6 +604,9 @@ export default {
             } else {
               console.log(response.data.data)
               this.tableData = response.data.data
+              if (this.display.normalTopicForm && this.tableData.length !== 1) {
+                this.display.normalTopicForm = false
+              }
               if (this.tableData.length === 0) {
                 window.alert('无匹配表 或 查询匹配表失败')
               }

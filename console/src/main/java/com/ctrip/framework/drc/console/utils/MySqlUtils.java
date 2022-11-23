@@ -527,8 +527,7 @@ public class MySqlUtils {
         List<TableSchemaName> tables = getTables(endpoint, sql, false);
         return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
-
-    @Deprecated
+    
     public static String getExecutedGtid(Endpoint endpoint) {
         return  getSqlResultString(endpoint, GTID_EXECUTED_COMMAND_V2, GTID_EXECUTED_INDEX_V2);
     }
