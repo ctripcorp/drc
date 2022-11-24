@@ -78,7 +78,7 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         try {
             notRevisedIndices = new ArrayList<>();
             size = payloadBuf.readLongLE();
-            logger.error("notRevisedIndices size is {}", size);
+            logger.info("notRevisedIndices size is {}", size);
             if (size > 0 && size <= 10) {
                 for (int i = 0; i < size; ++i) {
                     notRevisedIndices.add(payloadBuf.readLongLE());

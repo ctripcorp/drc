@@ -61,6 +61,8 @@ public class SchemaManagerFactory {
                     LifecycleHelper.stopIfPossible(entry.getValue());
                     LifecycleHelper.disposeIfPossible(entry.getValue());
                     DDL_LOGGER.info("[Destroy] mysqld for {}", entry.getKey());
+                } else {
+                    DDL_LOGGER.info("[Destroy] mysqld skipped for {}", entry.getKey());
                 }
             } catch (Exception e) {
             }
