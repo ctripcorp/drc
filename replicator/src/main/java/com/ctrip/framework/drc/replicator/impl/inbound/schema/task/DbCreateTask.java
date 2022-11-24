@@ -8,6 +8,7 @@ import ctrip.framework.drc.mysql.EmbeddedDb;
 
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.FileUtil.deleteDirectory;
 import static ctrip.framework.drc.mysql.EmbeddedDb.mysqlInstanceDir;
 
@@ -28,21 +29,21 @@ public class DbCreateTask implements NamedCallable<MySQLInstance> {
 
     @Override
     public MySQLInstance call() {
-        if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-            tryDeleteDirectory();
-        }
+        tryDeleteDirectory();
         Map<String, Object> variables =  MySQLVariablesConfiguration.getInstance().getVariables(registryKey);
         return new MySQLInstanceCreator(new EmbeddedDb().mysqlServer(new DbKey(registryKey, port), variables));
     }
 
     @Override
     public void afterException(Throwable t) {
-        String path = mysqlInstanceDir(registryKey, port);
-        deleteDirectory(path);
+        tryDeleteDirectory();
     }
 
     private void tryDeleteDirectory() {
-        String path = mysqlInstanceDir(registryKey, port);
-        deleteDirectory(path);
+        if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+            String path = mysqlInstanceDir(registryKey, port);
+            deleteDirectory(path);
+            DDL_LOGGER.info("[Delete] mysql path {} for {}", path, registryKey);
+        }
     }
 }

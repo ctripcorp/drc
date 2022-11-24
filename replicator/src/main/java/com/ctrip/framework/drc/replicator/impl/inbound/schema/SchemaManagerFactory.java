@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
+
 /**
  * @Author limingdong
  * @create 2020/10/12
@@ -58,6 +60,7 @@ public class SchemaManagerFactory {
                 if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(entry.getKey())) {
                     LifecycleHelper.stopIfPossible(entry.getValue());
                     LifecycleHelper.disposeIfPossible(entry.getValue());
+                    DDL_LOGGER.info("[Destroy] mysqld for {}", entry.getKey());
                 }
             } catch (Exception e) {
             }

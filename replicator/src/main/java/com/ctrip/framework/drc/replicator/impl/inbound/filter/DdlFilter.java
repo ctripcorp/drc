@@ -74,6 +74,9 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
                 DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
                 doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
+                DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);
+            } else {
+                DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
             }
         }
 
