@@ -370,7 +370,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     continue;
                 }
                 int applierPort = metaInfoService.findAvailableApplierPort(ip);
-                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getNativeGtid(mhaName);
+                // todo discuss
+                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getGtidInit(targetMhaTbl);
                 logger.info("[[mha={}]]configure replicator instance: {}:{}", mhaName, ip, applierPort);
                 dalUtils.insertReplicator(DEFAULT_REPLICATOR_PORT, applierPort, gtidInit, resourceId, replicatorGroupId, BooleanEnum.FALSE);
                 replicatorInstancesAdded.add(ip+':'+applierPort);
