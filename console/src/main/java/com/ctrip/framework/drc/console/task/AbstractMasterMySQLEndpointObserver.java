@@ -10,6 +10,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.springframework.util.CollectionUtils;
 import org.unidal.tuple.Triple;
 
 
@@ -24,7 +25,7 @@ import java.util.stream.Collectors;
 public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeaderAwareMonitor implements MasterMySQLEndpointObserver {
 
     protected Map<MetaKey, MySqlEndpoint> masterMySQLEndpointMap = Maps.newConcurrentMap();
-    protected Set<String> mhasRelated = Sets.newHashSet();
+    protected Set<String> mhasRelated = Sets.newConcurrentHashSet();
     
     protected String regionName;
     
@@ -59,9 +60,9 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
                 if (oldEndpoint != null) {
                     logger.info("[OBSERVE][{}] {} clear old {}({})", getClass().getName(), action.name(), metaKey, oldEndpoint.getSocketAddress());
                     clearOldEndpointResource(oldEndpoint);
-                    refreshMhasRelated();
                 }
                 masterMySQLEndpointMap.put(metaKey, masterMySQLEndpoint);
+                refreshMhasRelated();
             } else if (ActionEnum.DELETE.equals(action)) {
                 logger.info("[OBSERVE][{}] {} {}", getClass().getName(), action.name(), metaKey);
                 MySqlEndpoint oldEndpoint = masterMySQLEndpointMap.remove(metaKey);
@@ -83,6 +84,9 @@ public abstract class AbstractMasterMySQLEndpointObserver extends AbstractLeader
     }
     
     public Set<String> getMhasRelated() {
+        if (CollectionUtils.isEmpty(mhasRelated)) {
+            refreshMhasRelated();
+        }
         return mhasRelated;
     }
     
