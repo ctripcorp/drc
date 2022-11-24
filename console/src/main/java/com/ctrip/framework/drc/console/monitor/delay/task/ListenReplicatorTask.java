@@ -337,6 +337,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNeeded(mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers);
     }
+    
 
     private void checkReplicatorWrapperChange(Map<String, ReplicatorWrapper> current, Map<String, ReplicatorWrapper> future) {
         ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(current, future);
