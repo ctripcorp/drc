@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -254,12 +255,15 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
-                    for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
+                    Iterator<Map.Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, Long> entry = iterator.next();
                         String mhaName = entry.getKey();
                         if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
-                            logger.debug("mha:{} monitor switch off",mhaName);
                             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(entry.getKey());
                             DefaultReporterHolder.getInstance().removeHistogramDelay(unidirectionalEntity,config.getMeasurement());
+                            iterator.remove();
+                            logger.info("mha:{} -> mha:{} delayMonitor monitor remove ",mhaName,config.getDestMha());
                             continue;
                         }
                         Long receiveTime = entry.getValue();
