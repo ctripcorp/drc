@@ -101,7 +101,13 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
 
     private Pair<Boolean, GtidSet> shouldExecute() {
         String gtids = new RetryTask<>(new CommentQueryTask(schema, table, inMemoryEndpoint, inMemoryDataSource)).call();
-        GtidSet gtidSet = new GtidSet(gtids);
+        GtidSet gtidSet;
+        try {
+            gtidSet = new GtidSet(gtids);
+        } catch (Exception e) {
+            gtidSet = new GtidSet("");
+            DDL_LOGGER.info("[Transform] comment {} of {}:{} to gtidset error for {}, initialize it", gtids, schema, table, registryKey);
+        }
         boolean executed = gtidSet.isContainedWithin(gtid);
         if (!executed) {
             gtidSet = gtidSet.expandTo(gtid);
