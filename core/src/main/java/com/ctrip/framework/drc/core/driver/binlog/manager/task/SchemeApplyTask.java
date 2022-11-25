@@ -101,7 +101,7 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
     }
 
     private Pair<Boolean, TableComment> shouldExecute() {
-        String gtids = queryGtids();
+        String gtids = queryGtidSets();
         GtidSet gtidSet;
         try {
             gtidSet = new GtidSet(gtids);
@@ -118,12 +118,12 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
         return Pair.from(executed, new TableComment(gtidSet.toString()));
     }
 
-    private String queryGtids() {
+    private String queryGtidSets() {
         String comment = new RetryTask<>(new CommentQueryTask(schema, table, inMemoryEndpoint, inMemoryDataSource)).call();
         String gtids = "";
         try {
             TableComment tableComment = JsonCodec.INSTANCE.decode(comment, TableComment.class);
-            gtids = tableComment.getGtids();
+            gtids = tableComment.getGtidSet();
         } catch (Exception e) {
             DDL_LOGGER.info("[Decode] comment {} of {}:{} to gtidset error for {}, initialize to blank", comment, schema, table, registryKey);
         }

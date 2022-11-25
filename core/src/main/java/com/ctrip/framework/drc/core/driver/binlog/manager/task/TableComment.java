@@ -6,21 +6,20 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
  */
 public class TableComment {
 
-    private String gtids;
+    private String gtidSet;
 
     public TableComment() {
     }
 
-    public TableComment(String gtids) {
-        this.gtids = gtids;
+    public TableComment(String gtidSet) {
+        this.gtidSet = gtidSet;
     }
 
-    public String getGtids() {
-        return gtids;
+    public String getGtidSet() {
+        return gtidSet;
     }
 
-    public void setGtids(String gtids) {
-        this.gtids = gtids;
+    public void setGtidSet(String gtidSet) {
+        this.gtidSet = gtidSet;
     }
-
 }

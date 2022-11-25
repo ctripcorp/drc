@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.driver.binlog.manager.task;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.codec.JsonCodec;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,8 +42,9 @@ public class CommentQueryTaskTest extends AbstractSchemaTest<String> {
                 .build();
         new SchemeApplyTask(schemeApplyContext, inMemoryEndpoint, inMemoryDataSource, executorService, null).call();
 
-        String gtid = abstractSchemaTask.call();
-        Assert.assertEquals(GTID, gtid);
+        String comment = abstractSchemaTask.call();
+        TableComment tableComment = JsonCodec.INSTANCE.decode(comment, TableComment.class);
+        Assert.assertEquals(GTID, tableComment.getGtidSet());
     }
 
     @Override
