@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
@@ -75,11 +76,11 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "alter user")
                 && !StringUtils.startsWithIgnoreCase(StringUtils.trim(ddl), "drop user")) {
             if (DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-                Pair<Boolean, GtidSet> contained = shouldExecute();
+                Pair<Boolean, TableComment> contained = shouldExecute();
                 if (contained.getKey()) {
                     return true;
                 }
-                Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, contained.getValue().toString());
+                Pair<Boolean, String> commentedDdl = transformTableComment(ddl, queryType, JsonCodec.INSTANCE.encode(contained.getValue()));
                 DDL_LOGGER.info("[Apply] {} transformed from {}", commentedDdl.getValue(), ddl);
                 ddl = commentedDdl.getValue();
             }
@@ -99,8 +100,8 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
         return res;
     }
 
-    private Pair<Boolean, GtidSet> shouldExecute() {
-        String gtids = new RetryTask<>(new CommentQueryTask(schema, table, inMemoryEndpoint, inMemoryDataSource)).call();
+    private Pair<Boolean, TableComment> shouldExecute() {
+        String gtids = queryGtids();
         GtidSet gtidSet;
         try {
             gtidSet = new GtidSet(gtids);
@@ -114,7 +115,19 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
         } else {
             DDL_LOGGER.info("[Apply] skip ddl {} due to executed gtid {} contained in {}", ddl, gtid, gtids);
         }
-        return Pair.from(executed, gtidSet);
+        return Pair.from(executed, new TableComment(gtidSet.toString()));
+    }
+
+    private String queryGtids() {
+        String comment = new RetryTask<>(new CommentQueryTask(schema, table, inMemoryEndpoint, inMemoryDataSource)).call();
+        String gtids = "";
+        try {
+            TableComment tableComment = JsonCodec.INSTANCE.decode(comment, TableComment.class);
+            gtids = tableComment.getGtids();
+        } catch (Exception e) {
+            DDL_LOGGER.info("[Decode] comment {} of {}:{} to gtidset error for {}, initialize to blank", comment, schema, table, registryKey);
+        }
+        return gtids;
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")

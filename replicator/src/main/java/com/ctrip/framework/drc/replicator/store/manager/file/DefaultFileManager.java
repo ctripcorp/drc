@@ -618,7 +618,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                 indices.add(firstPreviousGtidEventPosition);
                 DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, notRevisedIndices, 0 , position);
                 doWriteLogEvent(indexLogEvent);
-                logger.info("[Persist] drc index log event {} for {} at position {} of file {} and clear indicesSize", indices, registryKey, indexEventPosition, logFileWrite.getName());
+                logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {} and clear indicesSize", indices, notRevisedIndices, registryKey, indexEventPosition, logFileWrite.getName());
             } else {
                 if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesSize && !inBigTransaction) {
                     writePreviousGtid();
