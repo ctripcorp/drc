@@ -637,7 +637,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     doWriteLogEvent(indexLogEvent, false);
                     indexLock.release();
                     logChannel.position(currentPosition);
-                    logger.info("[Persist] drc index log event {} for {} at position {} of file {}", indices, registryKey, position, logFileWrite.getName());
+                    logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {}", indices, notRevisedIndices, registryKey, position, logFileWrite.getName());
                 }
             }
         } catch (Exception e) {

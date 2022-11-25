@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.driver.binlog.impl;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,9 +38,24 @@ public class DrcIndexLogEventTest {
 
     @Test
     public void getIndices() {
-        ByteBuf headerByteBuf = drcIndexLogEvent.getLogEventHeader().getHeaderBuf();
+        doTestDrcIndexLogEvent(drcIndexLogEvent, index, notRevisedIndices);
+    }
+
+    @Test
+    public void testMaxValueInDrcIndexLogEvent() {
+        List<Long> index = Lists.newArrayList();
+        for (int i = 0; i < 11; ++i) {
+            index.add(Long.MAX_VALUE);
+        }
+
+        DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(index, index, 100, 100);
+        doTestDrcIndexLogEvent(indexLogEvent, index, index);
+    }
+
+    private void doTestDrcIndexLogEvent(DrcIndexLogEvent indexLogEvent, List<Long> index, List<Long> notRevisedIndices) {
+        ByteBuf headerByteBuf = indexLogEvent.getLogEventHeader().getHeaderBuf();
         headerByteBuf.readerIndex(0);
-        ByteBuf payloadByteBuf = drcIndexLogEvent.getPayloadBuf();
+        ByteBuf payloadByteBuf = indexLogEvent.getPayloadBuf();
         payloadByteBuf.readerIndex(0);
         CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
         compositeByteBuf.addComponents(true, headerByteBuf, payloadByteBuf);
@@ -50,9 +66,9 @@ public class DrcIndexLogEventTest {
         for (int i = 0; i < copyIndex.size(); ++i) {
             Assert.assertEquals(copyIndex.get(i), index.get(i));
         }
-        List<Long> notRevisedIndices = copy.getNotRevisedIndices();
-        for (int i = 0; i < notRevisedIndices.size(); ++i) {
-            Assert.assertEquals(notRevisedIndices.get(i), notRevisedIndices.get(i));
+        List<Long> copyNotRevisedIndices = copy.getNotRevisedIndices();
+        for (int i = 0; i < copyNotRevisedIndices.size(); ++i) {
+            Assert.assertEquals(copyNotRevisedIndices.get(i), notRevisedIndices.get(i));
         }
     }
 }
