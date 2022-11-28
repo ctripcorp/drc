@@ -611,6 +611,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             long position = logFileSize.get();
             if (append) {  //new file and append DrcIndexLogEvent
                 indices.clear();
+                notRevisedIndices.clear();
                 indicesSize = 0;
                 everSeeDdl = false;
                 indexEventPosition = logChannel.position();
