@@ -96,18 +96,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private SchemaManager schemaManager;
 
-    // for skip gtids
-    private List<Long> indices = Lists.newArrayList();
-
-    private List<Long> notRevisedIndices = Lists.newArrayList();
-
-    private int indicesSize = 0;
-
-    private long indexEventPosition = 0;
-
-    private long firstPreviousGtidEventPosition = 0;
-
-    private boolean everSeeDdl = false;
+    private IndicesEventManager indicesEventManager;
 
     private volatile boolean inBigTransaction = false;
 
@@ -160,8 +149,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
         createFileIfNecessary();
 
-        if (context.isDdl() && !everSeeDdl) {
-            everSeeDdl = true;
+        if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
+            indicesEventManager.setEverSeeDdl(true);
         }
         checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
 
@@ -530,7 +519,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logFileSize.addAndGet(fileHeaderBytes.length);
         logChannel.write(ByteBuffer.wrap(fileHeaderBytes));
         writeFormatDescriptionLogEvent();
-        firstPreviousGtidEventPosition = logChannel.position();
+        indicesEventManager = new IndicesEventManager(logChannel, registryKey, logFileWrite.getName());
         writePreviousGtid();
         writeSchema();
         writeUuids();
@@ -610,35 +599,19 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         try {
             long position = logFileSize.get();
             if (append) {  //new file and append DrcIndexLogEvent
-                indices.clear();
-                notRevisedIndices.clear();
-                indicesSize = 0;
-                everSeeDdl = false;
-                indexEventPosition = logChannel.position();
-                notRevisedIndices.add(firstPreviousGtidEventPosition);
-                indices.add(firstPreviousGtidEventPosition);
-                DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, notRevisedIndices, 0 , position);
-                doWriteLogEvent(indexLogEvent);
-                logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {} and clear indicesSize", indices, notRevisedIndices, registryKey, indexEventPosition, logFileWrite.getName());
+                doWriteLogEvent(indicesEventManager.createIndexEvent(position));
             } else {
-                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesSize && !inBigTransaction) {
+                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesEventManager.getIndicesSize() && !inBigTransaction) {
                     writePreviousGtid();
-                    notRevisedIndices.add(position);
-                    if (everSeeDdl) {
-                        long previousPosition = position;
-                        position = indices.get(indices.size() - 1);
-                        logger.info("[Update] index position from {} to {} of file {}", previousPosition, position, logFileWrite.getName());
-                    }
-                    indices.add(position);
-                    indicesSize++;
+                    DrcIndexLogEvent indexLogEvent = indicesEventManager.updateIndexEvent(position);
+
+                    long indexEventPosition = indicesEventManager.getIndexEventPosition();
                     FileLock indexLock = logChannel.lock(indexEventPosition, DrcIndexLogEvent.FIX_SIZE, true);
                     long currentPosition = logChannel.position();
                     logChannel.position(indexEventPosition);
-                    DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, notRevisedIndices, 0 , position);
                     doWriteLogEvent(indexLogEvent, false);
                     indexLock.release();
                     logChannel.position(currentPosition);
-                    logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {}", indices, notRevisedIndices, registryKey, position, logFileWrite.getName());
                 }
             }
         } catch (Exception e) {

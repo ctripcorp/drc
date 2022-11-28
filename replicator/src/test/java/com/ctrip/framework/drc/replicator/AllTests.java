@@ -36,6 +36,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultIndexFileManagerTest;
+import com.ctrip.framework.drc.replicator.store.manager.file.IndicesEventManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.GtidConsumerTest;
 import com.wix.mysql.EmbeddedMysql;
@@ -75,6 +76,7 @@ import java.util.HashMap;
         ApplierRegisterCommandHandlerTest.class,
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
+        IndicesEventManagerTest.class,
         EventTransactionCacheTest.class,
         BackupTransactionEventTest.class,
 
