@@ -25,7 +25,7 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
 
     private static final Logger logger = LoggerFactory.getLogger(DrcIndexLogEvent.class);
 
-    public static final int FIX_SIZE = 1024 * 2;
+    public static final int FIX_SIZE = 1024;
 
     private List<Long> indices;
 
