@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -234,7 +233,7 @@ public class DbClusterSourceProviderTest extends AbstractTest {
             dbClusterSourceProvider.drc = tempDrc;
             dbClusterSourceProvider.localDc = "ntgxh";
             List<String> mhaNamesToBeMonitored = Lists.newArrayList("drcNt", "drcNt2", "drcOy", "drcOy2", "drcRb", "drcRb2");
-            Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsNotInSrcDc(mhaNamesToBeMonitored, "ntgxh");
+            Map<String, ReplicatorWrapper> replicators = dbClusterSourceProvider.getReplicatorsSrcDcRelated(mhaNamesToBeMonitored, "ntgxh");
             Assert.assertEquals(4, replicators.keySet().size());
             ReplicatorWrapper replicator = replicators.get("drc-Test01.drcOy");
             Assert.assertEquals("127.0.0.2", replicator.getIp());

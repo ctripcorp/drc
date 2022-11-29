@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.sql.SQLException;
 import java.util.List;

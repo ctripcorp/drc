@@ -147,7 +147,7 @@ export default {
       case '/proxyRouteCluster':
       case '/proxyRouteManagement':
       case '/accessV2':
-      case '/mhaMessengers':
+      case '/messengers':
       case '/buildMhaMessenger':
       case '/access': this.openNames = ['0']; break
       case '/incrementDataConsistencyResult':
