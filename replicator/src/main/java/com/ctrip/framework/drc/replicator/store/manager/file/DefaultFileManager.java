@@ -519,7 +519,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logFileSize.addAndGet(fileHeaderBytes.length);
         logChannel.write(ByteBuffer.wrap(fileHeaderBytes));
         writeFormatDescriptionLogEvent();
-        indicesEventManager = new IndicesEventManager(logChannel, registryKey, logFileWrite.getName());
+        indicesEventManager = new IndicesEventManager(logChannel.position(), registryKey, logFileWrite.getName());
         writePreviousGtid();
         writeSchema();
         writeUuids();
@@ -595,11 +595,11 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logger.info("[Persist] drc schema log event for {}", registryKey);
     }
 
-    private void checkIndices(boolean append, boolean bigTransaction) {  //write previous event and index event
+    private void checkIndices(boolean append, boolean bigTransaction) throws IOException {
         try {
             long position = logFileSize.get();
             if (append) {  //new file and append DrcIndexLogEvent
-                doWriteLogEvent(indicesEventManager.createIndexEvent(position));
+                doWriteLogEvent(indicesEventManager.createIndexEvent(logChannel.position()));
             } else {
                 if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesEventManager.getIndicesSize() && !inBigTransaction) {
                     writePreviousGtid();
@@ -614,8 +614,6 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     logChannel.position(currentPosition);
                 }
             }
-        } catch (Exception e) {
-            logger.error("writeIndex error", e);
         } finally {
             if (bigTransaction != inBigTransaction) {
                 logger.info("[inBigTransaction] set to {} for {} of file {}", bigTransaction, registryKey, logFileWrite.getName());

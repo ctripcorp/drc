@@ -28,7 +28,7 @@ public class IndicesEventManagerTest extends MockTest {
     public void setUp() throws IOException {
         super.initMocks();
         when(logChannel.position()).thenReturn(FIRST_INDEX_POSITION);
-        indicesEventManager = new IndicesEventManager(logChannel, "registryKey", "fileName");
+        indicesEventManager = new IndicesEventManager(logChannel.position(), "registryKey", "fileName");
         Assert.assertFalse(indicesEventManager.isEverSeeDdl());
         Assert.assertTrue(indicesEventManager.getIndicesSize() == 0);
     }

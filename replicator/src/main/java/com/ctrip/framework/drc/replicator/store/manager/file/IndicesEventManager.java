@@ -5,8 +5,6 @@ import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.util.List;
 
 /**
@@ -31,41 +29,42 @@ public class IndicesEventManager {
 
     private long firstPreviousGtidEventPosition;
 
-    private FileChannel logChannel;
-
     private String fileName;
 
-    public IndicesEventManager(FileChannel logChannel, String registryKey, String fileName) throws IOException {
-        this.logChannel = logChannel;
-        this.firstPreviousGtidEventPosition = logChannel.position();
+    public IndicesEventManager(long previousGtidPosition, String registryKey, String fileName) {
+        this.firstPreviousGtidEventPosition = previousGtidPosition;
         this.registryKey = registryKey;
         this.fileName = fileName;
     }
 
-    public DrcIndexLogEvent createIndexEvent(long position) throws IOException {
-        indexEventPosition = logChannel.position();
+    public DrcIndexLogEvent createIndexEvent(long startPosition) {
+        indexEventPosition = startPosition;
 
         notRevisedIndices.add(firstPreviousGtidEventPosition);
         indices.add(firstPreviousGtidEventPosition);
-        DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, notRevisedIndices, 0 , position);
+        DrcIndexLogEvent indexLogEvent = createDrcIndexLogEvent();
         logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {} and clear indicesSize", indices, notRevisedIndices, registryKey, indexEventPosition, fileName);
 
         return indexLogEvent;
     }
 
-    public DrcIndexLogEvent updateIndexEvent(long position) throws IOException {
-        notRevisedIndices.add(position);
+    public DrcIndexLogEvent updateIndexEvent(long previousGtidPosition) {
+        notRevisedIndices.add(previousGtidPosition);
         if (everSeeDdl) {
-            long previousPosition = position;
-            position = indices.get(indices.size() - 1);
-            logger.info("[Update] index position from {} to {} of file {}", previousPosition, position, fileName);
+            long previousPosition = previousGtidPosition;
+            previousGtidPosition = indices.get(indices.size() - 1);
+            logger.info("[Update] index position from {} to {} of file {}", previousPosition, previousGtidPosition, fileName);
         }
-        indices.add(position);
+        indices.add(previousGtidPosition);
         indicesSize++;
-        DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, notRevisedIndices, 0 , position);
-        logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {}", indices, notRevisedIndices, registryKey, position, fileName);
+        DrcIndexLogEvent indexLogEvent = createDrcIndexLogEvent();
+        logger.info("[Persist] drc index log event {}:{} for {} at position {} of file {}", indices, notRevisedIndices, registryKey, previousGtidPosition, fileName);
         return indexLogEvent;
 
+    }
+
+    private DrcIndexLogEvent createDrcIndexLogEvent() {
+        return new DrcIndexLogEvent(indices, notRevisedIndices, 0 , indexEventPosition);
     }
 
     public boolean isEverSeeDdl() {
