@@ -17,7 +17,7 @@ import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationM
  * @Author limingdong
  * @create 2022/11/9
  */
-public class TablePartitionManagerTest {
+public class TableOperationManagerTest {
 
     @Test
     public void testTransformAlterPartition() {
