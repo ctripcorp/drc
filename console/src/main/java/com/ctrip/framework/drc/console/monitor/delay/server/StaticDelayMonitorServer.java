@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.monitor.delay.server;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
+import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -13,6 +14,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
@@ -25,16 +27,20 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
@@ -249,11 +255,21 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
-                    for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
+                    Iterator<Map.Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, Long> entry = iterator.next();
+                        String mhaName = entry.getKey();
+                        if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
+                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
+                            DefaultReporterHolder.getInstance().removeHistogramDelay(unidirectionalEntity,config.getMeasurement());
+                            iterator.remove();
+                            logger.info("mha:{} -> mha:{} delayMonitor monitor remove ",mhaName,config.getDestMha());
+                            continue;
+                        }
                         Long receiveTime = entry.getValue();
                         long timeDiff = curTime - receiveTime;
                         if(timeDiff > toleranceTime) {
-                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(entry.getKey());
+                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
                             DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, HUGE_VAL, config.getMeasurement());
                             DefaultEventMonitorHolder.getInstance().logEvent("DRC." + config.getMeasurement(), unidirectionalEntity.getMhaName()+'.'+ unidirectionalEntity.getDestMhaName());
                             log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, Last receive time : " + formatter.format(receiveTime)+ " and current time: " + formatter.format(curTime) + ", report a huge number to trigger the alert.", INFO, null);
