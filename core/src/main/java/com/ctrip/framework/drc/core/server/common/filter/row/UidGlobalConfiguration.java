@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import com.google.common.collect.Sets;
@@ -43,7 +44,6 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
             try {
                 if ("true".equalsIgnoreCase(getProperty(updateGlobalUidBlacklist, "false"))) {
                     updateBlacklist();
-                    logger.info("[GLOBAL][BLACKLIST] update global uid blacklist success");
                 } else {
                     logger.info("[GLOBAL][BLACKLIST] update global uid blacklist ignore for update.uid.blacklist is: false");
                 }
@@ -61,25 +61,28 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
         return  UidGlobalConfigurationHolder.INSTANCE;
     }
 
-    private void updateBlacklist() {
+    @VisibleForTesting
+    protected void updateBlacklist() {
         Set<String> localBlacklist = getLocalBlacklist();
         if (localBlacklist.isEmpty()) {
             globalBlacklist = getRemoteBlacklist();
         } else {
             globalBlacklist = localBlacklist;
         }
+        logger.info("[GLOBAL][BLACKLIST] update global uid blacklist success");
     }
 
     private Set<String> getLocalBlacklist() {
         Set<String> list = Sets.newHashSet();
         if (localUidBlacklistFile.exists()) {
             try {
-                String blackUidStr = FileUtils.readFileToString(localUidBlacklistFile);
-                if (blackUidStr != null) {
-                    list = getSplitStringSet(blackUidStr.toLowerCase());
+                String blacklistStr = FileUtils.readFileToString(localUidBlacklistFile);
+                if (blacklistStr != null) {
+                    list = getSplitStringSet(blacklistStr.trim().toLowerCase());
+                    logger.info("[GLOBAL][BLACKLIST] get local blacklist with size: {}", list.size());
                 }
             } catch (IOException e) {
-                logger.error("[GLOBAL][BLACKLIST] get global blackList uid from file error", e);
+                logger.error("[GLOBAL][BLACKLIST] get local global blackList uid error", e);
             }
         }
         return list;
@@ -89,8 +92,12 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
         Set<String> list = Sets.newHashSet();
         String value = getProperty(UID_BLACKLIST_GLOBAL);
         if (StringUtils.isNotBlank(value)) {
-            list = getSplitStringSet(value.toLowerCase());
-            logger.info("[GLOBAL][BLACKLIST] get blacklist with size: {}", list.size());
+            try {
+                list = getSplitStringSet(value.trim().toLowerCase());
+                logger.info("[GLOBAL][BLACKLIST] get blacklist with size: {}", list.size());
+            } catch (Exception e) {
+                logger.error("[GLOBAL][BLACKLIST] get remote global blackList uid error", e);
+            }
         }
         return list;
     }
@@ -108,5 +115,10 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
         } catch (IllegalArgumentException e) {
             return uidContext.getIllegalArgument();
         }
+    }
+
+    @VisibleForTesting
+    protected void setFile(File file) {
+        this.localUidBlacklistFile = file;
     }
 }
