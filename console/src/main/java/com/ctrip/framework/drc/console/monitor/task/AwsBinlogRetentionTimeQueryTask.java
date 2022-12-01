@@ -42,8 +42,8 @@ public class AwsBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
             if (rs.next()) {
                 return rs.getLong(RDS_BINLOG_RETENTION_HOURS_INDEX);
             }
-            return null;
         }
+        return null;
     }
 
     @Override
