@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @ClassName BtdhsQueryTask
@@ -42,12 +43,13 @@ public class BtdhsQueryTask implements NamedCallable<Long> {
                 return rs.getLong(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
             }
             return null;
-        } catch (SQLException e) {
-            logger.warn("BtdhsQueryTask query error",e);
-            throw e;
-        }
+        } 
     }
 
+    @Override
+    public void afterException(Throwable t) {
+        logger.warn("BtdhsQueryTask query error",t);
+    }
 
     @Override
     public Logger getLogger() {

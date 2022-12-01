@@ -43,13 +43,16 @@ public class AwsBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
                 return rs.getLong(RDS_BINLOG_RETENTION_HOURS_INDEX);
             }
             return null;
-        } catch (SQLException e) {
-            logger.warn("AwsBinlogRetentionTimeQueryTask query error",e);
-            throw e;
         }
     }
-    
-    
+
+    @Override
+    public void afterException(Throwable t) {
+        logger.warn("AwsBinlogRetentionTimeQueryTask query error",t);
+    }
+
+
+
     @Override
     public Logger getLogger() {
         return logger;
