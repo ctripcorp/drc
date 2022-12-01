@@ -39,7 +39,7 @@ public class BtdhsQueryTask implements NamedCallable<Long> {
                 return null;
             }
             ResultSet rs = readResource.getResultSet();
-            if (rs.next()) {
+            if (rs != null & rs.next()) {
                 return rs.getLong(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
             }
         }
