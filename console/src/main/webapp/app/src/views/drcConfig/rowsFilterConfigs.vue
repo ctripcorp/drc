@@ -429,7 +429,7 @@ export default {
           alert('uid 与 uld字段不能同时为空！')
           return
         }
-        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
+        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
           this.rowsFilterConfig.context = '//filter by config'
         } else {
           this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
@@ -706,7 +706,7 @@ export default {
       return false
     },
     fetchModeChange () {
-      if (this.rowsFilterConfig.fetchMode === 1) {
+      if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 3) {
         this.rowsFilterConfig.illegalArgument = true
       } else {
         this.rowsFilterConfig.illegalArgument = false
