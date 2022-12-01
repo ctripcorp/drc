@@ -29,7 +29,9 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
 
     private volatile Set<String> globalBlacklist = Sets.newHashSet();
 
-    private UidGlobalConfiguration() {}
+    private UidGlobalConfiguration() {
+        updateBlacklist();
+    }
 
     private static class  UidGlobalConfigurationHolder {
         public static final  UidGlobalConfiguration INSTANCE = new  UidGlobalConfiguration();
@@ -98,7 +100,7 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
     @Override
     public void onChange(String key, String oldValue, String newValue) {
         super.onChange(key, oldValue, newValue);
-        logger.info("[onChange] for key {}:{}:{}", key, oldValue, newValue);
+        logger.debug("[GLOBAL][BLACKLIST][onChange] for key {}:{}:{}", key, oldValue, newValue);
         if (UID_BLACKLIST_GLOBAL.equalsIgnoreCase(key)) {
             updateBlacklist();
         }
