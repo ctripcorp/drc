@@ -98,6 +98,7 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
     @Override
     public void onChange(String key, String oldValue, String newValue) {
         super.onChange(key, oldValue, newValue);
+        logger.info("[onChange] for key {}:{}:{}", key, oldValue, newValue);
         if (UID_BLACKLIST_GLOBAL.equalsIgnoreCase(key)) {
             updateBlacklist();
         }
