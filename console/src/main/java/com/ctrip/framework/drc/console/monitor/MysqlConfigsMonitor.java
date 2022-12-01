@@ -61,7 +61,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     private static final int BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX = 2;
 
     // for aws
-    private static final String RDS_BINLOG_RETENTION_HOURS = "select value from mysql.rds_configuration where name = \"binlog retention hours\";\n";
+    private static final String RDS_BINLOG_RETENTION_HOURS = "select value from mysql.rds_configuration where name = \"binlog retention hours\";";
     private static final int RDS_BINLOG_RETENTION_HOURS_INDEX = 1;
     
     // for ali
@@ -144,6 +144,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
             cLog(entityTags,"BINLOG_RETENTION_TIME=" + retentionHours , INFO, null);
         } catch (SQLException e) {
             cLog(entityTags,"BINLOG_RETENTION_TIME query error" , ERROR, e);
+            removeSqlOperator(mySqlEndpoint);
         }
     }
     
