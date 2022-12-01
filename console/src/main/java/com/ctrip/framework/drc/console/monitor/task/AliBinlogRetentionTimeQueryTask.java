@@ -34,6 +34,9 @@ public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
     public Long call() throws Exception {
         GeneralSingleExecution execution = new GeneralSingleExecution(RDS_BINLOG_RETENTION_HOURS);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            if (readResource == null) {
+                return null;
+            }
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 return rs.getLong(RDS_BINLOG_RETENTION_HOURS_INDEX);

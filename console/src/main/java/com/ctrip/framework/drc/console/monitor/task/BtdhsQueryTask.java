@@ -34,6 +34,9 @@ public class BtdhsQueryTask implements NamedCallable<Long> {
     public Long call() throws Exception {
         GeneralSingleExecution execution = new GeneralSingleExecution(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            if (readResource == null) {
+                return null;
+            }
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 return rs.getLong(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
