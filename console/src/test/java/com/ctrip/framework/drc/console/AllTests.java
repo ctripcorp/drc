@@ -79,7 +79,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         MonitorTableSourceProviderTest.class,
-        BtdhsMonitorTest.class,
+        MysqlConfigsMonitorTest.class,
         DalServiceImplTest.class,
         SyncTableConfigTaskTest.class,
         DbClusterRetrieverTest.class,

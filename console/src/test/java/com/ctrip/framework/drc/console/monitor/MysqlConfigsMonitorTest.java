@@ -23,6 +23,7 @@ import org.unidal.tuple.Triple;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
+import static com.ctrip.framework.drc.console.monitor.MysqlConfigsMonitor.BINLOG_RETENTION_TIME_MEASUREMENT;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT;
 import static org.mockito.Mockito.never;
@@ -32,10 +33,10 @@ import static org.mockito.Mockito.verify;
  * @Author: hbshen
  * @Date: 2021/4/27
  */
-public class BtdhsMonitorTest extends AbstractTest {
+public class MysqlConfigsMonitorTest extends AbstractTest {
 
     @InjectMocks
-    private BtdhsMonitor btdhsMonitor;
+    private MysqlConfigsMonitor mysqlConfigsMonitor;
 
     @Mock
     private DefaultConsoleConfig consoleConfig;
@@ -63,12 +64,12 @@ public class BtdhsMonitorTest extends AbstractTest {
         MockitoAnnotations.openMocks(this);
 
         Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
-        Mockito.doReturn("on").when(monitorTableSourceProvider).getBtdhsMonitorSwitch();
-        Mockito.doNothing().when(currentMetaManager).addObserver(btdhsMonitor);
+        Mockito.doReturn("on").when(monitorTableSourceProvider).getMysqlConfigsMonitorSwitch();
+        Mockito.doNothing().when(currentMetaManager).addObserver(mysqlConfigsMonitor);
         Mockito.doReturn("sha").when(consoleConfig).getRegion();
         Mockito.doReturn(Sets.newHashSet(Lists.newArrayList(DC1))).when(consoleConfig).getDcsInLocalRegion();
-        btdhsMonitor.initialize();
-        btdhsMonitor.isleader();
+        mysqlConfigsMonitor.initialize();
+        mysqlConfigsMonitor.isleader();
         
     }
 
@@ -76,17 +77,18 @@ public class BtdhsMonitorTest extends AbstractTest {
     public void testInit() {
 
         verify(sourceProvider, times(1)).getLocalDcName();
-        verify(currentMetaManager, times(1)).addObserver(btdhsMonitor);
+        verify(currentMetaManager, times(1)).addObserver(mysqlConfigsMonitor);
     }
 
     @Test
-    public void testMonitorBtdhs() {
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY1, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        btdhsMonitor.update(new Triple<>(META_KEY3, mha3MasterEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
-        Map<String, String> mha2MasterEndpointTags = btdhsMonitor.getEntity(mha3MasterEndpoint, META_KEY3).getTags();
+    public void testMonitor() {
+        mysqlConfigsMonitor.update(new Triple<>(META_KEY1, mha1MasterEndpoint, ActionEnum.ADD), new LocalMasterMySQLEndpointObservable());
+        mysqlConfigsMonitor.update(new Triple<>(META_KEY1, mha1SlaveEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
+        mysqlConfigsMonitor.update(new Triple<>(META_KEY3, mha3MasterEndpoint, ActionEnum.ADD), new LocalSlaveMySQLEndpointObservable());
+        Map<String, String> mha2MasterEndpointTags = mysqlConfigsMonitor.getEntity(mha3MasterEndpoint, META_KEY3).getTags();
 
-        btdhsMonitor.scheduledTask();
+        Mockito.doReturn(Sets.newHashSet()).when(consoleConfig).getPublicCloudRegion();
+        mysqlConfigsMonitor.scheduledTask();
         verify(reporter, times(2)).resetReportCounter(
                 Mockito.any(), 
                 Mockito.anyLong(), 
@@ -97,6 +99,20 @@ public class BtdhsMonitorTest extends AbstractTest {
                 Mockito.anyLong(), 
                 Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
         );
+        verify(reporter, never()).resetReportCounter(
+                Mockito.any(),
+                Mockito.anyLong(),
+                Mockito.eq(BINLOG_RETENTION_TIME_MEASUREMENT)
+        );
+
+        Mockito.doReturn(Sets.newHashSet(Lists.newArrayList("sha"))).when(consoleConfig).getPublicCloudRegion();
+        mysqlConfigsMonitor.scheduledTask();
+        verify(reporter, never()).resetReportCounter(
+                Mockito.any(),
+                Mockito.anyLong(),
+                Mockito.eq(BINLOG_RETENTION_TIME_MEASUREMENT)
+        );
+        
     }
 
 

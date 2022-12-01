@@ -30,6 +30,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DELAY_MONITOR_UPDATEDB_SWITCH = "delay.monitor.updatedb.switch";
 
     private static final String BTDHS_MONITOR_SWITCH = "btdhs.monitor.switch";
+    private static final String MYSQL_CONFIGS_MONITOR_SWITCH = "mysql.configs.monitor.switch";
 
     private static final String UUID_MONITOR_SWITCH = "uuid.monitor.switch";
     private static final String UUID_CORRECT_SWITCH = "uuid.correct.switch";
@@ -263,6 +264,10 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getBtdhsMonitorSwitch() {
         return getProperty(BTDHS_MONITOR_SWITCH, SWITCH_STATUS_ON);
+    }
+    
+    public String getMysqlConfigsMonitorSwitch() {
+        return getProperty(MYSQL_CONFIGS_MONITOR_SWITCH,SWITCH_STATUS_ON);
     }
 
     public String getUuidMonitorSwitch() {
