@@ -63,15 +63,18 @@ public class Columns extends ArrayList<Column> {
         bitmapsOfIdentifier = Lists.newArrayList();
         bitmapsOnUpdate = Lists.newArrayList();
 
+        List<Integer> pks = Lists.newArrayList();
         for (int i = 0; i < size(); i++) {
             Column column = get(i);
             if (column.isPk()) {
-                bitmapsOfIdentifier.add(Bitmap.fromMarks(i));
+                pks.add(i);
+
             }
             if (column.isOnUpdate()) {
                 bitmapsOnUpdate.add(Bitmap.fromMarks(i));
             }
         }
+        bitmapsOfIdentifier.add(Bitmap.fromMarks(pks));
 
         List<String> columnNames = getNames();
         for (int i = 1; i < identifiers.size(); i++) {
