@@ -62,17 +62,6 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
-    private static final String BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE = "show global variables like \"binlog_transaction_dependency_history_size\";";
-    private static final int BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX = 2;
-
-    // for aws
-    private static final String RDS_BINLOG_RETENTION_HOURS = "select value from mysql.rds_configuration where name = \"binlog retention hours\";";
-    private static final int RDS_BINLOG_RETENTION_HOURS_INDEX = 1;
-    
-    // for ali
-    private static final String  BINLOG_EXPIRE_LOGS_SECONDS = "show global variables like 'binlog_expire_logs_seconds';";
-    private static final int BINLOG_EXPIRE_LOGS_SECONDS_INDEX = 2;
-
     public static final String BINLOG_RETENTION_TIME_MEASUREMENT = "fx.drc.binlog.retention.time";
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
