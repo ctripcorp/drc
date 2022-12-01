@@ -184,6 +184,10 @@ public class SystemConfig {
 
     public static final int PROCESSORS_SIZE = OsUtils.getCpuCount();
 
+    public static final String TIME_SPAN_KEY = "heartbeat.valid.time";
+
+    public static final long TIME_SPAN_MS = Long.parseLong(System.getProperty(TIME_SPAN_KEY, "1000"));
+
     public static boolean isIntegrityTest() {
         return "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
     }

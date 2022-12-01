@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeK
 import com.ctrip.xpipe.netty.commands.DefaultNettyClient;
 import com.ctrip.xpipe.utils.Gate;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Assert;
 import org.junit.Before;
@@ -16,6 +17,7 @@ import org.junit.Test;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_KEY;
 import static com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler.KEY_CLIENT;
 
 /**
@@ -26,10 +28,16 @@ public class HeartBeatCommandHandlerTest extends MockTest {
 
     private Channel channel = new EmbeddedChannel();
 
+    private Channel delayedChannel = new DelayedEmbeddedChannel();
+
+    private long validTime = 10l;
+
     @Before
     public void setUp() throws Exception {
         super.initMocks();
+        System.setProperty(TIME_SPAN_KEY, String.valueOf(validTime));
         channel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key")));
+        delayedChannel.attr(KEY_CLIENT).set(new ChannelAttributeKey(new Gate("test_channel_key")));
     }
 
     @Test
@@ -132,5 +140,25 @@ public class HeartBeatCommandHandlerTest extends MockTest {
         boolean res = heartBeatCommandHandler.doCheck();
         Assert.assertTrue(res);
         Assert.assertTrue(heartBeatCommandHandler.getResponses().isEmpty());
+    }
+
+    @Test
+    public void testTimeValid() {
+        HeartBeatCommandHandler heartBeatCommandHandler = new HeartBeatCommandHandler("test_key");
+        heartBeatCommandHandler.initialize();
+        heartBeatCommandHandler.sendHeartBeat(delayedChannel);
+        Assert.assertEquals(heartBeatCommandHandler.getResponses().size(), 0 );
+        heartBeatCommandHandler.dispose();
+    }
+
+    class DelayedEmbeddedChannel extends EmbeddedChannel {
+        @Override
+        public ChannelFuture writeAndFlush(Object msg) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(validTime + 1);
+            } catch (Exception e) {
+            }
+            return super.writeAndFlush(msg);
+        }
     }
 }
