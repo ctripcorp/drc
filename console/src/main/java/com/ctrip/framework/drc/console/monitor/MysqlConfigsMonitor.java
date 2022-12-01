@@ -90,13 +90,16 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
             }
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
                 monitorBtdhs(entry);
-                if (consoleConfig.getPublicCloudRegion().contains(regionName)) {
-                    monitorBinlogRetentionTime(entry);
-                }
             }
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
                 monitorBtdhs(entry);
             }
+            if (consoleConfig.getPublicCloudRegion().contains(regionName)) {
+                for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
+                    monitorBinlogRetentionTime(entry);
+                }
+            }
+            
         } else {
             reporter.removeRegister(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
             reporter.removeRegister(BINLOG_RETENTION_TIME_MEASUREMENT);
@@ -141,7 +144,6 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
             cLog(entityTags,"BINLOG_RETENTION_TIME=" + retentionHours , INFO, null);
         } catch (SQLException e) {
             cLog(entityTags,"BINLOG_RETENTION_TIME query error" , ERROR, e);
-            removeSqlOperator(mySqlEndpoint);
         }
     }
     
