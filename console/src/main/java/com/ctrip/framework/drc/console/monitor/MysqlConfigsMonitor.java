@@ -5,8 +5,13 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.monitor.task.AliBinlogRetentionTimeQueryTask;
+import com.ctrip.framework.drc.console.monitor.task.AwsBinlogRetentionTimeQueryTask;
+import com.ctrip.framework.drc.console.monitor.task.BtdhsQueryTask;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
@@ -115,11 +120,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();
         try {
-            long binlogTxDependencyHistSize = getSqlResultLong(
-                    sqlOperatorWrapper,
-                    BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,
-                    BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX
-            );
+            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper),1).call();
             reporter.resetReportCounter(
                     entityTags,
                     binlogTxDependencyHistSize, 
@@ -150,40 +151,13 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     
     
     private Long getBinlogRetentionTime(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException {
-        try {
-            Long retentionTime = getSqlResultLong(
-                    sqlOperatorWrapper, RDS_BINLOG_RETENTION_HOURS, RDS_BINLOG_RETENTION_HOURS_INDEX);
-            if (retentionTime == -1L) {
-                Long expireSeconds = getSqlResultLong(
-                        sqlOperatorWrapper, BINLOG_EXPIRE_LOGS_SECONDS, BINLOG_EXPIRE_LOGS_SECONDS_INDEX);
-                return expireSeconds / 3600;
-            } else {
-                return retentionTime;
-            }
-        } catch (SQLException e) {
-            Long expireSeconds = getSqlResultLong(
-                    sqlOperatorWrapper, BINLOG_EXPIRE_LOGS_SECONDS, BINLOG_EXPIRE_LOGS_SECONDS_INDEX);
-            return expireSeconds / 3600;
-        }
+        Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
+        if (res  == null) {
+            res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
+        } 
+        return res;
     }
-
-    private Long getSqlResultLong(WriteSqlOperatorWrapper sqlOperatorWrapper, String sql,int index) throws SQLException{
-        ReadResource readResource = null;
-        try {
-            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-            readResource = sqlOperatorWrapper.select(execution);
-            ResultSet rs = readResource.getResultSet();
-            if(rs == null) {
-                return -1L;
-            }
-            rs.next();
-            return rs.getLong(index);
-        } finally {
-            if(readResource != null) {
-                readResource.close();
-            }
-        }
-    }
+    
 
     protected BaseEndpointEntity getEntity(Endpoint endpoint, MetaKey metaKey) {
         BaseEndpointEntity entity;
