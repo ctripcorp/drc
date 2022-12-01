@@ -91,7 +91,7 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
         mysqlConfigsMonitor.scheduledTask();
         verify(reporter, times(2)).resetReportCounter(
                 Mockito.any(), 
-                Mockito.anyLong(), 
+                Mockito.an(), 
                 Mockito.eq(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement())
         );
         verify(reporter, never()).resetReportCounter(
