@@ -112,7 +112,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
             Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper),1).call();
             reporter.resetReportCounter(
                     entityTags,
-                    binlogTxDependencyHistSize == null ? 0: binlogTxDependencyHistSize, 
+                    binlogTxDependencyHistSize == null ? -1L: binlogTxDependencyHistSize, 
                     BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement()
             );
             cLog(entityTags, "BTDHS="+binlogTxDependencyHistSize, INFO, null);
@@ -131,7 +131,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         try {
             Long retentionHours = getBinlogRetentionTime(sqlOperatorWrapper);
             reporter.resetReportCounter(entityTags, 
-                    retentionHours == null ? 0: retentionHours,
+                    retentionHours == null ? -1L: retentionHours,
                     BINLOG_RETENTION_TIME_MEASUREMENT);
             cLog(entityTags,"BINLOG_RETENTION_TIME=" + retentionHours , INFO, null);
         } catch (SQLException e) {

@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
+
 
 /**
  * @ClassName AliBinlogRetentionTimeQueryTask
@@ -18,8 +18,8 @@ import java.sql.SQLException;
  */
 public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
 
-    private static final String RDS_BINLOG_RETENTION_HOURS = "select value from mysql.rds_configuration where name = \"binlog retention hours\";";
-    private static final int RDS_BINLOG_RETENTION_HOURS_INDEX = 1;
+    private static final String ALI_BINLOG_RETENTION_HOURS = "show global variables like 'binlog_expire_logs_seconds';";
+    private static final int ALI_BINLOG_RETENTION_HOURS_INDEX = 2;
 
     private static final Logger logger = LoggerFactory.getLogger(AwsBinlogRetentionTimeQueryTask.class);
 
@@ -32,17 +32,23 @@ public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
 
     @Override
     public Long call() throws Exception {
-        GeneralSingleExecution execution = new GeneralSingleExecution(RDS_BINLOG_RETENTION_HOURS);
-        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+        GeneralSingleExecution execution = new GeneralSingleExecution(ALI_BINLOG_RETENTION_HOURS);
+        ReadResource readResource = null;
+        try {
+            readResource = sqlOperatorWrapper.select(execution);
             if (readResource == null) {
-                return null;
+                return -1L;
             }
             ResultSet rs = readResource.getResultSet();
             if (rs != null & rs.next()) {
-                return rs.getLong(RDS_BINLOG_RETENTION_HOURS_INDEX) / 3600;
+                return rs.getLong(ALI_BINLOG_RETENTION_HOURS_INDEX);
+            }
+        } finally {
+            if (readResource != null) {
+                readResource.close();
             }
         }
-        return null;
+        return -1L;
     }
 
     @Override

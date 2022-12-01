@@ -34,16 +34,22 @@ public class AwsBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
     @Override
     public Long call() throws Exception {
         GeneralSingleExecution execution = new GeneralSingleExecution(RDS_BINLOG_RETENTION_HOURS);
-        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+        ReadResource readResource = null;
+        try {
+            readResource = sqlOperatorWrapper.select(execution);
             if (readResource == null) {
-                return null;
+                return -1L;
             }
             ResultSet rs = readResource.getResultSet();
             if (rs != null & rs.next()) {
                 return rs.getLong(RDS_BINLOG_RETENTION_HOURS_INDEX);
             }
+        } finally {
+            if (readResource != null) {
+                readResource.close();
+            }
         }
-        return null;
+        return -1L;
     }
 
     @Override
