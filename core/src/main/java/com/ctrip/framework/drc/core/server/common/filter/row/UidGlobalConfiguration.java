@@ -19,17 +19,22 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 /**
  * Created by jixinwang on 2022/11/28
  */
-public class UidGlobalConfiguration extends AbstractConfigBean {
+public final class UidGlobalConfiguration extends AbstractConfigBean {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final static String UID_BLACKLIST_GLOBAL = "uid.filter.blacklist.global";
 
-    private File localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
+    private File localUidBlacklistFile;
 
     private volatile Set<String> globalBlacklist = Sets.newHashSet();
 
     private UidGlobalConfiguration() {
+        initGlobalBlacklist();
+        localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
+    }
+
+    private void initGlobalBlacklist() {
         updateBlacklist();
     }
 
