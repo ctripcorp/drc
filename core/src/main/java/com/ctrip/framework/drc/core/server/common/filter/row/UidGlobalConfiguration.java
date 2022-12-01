@@ -31,10 +31,10 @@ public final class UidGlobalConfiguration extends AbstractConfigBean {
 
     private UidGlobalConfiguration() {
         initGlobalBlacklist();
-        localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
     }
 
     private void initGlobalBlacklist() {
+        localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
         updateBlacklist();
     }
 
