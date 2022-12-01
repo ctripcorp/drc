@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -14,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.*;
 
@@ -28,30 +25,11 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
 
     private final static String UID_BLACKLIST_GLOBAL = "uid.filter.blacklist.global";
 
-    private final static String updateGlobalUidBlacklist = "update.uid.blacklist";
-
     private File localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
 
     private volatile Set<String> globalBlacklist = Sets.newHashSet();
 
-    private static final int UPDATE_GLOBAL_BLACKLIST_TIME = 10;
-
-    private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("Update-Global-Uid-Blacklist-Task");
-
-    private UidGlobalConfiguration() {
-        updateBlacklist();
-        scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            try {
-                if ("true".equalsIgnoreCase(getProperty(updateGlobalUidBlacklist, "false"))) {
-                    updateBlacklist();
-                } else {
-                    logger.info("[GLOBAL][BLACKLIST] update global uid blacklist ignore for update.uid.blacklist is: false");
-                }
-            } catch (Throwable t) {
-                logger.error("[GLOBAL][BLACKLIST] update global uid blacklist error", t);
-            }
-        }, UPDATE_GLOBAL_BLACKLIST_TIME, UPDATE_GLOBAL_BLACKLIST_TIME, TimeUnit.MINUTES);
-    }
+    private UidGlobalConfiguration() {}
 
     private static class  UidGlobalConfigurationHolder {
         public static final  UidGlobalConfiguration INSTANCE = new  UidGlobalConfiguration();
@@ -114,6 +92,14 @@ public class UidGlobalConfiguration extends AbstractConfigBean {
             return res;
         } catch (IllegalArgumentException e) {
             return uidContext.getIllegalArgument();
+        }
+    }
+
+    @Override
+    public void onChange(String key, String oldValue, String newValue) {
+        super.onChange(key, oldValue, newValue);
+        if (UID_BLACKLIST_GLOBAL.equalsIgnoreCase(key)) {
+            updateBlacklist();
         }
     }
 

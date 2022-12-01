@@ -15,6 +15,7 @@ public class UidGlobalConfigurationTest {
     @Test
     public void filterRowsWithBlackListWithRemoteBlacklist() throws Exception {
         UidGlobalConfiguration uidGlobalConfiguration = UidGlobalConfiguration.getInstance();
+        uidGlobalConfiguration.updateBlacklist();
 
         Assert.assertFalse(uidGlobalConfiguration.filterRowsWithBlackList(fetchUidContext("uid1", registryKey)));
         Assert.assertTrue(uidGlobalConfiguration.filterRowsWithBlackList(fetchUidContext("uid3", registryKey)));
