@@ -143,7 +143,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     
     private Long getBinlogRetentionTime(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException {
         Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
-        if (res  == null) {
+        if (res  == null || res == -1L) {
             res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
         } 
         return res;
