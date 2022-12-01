@@ -74,7 +74,10 @@ public class Columns extends ArrayList<Column> {
                 bitmapsOnUpdate.add(Bitmap.fromMarks(i));
             }
         }
-        bitmapsOfIdentifier.add(Bitmap.fromMarks(pks));
+
+        if (!pks.isEmpty()) {
+            bitmapsOfIdentifier.add(Bitmap.fromMarks(pks));
+        }
 
         List<String> columnNames = getNames();
         for (int i = 1; i < identifiers.size(); i++) {
