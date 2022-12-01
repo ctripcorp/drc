@@ -41,7 +41,7 @@ public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
             }
             ResultSet rs = readResource.getResultSet();
             if (rs != null & rs.next()) {
-                return rs.getLong(ALI_BINLOG_RETENTION_HOURS_INDEX);
+                return rs.getLong(ALI_BINLOG_RETENTION_HOURS_INDEX) / 3600;
             }
         } finally {
             if (readResource != null) {
