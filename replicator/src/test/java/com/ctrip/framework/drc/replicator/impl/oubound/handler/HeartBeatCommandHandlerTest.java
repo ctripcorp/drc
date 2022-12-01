@@ -18,6 +18,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_KEY;
+import static com.ctrip.framework.drc.replicator.AllTests.validTime;
 import static com.ctrip.framework.drc.replicator.impl.oubound.handler.ReplicatorMasterHandler.KEY_CLIENT;
 
 /**
@@ -29,8 +30,6 @@ public class HeartBeatCommandHandlerTest extends MockTest {
     private Channel channel = new EmbeddedChannel();
 
     private Channel delayedChannel = new DelayedEmbeddedChannel();
-
-    private long validTime = 10l;
 
     @Before
     public void setUp() throws Exception {

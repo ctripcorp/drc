@@ -50,6 +50,8 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.HashMap;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_KEY;
+
 /**
  * Created by @author zhuYongMing on 2019/9/18.
  */
@@ -228,11 +230,15 @@ public class AllTests {
 
     public static int previous_gtidset_interval = 1024 * 5;
 
+    public static long validTime = 10l;
+
+
     @BeforeClass
     public static void setUp() {
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(true));
         System.setProperty(SystemConfig.PREVIOUS_GTID_INTERVAL, String.valueOf(previous_gtidset_interval));
         System.setProperty("io.netty.buffer.checkAccessible", "false");
+        System.setProperty(TIME_SPAN_KEY, String.valueOf(validTime));
         try {
             server = new TestingServer(12181, true);
 
