@@ -107,7 +107,7 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
 
         Mockito.doReturn(Sets.newHashSet(Lists.newArrayList("sha"))).when(consoleConfig).getPublicCloudRegion();
         mysqlConfigsMonitor.scheduledTask();
-        verify(reporter, never()).resetReportCounter(
+        verify(reporter, times(1)).resetReportCounter(
                 Mockito.any(),
                 Mockito.anyLong(),
                 Mockito.eq(BINLOG_RETENTION_TIME_MEASUREMENT)
