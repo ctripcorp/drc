@@ -516,7 +516,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
-        gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getGtidInit(mhaTbl) : formatGtid(gtidExecuted);
+        gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getNativeGtid(mhaName) : formatGtid(gtidExecuted);
         return messengerGroupTblDao.upsertIfNotExist(mhaId,replicatorGroupId,gtidExecuted);
     }
 
