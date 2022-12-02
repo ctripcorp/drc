@@ -24,6 +24,8 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
 
     private UidConfiguration uidConfiguration = UidConfiguration.getInstance();
 
+    private UidGlobalConfiguration uidGlobalConfiguration = UidGlobalConfiguration.getInstance();
+
     private Set<String> dstLocation = Sets.newHashSet();
 
     private int drcStrategyId;
@@ -58,6 +60,8 @@ public class UserRowsFilterRule extends AbstractRowsFilterRule implements RowsFi
                 return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList", registryKey, () -> RowsFilterResult.Status.from(uidConfiguration.filterRowsWithBlackList(fetchUserContext(field, parameters))));
             } else if (FetchMode.WhiteList.getCode() == fetchMode) {
                 return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.whiteList", registryKey, () -> RowsFilterResult.Status.from(uidConfiguration.filterRowsWithWhiteList(fetchUserContext(field, parameters))));
+            } else if (FetchMode.BlackList_Global.getCode() == fetchMode) {
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.replicator.rows.filter.blackList.global", registryKey, () -> RowsFilterResult.Status.from(uidGlobalConfiguration.filterRowsWithBlackList(fetchUserContext(field, parameters))));
             }
 
             throw new UnsupportedOperationException("not support for fetchMode " + fetchMode);

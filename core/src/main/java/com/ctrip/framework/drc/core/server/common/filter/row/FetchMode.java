@@ -10,7 +10,9 @@ public enum FetchMode {
 
     BlackList(1),
 
-    WhiteList(2);
+    WhiteList(2),
+
+    BlackList_Global(3);
 
     private int code;
 
