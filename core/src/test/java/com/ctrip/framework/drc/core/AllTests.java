@@ -71,6 +71,7 @@ import org.junit.runners.Suite;
         DataMediaConfigTest.class,
         AbstractRowsFilterRuleTest.class,
         UidConfigurationTest.class,
+        UidGlobalConfigurationTest.class,
         RowsFilterTypeTest.class,
         AbstractRowsFilterRuleForUdlTest.class,
         AbstractRowsFilterRuleForUidTest.class,
