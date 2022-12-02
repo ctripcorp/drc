@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.InstanceStateController;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.zookeeper.AbstractDbClusterTest;
@@ -82,6 +83,24 @@ public class DefaultStateChangeHandlerTest extends AbstractDbClusterTest {
         when(currentMetaManager.getSurviveAppliers(CLUSTER_ID, RegistryKey.from(newApplier.getTargetName(), newApplier.getTargetMhaName()))).thenReturn(Lists.newArrayList(newApplier));
         stateChangeHandler.applierActiveElected(CLUSTER_ID, newApplier);
         verify(instanceStateController, times(1)).addApplier(CLUSTER_ID, newApplier);
+    }
+
+    @Test
+    public void messengerActiveElected() {
+        when(currentMetaManager.hasCluster(CLUSTER_ID)).thenReturn(false);
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newMessenger);
+        verify(instanceStateController, times(0)).addMessenger(CLUSTER_ID, newMessenger);
+
+        when(currentMetaManager.hasCluster(CLUSTER_ID)).thenReturn(true);
+        when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(null);
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newMessenger);
+        verify(instanceStateController, times(0)).addMessenger(CLUSTER_ID, newMessenger);
+
+
+        when(currentMetaManager.getCluster(CLUSTER_ID)).thenReturn(dbCluster);
+        when(currentMetaManager.getSurviveMessengers(CLUSTER_ID)).thenReturn(Lists.newArrayList(newMessenger));
+        stateChangeHandler.messengerActiveElected(CLUSTER_ID, newMessenger);
+        verify(instanceStateController, times(1)).addMessenger(CLUSTER_ID, newMessenger);
     }
 
     @Test(expected = IllegalStateException.class)

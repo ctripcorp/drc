@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.fetcher.event.FetcherEvent;
 import com.ctrip.framework.drc.fetcher.event.MonitoredGtidLogEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.Capacity;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemory;
+import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractSystem;
 import com.ctrip.framework.drc.fetcher.system.TaskActivity;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -126,6 +127,11 @@ public class DumpEventActivityTest extends MockTest {
         @Override
         protected FetcherSlaveServer getFetcherSlaveServer() {
             return new FetcherSlaveServer(mySQLSlaveConfig, mySQLConnector, byteBufConverter);
+        }
+
+        @Override
+        protected NetworkContextResource getNetworkContextResource() throws Exception {
+            return new NetworkContextResource();
         }
 
         protected void doHandleLogEvent(FetcherEvent logEvent) {

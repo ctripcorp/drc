@@ -75,6 +75,7 @@ public class MySqlUtils {
     private static final String CHECK_GTID_MODE = "SELECT @@GTID_MODE;";
     private static final String CHECK_INCREMENT_STEP = "show global variables like \"auto_increment_increment\";";
     private static final String CHECK_INCREMENT_OFFSET = "show global variables like \"auto_increment_offset\";";
+    private static final String CHECK_BINLOG_ROW_IMAGE = "show global variables like \"binlog_row_image\";";
     private static final String CHECK_DRC_TABLES = "select count(*) from information_schema.tables where TABLE_SCHEMA = \"drcmonitordb\";";
     private static final int SHOW_CERTAIN_VARIABLES_INDEX = 2;
     private static final String CHECK_ACCOUNT_AVAILABLE = "SELECT @@GTID_MODE;";
@@ -526,8 +527,7 @@ public class MySqlUtils {
         List<TableSchemaName> tables = getTables(endpoint, sql, false);
         return getCreateTblStmts(endpoint, tables.stream().map(TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList()), false);
     }
-
-    @Deprecated
+    
     public static String getExecutedGtid(Endpoint endpoint) {
         return  getSqlResultString(endpoint, GTID_EXECUTED_COMMAND_V2, GTID_EXECUTED_INDEX_V2);
     }
@@ -587,6 +587,11 @@ public class MySqlUtils {
     public static String checkBinlogVersion(Endpoint endpoint) {
         logger.info("[[tag=preCheck,endpoint={}]] checkBinlogVersion", endpoint.getSocketAddress());
         return getSqlResultString(endpoint,CHECK_BINLOG_VERSION1,SHOW_CERTAIN_VARIABLES_INDEX);
+    }
+
+    public static String checkBinlogRowImage(Endpoint endpoint) {
+        logger.info("[[tag=preCheck,endpoint={}]] checkBinlogRowImage ", endpoint.getSocketAddress());
+        return getSqlResultString(endpoint, CHECK_BINLOG_ROW_IMAGE,SHOW_CERTAIN_VARIABLES_INDEX);
     }
 
     public static Integer checkAutoIncrementStep(Endpoint endpoint) {

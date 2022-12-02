@@ -41,6 +41,7 @@
     <entity-ref name="replicatorMonitor" />
     <entity-ref name="replicator" type="list" names="replicators" />
     <entity-ref name="applier" type="list" names="appliers" />
+    <entity-ref name="messenger" type="list" names="messengers" />
   </entity>
   <entity name="dbs">
     <attribute name="readUser" value-type="String" />
@@ -86,6 +87,14 @@
     <attribute name="applyMode" value-type="int" />
     <attribute name="nameFilter" value-type="String" />
     <attribute name="nameMapping" value-type="String" />
+    <attribute name="properties" value-type="String" />
+  </entity>
+  <entity name="messenger">
+    <attribute name="ip" value-type="String" />
+    <attribute name="port" value-type="int" />
+    <attribute name="gtidExecuted" value-type="String" />
+    <attribute name="master" value-type="boolean" primitive="true" />
+    <attribute name="nameFilter" value-type="String" />
     <attribute name="properties" value-type="String" />
   </entity>
 </model>

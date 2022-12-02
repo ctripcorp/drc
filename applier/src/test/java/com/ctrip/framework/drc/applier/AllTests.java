@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.applier.container.controller.ApplierServerControl
 import com.ctrip.framework.drc.applier.event.*;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTest;
 import com.ctrip.framework.drc.applier.intergrated.ApplierTestWithMockedEvents;
+import com.ctrip.framework.drc.applier.mq.MqPositionResourceTest;
 import com.ctrip.framework.drc.applier.resource.TransactionTableResourceTest;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerBucketTest;
 import com.ctrip.framework.drc.applier.resource.condition.LWMResourceInnerChartTest;
@@ -94,7 +95,11 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         ApplierServerControllerTest.class,
 
         //activity
-        TransactionTableApplierDumpEventActivityTest.class
+        TransactionTableApplierDumpEventActivityTest.class,
+
+        //mq
+        MqPositionResourceTest.class,
+        MqTransactionContextResourceTest.class
 })
 public class AllTests {
 

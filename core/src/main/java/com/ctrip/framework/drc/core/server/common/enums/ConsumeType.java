@@ -16,6 +16,11 @@ public enum ConsumeType {
         public boolean isSlave() {
             return false;
         }
+
+        @Override
+        public boolean requestAllBinlog() {
+            return false;
+        }
     }, // InstanceStatus.ACTIVE
 
     Replicator(1) {
@@ -26,6 +31,11 @@ public enum ConsumeType {
 
         @Override
         public boolean isSlave() {
+            return true;
+        }
+
+        @Override
+        public boolean requestAllBinlog() {
             return true;
         }
     },  // InstanceStatus.INACTIVE
@@ -39,6 +49,28 @@ public enum ConsumeType {
         @Override
         public boolean isSlave() {
             return false;
+        }
+
+        @Override
+        public boolean requestAllBinlog() {
+            return false;
+        }
+    },  // InstanceStatus.INACTIVE
+
+    Messenger(3) {
+        @Override
+        public boolean shouldHeartBeat() {
+            return true;
+        }
+
+        @Override
+        public boolean isSlave() {
+            return false;
+        }
+
+        @Override
+        public boolean requestAllBinlog() {
+            return true;
         }
     };
 
@@ -55,6 +87,8 @@ public enum ConsumeType {
     public abstract boolean shouldHeartBeat();
 
     public abstract boolean isSlave();
+
+    public abstract boolean requestAllBinlog();
 
     public static ConsumeType getType(int code) {
         for (ConsumeType consumeType : values()) {

@@ -7,6 +7,9 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Map;
+import java.util.Set;
+
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.DRC_DELAY_MESUREMENT;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.MYSQL_DELAY_MESUREMENT;
 
@@ -95,5 +98,17 @@ public class MonitorTableSourceProviderTest {
         Assert.assertEquals(3000, monitorTableSourceProvider.getDalServiceTimeout());
         Assert.assertEquals("on", monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch());
         Assert.assertEquals(60 * 8,monitorTableSourceProvider.getGtidMonitorPeriod());
+    }
+
+    @Test
+    public void getRelationCostApps() {
+        Map<String, Set<String>> relationCostApps = monitorTableSourceProvider.getRelationCostApps();
+        Assert.assertEquals(9, relationCostApps.size());
+    }
+
+    @Test
+    public void getParentRelationGroups() {
+        Map<String, String> parentRelationGroups = monitorTableSourceProvider.getParentRelationGroups();
+        Assert.assertEquals(2, parentRelationGroups.size());
     }
 }

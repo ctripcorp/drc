@@ -27,12 +27,14 @@ import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTas
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
 import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
+import com.ctrip.framework.drc.core.meta.MessengerPropertiesTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
 import com.ctrip.framework.drc.core.meta.comparator.DcRouteComparatorTest;
 import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeTypeTest;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilterTest;
@@ -81,6 +83,9 @@ import org.junit.runners.Suite;
         AuthenticateResultHandlerTest.class,
         HandshakeInitializationHandlerTest.class,
         CharsetConversionTest.class,
+
+        // messenger
+        ConsumeTypeTest.class,
 
         // binlog package
 
@@ -241,7 +246,10 @@ import org.junit.runners.Suite;
         WriteFieldYearTypeTest.class,
         WriteFieldDateTypeTest.class,
         WriteFieldEnumMeta1TypeTest.class,
-        WriteFieldEnumMeta2TypeTest.class
+        WriteFieldEnumMeta2TypeTest.class,
+
+        //mq
+        MessengerPropertiesTest.class
 
 })
 public class AllTests {

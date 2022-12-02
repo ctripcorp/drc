@@ -62,18 +62,16 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
     
-    @Autowired
-    private UdlMigrateConfiguration udlMigrateConfig;
     
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
     
     @Override
-    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId) throws SQLException {
-        ArrayList<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
+    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException {
+        List<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
         List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
-                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
-
+                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
+        
         for (RowsFilterMappingTbl mapping :  rowsFilterMappingTbls) {
             RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
             
@@ -84,33 +82,22 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
-            if (udlMigrateConfig.gray(applierGroupId)) {// new rowsFilterConfig  trip_udl & configs & updateDb
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
-                rowsFilterConfig.setMode(
-                        TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
-                );
-                String configsJson = rowsFilterTbl.getConfigs();
-                if (StringUtils.isBlank(configsJson)) {
-                    Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
-                    Configs configs = new Configs();
-                    configs.setParameterList(Lists.newArrayList(parameters));
-                    rowsFilterConfig.setConfigs(configs);
-                    
-                    migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
-                } else {
-                    rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
-                }
-                
-            } else {// old rowsFilterConfig trip_uid & parameters
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} still work in old config",applierGroupId);
-                rowsFilterConfig.setMode(
-                        TRIP_UDL.equalsIgnoreCase(originalMode) ? TRIP_UID : originalMode
-                );
+            // new rowsFilterConfig  trip_udl & configs & updateDb
+            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
+            rowsFilterConfig.setMode(
+                    TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
+            );
+            String configsJson = rowsFilterTbl.getConfigs();
+            if (StringUtils.isBlank(configsJson)) {
                 Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
-                rowsFilterConfig.setParameters(parameters);
-                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to udl mode",applierGroupId);
+                Configs configs = new Configs();
+                configs.setParameterList(Lists.newArrayList(parameters));
+                rowsFilterConfig.setConfigs(configs);
+                
+                migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
+            } else {
+                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
             }
-            
             rowsFilterConfigs.add(rowsFilterConfig);
         }
 
@@ -120,19 +107,20 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     
 
     @Override
-    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId) throws SQLException {
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException {
         List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
         if (applierGroupId == null) {
             return mappingVos;
         }
         List<RowsFilterMappingTbl> rowsFilterMappingTbls =
-                rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
+                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
         for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             List<DataMediaTbl> dataMediaTbls =
                     dataMediaTblDao.queryByIdsAndType(
                             Lists.newArrayList(mapping.getDataMediaId()),
                             DataMediaTypeEnum.ROWS_FILTER.getType(),
-                            BooleanEnum.FALSE.getCode());
+                            BooleanEnum.FALSE.getCode()
+                    );
             RowsFilterTbl rowsFilterTbl =
                     rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             if (!CollectionUtils.isEmpty(dataMediaTbls) && rowsFilterTbl != null) {
@@ -214,11 +202,12 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Override
     public List<String> getLogicalTables(
             Long applierGroupId, 
+            int applierType,
             Long dataMediaId, 
             String namespace, 
             String name,
             String mhaName) throws SQLException {
-        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId);
+        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId,applierType);
         List<String> logicalTables = Lists.newArrayList();
         if (dataMediaId == 0) { // add
             logicalTables = rowsFilterMappingVos.stream().

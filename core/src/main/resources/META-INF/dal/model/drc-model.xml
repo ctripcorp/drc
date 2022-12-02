@@ -25,6 +25,8 @@
     </entity>
     <entity name="applier" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
     </entity>
+    <entity name="messenger" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.Instance">
+    </entity>
     <entity name="route" implements="java.io.Serializable, com.ctrip.framework.drc.core.entity.IRoute">
         <attribute name="id" key="true" />
     </entity>

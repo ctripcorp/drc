@@ -1,10 +1,9 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.SSOService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
-import com.ctrip.framework.drc.console.utils.SpringUtils;
+import com.ctrip.framework.drc.core.utils.SpringUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
@@ -31,17 +30,17 @@ import java.util.List;
  */
 @Service
 public class SSOServiceImpl implements SSOService {
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final String degradeUrl = "http://%s:%s/api/drc/v1/access/sso/degrade/notify/%s";
     private final String localAppId = "100023928";
-    
+
     @Autowired
     private DomainConfig domainConfig;
-    
+
     OPSApiService opsApiService = ApiContainer.getOPSApiServiceImpl();
-    
-    
+
+
     @Override
     public ApiResult degradeAllServer(Boolean isOpen) {
         ApiResult apiResult = setDegradeSwitch(isOpen);
@@ -56,7 +55,7 @@ public class SSOServiceImpl implements SSOService {
             }
         }
     }
-        
+
     @Override
     public ApiResult setDegradeSwitch(Boolean isOpen){
         logger.info("[[switch=ssoDegrade]] changeSSOFilterStatus to {}",isOpen);
@@ -77,7 +76,7 @@ public class SSOServiceImpl implements SSOService {
             return ApiResult.getFailInstance(e);
         }
     }
-    
+
     @Override
     public ApiResult notifyOtherMachine(Boolean isOpen) throws UnknownHostException {
         List<AppNode> appNodes = getAppNodes();
@@ -100,7 +99,7 @@ public class SSOServiceImpl implements SSOService {
         }
         return ApiResult.getSuccessInstance("notifyAllMachineDegradeSwitch openStatus to " + isOpen );
     }
-    
+
     @Override
     public List<AppNode> getAppNodes(){
         String cmsGetServerUrl = domainConfig.getCmsGetServerUrl();
@@ -108,6 +107,6 @@ public class SSOServiceImpl implements SSOService {
         String env = cmsGetServerUrl.contains("FAT") ? "FAT" : null;
         return opsApiService.getAppNodes(cmsGetServerUrl, opsAccessToken, Lists.newArrayList(localAppId), env);
     }
-    
-    
+
+
 }

@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.core.driver.command.SERVER_COMMAND;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
-import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.activity.replicator.config.FetcherSlaveConfig;
 import com.ctrip.framework.drc.fetcher.activity.replicator.handler.command.FetcherBinlogDumpGtidCommandHandler;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
@@ -75,8 +75,11 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
         commandPacket.setGtidSet(slaveConfig.getGtidSet());
         commandPacket.setIncludedDbs(slaveConfig.getIncludedDbs());
         commandPacket.setNameFilter(slaveConfig.getNameFilter());
-        commandPacket.setConsumeType(ConsumeType.Applier.getCode());
-        commandPacket.setApplyMode(slaveConfig.getApplyMode());
+
+        ApplyMode applyMode = ApplyMode.getApplyMode(slaveConfig.getApplyMode());
+        commandPacket.setApplyMode(applyMode.getType());
+        commandPacket.setConsumeType(applyMode.getConsumeType().getCode());
+
         commandPacket.setProperties(slaveConfig.getProperties());
         String region = RegionConfig.getInstance().getRegion();
         commandPacket.setRegion(region);

@@ -12,6 +12,18 @@
     <artifactId>integration-test</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>com.ctrip.framework</groupId>
+            <artifactId>vi-server</artifactId>
+            <version>0.2.5</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javax.servlet-api</artifactId>
+                    <groupId>javax.servlet</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->
@@ -80,6 +92,16 @@
             <artifactId>mariaDB4j</artifactId>
             <scope>test</scope>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>ctrip-datasource</artifactId>-->
+<!--            <version>2.4.28.2-SNAPSHOT</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.ctrip.platform</groupId>-->
+<!--            <artifactId>dal-client</artifactId>-->
+<!--            <version>2.4.28.2-SNAPSHOT</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>

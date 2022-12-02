@@ -247,52 +247,52 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {
-            replicators.putAll(getReplicatorsNotInSrcDc(mhaNamesToBeMonitored,dcInLocalRegion));
+            replicators.putAll(getReplicatorsSrcDcRelated(mhaNamesToBeMonitored,dcInLocalRegion));
         }
         return replicators;
     }
 
     
-    public Map<String, ReplicatorWrapper> getReplicatorsNotInSrcDc(List<String> mhaNamesToBeMonitored,String srcDc) {
+    public Map<String, ReplicatorWrapper> getReplicatorsSrcDcRelated(List<String> mhaNamesToBeMonitored, String srcDc) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Map<String, Dc> dcs = getDcs();
+        HashSet<String> mhasRelated = Sets.newHashSet(mhaNamesToBeMonitored);
         for (Dc dc : dcs.values()) {
             String dcName = dc.getId();
-                Map<String, DbCluster> dbClusters = dc.getDbClusters();
-                for (DbCluster dbCluster : dbClusters.values()) {
-                    List<Applier> appliers = dbCluster.getAppliers();
-                    for (Applier applier : appliers) {
-                        if (srcDc.equals(applier.getTargetIdc())) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            for (DbCluster dbCluster : dbClusters.values()) {
+                List<Applier> appliers = dbCluster.getAppliers();
+                for (Applier applier : appliers) {
+                    if (srcDc.equals(applier.getTargetIdc()) && mhasRelated.contains(applier.getTargetMhaName())) {
 
-                            if(!mhaNamesToBeMonitored.contains(dbCluster.getMhaName())) {
-                                break;
-                            }
-
-                            if (dbCluster.getReplicators().isEmpty()) {
-                                break;
-                            }
-                            // get Route use localDc
-                            Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
-                            List<Route> routes = Lists.newArrayList();
-                            for (String dcInLocalRegion : dcsInLocalRegion) {
-                                 routes.addAll(RouteUtils.filterRoutes(dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)));
-                            }
-                            replicators.put(
-                                    dbCluster.getId(),
-                                    new ReplicatorWrapper(
-                                            dbCluster.getReplicators().stream().filter(Replicator::isMaster).findFirst().orElse(dbCluster.getReplicators().get(0)),
-                                            srcDc,
-                                            dcName,
-                                            dbCluster.getName(),
-                                            applier.getTargetMhaName(),
-                                            dbCluster.getMhaName(),
-                                            routes
-                                    )
-                            );
+                        if (dbCluster.getReplicators().isEmpty()) {
                             break;
                         }
-
+                        // get Routes
+                        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+                        List<Route> routes = Lists.newArrayList();
+                        for (String dcInLocalRegion : dcsInLocalRegion) {
+                            routes.addAll(RouteUtils.filterRoutes(
+                                    dcInLocalRegion, Route.TAG_CONSOLE, dbCluster.getOrgId(), dcName, dcs.get(dcInLocalRegion)
+                            ));
+                        }
+                        replicators.put(
+                                dbCluster.getId(),
+                                new ReplicatorWrapper(
+                                        dbCluster.getReplicators().
+                                                stream().filter(Replicator::isMaster).
+                                                findFirst().orElse(dbCluster.getReplicators().get(0)),
+                                        srcDc,
+                                        dcName,
+                                        dbCluster.getName(),
+                                        applier.getTargetMhaName(),
+                                        dbCluster.getMhaName(),
+                                        routes
+                                )
+                        );
+                        break;
                     }
+                }
             }
         }
         return replicators;

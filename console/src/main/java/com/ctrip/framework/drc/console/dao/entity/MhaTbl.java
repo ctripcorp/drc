@@ -75,6 +75,15 @@ public class MhaTbl implements DalPojo {
 	@Type(value = Types.TINYINT)
 	private Integer dnsStatus;
 
+
+	/**
+	 * 是否开启监控, 0:否; 1:是
+	 * default 0 
+	 */
+	@Column(name = "monitor_switch")
+	@Type(value = Types.TINYINT)
+	private Integer monitorSwitch;
+
 	/**
 	 * apply mode, 0: set gtid, 1: transaction table,
 	 */
@@ -144,6 +153,14 @@ public class MhaTbl implements DalPojo {
 
 	public void setDnsStatus(Integer dnsStatus) {
 		this.dnsStatus = dnsStatus;
+	}
+
+	public Integer getMonitorSwitch() {
+		return monitorSwitch;
+	}
+
+	public void setMonitorSwitch(Integer monitorSwitch) {
+		this.monitorSwitch = monitorSwitch;
 	}
 
 	public Integer getApplyMode() {

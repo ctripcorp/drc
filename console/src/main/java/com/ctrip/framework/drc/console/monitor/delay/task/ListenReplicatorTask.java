@@ -38,13 +38,12 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
@@ -338,6 +337,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNeeded(mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers);
     }
+    
 
     private void checkReplicatorWrapperChange(Map<String, ReplicatorWrapper> current, Map<String, ReplicatorWrapper> future) {
         ListeningReplicatorComparator comparator = new ListeningReplicatorComparator(current, future);

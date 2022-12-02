@@ -71,6 +71,12 @@ public class SystemConfig {
 
     public static final String DRC_DELAY_MONITOR_NAME = DRC_MONITOR_SCHEMA_NAME + "." + DRC_DELAY_MONITOR_TABLE_NAME;
 
+    public static final String DRC_DELAY_MONITOR_NAME_REGEX = DRC_MONITOR_SCHEMA_NAME + "\\." + DRC_DELAY_MONITOR_TABLE_NAME;
+
+    public static final String MESSENGER_DELAY_MONITOR_TOPIC = "bbz.drc.delaymonitor";
+
+    public static final String DRC_MQ = "_drc_mq";
+
     public static final String EVENT_LOG = "com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionMonitorFilter";
 
     public static final Logger EVENT_LOGGER = LoggerFactory.getLogger(EVENT_LOG);
@@ -177,6 +183,10 @@ public class SystemConfig {
     public static final String DEFAULT_CONFIG_FILE_NAME = "drc.properties";
 
     public static final int PROCESSORS_SIZE = OsUtils.getCpuCount();
+
+    public static final String TIME_SPAN_KEY = "heartbeat.valid.time";
+
+    public static final long TIME_SPAN_MS = Long.parseLong(System.getProperty(TIME_SPAN_KEY, "1000"));
 
     public static boolean isIntegrityTest() {
         return "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
