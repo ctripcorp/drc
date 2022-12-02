@@ -21,7 +21,7 @@ public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
     private static final String ALI_BINLOG_RETENTION_HOURS = "show global variables like 'binlog_expire_logs_seconds';";
     private static final int ALI_BINLOG_RETENTION_HOURS_INDEX = 2;
 
-    private static final Logger logger = LoggerFactory.getLogger(AwsBinlogRetentionTimeQueryTask.class);
+    private static final Logger logger = LoggerFactory.getLogger(AliBinlogRetentionTimeQueryTask.class);
     
     private DataSource dataSource;
     

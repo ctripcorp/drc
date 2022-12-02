@@ -1,9 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
-import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
-import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
