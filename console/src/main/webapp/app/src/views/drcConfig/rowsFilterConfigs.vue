@@ -202,7 +202,7 @@ export default {
           render: (h, params) => {
             const row = params.row
             const color = 'blue'
-            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === 1 ? 'BlackList' : 'WhiteList'
+            const text = row.fetchMode === 0 ? 'RPC' : row.fetchMode === 1 ? 'BlackList' : row.fetchMode === 2 ? 'WhiteList' : 'BlackListGlobal'
             return h('Tag', {
               props: {
                 color: color
@@ -288,6 +288,10 @@ export default {
         {
           k: 'WhiteList',
           v: 2
+        },
+        {
+          k: 'BlackListGlobal',
+          v: 3
         }
       ],
       columnForAdd: '',
@@ -425,7 +429,7 @@ export default {
           alert('uid 与 uld字段不能同时为空！')
           return
         }
-        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2) {
+        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
           this.rowsFilterConfig.context = '//filter by config'
         } else {
           this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
@@ -702,7 +706,7 @@ export default {
       return false
     },
     fetchModeChange () {
-      if (this.rowsFilterConfig.fetchMode === 1) {
+      if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 3) {
         this.rowsFilterConfig.illegalArgument = true
       } else {
         this.rowsFilterConfig.illegalArgument = false
