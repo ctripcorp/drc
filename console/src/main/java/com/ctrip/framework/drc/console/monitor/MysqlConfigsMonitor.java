@@ -109,7 +109,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();
         try {
-            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper),1).call();
+            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper.getDataSource()),1).call();
             reporter.resetReportCounter(
                     entityTags,
                     binlogTxDependencyHistSize == null ? -1L: binlogTxDependencyHistSize, 
@@ -142,9 +142,9 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
     
     
     private Long getBinlogRetentionTime(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException {
-        Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
+        Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
         if (res  == null || res == -1L) {
-            res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper), 1).call();
+            res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
         } 
         return res;
     }

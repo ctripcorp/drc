@@ -1,13 +1,13 @@
 package com.ctrip.framework.drc.console.monitor.task;
 
-import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
-import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
-import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 
 /**
@@ -22,30 +22,24 @@ public class AliBinlogRetentionTimeQueryTask implements NamedCallable<Long> {
     private static final int ALI_BINLOG_RETENTION_HOURS_INDEX = 2;
 
     private static final Logger logger = LoggerFactory.getLogger(AwsBinlogRetentionTimeQueryTask.class);
-
-
-    private WriteSqlOperatorWrapper sqlOperatorWrapper;
-
-    public AliBinlogRetentionTimeQueryTask(WriteSqlOperatorWrapper sqlOperatorWrapper) {
-        this.sqlOperatorWrapper = sqlOperatorWrapper;
+    
+    private DataSource dataSource;
+    
+    public AliBinlogRetentionTimeQueryTask(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     @Override
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public Long call() throws Exception {
-        GeneralSingleExecution execution = new GeneralSingleExecution(ALI_BINLOG_RETENTION_HOURS);
-        ReadResource readResource = null;
-        try {
-            readResource = sqlOperatorWrapper.select(execution);
-            if (readResource == null) {
-                return -1L;
-            }
-            ResultSet rs = readResource.getResultSet();
-            if (rs != null & rs.next()) {
-                return rs.getLong(ALI_BINLOG_RETENTION_HOURS_INDEX) / 3600;
-            }
-        } finally {
-            if (readResource != null) {
-                readResource.close();
+        
+        try(Connection connection = dataSource.getConnection()) {
+            try(Statement statement = connection.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery(ALI_BINLOG_RETENTION_HOURS)) {
+                    if (resultSet != null & resultSet.next()) {
+                        return resultSet.getLong(ALI_BINLOG_RETENTION_HOURS_INDEX) / 3600;
+                    }
+                }
             }
         }
         return -1L;
