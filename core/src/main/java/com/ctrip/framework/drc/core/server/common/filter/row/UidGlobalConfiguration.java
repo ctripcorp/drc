@@ -25,7 +25,7 @@ public final class UidGlobalConfiguration extends AbstractConfigBean {
 
     private final static String UID_BLACKLIST_GLOBAL = "uid.filter.blacklist.global";
 
-    private File localUidBlacklistFile;
+    private File localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);;
 
     private volatile Set<String> globalBlacklist = Sets.newHashSet();
 
@@ -34,7 +34,6 @@ public final class UidGlobalConfiguration extends AbstractConfigBean {
     }
 
     private void initGlobalBlacklist() {
-        localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
         updateBlacklist();
     }
 
