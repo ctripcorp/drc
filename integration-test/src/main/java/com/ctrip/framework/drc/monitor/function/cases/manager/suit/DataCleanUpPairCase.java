@@ -15,8 +15,6 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.monitor.performance.ResultCompareCase.TRUNCATE_TABLE;
-
 /**
  * Created by mingdongli
  * 2019/11/11 下午3:28.
@@ -44,6 +42,7 @@ public class DataCleanUpPairCase extends AbstractMultiWriteInTransactionPairCase
     public static final String TRUNCATE19 = "truncate table `drc4`.`binlog_minimal_row_image`;";
     public static final String TRUNCATE20 = "truncate table `drc4`.`binlog_noblob_row_image`;";
     public static final String TRUNCATE21 = "truncate table `drc4`.`row_filter`;";
+    public static final String TRUNCATE22 = "truncate table `drc1`.`combined_primary_key`;";
 
 
     @Override
@@ -84,6 +83,7 @@ public class DataCleanUpPairCase extends AbstractMultiWriteInTransactionPairCase
         truncates.add(TRUNCATE19);
         truncates.add(TRUNCATE20);
         truncates.add(TRUNCATE21);
+        truncates.add(TRUNCATE22);
         for (String s : truncates) {
             //truncate 操作可以在checksum后执行，清除所有记录
             logger.info("[Truncate] {} begin", s);
@@ -115,6 +115,8 @@ public class DataCleanUpPairCase extends AbstractMultiWriteInTransactionPairCase
         truncates.add(TRUNCATE18);
         truncates.add(TRUNCATE19);
         truncates.add(TRUNCATE20);
+        truncates.add(TRUNCATE21);
+        truncates.add(TRUNCATE22);
         for (String truncate : truncates) {
             TableTruncate tableTruncate = new DefaultTableTruncate();
             logger.info("[Truncate] {} begin", truncate);

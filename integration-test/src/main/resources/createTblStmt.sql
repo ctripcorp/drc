@@ -30,6 +30,23 @@ CREATE TABLE `drc1`.`insert1_uk` (
                         UNIQUE KEY `uniq_one_date` (`one`, `datachange_lasttime`)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE `drc1`.`combined_primary_key` (
+                          `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键id',
+                          `train_uid` varchar(20) NOT NULL DEFAULT '' COMMENT '列车唯一id',
+                          `train_no` varchar(20) NOT NULL DEFAULT '' COMMENT '车次号',
+                          `carrier` varchar(100) NOT NULL DEFAULT '' COMMENT '运营商',
+                          `reservation` varchar(5) NOT NULL DEFAULT '' COMMENT '是否需要占座',
+                          `calling_point_list` text NOT NULL COMMENT '经停列表，json形式存储',
+                          `date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '日期，分区键',
+                          `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+                          `cancel_flag` smallint(6) NOT NULL DEFAULT '0' COMMENT '取消标志，0为未取消，1为取消，2为疑似取消，3为恢复（解除疑似取消）',
+                          PRIMARY KEY (`id`,`date`),
+                          UNIQUE KEY `UNIQUE_TIS_KEY` (`train_uid`,`date`),
+                          KEY `IX_TRAIN_UID` (`train_uid`),
+                          KEY `IX_DATE` (`date`),
+                          KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE `drc2`.`insert1` (
                         `id` int(11) NOT NULL AUTO_INCREMENT,
                         `one` varchar(30) DEFAULT "one",
