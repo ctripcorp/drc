@@ -64,6 +64,7 @@ public class DrcHeartbeatLogEventTest {
 
         Assert.assertEquals(clone.getCode(), CODE);
         Assert.assertTrue(clone.shouldTouchProgress());
+        Assert.assertTrue(clone.timeValid());
     }
 
 }

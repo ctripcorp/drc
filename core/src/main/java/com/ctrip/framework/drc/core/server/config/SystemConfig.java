@@ -25,6 +25,8 @@ public class SystemConfig {
 
     public static final String VALIDATION_PATH = OPT_PATH + DATA_PATH + "/validation/";
 
+    public static final String LOCAL_CONFIG_PATH = DATA_PATH + "/config/";
+
     public static final String REPLICATOR_WHITE_LIST = "drc.replicator.uuid.whitelist";
 
     public static final String REPLICATOR_LOCAL_SCHEMA_MANAGER = "drc.replicator.local.schemamanager";
@@ -183,6 +185,10 @@ public class SystemConfig {
     public static final String DEFAULT_CONFIG_FILE_NAME = "drc.properties";
 
     public static final int PROCESSORS_SIZE = OsUtils.getCpuCount();
+
+    public static final String TIME_SPAN_KEY = "heartbeat.valid.time";
+
+    public static final long TIME_SPAN_MS = Long.parseLong(System.getProperty(TIME_SPAN_KEY, "1000"));
 
     public static boolean isIntegrityTest() {
         return "true".equalsIgnoreCase(System.getProperty(REPLICATOR_WHITE_LIST));
