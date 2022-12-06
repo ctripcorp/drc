@@ -416,6 +416,43 @@ public class TableOperationManagerTest {
         res = transformTableComment(queryString, QueryType.ALTER, "123");
         Assert.assertTrue(res.getKey());
         Assert.assertEquals(queryString, res.getValue());
+
+        // case 6 : create like
+        queryString = "create /* gh-ost */ table `ghost1_unitest`.`_t1_gho` like `ghost1_unitest`.`t1`";
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        exceptedQueryString = queryString;
+        Assert.assertFalse(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+
+        // case 7 : create field like
+        queryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `Like` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;";
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        exceptedQueryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `Like` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\'";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
     }
 
 }

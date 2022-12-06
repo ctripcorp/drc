@@ -99,12 +99,31 @@ public class TableOperationManager {
     }
 
     public static Pair<Boolean, String> transformTableComment(String queryString, QueryType queryType, String gtids) {
+        if (createLike(queryString, queryType)) {
+            return Pair.from(false, queryString);
+        }
         String modifyString = String.format("COMMENT='%s'", gtids);
         Pair<Boolean, String> replaceRes = doTransform(queryString, TABLE_COMMENT_MANAGEMENT, modifyString, queryString.matches(TABLE_COMMENT_PATTERN));
         if (!replaceRes.getKey()) {
             return appendTableComment(queryString, modifyString, queryType);
         }
         return replaceRes;
+    }
+
+    public static boolean createLike(String queryString, QueryType queryType) {
+        if (QueryType.CREATE != queryType) {
+            return false;
+        }
+        queryString = queryString.toLowerCase();
+        int index = queryString.indexOf("like");
+        if (index == -1) {
+            return false;
+        }
+        int blanketIndex = queryString.indexOf(",");
+        if (blanketIndex == -1) {
+            return true;
+        }
+        return false;
     }
 
 }
