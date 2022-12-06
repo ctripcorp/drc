@@ -64,4 +64,9 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     public void update(Object args, Observable observable) {
 
     }
+
+    @Override
+    protected boolean shouldInitEmbeddedMySQL() {
+        return false;
+    }
 }

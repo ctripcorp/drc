@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Maps;
 import org.junit.Assert;
@@ -8,14 +9,15 @@ import org.junit.Test;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.manager.AbstractSchemaManager.transformPartition;
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformAlterPartition;
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformAlterPartition;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformCreatePartition;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformTableComment;
 
 /**
  * @Author limingdong
  * @create 2022/11/9
  */
-public class TablePartitionManagerTest {
+public class TableOperationManagerTest {
 
     @Test
     public void testTransformAlterPartition() {
@@ -313,6 +315,144 @@ public class TablePartitionManagerTest {
         future = transformPartition(future);
         current = transformPartition(current);
         Assert.assertEquals(future, current);
+    }
+
+    @Test
+    public void testTableCommentTransform() {
+        // case 1: create with comment
+        String queryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `three` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT =' gtid ' DELAY_KEY_WRITE=1 ;";
+        Pair<Boolean, String> res = transformTableComment(queryString, QueryType.CREATE, "123");
+        String exceptedQueryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `three` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\' DELAY_KEY_WRITE=1 ;";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
+
+
+        // case 2 : create without comment
+        queryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `three` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;";
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        exceptedQueryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `three` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\'";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
+
+        // case 3 : alter with comment
+        queryString = "alter table `drc2`.`insert1` ADD COLUMN addcol VARCHAR(55) DEFAULT 'addcol' COMMENT '添加普通' after four, COMMEnt =\n 'NDB_COLUMN=MAX_BLOB_PART_SIZE';";
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        exceptedQueryString = "alter table `drc2`.`insert1` ADD COLUMN addcol VARCHAR(55) DEFAULT 'addcol' COMMENT '添加普通' after four, COMMENT='123';";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
+
+        // case 4 : alter without comment
+        queryString = "alter table `drc2`.`insert1` ADD COLUMN addcol VARCHAR(55) DEFAULT 'addcol' COMMENT '添加普通' after four; ";
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        exceptedQueryString = "alter table `drc2`.`insert1` ADD COLUMN addcol VARCHAR(55) DEFAULT 'addcol' COMMENT '添加普通' after four, COMMENT='123'";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
+
+        // case 5 : alter comment
+        queryString = "ALTER TABLE t1 comMENT = 'New table comment';";
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        exceptedQueryString = "ALTER TABLE t1 COMMENT='123';";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.ALTER, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
+
+        // case 6 : create like
+        queryString = "create /* gh-ost */ table `ghost1_unitest`.`_t1_gho` like `ghost1_unitest`.`t1`";
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        exceptedQueryString = queryString;
+        Assert.assertFalse(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+
+        // case 7 : create field like
+        queryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `Like` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;";
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        exceptedQueryString = "CREATE TABLE `insert3` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `one` varchar(30) DEFAULT 'one',\n" +
+                "  `two` varchar(1000) DEFAULT 'two',\n" +
+                "  `Like` char(30) DEFAULT NULL,\n" +
+                "  `four` char(255) DEFAULT NULL,\n" +
+                "  `addcol` varchar(55) DEFAULT 'addcol' COMMENT '',\n" +
+                "  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '',\n" +
+                "  PRIMARY KEY (`id`)\n" +
+                ") ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT=\'123\'";
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(exceptedQueryString, res.getValue());
+        // test idempotent
+        queryString = res.getValue();
+        res = transformTableComment(queryString, QueryType.CREATE, "123");
+        Assert.assertTrue(res.getKey());
+        Assert.assertEquals(queryString, res.getValue());
     }
 
 }

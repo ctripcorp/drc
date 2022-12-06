@@ -23,9 +23,9 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION
  * @Author limingdong
  * @create 2022/4/7
  */
-public abstract class AbstractSchemaTest {
+public abstract class AbstractSchemaTest<T> {
 
-    protected AbstractSchemaTask<Boolean> abstractSchemaTask;
+    protected AbstractSchemaTask<T> abstractSchemaTask;
 
     protected Endpoint inMemoryEndpoint;
 
@@ -60,5 +60,5 @@ public abstract class AbstractSchemaTest {
         }
     }
 
-    protected abstract AbstractSchemaTask<Boolean> getAbstractSchemaTask();
+    protected abstract AbstractSchemaTask<T> getAbstractSchemaTask();
 }

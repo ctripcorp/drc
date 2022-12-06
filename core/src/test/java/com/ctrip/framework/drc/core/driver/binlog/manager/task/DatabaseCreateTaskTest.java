@@ -16,7 +16,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2022/4/7
  */
-public class DatabaseCreateTaskTest extends AbstractSchemaTest {
+public class DatabaseCreateTaskTest extends AbstractSchemaTest<Boolean> {
 
     private List<String> dbs = Lists.newArrayList();
 

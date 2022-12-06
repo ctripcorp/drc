@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 
@@ -10,7 +11,7 @@ import java.util.List;
  * @Author limingdong
  * @create 2022/11/9
  */
-public class TablePartitionManager {
+public class TableOperationManager {
 
     // https://dev.mysql.com/doc/refman/5.7/en/alter-table.html
     public static final List<String> ALTER_PARTITION_MANAGEMENT = Lists.newArrayList(
@@ -40,6 +41,11 @@ public class TablePartitionManager {
             "(?i)/\\*[\\s\\S]*\\*/",
             "\n");
 
+    public static final List<String> TABLE_COMMENT_MANAGEMENT = Lists.newArrayList(
+            "(?i)COMMENT[\\s]*=[\\s]*['|\"][\\s\\S]*['|\"]");
+
+    public static final String TABLE_COMMENT_PATTERN = "[\\s\\S]*(?i)COMMENT[\\s]*=[\\s\\S]*";
+
     public static boolean transformAlterPartition(String queryString) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
             return false;
@@ -54,25 +60,70 @@ public class TablePartitionManager {
     }
 
     public static Pair<Boolean, String> transformCreatePartition(String queryString) {
-        return doTransform(queryString, CREATE_PARTITION_MANAGEMENT);
+        return doTransform(queryString, CREATE_PARTITION_MANAGEMENT, "", false);
     }
 
     public static Pair<Boolean, String> transformComment(String queryString) {
-        return doTransform(queryString, COMMENT_MANAGEMENT);
+        return doTransform(queryString, COMMENT_MANAGEMENT, "", false);
     }
 
-    public static Pair<Boolean, String> doTransform(String queryString, List<String> patterns) {
+    public static Pair<Boolean, String> doTransform(String queryString, List<String> patterns, String replaceString, boolean orPredication) {
         if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
             return Pair.from(false, queryString);
         }
         boolean transformed = false;
         String newQueryString = queryString;
         for (String action : patterns) {
-            newQueryString = newQueryString.replaceAll(action, "");
+            newQueryString = newQueryString.replaceAll(action, replaceString);
             if (!newQueryString.equalsIgnoreCase(queryString) && !transformed) {
                 transformed = true;
             }
         }
-        return Pair.from(transformed, newQueryString);
+        return Pair.from(transformed | orPredication, newQueryString);
     }
+
+    public static Pair<Boolean, String> appendTableComment(String queryString, String appendString, QueryType queryType) {
+        if (!DynamicConfig.getInstance().getTablePartitionSwitch()) {
+            return Pair.from(false, queryString);
+        }
+        String newQueryString = queryString.trim();
+        if (newQueryString.endsWith(";")) {
+            newQueryString = newQueryString.substring(0, newQueryString.length() - 1).trim();
+        }
+        if (QueryType.CREATE == queryType) {
+            newQueryString = newQueryString + " " + appendString;
+        } else if (QueryType.ALTER == queryType) {
+            newQueryString = newQueryString + ", " + appendString;
+        }
+        return Pair.from(true, newQueryString);
+    }
+
+    public static Pair<Boolean, String> transformTableComment(String queryString, QueryType queryType, String gtids) {
+        if (createLike(queryString, queryType)) {
+            return Pair.from(false, queryString);
+        }
+        String modifyString = String.format("COMMENT='%s'", gtids);
+        Pair<Boolean, String> replaceRes = doTransform(queryString, TABLE_COMMENT_MANAGEMENT, modifyString, queryString.matches(TABLE_COMMENT_PATTERN));
+        if (!replaceRes.getKey()) {
+            return appendTableComment(queryString, modifyString, queryType);
+        }
+        return replaceRes;
+    }
+
+    public static boolean createLike(String queryString, QueryType queryType) {
+        if (QueryType.CREATE != queryType) {
+            return false;
+        }
+        queryString = queryString.toLowerCase();
+        int index = queryString.indexOf("like");
+        if (index == -1) {
+            return false;
+        }
+        int blanketIndex = queryString.indexOf(",");
+        if (blanketIndex == -1) {
+            return true;
+        }
+        return false;
+    }
+
 }

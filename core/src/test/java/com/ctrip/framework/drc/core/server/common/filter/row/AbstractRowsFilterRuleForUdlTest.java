@@ -37,7 +37,7 @@ public class AbstractRowsFilterRuleForUdlTest extends AbstractEventTest {
             "        \"parameterList\": [\n" +
             "          {\n" +
             "            \"columns\": [\n" +
-            "              \"three\"\n" +
+            "              \"thrEE\"\n" +
             "            ],\n" +
             "            \"fetchMode\": 0,\n" +
             "            \"context\": \"%s\",\n" +
@@ -46,7 +46,7 @@ public class AbstractRowsFilterRuleForUdlTest extends AbstractEventTest {
             "          },\n" +
             "          {\n" +
             "            \"columns\": [\n" +
-            "              \"four\"\n" +
+            "              \"foUR\"\n" +
             "            ],\n" +
             "            \"fetchMode\": 0,\n" +
             "            \"context\": \"%s\",\n" +

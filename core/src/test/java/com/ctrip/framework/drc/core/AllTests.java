@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
+import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryTypeTest;
@@ -9,7 +10,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSetTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeaderTest;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
-import com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManagerTest;
+import com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManagerTest;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.CommentQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.DatabaseCreateTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.SchemeCloneTaskTest;
 import com.ctrip.framework.drc.core.driver.binlog.util.CharsetConversionTest;
@@ -74,7 +76,8 @@ import org.junit.runners.Suite;
         AbstractRowsFilterRuleForUdlTest.class,
         AbstractRowsFilterRuleForUidTest.class,
         //schema
-        TablePartitionManagerTest.class,
+        TableOperationManagerTest.class,
+        CommentQueryTaskTest.class,
         SchemeCloneTaskTest.class,
         DatabaseCreateTaskTest.class,
         //proxy
@@ -156,6 +159,7 @@ import org.junit.runners.Suite;
         ApplierConfigDtoTest.class,
         SchemasHistoryDeltaDtoTest.class,
         RegionConfigTest.class,
+        DynamicConfigTest.class,
 
         //ddl
         DrcDdlLogEventTest.class,

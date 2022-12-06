@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
@@ -19,7 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_ddl_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_schema_snapshot_log_event;
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.query_log_event;
 import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.EXCLUDED_DB;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
@@ -48,9 +51,12 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private MonitorManager monitorManager;
 
-    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager) {
+    private String registryKey;
+
+    public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey) {
         this.schemaManager = schemaManager;
         this.monitorManager = monitorManager;
+        this.registryKey = registryKey;
     }
 
     @Override
@@ -59,21 +65,26 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         final LogEventType logEventType = logEvent.getLogEventType();
         if (query_log_event == logEventType) {
             QueryLogEvent queryLogEvent = (QueryLogEvent) logEvent;
-            parseQueryEvent(queryLogEvent);
-        } else if (drc_schema_snapshot_log_event == logEventType) {
+            parseQueryEvent(queryLogEvent, value.getGtid());
+        } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
             schemaManager.recovery(snapshotLogEvent);
-            value.mark(OTHER_F);  // just init schema
+            value.mark(OTHER_F);
         } else if (drc_ddl_log_event == logEventType) {
-            DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
-            doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER);
+            if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+                DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
+                doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
+                DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);
+            } else {
+                DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
+            }
         }
 
         return doNext(value, value.isInExcludeGroup());
 
     }
 
-    private boolean doParseQueryEvent(String queryString, String schemaName, String charset) {
+    private boolean doParseQueryEvent(String queryString, String schemaName, String charset, String gtid) {
         List<DdlResult> results = DdlParser.parse(queryString, schemaName);
         if (results.isEmpty()) {
             return false;
@@ -107,12 +118,12 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
                 return false;
             }
-            ApplyResult applyResult = schemaManager.apply(schemaName, queryString, type);
+            String tableName = results.get(0).getTableName();
+            ApplyResult applyResult = schemaManager.apply(schemaName, tableName, queryString, type, gtid);
             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
             }
-            String tableName = results.get(0).getTableName();
             queryString = applyResult.getDdl();
             schemaManager.persistDdl(schemaName, tableName, queryString);
             DDL_LOGGER.info("[Apply] DDL {} with result {}", queryString, applyResult);
@@ -162,7 +173,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         return false;
     }
 
-    public boolean parseQueryEvent(QueryLogEvent event) {
+    public boolean parseQueryEvent(QueryLogEvent event, String gtid) {
         String queryString = event.getQuery();
         if (StringUtils.startsWithIgnoreCase(queryString, BEGIN)      ||
                 StringUtils.startsWithIgnoreCase(queryString, COMMIT)     ||
@@ -178,7 +189,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 int serverCollation = queryStatus.getServerCollation();
                 charset = getServerCollation(serverCollation);
             }
-            return doParseQueryEvent(queryString, event.getSchemaName(), charset);
+            return doParseQueryEvent(queryString, event.getSchemaName(), charset, gtid);
         }
     }
 
