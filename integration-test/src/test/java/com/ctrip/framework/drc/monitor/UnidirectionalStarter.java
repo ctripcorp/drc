@@ -49,8 +49,8 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         TestConfig customConfig = new TestConfig();
 
         // applyMode
-//        customConfig.setApplyMode(ApplyMode.transaction_table);
-        customConfig.setApplyMode(ApplyMode.mq);
+        customConfig.setApplyMode(ApplyMode.transaction_table);
+//        customConfig.setApplyMode(ApplyMode.mq);
 
         // rowsFilter
         customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_WITH_UID_UDL);
