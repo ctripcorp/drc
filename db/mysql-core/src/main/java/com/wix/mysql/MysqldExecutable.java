@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 
-class MysqldExecutable extends Executable<MysqldConfig, MysqldProcess> {
+public class MysqldExecutable extends Executable<MysqldConfig, MysqldProcess> {
 
     private final static Logger logger = LoggerFactory.getLogger(MysqldExecutable.class);
 
@@ -36,6 +36,15 @@ class MysqldExecutable extends Executable<MysqldConfig, MysqldProcess> {
         Setup.apply(config, executable, runtime);
         logger.info("Starting MysqldProcess");
         return new MysqldProcess(distribution, config, runtime, this);
+    }
+
+    @Override
+    public synchronized void stop() {
+        logger.info("[Skip] stop MysqldExecutable");
+    }
+
+    public synchronized void destroy() {
+        super.stop();
     }
 
     File getBaseDir() {

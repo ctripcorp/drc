@@ -47,7 +47,7 @@ public class AbstractSchemaTaskTest extends MockTest {
     public void testConnectionException() throws Exception {
         when(inMemoryDataSource.getConnection()).thenThrow(sqlException);
         Boolean res = retryTask.call();
-        verify(inMemoryDataSource, times(MAX_RETRY + 1)).getConnection();
+        verify(inMemoryDataSource, times((MAX_RETRY + 1) * 2)).getConnection();  /*comment query*/
         Assert.assertNull(res);
     }
 
@@ -57,8 +57,8 @@ public class AbstractSchemaTaskTest extends MockTest {
         when(connection.createStatement()).thenThrow(sqlException);
 
         Boolean res = retryTask.call();
-        verify(inMemoryDataSource, times(MAX_RETRY + 1)).getConnection();
-        verify(connection, times(MAX_RETRY + 1)).createStatement();
+        verify(inMemoryDataSource, times((MAX_RETRY + 1) * 2)).getConnection(); /*comment query*/
+        verify(connection, times((MAX_RETRY + 1) * 2)).createStatement(); /*comment query*/
         Assert.assertNull(res);
     }
 }

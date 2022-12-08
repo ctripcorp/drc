@@ -1,9 +1,8 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.schema;
 
-import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
-import com.ctrip.framework.drc.core.server.config.replicator.MySQLMasterConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.google.common.collect.Maps;
@@ -11,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 
 /**
  * @Author limingdong
@@ -31,18 +32,17 @@ public class SchemaManagerFactory {
             logger.info("return previous MySQLSchemaManager for {}", clusterName);
             return mySQLSchemaManager;
         }
-        MySQLMasterConfig mySQLMasterConfig = replicatorConfig.getMySQLMasterConfig();
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
         boolean isMaster = mySQLSlaveConfig.isMaster();
 
         if (isMaster) {
             if ("true".equalsIgnoreCase(System.getProperty(SystemConfig.REPLICATOR_LOCAL_SCHEMA_MANAGER))) {
-                mySQLSchemaManager = new LocalSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+                mySQLSchemaManager = new LocalSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
             } else {
-                mySQLSchemaManager = new MySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+                mySQLSchemaManager = new MySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
             }
         } else {
-            mySQLSchemaManager = new BackupMySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), mySQLMasterConfig.getPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
+            mySQLSchemaManager = new BackupMySQLSchemaManager(mySQLSlaveConfig.getEndpoint(), replicatorConfig.getApplierPort(), clusterName, replicatorConfig.getBaseEndpointEntity());
         }
 
         schemaManagerMap.put(clusterName, mySQLSchemaManager);
@@ -55,10 +55,15 @@ public class SchemaManagerFactory {
     }
 
     public static synchronized void clear() {
-        for (SchemaManager schemaManager : schemaManagerMap.values()) {
+        for (Map.Entry<String, MySQLSchemaManager> entry : schemaManagerMap.entrySet()) {
             try {
-                LifecycleHelper.stopIfPossible(schemaManager);
-                LifecycleHelper.disposeIfPossible(schemaManager);
+                if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(entry.getKey())) {
+                    LifecycleHelper.stopIfPossible(entry.getValue());
+                    LifecycleHelper.disposeIfPossible(entry.getValue());
+                    DDL_LOGGER.info("[Destroy] mysqld for {}", entry.getKey());
+                } else {
+                    DDL_LOGGER.info("[Destroy] mysqld skipped for {}", entry.getKey());
+                }
             } catch (Exception e) {
             }
         }

@@ -541,4 +541,48 @@ public class GtidSetTest {
         String gtidSetToUpdate = new GtidSet(gtidSetSelectFromDb).union(gtidSet).getUUIDSet("b207f82e-2a7b-11ec-b128-1c34da51a830").toString();
         Assert.assertEquals(gtidSetToUpdate, "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877439-25326877441:25326877443-25326887501");
     }
+
+    @Test
+    public void testIsContainedWithin() {
+        GtidSet gtidSet = new GtidSet("");
+
+        String gtid = null;
+        Assert.assertFalse(gtidSet.isContainedWithin(gtid));
+
+        gtid = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877444";
+        Assert.assertFalse(gtidSet.isContainedWithin(gtid));
+
+        gtidSet.add(gtid);
+        Assert.assertTrue(gtidSet.isContainedWithin(gtid));
+
+        gtid = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877445";
+        Assert.assertFalse(gtidSet.isContainedWithin(gtid));
+
+        gtidSet.add(gtid);
+        Assert.assertTrue(gtidSet.isContainedWithin(gtid));
+
+        gtidSet = new GtidSet("b207f82e-2a7b-11ec-b128-1c34da51a830:25326877445,56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2");
+        Assert.assertTrue(gtidSet.isContainedWithin(gtid));
+    }
+
+    @Test
+    public void testExpandTo() {
+        GtidSet expected = new GtidSet("");
+
+        String gtid = null;
+        expected.expandTo(gtid);
+        Assert.assertEquals(new GtidSet("").toString(), expected.toString());
+
+        gtid = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877444";
+        expected.expandTo(gtid);
+        Assert.assertEquals(new GtidSet(gtid).toString(), expected.toString());
+
+        gtid = "b207f82e-2a7b-11ec-b128-1c34da51a830:25326877445";
+        expected.expandTo(gtid);
+        Assert.assertEquals(new GtidSet(gtid).toString(), expected.toString());
+
+        gtid = "56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2";
+        expected.expandTo(gtid);
+        Assert.assertEquals(new GtidSet("b207f82e-2a7b-11ec-b128-1c34da51a830:25326877445,56027356-0d03-11ea-a2f0-c6a9fbf1c3fe:2").toString(), expected.toString());
+    }
 }

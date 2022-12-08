@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -95,16 +96,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
     private SchemaManager schemaManager;
 
-    // for skip gtids
-    private List<Long> indices = Lists.newArrayList();
-
-    private int indicesSize = 0;
-
-    private long indexEventPosition = 0;
-
-    private long firstPreviousGtidEventPosition = 0;
-
-    private boolean everSeeDdl = false;
+    private IndicesEventManager indicesEventManager;
 
     private volatile boolean inBigTransaction = false;
 
@@ -157,8 +149,8 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
 
         createFileIfNecessary();
 
-        if (context.isDdl() && !everSeeDdl) {
-            everSeeDdl = true;
+        if (context.isDdl() && !indicesEventManager.isEverSeeDdl()) {
+            indicesEventManager.setEverSeeDdl(true);
         }
         checkIndices(false, context.getEventSize() == EventTransactionCache.bufferSize);
 
@@ -427,10 +419,12 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     if (LogEventType.drc_ddl_log_event == eventType) {
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
-                        List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
-                        ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlLogEvent.getDdl(), ddlResults.get(0).getType());
-                        if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
-                            DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
+                        if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+                            List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
+                            ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlResults.get(0).getTableName(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
+                            if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
+                                DDL_LOGGER.info("[Recover] skip DDL {} for table partition in {}", ddlLogEvent.getDdl(), getClass().getSimpleName());
+                            }
                         }
                         ddlLogEvent.release();
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
@@ -441,7 +435,9 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     } else {
                         DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();
                         indexLogEvent.read(compositeByteBuf);
-                        List<Long> localIndices = indexLogEvent.getIndices();
+                        List<Long> localIndices = DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)
+                                 ? indexLogEvent.getNotRevisedIndices()
+                                 : indexLogEvent.getIndices();
                         int previousGtidSize = localIndices.size();
                         if (previousGtidSize > 1) {
                             long position = localIndices.get(previousGtidSize - 1);
@@ -523,7 +519,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logFileSize.addAndGet(fileHeaderBytes.length);
         logChannel.write(ByteBuffer.wrap(fileHeaderBytes));
         writeFormatDescriptionLogEvent();
-        firstPreviousGtidEventPosition = logChannel.position();
+        indicesEventManager = new IndicesEventManager(logChannel.position(), registryKey, logFileWrite.getName());
         writePreviousGtid();
         writeSchema();
         writeUuids();
@@ -599,40 +595,25 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
         logger.info("[Persist] drc schema log event for {}", registryKey);
     }
 
-    private void checkIndices(boolean append, boolean bigTransaction) {  //write previous event and index event
+    private void checkIndices(boolean append, boolean bigTransaction) throws IOException {
         try {
             long position = logFileSize.get();
             if (append) {  //new file and append DrcIndexLogEvent
-                indices.clear();
-                indicesSize = 0;
-                everSeeDdl = false;
-                indexEventPosition = logChannel.position();
-                indices.add(firstPreviousGtidEventPosition);
-                DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, 0 , position);
-                doWriteLogEvent(indexLogEvent);
-                logger.info("[Persist] drc index log event {} for {} at position {} of file {} and clear indicesSize", indices, registryKey, indexEventPosition, logFileWrite.getName());
+                doWriteLogEvent(indicesEventManager.createIndexEvent(logChannel.position()));
             } else {
-                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesSize && !inBigTransaction) {
+                if (!bigTransaction && position / PREVIOUS_GTID_BULK > indicesEventManager.getIndicesSize() && !inBigTransaction) {
                     writePreviousGtid();
-                    if (everSeeDdl) {
-                        long previousPosition = position;
-                        position = indices.get(indices.size() - 1);
-                        logger.info("[Update] index position from {} to {} of file {}", previousPosition, position, logFileWrite.getName());
-                    }
-                    indices.add(position);
-                    indicesSize++;
+                    DrcIndexLogEvent indexLogEvent = indicesEventManager.updateIndexEvent(position);
+
+                    long indexEventPosition = indicesEventManager.getIndexEventPosition();
                     FileLock indexLock = logChannel.lock(indexEventPosition, DrcIndexLogEvent.FIX_SIZE, true);
                     long currentPosition = logChannel.position();
                     logChannel.position(indexEventPosition);
-                    DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent(indices, 0 , position);
                     doWriteLogEvent(indexLogEvent, false);
                     indexLock.release();
                     logChannel.position(currentPosition);
-                    logger.info("[Persist] drc index log event {} for {} at position {} of file {}", indices, registryKey, position, logFileWrite.getName());
                 }
             }
-        } catch (Exception e) {
-            logger.error("writeIndex error", e);
         } finally {
             if (bigTransaction != inBigTransaction) {
                 logger.info("[inBigTransaction] set to {} for {} of file {}", bigTransaction, registryKey, logFileWrite.getName());

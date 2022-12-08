@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -55,21 +56,26 @@ public class EmbeddedDb {
 
     private String tmpPath = "/data/drc/mysql";
 
+    private static String tmpDir = "/opt/data/drc/%s-%d";
+
     public EmbeddedMysql mysqlServer() {
-        return mysqlServer(port, new HashMap<>());
+        return mysqlServer(new DbKey("default", port), new HashMap<>());
     }
 
-    public EmbeddedMysql mysqlServer(int mySQLPort, Map<String, Object> variables) {
-        return mysqlServer(mySQLPort, removeFile, tmpPath, variables);
+    public EmbeddedMysql mysqlServer(DbKey db, Map<String, Object> variables) {
+        return mysqlServer(db, removeFile, tmpPath, variables);
     }
 
-    public EmbeddedMysql mysqlServer(int mySQLPort, boolean removeOldFile, String filePath, Map<String, Object> variables) {
-        initParam(mySQLPort, removeOldFile, filePath);
+    public EmbeddedMysql mysqlServer(DbKey db, boolean removeOldFile, String filePath, Map<String, Object> variables) {
+        initParam(db.getPort(), removeOldFile, filePath);
 
+        String mysqldPath = mysqlInstanceDir(db.getName(), db.getPort());
         MysqldConfig.Builder configBuilder = MysqldConfig.aMysqldConfig(v5_7_23)
                 .withPort(port)
                 .withCharset(Charset.UTF8)
                 .withUser(user, password)
+                .withTempDir(mysqldPath)
+                .withTimeout(60, TimeUnit.SECONDS)
                 .withServerVariable("lower_case_table_names", 1)
                 .withServerVariable("character_set_server", "utf8mb4")
                 .withServerVariable("collation_server", "utf8mb4_general_ci");
@@ -200,5 +206,9 @@ public class EmbeddedDb {
 
         logger.info("[Skip] copy tar.gz for files downloaded already.");
         return false;
+    }
+
+    public static String mysqlInstanceDir(String name, long port) {
+        return String.format(tmpDir, name, port);
     }
 }

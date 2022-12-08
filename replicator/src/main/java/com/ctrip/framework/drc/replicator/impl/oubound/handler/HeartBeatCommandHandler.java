@@ -138,8 +138,12 @@ public class HeartBeatCommandHandler extends AbstractServerCommandHandler implem
                     } else {
                         HeartBeatContext prev = null;
                         if (!responses.containsKey(channel)) {
-                            HeartBeatContext context = newHeartBeatContext();
-                            prev = responses.putIfAbsent(channel, context);
+                            if (drcHeartbeatLogEvent.timeValid()) {
+                                HeartBeatContext context = newHeartBeatContext();
+                                prev = responses.putIfAbsent(channel, context);
+                            } else {
+                                HEARTBEAT_LOGGER.info("[Skip] touch heartbeat due to time invalid {}", channel);
+                            }
                         }
                         HEARTBEAT_LOGGER.info("[Send] heartbeat to {}:{}, prev:{}", channel, responses.get(channel), prev);
                     }

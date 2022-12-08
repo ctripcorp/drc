@@ -4,9 +4,9 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.TableCreateTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTask;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.MySQLInstance;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.wix.mysql.EmbeddedMysql;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.junit.After;
 import org.junit.Before;
@@ -39,7 +39,7 @@ public class PartitionTableCreateTest {
     private static final String CREATE_DB2 = "CREATE DATABASE drc2";
     private static final String CREATE_DB3 = "CREATE DATABASE drc3";
 
-    private EmbeddedMysql embeddedMysql;
+    private MySQLInstance embeddedMysql;
 
     private DataSource dataSource;
 
@@ -123,7 +123,7 @@ public class PartitionTableCreateTest {
 
     @Before
     public void setUp() throws SQLException {
-        embeddedMysql = new RetryTask<>(new DbInitTask(PORT, "ParititionTableCreateCase")).call();
+        embeddedMysql = new RetryTask<>(new DbCreateTask(PORT, "ParititionTableCreateCase")).call();
         endpoint = new DefaultEndPoint("127.0.0.1", PORT, "root", "");
         dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         try (Connection connection = dataSource.getConnection()) {
@@ -138,7 +138,7 @@ public class PartitionTableCreateTest {
 
     @After
     public void tearDown() {
-        embeddedMysql.stop();
+        embeddedMysql.destroy();
     }
 
     @Test

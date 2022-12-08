@@ -87,6 +87,7 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
 
         byte[] ddlBytes = ByteHelper.readFixedLengthBytes(dst, index, (int) ddlLength);
         ddl = new String(ddlBytes);
+        index += ddlBytes.length;
 
         return this;
     }
@@ -107,4 +108,5 @@ public class DrcDdlLogEvent extends AbstractLogEvent {
     public String getSchema() {
         return schema;
     }
+
 }
