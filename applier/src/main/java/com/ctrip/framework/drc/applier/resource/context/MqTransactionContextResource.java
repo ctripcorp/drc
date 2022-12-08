@@ -111,7 +111,12 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                 }
 
                 boolean beforeIsNull = beforeRow.get(j) == null;
-                beforeList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
+                if (EventType.INSERT == eventType) {
+                    afterList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
+                } else {
+                    beforeList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
+                }
+
                 if (afterRow != null) {
                     boolean afterIsNull = afterRow.get(j) == null;
                     afterList.add(new EventColumn(names.get(j), afterIsNull ? null : afterRow.get(j).toString(), afterIsNull, isKey, true));
