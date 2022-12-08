@@ -25,7 +25,7 @@ import static com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager.
  * @Author limingdong
  * @create 2021/4/7
  */
-public class SchemeCloneTaskTest extends AbstractSchemaTest {
+public class SchemeCloneTaskTest extends AbstractSchemaTest<Boolean> {
 
     protected Map<String, Map<String, String>> ddlSchemas = Maps.newHashMap();
 

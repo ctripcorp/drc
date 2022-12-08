@@ -38,7 +38,7 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode() ? new UuidFilter(context.getWhiteUUID()) : new TransactionTableFilter();
         eventTypeFilter.setSuccessor(circularBreakFilter);
 
-        DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager());
+        DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager(), context.getRegistryKey());
         circularBreakFilter.setSuccessor(ddlFilter);
 
         BlackTableNameFilter tableNameFilter = new BlackTableNameFilter(context.getInboundMonitorReport(), context.getTableNames());

@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.wix.mysql.EmbeddedMysql;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.junit.After;
 import org.junit.Assert;
@@ -20,11 +19,11 @@ import java.sql.Statement;
  * @Author limingdong
  * @create 2021/4/7
  */
-public class DbInitTaskTest {
+public class DbCreateTaskTest {
 
     private int PORT = 8989;
 
-    private EmbeddedMysql embeddedMysql;
+    private MySQLInstance embeddedMysql;
 
     private static final String CREATE_DB = "CREATE DATABASE drc1";
 
@@ -46,7 +45,7 @@ public class DbInitTaskTest {
 
     @Test
     public void testDbInitTask() throws SQLException {
-        embeddedMysql = new RetryTask<>(new DbInitTask(PORT, "ut_cluster")).call();
+        embeddedMysql = new RetryTask<>(new DbCreateTask(PORT, "ut_cluster")).call();
         Endpoint endpoint = new DefaultEndPoint("127.0.0.1", PORT, "root", "");
         DataSource dataSource = DataSourceManager.getInstance().getDataSource(endpoint);
         try (Connection connection = dataSource.getConnection()) {
@@ -72,8 +71,9 @@ public class DbInitTaskTest {
     @After
     public void tearDown() {
         try {
-            embeddedMysql.stop();
+            embeddedMysql.destroy();
         } catch (Exception e) {
         }
     }
+
 }

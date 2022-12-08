@@ -17,7 +17,7 @@ public class EmbeddedDbTest {
     @After
     public void tearDown() throws Exception {
         try{
-            embeddedMysql.stop();
+            embeddedMysql.destroy();
             System.out.println("ok");
         } catch (Exception e) {
             System.out.println("error");

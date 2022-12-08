@@ -1,11 +1,11 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
@@ -16,8 +16,8 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformComment;
-import static com.ctrip.framework.drc.core.driver.binlog.manager.TablePartitionManager.transformCreatePartition;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformComment;
+import static com.ctrip.framework.drc.core.driver.binlog.manager.TableOperationManager.transformCreatePartition;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DDL_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.ThreadUtils.getThreadName;
 
@@ -46,7 +46,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     protected Endpoint inMemoryEndpoint;
 
     public AbstractSchemaManager(Endpoint endpoint, int port, String registryKey) {
-        this.port = port + PORT_STEP;
+        this.port = transformPort(port);
         logger.info("[Schema] port is {}", port);
         this.endpoint = endpoint;
         this.registryKey = registryKey;
@@ -55,12 +55,14 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     @Override
     public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent) {
-        Map<String, Map<String, String>> future= snapshotLogEvent.getDdls();
-        if (isSame(future)) {
+        if (!shouldInitEmbeddedMySQL() && DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to not empty or switch on for {}", registryKey);
             return true;
         }
+
+        Map<String, Map<String, String>> future = snapshotLogEvent.getDdls();
         boolean res = doClone(future);
-        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", res, registryKey);
+        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", future, registryKey);
         return res;
     }
 
@@ -85,9 +87,9 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public ApplyResult apply(String schema, String ddl, QueryType queryType) {
+    public ApplyResult apply(String schema, String table, String ddl, QueryType queryType, String gtid) {
         if (QueryType.ALTER == queryType) {
-            if (TablePartitionManager.transformAlterPartition(ddl)) {
+            if (TableOperationManager.transformAlterPartition(ddl)) {
                 return ApplyResult.from(ApplyResult.Status.PARTITION_SKIP, ddl);
             }
         } else if (QueryType.CREATE == queryType) {
@@ -99,24 +101,20 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         }
         tableInfoMap.clear();
         synchronized (this) {
-            Boolean res = new RetryTask<>(new SchemeApplyTask(inMemoryEndpoint, inMemoryDataSource, schema, ddl, ddlMonitorExecutorService, baseEndpointEntity)).call();
+            SchemeApplyContext schemeApplyContext = new SchemeApplyContext.Builder()
+                    .schema(schema)
+                    .table(table)
+                    .ddl(ddl)
+                    .gtid(gtid)
+                    .queryType(queryType)
+                    .registryKey(registryKey)
+                    .build();
+            Boolean res = new RetryTask<>(new SchemeApplyTask(
+                    schemeApplyContext, inMemoryEndpoint, inMemoryDataSource,
+                    ddlMonitorExecutorService, baseEndpointEntity)).call();
             return res == null ? ApplyResult.from(ApplyResult.Status.FAIL, ddl)
                                : ApplyResult.from(ApplyResult.Status.SUCCESS, ddl);
         }
-    }
-
-    private boolean isSame(Map<String, Map<String, String>> future) {
-        Map<String, Map<String, String>> current = doSnapshot(inMemoryEndpoint);
-        current = transformPartition(current);
-        future = transformPartition(future);
-        boolean same = current.equals(future);
-        if (same) {
-            DefaultEventMonitorHolder.getInstance().logEvent("Drc.replicator.schema.recovery.bypass", registryKey);
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to no change for {}, current : {}", registryKey, current);
-        } else {
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog for {}, current : {}, future : {}", registryKey, current, future);
-        }
-        return same;
     }
 
     public static Map<String, Map<String, String>> transformPartition(Map<String, Map<String, String>> schemas) {
@@ -134,4 +132,10 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
         }
         return res;
     }
+
+    public static int transformPort(int port) {
+        return port + PORT_STEP;
+    }
+
+    protected abstract boolean shouldInitEmbeddedMySQL();
 }

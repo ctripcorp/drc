@@ -19,7 +19,8 @@ import com.ctrip.framework.drc.replicator.impl.inbound.filter.transaction.TypeCo
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactoryTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractorTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.parse.DdlParserTest;
-import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbInitTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbCreateTaskTest;
+import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.RetryTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.SchemeApplyTaskTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.BackupTransactionEventTest;
@@ -35,9 +36,11 @@ import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultIndexFileManagerTest;
+import com.ctrip.framework.drc.replicator.store.manager.file.IndicesEventManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.GtidConsumerTest;
 import com.wix.mysql.EmbeddedMysql;
+import ctrip.framework.drc.mysql.DbKey;
 import ctrip.framework.drc.mysql.EmbeddedDb;
 import org.apache.curator.test.TestingServer;
 import org.apache.tomcat.jdbc.pool.DataSource;
@@ -75,6 +78,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ApplierRegisterCommandHandlerTest.class,
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
+        IndicesEventManagerTest.class,
         EventTransactionCacheTest.class,
         BackupTransactionEventTest.class,
 
@@ -106,7 +110,8 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         // ddl
         DdlParserTest.class,
         RetryTaskTest.class,
-        DbInitTaskTest.class,
+        DbCreateTaskTest.class,
+        DbRestoreTaskTest.class,
         SchemeApplyTaskTest.class,
 
         DefaultMonitorManagerTest.class,
@@ -243,7 +248,7 @@ public class AllTests {
             server = new TestingServer(12181, true);
 
             //for db
-            srcDb = new EmbeddedDb().mysqlServer(SRC_PORT, new HashMap<>());
+            srcDb = new EmbeddedDb().mysqlServer(new DbKey("UT", SRC_PORT), new HashMap<>());
             DataSource dataSource = DataSourceManager.getInstance().getDataSource(new DefaultEndPoint(SRC_IP, SRC_PORT, MYSQL_USER, MYSQL_PASSWORD));
             try (Connection connection = dataSource.getConnection()) {
                 try (Statement statement = connection.createStatement()) {
@@ -270,7 +275,7 @@ public class AllTests {
         System.setProperty("io.netty.buffer.checkAccessible", "true");
         System.setProperty(SystemConfig.REPLICATOR_WHITE_LIST, String.valueOf(false));
         try {
-            srcDb.stop();
+            srcDb.destroy();
             server.stop();
         } catch (Exception e) {
         }

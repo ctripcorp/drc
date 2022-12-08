@@ -70,13 +70,15 @@ public class PersistPostFilter extends AbstractPostLogEventFilter<InboundLogEven
         return filtered;
     }
 
+    // set gtid in InboundLogEventContext when receive gtid_log_event and reset receive xid_log_event
+    // transaction like ddl without xid, fake a xid_log_event receiving another gtid_log_event
     private void checkXid(LogEvent logEvent, LogEventType logEventType, InboundLogEventContext value) {
         if (gtid_log_event == logEventType) {
             String previousGtid = value.getGtid();
-            if (StringUtils.isNotBlank(previousGtid) && previousGtid.contains(":")) {  //check if fake XidLogEvent
+            if (StringUtils.isNotBlank(previousGtid) && previousGtid.contains(":")) {
                 XidLogEvent fakeXidLogEvent = new XidLogEvent(FAKE_SERVER_PARAM, FAKE_XID_PARAM, FAKE_XID_PARAM);
                 transactionCache.add(fakeXidLogEvent);
-                value.unmark(BLACK_TABLE_NAME_F); // handle transaction without xid event
+                value.unmark(BLACK_TABLE_NAME_F);
             }
             GtidLogEvent gtidLogEvent = (GtidLogEvent) logEvent;
             value.setGtid(gtidLogEvent.getGtid());

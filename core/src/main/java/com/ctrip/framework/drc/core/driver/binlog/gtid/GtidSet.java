@@ -295,6 +295,44 @@ public class GtidSet {
         return filterGtid(intersectionUuids);
     }
 
+    public boolean isContainedWithin(String gtid) {
+        if (StringUtils.isBlank(gtid)) {
+            return false;
+        }
+        String[] uuidAndGno = gtid.split(":");
+        UUIDSet uuidSet = getUUIDSet(uuidAndGno[0]);
+        if (uuidSet == null) {
+            return false;
+        }
+        List<Interval> intervals = uuidSet.getIntervals();
+        if (intervals == null || intervals.isEmpty()) {
+            return false;
+        }
+        Interval interval = intervals.get(intervals.size() - 1);
+        return Long.parseLong(uuidAndGno[1]) <= interval.getEnd();
+    }
+
+    public GtidSet expandTo(String gtid) {
+        if (StringUtils.isBlank(gtid)) {
+            return this;
+        }
+        String[] uuidAndGno = gtid.split(":");
+        UUIDSet uuidSet = getUUIDSet(uuidAndGno[0]);
+        if (uuidSet == null) {
+            add(gtid);
+            return this;
+        }
+        List<Interval> intervals = uuidSet.getIntervals();
+        if (intervals == null || intervals.isEmpty()) {
+            add(gtid);
+            return this;
+        }
+        Interval interval = intervals.get(intervals.size() - 1);
+        interval.start =  Long.parseLong(uuidAndGno[1]);
+        interval.end =  Long.parseLong(uuidAndGno[1]);
+        return this;
+    }
+
     /**
      * Determine if the GTIDs represented by this object are contained completely within the supplied set of GTIDs.
      * Note that if two {@link GtidSet}s are equal, then they both are subsets of the other.
