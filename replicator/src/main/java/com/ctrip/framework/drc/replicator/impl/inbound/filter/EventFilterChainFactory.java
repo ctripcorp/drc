@@ -23,7 +23,9 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         PersistPostFilter persistPostFilter = new PersistPostFilter(context.getTransactionCache());
         eventReleaseFilter.setSuccessor(persistPostFilter);
 
-        DelayMonitorFilter delayMonitorFilter = new DelayMonitorFilter(context.getMonitorManager());
+        DelayMonitorFilter delayMonitorFilter = context.isMaster()
+                                                    ? new DelayMonitorFilter(context.getMonitorManager())
+                                                    : new SlaveDelayMonitorFilter(context.getMonitorManager());
         persistPostFilter.setSuccessor(delayMonitorFilter);
 
         TransactionMonitorFilter transactionMonitorFilter = new TransactionMonitorFilter(context.getInboundMonitorReport());
@@ -35,7 +37,9 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         EventTypeFilter eventTypeFilter = new EventTypeFilter();
         flagFilter.setSuccessor(eventTypeFilter);
 
-        Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode() ? new UuidFilter(context.getWhiteUUID()) : new TransactionTableFilter();
+        Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode()
+                                        ? new UuidFilter(context.getWhiteUUID())
+                                        : new TransactionTableFilter();
         eventTypeFilter.setSuccessor(circularBreakFilter);
 
         DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager(), context.getRegistryKey());

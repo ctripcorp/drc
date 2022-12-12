@@ -116,6 +116,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
                         .monitorManager(delayMonitor)
                         .registryKey(clusterName)
                         .tableFilterConfiguration(tableFilterConfiguration)
+                        .master(isMaster)
                         .applyMode(applyMode).build()));
 
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory

@@ -26,6 +26,8 @@ public class InboundFilterChainContext {
 
     private int applyMode;
 
+    private boolean master;
+
     private InboundMonitorReport inboundMonitorReport;
 
     private TransactionCache transactionCache;
@@ -38,7 +40,7 @@ public class InboundFilterChainContext {
                                      SchemaManager schemaManager, InboundMonitorReport inboundMonitorReport,
                                      TransactionCache transactionCache, DefaultMonitorManager monitorManager,
                                      String registryKey, TableFilterConfiguration tableFilterConfiguration,
-                                     int applyMode) {
+                                     int applyMode, boolean master) {
         setWhiteUUID(whiteUUID);
         setTableNames(tableNames);
         setSchemaManager(schemaManager);
@@ -48,6 +50,7 @@ public class InboundFilterChainContext {
         setDelayMonitor(monitorManager);
         setTableFilterConfiguration(tableFilterConfiguration);
         setApplyMode(applyMode);
+        setMaster(master);
     }
 
     public Set<UUID> getWhiteUUID() {
@@ -122,6 +125,14 @@ public class InboundFilterChainContext {
         tableFilterConfiguration.register(registryKey, filter);
     }
 
+    public boolean isMaster() {
+        return master;
+    }
+
+    public void setMaster(boolean master) {
+        this.master = master;
+    }
+
     public static class Builder {
 
         private Set<UUID> whiteUUID = Sets.newConcurrentHashSet();
@@ -133,6 +144,8 @@ public class InboundFilterChainContext {
         private String registryKey;
 
         private int applyMode;
+
+        private boolean master;
 
         private InboundMonitorReport inboundMonitorReport;
 
@@ -159,6 +172,11 @@ public class InboundFilterChainContext {
 
         public Builder registryKey(String registryKey){
             this.registryKey = registryKey;
+            return this;
+        }
+
+        public Builder master(boolean master){
+            this.master = master;
             return this;
         }
 
@@ -193,7 +211,7 @@ public class InboundFilterChainContext {
                     schemaManager, inboundMonitorReport,
                     transactionCache, monitorManager,
                     registryKey, tableFilterConfiguration,
-                    applyMode);
+                    applyMode, master);
         }
 
     }
