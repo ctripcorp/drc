@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,16 +111,22 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                     }
                 }
 
+                String columnName = names.get(j);
                 boolean beforeIsNull = beforeRow.get(j) == null;
-                if (EventType.INSERT == eventType) {
-                    afterList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
-                } else {
-                    beforeList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
-                }
+                String beforeColumnValue = beforeIsNull ? null : beforeRow.get(j).toString();
 
-                if (afterRow != null) {
-                    boolean afterIsNull = afterRow.get(j) == null;
-                    afterList.add(new EventColumn(names.get(j), afterIsNull ? null : afterRow.get(j).toString(), afterIsNull, isKey, true));
+                switch (eventType) {
+                    case INSERT:
+                        afterList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, true));
+                    case DELETE:
+                        beforeList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, false));
+                    case UPDATE:
+                        beforeList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, false));
+                        if (afterRow != null) {
+                            boolean afterIsNull = afterRow.get(j) == null;
+                            String afterColumnValue = afterIsNull ? null : afterRow.get(j).toString();
+                            afterList.add(new EventColumn(columnName, afterColumnValue, afterIsNull, isKey, StringUtils.equals(beforeColumnValue, afterColumnValue)));
+                        }
                 }
             }
             eventDatas.add(eventData);
