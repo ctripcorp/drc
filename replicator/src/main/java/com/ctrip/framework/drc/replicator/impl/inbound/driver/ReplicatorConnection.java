@@ -88,7 +88,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             logger.warn("[GtidSet] replace with {}", gtidSet);
             gtidManager.updateExecutedGtids(gtidSet);
             refreshSchema();
-        } else if (RECONNECTION_CODE.PURGED_GTID_REQUIRED == reconnectionCode) {  //fix online bug
+        } else if (RECONNECTION_CODE.PURGED_GTID_REQUIRED == reconnectionCode) {
             String purgedGtid = fetchPurgedGtidSet(simpleObjectPool);
             gtidSet = new GtidSet(purgedGtid);
             gtidSet = combine(gtidSet, mySQLSlaveConfig.getGtidSet());
