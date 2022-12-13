@@ -4,21 +4,25 @@ import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.binlog.LogEventHandler;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.position.EntryPosition;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.framework.drc.core.driver.command.packet.server.ResultSetPacket;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
 import com.ctrip.framework.drc.replicator.MockTest;
+import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
-import org.assertj.core.util.Sets;
+import com.ctrip.xpipe.api.pool.SimpleObjectPool;
+import com.ctrip.xpipe.netty.commands.NettyClient;
+import com.ctrip.xpipe.pool.BorrowObjectException;
+import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-
-import java.util.Set;
 
 import static com.ctrip.framework.drc.replicator.AllTests.*;
 
@@ -29,7 +33,7 @@ import static com.ctrip.framework.drc.replicator.AllTests.*;
 public class ReplicatorConnectionTest extends MockTest {
 
     @InjectMocks
-    private ReplicatorConnection replicatorConnection;
+    private MockReplicatorConnection replicatorConnection;
 
     @Mock
     private LogEventHandler eventHandler;
@@ -42,7 +46,18 @@ public class ReplicatorConnectionTest extends MockTest {
     @Mock
     private SchemaManager schemaManager;
 
+    @Mock
+    private SimpleObjectPool<NettyClient> simpleObjectPool;
+
+    @Mock
+    private NettyClient nettyClient;
+
+    @Mock
+    private static ResultSetPacket resultSetPacket;
+
     private MySQLSlaveConfig mySQLSlaveConfig;
+
+    private static final int UPDATE_COMMAND_COUNT = 7;
 
     @Before
     public void setUp() throws Exception {
@@ -52,7 +67,7 @@ public class ReplicatorConnectionTest extends MockTest {
         mySQLSlaveConfig = new MySQLSlaveConfig();
         mySQLSlaveConfig.setEndpoint(endpoint);
         mySQLSlaveConfig.setGtidSet(new GtidSet(""));
-        replicatorConnection = new ReplicatorConnection(mySQLSlaveConfig, eventHandler, replicatorPooledConnector, gtidManager, schemaManager);
+        replicatorConnection = new MockReplicatorConnection(mySQLSlaveConfig, eventHandler, replicatorPooledConnector, gtidManager, schemaManager);
 
         replicatorConnection.initialize();
         replicatorConnection.start();
@@ -82,21 +97,71 @@ public class ReplicatorConnectionTest extends MockTest {
         String currentUuid = "026aa718-6eac-11ec-9293-98039ba567ea";
         replicatorConnection.setCurrentUuid(currentUuid);
         String testUuid = "19aa3243-6fa8-11ec-8030-b8599f4ac53c";
-        Set<String> uuids = Sets.newHashSet();
-        uuids.add(testUuid);
-        uuids.add(currentUuid);
-        uuids.add("cdc1156a-6ead-11ec-b1ce-98039ba56ce6");
-        uuids.add("2e44ce1c-b1e1-11ec-a0b1-98039ba567ea");
-        uuids.add("b5f22724-b1ce-11ec-81b7-98039ba567ea");
-
-        when(gtidManager.getUuids()).thenReturn(uuids);
-        when(gtidManager.removeUuid(testUuid)).thenReturn(true);
-        GtidSet newgtidSet = new GtidSet("026aa718-6eac-11ec-9293-98039ba567ea:1-63397550,19aa3243-6fa8-11ec-8030-b8599f4ac53c:1-5065,2e44ce1c-b1e1-11ec-a0b1-98039ba567ea:1-45,76bc9dc6-3003-11e9-9bf2-1c98ec274fd4:1-4286772491,7907de4a-7eea-11ea-8764-48df3717a474:1-185948430,87b2b560-b51a-11ea-b2ee-1c34da5ad21c:1-515015,94022a0b-3009-11e9-9c19-1c98ec2831a8:1-201008,cdc1156a-6ead-11ec-b1ce-98039ba56ce6:1-10910,d619ddc6-30cc-11ec-9be3-b8599f4a900c:1-271949534");
-        GtidSet oldgtidSet = new GtidSet("026aa718-6eac-11ec-9293-98039ba567ea:1-63397550,76bc9dc6-3003-11e9-9bf2-1c98ec274fd4:1-4286772491,7907de4a-7eea-11ea-8764-48df3717a474:1-185948430,87b2b560-b51a-11ea-b2ee-1c34da5ad21c:1-515015,94022a0b-3009-11e9-9c19-1c98ec2831a8:1-201008,d619ddc6-30cc-11ec-9be3-b8599f4a900c:1-271949534,e482173d-6eaf-11ec-9073-98039ba567ea:1-2041440,19aa3243-6fa8-11ec-8030-b8599f4ac53c:1-5064,cdc1156a-6ead-11ec-b1ce-98039ba56ce6:1-10910");
+        GtidSet newgtidSet = new GtidSet("19aa3243-6fa8-11ec-8030-b8599f4ac53c:1-271949534");
+        GtidSet oldgtidSet = new GtidSet("026aa718-6eac-11ec-9293-98039ba567ea:1-63397550");
         GtidSet gtidSet = replicatorConnection.combine(newgtidSet, oldgtidSet);
-        Assert.assertTrue(gtidSet.getUUIDs().size() == 9);
+        Assert.assertTrue(gtidSet.getUUIDs().size() == 2);
         GtidSet.UUIDSet uuidSet = gtidSet.getUUIDSet(testUuid);
-        Assert.assertTrue(uuidSet.toString().equals(testUuid + ":1-5065"));
+        Assert.assertTrue(uuidSet.toString().equals(testUuid + ":1-271949534"));
     }
 
+    @Test
+    public void testPurgedGtidset() throws BorrowObjectException {
+        String gtid = "19aa3243-6fa8-11ec-8030-b8599f4ac53c:1-271949534";
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        when(resultSetPacket.getFieldValues()).thenReturn(Lists.newArrayList("purged_gtid", gtid));
+        String res = replicatorConnection.fetchPurgedGtidSet(simpleObjectPool);
+        Assert.assertEquals(gtid, res);
+    }
+
+    @Test
+    public void testFetchExecutedGtidSet() throws BorrowObjectException {
+        String gtid = "19aa3243-6fa8-11ec-8030-b8599f4ac53c:1-271949534";
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        when(resultSetPacket.getFieldValues()).thenReturn(Lists.newArrayList("", "1", "", "",gtid));
+        EntryPosition entryPosition = replicatorConnection.fetchExecutedGtidSet(simpleObjectPool);
+        Assert.assertEquals(gtid, entryPosition.getGtid());
+    }
+
+    @Test
+    public void testFetchServerUuid() throws BorrowObjectException {
+        String uuid = "19aa3243-6fa8-11ec-8030-b8599f4ac53c";
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        when(resultSetPacket.getFieldValues()).thenReturn(Lists.newArrayList("server_uuid", uuid));
+        String res = replicatorConnection.fetchServerUuid(simpleObjectPool);
+        Assert.assertEquals(uuid, res);
+    }
+
+    @Test
+    public void testRegisterToSlave() throws BorrowObjectException {
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        replicatorConnection.registerToSlave(simpleObjectPool);
+        verify(simpleObjectPool, times(1)).borrowObject();
+    }
+
+    @Test
+    public void testEnvSettingAndRegister() throws BorrowObjectException {
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        replicatorConnection.envSettingAndRegister(simpleObjectPool);
+        verify(simpleObjectPool, times(1 + UPDATE_COMMAND_COUNT)).borrowObject();
+    }
+
+    @Test
+    public void testUpdateSettings() throws BorrowObjectException {
+        when(simpleObjectPool.borrowObject()).thenReturn(nettyClient);
+        replicatorConnection.updateSettings(simpleObjectPool);  // 7 commands in UpdateCommandExecutor
+        verify(simpleObjectPool, times(UPDATE_COMMAND_COUNT)).borrowObject();
+    }
+
+    static class MockReplicatorConnection extends ReplicatorConnection {
+
+        public MockReplicatorConnection(MySQLSlaveConfig mySQLSlaveConfig, LogEventHandler eventHandler, MySQLConnector connector, GtidManager gtidManager, SchemaManager schemaManager) {
+            super(mySQLSlaveConfig, eventHandler, connector, gtidManager, schemaManager);
+        }
+
+        @Override
+        protected <ResultSetPacket> void handleFuture(CommandFuture<ResultSetPacket> commandFuture) {
+            commandFuture.setSuccess((ResultSetPacket) resultSetPacket);
+        }
+    }
 }

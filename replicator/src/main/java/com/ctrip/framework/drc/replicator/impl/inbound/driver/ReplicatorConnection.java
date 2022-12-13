@@ -14,11 +14,11 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.server.ResultSetPacket;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObservable;
 import com.ctrip.framework.drc.core.server.observer.uuid.UuidObserver;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverter;
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.*;
-import com.ctrip.framework.drc.core.server.common.filter.Resettable;
 import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observer;
@@ -27,7 +27,6 @@ import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -36,7 +35,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.net.SocketException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -91,8 +89,8 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
             gtidManager.updateExecutedGtids(gtidSet);
             refreshSchema();
         } else if (RECONNECTION_CODE.PURGED_GTID_REQUIRED == reconnectionCode) {  //fix online bug
-            EntryPosition entryPosition = fetchExecutedGtidSet(simpleObjectPool);
-            gtidSet = new GtidSet(entryPosition.getGtid());
+            String purgedGtid = fetchPurgedGtidSet(simpleObjectPool);
+            gtidSet = new GtidSet(purgedGtid);
             gtidSet = combine(gtidSet, mySQLSlaveConfig.getGtidSet());
             mySQLSlaveConfig.setGtidSet(gtidSet);
             gtidManager.updateExecutedGtids(gtidSet);
@@ -126,48 +124,10 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
     }
 
     protected GtidSet combine(GtidSet newGtidSet, GtidSet oldGtidSet) {
-        Map<String, GtidSet.UUIDSet> uuidSets = Maps.newHashMap();
-
-        // uuid persist in zk from oldGtidSet
-        Set<String> uuids = gtidManager.getUuids();
-        for (String uuid : uuids) {  //add old white uuid
-            GtidSet.UUIDSet uuidSet =  oldGtidSet.getUUIDSet(uuid);
-            GtidSet.UUIDSet newUuidSet = newGtidSet.getUUIDSet(uuid);
-            if (uuidSet != null) { // replace uuidset if uuid is not current uuid
-                if (currentUuid != null && !uuid.equalsIgnoreCase(currentUuid) && newUuidSet != null && !uuidSet.equals(newUuidSet)) {
-                    uuidSets.put(uuid, newUuidSet); // for replicator request binlog from mysql
-                    boolean removed = gtidManager.removeUuid(uuid); // for applier replication
-                    logger.info("[Purged] gtidset replace {} with {}, res is {}", uuidSet, newUuidSet, removed);
-                    DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.gtid.purge", uuid);
-                } else {
-                    uuidSets.put(uuid, uuidSet);
-                }
-            }
-        }
-
-        // add absent uuid from newGtidSet
-        boolean addUuidNotInWhiteList = false;
-        Set<String> newUuids = newGtidSet.getUUIDs();
-        for (String uuid : newUuids) {
-            if (!uuids.contains(uuid) || uuidSets.get(uuid) == null) {
-                GtidSet.UUIDSet uuidSet =  newGtidSet.getUUIDSet(uuid);
-                if (uuidSet != null) {
-                    uuidSets.put(uuid, uuidSet);
-                    addUuidNotInWhiteList = true;
-                }
-            }
-        }
-
-        GtidSet gtidSet;
-        if (!addUuidNotInWhiteList) {
-            gtidSet = newGtidSet;
-        } else {
-            gtidSet = new GtidSet(uuidSets);
-            logger.info("[NotInWhite] and update gtidSet to {}", gtidSet);
-        }
-
-        logger.info("[Combine-GtidSet] is {}", gtidSet);
-        return gtidSet;
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.gtid.purge", mySQLSlaveConfig.getRegistryKey());
+        GtidSet unionGtidSet = oldGtidSet.union(newGtidSet);
+        logger.info("[Combine-GtidSet] for purged gtidset {} and executed gtidset {} is {}", newGtidSet, oldGtidSet, unionGtidSet);
+        return unionGtidSet;
     }
 
     private void refreshSchema() {
@@ -195,20 +155,20 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.mysql.reconnect", mySQLSlaveConfig.getRegistryKey());
     }
 
-    private void envSettingAndRegister(SimpleObjectPool<NettyClient> simpleObjectPool) {
+    protected void envSettingAndRegister(SimpleObjectPool<NettyClient> simpleObjectPool) {
         if (isMaster()) {
             updateSettings(simpleObjectPool);
             registerToSlave(simpleObjectPool);
         }
     }
 
-    private void updateSettings(SimpleObjectPool<NettyClient> simpleObjectPool) {
+    public void updateSettings(SimpleObjectPool<NettyClient> simpleObjectPool) {
         UpdateClientCommandHandler updateCommandHandler = new UpdateClientCommandHandler();
         UpdateCommandExecutor updateCommandExecutor = new UpdateCommandExecutor(updateCommandHandler);
         updateCommandExecutor.handle(simpleObjectPool);
     }
 
-    private void registerToSlave(SimpleObjectPool<NettyClient> simpleObjectPool) {
+    protected void registerToSlave(SimpleObjectPool<NettyClient> simpleObjectPool) {
         RegisterSlaveClientCommandHandler registerSlaveCommandHandler = new RegisterSlaveClientCommandHandler();
         RegisterSlaveCommandExecutor registerSlaveCommandExecutor = new RegisterSlaveCommandExecutor(registerSlaveCommandHandler, mySQLSlaveConfig.getEndpoint(), mySQLSlaveConfig.getSlaveId());
         registerSlaveCommandExecutor.handle(simpleObjectPool);
@@ -219,6 +179,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         QueryClientCommandHandler queryCommandHandler = new QueryClientCommandHandler();
         MasterStatusQueryCommandExecutor queryCommandExecutor = new MasterStatusQueryCommandExecutor(queryCommandHandler);
         CommandFuture<ResultSetPacket> commandFuture = queryCommandExecutor.handle(simpleObjectPool);
+        handleFuture(commandFuture);
         ResultSetPacket resultSetPacket = syncResultSetPacket(commandFuture);
         List<String> fields = resultSetPacket.getFieldValues();
         EntryPosition endPosition = new EntryPosition(fields.get(0), Long.valueOf(fields.get(1)));
@@ -229,11 +190,23 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         return endPosition;
     }
 
-    private String fetchServerUuid(SimpleObjectPool<NettyClient> simpleObjectPool) {
+    protected String fetchPurgedGtidSet(SimpleObjectPool<NettyClient> simpleObjectPool) {
+
+        QueryClientCommandHandler queryCommandHandler = new QueryClientCommandHandler();
+        PurgedGtidQueryCommandExecutor queryCommandExecutor = new PurgedGtidQueryCommandExecutor(queryCommandHandler);
+        CommandFuture<ResultSetPacket> commandFuture = queryCommandExecutor.handle(simpleObjectPool);
+        handleFuture(commandFuture);
+        ResultSetPacket resultSetPacket = syncResultSetPacket(commandFuture);
+        List<String> fields = resultSetPacket.getFieldValues();
+        return fields.get(1);
+    }
+
+    protected String fetchServerUuid(SimpleObjectPool<NettyClient> simpleObjectPool) {
 
         QueryClientCommandHandler queryCommandHandler = new QueryClientCommandHandler();
         MasterUuidQueryCommandExecutor queryCommandExecutor = new MasterUuidQueryCommandExecutor(queryCommandHandler);
         CommandFuture<ResultSetPacket> commandFuture = queryCommandExecutor.handle(simpleObjectPool);
+        handleFuture(commandFuture);
         ResultSetPacket resultSetPacket = syncResultSetPacket(commandFuture);
         List<String> fields = resultSetPacket.getFieldValues();
         if (fields != null && fields.size() == 2) {
@@ -326,5 +299,9 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
         public void afterException(Throwable t) {
             logger.error("preDump {}:{} error", mySQLSlaveConfig.getEndpoint(), mySQLSlaveConfig.getRegistryKey(), t);
         }
+    }
+
+    protected <T> void handleFuture(CommandFuture<T> commandFuture) {
+
     }
 }
