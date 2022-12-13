@@ -121,7 +121,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                         if (afterRow != null) {
                             boolean afterIsNull = afterRow.get(j) == null;
                             String afterColumnValue = afterIsNull ? null : afterRow.get(j).toString();
-                            afterList.add(new EventColumn(columnName, afterColumnValue, afterIsNull, isKey, StringUtils.equals(beforeColumnValue, afterColumnValue)));
+                            afterList.add(new EventColumn(columnName, afterColumnValue, afterIsNull, isKey, !StringUtils.equals(beforeColumnValue, afterColumnValue)));
                         }
                         break;
                     case INSERT:
