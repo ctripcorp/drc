@@ -118,7 +118,8 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         }
 
         RowsFilterResult<List<AbstractRowsEvent.Row>> rowsFilterResult = dataMediaManager.filterRows(rowsEvent, rowsFilterContext);
-        boolean noRowFiltered = rowsFilterResult.isNoRowFiltered().noRowFiltered();
+        RowsFilterResult.Status filterStatus = rowsFilterResult.isNoRowFiltered();
+        boolean noRowFiltered = filterStatus.noRowFiltered();
 
         if (!noRowFiltered) {
             List<AbstractRowsEvent.Row> rows = rowsFilterResult.getRes();
@@ -129,7 +130,10 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 ROWS_FILTER_LOGGER.info("[Filter] {}/{} rows of table {}.{} within transaction {} for {}", filterNum, beforeSize, schemaName, table, value.getGtid(), registryKey);
             }
         }
-        outboundMonitorReport.updateFilteredRows(schemaName, table, beforeSize, afterSize);
+
+        if (RowsFilterResult.Status.No_Filter_Rule != rowsFilterResult.isNoRowFiltered()) {
+            outboundMonitorReport.updateFilteredRows(schemaName, table, beforeSize, afterSize);
+        }
 
         return Pair.from(noRowFiltered, pair.getValue());
     }
