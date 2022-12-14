@@ -559,7 +559,7 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     public int getApplyMode(String mha, String remoteMha) throws SQLException {
         ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
-        return applierGroupTbl == null ? 0 : applierGroupTbl.getApplyMode();
+        return applierGroupTbl == null ? 1 : applierGroupTbl.getApplyMode();
     }
 
     private ApplierGroupTbl getApplierGroupTbl(MhaTbl mhaTbl, MhaTbl remoteMhaTbl) throws SQLException {

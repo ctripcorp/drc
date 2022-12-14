@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
@@ -37,6 +38,9 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+
+    @Autowired
+    private MhaGrayConfig mhaGrayConfig;
 
     private static final String DRC_DB_CLUSTER = "drc.dbclusters";
 
@@ -237,6 +241,43 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         }
         return allMhas;
     }
+
+    
+    public Set<ReplicatorWrapper> getAllReplicatorSlaves() {
+        Set<ReplicatorWrapper> replicators = Sets.newHashSet();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            replicators.addAll(getAllReplicatorSlavesInDc(dcInLocalRegion));
+        }
+        return replicators;
+    }
+
+    private Set<ReplicatorWrapper> getAllReplicatorSlavesInDc(String dcInLocalRegion) {
+        Set<ReplicatorWrapper> replicatorSlaves = Sets.newHashSet();
+        Dc dc = getDc(dcInLocalRegion);
+        String dcName = dc.getId();
+        for (DbCluster dbCluster : dc.getDbClusters().values()) {
+            String mhaName = dbCluster.getMhaName();
+            if (mhaGrayConfig.gray(mhaName)) {
+                logger.info("[[monitor=ReplicatorSlave]] mha:{} , gray open",mhaName);
+                for (Replicator replicator: dbCluster.getReplicators()) {
+                    if (!replicator.getMaster()) {
+                        ReplicatorWrapper replicatorSlaveWrapper = new ReplicatorWrapper(
+                                replicator,
+                                dcName,
+                                dcName,
+                                dbCluster.getName(),
+                                mhaName,
+                                mhaName,
+                                Lists.newArrayList());
+                        replicatorSlaves.add(replicatorSlaveWrapper);
+                    }
+                }
+            }
+        }
+        return replicatorSlaves;
+    }
+
 
     /**
      * @return replicators delay monitor need

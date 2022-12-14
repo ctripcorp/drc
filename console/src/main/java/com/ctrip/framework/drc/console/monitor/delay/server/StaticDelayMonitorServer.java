@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.monitor.delay.server;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
-import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -14,7 +13,6 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DelayMonitorLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcHeartbeatLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.ParsedDdlLogEvent;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.exception.dump.NetworkException;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
@@ -27,7 +25,6 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
@@ -93,6 +88,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private static final int PERIOD = 1;
 
     private DelayMonitorSlaveConfig config;
+    
+    private boolean isReplicatorMaster = true;
 
     // the time which was updated by local Console and flew thru local MySQL-local Rep-dest Applier-dest MySQL, and finally sent by dest Rep
     long datachangeLastime = 0;
@@ -223,6 +220,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         this.periodicalUpdateDbTask = periodicalUpdateDbTask;
         this.delayExceptionTime = delayExceptionTime;
         toleranceTime = TOLERANCE_TIME;
+        
+        if (config.getMha() != null && config.getMha().equals(config.getDestMha())) {
+            this.isReplicatorMaster = false;
+        }
     }
 
     @Override
@@ -319,6 +320,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .clusterName(config.getCluster())
                     .srcMhaName(mhaString)
                     .destMhaName(config.getDestMha())
+                    .isReplicatorMaster(isReplicatorMaster)
                     .build();
             entityMap.put(mhaString, unidirectionalEntity);
         }
