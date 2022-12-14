@@ -133,7 +133,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Override
     public void scheduledTask() {
         try {
-            if (isRegionLeader) {
+            if (true) {
                 if ((SWITCH_STATUS_ON.equalsIgnoreCase(
                         monitorTableSourceProvider.getListenReplicatorSwitch()))) {
                     logger.info("[[monitor=delaylisten]] is Leader, going to listen all replicator");
@@ -427,7 +427,9 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             theNewestSlaveReplicatorWrappers.put(
                     replicatorWrapper.getIp() + ":" + replicatorWrapper.getPort(), replicatorWrapper);
         }
-        checkReplicatorWrapperChange(theNewestSlaveReplicatorWrappers, slaveReplicatorWrappers,
+        logger.info("[[tag=replicatorSlaveMonitor]] get NewestReplicatorSlaves count:{},current:{}",
+                theNewestSlaveReplicatorWrappers.size(),slaveReplicatorWrappers.size());
+        checkReplicatorWrapperChange(slaveReplicatorWrappers, theNewestSlaveReplicatorWrappers,
                 slaveReplicatorWrappers,
                 slaveReplicatorDelayMonitorServerMap);
     }

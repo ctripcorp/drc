@@ -368,7 +368,8 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                                     "monitor=delay,direction={}({}):{}({})," +
                                     "cluster={}," +
                                     "replicator={}:{}," +
-                                    "measurement={},slow={}]]" +
+                                    "measurement={},slow={}" 
+                                    + "role={}]]" +
                             "\n[Report Delay] {}ms" +
                             "\nGTID: {}" +
                             "\ndelay = currentTime({}) - datachange_lasttime({})" +
@@ -377,6 +378,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                             config.getCluster(),
                             config.getEndpoint().getHost(), config.getEndpoint().getPort(),
                             config.getMeasurement(), delay > SLOW_THRESHOLD,
+                            isReplicatorMaster,
                             delay, gtid, 
                             formatter.format(rTime), delayString);
                 } else {
