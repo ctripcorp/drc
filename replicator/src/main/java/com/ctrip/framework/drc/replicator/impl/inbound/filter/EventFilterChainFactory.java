@@ -4,6 +4,8 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DELAY_LOGGER;
+
 /**
  * Created by mingdongli
  * 2019/10/9 上午10:30.
@@ -26,6 +28,8 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         DelayMonitorFilter delayMonitorFilter = context.isMaster()
                                                     ? new DelayMonitorFilter(context.getMonitorManager())
                                                     : new SlaveDelayMonitorFilter(context.getMonitorManager());
+        DELAY_LOGGER.info("[Init] {} for {}", delayMonitorFilter.getClass().getSimpleName(), context.getRegistryKey());
+
         persistPostFilter.setSuccessor(delayMonitorFilter);
 
         TransactionMonitorFilter transactionMonitorFilter = new TransactionMonitorFilter(context.getInboundMonitorReport());

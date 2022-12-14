@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.server.manager;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.AbstractEventTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
@@ -32,10 +33,23 @@ public class DataMediaManagerTest extends AbstractEventTest {
     }
 
     @Test
-    public void filterRows() throws Exception {
+    public void testFilterRows() throws Exception {
         rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
         RowsFilterResult<List<List<Object>>> res = dataMediaManager.filterRows(writeRowsEvent, rowsFilterContext);
         Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
         Assert.assertEquals(res.getRes(), result);
+    }
+
+    @Test
+    public void testNoFilterRule() throws Exception {
+        TableMapLogEvent origin = rowsFilterContext.getDrcTableMapLogEvent();
+        try {
+            TableMapLogEvent drcTableMapEventOfMissed = drcTableMapEventOfMissed();
+            rowsFilterContext.setDrcTableMapLogEvent(drcTableMapEventOfMissed);
+            RowsFilterResult<List<List<Object>>>res = dataMediaManager.filterRows(writeRowsEvent, rowsFilterContext);
+            Assert.assertTrue(res.isNoRowFiltered() == RowsFilterResult.Status.No_Filter_Rule);
+        } finally {
+            rowsFilterContext.setDrcTableMapLogEvent(origin);
+        }
     }
 }

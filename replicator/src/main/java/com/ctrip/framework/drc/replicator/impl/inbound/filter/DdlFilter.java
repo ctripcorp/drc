@@ -93,11 +93,12 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             return false;
         }
 
-        QueryType type = results.get(0).getType();
-        schemaName = results.get(0).getSchemaName();
-        String schemaInBinlog = results.get(0).getOriSchemaName() != null ? results.get(0).getOriSchemaName() : schemaName;
+        DdlResult ddlResult = results.get(0);
+        QueryType type = ddlResult.getType();
+        schemaName = ddlResult.getSchemaName();
+        String schemaInBinlog = ddlResult.getOriSchemaName() != null ? ddlResult.getOriSchemaName() : schemaName;
 
-        String tableCharset = results.get(0).getTableCharset();
+        String tableCharset = ddlResult.getTableCharset();
         if (QueryType.CREATE == type && tableCharset == null && !DEFAULT_CHARACTER_SET_SERVER.equalsIgnoreCase(charset)) {  //not set and serverCollation != DEFAULT_CHARACTER_SET_SERVER
             String previousQueryString = queryString;
             queryString = DdlParser.appendTableCharset(queryString, charset);
@@ -109,7 +110,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         if (!isDml) {
             if (StringUtils.isNotBlank(schemaName) && EXCLUDED_DB.contains(schemaName.toLowerCase())) {
                 DDL_LOGGER.info("[Skip] ddl for exclude database {} with query {}", schemaName, queryString);
-                String originTableName = results.get(0).getOriTableName();
+                String originTableName = ddlResult.getOriTableName();
                 if (type == QueryType.RENAME && StringUtils.isNotBlank(schemaInBinlog)
                         && !EXCLUDED_DB.contains(schemaInBinlog.toLowerCase())
                         && mayGhostOps(originTableName)) {
@@ -119,7 +120,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
                 }
                 return false;
             }
-            String tableName = results.get(0).getTableName();
+            String tableName = ddlResult.getTableName();
             ApplyResult applyResult = schemaManager.apply(schemaInBinlog, tableName, queryString, type, gtid);
             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
@@ -137,7 +138,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             //deal with ghost
             if (mayGhostOps(tableName)) {
                 if (type == QueryType.RENAME && results.size() == 2) {
-                    String tableNameOne = results.get(0).getTableName();
+                    String tableNameOne = ddlResult.getTableName();
                     String originTableNameTwo = results.get(1).getOriTableName();
                     if (DDLPredication.mayGhostRename(tableNameOne, originTableNameTwo)) {
                         schemaName = results.get(1).getSchemaName();
@@ -155,7 +156,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             } else {
                 // fix ddl: use drc1; rename table test1 to drc2.test1;
                 String persistSchemaName = schemaName;
-                String toSchemaName = results.get(0).getSchemaName();
+                String toSchemaName = ddlResult.getSchemaName();
                 if (type == QueryType.RENAME && results.size() == 1 && StringUtils.isNotBlank(toSchemaName)) {
                     persistSchemaName = toSchemaName;
                 }
@@ -165,7 +166,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             return true;
         } else {
             if(type == QueryType.TRUNCATE) {
-                String tableName = results.get(0).getTableName();
+                String tableName = ddlResult.getTableName();
                 DDL_LOGGER.info("[Truncate] detected for {}.{}", schemaName, tableName);
                 monitorManager.onDdlEvent(schemaName, tableName, queryString, type);
             }
