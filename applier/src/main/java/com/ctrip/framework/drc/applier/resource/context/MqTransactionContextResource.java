@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     @Override
     public void insert(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
-        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.INSERT);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, columns, EventType.INSERT);
         loggerMsgSend.info("[GTID][{}] insert event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
@@ -54,14 +55,14 @@ public class MqTransactionContextResource extends TransactionContextResource imp
 
     @Override
     public void update(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns) {
-        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, afterBitmap, columns, EventType.UPDATE);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, afterRows, columns, EventType.UPDATE);
         loggerMsgSend.info("[GTID][{}] update event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
 
     @Override
     public void delete(List<List<Object>> beforeRows, Bitmap beforeBitmap, Columns columns) {
-        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, null, columns, EventType.DELETE);
+        List<EventData> eventDatas = transfer(beforeRows, beforeBitmap, null, columns, EventType.DELETE);
         loggerMsgSend.info("[GTID][{}] delete event data", fetchGtid());
         sendEventDatas(eventDatas);
     }
@@ -75,7 +76,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
         }
     }
 
-    private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Bitmap afterBitmap, Columns columns, EventType eventType) {
+    private List<EventData> transfer(List<List<Object>> beforeRows, Bitmap beforeBitmap, List<List<Object>> afterRows, Columns columns, EventType eventType) {
         DcTag dcTag = fetchDcTag();
         List<EventData> eventDatas = Lists.newArrayList();
 
@@ -110,16 +111,25 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                     }
                 }
 
+                String columnName = names.get(j);
                 boolean beforeIsNull = beforeRow.get(j) == null;
-                if (EventType.INSERT == eventType) {
-                    afterList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
-                } else {
-                    beforeList.add(new EventColumn(names.get(j), beforeIsNull ? null : beforeRow.get(j).toString(), beforeIsNull, isKey, true));
-                }
+                String beforeColumnValue = beforeIsNull ? null : beforeRow.get(j).toString();
 
-                if (afterRow != null) {
-                    boolean afterIsNull = afterRow.get(j) == null;
-                    afterList.add(new EventColumn(names.get(j), afterIsNull ? null : afterRow.get(j).toString(), afterIsNull, isKey, true));
+                switch (eventType) {
+                    case UPDATE:
+                        beforeList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, false));
+                        if (afterRow != null) {
+                            boolean afterIsNull = afterRow.get(j) == null;
+                            String afterColumnValue = afterIsNull ? null : afterRow.get(j).toString();
+                            afterList.add(new EventColumn(columnName, afterColumnValue, afterIsNull, isKey, !StringUtils.equals(beforeColumnValue, afterColumnValue)));
+                        }
+                        break;
+                    case INSERT:
+                        afterList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, true));
+                        break;
+                    case DELETE:
+                        beforeList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, false));
+                        break;
                 }
             }
             eventDatas.add(eventData);
