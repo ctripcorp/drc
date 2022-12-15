@@ -22,12 +22,15 @@ public class UnidirectionalEntity extends BaseEntity {
     private String destMhaName;
     
     private Boolean isReplicatorMaster;
+    
+    private String replicatorAddress;
 
     public UnidirectionalEntity(Builder builder) {
         super(builder.clusterAppId, builder.buName, builder.srcDcName, builder.clusterName, builder.srcMhaName, builder.registryKey);
         this.destDcName = builder.destDcName;
         this.destMhaName = builder.destMhaName;
         this.isReplicatorMaster = builder.isReplicatorMaster;
+        this.replicatorAddress = builder.address;
     }
 
     public static final class Builder {
@@ -40,6 +43,7 @@ public class UnidirectionalEntity extends BaseEntity {
         private String destMhaName;
         private String registryKey;
         private Boolean isReplicatorMaster;
+        private String address;
 
         public Builder() {}
 
@@ -80,6 +84,11 @@ public class UnidirectionalEntity extends BaseEntity {
 
         public Builder registryKey(String val) {
             this.registryKey = val;
+            return this;
+        }
+        
+        public Builder replicatorAddress(String val) {
+            this.address = val;
             return this;
         }
 
@@ -145,6 +154,9 @@ public class UnidirectionalEntity extends BaseEntity {
                 } else {
                     tags.put("role", REPLICATOR_ROLE_SLAVE);
                 }
+            }
+            if (null != replicatorAddress) {
+                tags.put("address",replicatorAddress);
             }
         }
         return tags;

@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.monitor.delay.server;
 
+import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
+
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
@@ -25,10 +28,6 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.xpipe.redis.ProxyRegistry;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Maps;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Iterator;
@@ -36,9 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.BU;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMIT_THRESHOLD;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author shenhaibo
@@ -107,7 +106,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
 
     private static final String INFO= "info";
 
-    private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={}]]";
+    private static final String CLOG_TAGS = "[[monitor=delay,direction={}({}):{}({}),cluster={},replicator={}:{},measurement={},role={}]]";
 
     public void setConfig(DelayMonitorSlaveConfig config) {
         this.config = config;
@@ -272,8 +271,13 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         if(timeDiff > toleranceTime) {
                             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
                             DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, HUGE_VAL, config.getMeasurement());
-                            DefaultEventMonitorHolder.getInstance().logEvent("DRC." + config.getMeasurement(), unidirectionalEntity.getMhaName()+'.'+ unidirectionalEntity.getDestMhaName());
-                            log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, Last receive time : " + formatter.format(receiveTime)+ " and current time: " + formatter.format(curTime) + ", report a huge number to trigger the alert.", INFO, null);
+                            DefaultEventMonitorHolder.getInstance().logEvent(
+                                    "DRC." + config.getMeasurement(), 
+                                    unidirectionalEntity.getMhaName()+'.'+ unidirectionalEntity.getDestMhaName());
+                            log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, " 
+                                    + "Last receive time : " + formatter.format(receiveTime)+ 
+                                    " and current time: " + formatter.format(curTime) + "," 
+                                    + " report a huge number to trigger the alert.", INFO, null);
                         }
                     }
                 } catch (Throwable t) {
@@ -321,6 +325,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     .srcMhaName(mhaString)
                     .destMhaName(config.getDestMha())
                     .isReplicatorMaster(isReplicatorMaster)
+                    .replicatorAddress(config.getEndpoint().getSocketAddress().toString())
                     .build();
             entityMap.put(mhaString, unidirectionalEntity);
         }
@@ -368,7 +373,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                                     "monitor=delay,direction={}({}):{}({})," +
                                     "cluster={}," +
                                     "replicator={}:{}," +
-                                    "measurement={},slow={}" 
+                                    "measurement={},slow={}," 
                                     + "role={}]]" +
                             "\n[Report Delay] {}ms" +
                             "\nGTID: {}" +
@@ -396,23 +401,30 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             log("Parse " + delayString + " exception, ", ERROR, e);
         }
     }
-    
-    
+
 
     private void log(String msg, String types, Throwable t) {
         String prefix = new StringBuilder().append(CLOG_TAGS).append(msg).toString();
         switch (types) {
             case WARN:
-                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement());
+                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
+                        config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                        config.getMeasurement(),isReplicatorMaster);
                 break;
             case ERROR:
-                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement(), t);
+                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
+                        config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                        config.getMeasurement(),isReplicatorMaster, t);
                 break;
             case DEBUG:
-                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement());
+                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
+                        config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                        config.getMeasurement(),isReplicatorMaster);
                 break;
             case INFO:
-                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(), config.getMeasurement());
+                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(), config.getDestDc(),
+                        config.getCluster(), config.getEndpoint().getHost(), config.getEndpoint().getPort(),
+                        config.getMeasurement(),isReplicatorMaster);
                 break;
         }
     }
