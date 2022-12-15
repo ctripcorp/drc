@@ -139,7 +139,6 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                     logger.info("[[monitor=delaylisten]] is Leader, going to listen all replicator");
                     updateListenReplicators();
                     pollDetectReplicators();
-                    // todo 开关，灰度
                     updateListenReplicatorSlaves();
                 } else {
                     logger.warn("[[monitor=delaylisten]] is Leader, but listen all replicator switch is off");

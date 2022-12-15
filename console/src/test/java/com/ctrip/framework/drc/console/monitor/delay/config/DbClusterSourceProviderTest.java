@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
@@ -55,6 +56,9 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     
     @Mock
     private DefaultConsoleConfig consoleConfig;
+    
+    @Mock
+    private MhaGrayConfig mhaGrayConfig;
 
     private static final String DC1= "dc1";
 
@@ -412,5 +416,19 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         Endpoint actual = drcNt.getMasterDb();
         Endpoint expected = new MySqlEndpoint("127.0.0.1", 3306, "mroot", "mpassword", BooleanEnum.TRUE.isValue());
         Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testGetAllReplicatorSlaves() {
+        dbClusterSourceProvider.drc = expectedDrc;
+        Mockito.when(consoleConfig.getDcsInLocalRegion()).thenReturn(new HashSet<>(){{
+            add("dc1");
+            add("dc2");
+        }});
+        Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
+
+        Set<ReplicatorWrapper> allReplicatorSlaves = dbClusterSourceProvider.getAllReplicatorSlaves();
+        Assert.assertEquals(6,allReplicatorSlaves.size());
+
     }
 }
