@@ -133,7 +133,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Override
     public void scheduledTask() {
         try {
-            if (true) {
+            if (isRegionLeader) {
                 if ((SWITCH_STATUS_ON.equalsIgnoreCase(
                         monitorTableSourceProvider.getListenReplicatorSwitch()))) {
                     logger.info("[[monitor=delaylisten]] is Leader, going to listen all replicator");
