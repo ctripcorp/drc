@@ -20,8 +20,6 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoin
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.entity.Route;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
-import com.ctrip.framework.drc.core.monitor.entity.BaseEntity;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
@@ -428,8 +426,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         
         for (List<ReplicatorWrapper> replicatorWrappers : allReplicatorsInLocalRegion.values()) {
             for (ReplicatorWrapper rWrapper : replicatorWrappers) {
-                theNewestSlaveReplicatorWrappers.put(
-                        rWrapper.getIp() + ":" + rWrapper.getPort(), rWrapper);
+                theNewestSlaveReplicatorWrappers.put(rWrapper.getIp() + ":" + rWrapper.getPort(), rWrapper);
             }
         }
         
@@ -445,12 +442,12 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             List<ReplicatorWrapper> rWrappers = entry.getValue();
             ReplicatorWrapper rWrapper = rWrappers.get(0);
             String dcName = rWrapper.getDcName();
-            logger.debug("request CM for real master R for {} in {}", dbClusterId, dcName);
+            logger.info("request CM for real master R for {} in {}", dbClusterId, dcName);
             Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(
                     dcName, dbClusterId);
             if (null != activeReplicator) {
                 rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) &&
-                        current.getPort() == activeReplicator.getPort());
+                        current.getPort() == activeReplicator.getApplierPort());
                 updateMasterReplicatorIfChange(rWrapper.mhaName, activeReplicator.getIp());
             }
         }
@@ -524,9 +521,11 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     }
     
     protected void updateMasterReplicatorIfChange(String mhaName,String newReplicatorIp) {
-        monitorMasterRExecutorService.submit(() -> {
-            drcMaintenanceService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
-        });
+        if ("on".equalsIgnoreCase(consoleConfig.getUpdateReplicatorSwitch())) {
+            monitorMasterRExecutorService.submit(() -> {
+                drcMaintenanceService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
+            });
+        }
     }
     
     
