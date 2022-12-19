@@ -20,6 +20,7 @@ import org.springframework.core.PriorityOrdered;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @author shenhaibo
@@ -243,39 +244,41 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     }
 
     
-    public Set<ReplicatorWrapper> getAllReplicatorSlaves() {
-        Set<ReplicatorWrapper> replicators = Sets.newHashSet();
+    public Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion() {
+        Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {
-            replicators.addAll(getAllReplicatorSlavesInDc(dcInLocalRegion));
+            replicators.putAll(getAllReplicatorInDc(dcInLocalRegion));
         }
         return replicators;
     }
 
-    private Set<ReplicatorWrapper> getAllReplicatorSlavesInDc(String dcInLocalRegion) {
-        Set<ReplicatorWrapper> replicatorSlaves = Sets.newHashSet();
-        Dc dc = getDc(dcInLocalRegion);
+    private Map<String,List<ReplicatorWrapper>> getAllReplicatorInDc(String dcInRegion) {
+        Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
+        Dc dc = getDc(dcInRegion);
         String dcName = dc.getId();
         for (DbCluster dbCluster : dc.getDbClusters().values()) {
             String mhaName = dbCluster.getMhaName();
             if (mhaGrayConfig.gray(mhaName)) {
                 logger.info("[[monitor=ReplicatorSlave]] mha:{} , gray open",mhaName);
+                List<ReplicatorWrapper> rWrappers = Lists.newArrayList();
                 for (Replicator replicator: dbCluster.getReplicators()) {
-                    if (!replicator.getMaster()) {
-                        ReplicatorWrapper replicatorSlaveWrapper = new ReplicatorWrapper(
-                                replicator,
-                                dcName,
-                                dcName,
-                                dbCluster.getName(),
-                                mhaName,
-                                mhaName,
-                                Lists.newArrayList());
-                        replicatorSlaves.add(replicatorSlaveWrapper);
-                    }
+                    ReplicatorWrapper rWrapper = new ReplicatorWrapper(
+                            replicator,
+                            dcName,
+                            dcName,
+                            dbCluster.getName(),
+                            mhaName,
+                            mhaName,
+                            Lists.newArrayList());
+                    rWrappers.add(rWrapper);
+                }
+                if (!CollectionUtils.isEmpty(rWrappers)) {
+                    replicators.put(dbCluster.getId(), rWrappers);
                 }
             }
         }
-        return replicatorSlaves;
+        return replicators;
     }
 
 

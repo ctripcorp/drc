@@ -35,6 +35,7 @@ import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -420,17 +421,39 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     @VisibleForTesting
     protected void updateListenReplicatorSlaves() throws SQLException {
-        Set<ReplicatorWrapper> allReplicatorSlaves = dbClusterSourceProvider.getAllReplicatorSlaves();
         Map<String, ReplicatorWrapper> theNewestSlaveReplicatorWrappers = Maps.newConcurrentMap();
-        for (ReplicatorWrapper replicatorWrapper : allReplicatorSlaves) {
-            theNewestSlaveReplicatorWrappers.put(
-                    replicatorWrapper.getIp() + ":" + replicatorWrapper.getPort(), replicatorWrapper);
+        
+        Map<String, List<ReplicatorWrapper>> allReplicatorsInLocalRegion = dbClusterSourceProvider.getAllReplicatorsInLocalRegion();
+        filterMasterReplicator(allReplicatorsInLocalRegion);
+        
+        for (List<ReplicatorWrapper> replicatorWrappers : allReplicatorsInLocalRegion.values()) {
+            for (ReplicatorWrapper rWrapper : replicatorWrappers) {
+                theNewestSlaveReplicatorWrappers.put(
+                        rWrapper.getIp() + ":" + rWrapper.getPort(), rWrapper);
+            }
         }
+        
         logger.info("[[tag=replicatorSlaveMonitor]] get NewestReplicatorSlaves count:{},current:{}",
                 theNewestSlaveReplicatorWrappers.size(),slaveReplicatorWrappers.size());
         checkReplicatorWrapperChange(slaveReplicatorWrappers, theNewestSlaveReplicatorWrappers,
-                slaveReplicatorWrappers,
-                slaveReplicatorDelayMonitorServerMap);
+                slaveReplicatorWrappers, slaveReplicatorDelayMonitorServerMap);
+    }
+    
+    private void filterMasterReplicator(Map<String, List<ReplicatorWrapper>> allReplicators) {
+        for (Entry<String, List<ReplicatorWrapper>> entry : allReplicators.entrySet()) {
+            String dbClusterId = entry.getKey();
+            List<ReplicatorWrapper> rWrappers = entry.getValue();
+            ReplicatorWrapper rWrapper = rWrappers.get(0);
+            String dcName = rWrapper.getDcName();
+            logger.debug("request CM for real master R for {} in {}", dbClusterId, dcName);
+            Replicator activeReplicator = moduleCommunicationService.getActiveReplicator(
+                    dcName, dbClusterId);
+            if (null != activeReplicator) {
+                rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) &&
+                        current.getPort() == activeReplicator.getPort());
+            }
+        }
+        
     }
 
     @VisibleForTesting
@@ -439,8 +462,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = dbClusterSourceProvider.getReplicatorsNeeded(
                 mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers,
-                replicatorWrappers,
-                delayMonitorServerMap);
+                replicatorWrappers, delayMonitorServerMap);
     }
 
     private void checkReplicatorWrapperChange(

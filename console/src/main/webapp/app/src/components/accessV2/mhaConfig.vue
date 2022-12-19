@@ -67,7 +67,7 @@
           </FormItem>
           <FormItem label="Master" prop="master">
             <Select  v-model="newMhaMachine.master" style="width: 200px"  placeholder="是否为Master" >
-              <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.label">{{ item.label }}</Option>
+              <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.key">{{ item.key }}</Option>
             </Select>
           </FormItem>
           <FormItem>
