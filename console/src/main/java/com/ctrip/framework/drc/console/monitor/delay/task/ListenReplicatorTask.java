@@ -342,6 +342,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 try {
                     StaticDelayMonitorServer delayMonitorServer = delayMonitorServerMap.get(clusterId);
                     DelayMonitorSlaveConfig oldConfig = delayMonitorServer.getConfig();
+                    updateMasterReplicatorIfChange(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
                     if (!oldConfig.getIp().equalsIgnoreCase(newReplicatorIp)
                             || oldConfig.getPort() != newReplicatorPort) {
                         logger.info(
@@ -352,7 +353,6 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                         Endpoint newEndpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
                         newConfig.setEndpoint(newEndpoint);
                         restartListenServer(clusterId, newConfig, delayMonitorServerMap);
-                        updateMasterReplicatorIfChange(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
                         logger.info(
                                 "[[monitor=delaylisten]] switch replicator listen success for cluster: {},new Config is:{}",
                                 clusterId, newConfig);
@@ -523,7 +523,12 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     protected void updateMasterReplicatorIfChange(String mhaName,String newReplicatorIp) {
         if ("on".equalsIgnoreCase(consoleConfig.getUpdateReplicatorSwitch())) {
             monitorMasterRExecutorService.submit(() -> {
-                drcMaintenanceService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
+                try {
+                    drcMaintenanceService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
+                } catch (Throwable t) {
+                    logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}",
+                            mhaName,newReplicatorIp,t);
+                }
             });
         }
     }

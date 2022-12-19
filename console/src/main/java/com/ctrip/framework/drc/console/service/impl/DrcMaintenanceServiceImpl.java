@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import java.util.Map.Entry;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -291,35 +292,32 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
 
     public boolean updateMasterReplicatorIfChange(String mhaName, String newIp) {
         Map<String, ReplicatorTbl> replicators = metaInfoService.getReplicators(mhaName);
-        ReplicatorTbl newMaster = replicators.get(newIp);
-        ReplicatorTbl oldMaster = replicators.values().stream()
-                .filter(p -> p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().orElse(null);
-        if (null == newMaster) {
-            logger.error("unknown replicator master ip,mha:{},ip:{}",mhaName,newIp);
+        List<ReplicatorTbl> rTblsToBeUpdated = Lists.newArrayList();
+        for (Entry<String, ReplicatorTbl> entry : replicators.entrySet()) {
+            String ip = entry.getKey();
+            ReplicatorTbl replicatorTbl = entry.getValue();
+            if (newIp.equalsIgnoreCase(ip) && BooleanEnum.FALSE.getCode().equals(replicatorTbl.getMaster())) {
+                replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
+                rTblsToBeUpdated.add(replicatorTbl);
+            }
+            if (!newIp.equalsIgnoreCase(ip) && BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster())) {
+                replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
+                rTblsToBeUpdated.add(replicatorTbl);
+            }
+        }
+        if (rTblsToBeUpdated.size() > 0) {
+            try {
+                int[] ints = dalUtils.getReplicatorTblDao().batchUpdate(rTblsToBeUpdated);
+                String updateRes = StringUtils.join(ints, ",");
+                logger.info("update replicator master,result:{}",updateRes);
+                DefaultEventMonitorHolder.getInstance()
+                        .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
+                return true;
+            } catch (SQLException e) {
+                logger.error("Fail update master replicator({}), ", newIp, e);
+            }
         } else {
-            List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
-            if (null != oldMaster) {
-                oldMaster.setMaster(BooleanEnum.FALSE.getCode());
-                replicatorTblsToBeUpdated.add(oldMaster);
-            }
-            if (newMaster.getMaster().equals(BooleanEnum.FALSE.getCode())) {
-                newMaster.setMaster(BooleanEnum.TRUE.getCode());
-                replicatorTblsToBeUpdated.add(newMaster);
-            } else {
-                logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
-            }
-            
-            if (replicatorTblsToBeUpdated.size() > 0) {
-                try {
-                    int[] ints = dalUtils.getReplicatorTblDao().batchUpdate(replicatorTblsToBeUpdated);
-                    logger.info("update replicator master,result:{}",StringUtils.join(ints,","));
-                    DefaultEventMonitorHolder.getInstance()
-                            .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
-                    return true;
-                } catch (SQLException e) {
-                    logger.error("Fail update master replicator({}), ", newIp, e);
-                }
-            }
+            logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
         }
         return false;
     }
