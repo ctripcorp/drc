@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.console.service.DrcMaintenanceService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.MhaGroupPair;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -292,38 +291,34 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
 
     public boolean updateMasterReplicatorIfChange(String mhaName, String newIp) {
         Map<String, ReplicatorTbl> replicators = metaInfoService.getReplicators(mhaName);
-        ReplicatorTbl replicatorTbl = replicators.get(newIp);
-        if (null == replicatorTbl) {
+        ReplicatorTbl newMaster = replicators.get(newIp);
+        ReplicatorTbl oldMaster = replicators.values().stream()
+                .filter(p -> p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().orElse(null);
+        if (null == newMaster) {
             logger.error("unknown replicator master ip,mha:{},ip:{}",mhaName,newIp);
         } else {
-            if (replicatorTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
-                List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
-                
-                replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
-                replicatorTblsToBeUpdated.add(replicatorTbl);
-                
-                ReplicatorTbl oldMaster = replicators.values().stream()
-                        .filter(p -> p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().orElse(null);
-                if (null != oldMaster) {
-                    oldMaster.setMaster(BooleanEnum.FALSE.getCode());
-                    replicatorTblsToBeUpdated.add(oldMaster);
-                }
-                
+            List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
+            if (null != oldMaster) {
+                oldMaster.setMaster(BooleanEnum.FALSE.getCode());
+                replicatorTblsToBeUpdated.add(oldMaster);
+            }
+            if (newMaster.getMaster().equals(BooleanEnum.FALSE.getCode())) {
+                newMaster.setMaster(BooleanEnum.TRUE.getCode());
+                replicatorTblsToBeUpdated.add(newMaster);
+            } else {
+                logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
+            }
+            
+            if (replicatorTblsToBeUpdated.size() > 0) {
                 try {
-                    dalUtils.getReplicatorTblDao().batchUpdate(replicatorTblsToBeUpdated);
-                    if (null != oldMaster) {
-                        DefaultEventMonitorHolder.getInstance()
-                                .logEvent("DRC.replicator.master", String.format("mha:%s,%s->%s",mhaName,oldMaster, newIp));
-                    } else {
-                        DefaultEventMonitorHolder.getInstance()
-                                .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
-                    }
+                    int[] ints = dalUtils.getReplicatorTblDao().batchUpdate(replicatorTblsToBeUpdated);
+                    logger.info("update replicator master,result:{}",StringUtils.join(ints,","));
+                    DefaultEventMonitorHolder.getInstance()
+                            .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
                     return true;
                 } catch (SQLException e) {
                     logger.error("Fail update master replicator({}), ", newIp, e);
                 }
-            } else {
-                logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
             }
         }
         return false;
