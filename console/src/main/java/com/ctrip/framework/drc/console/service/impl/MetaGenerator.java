@@ -245,7 +245,6 @@ public class MetaGenerator {
                 logger.debug("generate replicator: {}:{} for mha: {}", resourceTbl.getIp(), replicatorTbl.getApplierPort(), mhaTbl.getMhaName());
                 Replicator replicator = new Replicator();
                 replicator.setIp(resourceTbl.getIp())
-                        .setMaster(BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster()))
                         .setPort(replicatorTbl.getPort())
                         .setApplierPort(replicatorTbl.getApplierPort())
                         .setExcludedTables(replicatorGroupTbl.getExcludedTables())
