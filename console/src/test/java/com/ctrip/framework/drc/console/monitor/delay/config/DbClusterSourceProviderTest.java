@@ -427,8 +427,9 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         }});
         Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
 
-        Set<ReplicatorWrapper> allReplicatorSlaves = dbClusterSourceProvider.getAllReplicatorSlaves();
-        Assert.assertEquals(6,allReplicatorSlaves.size());
+        Map<String, List<ReplicatorWrapper>> allReplicators = 
+                dbClusterSourceProvider.getAllReplicatorsInLocalRegion();
+        Assert.assertEquals(12,allReplicators.size());
 
     }
 }
