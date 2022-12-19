@@ -290,23 +290,40 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
         return ApiResult.getFailInstance(String.format("Failed delete route %s-%s, %s->%s", routeOrgName, tag, srcDcName, dstDcName));
     }
 
-    public boolean updateMasterReplicator(String mhaName, String newIp) {
+    public boolean updateMasterReplicatorIfChange(String mhaName, String newIp) {
         Map<String, ReplicatorTbl> replicators = metaInfoService.getReplicators(mhaName);
         ReplicatorTbl replicatorTbl = replicators.get(newIp);
-        if (null != replicatorTbl && replicatorTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
-            List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
-            ReplicatorTbl oldMaster = replicators.values().stream().filter(p -> p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().orElse(null);
-            replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
-            replicatorTblsToBeUpdated.add(replicatorTbl);
-            if (null != oldMaster) {
-                oldMaster.setMaster(BooleanEnum.FALSE.getCode());
-                replicatorTblsToBeUpdated.add(oldMaster);
-            }
-            try {
-                dalUtils.getReplicatorTblDao().batchUpdate(replicatorTblsToBeUpdated);
-                return true;
-            } catch (SQLException e) {
-                logger.error("Fail update master replicator({}), ", newIp, e);
+        if (null == replicatorTbl) {
+            logger.error("unknown replicator master ip,mha:{},ip:{}",mhaName,newIp);
+        } else {
+            if (replicatorTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
+                List<ReplicatorTbl> replicatorTblsToBeUpdated = Lists.newArrayList();
+                
+                replicatorTbl.setMaster(BooleanEnum.TRUE.getCode());
+                replicatorTblsToBeUpdated.add(replicatorTbl);
+                
+                ReplicatorTbl oldMaster = replicators.values().stream()
+                        .filter(p -> p.getMaster().equals(BooleanEnum.TRUE.getCode())).findFirst().orElse(null);
+                if (null != oldMaster) {
+                    oldMaster.setMaster(BooleanEnum.FALSE.getCode());
+                    replicatorTblsToBeUpdated.add(oldMaster);
+                }
+                
+                try {
+                    dalUtils.getReplicatorTblDao().batchUpdate(replicatorTblsToBeUpdated);
+                    if (null != oldMaster) {
+                        DefaultEventMonitorHolder.getInstance()
+                                .logEvent("DRC.replicator.master", String.format("mha:%s,%s->%s",mhaName,oldMaster, newIp));
+                    } else {
+                        DefaultEventMonitorHolder.getInstance()
+                                .logEvent("DRC.replicator.master", String.format("mha:%s,%s",mhaName, newIp));
+                    }
+                    return true;
+                } catch (SQLException e) {
+                    logger.error("Fail update master replicator({}), ", newIp, e);
+                }
+            } else {
+                logger.debug("replicator master ip not change,mha:{},ip:{}",mhaName,newIp);
             }
         }
         return false;

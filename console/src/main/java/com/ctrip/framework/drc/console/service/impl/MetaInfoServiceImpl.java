@@ -205,7 +205,8 @@ MetaInfoServiceImpl implements MetaInfoService {
         Long replicatorGroupId = getReplicatorGroupId(mha);
         if(null != replicatorGroupId) {
             try {
-                List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(p -> p.getDeleted().equals(BooleanEnum.FALSE.getCode()) && p.getRelicatorGroupId().equals(replicatorGroupId)).collect(Collectors.toList());
+                List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().
+                        queryByRGroupIds(Lists.newArrayList(replicatorGroupId),BooleanEnum.FALSE.getCode());
                 for(ReplicatorTbl replicatorTbl : replicatorTbls) {
                     Long resourceId = replicatorTbl.getResourceId();
                     String ip = dalUtils.getResourceTblDao().queryByPk(resourceId).getIp();

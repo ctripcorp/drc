@@ -429,7 +429,7 @@ public class DbClusterSourceProviderTest extends AbstractTest {
 
         Map<String, List<ReplicatorWrapper>> allReplicators = 
                 dbClusterSourceProvider.getAllReplicatorsInLocalRegion();
-        Assert.assertEquals(12,allReplicators.size());
+        Assert.assertEquals(6,allReplicators.size());
 
     }
 }

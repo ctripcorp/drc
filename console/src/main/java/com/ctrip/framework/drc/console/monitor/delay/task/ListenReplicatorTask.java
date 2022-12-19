@@ -354,7 +354,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                         Endpoint newEndpoint = new DefaultEndPoint(newReplicatorIp, newReplicatorPort);
                         newConfig.setEndpoint(newEndpoint);
                         restartListenServer(clusterId, newConfig, delayMonitorServerMap);
-                        updateMasterReplicatorInDb(delayMonitorServer.getConfig(), newReplicatorIp);
+                        updateMasterReplicatorIfChange(delayMonitorServer.getConfig().getDestMha(), newReplicatorIp);
                         logger.info(
                                 "[[monitor=delaylisten]] switch replicator listen success for cluster: {},new Config is:{}",
                                 clusterId, newConfig);
@@ -451,6 +451,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             if (null != activeReplicator) {
                 rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) &&
                         current.getPort() == activeReplicator.getPort());
+                updateMasterReplicatorIfChange(rWrapper.mhaName, activeReplicator.getIp());
             }
         }
         
@@ -521,22 +522,12 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             }
         }
     }
-
-    protected void updateMasterReplicatorInDb(DelayMonitorSlaveConfig config,
-            String newReplicatorIp) {
-        String mhaName = config.getDestMha();
-        String oldIp = config.getIp();
+    
+    protected void updateMasterReplicatorIfChange(String mhaName,String newReplicatorIp) {
         monitorMasterRExecutorService.submit(() -> {
-            if (drcMaintenanceService.updateMasterReplicator(mhaName, newReplicatorIp)) {
-                DefaultEventMonitorHolder.getInstance()
-                        .logEvent("DRC.replicator.master", String.format("%s-%s", oldIp, newReplicatorIp));
-                String measurement = "fx.drc.replicator.master";
-                BaseEntity baseEntity = new BaseEntity(0L, "unset", config.getDestDc(), config.getCluster(),
-                        mhaName, RegistryKey.from(config.getCluster(), config.getDestMha()));
-                DefaultReporterHolder.getInstance()
-                        .reportResetCounter(baseEntity.getTags(), 1L, measurement);
-            }
+            drcMaintenanceService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
         });
     }
-
+    
+    
 }
