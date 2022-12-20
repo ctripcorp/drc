@@ -230,7 +230,7 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
         Assert.assertTrue(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.87.154"));
         replicators = metaInfoServiceImpl.getReplicators("fat-fx-drc1");
         Mockito.doReturn(replicators).when(metaInfoService).getReplicators("fat-fx-drc1");
-        Assert.assertFalse(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.83.111"));
+        Assert.assertFalse(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.87.154"));
     }
 
     @Test
