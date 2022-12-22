@@ -432,4 +432,10 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         Assert.assertEquals(6,allReplicators.size());
 
     }
+
+    @Test
+    public void testGetAllMhaWithMessengerInLocalRegion() {
+        Set<String> mhas = dbClusterSourceProvider.getAllMhaWithMessengerInLocalRegion();
+        Assert.assertEquals(0,mhas.size());
+    }
 }

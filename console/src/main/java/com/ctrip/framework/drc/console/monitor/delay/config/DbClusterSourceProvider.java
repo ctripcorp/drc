@@ -243,6 +243,21 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         return allMhas;
     }
 
+    public Set<String> getAllMhaWithMessengerInLocalRegion() {
+        Set<String> res = Sets.newHashSet();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            Dc dc = getDc(dcInLocalRegion);
+            for (DbCluster dbCluster : dc.getDbClusters().values()) {
+                List<Messenger> messengers = dbCluster.getMessengers();
+                if (!messengers.isEmpty()) {
+                    res.add(dbCluster.getMhaName());
+                }
+            }
+        }
+        return res;
+    }
+    
     
     public Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion() {
         Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();

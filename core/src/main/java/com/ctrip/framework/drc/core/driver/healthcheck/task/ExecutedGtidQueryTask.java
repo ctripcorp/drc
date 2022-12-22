@@ -1,12 +1,14 @@
 package com.ctrip.framework.drc.core.driver.healthcheck.task;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.CompositeGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.TransactionTableGtidReader;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.DataSource;
 
@@ -23,6 +25,11 @@ public class ExecutedGtidQueryTask extends AbstractQueryTask<String> {
     public ExecutedGtidQueryTask(Endpoint master) {
         super(master);
         this.gtidReader.addGtidReader(Lists.newArrayList(new ShowMasterGtidReader(), new TransactionTableGtidReader(master)));
+    }
+
+    public ExecutedGtidQueryTask(Endpoint master, List<GtidReader> gtidReaderList) {
+        super(master);
+        this.gtidReader.addGtidReader(gtidReaderList);
     }
 
     @Override
