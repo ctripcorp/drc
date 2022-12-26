@@ -97,7 +97,7 @@ public class QmqProducer extends AbstractProducer {
         orderKeyMap.put("tableName", table);
         List<String> keys = new ArrayList<>();
 
-        List<EventColumn> changedColumns = eventData.getEventType() == EventType.UPDATE ? eventData.getAfterColumns() : eventData.getBeforeColumns();
+        List<EventColumn> changedColumns = eventData.getEventType() == EventType.DELETE ? eventData.getBeforeColumns() : eventData.getAfterColumns();
         if (isOrder) {
             boolean hasOrderKey = false;
             for (EventColumn column : changedColumns) {
