@@ -123,6 +123,7 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldTargetName" readonly/>
               </FormItem>
               <FormItem label="源集群端表过滤">
+                <p v-if=" drc.oldNameFilter == null || drc.oldNameFilter === ''" style="color: #ff9900">同步全部表</p>
                 <Input v-model="drc.oldNameFilter" type="textarea" :autosize="true" readonly/>
               </FormItem>
               <FormItem label="源集群端表名映射">
@@ -153,6 +154,7 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newTargetName" readonly/>
               </FormItem>
               <FormItem label="新集群端表过滤">
+                <p v-if="drc.newNameFilter == null || drc.newNameFilter === ''" style="color: #ff9900">同步全部表</p>
                 <Input v-model="drc.newNameFilter" type="textarea" :autosize="true" readonly/>
               </FormItem>
               <FormItem label="新集群端表名映射">

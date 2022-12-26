@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.console.service.impl.MetaGeneratorTest.*;
 import static org.mockito.Mockito.doNothing;
 
@@ -225,13 +224,13 @@ public class DrcMaintenanceServiceImplTest extends AbstractTest {
     public void testUpdateMasterReplicator() {
         Map<String, ReplicatorTbl> replicators = metaInfoServiceImpl.getReplicators("fat-fx-drc1");
         Mockito.doReturn(replicators).when(metaInfoService).getReplicators("fat-fx-drc1");
-        Assert.assertTrue(drcMaintenanceService.updateMasterReplicator("fat-fx-drc1", "10.2.83.105"));
+        Assert.assertTrue(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.83.105"));
         replicators = metaInfoServiceImpl.getReplicators("fat-fx-drc1");
         Mockito.doReturn(replicators).when(metaInfoService).getReplicators("fat-fx-drc1");
-        Assert.assertTrue(drcMaintenanceService.updateMasterReplicator("fat-fx-drc1", "10.2.87.154"));
+        Assert.assertTrue(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.87.154"));
         replicators = metaInfoServiceImpl.getReplicators("fat-fx-drc1");
         Mockito.doReturn(replicators).when(metaInfoService).getReplicators("fat-fx-drc1");
-        Assert.assertFalse(drcMaintenanceService.updateMasterReplicator("fat-fx-drc1", "10.2.83.111"));
+        Assert.assertFalse(drcMaintenanceService.updateMasterReplicatorIfChange("fat-fx-drc1", "10.2.87.154"));
     }
 
     @Test

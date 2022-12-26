@@ -14,6 +14,10 @@ public class BlankDelayMessageConsumer implements DelayMessageConsumer {
     public void initConsumer(String subject, String consumerGroup, Set<String> dcs) {}
 
     @Override
+    public void mhasRefresh(Set<String> mhas) {
+    }
+
+    @Override
     public boolean stopListen() {
         return false;
     }
