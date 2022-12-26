@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
@@ -24,6 +25,7 @@ import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +44,8 @@ public class MessengerServiceImplTest {
     @Mock private MhaService mhaService;
 
     @Mock private DomainConfig domainConfig;
+    
+    @Mock private DefaultConsoleConfig consoleConfig;
 
     @Mock private MessengerGroupTblDao messengerGroupTblDao;
 
@@ -67,6 +71,8 @@ public class MessengerServiceImplTest {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("ip1");
         Mockito.when( resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl);
+        
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet());
 
     }
 
