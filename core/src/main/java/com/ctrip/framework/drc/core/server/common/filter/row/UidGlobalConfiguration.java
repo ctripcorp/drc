@@ -25,6 +25,7 @@ public final class UidGlobalConfiguration extends AbstractConfigBean {
 
     private final static String UID_BLACKLIST_GLOBAL = "uid.filter.blacklist.global";
 
+    @SuppressWarnings("findbugs:DMI_HARDCODED_ABSOLUTE_FILENAME")
     private File localUidBlacklistFile = new File(LOCAL_CONFIG_PATH + UID_BLACKLIST_GLOBAL);
 
     private volatile Set<String> globalBlacklist = Sets.newHashSet();
