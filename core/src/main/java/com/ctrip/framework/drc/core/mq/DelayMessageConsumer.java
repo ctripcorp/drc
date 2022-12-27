@@ -8,6 +8,8 @@ public interface DelayMessageConsumer extends Ordered {
     
     void initConsumer(String subject,String consumerGroup,Set<String> dcs);
 
+    void mhasRefresh(Set<String> mhas);
+
     boolean stopListen();
 
     boolean resumeListen();

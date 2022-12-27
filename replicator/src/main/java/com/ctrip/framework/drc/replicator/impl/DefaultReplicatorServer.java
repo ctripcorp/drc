@@ -79,13 +79,9 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
 
-        MySQLConnector mySQLConnector;
         boolean isMaster = mySQLSlaveConfig.isMaster();
-        if (isMaster) {
-            mySQLConnector = new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
-        } else {
-            mySQLConnector = new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
-        }
+        MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint())
+                                                 : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
 
         replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);
 
@@ -94,7 +90,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         eventStore = new FilePersistenceEventStore(schemaManager, uuidOperator, replicatorConfig);
         InboundFilterChainContext transactionContext = new InboundFilterChainContext.Builder().applyMode(applyMode).build();
         transactionCache = isMaster ? new EventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext))
-                : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
+                                    : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
@@ -116,6 +112,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
                         .monitorManager(delayMonitor)
                         .registryKey(clusterName)
                         .tableFilterConfiguration(tableFilterConfiguration)
+                        .master(isMaster)
                         .applyMode(applyMode).build()));
 
         logEventHandler.addObserver(gtidManager);  // update gtidset in memory

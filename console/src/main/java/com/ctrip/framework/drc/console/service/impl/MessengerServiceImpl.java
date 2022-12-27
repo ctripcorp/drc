@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
@@ -12,7 +13,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MhaService;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.MessengerVo;
 import com.ctrip.framework.drc.console.vo.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
@@ -53,6 +53,8 @@ public class MessengerServiceImpl implements MessengerService {
     @Autowired private MhaService mhaService;
     
     @Autowired private DomainConfig domainConfig;
+    
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
     @Autowired private MessengerGroupTblDao messengerGroupTblDao;
 
@@ -196,6 +198,10 @@ public class MessengerServiceImpl implements MessengerService {
 
     private boolean initTopic(MqConfigDto dto) throws SQLException {
         String dcNameForMha = mhaService.getDcNameForMha(dto.getMhaName());
+        if (consoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
+            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}",dto.getTopic());
+            return true;
+        }
         String topicApplicationUrl = domainConfig.getQmqTopicApplicationUrl(dcNameForMha);
         LinkedHashMap<String, String> requestBody = Maps.newLinkedHashMap();
         requestBody.put("subject",dto.getTopic());
@@ -219,6 +225,10 @@ public class MessengerServiceImpl implements MessengerService {
     
     private boolean initProducer(MqConfigDto dto) throws SQLException {
         String dcNameForMha = mhaService.getDcNameForMha(dto.getMhaName());
+        if (consoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
+            logger.info("[[tag=qmqInit]] localConfigCloudDc init qmq topic:{}",dto.getTopic());
+            return true;
+        }
         String producerApplicationUrl = domainConfig.getQmqProducerApplicationUrl(dcNameForMha);
         LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
         requestBody.put("appCode","100023500");

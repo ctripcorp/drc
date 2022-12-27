@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
@@ -19,6 +20,7 @@ import org.springframework.core.PriorityOrdered;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import org.springframework.util.CollectionUtils;
 
 /**
  * @author shenhaibo
@@ -37,6 +39,9 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+
+    @Autowired
+    private MhaGrayConfig mhaGrayConfig;
 
     private static final String DRC_DB_CLUSTER = "drc.dbclusters";
 
@@ -237,6 +242,60 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         }
         return allMhas;
     }
+
+    public Set<String> getAllMhaWithMessengerInLocalRegion() {
+        Set<String> res = Sets.newHashSet();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            Dc dc = getDc(dcInLocalRegion);
+            for (DbCluster dbCluster : dc.getDbClusters().values()) {
+                List<Messenger> messengers = dbCluster.getMessengers();
+                if (!messengers.isEmpty()) {
+                    res.add(dbCluster.getMhaName());
+                }
+            }
+        }
+        return res;
+    }
+    
+    
+    public Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion() {
+        Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
+        Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
+        for (String dcInLocalRegion : dcsInLocalRegion) {
+            replicators.putAll(getAllReplicatorInDc(dcInLocalRegion));
+        }
+        return replicators;
+    }
+
+    private Map<String,List<ReplicatorWrapper>> getAllReplicatorInDc(String dcInRegion) {
+        Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
+        Dc dc = getDc(dcInRegion);
+        String dcName = dc.getId();
+        for (DbCluster dbCluster : dc.getDbClusters().values()) {
+            String mhaName = dbCluster.getMhaName();
+            if (mhaGrayConfig.gray(mhaName)) {
+                logger.info("[[monitor=ReplicatorSlave]] mha:{} , gray open",mhaName);
+                List<ReplicatorWrapper> rWrappers = Lists.newArrayList();
+                for (Replicator replicator: dbCluster.getReplicators()) {
+                    ReplicatorWrapper rWrapper = new ReplicatorWrapper(
+                            replicator,
+                            dcName,
+                            dcName,
+                            dbCluster.getName(),
+                            mhaName,
+                            mhaName,
+                            Lists.newArrayList());
+                    rWrappers.add(rWrapper);
+                }
+                if (!CollectionUtils.isEmpty(rWrappers)) {
+                    replicators.put(dbCluster.getId(), rWrappers);
+                }
+            }
+        }
+        return replicators;
+    }
+
 
     /**
      * @return replicators delay monitor need

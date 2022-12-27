@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -93,8 +94,6 @@ public class MySqlUtils {
     private static final String GET_ON_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
     private static final int COLUMN_INDEX = 1;
     
-    private static final String GTID_EXECUTED_COMMAND_V2 = "show global variables like \"gtid_executed\";";
-    private static final int GTID_EXECUTED_INDEX_V2 = 2;
     
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
@@ -529,7 +528,7 @@ public class MySqlUtils {
     }
     
     public static String getExecutedGtid(Endpoint endpoint) {
-        return  getSqlResultString(endpoint, GTID_EXECUTED_COMMAND_V2, GTID_EXECUTED_INDEX_V2);
+        return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new ShowMasterGtidReader())).call();
     }
     
     public static String getSqlResultString(Endpoint endpoint, String sql,int index) {
