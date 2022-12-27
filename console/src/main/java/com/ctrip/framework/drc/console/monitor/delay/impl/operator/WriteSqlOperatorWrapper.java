@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.monitor.operator.BaseSqlOperator;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.ReadWriteSqlOperator;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.sql.SQLException;
 
@@ -67,5 +68,9 @@ public class WriteSqlOperatorWrapper extends BaseSqlOperator implements ReadWrit
     @Override
     public void delete(Execution execution) throws SQLException {
         readWriteSqlOperator.delete(execution);
+    }
+    
+    public DataSource getDataSource() {
+        return dataSource;
     }
 }

@@ -71,16 +71,16 @@ public class MqTransactionContextResourceTest implements ApplierColumnsRelatedTe
             Assert.assertEquals(INSERT, data.getEventType());
             Assert.assertEquals(NON_LOCAL, data.getDcTag());
 
-            List<EventColumn> beforeColumns = data.getBeforeColumns();
-            Assert.assertEquals(3, beforeColumns.size());
-            EventColumn column0 = beforeColumns.get(0);
+            List<EventColumn> afterColumns = data.getAfterColumns();
+            Assert.assertEquals(3, afterColumns.size());
+            EventColumn column0 = afterColumns.get(0);
             Assert.assertEquals(column0.getColumnValue(),"1");
-            EventColumn column1 = beforeColumns.get(1);
+            EventColumn column1 = afterColumns.get(1);
             Assert.assertEquals(column1.getColumnValue(),"Phi");
-            EventColumn column2 = beforeColumns.get(2);
+            EventColumn column2 = afterColumns.get(2);
             Assert.assertEquals(column2.getColumnValue(),"2019-12-09 15:00:01.000");
 
-            Assert.assertEquals(0, data.getAfterColumns().size());
+            Assert.assertEquals(0, data.getBeforeColumns().size());
         }
     }
 

@@ -44,8 +44,6 @@ public class EmbeddedMysql {
 
         try {
             executable.start();
-//            getClient(SCHEMA, mysqldConfig.getCharset()).executeCommands(
-//                    format("CREATE USER '%s'@'%%' IDENTIFIED BY '%s';", mysqldConfig.getUsername(), mysqldConfig.getPassword()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -95,9 +93,10 @@ public class EmbeddedMysql {
         return this;
     }
 
-    public synchronized void stop() {
+    public synchronized void destroy() {
         if (isRunning.getAndSet(false)) {
-            executable.stop();
+            logger.info("[Invoke] executable.destroy");
+            executable.destroy();
         }
     }
 

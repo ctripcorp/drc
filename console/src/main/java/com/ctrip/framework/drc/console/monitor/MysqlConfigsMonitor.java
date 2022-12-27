@@ -3,13 +3,15 @@ package com.ctrip.framework.drc.console.monitor;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.monitor.task.AliBinlogRetentionTimeQueryTask;
+import com.ctrip.framework.drc.console.monitor.task.AwsBinlogRetentionTimeQueryTask;
+import com.ctrip.framework.drc.console.monitor.task.BtdhsQueryTask;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
+import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
-import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.Reporter;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
@@ -23,12 +25,11 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.sql.ResultSet;
-import java.util.Map;
-import java.util.Set;
 
-import static com.ctrip.framework.drc.console.enums.LogTypeEnum.ERROR;
-import static com.ctrip.framework.drc.console.enums.LogTypeEnum.INFO;
+import java.sql.SQLException;
+import java.util.Map;
+
+import static com.ctrip.framework.drc.console.enums.LogTypeEnum.*;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 import static com.ctrip.framework.drc.core.monitor.enums.MeasurementEnum.BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MYSQL_LOG;
@@ -40,7 +41,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
 @Order(2)
 @Component
 @DependsOn("dbClusterSourceProvider")
-public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
+public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
 
     public Logger logger = LoggerFactory.getLogger(CONSOLE_MYSQL_LOG);
 
@@ -58,9 +59,7 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
-    private static final String BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE = "show global variables like \"binlog_transaction_dependency_history_size\";";
-
-    private static final int BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX = 2;
+    public static final String BINLOG_RETENTION_TIME_MEASUREMENT = "fx.drc.binlog.retention.time";
 
     private Map<Endpoint, BaseEndpointEntity> entityMap = Maps.newConcurrentMap();
     
@@ -74,10 +73,10 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
     @Override
     public void scheduledTask() {
         if (isRegionLeader) {
-            logger.info("[[monitor=btdhs]] is a leader,going to monitor");
-            String btdhsMonitorSwitch = monitorTableSourceProvider.getBtdhsMonitorSwitch();
-            if(!SWITCH_STATUS_ON.equalsIgnoreCase(btdhsMonitorSwitch)) {
-                logger.info("[[monitor=btdhs]] btdhsMonitor switch close");
+            logger.info("[[monitor=mysqlConfigs]] is a leader,going to monitor");
+            String mysqlConfigsMonitorSwitch = monitorTableSourceProvider.getMysqlConfigsMonitorSwitch();
+            if(!SWITCH_STATUS_ON.equalsIgnoreCase(mysqlConfigsMonitorSwitch)) {
+                logger.info("[[monitor=mysqlConfigs]]  switch close");
                 return;
             }
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
@@ -86,9 +85,16 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
             for (Map.Entry<MetaKey, MySqlEndpoint> entry : slaveMySQLEndpointMap.entrySet()) {
                 monitorBtdhs(entry);
             }
+            if (consoleConfig.getPublicCloudRegion().contains(regionName)) {
+                for (Map.Entry<MetaKey, MySqlEndpoint> entry : masterMySQLEndpointMap.entrySet()) {
+                    monitorBinlogRetentionTime(entry);
+                }
+            }
+            
         } else {
             reporter.removeRegister(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
-            logger.info("[[monitor=btdhs]] not leader,remove monitor");
+            reporter.removeRegister(BINLOG_RETENTION_TIME_MEASUREMENT);
+            logger.info("[[monitor=mysqlConfigs]] not leader,remove monitor");
         }
         
     }
@@ -100,32 +106,46 @@ public class BtdhsMonitor extends AbstractAllMySQLEndPointObserver implements Ma
         BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
         Map<String, String> entityTags = entity.getTags();
         try {
-            long binlogTxDependencyHistSize = getBinlogTxDependencyHistSize(sqlOperatorWrapper);
-            reporter.resetReportCounter(entityTags, binlogTxDependencyHistSize, BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement());
+            Long binlogTxDependencyHistSize = new RetryTask<>(new BtdhsQueryTask(sqlOperatorWrapper.getDataSource()),1).call();
+            reporter.resetReportCounter(
+                    entityTags,
+                    binlogTxDependencyHistSize == null ? -1L: binlogTxDependencyHistSize, 
+                    BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_MEASUREMENT.getMeasurement()
+            );
             cLog(entityTags, "BTDHS="+binlogTxDependencyHistSize, INFO, null);
         } catch (Throwable t) {
             cLog(entityTags, "Fail to get binlog_transaction_dependency_history_size", ERROR, t);
             removeSqlOperator(mySqlEndpoint);
         }
     }
-
-    protected long getBinlogTxDependencyHistSize(WriteSqlOperatorWrapper sqlOperatorWrapper) throws Throwable {
-        ReadResource readResource = null;
+    
+    private void monitorBinlogRetentionTime(Map.Entry<MetaKey, MySqlEndpoint> entry) {
+        MetaKey metaKey = entry.getKey();
+        MySqlEndpoint mySqlEndpoint = entry.getValue();
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(mySqlEndpoint);
+        BaseEndpointEntity entity = getEntity(mySqlEndpoint, metaKey);
+        Map<String, String> entityTags = entity.getTags();
         try {
-            GeneralSingleExecution execution = new GeneralSingleExecution(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE);
-            readResource = sqlOperatorWrapper.select(execution);
-            ResultSet rs = readResource.getResultSet();
-            if(rs == null) {
-                return -1;
-            }
-            rs.next();
-            return rs.getLong(BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
-        } finally {
-            if(readResource != null) {
-                readResource.close();
-            }
+            Long retentionHours = getBinlogRetentionTime(sqlOperatorWrapper);
+            reporter.resetReportCounter(entityTags, 
+                    retentionHours == null ? -1L: retentionHours,
+                    BINLOG_RETENTION_TIME_MEASUREMENT);
+            cLog(entityTags,"BINLOG_RETENTION_TIME=" + retentionHours , INFO, null);
+        } catch (SQLException e) {
+            cLog(entityTags,"BINLOG_RETENTION_TIME query error" , ERROR, e);
+            removeSqlOperator(mySqlEndpoint);
         }
     }
+    
+    
+    private Long getBinlogRetentionTime(WriteSqlOperatorWrapper sqlOperatorWrapper) throws SQLException {
+        Long res = new RetryTask<>(new AwsBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
+        if (res  == null || res == -1L) {
+            res = new RetryTask<>(new AliBinlogRetentionTimeQueryTask(sqlOperatorWrapper.getDataSource()), 1).call();
+        } 
+        return res;
+    }
+    
 
     protected BaseEndpointEntity getEntity(Endpoint endpoint, MetaKey metaKey) {
         BaseEndpointEntity entity;

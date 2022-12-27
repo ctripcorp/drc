@@ -69,8 +69,6 @@ public class MysqldProcess extends AbstractProcess<MysqldConfig, MysqldExecutabl
         }
     }
 
-
-
     @Override
     protected List<String> getCommandLine(Distribution distribution, MysqldConfig config, IExtractedFileSet exe) throws IOException {
         return Service.commandLine(config, exe);

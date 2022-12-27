@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -21,21 +23,22 @@ import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.LOG_EVENT_
  */
 public class DrcIndexLogEvent extends AbstractLogEvent {
 
+    private static final Logger logger = LoggerFactory.getLogger(DrcIndexLogEvent.class);
+
     public static final int FIX_SIZE = 1024;
 
     private List<Long> indices;
 
+    private List<Long> notRevisedIndices;
+
     public DrcIndexLogEvent() {
     }
 
-    public DrcIndexLogEvent(List<Long> indices, int serverId, long currentEventStartPosition) {
+    public DrcIndexLogEvent(List<Long> indices, List<Long> notRevisedIndices, int serverId, long currentEventStartPosition) {
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int size = indices.size();
-        ByteHelper.writeUnsignedInt64LittleEndian(size, out);
-        for (long index : indices) {
-            ByteHelper.writeUnsignedInt64LittleEndian(index, out);
-        }
+        writeIndices(out, indices);
+        writeIndices(out, notRevisedIndices);
 
         byte[] indexBytes = out.toByteArray();
 
@@ -55,6 +58,7 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         setPayloadBuf(payloadByteBuf);
 
         this.indices = indices;
+        this.notRevisedIndices = notRevisedIndices;
     }
 
     @Override
@@ -70,7 +74,28 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
         for (int i = 0; i < size; ++i) {
             indices.add(payloadBuf.readLongLE());
         }
+
+        try {
+            notRevisedIndices = new ArrayList<>();
+            size = payloadBuf.readLongLE();
+            logger.info("notRevisedIndices size is {}", size);
+            if (size > 0 && size <= 11) {
+                for (int i = 0; i < size; ++i) {
+                    notRevisedIndices.add(payloadBuf.readLongLE());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("[Parse] error", e);
+        }
         return this;
+    }
+
+    private void writeIndices(ByteArrayOutputStream out, List<Long> indices) {
+        int size = indices.size();
+        ByteHelper.writeUnsignedInt64LittleEndian(size, out);
+        for (long index : indices) {
+            ByteHelper.writeUnsignedInt64LittleEndian(index, out);
+        }
     }
 
     @Override
@@ -80,5 +105,9 @@ public class DrcIndexLogEvent extends AbstractLogEvent {
 
     public List<Long> getIndices() {
         return indices;
+    }
+
+    public List<Long> getNotRevisedIndices() {
+        return notRevisedIndices;
     }
 }

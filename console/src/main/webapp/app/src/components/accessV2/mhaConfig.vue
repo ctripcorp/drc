@@ -18,7 +18,7 @@
           </FormItem >
           <FormItem label="DB机房" prop="idc">
             <Select v-model="oldMhaMachine.idc" style="width: 200px"  placeholder="选择db机房区域" >
-              <Option v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.key">{{ item.key }}</Option>
+              <Option v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
           </FormItem>
           <FormItem label="UUID" prop="uuid">
@@ -53,7 +53,7 @@
           </FormItem >
           <FormItem label="DB机房" prop="idc">
             <Select v-model="newMhaMachine.idc" style="width: 200px"  placeholder="选择db机房区域" >
-              <Option boolean v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.key">{{ item.key }}</Option>
+              <Option boolean v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
           </FormItem>
           <FormItem label="UUID" prop="uuid">
@@ -67,7 +67,7 @@
           </FormItem>
           <FormItem label="Master" prop="master">
             <Select  v-model="newMhaMachine.master" style="width: 200px"  placeholder="是否为Master" >
-              <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.key">{{ item.key }}</Option>
+              <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
           </FormItem>
           <FormItem>

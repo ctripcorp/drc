@@ -13,7 +13,6 @@ import de.flapdoodle.embed.process.store.Downloader;
 import de.flapdoodle.embed.process.store.IArtifactStore;
 
 import java.io.File;
-import java.util.UUID;
 
 public class SafeExtractedArtifactStoreBuilder extends de.flapdoodle.embed.process.store.ExtractedArtifactStoreBuilder {
 
@@ -21,7 +20,7 @@ public class SafeExtractedArtifactStoreBuilder extends de.flapdoodle.embed.proce
             final MysqldConfig mysqldConfig,
             final DownloadConfig downloadConfig) {
 
-        String tempExtractDir = String.format("mysql-%s-%s", mysqldConfig.getVersion().getMajorVersion(), UUID.randomUUID());
+        String tempExtractDir = String.format("mysql-%s", mysqldConfig.getVersion().getMajorVersion());
         String combinedPath = new File(mysqldConfig.getTempDir(), tempExtractDir).getPath();
         IDirectory preExtractDir = new FixedPath(new File(downloadConfig.getCacheDir(), "extracted").getPath());
 

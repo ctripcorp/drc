@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.core.driver.util;
 
 import com.google.common.collect.Sets;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.HashSet;
 
 /**
@@ -45,5 +47,14 @@ public abstract class MySQLConstants {
         public static final String IS_READ_ONLY_COMMAND = "/*FORCE_MASTER*/show global variables like \"read_only\";";
 
         public static HashSet<String> EXCLUDED_DB = Sets.newHashSet("configdb", "mysql", "performance_schema", "sys", "information_schema");
+
+        public static boolean isUsed(int port) {
+            // Creates a server socket, bound to the specified port. IOException will be thrown if the port is already occupied
+            try (ServerSocket ignored = new ServerSocket(port)) {
+                return false;
+            } catch (IOException e) {
+                return true;
+            }
+        }
 
 }

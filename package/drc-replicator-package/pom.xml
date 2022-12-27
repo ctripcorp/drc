@@ -34,6 +34,16 @@
 				<configuration>
 					<mainClass>com.ctrip.framework.drc.replicator.ReplicatorContainerApplication</mainClass>
 					<executable>true</executable>
+					<excludes>
+						<exclude>
+							<groupId>qunar.tc</groupId>
+							<artifactId>qmq-client</artifactId>
+						</exclude>
+						<exclude>
+							<groupId>qunar.tc</groupId>
+							<artifactId>qmq-dal</artifactId>
+						</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>

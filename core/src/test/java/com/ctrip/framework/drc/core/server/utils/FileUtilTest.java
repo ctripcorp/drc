@@ -4,8 +4,18 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import static com.ctrip.framework.drc.core.server.utils.FileUtil.deleteFiles;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -57,6 +67,48 @@ public class FileUtilTest {
         assertEquals(orig[1], filelist.get(1));
         assertEquals(orig[3], filelist.get(2));
         assertEquals(orig[0], filelist.get(3));
+    }
+
+    @Test
+    public void testRestore() throws Exception {
+
+        deleteFiles(new File("/tmp/drc"));
+
+        long now = System.currentTimeMillis();
+        FileAttribute<Set<PosixFilePermission>> rwx = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
+        Files.createDirectories(Path.of("/tmp/drc/1/bin"), rwx);
+        Path path = Path.of("/tmp/drc/1/bin/mysqld.pid");
+
+        Files.createFile(path, rwx);
+        Files.write(path, "1".getBytes(), StandardOpenOption.WRITE);
+        Files.setAttribute(path, "basic:creationTime", FileTime.fromMillis(now + 10));
+
+        Files.createDirectories(Path.of("/tmp/drc/2/bin"), rwx);
+        path = Path.of("/tmp/drc/2/bin/mysqld.pid");
+
+        Files.createFile(path, rwx);
+        Files.write(path, "2".getBytes(), StandardOpenOption.WRITE);
+        Files.setAttribute(path, "basic:creationTime", FileTime.fromMillis(now + 20));
+
+        Files.createDirectories(Path.of("/tmp/drc/3/bin"), rwx);
+        path = Path.of("/tmp/drc/3/bin/mysqld.pid");
+
+        Files.createFile(path, rwx);
+        Files.write(path, "3".getBytes(), StandardOpenOption.WRITE);
+        Files.setAttribute(path, "basic:creationTime", FileTime.fromMillis(now + 30));
+
+        TimeUnit.SECONDS.sleep(1);
+        Files.createDirectories(Path.of("/tmp/drc/4/bin"), rwx);
+        path = Path.of("/tmp/drc/4/bin/mysqld.pid");
+
+        Files.createFile(path, rwx);
+        Files.write(path, "4".getBytes(), StandardOpenOption.WRITE);
+        Files.setAttribute(path, "basic:creationTime", FileTime.fromMillis(now + 40));
+
+        FileContext fileContext = FileUtil.restore("/tmp/drc");
+        Assert.assertEquals(fileContext.getFilePath(), "/tmp/drc/4");
+        Assert.assertEquals(fileContext.getPid(), 4);
+
     }
 
 }

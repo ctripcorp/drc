@@ -6,6 +6,11 @@ package com.ctrip.framework.drc.core.service.statistics.traffic;
 public class RelationCostMetric {
 
     private Long timestamp;
+    private String cloud_provider;
+    private String account_id;
+    private String account_name;
+    private String region;
+    private String zone;
     private String service_type;
     private String cost_group;
     private String refered_service_type;
@@ -16,6 +21,46 @@ public class RelationCostMetric {
 
     public Long getTimestamp() {
         return timestamp;
+    }
+
+    public String getCloud_provider() {
+        return cloud_provider;
+    }
+
+    public void setCloud_provider(String cloud_provider) {
+        this.cloud_provider = cloud_provider;
+    }
+
+    public String getAccount_id() {
+        return account_id;
+    }
+
+    public void setAccount_id(String account_id) {
+        this.account_id = account_id;
+    }
+
+    public String getAccount_name() {
+        return account_name;
+    }
+
+    public void setAccount_name(String account_name) {
+        this.account_name = account_name;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public String getZone() {
+        return zone;
+    }
+
+    public void setZone(String zone) {
+        this.zone = zone;
     }
 
     public void setTimestamp(Long timestamp) {

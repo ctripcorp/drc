@@ -9,6 +9,8 @@ public class KafKaTrafficMetric {
 
     private Long timestamp;
     private String cloud_provider;
+    private String account_id;
+    private String account_name;
     private String region;
     private String zone;
     private String app_name;
@@ -38,6 +40,22 @@ public class KafKaTrafficMetric {
 
     public void setCloud_provider(String cloud_provider) {
         this.cloud_provider = cloud_provider;
+    }
+
+    public String getAccount_id() {
+        return account_id;
+    }
+
+    public void setAccount_id(String account_id) {
+        this.account_id = account_id;
+    }
+
+    public String getAccount_name() {
+        return account_name;
+    }
+
+    public void setAccount_name(String account_name) {
+        this.account_name = account_name;
     }
 
     public String getRegion() {
@@ -151,6 +169,8 @@ public class KafKaTrafficMetric {
         KafKaTrafficMetric that = (KafKaTrafficMetric) o;
         return Objects.equals(timestamp, that.timestamp) &&
                 Objects.equals(cloud_provider, that.cloud_provider) &&
+                Objects.equals(account_id, that.account_id) &&
+                Objects.equals(account_name, that.account_name) &&
                 Objects.equals(region, that.region) &&
                 Objects.equals(zone, that.zone) &&
                 Objects.equals(app_name, that.app_name) &&
@@ -167,7 +187,7 @@ public class KafKaTrafficMetric {
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, cloud_provider, region, zone, app_name, service_type, app_platform, app_instance, share_unit_type, cost_group, owner, bu_code, product_line_code, _schema_version);
+        return Objects.hash(timestamp, cloud_provider, account_id, account_name, region, zone, app_name, service_type, app_platform, app_instance, share_unit_type, cost_group, owner, bu_code, product_line_code, _schema_version);
     }
 
     @Override
@@ -175,6 +195,8 @@ public class KafKaTrafficMetric {
         return "DrcCostMetric{" +
                 "timestamp=" + timestamp +
                 ", cloud_provider='" + cloud_provider + '\'' +
+                ", account_id='" + account_id + '\'' +
+                ", account_name='" + account_name + '\'' +
                 ", region='" + region + '\'' +
                 ", zone='" + zone + '\'' +
                 ", app_name='" + app_name + '\'' +

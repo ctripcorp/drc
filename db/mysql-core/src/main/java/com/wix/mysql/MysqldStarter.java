@@ -6,7 +6,7 @@ import de.flapdoodle.embed.process.distribution.Distribution;
 import de.flapdoodle.embed.process.extract.IExtractedFileSet;
 import de.flapdoodle.embed.process.runtime.Starter;
 
-class MysqldStarter extends Starter<MysqldConfig, MysqldExecutable, MysqldProcess> {
+public class MysqldStarter extends Starter<MysqldConfig, MysqldExecutable, MysqldProcess> {
 
     public MysqldStarter(final IRuntimeConfig config) {
         super(config);
