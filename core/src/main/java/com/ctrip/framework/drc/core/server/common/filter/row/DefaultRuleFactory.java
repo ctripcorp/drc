@@ -1,7 +1,9 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
+import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterRule;
 
 import java.lang.reflect.Constructor;
 
@@ -19,4 +21,10 @@ public class DefaultRuleFactory implements RuleFactory {
         Constructor constructor = rowsFilterRule.getConstructor(new Class[]{RowsFilterConfig.class});
         return (RowsFilterRule) constructor.newInstance(config);
     }
+
+    @Override
+    public ColumnsFilterRule createColumnsFilterRule(ColumnsFilterConfig config) throws Exception {
+        return new ColumnsFilterRule(config);
+    }
+
 }

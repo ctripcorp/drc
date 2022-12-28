@@ -26,8 +26,11 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
         TableFilter tableFilter = new TableFilter();
         consumeTypeFilter.setSuccessor(tableFilter);
 
-        RowsFilter lineFilter = new RowsFilter(context.getDataMediaConfig(), context.getOutboundMonitorReport());
-        tableFilter.setSuccessor(lineFilter);
+        RowsFilter rowsFilter = new RowsFilter(context.getDataMediaConfig(), context.getOutboundMonitorReport());
+        tableFilter.setSuccessor(rowsFilter);
+
+        ColumnsFilter columnsFilter = new ColumnsFilter(context.getDataMediaConfig(), context.getOutboundMonitorReport());
+        rowsFilter.setSuccessor(columnsFilter);
 
         return sendFilter;
     }

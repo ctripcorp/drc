@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -32,6 +32,8 @@ public class OutboundLogEventContext {
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
 
     private Map<String, TableMapLogEvent> drcTableMap;
+
+    private Map<String, Columns> filteredColumns;
 
     private boolean noRowFiltered = false;
 
@@ -95,6 +97,10 @@ public class OutboundLogEventContext {
         return drcTableMap.get(tableName);
     }
 
+    public Map<String, Columns> getFilteredColumnMap() {
+        return filteredColumns;
+    }
+
     public Exception getCause() {
         return cause;
     }
@@ -110,6 +116,10 @@ public class OutboundLogEventContext {
 
     public void setDrcTableMap(Map<String, TableMapLogEvent> drcTableMap) {
         this.drcTableMap = drcTableMap;
+    }
+
+    public void setFilteredColumnsMap(Map<String, Columns> filteredColumns) {
+        this.filteredColumns = filteredColumns;
     }
 
     public void setRowsEvent(LogEvent rowsEvent) {

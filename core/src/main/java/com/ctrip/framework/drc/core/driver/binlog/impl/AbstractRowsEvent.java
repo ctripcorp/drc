@@ -242,6 +242,54 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         return keysPresent;
     }
 
+    public void extractColumns(List<Integer> columnsIndex) {
+        LogEventHeader logEventHeader = getLogEventHeader();
+        int eventType = logEventHeader.getEventType();
+        this.numberOfColumns = columnsIndex.size();
+
+        List<Row> newRows = Lists.newArrayList();
+        for(Row row : rows) {
+            Row newRow = new Row();
+            BitSet beforeNullBitMap = row.beforeNullBitMap;
+            BitSet newBeforeNullBitMap = new BitSet();
+            List<Object> beforeValues = row.beforeValues;
+            List<Object> newBeforeValues = Lists.newArrayList();
+            BitSet afterNullBitMap = row.afterNullBitMap;
+            BitSet newAfterNullBitMap = new BitSet();
+            List<Object> afterValues = row.afterValues;
+            List<Object> newAfterValues = Lists.newArrayList();
+            for(int i = 0; i < columnsIndex.size(); i++) {
+                newBeforeNullBitMap.set(i, beforeNullBitMap.get(columnsIndex.get(i)));
+                newBeforeValues.add(beforeValues.get(columnsIndex.get(i)));
+                if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                    newAfterNullBitMap.set(i, afterNullBitMap.get(columnsIndex.get(i)));
+                    newAfterValues.add(afterValues.get(columnsIndex.get(i)));
+                }
+            }
+
+            expandBitSet(newBeforeNullBitMap, numberOfColumns);
+            expandBitSet(newAfterNullBitMap, numberOfColumns);
+
+            newRow.setBeforeNullBitMap(newBeforeNullBitMap);
+            newRow.setBeforeValues(newBeforeValues);
+            newRow.setAfterNullBitMap(newAfterNullBitMap);
+            newRow.setAfterValues(newAfterValues);
+            newRows.add(newRow);
+        }
+        this.rows = newRows;
+    }
+
+    private void expandBitSet(BitSet bitSet, long length) {
+        long yushu = length % 8;
+        long zengjia = 8 - yushu;
+
+        if (zengjia != 8) {
+            for (long j = 0; j < zengjia; j++) {
+                bitSet.set((int)(j+length));
+            }
+        }
+    }
+
     public final class Row {
 
         private BitSet beforeNullBitMap; // is it null now

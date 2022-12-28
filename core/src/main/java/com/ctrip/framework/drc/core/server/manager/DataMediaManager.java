@@ -1,10 +1,13 @@
 package com.ctrip.framework.drc.core.server.manager;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,5 +35,30 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
         }
         RowsFilterRule rowsFilterRule = optional.get();
         return rowsFilterRule.filterRows(rowsEvent, rowsFilterContext);
+    }
+
+    public boolean filterColumns(AbstractRowsEvent rowsEvent, String tableName, List<String> columnsName) throws Exception {
+        Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
+        if (optional.isEmpty()) {
+            return false;
+        }
+        ColumnsFilterRule columnsFilterRule = optional.get();
+        columnsFilterRule.filterColumns(rowsEvent, columnsName);
+        return true;
+    }
+
+    public List<Integer> getColumnsIndex(TableMapLogEvent tableMapLogEvent) {
+        List<Integer> ret = Lists.newArrayList();
+        Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableMapLogEvent.getSchemaNameDotTableName());
+        if (optional.isEmpty()) {
+            return ret;
+        }
+        ColumnsFilterRule columnsFilterRule = optional.get();
+        return columnsFilterRule.getColumnsIndex(tableMapLogEvent.getColumnsName());
+    }
+
+    public boolean needFilter(String tableName) {
+        Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
+        return optional.isPresent();
     }
 }

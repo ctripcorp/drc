@@ -44,7 +44,7 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         boolean noRowFiltered = true;
-        Pair<Boolean, Columns> pair;
+        Pair<Boolean, Columns> pair = Pair.from(true, null);
         LogEventType eventType = value.getEventType();
         AbstractRowsEvent afterRowsEvent = null;
         AbstractRowsEvent beforeRowsEvent = null;
@@ -54,46 +54,58 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                     case write_rows_event_v2:
                         beforeRowsEvent = new WriteRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
-                        noRowFiltered = pair.getKey();
-                        if (!noRowFiltered) {
-                            afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, pair.getValue());
-                        }
                         break;
                     case update_rows_event_v2:
                         beforeRowsEvent = new UpdateRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
-                        noRowFiltered = pair.getKey();
-                        if (!noRowFiltered) {
-                            afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, pair.getValue());
-                        }
                         break;
                     case delete_rows_event_v2:
                         beforeRowsEvent = new DeleteRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
-                        noRowFiltered = pair.getKey();
-                        if (!noRowFiltered) {
-                            afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, pair.getValue());
-                        }
                         break;
                 }
-                if (!noRowFiltered) {
-                    value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
-                }
+                value.setRowsEvent(beforeRowsEvent);
+                noRowFiltered = pair.getKey();
             }
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
             value.setCause(e);
         } finally {
+
+        }
+
+        value.setNoRowFiltered(noRowFiltered);
+
+        boolean res = doNext(value, false);
+        noRowFiltered = value.isNoRowFiltered();
+
+        if (LogEventUtils.isRowsEvent(eventType) && !noRowFiltered) {
+            try {
+                List<TableMapLogEvent.Column> columns = value.getFilteredColumnMap().get(rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName());
+                switch (value.getEventType()) {
+                    case write_rows_event_v2:
+                        afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, columns);
+                        break;
+                    case update_rows_event_v2:
+                        afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, columns);
+                        break;
+                    case delete_rows_event_v2:
+                        afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, columns);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (LogEventUtils.isRowsEvent(eventType)) {
+                value.setRowsEvent(afterRowsEvent);
+                value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
+            }
+
             if (beforeRowsEvent != null) {
                 beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
             }
         }
 
-        value.setNoRowFiltered(noRowFiltered);
-        if (!noRowFiltered) {
-            value.setRowsEvent(afterRowsEvent);
-        }
-        boolean res = doNext(value, value.isNoRowFiltered());
         if (xid_log_event == eventType) {
             rowsFilterContext.clear(); // clear filter result
             res = true;

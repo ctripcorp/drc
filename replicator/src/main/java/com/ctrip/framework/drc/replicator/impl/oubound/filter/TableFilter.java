@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
@@ -29,6 +30,8 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
 
     private Map<String, TableMapLogEvent> drcTableMap = Maps.newHashMap();  // put every drc_table_map_log_event
 
+    private Map<String, Columns> filteredColumns = Maps.newHashMap();
+
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         LogEventType eventType = value.getEventType();
@@ -38,7 +41,8 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             TableMapLogEvent previousTableMapLogEvent;
             value.backToHeader();
             EventReader.readEvent(fileChannel, tableMapLogEvent);
-            value.setNoRowFiltered(true);
+//            value.setNoRowFiltered(true);
+            value.setRowsEvent(tableMapLogEvent);
             if (table_map_log_event == eventType) {
                 previousTableMapLogEvent = tableMapWithinTransaction.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             } else {
@@ -54,6 +58,8 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
         }
+
+        value.setFilteredColumnsMap(filteredColumns);
 
         boolean res =  doNext(value, value.isNoRowFiltered());
 
