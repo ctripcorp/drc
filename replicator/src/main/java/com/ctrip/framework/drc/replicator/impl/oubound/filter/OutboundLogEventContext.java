@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -34,6 +35,8 @@ public class OutboundLogEventContext {
     private Map<String, TableMapLogEvent> drcTableMap;
 
     private Map<String, Columns> filteredColumns;
+
+    private RowsFilterContext rowsFilterContext;
 
     private boolean noRowFiltered = false;
 
@@ -99,6 +102,14 @@ public class OutboundLogEventContext {
 
     public Map<String, Columns> getFilteredColumnMap() {
         return filteredColumns;
+    }
+
+    public RowsFilterContext getRowsFilterContext() {
+        return rowsFilterContext;
+    }
+
+    public void setRowsFilterContext(RowsFilterContext rowsFilterContext) {
+        this.rowsFilterContext = rowsFilterContext;
     }
 
     public Exception getCause() {

@@ -11,8 +11,16 @@ import java.util.List;
  */
 public class FilteredDeleteRowsEvent extends DeleteRowsEvent implements LogEventMerger {
 
+    public FilteredDeleteRowsEvent() {
+    }
+
     public FilteredDeleteRowsEvent(DeleteRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
         super(rowsEvent, columns);
+    }
+
+    @Override
+    public FilteredDeleteRowsEvent from(List<TableMapLogEvent.Column> columns) throws IOException {
+        return new FilteredDeleteRowsEvent(this, columns);
     }
 
     @Override

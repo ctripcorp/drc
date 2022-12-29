@@ -16,7 +16,6 @@ import com.ctrip.xpipe.tuple.Pair;
 import java.nio.channels.FileChannel;
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MONITOR_SCHEMA_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
@@ -50,17 +49,18 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
+                value.setRowsFilterContext(rowsFilterContext);
                 switch (value.getEventType()) {
                     case write_rows_event_v2:
-                        beforeRowsEvent = new WriteRowsEvent();
+                        beforeRowsEvent = new FilteredWriteRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         break;
                     case update_rows_event_v2:
-                        beforeRowsEvent = new UpdateRowsEvent();
+                        beforeRowsEvent = new FilteredUpdateRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         break;
                     case delete_rows_event_v2:
-                        beforeRowsEvent = new DeleteRowsEvent();
+                        beforeRowsEvent = new FilteredDeleteRowsEvent();
                         pair = handRowsEvent(value.getFileChannel(), beforeRowsEvent, value);
                         break;
                 }
@@ -70,50 +70,10 @@ public class RowsFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         } catch (Exception e) {
             logger.error("[RowsFilter] error", e);
             value.setCause(e);
-        } finally {
-
         }
 
         value.setNoRowFiltered(noRowFiltered);
-
-        boolean res = doNext(value, false);
-        noRowFiltered = value.isNoRowFiltered();
-
-        if (LogEventUtils.isRowsEvent(eventType) && !noRowFiltered) {
-            try {
-                List<TableMapLogEvent.Column> columns = value.getFilteredColumnMap().get(rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName());
-                switch (value.getEventType()) {
-                    case write_rows_event_v2:
-                        afterRowsEvent = new FilteredWriteRowsEvent((WriteRowsEvent) beforeRowsEvent, columns);
-                        break;
-                    case update_rows_event_v2:
-                        afterRowsEvent = new FilteredUpdateRowsEvent((UpdateRowsEvent) beforeRowsEvent, columns);
-                        break;
-                    case delete_rows_event_v2:
-                        afterRowsEvent = new FilteredDeleteRowsEvent((DeleteRowsEvent) beforeRowsEvent, columns);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (LogEventUtils.isRowsEvent(eventType)) {
-                value.setRowsEvent(afterRowsEvent);
-                value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
-            }
-
-            if (beforeRowsEvent != null) {
-                beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
-            }
-        }
-
-        if (xid_log_event == eventType) {
-            rowsFilterContext.clear(); // clear filter result
-            res = true;
-            value.setNoRowFiltered(true);
-        }
-
-        return res;
-
+        return doNext(value, false);
     }
 
     private Pair<Boolean, Columns> handRowsEvent(FileChannel fileChannel, AbstractRowsEvent rowsEvent, OutboundLogEventContext value) throws Exception {

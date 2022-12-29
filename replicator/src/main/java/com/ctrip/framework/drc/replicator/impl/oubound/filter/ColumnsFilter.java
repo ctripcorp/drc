@@ -107,9 +107,6 @@ public class ColumnsFilter extends AbstractLogEventFilter<OutboundLogEventContex
     private TableMapLogEvent getTableMapLogEvent(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {
         long tableId = rowsEvent.getRowsEventPostHeader().getTableId();
         TableMapLogEvent tableMapLogEvent = value.getTableMapWithinTransaction(tableId);
-//        if (tableMapLogEvent == null) {
-//            ROWS_FILTER_LOGGER.error("[Filter] error for tableId {} within transaction {} for {}", tableId, value.getGtid(), registryKey);
-//        }
         return tableMapLogEvent;
     }
 }
