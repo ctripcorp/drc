@@ -5,6 +5,9 @@ import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.core.server.common.filter.column.ColumnFilterMode.EXCLUDE;
 
 /**
  * Created by jixinwang on 2022/12/21
@@ -17,17 +20,19 @@ public class ColumnsFilterRule {
 
     public ColumnsFilterRule(ColumnsFilterConfig config) {
         this.mode = config.getMode();
-        this.columns = config.getColumns();
+        List<String> columns = config.getColumns();
+        if (columns != null) {
+            this.columns = columns.stream().map(String::toLowerCase).collect(Collectors.toList());
+        }
     }
 
-    public void filterColumns(AbstractRowsEvent rowsEvent, List<String> allColumnsName) {
-        List<Integer> columnsIndex = getColumnsIndex(allColumnsName);
-        rowsEvent.extractColumns(columnsIndex);
+    public void filterColumns(AbstractRowsEvent rowsEvent, List<Integer> extractedColumnsIndex) {
+        rowsEvent.extractColumns(extractedColumnsIndex);
     }
 
     public List<Integer> getColumnsIndex(List<String> allColumnsName) {
         List<Integer> columnsIndex;
-        if(mode.equalsIgnoreCase("exclude")) {
+        if (EXCLUDE == ColumnFilterMode.getColumnFilterMode(mode)) {
             columnsIndex = excludeColumns(allColumnsName);
         } else {
             columnsIndex = includeColumns(allColumnsName);
@@ -36,22 +41,22 @@ public class ColumnsFilterRule {
     }
 
     private List<Integer> includeColumns(List<String> allColumnsName) {
-        List<Integer> ret = Lists.newArrayList();
+        List<Integer> includeColumnsIndex = Lists.newArrayList();
         for (int i = 0; i < allColumnsName.size(); i++) {
-            if (columns.contains(allColumnsName.get(i))) {
-                ret.add(i);
+            if (columns.contains(allColumnsName.get(i).toLowerCase())) {
+                includeColumnsIndex.add(i);
             }
         }
-        return ret;
+        return includeColumnsIndex;
     }
 
     private List<Integer> excludeColumns(List<String> allColumnsName) {
-        List<Integer> ret = Lists.newArrayList();
+        List<Integer> includeColumnsIndex = Lists.newArrayList();
         for (int i = 0; i < allColumnsName.size(); i++) {
-            if (!columns.contains(allColumnsName.get(i))) {
-                ret.add(i);
+            if (!columns.contains(allColumnsName.get(i).toLowerCase())) {
+                includeColumnsIndex.add(i);
             }
         }
-        return ret;
+        return includeColumnsIndex;
     }
 }

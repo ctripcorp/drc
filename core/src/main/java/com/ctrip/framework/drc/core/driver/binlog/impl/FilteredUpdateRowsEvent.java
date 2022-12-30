@@ -19,7 +19,7 @@ public class FilteredUpdateRowsEvent extends UpdateRowsEvent implements LogEvent
     }
 
     @Override
-    public FilteredUpdateRowsEvent from(List<TableMapLogEvent.Column> columns) throws IOException {
+    public FilteredUpdateRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
         return new FilteredUpdateRowsEvent(this, columns);
     }
 

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.meta;
 
+import com.ctrip.framework.drc.core.server.common.filter.column.ColumnFilterMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
@@ -48,5 +49,13 @@ public class ColumnsFilterConfig {
 
     public void setColumns(List<String> columns) {
         this.columns = columns;
+    }
+
+    public ColumnFilterMode getColumnsFilterMode() {
+        return ColumnFilterMode.getColumnFilterMode(mode);
+    }
+
+    public boolean shouldFilterColumns() {
+        return ColumnFilterMode.NONE != getColumnsFilterMode();
     }
 }

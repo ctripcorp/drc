@@ -37,27 +37,26 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
         return rowsFilterRule.filterRows(rowsEvent, rowsFilterContext);
     }
 
-    public boolean filterColumns(AbstractRowsEvent rowsEvent, String tableName, List<String> columnsName) throws Exception {
+    public boolean filterColumns(AbstractRowsEvent rowsEvent, String tableName, List<Integer> extractedColumnsIndex) {
         Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
         if (optional.isEmpty()) {
             return false;
         }
         ColumnsFilterRule columnsFilterRule = optional.get();
-        columnsFilterRule.filterColumns(rowsEvent, columnsName);
+        columnsFilterRule.filterColumns(rowsEvent, extractedColumnsIndex);
         return true;
     }
 
-    public List<Integer> getColumnsIndex(TableMapLogEvent tableMapLogEvent) {
-        List<Integer> ret = Lists.newArrayList();
+    public List<Integer> getExtractedColumnsIndex(TableMapLogEvent tableMapLogEvent) {
         Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableMapLogEvent.getSchemaNameDotTableName());
         if (optional.isEmpty()) {
-            return ret;
+            return null;
         }
         ColumnsFilterRule columnsFilterRule = optional.get();
         return columnsFilterRule.getColumnsIndex(tableMapLogEvent.getColumnsName());
     }
 
-    public boolean needFilter(String tableName) {
+    public boolean hasColumnsFilter(String tableName) {
         Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
         return optional.isPresent();
     }

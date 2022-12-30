@@ -19,7 +19,7 @@ public class FilteredDeleteRowsEvent extends DeleteRowsEvent implements LogEvent
     }
 
     @Override
-    public FilteredDeleteRowsEvent from(List<TableMapLogEvent.Column> columns) throws IOException {
+    public FilteredDeleteRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
         return new FilteredDeleteRowsEvent(this, columns);
     }
 

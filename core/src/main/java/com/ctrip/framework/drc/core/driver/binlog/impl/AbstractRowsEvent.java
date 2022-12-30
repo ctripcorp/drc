@@ -95,7 +95,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         setPayloadBuf(payloadByteBuf);
     }
 
-    public AbstractRowsEvent from(List<TableMapLogEvent.Column> columns) throws IOException {
+    public AbstractRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
         return null;
     }
 

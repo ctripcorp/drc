@@ -4,10 +4,10 @@ import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
-import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
@@ -28,17 +28,17 @@ public class OutboundLogEventContext {
 
     private long filteredEventSize;
 
-    private LogEvent rowsEvent;
+    private boolean noRewrite = false;
+
+    private LogEvent logEvent;
 
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
 
     private Map<String, TableMapLogEvent> drcTableMap;
 
-    private Map<String, Columns> filteredColumns;
+    private Map<String, Columns> extractedColumnsMap;
 
-    private RowsFilterContext rowsFilterContext;
-
-    private boolean noRowFiltered = false;
+    private Map<String, List<Integer>> extractedColumnsIndexMap;
 
     private boolean skipEvent = false;
 
@@ -74,12 +74,8 @@ public class OutboundLogEventContext {
         return fileChannelPos;
     }
 
-    public boolean isNoRowFiltered() {
-        return noRowFiltered;
-    }
-
-    public LogEvent getRowsEvent() {
-        return rowsEvent;
+    public LogEvent getLogEvent() {
+        return logEvent;
     }
 
     public String getGtid() {
@@ -100,25 +96,22 @@ public class OutboundLogEventContext {
         return drcTableMap.get(tableName);
     }
 
-    public Map<String, Columns> getFilteredColumnMap() {
-        return filteredColumns;
+    public Columns getExtractedColumns(String tableName) {
+        if (extractedColumnsMap == null) {
+            return null;
+        }
+        return extractedColumnsMap.get(tableName);
     }
 
-    public RowsFilterContext getRowsFilterContext() {
-        return rowsFilterContext;
-    }
-
-    public void setRowsFilterContext(RowsFilterContext rowsFilterContext) {
-        this.rowsFilterContext = rowsFilterContext;
+    public List<Integer> getExtractedColumnsIndex(String tableName) {
+        if (extractedColumnsIndexMap == null) {
+            return null;
+        }
+        return extractedColumnsIndexMap.get(tableName);
     }
 
     public Exception getCause() {
         return cause;
-    }
-
-    // write api
-    public void setNoRowFiltered(boolean noRowFiltered) {
-        this.noRowFiltered = noRowFiltered;
     }
 
     public void setTableMapWithinTransaction(Map<Long, TableMapLogEvent> tableMapWithinTransaction) {
@@ -129,12 +122,16 @@ public class OutboundLogEventContext {
         this.drcTableMap = drcTableMap;
     }
 
-    public void setFilteredColumnsMap(Map<String, Columns> filteredColumns) {
-        this.filteredColumns = filteredColumns;
+    public void setExtractedColumnsMap(Map<String, Columns> extractedColumnsMap) {
+        this.extractedColumnsMap = extractedColumnsMap;
     }
 
-    public void setRowsEvent(LogEvent rowsEvent) {
-        this.rowsEvent = rowsEvent;
+    public void setExtractedColumnsIndexMap(Map<String, List<Integer>> extractedColumnsIndexMap) {
+        this.extractedColumnsIndexMap = extractedColumnsIndexMap;
+    }
+
+    public void setLogEvent(LogEvent logEvent) {
+        this.logEvent = logEvent;
     }
 
     public void setCause(Exception cause) {
@@ -171,5 +168,13 @@ public class OutboundLogEventContext {
 
     public void setSkipEvent(boolean skipEvent) {
         this.skipEvent = skipEvent;
+    }
+
+    public boolean isNoRewrite() {
+        return noRewrite;
+    }
+
+    public void setNoRewrite(boolean noRewrite) {
+        this.noRewrite = noRewrite;
     }
 }

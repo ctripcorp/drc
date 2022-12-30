@@ -19,7 +19,7 @@ public class FilteredWriteRowsEvent extends WriteRowsEvent implements LogEventMe
     }
 
     @Override
-    public FilteredWriteRowsEvent from(List<TableMapLogEvent.Column> columns) throws IOException {
+    public FilteredWriteRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
         return new FilteredWriteRowsEvent(this, columns);
     }
 

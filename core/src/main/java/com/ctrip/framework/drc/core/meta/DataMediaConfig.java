@@ -122,6 +122,10 @@ public class DataMediaConfig {
         return validRowsFilters() ? rowsFilters.stream().anyMatch(rowsFilterConfig -> rowsFilterConfig.shouldFilterRows()) : false;
     }
 
+    public boolean shouldFilterColumns() {
+        return validColumnsFilters() ? columnsFilters.stream().anyMatch(columnsFilterConfig -> columnsFilterConfig.shouldFilterColumns()) : false;
+    }
+
     /**
      * return null if not valid
      * @param tableName
