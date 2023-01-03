@@ -8,11 +8,12 @@ package com.ctrip.framework.drc.console.enums;
  */
 public enum DataMediaTypeEnum {
     ROWS_FILTER(0,"for rows Filter"),
-    NAME_MAPPING(1,"for table Mapping");
+    NAME_MAPPING(1,"for table Mapping"),
+    COLUMNS_FILTER(0,"for columns Filter");
 
     private Integer type;
     private String comment;
-    
+
     DataMediaTypeEnum(Integer type, String comment) {
         this.type = type;
         this.comment = comment;

@@ -28,9 +28,8 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
     private ExtractFilterContext extractContext = new ExtractFilterContext();
 
     public ExtractFilter(OutboundFilterChainContext context) {
-        this.registryKey = context.getDataMediaConfig().getRegistryKey();
-        ExtractFilterChainContext chainContext = new ExtractFilterChainContext(context.getDataMediaConfig(), context.getOutboundMonitorReport());
-        filterChain = new ExtractFilterChainFactory().createFilterChain(chainContext);
+        registryKey = context.getDataMediaConfig().getRegistryKey();
+        filterChain = new ExtractFilterChainFactory().createFilterChain(ExtractFilterChainContext.from(context));
     }
 
     @Override
@@ -51,13 +50,17 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                         break;
                 }
                 Pair<TableMapLogEvent, Columns> pair = loadEvent(beforeRowsEvent, value);
+
                 TableMapLogEvent drcTableMapLogEvent = pair.getKey();
                 String tableName = drcTableMapLogEvent.getSchemaNameDotTableName();
+
+                Columns columns = pair.getValue();
+                List<Integer> extractedColumnsIndex = value.getExtractedColumnsIndex(tableName);
 
                 extractContext.setRowsEvent(beforeRowsEvent);
                 extractContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
                 extractContext.setGtid(value.getGtid());
-                extractContext.setExtractedColumnsIndex(value.getExtractedColumnsIndex(tableName));
+                extractContext.setExtractedColumnsIndex(extractedColumnsIndex);
                 filterChain.doFilter(extractContext);
 
                 boolean shouldRewrite = extractContext.extracted();
@@ -65,8 +68,8 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                 if (shouldRewrite) {
                     AbstractRowsEvent afterRowsEvent;
                     try {
-                        List<TableMapLogEvent.Column> columns = value.getExtractedColumns(tableName);
-                        afterRowsEvent = beforeRowsEvent.extract(columns);
+                        Columns extractedColumns = getExtractedColumns(columns, extractedColumnsIndex);
+                        afterRowsEvent = beforeRowsEvent.extract(extractedColumns);
                         value.setLogEvent(afterRowsEvent);
                         value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
                     } catch (Exception e) {
@@ -78,6 +81,10 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                         }
                     }
                 }
+
+                //clear
+                extractContext.setRowsExtracted(false);
+                extractContext.setColumnsExtracted(false);
             }
         } catch (Exception e) {
             logger.error("[ExtractFilter] error", e);
@@ -85,6 +92,17 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
         }
 
         return doNext(value, value.isNoRewrite());
+    }
+
+    private Columns getExtractedColumns(Columns columns, List<Integer> extractedColumnsIndex) {
+        if (extractContext.getColumnsExtracted()) {
+            Columns extractedColumns = new Columns();
+            for (int columnIndex : extractedColumnsIndex) {
+                extractedColumns.add(columns.get(columnIndex));
+            }
+            return extractedColumns;
+        }
+        return columns;
     }
 
     private Pair<TableMapLogEvent, Columns> loadEvent(AbstractRowsEvent rowsEvent, OutboundLogEventContext value) {

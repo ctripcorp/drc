@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.monitor.kpi;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
+import com.ctrip.framework.drc.core.server.common.filter.ExtractType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +38,8 @@ public class OutboundMonitorReportTest {
 
     @Test
     public void testUpdateFilteredRows() {
-        outboundMonitorReport.updateFilteredRows("db", "table", 5, 5);
-        outboundMonitorReport.updateFilteredRows("db", "table", 5, 1);
+        outboundMonitorReport.updateFilteredRows("db", "table", 5, 5, ExtractType.ROW);
+        outboundMonitorReport.updateFilteredRows("db", "table", 5, 1, ExtractType.ROW);
         Map<TableKey, RowsFilterEntity> rowsFilterEntityMap = outboundMonitorReport.getRowsFilterEntityMap();
         Assert.assertEquals(1, rowsFilterEntityMap.size());
         RowsFilterEntity rowsFilterEntity = rowsFilterEntityMap.get(new TableKey("db", "table"));

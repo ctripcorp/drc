@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.driver.binlog.impl;
 
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;

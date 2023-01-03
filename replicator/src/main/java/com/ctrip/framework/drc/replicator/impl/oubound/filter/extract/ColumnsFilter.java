@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import com.ctrip.framework.drc.core.server.common.filter.ExtractType;
+import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterContext;
 import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 
 import java.util.List;
@@ -38,7 +39,8 @@ public class ColumnsFilter extends AbstractLogEventFilter<ExtractFilterContext> 
             TableMapLogEvent drcTableMapLogEvent = context.getDrcTableMapLogEvent();
             List<Integer> extractedColumnsIndex = context.getExtractedColumnsIndex();
 
-            boolean columnsExtracted = dataMediaManager.filterColumns(rowsEvent, drcTableMapLogEvent.getSchemaNameDotTableName(), extractedColumnsIndex);
+            ColumnsFilterContext columnsFilterContext = new ColumnsFilterContext(drcTableMapLogEvent.getSchemaNameDotTableName(), extractedColumnsIndex);
+            boolean columnsExtracted = dataMediaManager.filterColumns(rowsEvent, columnsFilterContext);
             context.setColumnsExtracted(columnsExtracted);
 
             if (columnsExtracted) {
@@ -46,7 +48,7 @@ public class ColumnsFilter extends AbstractLogEventFilter<ExtractFilterContext> 
                 String tableName = drcTableMapLogEvent.getTableName();
                 int rowsSize = rowsEvent.getRows().size();
                 int columnsFilterNum = drcTableMapLogEvent.getColumns().size() - extractedColumnsIndex.size();
-                ROWS_FILTER_LOGGER.info("[Filter][Column] {} rows {} column of table {} within transaction {} for {}", rowsSize, columnsFilterNum, tableName, context.getGtid(), registryKey);
+                ROWS_FILTER_LOGGER.info("[Filter][Column] {} rows {} columns of table {} within transaction {} for {}", rowsSize, columnsFilterNum, tableName, context.getGtid(), registryKey);
                 outboundMonitorReport.updateFilteredRows(schemaName, tableName, rowsSize, columnsFilterNum, ExtractType.COLUMN);
             }
         }

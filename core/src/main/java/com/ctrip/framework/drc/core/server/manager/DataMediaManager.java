@@ -3,11 +3,11 @@ package com.ctrip.framework.drc.core.server.manager;
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterRule;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult;
 import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
-import com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +18,7 @@ import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRe
  * @Author limingdong
  * @create 2022/4/27
  */
-public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
+public class DataMediaManager implements RowsFilterRule<List<List<Object>>>, ColumnsFilterRule {
 
     private DataMediaConfig dataMediaConfig;
 
@@ -33,27 +33,30 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>> {
         if (optional.isEmpty()) {
             return new RowsFilterResult(No_Filtered);
         }
+
         RowsFilterRule rowsFilterRule = optional.get();
         return rowsFilterRule.filterRows(rowsEvent, rowsFilterContext);
     }
 
-    public boolean filterColumns(AbstractRowsEvent rowsEvent, String tableName, List<Integer> extractedColumnsIndex) {
-        Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableName);
+    @Override
+    public boolean filterColumns(AbstractRowsEvent rowsEvent, ColumnsFilterContext columnsFilterContext) {
+        Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(columnsFilterContext.getTableName());
         if (optional.isEmpty()) {
             return false;
         }
         ColumnsFilterRule columnsFilterRule = optional.get();
-        columnsFilterRule.filterColumns(rowsEvent, extractedColumnsIndex);
+        columnsFilterRule.filterColumns(rowsEvent, columnsFilterContext);
         return true;
     }
 
-    public List<Integer> getExtractedColumnsIndex(TableMapLogEvent tableMapLogEvent) {
+    @Override
+    public List<Integer> getExtractColumnsIndex(TableMapLogEvent tableMapLogEvent) {
         Optional<ColumnsFilterRule> optional = dataMediaConfig.getColumnsFilterRule(tableMapLogEvent.getSchemaNameDotTableName());
         if (optional.isEmpty()) {
             return null;
         }
         ColumnsFilterRule columnsFilterRule = optional.get();
-        return columnsFilterRule.getColumnsIndex(tableMapLogEvent.getColumnsName());
+        return columnsFilterRule.getExtractColumnsIndex(tableMapLogEvent);
     }
 
     public boolean hasColumnsFilter(String tableName) {

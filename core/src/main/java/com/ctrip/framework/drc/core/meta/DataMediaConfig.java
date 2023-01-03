@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,7 +96,7 @@ public class DataMediaConfig {
     }
 
     private void parse() throws Exception {
-        if (validRowsFilters()) {
+        if (valid(rowsFilters)) {
             for (RowsFilterConfig rowsFilterConfig : rowsFilters) {
                 rowsFilterConfig.setRegistryKey(registryKey);
                 String tableRegex = rowsFilterConfig.getTables().trim().toLowerCase();
@@ -106,7 +107,7 @@ public class DataMediaConfig {
             }
         }
 
-        if (validColumnsFilters()) {
+        if (valid(columnsFilters)) {
             for (ColumnsFilterConfig columnsFilterConfig : columnsFilters) {
                 columnsFilterConfig.setRegistryKey(registryKey);
                 String tableRegex = columnsFilterConfig.getTables().trim().toLowerCase();
@@ -119,21 +120,22 @@ public class DataMediaConfig {
     }
 
     public boolean shouldFilterRows() {
-        return validRowsFilters() ? rowsFilters.stream().anyMatch(rowsFilterConfig -> rowsFilterConfig.shouldFilterRows()) : false;
+        return valid(rowsFilters) && rowsFilters.stream().anyMatch(RowsFilterConfig::shouldFilterRows);
     }
 
     public boolean shouldFilterColumns() {
-        return validColumnsFilters() ? columnsFilters.stream().anyMatch(columnsFilterConfig -> columnsFilterConfig.shouldFilterColumns()) : false;
+        return valid(columnsFilters) && columnsFilters.stream().anyMatch(ColumnsFilterConfig::shouldFilterColumns);
     }
 
     /**
      * return null if not valid
+     *
      * @param tableName
      * @return
      */
-    public Optional<RowsFilterRule>  getRowsFilterRule(String tableName) {
+    public Optional<RowsFilterRule> getRowsFilterRule(String tableName) {
         Optional<RowsFilterRule> optional = Optional.empty();
-        if (validRowsFilters()) {
+        if (valid(rowsFilters)) {
             optional = matchResult.getIfPresent(tableName);
             if (optional == null) {
                 RowsFilterRule rowsFilterRule = null;
@@ -153,7 +155,7 @@ public class DataMediaConfig {
 
     public Optional<ColumnsFilterRule> getColumnsFilterRule(String tableName) {
         Optional<ColumnsFilterRule> optional = Optional.empty();
-        if (validColumnsFilters()) {
+        if (valid(columnsFilters)) {
             optional = matchColumnsResult.getIfPresent(tableName);
             if (optional == null) {
                 ColumnsFilterRule columnsFilterRule = null;
@@ -171,11 +173,7 @@ public class DataMediaConfig {
         return optional;
     }
 
-    private boolean validRowsFilters() {
-        return rowsFilters != null && !rowsFilters.isEmpty();
-    }
-
-    private boolean validColumnsFilters() {
-        return columnsFilters != null && !columnsFilters.isEmpty();
+    private <E> boolean valid(Collection<E> filters) {
+        return filters != null && !filters.isEmpty();
     }
 }

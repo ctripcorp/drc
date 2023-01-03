@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -35,8 +34,6 @@ public class OutboundLogEventContext {
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
 
     private Map<String, TableMapLogEvent> drcTableMap;
-
-    private Map<String, Columns> extractedColumnsMap;
 
     private Map<String, List<Integer>> extractedColumnsIndexMap;
 
@@ -96,13 +93,6 @@ public class OutboundLogEventContext {
         return drcTableMap.get(tableName);
     }
 
-    public Columns getExtractedColumns(String tableName) {
-        if (extractedColumnsMap == null) {
-            return null;
-        }
-        return extractedColumnsMap.get(tableName);
-    }
-
     public List<Integer> getExtractedColumnsIndex(String tableName) {
         if (extractedColumnsIndexMap == null) {
             return null;
@@ -120,10 +110,6 @@ public class OutboundLogEventContext {
 
     public void setDrcTableMap(Map<String, TableMapLogEvent> drcTableMap) {
         this.drcTableMap = drcTableMap;
-    }
-
-    public void setExtractedColumnsMap(Map<String, Columns> extractedColumnsMap) {
-        this.extractedColumnsMap = extractedColumnsMap;
     }
 
     public void setExtractedColumnsIndexMap(Map<String, List<Integer>> extractedColumnsIndexMap) {

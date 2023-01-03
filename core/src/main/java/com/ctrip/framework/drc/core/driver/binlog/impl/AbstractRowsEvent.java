@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
 import com.google.common.collect.Lists;
@@ -252,7 +253,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         this.numberOfColumns = columnsIndex.size();
 
         List<Row> newRows = Lists.newArrayList();
-        for(Row row : rows) {
+        for (Row row : rows) {
             Row newRow = new Row();
             BitSet beforeNullBitMap = row.beforeNullBitMap;
             BitSet newBeforeNullBitMap = new BitSet();
@@ -262,7 +263,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
             BitSet newAfterNullBitMap = new BitSet();
             List<Object> afterValues = row.afterValues;
             List<Object> newAfterValues = Lists.newArrayList();
-            for(int i = 0; i < columnsIndex.size(); i++) {
+            for (int i = 0; i < columnsIndex.size(); i++) {
                 newBeforeNullBitMap.set(i, beforeNullBitMap.get(columnsIndex.get(i)));
                 newBeforeValues.add(beforeValues.get(columnsIndex.get(i)));
                 if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
@@ -271,27 +272,16 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
                 }
             }
 
-            expandBitSet(newBeforeNullBitMap, numberOfColumns);
-            expandBitSet(newAfterNullBitMap, numberOfColumns);
-
             newRow.setBeforeNullBitMap(newBeforeNullBitMap);
             newRow.setBeforeValues(newBeforeValues);
-            newRow.setAfterNullBitMap(newAfterNullBitMap);
-            newRow.setAfterValues(newAfterValues);
+            if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                newRow.setAfterNullBitMap(newAfterNullBitMap);
+                newRow.setAfterValues(newAfterValues);
+            }
+
             newRows.add(newRow);
         }
         this.rows = newRows;
-    }
-
-    private void expandBitSet(BitSet bitSet, long length) {
-        long yushu = length % 8;
-        long zengjia = 8 - yushu;
-
-        if (zengjia != 8) {
-            for (long j = 0; j < zengjia; j++) {
-                bitSet.set((int)(j+length));
-            }
-        }
     }
 
     public final class Row {

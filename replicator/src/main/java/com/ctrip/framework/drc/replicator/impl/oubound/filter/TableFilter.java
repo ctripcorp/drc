@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.server.common.EventReader;
@@ -11,15 +10,15 @@ import com.ctrip.framework.drc.core.server.manager.DataMediaManager;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.apache.commons.compress.utils.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 
 /**
  * gtid、query、tablemap1、tablemap2、rows1、rows2、xid
@@ -29,13 +28,9 @@ import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*
  */
 public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext> {
 
-    protected final Logger ROWS_FILTER_LOGGER = LoggerFactory.getLogger("ROWS FILTER");
-
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction = Maps.newHashMap();  // clear with xid
 
     private Map<String, TableMapLogEvent> drcTableMap = Maps.newHashMap();  // put every drc_table_map_log_event
-
-    private Map<String, Columns> extractedColumnsMap = Maps.newHashMap();
 
     private Map<String, List<Integer>> extractedColumnsIndexMap = Maps.newHashMap();
 
@@ -76,7 +71,6 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         } else if (LogEventUtils.isRowsEvent(eventType)) {
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
-            value.setExtractedColumnsMap(extractedColumnsMap);
             value.setExtractedColumnsIndexMap(extractedColumnsIndexMap);
         } else {
             value.setNoRewrite(true);
@@ -102,7 +96,8 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         List<TableMapLogEvent.Column> extractedColumns = getExtractedColumns(tableMapLogEvent, eventType);
         try {
             if (drc_table_map_log_event == eventType) {
-                newTableMapLogEvent = new TableMapLogEvent(0, 0, 0, tableMapLogEvent.getSchemaName(), tableMapLogEvent.getTableName(), extractedColumns, tableMapLogEvent.getIdentifiers());
+                List<List<String>> newIdentifiers = extractIdentifiers(tableMapLogEvent.getIdentifiers(), extractedColumns);
+                newTableMapLogEvent = new TableMapLogEvent(0, 0, 0, tableMapLogEvent.getSchemaName(), tableMapLogEvent.getTableName(), extractedColumns, newIdentifiers);
             } else {
                 newTableMapLogEvent = new TableMapLogEvent(0, 0, tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaName(), tableMapLogEvent.getTableName(), extractedColumns, tableMapLogEvent.getIdentifiers(), table_map_log_event, tableMapLogEvent.getFlags());
             }
@@ -112,23 +107,39 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         return newTableMapLogEvent;
     }
 
+    private List<List<String>> extractIdentifiers(List<List<String>> identifiers, List<TableMapLogEvent.Column> extractedColumns) {
+        List<List<String>> newIdentifiers = Lists.newArrayList();
+        List<String> extractedColumnsName = Lists.newArrayList();
+        for (TableMapLogEvent.Column column : extractedColumns) {
+            extractedColumnsName.add(column.getName().toLowerCase());
+        }
+
+        for (List<String> identifier : identifiers) {
+            List<String> newIdentifier = Lists.newArrayList();
+            for (String element : identifier) {
+                if (extractedColumnsName.contains(element.toLowerCase())) {
+                    newIdentifier.add(element);
+                }
+            }
+            if (!newIdentifier.isEmpty()) {
+                newIdentifiers.add(newIdentifier);
+            }
+        }
+        if (newIdentifiers.isEmpty()) {
+            throw new IllegalArgumentException("primary key does not exist after extracting columns, please check columns filter configuration");
+        }
+        return newIdentifiers;
+    }
+
     private List<TableMapLogEvent.Column> getExtractedColumns(TableMapLogEvent tableMapLogEvent, LogEventType eventType) {
         List<Integer> extractedColumnsIndex;
         String tableName = tableMapLogEvent.getSchemaNameDotTableName();
         if (drc_table_map_log_event == eventType) {
-            extractedColumnsIndex = dataMediaManager.getExtractedColumnsIndex(tableMapLogEvent);
+            extractedColumnsIndex = dataMediaManager.getExtractColumnsIndex(tableMapLogEvent);
             if (extractedColumnsIndex.size() == tableMapLogEvent.getColumns().size()) {
                 throw new IllegalArgumentException("extract columns error, please check columns filter configuration");
             }
             extractedColumnsIndexMap.put(tableName, extractedColumnsIndex);
-
-            List<TableMapLogEvent.Column> drcTableMapColumns = tableMapLogEvent.getColumns();
-            List<TableMapLogEvent.Column> extractedColumns = Lists.newArrayList();
-            for (int extractedIndex : extractedColumnsIndex) {
-                extractedColumns.add(drcTableMapColumns.get(extractedIndex));
-            }
-            Columns rewriteColumns = Columns.from(extractedColumns);
-            extractedColumnsMap.put(tableName, rewriteColumns);
         } else {
             extractedColumnsIndex = extractedColumnsIndexMap.get(tableName);
         }

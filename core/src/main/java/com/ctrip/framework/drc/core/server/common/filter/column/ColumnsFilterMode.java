@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.core.server.common.filter.column;
 /**
  * Created by jixinwang on 2022/12/29
  */
-public enum ColumnFilterMode {
+public enum ColumnsFilterMode {
 
     NONE("none"),
 
@@ -13,7 +13,7 @@ public enum ColumnFilterMode {
 
     private String name;
 
-    ColumnFilterMode(String name) {
+    ColumnsFilterMode(String name) {
         this.name = name;
     }
 
@@ -21,8 +21,8 @@ public enum ColumnFilterMode {
         return name;
     }
 
-    public static ColumnFilterMode getColumnFilterMode(String name) {
-        for (ColumnFilterMode filterMode : values()) {
+    public static ColumnsFilterMode getColumnFilterMode(String name) {
+        for (ColumnsFilterMode filterMode : values()) {
             if (filterMode.getName().equalsIgnoreCase(name)) {
                 return filterMode;
             }
