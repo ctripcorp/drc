@@ -132,6 +132,16 @@ const routes = [
     component: () => import('../views/drcConfig/rowsFilterConfigs.vue')
   },
   {
+    path: '/tables',
+    name: 'tables',
+    component: () => import('../components/configs/tables.vue')
+  },
+  {
+    path: '/tables/configFlow',
+    name: 'configFlow',
+    component: () => import('../components/configs/configFlow.vue')
+  },
+  {
     path: '/mqConfigs',
     name: 'mqConfigs',
     component: () => import('../views/drcConfig/mqConfigs.vue')

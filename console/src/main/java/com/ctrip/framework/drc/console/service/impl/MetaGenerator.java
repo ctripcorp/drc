@@ -272,6 +272,8 @@ public class MetaGenerator {
         DataMediaConfig properties = new DataMediaConfig();
         properties.setRowsFilters(rowsFilterConfigs);
         String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
+        
+        // todo
         for(ApplierTbl applierTbl : curMhaAppliers) {
             ResourceTbl resourceTbl = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.debug("generate applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());

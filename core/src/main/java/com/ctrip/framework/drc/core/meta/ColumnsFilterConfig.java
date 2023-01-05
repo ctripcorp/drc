@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.meta;
 
+
 import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -34,7 +35,7 @@ public class ColumnsFilterConfig {
     public void setMode(String mode) {
         this.mode = mode;
     }
-
+    
     public String getTables() {
         return tables;
     }
@@ -42,7 +43,7 @@ public class ColumnsFilterConfig {
     public void setTables(String tables) {
         this.tables = tables;
     }
-
+    
     public List<String> getColumns() {
         return columns;
     }
