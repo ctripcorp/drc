@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventCo
 import com.ctrip.xpipe.tuple.Pair;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
@@ -57,6 +58,8 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                 Columns columns = pair.getValue();
                 List<Integer> extractedColumnsIndex = value.getExtractedColumnsIndex(tableName);
 
+                extractContext.setRowsExtracted(false);
+                extractContext.setColumnsExtracted(false);
                 extractContext.setRowsEvent(beforeRowsEvent);
                 extractContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
                 extractContext.setGtid(value.getGtid());
@@ -69,7 +72,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                     AbstractRowsEvent afterRowsEvent;
                     try {
                         Columns extractedColumns = getExtractedColumns(columns, extractedColumnsIndex);
-                        afterRowsEvent = beforeRowsEvent.extract(extractedColumns);
+                        afterRowsEvent = Objects.requireNonNull(beforeRowsEvent).extract(extractedColumns);
                         value.setLogEvent(afterRowsEvent);
                         value.setFilteredEventSize(afterRowsEvent.getLogEventHeader().getEventSize());
                     } catch (Exception e) {
@@ -81,10 +84,6 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                         }
                     }
                 }
-
-                //clear
-                extractContext.setRowsExtracted(false);
-                extractContext.setColumnsExtracted(false);
             }
         } catch (Exception e) {
             logger.error("[ExtractFilter] error", e);
