@@ -129,7 +129,7 @@ public class BuildController {
         }
     }
 
-    @DeleteMapping("rowsFilterConfig/{columnsFilterMappingId}")
+    @DeleteMapping("columnsFilterConfig/{columnsFilterMappingId}")
     public ApiResult deleteColumnsFilterConfig(@PathVariable Long columnsFilterMappingId) {
         logger.info("[[meta=rowsFilterConfig]] delete rowsFilterConfig id: {}", columnsFilterMappingId);
         try {
