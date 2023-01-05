@@ -4,6 +4,8 @@ import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.FilterChainFactory;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.DELAY_LOGGER;
+
 /**
  * Created by mingdongli
  * 2019/10/9 上午10:30.
@@ -23,7 +25,11 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         PersistPostFilter persistPostFilter = new PersistPostFilter(context.getTransactionCache());
         eventReleaseFilter.setSuccessor(persistPostFilter);
 
-        DelayMonitorFilter delayMonitorFilter = new DelayMonitorFilter(context.getMonitorManager());
+        DelayMonitorFilter delayMonitorFilter = context.isMaster()
+                                                    ? new DelayMonitorFilter(context.getMonitorManager())
+                                                    : new SlaveDelayMonitorFilter(context.getMonitorManager());
+        DELAY_LOGGER.info("[Init] {} for {}", delayMonitorFilter.getClass().getSimpleName(), context.getRegistryKey());
+
         persistPostFilter.setSuccessor(delayMonitorFilter);
 
         TransactionMonitorFilter transactionMonitorFilter = new TransactionMonitorFilter(context.getInboundMonitorReport());
@@ -35,7 +41,9 @@ public class EventFilterChainFactory implements FilterChainFactory<InboundFilter
         EventTypeFilter eventTypeFilter = new EventTypeFilter();
         flagFilter.setSuccessor(eventTypeFilter);
 
-        Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode() ? new UuidFilter(context.getWhiteUUID()) : new TransactionTableFilter();
+        Filter circularBreakFilter = ApplyMode.set_gtid.getType() == context.getApplyMode()
+                                        ? new UuidFilter(context.getWhiteUUID())
+                                        : new TransactionTableFilter();
         eventTypeFilter.setSuccessor(circularBreakFilter);
 
         DdlFilter ddlFilter = new DdlFilter(context.getSchemaManager(), context.getMonitorManager(), context.getRegistryKey());

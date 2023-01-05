@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.core.server.common.filter.table.aviator;
 
-import com.ctrip.framework.drc.core.server.common.filter.table.exception.FilterException;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 import org.apache.commons.lang.StringUtils;
@@ -49,7 +48,7 @@ public class AviatorRegexFilter {
         this.pattern = StringUtils.join(list, PATTERN_SPLIT);
     }
 
-    public boolean filter(String filtered) throws FilterException {
+    public boolean filter(String filtered) {
         if (StringUtils.isEmpty(pattern)) {
             return defaultEmptyValue;
         }

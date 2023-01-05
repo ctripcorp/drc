@@ -62,7 +62,7 @@ public class DefaultReplicatorServerTest extends AbstractServerTest {
 
         replicatorConfig.setEndpoint(endpoint);
         replicatorConfig.setWhiteUUID(Sets.newHashSet(UUID.fromString(UUID_3)));
-        replicatorConfig.setGtidSet(new GtidSet(UUID_3 + ":1-7"));
+        replicatorConfig.setGtidSet(new GtidSet("23851889-76d3-11ed-b27d-0242ac110002:1-3"));
 
         replicatorServer = new DefaultReplicatorServer(replicatorConfig, SchemaManagerFactory.getOrCreateMySQLSchemaManager(replicatorConfig), new TableFilterConfiguration(), new UuidOperator() {
             @Override

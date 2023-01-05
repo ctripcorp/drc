@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.exception.DrcException;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.google.common.collect.Lists;
@@ -103,6 +104,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
     private RowsFilterResult.Status handleRow(List<Object> rowValue, RowsFilterContext rowsFilterContext, LinkedHashMap<String, Integer> indices) throws Exception {
         RowsFilterResult.Status filterResult = Illegal;
         Object lastValue = null;
+        boolean foundColumn = false;
         RowsFilterConfig.Parameters parameters = null;
         for (int i = 0; i < parametersList.size(); ++i) { // iterate Parameters : udl、uid
             parameters = parametersList.get(i);
@@ -112,6 +114,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
                 if (index == null) {
                     continue;
                 }
+                foundColumn = true;
                 lastValue = rowValue.get(index);
                 filterResult = handleValue(lastValue, parameters, rowsFilterContext);
                 if (Illegal != filterResult) {
@@ -120,6 +123,11 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
                 }
             }
 
+        }
+        if (!foundColumn) {
+            throw new DrcException(String.format("[Row] filter without matching column for %s:%s",
+                    rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName(),
+                    registryKey));
         }
         return handleIllegal(new CacheKey(parametersList.size() - 1, lastValue), filterResult, parameters, rowsFilterContext);
     }

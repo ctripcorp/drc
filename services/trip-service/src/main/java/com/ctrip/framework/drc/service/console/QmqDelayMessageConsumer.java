@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage;
 import com.ctrip.framework.drc.service.mq.DataChangeMessage.ColumnData;
-import com.ctrip.framework.vi.server.VIServer;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -48,6 +47,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private ListenerHolder listenerHolder;
     
     private Set<String> dcsRelated = Sets.newHashSet();
+    private volatile Set<String> mhasRelated = Sets.newHashSet();
     
     // k: mhaInfo ,v :receiveTime
     private final Map<MhaInfo,Long> receiveTimeMap = Maps.newConcurrentMap();
@@ -73,6 +73,10 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
         }
     }
 
+    @Override
+    public void mhasRefresh(Set<String> mhas) {
+        mhasRelated = mhas;
+    }
 
     @Override
     public boolean stopListen() {
@@ -136,13 +140,16 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
     private void checkDelayLoss() {
         for (Map.Entry<MhaInfo, Long> entry : receiveTimeMap.entrySet()) {
             MhaInfo mhaInfo = entry.getKey();
-            long receiveTime = entry.getValue();
-            long curTime = System.currentTimeMillis();
-            long timeDiff = curTime - receiveTime;
-            if (timeDiff > TOLERANCE_TIME) {
-                logger.error("[[monitor=delay]] mha:{}, delayMessageLoss, report Huge to trigger alarm",mhaInfo.getMhaName());
-                DefaultReporterHolder.getInstance()
-                        .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
+            String mhaName = mhaInfo.getMhaName();
+            if (mhasRelated.contains(mhaName)) {
+                long receiveTime = entry.getValue();
+                long curTime = System.currentTimeMillis();
+                long timeDiff = curTime - receiveTime;
+                if (timeDiff > TOLERANCE_TIME) {
+                    logger.error("[[monitor=delay]] mha:{}, delayMessageLoss, report Huge to trigger alarm",mhaInfo.getMhaName());
+                    DefaultReporterHolder.getInstance()
+                            .reportMessengerDelay(mhaInfo.getTags(), HUGE_VAL, MQ_DELAY_MEASUREMENT);
+                }
             }
         }
     }

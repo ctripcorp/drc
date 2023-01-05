@@ -11,17 +11,26 @@ import java.util.Map;
  */
 public class UnidirectionalEntity extends BaseEntity {
 
+    public static final String REPLICATOR_ROLE_SLAVE = "slave";
+    public static final String REPLICATOR_ROLE_MASTER = "master";
+    
     private Map<String, String> tags;
 
     @NotNull(message = "destDcName cannot be null")
     private String destDcName;
 
     private String destMhaName;
+    
+    private Boolean isReplicatorMaster;
+    
+    private String replicatorAddress;
 
     public UnidirectionalEntity(Builder builder) {
         super(builder.clusterAppId, builder.buName, builder.srcDcName, builder.clusterName, builder.srcMhaName, builder.registryKey);
         this.destDcName = builder.destDcName;
         this.destMhaName = builder.destMhaName;
+        this.isReplicatorMaster = builder.isReplicatorMaster;
+        this.replicatorAddress = builder.address;
     }
 
     public static final class Builder {
@@ -33,6 +42,8 @@ public class UnidirectionalEntity extends BaseEntity {
         private String srcMhaName;
         private String destMhaName;
         private String registryKey;
+        private Boolean isReplicatorMaster;
+        private String address;
 
         public Builder() {}
 
@@ -75,6 +86,18 @@ public class UnidirectionalEntity extends BaseEntity {
             this.registryKey = val;
             return this;
         }
+        
+        public Builder replicatorAddress(String val) {
+            this.address = val;
+            return this;
+        }
+
+        public Builder isReplicatorMaster(Boolean val) {
+            this.isReplicatorMaster = val;
+            return this;
+        }
+        
+        
 
         public UnidirectionalEntity build() {
             return new UnidirectionalEntity(this);
@@ -125,7 +148,18 @@ public class UnidirectionalEntity extends BaseEntity {
             if(null != registryKey) {
                 tags.put("registryKey", registryKey);
             }
+            if(null != isReplicatorMaster) {
+                if (isReplicatorMaster) {
+                    tags.put("role", REPLICATOR_ROLE_MASTER);
+                } else {
+                    tags.put("role", REPLICATOR_ROLE_SLAVE);
+                }
+            }
+            if (null != replicatorAddress) {
+                tags.put("address",replicatorAddress);
+            }
         }
         return tags;
     }
+    
 }

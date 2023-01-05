@@ -163,6 +163,10 @@ public abstract class AbstractEventTest {
         return new TableMapLogEvent(0, 0, 0, schemaName, tableName, sourceColumns, identifiers);
     }
 
+    protected TableMapLogEvent drcTableMapEventOfMissed() throws IOException {
+        return new TableMapLogEvent(0, 0, 0, schemaName + "_miss", tableName + "_miss", sourceColumns, identifiers);
+    }
+
     /**
      * for method writeRowsEvent()
      * @return

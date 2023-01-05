@@ -1,13 +1,16 @@
 package com.ctrip.framework.drc.core.server.common.filter.row;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
+import com.ctrip.framework.drc.core.exception.DrcException;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.google.common.collect.Maps;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -69,6 +72,25 @@ public class UidRowsFilterRuleTest extends AbstractEventTest {
         Assert.assertFalse(res.isNoRowFiltered().noRowFiltered());
         Assert.assertEquals(res.getRes().size(), 2);  // 18, 20
 
+        UidConfiguration.getInstance().clear();
+    }
+
+    @Test(expected = DrcException.class)
+    public void filterRowsWithoutColumn() throws Exception {
+        List<RowsFilterConfig> rowsFilterConfigList = dataMediaConfig.getRowsFilters();
+        RowsFilterConfig rowsFilterConfig = rowsFilterConfigList.get(0);
+        RowsFilterConfig clone = getRowsFilterConfig(rowsFilterConfig, FetchMode.RPC.getCode());
+        List<String> columns = clone.getParameters().getColumns();
+        LinkedHashMap<String, Integer> indices = Maps.newLinkedHashMap();
+        for (int i = 0; i < columns.size(); ++i) {
+            indices.put(columns.get(i), i);
+            columns.set(i, columns.get(i) + "_miss");
+            break;
+        }
+
+        UserRowsFilterRule uidRowsFilterRule = new UserRowsFilterRule(clone);
+        rowsFilterContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        uidRowsFilterRule.doFilterRows(writeRowsEvent, rowsFilterContext, indices);
         UidConfiguration.getInstance().clear();
     }
 

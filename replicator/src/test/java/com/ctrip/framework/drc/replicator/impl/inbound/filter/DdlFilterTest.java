@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.replicator.impl.inbound.filter.DdlFilter.DROP_TABLE;
 
 /**
  * @Author limingdong
@@ -217,7 +218,7 @@ public class DdlFilterTest extends MockTest {
     }
 
     @Test
-    public void testRenameDdl() {
+    public void testRenameWithUse() {
         String oriSchemaName = "drc1";
         String oriTableName = "insert1";
         String schemaName = "drc2";
@@ -299,4 +300,28 @@ public class DdlFilterTest extends MockTest {
         verify(schemaManager, times(1)).persistDdl(schemaName, tableName, DDL);
         verify(schemaManager, times(1)).persistColumnInfo(tableInfo, false);
     }
+
+    @Test
+    public void testRenameToBlackDbName() {
+        String oriSchemaName = "drc1";
+        String oriTableName = "_insert1_del";
+        String schemaName = "configdb";
+        String tableName = "insert2";
+        String RENAME_DDL = "rename table " + oriSchemaName + "." + oriTableName + " to " + schemaName + "." + tableName + ";";
+
+        TableInfo tableInfo = new TableInfo();
+        tableInfo.setDbName(schemaName);
+        tableInfo.setTableName(tableName);
+        when(queryLogEvent.getQuery()).thenReturn(RENAME_DDL);
+        when(queryLogEvent.getSchemaName()).thenReturn(null);
+        when(schemaManager.find(schemaName, tableName)).thenReturn(tableInfo);
+        when(schemaManager.apply(anyString(), anyString(), anyString(), any(QueryType.class), anyString())).thenReturn(ApplyResult.from(ApplyResult.Status.SUCCESS, RENAME_DDL));
+
+        Assert.assertFalse(ddlFilter.parseQueryEvent(queryLogEvent, gtid));
+        verify(schemaManager, times(1)).apply(oriSchemaName, oriTableName, String.format(DROP_TABLE, oriSchemaName, oriTableName), QueryType.ERASE, gtid);
+        verify(schemaManager, times(0)).apply(oriSchemaName, tableName, RENAME_DDL, QueryType.RENAME, gtid);
+        verify(schemaManager, times(0)).persistDdl(oriSchemaName, tableName, RENAME_DDL);
+        verify(schemaManager, times(0)).persistColumnInfo(tableInfo, false);
+    }
+
 }
