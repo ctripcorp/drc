@@ -42,7 +42,7 @@ public class RowsFilter extends AbstractLogEventFilter<ExtractFilterContext> {
             try {
                 AbstractRowsEvent beforeRowsEvent = context.getRowsEvent();
                 boolean noRowFiltered = handRowsEvent(beforeRowsEvent, context);
-                context.setColumnsExtracted(!noRowFiltered);
+                context.setRowsExtracted(!noRowFiltered);
             } catch (Exception e) {
                 logger.error("[RowsFilter] error", e);
             }
