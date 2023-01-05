@@ -97,7 +97,7 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
     }
 
     public AbstractRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
-        return null;
+        throw new UnsupportedOperationException("rows event must implement this method");
     }
 
     @Override
