@@ -1,68 +1,76 @@
 package com.ctrip.framework.drc.console.dto;
 
 import com.ctrip.framework.drc.console.dao.entity.ColumnsFilterTbl;
-import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 /**
- * Created by jixinwang on 2022/12/30
+ * @ClassName ColumnsFilterConfigDto
+ * @Author haodongPan
+ * @Date 2023/1/3 15:47
+ * @Version: $
  */
 public class ColumnsFilterConfigDto {
-
-    private Long id ;
-
-    private Long applierGroupId;
-
-    private Long dataMediaId;
-
-    private String namespace;
-
-    private String name;
-
-    // see DataMediaTypeEnum
-    private Integer type;
-
-    private Long dataMediaSourceId;
-
-    private Long columnsFilterId;
-
+    
+    private long id;
+    private long dataMediaId;
     private String mode;
-
     private List<String> columns;
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
-
-    public Long getApplierGroupId() {
-        return applierGroupId;
-    }
-
-    public void setApplierGroupId(Long applierGroupId) {
-        this.applierGroupId = applierGroupId;
-    }
-
-    public DataMediaTbl extractDataMediaTbl() {
-        DataMediaTbl dataMediaTbl = new DataMediaTbl();
-        dataMediaTbl.setId(this.dataMediaId);
-        dataMediaTbl.setNamespcae(this.namespace);
-        dataMediaTbl.setName(this.name);
-        dataMediaTbl.setType(this.type);
-        dataMediaTbl.setDataMediaSourceId(this.dataMediaSourceId);
-        return dataMediaTbl;
-    }
-
-    public ColumnsFilterTbl extractRowsFilterTbl() {
+    
+    public ColumnsFilterTbl transferTo() {
         ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
-        columnsFilterTbl.setId(this.columnsFilterId);
-        columnsFilterTbl.setMode(this.mode);
-        columnsFilterTbl.setColumns(JsonUtils.toJson(JsonUtils.toJson(columns)));
+        if (id != 0) {
+            columnsFilterTbl.setId(id);
+        }
+        if (dataMediaId == 0) {
+            throw new IllegalArgumentException("dataMediaId shouldn't be zero");
+        } else {
+            columnsFilterTbl.setDataMediaId(dataMediaId);
+        }
+        if (StringUtils.isBlank(mode)) {
+            throw new IllegalArgumentException("mode shouldn't be empty");
+        } else {
+            columnsFilterTbl.setMode(mode);
+        }
+        if (CollectionUtils.isEmpty(columns)) {
+            throw new IllegalArgumentException("columns shouldn't be empty");
+        } else {
+            columnsFilterTbl.setColumns(JsonUtils.toJson(columns));
+        }
         return columnsFilterTbl;
+    }
+
+    public long getDataMediaId() {
+        return dataMediaId;
+    }
+
+    public void setDataMediaId(long dataMediaId) {
+        this.dataMediaId = dataMediaId;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public List<String> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<String> columns) {
+        this.columns = columns;
     }
 }

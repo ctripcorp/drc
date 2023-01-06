@@ -1,9 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.dto.ColumnsFilterConfigDto;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
-import com.ctrip.framework.drc.console.service.ColumnsFilterService;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -35,8 +33,6 @@ public class BuildController {
 
 
     @Autowired private RowsFilterService rowsFilterService;
-
-    @Autowired private ColumnsFilterService columnsFilterService;
 
     @Autowired private DrcBuildService drcBuildService;
 
@@ -113,33 +109,7 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
-
-    @PostMapping("columnsFilterConfig")
-    public ApiResult inputColumnsFilterConfig(@RequestBody ColumnsFilterConfigDto columnsFilterConfigDto) {
-        logger.info("[[meta=columnsFilterConfig]] load columnsFilterConfigDto: {}", columnsFilterConfigDto);
-        try {
-            if (columnsFilterConfigDto.getId() != null) {
-                return ApiResult.getSuccessInstance(columnsFilterService.updateColumnsFilterConfig(columnsFilterConfigDto));
-            } else {
-                return ApiResult.getSuccessInstance(columnsFilterService.addColumnsFilterConfig(columnsFilterConfigDto));
-            }
-        } catch (SQLException e) {
-            logger.error("[[meta=columnsFilterConfig]] load columnsFilterConfig fail with {} ", columnsFilterConfigDto, e);
-            return ApiResult.getFailInstance("sql error in add or update columnsFilterConfig");
-        }
-    }
-
-    @DeleteMapping("columnsFilterConfig/{columnsFilterMappingId}")
-    public ApiResult deleteColumnsFilterConfig(@PathVariable Long columnsFilterMappingId) {
-        logger.info("[[meta=rowsFilterConfig]] delete rowsFilterConfig id: {}", columnsFilterMappingId);
-        try {
-            return ApiResult.getSuccessInstance(columnsFilterService.deleteColumnsFilterConfig(columnsFilterMappingId));
-        } catch (SQLException e) {
-            logger.error("[[meta=rowsFilterConfig]] delete rowsFilterConfig fail with {} ", columnsFilterMappingId, e);
-            return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
-        }
-    }
-
+    
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable (@RequestParam String namespace,
                                     @RequestParam String name,

@@ -26,6 +26,13 @@ public class ColumnsFilterTbl implements DalPojo {
     private Long id;
 
     /**
+     * data_media_id
+     */
+    @Column(name = "data_media_id")
+    @Type(value = Types.BIGINT)
+    private Long dataMediaId;
+    
+    /**
      * 列过滤配置 模式 exclude, include
      */
     @Column(name = "mode")
@@ -66,6 +73,14 @@ public class ColumnsFilterTbl implements DalPojo {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getDataMediaId() {
+        return dataMediaId;
+    }
+
+    public void setDataMediaId(Long dataMediaId) {
+        this.dataMediaId = dataMediaId;
     }
 
     public String getMode() {
