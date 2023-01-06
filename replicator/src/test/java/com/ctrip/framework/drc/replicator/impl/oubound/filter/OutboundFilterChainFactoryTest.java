@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.extract.ExtractFilter;
-import com.ctrip.framework.drc.replicator.impl.oubound.filter.extract.RowsFilter;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -221,4 +220,209 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         }
     }
 
+    @Test
+    public void testDoFilter_columnsFilter() throws Exception {
+        doTestDoFilter_columnsFilter(COLUMNS_FILTER_PROPERTIES_EXCLUDE);
+        doTestDoFilter_columnsFilter(COLUMNS_FILTER_PROPERTIES_EXCLUDE_MIX_CASE);
+        doTestDoFilter_columnsFilter(COLUMNS_FILTER_PROPERTIES_INCLUDE);
+        doTestDoFilter_columnsFilter(COLUMNS_FILTER_PROPERTIES_INCLUDE_MIX_CASE);
+    }
+
+    public void doTestDoFilter_columnsFilter(String columnsFilterProperty) throws Exception {
+        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", columnsFilterProperty), outboundMonitorReport);
+        filterChainFactory = new OutboundFilterChainFactory();
+
+
+        Filter<OutboundLogEventContext> filterChain = filterChainFactory.createFilterChain(filterChainContext);
+
+        // drc_table_map_log_event
+        TableMapLogEvent tableMapLogEvent = drcTableMapEvent();
+        String tableName = tableMapLogEvent.getSchemaNameDotTableName();
+        ByteBuf byteBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
+        int endIndex = byteBuf.writerIndex();
+        ByteBuffer byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        byteBuf = tableMapLogEvent.getPayloadBuf();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        long previousPosition = 0;
+        long currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.drc_table_map_log_event;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        boolean noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRewrite);
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // gtid_log_event
+        byteBuf = getGtidEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        logEventType = LogEventType.gtid_log_event;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRewrite);
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // table_map_log_event
+        byteBuf = tableMapEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        logEventType = LogEventType.table_map_log_event;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRewrite);
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.write_rows_event_v2;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRewrite);
+        Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.write_rows_event_v2;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRewrite);
+        Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // rows_log_event
+        byteBuf = writeRowsEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.write_rows_event_v2;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertFalse(noRewrite);
+        Assert.assertNotNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNotNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+
+        fileChannel.position(currentPosition);
+        previousPosition = currentPosition;
+
+        // xid_log_event
+        byteBuf = getXidEvent();
+        endIndex = byteBuf.writerIndex();
+        byteBuffer = byteBuf.internalNioBuffer(0, endIndex);
+        fileChannel.write(byteBuffer);
+
+        currentPosition = fileChannel.position();
+        fileChannel.position(previousPosition + eventHeaderLengthVersionGt1);
+
+        logEventType = LogEventType.xid_log_event;
+        outboundLogEventContext = new OutboundLogEventContext(fileChannel, previousPosition + eventHeaderLengthVersionGt1, logEventType, currentPosition - previousPosition, "");
+        noRewrite = filterChain.doFilter(outboundLogEventContext);
+        Assert.assertTrue(noRewrite);
+
+        Assert.assertNull(outboundLogEventContext.getDrcTableMap(tableName));
+        Assert.assertNull(outboundLogEventContext.getTableMapWithinTransaction(table_id));
+
+        // test release
+        Filter successor = filterChain.getSuccessor();
+        while (successor != null) {
+            if (successor instanceof TableFilter) {
+                TableFilter filter = (TableFilter) successor;
+                Assert.assertFalse(filter.getDrcTableMap().isEmpty());
+                filterChain.release();
+                Assert.assertTrue(filter.getDrcTableMap().isEmpty());
+            }
+            successor = successor.getSuccessor();
+        }
+    }
+
+    private String COLUMNS_FILTER_PROPERTIES_EXCLUDE = "{" +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"exclude\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"one\"" +
+            "        ]" +
+            "    }" +
+            "  ]" +
+            "}";
+
+    private String COLUMNS_FILTER_PROPERTIES_EXCLUDE_MIX_CASE = "{" +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"exclude\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"one\"," +
+            "          \"THREe\"" +
+            "        ]" +
+            "    }" +
+            "  ]" +
+            "}";
+
+    private String COLUMNS_FILTER_PROPERTIES_INCLUDE = "{" +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"include\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"datachange_lasttime\"" +
+            "        ]" +
+            "    }" +
+            "  ]" +
+            "}";
+
+    private String COLUMNS_FILTER_PROPERTIES_INCLUDE_MIX_CASE = "{" +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"include\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"id\"," +
+            "          \"TWO\"" +
+            "        ]" +
+            "    }" +
+            "  ]" +
+            "}";
 }
