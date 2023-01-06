@@ -38,7 +38,7 @@ public class DeleteRowsEventTest extends AbstractEventTest {
         ByteBuf payload = newDeleteRowsEvent.getPayloadBuf().resetReaderIndex();
         CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
         compositeByteBuf.addComponents(true, header, payload);
-        WriteRowsEvent readFromByteBuf = new WriteRowsEvent().read(compositeByteBuf);
+        DeleteRowsEvent readFromByteBuf = new DeleteRowsEvent().read(compositeByteBuf);
         readFromByteBuf.load(columns);
 
         // header
@@ -74,6 +74,67 @@ public class DeleteRowsEventTest extends AbstractEventTest {
         }
         Assert.assertEquals(filteredBeforeRows.get(0).getBeforeValues(), afterRows.get(0).getBeforeValues());
         Assert.assertEquals(filteredBeforeRows.get(0).getAfterValues(), afterRows.get(0).getAfterValues());
+    }
+
+
+    @Test
+    public void testFilterColumn() throws IOException {
+        DeleteRowsEvent localDeleteRowsEvent = getDeleteRowsEvent();
+
+        List<Integer> columnsIndex = Lists.newArrayList(0, 2, 3, 4, 5);
+        localDeleteRowsEvent.extractColumns(columnsIndex);
+
+        columns.removeColumn("one");
+        DeleteRowsEvent newDeleteRowsEvent = new FilteredDeleteRowsEvent(localDeleteRowsEvent, columns);
+
+        ByteBuf header = newDeleteRowsEvent.getLogEventHeader().getHeaderBuf().resetReaderIndex();
+        ByteBuf payload = newDeleteRowsEvent.getPayloadBuf().resetReaderIndex();
+        CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+        compositeByteBuf.addComponents(true, header, payload);
+        DeleteRowsEvent readFromByteBuf = new DeleteRowsEvent().read(compositeByteBuf);
+        readFromByteBuf.load(columns);
+
+
+        // header
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getFlags(), deleteRowsEvent.getLogEventHeader().getFlags());
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getServerId(), deleteRowsEvent.getLogEventHeader().getServerId());
+        Assert.assertEquals(readFromByteBuf.getLogEventHeader().getEventType(), deleteRowsEvent.getLogEventHeader().getEventType());
+
+        // post header
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getTableId(), deleteRowsEvent.getRowsEventPostHeader().getTableId());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getFlags(), deleteRowsEvent.getRowsEventPostHeader().getFlags());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getExtraDataLength(), deleteRowsEvent.getRowsEventPostHeader().getExtraDataLength());
+        Assert.assertEquals(readFromByteBuf.getRowsEventPostHeader().getExtraData(), deleteRowsEvent.getRowsEventPostHeader().getExtraData());
+
+        // payload
+        Assert.assertEquals(readFromByteBuf.getNumberOfColumns(), deleteRowsEvent.getNumberOfColumns() - 1);
+        Assert.assertEquals(readFromByteBuf.getBeforePresentBitMap(), deleteRowsEvent.getBeforePresentBitMap());
+        Assert.assertEquals(readFromByteBuf.getAfterPresentBitMap(), deleteRowsEvent.getAfterPresentBitMap());
+        Assert.assertEquals(readFromByteBuf.getChecksum(), deleteRowsEvent.getChecksum());
+
+        // rows
+        List<AbstractRowsEvent.Row> beforeRows = deleteRowsEvent.getRows();
+        List<AbstractRowsEvent.Row> afterRows = readFromByteBuf.getRows();
+        Assert.assertNotEquals(beforeRows, afterRows);
+        Assert.assertEquals(beforeRows.size(), 4);
+        Assert.assertEquals(afterRows.size(), 4);
+
+        // columns
+        AbstractRowsEvent.Row beforeRow = beforeRows.get(0);
+        AbstractRowsEvent.Row afterRow = afterRows.get(0);
+        List<Object> before_beforeValue = beforeRow.getBeforeValues();
+        List<Object> after_beforeValue = afterRow.getBeforeValues();
+        Assert.assertEquals(before_beforeValue.size() - 1, after_beforeValue.size());
+        Assert.assertEquals(before_beforeValue.get(0), after_beforeValue.get(0));
+        Assert.assertEquals(before_beforeValue.get(2), after_beforeValue.get(1));
+        Assert.assertEquals(before_beforeValue.get(3), after_beforeValue.get(2));
+        Assert.assertEquals(before_beforeValue.get(4), after_beforeValue.get(3));
+        Assert.assertEquals(before_beforeValue.get(5), after_beforeValue.get(4));
+
+        List<Object> before_afterValue = beforeRow.getAfterValues();
+        List<Object> after_afterValue = afterRow.getAfterValues();
+        Assert.assertNull(before_afterValue);
+        Assert.assertNull(after_afterValue);
     }
 
     @Override
