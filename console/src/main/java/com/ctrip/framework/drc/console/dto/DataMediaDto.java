@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.dto;
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @ClassName DataMediaDto
@@ -10,26 +11,48 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
  */
 public class DataMediaDto {
 
-    private Long id;
+    private long id;
     
-    private Long applierGroupId;
+    private long applierGroupId;
 
     private String namespace;
 
     private String name;
 
-    // see DataMediaTypeEnum
-    private Integer type;
+    // see DataMediaTypeEnum,default 0
+    private int type;
 
-    private Long dataMediaSourceId;
-
-    // todo ,does it necessary?
-    private String dataMediaSourceName;
+    private long dataMediaSourceId;
 
     public DataMediaTbl transferTo() {
-        return null;
+        DataMediaTbl dataMediaTbl = new DataMediaTbl();
+        if (id != 0) {
+            dataMediaTbl.setId(id);
+        }
+        if (applierGroupId == 0) {
+            throw new IllegalArgumentException("applierGroupId shouldn't be zero");
+        } else {
+            dataMediaTbl.setApplierGroupId(applierGroupId);
+        }
+        if (StringUtils.isBlank(namespace)) {
+            throw new IllegalArgumentException("namespace shouldn't be blank");
+        } else {
+            dataMediaTbl.setNamespcae(namespace);
+        }
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("name shouldn't be blank");
+        } else {
+            dataMediaTbl.setName(name);
+        }
+        dataMediaTbl.setType(type);
+        if (dataMediaSourceId == 0) {
+            throw new IllegalArgumentException("dataMediaSourceId shouldn't be zero");
+        } else {
+            dataMediaTbl.setDataMediaSourceId(dataMediaSourceId);
+        }
+        return dataMediaTbl;
     }
-    
+
     @Override
     public String toString() {
         return "DataMediaDto{" +
@@ -39,23 +62,22 @@ public class DataMediaDto {
                 ", name='" + name + '\'' +
                 ", type=" + type +
                 ", dataMediaSourceId=" + dataMediaSourceId +
-                ", dataMediaSourceName='" + dataMediaSourceName + '\'' +
                 '}';
     }
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(long id) {
         this.id = id;
     }
 
-    public Long getApplierGroupId() {
+    public long getApplierGroupId() {
         return applierGroupId;
     }
 
-    public void setApplierGroupId(Long applierGroupId) {
+    public void setApplierGroupId(long applierGroupId) {
         this.applierGroupId = applierGroupId;
     }
 
@@ -75,29 +97,19 @@ public class DataMediaDto {
         this.name = name;
     }
 
-    public Integer getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(Integer type) {
+    public void setType(int type) {
         this.type = type;
     }
 
-    public Long getDataMediaSourceId() {
+    public long getDataMediaSourceId() {
         return dataMediaSourceId;
     }
 
-    public void setDataMediaSourceId(Long dataMediaSourceId) {
+    public void setDataMediaSourceId(long dataMediaSourceId) {
         this.dataMediaSourceId = dataMediaSourceId;
     }
-
-    public String getDataMediaSourceName() {
-        return dataMediaSourceName;
-    }
-
-    public void setDataMediaSourceName(String dataMediaSourceName) {
-        this.dataMediaSourceName = dataMediaSourceName;
-    }
-
-    
 }

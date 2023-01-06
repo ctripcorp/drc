@@ -54,19 +54,23 @@ public class DataMediaServiceImpl implements DataMediaService {
     @Override
     public Long processAddDataMedia(DataMediaDto dataMediaDto) throws SQLException {
         DataMediaTbl dataMediaTbl = dataMediaDto.transferTo();
-        dataMediaTblDao.insertReturnPk();
-        return null;
+        return dataMediaTblDao.insertReturnPk(dataMediaTbl);
     }
 
     @Override
     public Long processUpdateDataMedia(DataMediaDto dataMediaDto) throws SQLException {
         DataMediaTbl dataMediaTbl = dataMediaDto.transferTo();
-        return null;
+        int update = dataMediaTblDao.update(dataMediaTbl);
+        return update == 1 ? dataMediaTbl.getId() : 0L;
     }
 
     @Override
     public Long processDeleteDataMedia(Long dataMediaId) throws SQLException {
-        return null;
+        DataMediaTbl dataMediaTbl = new DataMediaTbl();
+        dataMediaTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        dataMediaTbl.setId(dataMediaId);
+        int update = dataMediaTblDao.update(dataMediaTbl);
+        return update == 1 ? dataMediaTbl.getId() : 0L;
     }
 
     

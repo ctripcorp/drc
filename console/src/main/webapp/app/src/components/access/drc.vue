@@ -88,9 +88,9 @@
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInDestApplier">配置行过滤</Button>
           </FormItem>
-          <FormItem label="同步配置" style="width: 600px">
-            <Button type="primary" ghost @click="goToConfigVos">同步表管理</Button>
-          </FormItem>
+<!--          <FormItem label="同步配置" style="width: 600px">-->
+<!--            <Button type="primary" ghost @click="goToConfigVos">同步表管理</Button>-->
+<!--          </FormItem>-->
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.newApplyMode" style="width:200px">
               <Option v-for="item in applyModeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
