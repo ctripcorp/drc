@@ -33,7 +33,7 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
         LogEvent logEvent = value.getLogEvent();
         LogEventType logEventType = logEvent.getLogEventType();
 
-        if (filtered) {
+        if (shouldProcess(filtered)) {
             switch (logEventType) {
                 case gtid_log_event:
                     previousGtid = ((GtidLogEvent) logEvent).getGtid();
@@ -60,6 +60,10 @@ public class DelayMonitorFilter extends AbstractPostLogEventFilter<InboundLogEve
     public void reset() {
         previousGtid = StringUtils.EMPTY;
         super.reset();
+    }
+
+    protected boolean shouldProcess(boolean filtered) {
+        return filtered;
     }
 
 }

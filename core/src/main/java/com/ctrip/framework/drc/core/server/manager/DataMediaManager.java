@@ -12,7 +12,7 @@ import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterRule;
 import java.util.List;
 import java.util.Optional;
 
-import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.No_Filtered;
+import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.No_Filter_Rule;
 
 /**
  * @Author limingdong
@@ -31,7 +31,7 @@ public class DataMediaManager implements RowsFilterRule<List<List<Object>>>, Col
         String tableName = rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName();
         Optional<RowsFilterRule> optional = dataMediaConfig.getRowsFilterRule(tableName);
         if (optional.isEmpty()) {
-            return new RowsFilterResult(No_Filtered);
+            return new RowsFilterResult(No_Filter_Rule);
         }
 
         RowsFilterRule rowsFilterRule = optional.get();

@@ -109,7 +109,7 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
-
+    
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable (@RequestParam String namespace,
                                     @RequestParam String name,

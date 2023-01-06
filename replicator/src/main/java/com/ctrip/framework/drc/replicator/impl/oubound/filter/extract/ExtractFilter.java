@@ -35,7 +35,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         LogEventType eventType = value.getEventType();
-        AbstractRowsEvent beforeRowsEvent = null;
+        AbstractRowsEvent beforeRowsEvent;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (eventType) {
@@ -48,19 +48,17 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                     case delete_rows_event_v2:
                         beforeRowsEvent = new FilteredDeleteRowsEvent();
                         break;
+                    default:
+                        throw new RuntimeException("row event type does not exist: " + eventType.toString());
                 }
-                Pair<TableMapLogEvent, Columns> pair = loadEvent(beforeRowsEvent, value);
 
+                Pair<TableMapLogEvent, Columns> pair = loadEvent(beforeRowsEvent, value);
                 TableMapLogEvent drcTableMapLogEvent = pair.getKey();
                 String tableName = drcTableMapLogEvent.getSchemaNameDotTableName();
-
                 Columns columns = pair.getValue();
                 List<Integer> extractedColumnsIndex = value.getExtractedColumnsIndex(tableName);
 
-                extractContext.setRowsEvent(beforeRowsEvent);
-                extractContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
-                extractContext.setGtid(value.getGtid());
-                extractContext.setExtractedColumnsIndex(extractedColumnsIndex);
+                updateExtractContext(beforeRowsEvent, drcTableMapLogEvent, value.getGtid(), extractedColumnsIndex);
                 filterChain.doFilter(extractContext);
 
                 boolean shouldRewrite = extractContext.extracted();
@@ -76,15 +74,9 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                         logger.error("[ExtractFilter] error", e);
                         value.setCause(e);
                     } finally {
-                        if (beforeRowsEvent != null) {
-                            beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
-                        }
+                        beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
                     }
                 }
-
-                //clear
-                extractContext.setRowsExtracted(false);
-                extractContext.setColumnsExtracted(false);
             }
         } catch (Exception e) {
             logger.error("[ExtractFilter] error", e);
@@ -92,6 +84,16 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
         }
 
         return doNext(value, value.isNoRewrite());
+    }
+
+    private void updateExtractContext(AbstractRowsEvent beforeRowsEvent, TableMapLogEvent drcTableMapLogEvent,
+                                      String gtid, List<Integer> extractedColumnsIndex) {
+        extractContext.setRowsExtracted(false);
+        extractContext.setColumnsExtracted(false);
+        extractContext.setRowsEvent(beforeRowsEvent);
+        extractContext.setDrcTableMapLogEvent(drcTableMapLogEvent);
+        extractContext.setGtid(gtid);
+        extractContext.setExtractedColumnsIndex(extractedColumnsIndex);
     }
 
     private Columns getExtractedColumns(Columns columns, List<Integer> extractedColumnsIndex) {
