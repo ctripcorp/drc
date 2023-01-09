@@ -343,6 +343,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             mhaString = mhaDelayInfoJson;
         }
         
+        if (!isReplicatorMaster && !mhaString.equalsIgnoreCase(config.getDestMha())) {
+            // filter same region drc other mha delayInfo 
+            return;
+        }
+        
         String delayString = (String) values.get(3);
         log("mha: " + mhaString + ", delayString: " + delayString + ", GTID: " + gtid, INFO, null);
 
