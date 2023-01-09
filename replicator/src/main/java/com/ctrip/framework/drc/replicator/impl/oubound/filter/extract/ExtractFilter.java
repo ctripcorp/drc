@@ -13,6 +13,7 @@ import com.ctrip.xpipe.tuple.Pair;
 
 import java.util.List;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.xid_log_event;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 import static com.ctrip.framework.drc.core.server.utils.RowsEventUtils.transformMetaAndType;
 
@@ -77,6 +78,8 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                         beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
                     }
                 }
+            } else if (xid_log_event == eventType) {
+                extractContext.clear();
             }
         } catch (Exception e) {
             logger.error("[ExtractFilter] error", e);

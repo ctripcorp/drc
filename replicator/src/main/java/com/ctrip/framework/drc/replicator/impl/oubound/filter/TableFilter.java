@@ -72,6 +72,8 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             value.setTableMapWithinTransaction(tableMapWithinTransaction);
             value.setDrcTableMap(drcTableMap);
             value.setExtractedColumnsIndexMap(extractedColumnsIndexMap);
+        } else if (xid_log_event == eventType) {
+            value.setNoRewrite(false);
         } else {
             value.setNoRewrite(true);
         }
