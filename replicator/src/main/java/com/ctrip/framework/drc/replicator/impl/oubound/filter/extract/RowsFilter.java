@@ -40,6 +40,7 @@ public class RowsFilter extends AbstractLogEventFilter<ExtractFilterContext> {
     public boolean doFilter(ExtractFilterContext context) {
         if (shouldFilterRows) {
             try {
+                context.setRowsFilterContext(rowsFilterContext);
                 AbstractRowsEvent beforeRowsEvent = context.getRowsEvent();
                 boolean noRowFiltered = handRowsEvent(beforeRowsEvent, context);
                 context.setRowsExtracted(!noRowFiltered);

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter.extract;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.AbstractRowsEvent;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterContext;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ public class ExtractFilterContext {
     private TableMapLogEvent drcTableMapLogEvent;
 
     private List<Integer> extractedColumnsIndex;
+
+    private RowsFilterContext rowsFilterContext;
 
     private AbstractRowsEvent rowsEvent;
 
@@ -58,6 +61,14 @@ public class ExtractFilterContext {
         this.extractedColumnsIndex = extractedColumnsIndex;
     }
 
+    public RowsFilterContext getRowsFilterContext() {
+        return rowsFilterContext;
+    }
+
+    public void setRowsFilterContext(RowsFilterContext rowsFilterContext) {
+        this.rowsFilterContext = rowsFilterContext;
+    }
+
     public AbstractRowsEvent getRowsEvent() {
         return rowsEvent;
     }
@@ -72,5 +83,9 @@ public class ExtractFilterContext {
 
     public void setGtid(String gtid) {
         this.gtid = gtid;
+    }
+
+    public void clear() {
+        rowsFilterContext.clear();
     }
 }
