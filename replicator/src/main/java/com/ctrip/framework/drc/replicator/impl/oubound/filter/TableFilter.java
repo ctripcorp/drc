@@ -65,7 +65,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
             if (previousTableMapLogEvent != null) {
                 String tableName = previousTableMapLogEvent.getSchemaNameDotTableName();
                 previousTableMapLogEvent.release();
-                ROWS_FILTER_LOGGER.info("[Release] TableMapLogEvent for {} of type {}", tableName, previousTableMapLogEvent.getLogEventType());
+                ROWS_FILTER_LOGGER.debug("[Release] TableMapLogEvent for {} of type {}", tableName, previousTableMapLogEvent.getLogEventType());
             }
             value.restorePosition();
         } else if (LogEventUtils.isRowsEvent(eventType)) {
@@ -168,7 +168,7 @@ public class TableFilter extends AbstractLogEventFilter<OutboundLogEventContext>
     public void release() {
         releaseTableMapEvent();
         releaseDrcTableMapEvent();
-        ROWS_FILTER_LOGGER.info("[Release] TableMapLogEvent within {}", getClass().getSimpleName());
+        ROWS_FILTER_LOGGER.debug("[Release] TableMapLogEvent within {}", getClass().getSimpleName());
     }
 
     private void releaseTableMapEvent() {
