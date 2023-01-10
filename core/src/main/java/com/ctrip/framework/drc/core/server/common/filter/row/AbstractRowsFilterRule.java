@@ -118,7 +118,7 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
                 lastValue = rowValue.get(index);
                 filterResult = handleValue(lastValue, parameters, rowsFilterContext);
                 if (Illegal != filterResult) {
-                    rowsFilterContext.putIfAbsent(new CacheKey(i, lastValue), filterResult);
+                    rowsFilterContext.putIfAbsent(new CacheKey(parameters.getUserFilterMode(), lastValue), filterResult);
                     return filterResult;
                 }
             }
@@ -129,11 +129,11 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
                     rowsFilterContext.getDrcTableMapLogEvent().getSchemaNameDotTableName(),
                     registryKey));
         }
-        return handleIllegal(new CacheKey(parametersList.size() - 1, lastValue), filterResult, parameters, rowsFilterContext);
+        return handleIllegal(new CacheKey(parametersList.get(parametersList.size() - 1).getUserFilterMode(), lastValue), filterResult, parameters, rowsFilterContext);
     }
 
     private RowsFilterResult.Status handleValue(Object field, RowsFilterConfig.Parameters parameters, RowsFilterContext rowsFilterContext) throws Exception {
-        RowsFilterResult.Status filterResult = rowsFilterContext.get(field);
+        RowsFilterResult.Status filterResult = rowsFilterContext.get(new CacheKey(parameters.getUserFilterMode(), field));
         if (filterResult == null) {
             filterResult = doFilterRows(field, parameters);
         } else {
@@ -157,11 +157,11 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
     }
 
     static class CacheKey {
-        private int index;
+        private String userFilterMode;
         private Object lastValue;
 
-        public CacheKey(int index, Object lastValue) {
-            this.index = index;
+        public CacheKey(String userFilterMode, Object lastValue) {
+            this.userFilterMode = userFilterMode;
             this.lastValue = lastValue;
         }
 
@@ -170,14 +170,14 @@ public abstract class AbstractRowsFilterRule implements RowsFilterRule<List<Abst
             if (this == o) return true;
             if (!(o instanceof CacheKey)) return false;
             CacheKey cacheKey = (CacheKey) o;
-            return index == cacheKey.index &&
+            return Objects.equals(userFilterMode, cacheKey.userFilterMode) &&
                     Objects.equals(lastValue, cacheKey.lastValue);
         }
 
         @Override
         public int hashCode() {
 
-            return Objects.hash(index, lastValue);
+            return Objects.hash(userFilterMode, lastValue);
         }
     }
 }
