@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.vo.MessengerVo;
 import com.ctrip.framework.drc.console.vo.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -25,6 +26,7 @@ import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -254,5 +256,30 @@ public class MessengerServiceImpl implements MessengerService {
         }
         return true;
     }
-    
+
+    @Override
+    public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
+        List<MessengerInfo> res = Lists.newArrayList();
+        
+        MessengerGroupTbl sample = new MessengerGroupTbl();
+        sample.setDeleted(BooleanEnum.FALSE.getCode());
+        List<MessengerGroupTbl> mGroups = messengerGroupTblDao.queryBy(sample);
+        for (MessengerGroupTbl mGroup : mGroups) {
+            MessengerInfo mInfo = new MessengerInfo();
+            MhaTbl mhaTbl = mhaTblDao.queryByPk(mGroup.getMhaId());
+            mInfo.setMhaName(mhaTbl.getMhaName());
+            List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getDataMediaPairs(mGroup.getId());
+            if (CollectionUtils.isEmpty(dataMediaPairs)) {
+                continue;
+            } else {
+                List<String> tables = dataMediaPairs.stream().map(DataMediaPairTbl::getSrcDataMediaName)
+                        .collect(Collectors.toList());
+                mInfo.setNameFilter(StringUtils.join(tables,","));
+            }
+            res.add(mInfo);
+        }
+        return res;
+    }
+
+
 }
