@@ -265,6 +265,10 @@ public class MessengerServiceImpl implements MessengerService {
         sample.setDeleted(BooleanEnum.FALSE.getCode());
         List<MessengerGroupTbl> mGroups = messengerGroupTblDao.queryBy(sample);
         for (MessengerGroupTbl mGroup : mGroups) {
+            List<MessengerTbl> messengers = messengerTblDao.queryByGroupId(mGroup.getId());
+            if (CollectionUtils.isEmpty(messengers)) {
+                continue;
+            }
             MessengerInfo mInfo = new MessengerInfo();
             MhaTbl mhaTbl = mhaTblDao.queryByPk(mGroup.getMhaId());
             mInfo.setMhaName(mhaTbl.getMhaName());
