@@ -86,6 +86,8 @@ public class ExtractFilterContext {
     }
 
     public void clear() {
-        rowsFilterContext.clear();
+        if (rowsFilterContext != null) {
+            rowsFilterContext.clear();
+        }
     }
 }
