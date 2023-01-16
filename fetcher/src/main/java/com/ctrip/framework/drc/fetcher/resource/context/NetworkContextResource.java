@@ -34,7 +34,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     private Endpoint endpoint;
 
     @InstanceConfig(path = "target.ip")
-    public String ip;
+    public String ip = "";
 
     @InstanceConfig(path = "target.port")
     public int port;
