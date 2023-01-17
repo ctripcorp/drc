@@ -31,8 +31,6 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @InstanceResource
     public MqPosition mqPosition;
 
-    private Endpoint endpoint;
-
     @InstanceConfig(path = "target.ip")
     public String ip = "";
 
@@ -48,7 +46,6 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @Override
     public void doInitialize() throws Exception {
         super.doInitialize();
-        endpoint = new DefaultEndPoint(ip, port, username, password);
         GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
         updateGtidSet(executedGtidSet);
         updateGtid("");
@@ -56,6 +53,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
 
     public GtidSet queryTheNewestGtidset() {
         if (Applier == ApplyMode.getApplyMode(applyMode).getConsumeType()) {
+            Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
             ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
             String gtidFromDb = queryTask.doQuery();
             logger.info("[{}][NETWORK GTID] query the newest gtidset from DB is: {}", registryKey, gtidFromDb);
