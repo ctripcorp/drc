@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.server.common.enums.ConsumeType.Applier;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CONFIG_FILE_NAME;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
 
 /**
  * @Author Slight
@@ -52,6 +53,10 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     }
 
     public GtidSet queryTheNewestGtidset() {
+        if (isIntegrityTest()) {
+            return null;
+        }
+
         if (Applier == ApplyMode.getApplyMode(applyMode).getConsumeType()) {
             Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
             ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
