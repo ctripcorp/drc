@@ -21,7 +21,7 @@
             @on-ok="clearDetail"
             @on-cancel="clearDetail">
             {{ this.detail.querySql }}
-            <Row gutter="5px">
+            <Row :gutter="5">
               <i-col span="12">
                 <List border>
                   <ListItem>字段名</ListItem>

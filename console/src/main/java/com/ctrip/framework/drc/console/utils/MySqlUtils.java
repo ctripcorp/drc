@@ -91,7 +91,8 @@ public class MySqlUtils {
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
-    private static final String GET_ON_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
+    private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
+    private static final String GET_ON_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp','datetime') and EXTRA like 'on update%';";
     private static final int COLUMN_INDEX = 1;
     
     
@@ -638,6 +639,10 @@ public class MySqlUtils {
                 tableVo.setNoOnUpdateColumn(true);
                 tableVo.setNoOnUpdateKey(true);
             } else {
+                String standardOnUpdateColumn = getColumn(endpoint, GET_STANDARD_UPDATE_COLUMN, table, false);
+                if (StringUtils.isEmpty(standardOnUpdateColumn)) {
+                    tableVo.setNoStandardOnUpdateColumn(true);
+                }
                 tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
             }
             String createTblStmt = getCreateTblStmt(endpoint, table, false);

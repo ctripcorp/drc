@@ -1,11 +1,7 @@
 <template>
-  <div style="margin-top: 100px">
-    <Card style="margin-left:250px; width:650px">
       <div style="text-align:center">
-        <h3>行过滤配置暂未迁移，请使用老方式！</h3>
+        <h3 >行过滤配置暂未迁移，请使用老方式！</h3>
       </div>
-    </Card>
-  </div>
 </template>
 
 <script>
@@ -19,7 +15,8 @@ export default {
     destDc: String,
     dataMediaId: Number,
     namespace: String,
-    name: String
+    name: String,
+    tableData: Array
   },
   data () {
     return {

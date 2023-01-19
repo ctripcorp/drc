@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
+
 /**
  * @ClassName ColumnsFilterTblDao
  * @Author haodongPan
@@ -21,13 +23,18 @@ public class ColumnsFilterTblDao extends AbstractDao<ColumnsFilterTbl>{
         super(ColumnsFilterTbl.class);
     }
 
-    public List<ColumnsFilterTbl> queryByDataMediaId(Long dataMediaId, Integer deleted) throws SQLException {
+    public ColumnsFilterTbl queryByDataMediaId(Long dataMediaId, Integer deleted) throws SQLException {
         if (dataMediaId == null) {
             throw new IllegalArgumentException("build sql: query ColumnsFilterTbl By dataMediaId ,but it is empty");
         }
         SelectSqlBuilder builder = new SelectSqlBuilder();
         builder.selectAll().equal("data_media_id", dataMediaId, Types.BIGINT)
                 .and().equal("deleted", deleted, Types.TINYINT);
-        return client.query(builder,new DalHints());
+        List<ColumnsFilterTbl> res = client.query(builder, new DalHints());
+        if (CollectionUtils.isEmpty(res)) {
+            return null;
+        } else {
+            return res.get(0);
+        }
     }
 }

@@ -9,10 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -28,7 +30,19 @@ public class DataMediaController {
     private Logger logger = LoggerFactory.getLogger(getClass());
     
     @Autowired private DataMediaService dataMediaService;
-
+    
+    
+    @GetMapping("vos")
+    public ApiResult getAllDataMediaVos(@RequestParam Long applierGroupId) {
+        logger.info("[[query=dataMediaVo]] query applierGroupId:{}", applierGroupId);
+        try {
+            return ApiResult.getSuccessInstance(dataMediaService.getAllDataMediaVos(applierGroupId));
+        } catch (SQLException e) {
+            logger.error("[[query=dataMediaVo]] query applierGroupId:{}", applierGroupId,e);
+            return ApiResult.getFailInstance("sql error in getAllDataMediaVos");
+        }
+    }
+    
 
     @PostMapping("dataMediaConfig")
     public ApiResult inputDataMediaConfig(@RequestBody DataMediaDto dataMediaDto) {
@@ -53,6 +67,22 @@ public class DataMediaController {
         } catch (SQLException e) {
             logger.error("[[meta=dataMediaConfig]] delete dataMediaConfig fail with {} ", dataMediaId, e);
             return ApiResult.getFailInstance("sql error in delete dataMediaConfig");
+        }
+    }
+    
+    
+    @GetMapping("columnsFilterConfig")
+    public ApiResult getColumnsFilterConfig(@RequestParam Long dataMediaId) {
+        logger.info("[[query=columnsFilterConfig]]  dataMediaId: {}", dataMediaId);
+        try {
+            if (dataMediaId == 0) {
+                return ApiResult.getFailInstance("dataMediaId is 0");
+            } else {
+                return ApiResult.getSuccessInstance(dataMediaService.getColumnsFilterConfig(dataMediaId));
+            }
+        } catch (SQLException e) {
+            logger.error("[[query=columnsFilterConfig]] fail, dataMediaId: {}", dataMediaId, e);
+            return ApiResult.getFailInstance("sql error in getColumnsFilterConfig");
         }
     }
     

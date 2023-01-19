@@ -27,16 +27,15 @@ public class ColumnsFilterServiceImpl implements ColumnsFilterService {
 
     @Override
     public ColumnsFilterConfig generateColumnsFilterConfig(DataMediaTbl dataMediaTbl) throws SQLException {
-        List<ColumnsFilterTbl> columnFilterTbls = columnsFilterTblDao.queryByDataMediaId(dataMediaTbl.getId(),
+        ColumnsFilterTbl columnsFilterTbl = columnsFilterTblDao.queryByDataMediaId(dataMediaTbl.getId(),
                 BooleanEnum.FALSE.getCode());
-        if (CollectionUtils.isEmpty(columnFilterTbls)) {
+        if (null == columnsFilterTbl) {
             return null;
         } else {
-            ColumnsFilterTbl columnFilterTbl = columnFilterTbls.get(0);
             ColumnsFilterConfig columnsFilterConfig = new ColumnsFilterConfig();
             columnsFilterConfig.setTables(dataMediaTbl.getFullName());
-            columnsFilterConfig.setMode(columnFilterTbl.getMode());
-            columnsFilterConfig.setColumns(JsonUtils.fromJsonToList(columnFilterTbl.getColumns(),String.class));
+            columnsFilterConfig.setMode(columnsFilterTbl.getMode());
+            columnsFilterConfig.setColumns(JsonUtils.fromJsonToList(columnsFilterTbl.getColumns(),String.class));
             return columnsFilterConfig;
         }
     }
@@ -62,6 +61,19 @@ public class ColumnsFilterServiceImpl implements ColumnsFilterService {
         columnsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
         int update = columnsFilterTblDao.update(columnsFilterTbl);
         return update == 1 ? "delete ColumnsFilterConfig success" : "delete ColumnsFilterConfig fail";
-    } 
-   
+    }
+
+    @Override
+    public ColumnsFilterTbl getColumnsFilterTbl(Long dataMediaId) throws SQLException {
+        return columnsFilterTblDao.queryByDataMediaId(dataMediaId, BooleanEnum.FALSE.getCode());
+    }
+
+    @Override
+    public void deleteColumnsFilter(Long dataMediaId) throws SQLException {
+        ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
+        columnsFilterTbl.setDataMediaId(dataMediaId);
+        columnsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        columnsFilterTblDao.update(columnsFilterTbl);
+    }
+
 }
