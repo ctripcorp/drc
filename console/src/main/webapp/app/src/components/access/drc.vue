@@ -770,6 +770,7 @@ export default {
       //   query: {
       //     initInfo: {
       //       srcMha: 'destMha',
+      //       srcMhaId: 0,
       //       destMha: 'srcMha',
       //       applierGroupId: 0,
       //       srcDc: 'destDc',

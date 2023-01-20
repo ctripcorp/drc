@@ -14,13 +14,31 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
-        <Col span="22">
+        <Col span="20">
           <span style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMha}}({{initInfo.srcDc}})==>{{initInfo.destMha}}({{initInfo.destDc}})</span>
+        </Col>
+        <Col span="2">
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="showPropertiesJson">总览</Button>
         </Col>
         <Col span="2">
           <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToTableConfigFlow">添加</Button>
         </Col>
       </Row>
+      <Modal
+        v-model="display.showPropertiesJson"
+        title="Applier properties"
+        width="800px"
+      >
+        <json-viewer
+          :value="propertiesJson"
+          :expand-depth=5
+          copyable>
+          <template v-slot:copy="{copied}">
+            <span v-if="copied">复制成功</span>
+            <span v-else>复制</span>
+          </template>
+        </json-viewer>
+      </Modal>
       <div :style="{padding: '1px 1px',height: '100%'}">
         <template>
           <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border>
@@ -37,7 +55,6 @@
 </template>
 
 <script>
-
 export default {
   name: 'tables',
   data () {
@@ -80,6 +97,10 @@ export default {
           fixed: 'right'
         }
       ],
+      display: {
+        showPropertiesJson: false
+      },
+      propertiesJson: {},
       tableData: [],
       total: 0,
       size: 5,
@@ -147,6 +168,19 @@ export default {
           } else {
             window.alert('删除成功!')
             this.getAllTableVosInApplierGroup()
+          }
+        })
+    },
+    showPropertiesJson () {
+      console.log('showPropertiesJson')
+      console.log('/api/drc/v1/dataMedia/properties?applierGroupId=' + this.initInfo.applierGroupId)
+      this.axios.get('/api/drc/v1/dataMedia/properties?applierGroupId=' + this.initInfo.applierGroupId)
+        .then(response => {
+          if (response.data.status === 1) {
+            window.alert('查询配置失败!')
+          } else {
+            this.display.showPropertiesJson = true
+            this.propertiesJson = response.data.data
           }
         })
     }

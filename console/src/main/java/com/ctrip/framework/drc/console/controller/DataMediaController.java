@@ -43,6 +43,16 @@ public class DataMediaController {
         }
     }
     
+    @GetMapping("properties")
+    public ApiResult getProperties(@RequestParam Long applierGroupId) {
+        logger.info("[[query=properties]] applierGroupId:{}", applierGroupId);
+        try {
+            return ApiResult.getSuccessInstance(dataMediaService.generateConfig(applierGroupId));
+        } catch (SQLException e) {
+            logger.error("[[query=properties]] fail, applierGroupId:{}", applierGroupId,e);
+            return ApiResult.getFailInstance("sql error in getProperties");
+        }
+    }
 
     @PostMapping("dataMediaConfig")
     public ApiResult inputDataMediaConfig(@RequestBody DataMediaDto dataMediaDto) {
@@ -85,7 +95,7 @@ public class DataMediaController {
             return ApiResult.getFailInstance("sql error in getColumnsFilterConfig");
         }
     }
-    
+     
     @PostMapping("columnsFilterConfig")
     public ApiResult inputColumnsFilterConfig(@RequestBody ColumnsFilterConfigDto columnsFilterConfigDto) {
         logger.info("[[meta=columnsFilterConfig]] load columnsFilterConfigDto: {}", columnsFilterConfigDto);
