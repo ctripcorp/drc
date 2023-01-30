@@ -42,11 +42,11 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     @Override
     public void onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
         if (nextMonitorRowsEvent) {
-            notify(getDelayMonitorLogEvent(updateRowsEvent, gtid));
+            notify(updateRowsEvent, gtid);
         }
     }
 
-    private ReferenceCountedDelayMonitorLogEvent getDelayMonitorLogEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
+    private void notify(UpdateRowsEvent updateRowsEvent, String gtid) {
         ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent = null;
         DELAY_LOGGER.debug("[Filter] with nextMonitorRowsEvent of {} with gtid {}", nextMonitorRowsEvent, gtid);
         for (Observer observer : observers) {
@@ -57,21 +57,9 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
                     delayMonitorLogEvent.retain();
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.refcnt", registerKey);
                 }
+                observer.update(delayMonitorLogEvent, this);
             }
         }
-        return delayMonitorLogEvent;
-    }
-
-    private boolean notify(ReferenceCountedDelayMonitorLogEvent delayMonitorLogEvent) {
-        boolean notify = delayMonitorLogEvent != null;
-        if (notify) {
-            for (Observer observer : observers) {
-                if (observer instanceof MonitorEventObserver) {
-                    observer.update(delayMonitorLogEvent, this);
-                }
-            }
-        }
-        return notify;
     }
 
     @Override
