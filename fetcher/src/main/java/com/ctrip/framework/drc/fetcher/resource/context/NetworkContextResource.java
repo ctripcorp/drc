@@ -54,7 +54,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
 
     public GtidSet queryTheNewestGtidset() {
         if (isIntegrityTest()) {
-            return null;
+            return fetchGtidSet();
         }
 
         if (Applier == ApplyMode.getApplyMode(applyMode).getConsumeType()) {
