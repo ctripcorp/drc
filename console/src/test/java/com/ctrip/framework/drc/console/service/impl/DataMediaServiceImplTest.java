@@ -7,8 +7,10 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dto.ColumnsFilterConfigDto;
 import com.ctrip.framework.drc.console.dto.DataMediaDto;
 import com.ctrip.framework.drc.console.service.ColumnsFilterService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.column.ColumnsFilterMode;
 import java.sql.SQLException;
 import java.util.List;
@@ -28,6 +30,8 @@ public class DataMediaServiceImplTest {
     @Mock private DataMediaTblDao dataMediaTblDao;
 
     @Mock private ColumnsFilterService columnsFilterService;
+    
+    @Mock private RowsFilterService rowsFilterService;
 
     @Before
     public void setUp() throws Exception {
@@ -47,6 +51,12 @@ public class DataMediaServiceImplTest {
         columnsFilterConfig.setColumns(Lists.newArrayList("column1"));
         Mockito.when(columnsFilterService.generateColumnsFilterConfig(Mockito.any(DataMediaTbl.class))).
                 thenReturn(columnsFilterConfig);
+
+        RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
+        rowsFilterConfig.setMode("trip_udl");
+        rowsFilterConfig.setTables("db1.table1");
+        Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(),Mockito.anyInt())).
+                thenReturn(Lists.newArrayList(rowsFilterConfig));
         
     }
 

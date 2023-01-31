@@ -271,14 +271,11 @@ public class MetaGenerator {
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().
                 filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
-        // columnsFilter
+        // columnsFilters && rowsFilters
         DataMediaConfig properties = dataMediaService.generateConfig(applierGroupTbl.getId());
-        //rowsFilter
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ConsumeType.Applier.getCode());
-        properties.setRowsFilters(rowsFilterConfigs);
         
-        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) && CollectionUtils.isEmpty(properties.getColumnsFilters()) ?
-                null : JsonCodec.INSTANCE.encode(properties);
+        String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
+                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
         
         
         for(ApplierTbl applierTbl : curMhaAppliers) {

@@ -8,10 +8,13 @@ import com.ctrip.framework.drc.console.dto.DataMediaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.ColumnsFilterService;
 import com.ctrip.framework.drc.console.service.DataMediaService;
+import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.vo.ColumnsFilterVo;
 import com.ctrip.framework.drc.console.vo.DataMediaVo;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -34,6 +37,8 @@ public class DataMediaServiceImpl implements DataMediaService {
     
     @Autowired private ColumnsFilterService columnsFilterService;
     
+    @Autowired private RowsFilterService rowsFilterService;
+    
 
     @Override
     public DataMediaConfig generateConfig(Long applierGroupId) throws SQLException {
@@ -51,8 +56,15 @@ public class DataMediaServiceImpl implements DataMediaService {
         if (!CollectionUtils.isEmpty(columnsFilterConfigs)) {
             dataMediaConfig.setColumnsFilters(columnsFilterConfigs);
         }
+
+        // rowsFilters todo generate should change, generate by dataMediaId
+        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(
+                applierGroupId, ConsumeType.Applier.getCode());
+        if (!CollectionUtils.isEmpty(rowsFilterConfigs)) {
+            dataMediaConfig.setRowsFilters(rowsFilterConfigs);
+        }
         
-        // todo rowsFilters config generate function should migrate here....
+        // todo nameFilter, tableMapping , columnMapping
         return dataMediaConfig;
     }
 

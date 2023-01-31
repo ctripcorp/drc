@@ -299,7 +299,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         }
         UnidirectionalEntity unidirectionalEntity = entityMap.remove(config.getMha());
         if (unidirectionalEntity != null) {
-            DefaultReporterHolder.getInstance().removeRegister(unidirectionalEntity.getTags(), config.getMeasurement());
+            DefaultReporterHolder.getInstance().removeRegister( config.getMeasurement(),"destMha",config.getDestMha());
         }
         log("stopped server success", INFO, null);
     }

@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
