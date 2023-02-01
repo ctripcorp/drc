@@ -42,7 +42,9 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     @Override
     public void onUpdateRowsEvent(UpdateRowsEvent updateRowsEvent, String gtid) {
         if (nextMonitorRowsEvent) {
-            notify(getDelayMonitorLogEvent(updateRowsEvent, gtid));
+            synchronized (this) {
+                notify(getDelayMonitorLogEvent(updateRowsEvent, gtid));
+            }
         }
     }
 
@@ -76,13 +78,15 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
 
     @Override
     public void onDdlEvent(String schema, String tableName, String ddl, QueryType queryType) {
-        for (Observer observer : observers) {
-            if (observer instanceof MonitorEventObserver) {
-                try {
-                    ParsedDdlLogEvent parsedDdlLogEvent = new ParsedDdlLogEvent(schema, tableName, ddl, queryType);
-                    observer.update(parsedDdlLogEvent, this);
-                } catch (Exception e) {
-                    DELAY_LOGGER.error("[onDdlEvent] for {}:{} error ", schema, tableName, e);
+        synchronized (this) {
+            for (Observer observer : observers) {
+                if (observer instanceof MonitorEventObserver) {
+                    try {
+                        ParsedDdlLogEvent parsedDdlLogEvent = new ParsedDdlLogEvent(schema, tableName, ddl, queryType);
+                        observer.update(parsedDdlLogEvent, this);
+                    } catch (Exception e) {
+                        DELAY_LOGGER.error("[onDdlEvent] for {}:{} error ", schema, tableName, e);
+                    }
                 }
             }
         }
@@ -91,12 +95,18 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     @Override
     public void addObserver(Observer observer) {
         if (observer != null && observer instanceof MonitorEventObserver && !observers.contains(observer)) {
-            observers.add(observer);
+            synchronized (this) {
+                observers.add(observer);
+                DELAY_LOGGER.info("[Observer] add monitor observer for {}", registerKey);
+            }
         }
     }
 
     @Override
     public void removeObserver(Observer observer) {
-        observers.remove(observer);
+        synchronized (this) {
+            observers.remove(observer);
+            DELAY_LOGGER.info("[Observer] remove monitor observer for {}", registerKey);
+        }
     }
 }

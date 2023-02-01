@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.Illegal;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 
 /**
  * @Author limingdong
@@ -106,7 +107,9 @@ public class TripUserService implements UserService {
         @Override
         protected Region regionFor(String attr) {
             com.ctrip.soa.platform.accountregionroute.v1.Region region =  AccountUidRoute.regionForUid(attr);
-            return Region.nameFor(region.name().toUpperCase());
+            String regionName = region.name().toUpperCase();
+            ROWS_FILTER_LOGGER.info("{}:{}", attr, regionName);
+            return Region.nameFor(regionName);
         }
     }
 

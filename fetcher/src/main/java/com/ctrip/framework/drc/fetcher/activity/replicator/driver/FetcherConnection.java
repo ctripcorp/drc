@@ -19,6 +19,7 @@ import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.pool.ObjectPoolException;
 import com.ctrip.xpipe.api.pool.SimpleObjectPool;
 import com.ctrip.xpipe.netty.commands.NettyClient;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Created by mingdongli
@@ -59,6 +60,10 @@ public class FetcherConnection extends AbstractInstanceConnection implements MyS
 
         if (reconnection_code == null) {
             GtidSet gtidSet = networkContextResource.fetchGtidSet();
+            if (gtidSet == null || StringUtils.isBlank(gtidSet.toString())) {
+                gtidSet = networkContextResource.queryTheNewestGtidset();
+            }
+
             gtidSet = gtidSet.clone();
             logger.info("[Reconnect] using gtidset {}", gtidSet);
             mySQLSlaveConfig.setGtidSet(gtidSet);
