@@ -78,13 +78,15 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
 
     @Override
     public void onDdlEvent(String schema, String tableName, String ddl, QueryType queryType) {
-        for (Observer observer : observers) {
-            if (observer instanceof MonitorEventObserver) {
-                try {
-                    ParsedDdlLogEvent parsedDdlLogEvent = new ParsedDdlLogEvent(schema, tableName, ddl, queryType);
-                    observer.update(parsedDdlLogEvent, this);
-                } catch (Exception e) {
-                    DELAY_LOGGER.error("[onDdlEvent] for {}:{} error ", schema, tableName, e);
+        synchronized (this) {
+            for (Observer observer : observers) {
+                if (observer instanceof MonitorEventObserver) {
+                    try {
+                        ParsedDdlLogEvent parsedDdlLogEvent = new ParsedDdlLogEvent(schema, tableName, ddl, queryType);
+                        observer.update(parsedDdlLogEvent, this);
+                    } catch (Exception e) {
+                        DELAY_LOGGER.error("[onDdlEvent] for {}:{} error ", schema, tableName, e);
+                    }
                 }
             }
         }
