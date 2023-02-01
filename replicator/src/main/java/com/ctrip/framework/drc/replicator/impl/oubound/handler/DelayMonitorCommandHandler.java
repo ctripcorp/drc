@@ -156,13 +156,17 @@ public class DelayMonitorCommandHandler extends AbstractServerCommandHandler imp
                         logger.info("channelClosed and return MonitorEventTask");
                         return;
                     }
-                    logEvent.write(byteBufs -> {
-                        for (ByteBuf b : byteBufs) {
-                            b.readerIndex(0);
-                            channel.write(b);
-                        }
-                        channel.flush();
-                    });
+                    try {
+                        logEvent.write(byteBufs -> {
+                            for (ByteBuf b : byteBufs) {
+                                b.readerIndex(0);
+                                channel.write(b);
+                            }
+                            channel.flush();
+                        });
+                    } catch (Exception e) {
+                        logger.error("MonitorEventTask write error", e);
+                    }
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.delay.consume", key.toString());
                 }
             } catch (Throwable e) {
