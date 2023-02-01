@@ -79,12 +79,14 @@ public class DefaultMonitorManager implements MonitorEventObservable, MonitorMan
     @Override
     public void addObserver(Observer observer) {
         if (observer != null && observer instanceof MonitorEventObserver && !observers.contains(observer)) {
+            DELAY_LOGGER.info("[Observer] add observer for {}", registerKey);
             observers.add(observer);
         }
     }
 
     @Override
     public void removeObserver(Observer observer) {
+        DELAY_LOGGER.info("[Observer] remove observer for {}", registerKey);
         observers.remove(observer);
     }
 }
