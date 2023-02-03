@@ -272,7 +272,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
     @Test
     public void testFindAvailableApplierPort() throws SQLException {
         Assert.assertEquals(8384, metaInfoService.findAvailableApplierPort("10.2.83.105").intValue());
-        Assert.assertEquals(8889, metaInfoService.findAvailableApplierPort("10.2.87.154").intValue());
+        Assert.assertEquals(8383, metaInfoService.findAvailableApplierPort("10.2.87.154").intValue());
     }
 
     private void init() throws SQLException {
@@ -281,6 +281,8 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         dc2regionMap.put("sharb","sha");
         Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
         Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Sets.newHashSet(Lists.newArrayList("shaoy","sharb")));
+        Mockito.when(defaultConsoleConfig.getAvailablePortSize()).thenReturn(1000);
+        
         mock();
     }
 

@@ -859,12 +859,12 @@ MetaInfoServiceImpl implements MetaInfoService {
         int size = consoleConfig.getAvailablePortSize();
         boolean[] isUsedFlags = new boolean[size];
         for (ReplicatorTbl r : replicatorTbls) {
-            int index = r.getApplierPort() - DEFAULT_APPLIER_PORT;
+            int index = r.getApplierPort() - DEFAULT_REPLICATOR_APPLIER_PORT;
             isUsedFlags[index] = true;
         }
         for (int i = 0; i <= size; i++) {
             if (!isUsedFlags[i]) {
-                return DEFAULT_APPLIER_PORT + i;
+                return DEFAULT_REPLICATOR_APPLIER_PORT + i;
             }
         }
         throw new IllegalArgumentException("no available port find for replicator, all in use!");
