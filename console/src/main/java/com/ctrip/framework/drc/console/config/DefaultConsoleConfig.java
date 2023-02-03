@@ -92,6 +92,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static final String UPDATE_REPLICATOR_MASTER_SWITCH = "update.replicator.master.switch";
     
+    private static String AVAILABLE_PORT_SIZE ="available.port.size";
+    private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -415,5 +417,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getUpdateReplicatorSwitch() {
         return getProperty(UPDATE_REPLICATOR_MASTER_SWITCH,SWITCH_OFF);
+    }
+
+    public int getAvailablePortSize() {
+        return getIntProperty(AVAILABLE_PORT_SIZE,DEFAULT_AVAILABLE_PORT_SIZE);
     }
 }

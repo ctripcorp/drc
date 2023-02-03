@@ -46,6 +46,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_APPLIER_PORT;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_REPLICATOR_APPLIER_PORT;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZE;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SOURCE_QCONFIG;
@@ -848,14 +849,25 @@ MetaInfoServiceImpl implements MetaInfoService {
         return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaGroupTbl.getMonitorUser(), mhaGroupTbl.getMonitorPassword(), BooleanEnum.TRUE.isValue());
     }
 
+    // aws sg related
     public Integer findAvailableApplierPort(String ip) throws SQLException {
         ResourceTbl resourceTbl = dalUtils.getResourceTblDao().queryAll().stream().filter(predicate -> (predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getIp().equalsIgnoreCase(ip))).findFirst().get();
         List<ReplicatorTbl> replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(r -> r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getResourceId().equals(resourceTbl.getId())).collect(Collectors.toList());
         if(replicatorTbls.size() == 0) {
             return DEFAULT_REPLICATOR_APPLIER_PORT;
         }
-        replicatorTbls.sort((r1, r2) -> r2.getApplierPort() - r1.getApplierPort());
-        return replicatorTbls.get(0).getApplierPort() + 1;
+        int size = consoleConfig.getAvailablePortSize();
+        boolean[] isUsedFlags = new boolean[size];
+        for (ReplicatorTbl r : replicatorTbls) {
+            int index = r.getApplierPort() - DEFAULT_APPLIER_PORT;
+            isUsedFlags[index] = true;
+        }
+        for (int i = 0; i <= size; i++) {
+            if (!isUsedFlags[i]) {
+                return DEFAULT_APPLIER_PORT + i;
+            }
+        }
+        throw new IllegalArgumentException("no available port find for replicator, all in use!");
     }
 
     public List<String> getReplicatorIps(Long replicatorGroupId) throws SQLException {

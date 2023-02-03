@@ -92,7 +92,7 @@ public class MySqlUtils {
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like 'on update%';";
-    private static final String GET_ON_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp','datetime') and EXTRA like 'on update%';";
+    private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
     private static final int COLUMN_INDEX = 1;
     
     
@@ -634,17 +634,20 @@ public class MySqlUtils {
         HashSet<String> tablesApprovedTruncate = Sets.newHashSet(checkApprovedTruncateTableList(endpoint,false));
         for (TableSchemaName table : tables) {
             TableCheckVo tableVo = new TableCheckVo(table);
-            String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, table, false);
-            if (StringUtils.isEmpty(onUpdateColumn)) {
-                tableVo.setNoOnUpdateColumn(true);
-                tableVo.setNoOnUpdateKey(true);
-            } else {
-                String standardOnUpdateColumn = getColumn(endpoint, GET_STANDARD_UPDATE_COLUMN, table, false);
-                if (StringUtils.isEmpty(standardOnUpdateColumn)) {
-                    tableVo.setNoStandardOnUpdateColumn(true);
+            String standardOnUpdateColumn = getColumn(endpoint, GET_STANDARD_UPDATE_COLUMN, table, false);
+            if (StringUtils.isEmpty(standardOnUpdateColumn)) {
+                tableVo.setNoStandardOnUpdateColumn(true);
+                String onUpdateColumn = getColumn(endpoint, GET_ON_UPDATE_COLUMN, table, false);
+                if (StringUtils.isEmpty(onUpdateColumn)) {
+                    tableVo.setNoOnUpdateColumn(true);
+                    tableVo.setNoOnUpdateKey(true);
+                } else {
+                    tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
                 }
-                tableVo.setNoOnUpdateKey(!isKey(endpoint, table, onUpdateColumn, false));
+            } else {
+                tableVo.setNoOnUpdateKey(!isKey(endpoint, table, standardOnUpdateColumn, false));
             }
+            
             String createTblStmt = getCreateTblStmt(endpoint, table, false);
             if (StringUtils.isEmpty(createTblStmt) || 
                     (!createTblStmt.toLowerCase().contains(PRIMARY_KEY) && !createTblStmt.toLowerCase().contains(UNIQUE_KEY))) {
