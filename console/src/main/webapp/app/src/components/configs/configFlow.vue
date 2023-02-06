@@ -13,6 +13,7 @@
       <BreadcrumbItem :to="{
         path: '/tables',query :{
                 srcMha: commonInfo.srcMha,
+                srcMhaId: commonInfo.srcMhaId,
                 destMha: commonInfo.destMha,
                 applierGroupId: commonInfo.applierGroupId,
                 srcDc: commonInfo.srcDc,
