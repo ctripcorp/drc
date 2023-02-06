@@ -46,7 +46,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_APPLIER_PORT;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_REPLICATOR_APPLIER_PORT;
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZE;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SOURCE_QCONFIG;

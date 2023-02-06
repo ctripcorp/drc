@@ -232,6 +232,7 @@ export default {
     },
     checkMysqlTablesInSrcMha () {
       this.checkMySqlTables(this.commonInfo.srcMha, this.commonInfo.namespace + '\\.' + this.commonInfo.name)
+      // this.conflictCheck()
     },
     checkMySqlTables (mha, nameFilter) {
       console.log('nameFilter:' + nameFilter)
@@ -263,6 +264,35 @@ export default {
           this.$Spin.hide()
         })
     },
+    // conflictCheck () {
+    //   console.log('/api/drc/v1/dataMedia/conflictCheck?' +
+    //     'applierGroupId=' + this.drc.applierGroupId +
+    //     '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
+    //     '&mhaName=' + this.drc.srcMha +
+    //     '&namespace=' + this.rowsFilterConfig.namespace +
+    //     '&name=' + this.rowsFilterConfig.name +
+    //     '&applierType=' + 0)
+    //   this.axios.get(
+    //     '/api/drc/v1/dataMedia/conflictCheck?' +
+    //     'applierGroupId=' + this.drc.applierGroupId +
+    //     '&dataMediaId=' + this.rowsFilterConfig.dataMediaId +
+    //     '&mhaName=' + this.drc.srcMha +
+    //     '&namespace=' + this.rowsFilterConfig.namespace +
+    //     '&name=' + this.rowsFilterConfig.name +
+    //     '&applierType=' + 0)
+    //     .then(response => {
+    //       if (response.data.status === 1) {
+    //         window.alert('表匹配冲突校验失败，请勿配置重复表！！')
+    //       } else {
+    //         console.log(response.data.data)
+    //         this.conflictTables = response.data.data
+    //         if (this.conflictTables.length !== 0) {
+    //           window.alert('存在表已经配置,如下:' +
+    //           this.conflictTables)
+    //         }
+    //       }
+    //     })
+    // },
     handleChangeSize (val) {
       this.size = val
     }

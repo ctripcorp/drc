@@ -30,8 +30,9 @@ public class DataMediaController {
     private Logger logger = LoggerFactory.getLogger(getClass());
     
     @Autowired private DataMediaService dataMediaService;
-    
-    
+
+
+    // -------------------------DataMedia--------------------------------
     @GetMapping("vos")
     public ApiResult getAllDataMediaVos(@RequestParam Long applierGroupId) {
         logger.info("[[query=dataMediaVo]] query applierGroupId:{}", applierGroupId);
@@ -80,6 +81,10 @@ public class DataMediaController {
         }
     }
     
+    // todo check dataMedia conflict
+    
+    
+    // -----------------------columnsFilter--------------------------------
     
     @GetMapping("columnsFilterConfig")
     public ApiResult getColumnsFilterConfig(@RequestParam Long dataMediaId) {
