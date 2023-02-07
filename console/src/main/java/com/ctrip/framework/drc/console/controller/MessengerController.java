@@ -2,7 +2,7 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.service.MessengerService;
-import com.ctrip.framework.drc.console.vo.MessengerVo;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +90,11 @@ public class MessengerController {
             logger.error("[[tag=mqConfig]]  error in deleteMqConfig",e);
             return ApiResult.getFailInstance(null,"delete error");
         }
+    }
+    
+    @PostMapping("mqConfig/check")
+    public ApiResult checkMqConfig(@RequestBody MqConfigDto dto) {
+        return null;
     }
     
 

@@ -1,8 +1,9 @@
 package com.ctrip.framework.drc.console.service;
 
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
-import com.ctrip.framework.drc.console.vo.MessengerVo;
-import com.ctrip.framework.drc.console.vo.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.check.MqConfigConflictVo;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
+import com.ctrip.framework.drc.console.vo.display.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.core.entity.Messenger;
 
@@ -31,9 +32,11 @@ public interface MessengerService {
 
     String processDeleteMqConfig(Long mqConfigId) throws Exception;
 
+    List<MqConfigConflictVo> checkMqConfig(MqConfigDto dto) throws SQLException;
+
     List<String> getBusFromQmq() throws Exception;
     
     // openApi
     List<MessengerInfo> getAllMessengersInfo() throws SQLException;
-
+    
 }

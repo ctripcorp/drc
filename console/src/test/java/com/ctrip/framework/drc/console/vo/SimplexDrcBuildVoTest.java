@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.vo;
 
+import com.ctrip.framework.drc.console.vo.display.SimplexDrcBuildVo;
 import org.junit.Test;
 
 public class SimplexDrcBuildVoTest {

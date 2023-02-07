@@ -5,7 +5,8 @@ import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.*;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.google.common.collect.Lists;
@@ -114,9 +115,9 @@ public class BuildController {
     public ApiResult getMatchTable (@RequestParam String namespace,
                                     @RequestParam String name,
                                     @RequestParam String mhaName,
-                                    @RequestParam Integer type) {
+                                    @RequestParam Integer dataMediaType) {
         try {
-            List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, type);
+            List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, dataMediaType);
             return ApiResult.getSuccessInstance(matchTables);
         } catch (Exception e) {
             logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name, mhaName,e);

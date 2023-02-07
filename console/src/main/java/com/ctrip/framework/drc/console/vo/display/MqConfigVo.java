@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.vo;
+package com.ctrip.framework.drc.console.vo.display;
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.core.meta.MqConfig;
@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import static com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum.DB_TO_MQ;
 
 /**
- * @ClassName MqConfigVo
+ * @ClassName MqConfigConflictVo
  * @Author haodongPan
  * @Date 2022/10/26 15:05
  * @Version: $
@@ -69,7 +69,7 @@ public class MqConfigVo {
 
     @Override
     public String toString() {
-        return "MqConfigVo{" +
+        return "MqConfigConflictVo{" +
                 "id=" + id +
                 ", mqType='" + mqType + '\'' +
                 ", table='" + table + '\'' +
