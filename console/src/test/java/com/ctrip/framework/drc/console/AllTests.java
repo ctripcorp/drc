@@ -116,6 +116,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MySqlServiceImplTest.class,
         MessengerServiceImplTest.class,
         DataMediaPairServiceImplTest.class,
+        DataMediaServiceImplTest.class,
+        ColumnsFilterServiceImplTest.class,
 
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
@@ -139,6 +141,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         OpenApiControllerTest.class,
         RowsFilterServiceImplTest.class,
         MessengerControllerTest.class,
+        DataMediaControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,

@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -41,6 +42,8 @@ public class MetaGenerator {
     @Autowired private MessengerService messengerService;
     
     @Autowired private MonitorTableSourceProvider monitorConfigProvider;
+    
+    @Autowired private DataMediaService dataMediaService;
     
 
     private DalUtils dalUtils = DalUtils.getInstance();
@@ -268,10 +271,13 @@ public class MetaGenerator {
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
         List<ApplierTbl> curMhaAppliers = applierTbls.stream().
                 filter(predicate -> predicate.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ConsumeType.Applier.getCode());
-        DataMediaConfig properties = new DataMediaConfig();
-        properties.setRowsFilters(rowsFilterConfigs);
-        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
+        // columnsFilters && rowsFilters
+        DataMediaConfig properties = dataMediaService.generateConfig(applierGroupTbl.getId());
+        
+        String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
+                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
+        
+        
         for(ApplierTbl applierTbl : curMhaAppliers) {
             ResourceTbl resourceTbl = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.debug("generate applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());

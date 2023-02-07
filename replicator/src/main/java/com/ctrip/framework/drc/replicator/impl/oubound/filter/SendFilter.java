@@ -23,25 +23,25 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        boolean noRowFiltered = doNext(value, value.isNoRowFiltered());
+        boolean noRewrite = doNext(value, value.isNoRewrite());
         if (value.getCause() != null) {
-            return noRowFiltered;
+            return noRewrite;
         }
 
         if (value.isSkipEvent()) {
             return true;
         }
 
-        if (noRowFiltered) {
+        if (noRewrite) {
             channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos() - eventHeaderLengthVersionGt1, value.getEventSize()).retain());
         } else {
-            sendRowsEvent(value);
+            sendRewriteEvent(value);
         }
-        return noRowFiltered;
+        return noRewrite;
     }
 
-    private void sendRowsEvent(OutboundLogEventContext value) {
-        value.getRowsEvent().write(byteBufs -> {
+    private void sendRewriteEvent(OutboundLogEventContext value) {
+        value.getLogEvent().write(byteBufs -> {
             for (ByteBuf byteBuf : byteBufs) {
                 byteBuf.readerIndex(0);
                 ChannelFuture future = channel.writeAndFlush(byteBuf);

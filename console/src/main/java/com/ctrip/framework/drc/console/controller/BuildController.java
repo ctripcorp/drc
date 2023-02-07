@@ -30,13 +30,13 @@ import java.util.Set;
 @RequestMapping("/api/drc/v1/build/")
 public class BuildController {
     private Logger logger = LoggerFactory.getLogger(getClass());
-    
-    
+
+
     @Autowired private RowsFilterService rowsFilterService;
-    
+
     @Autowired private DrcBuildService drcBuildService;
-    
-    @PostMapping("simplexDrc") 
+
+    @PostMapping("simplexDrc")
     public ApiResult getOrBuildSimplexDrc(@RequestParam(value = "srcMha", defaultValue = "") String srcMha,
                                           @RequestParam(value = "destMha", defaultValue = "") String destMha) {
         try {
@@ -47,7 +47,6 @@ public class BuildController {
         }
     }
 
-    
     @PostMapping("replicatorIps/check")
     public ApiResult preCheckBeforeBuildDrc(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] preCheck meta config for  {}", dto);
@@ -70,7 +69,7 @@ public class BuildController {
         }
         return ApiResult.getFailInstance(null);
     }
-    
+
 
     @GetMapping("rowsFilterMappings/{applierGroupId}")
     public ApiResult getRowsFilterMappingVos (@PathVariable String applierGroupId) {
@@ -84,7 +83,7 @@ public class BuildController {
         }
     }
 
-    
+
     @PostMapping("rowsFilterConfig")
     public ApiResult inputRowsFilterConfig(@RequestBody RowsFilterConfigDto rowsFilterConfigDto) {
         logger.info("[[meta=rowsFilterConfig]] load rowsFilterConfigDto: {}", rowsFilterConfigDto);
@@ -110,8 +109,7 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
-
-
+    
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable (@RequestParam String namespace,
                                     @RequestParam String name,
@@ -174,7 +172,7 @@ public class BuildController {
                 return ApiResult.getFailInstance("expression error");
             } else {
                 return ApiResult.getFailInstance("other error");
-                
+
             }
         }
     }
@@ -216,8 +214,8 @@ public class BuildController {
             }
         }
     }
-    
-    @GetMapping("preCheckMySqlConfig") 
+
+    @GetMapping("preCheckMySqlConfig")
     public ApiResult preCheckConfig(@RequestParam String mha) {
         try {
             logger.info("[[tag=preCheck,mha={}]] preCheckConfig ",mha);
@@ -240,5 +238,5 @@ public class BuildController {
             return ApiResult.getFailInstance(null);
         }
     }
-    
+
 }

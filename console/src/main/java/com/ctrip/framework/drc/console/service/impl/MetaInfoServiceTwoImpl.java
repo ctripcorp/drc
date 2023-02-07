@@ -86,6 +86,9 @@ public class MetaInfoServiceTwoImpl {
         slaveMySQLEndpoint = Maps.newConcurrentMap();
         masterReplicatorEndpoint = Maps.newConcurrentMap();
 
+        monitorMetaInfo.setMasterMySQLEndpoint(masterMySQLEndpoint);
+        monitorMetaInfo.setSlaveMySQLEndpoint(slaveMySQLEndpoint);
+        monitorMetaInfo.setMasterReplicatorEndpoint(masterReplicatorEndpoint);
 
         try {
             Drc drc = sourceProvider.getDrc();
@@ -138,9 +141,7 @@ public class MetaInfoServiceTwoImpl {
                     }
                 }
             }
-            monitorMetaInfo.setMasterMySQLEndpoint(masterMySQLEndpoint);
-            monitorMetaInfo.setSlaveMySQLEndpoint(slaveMySQLEndpoint);
-            monitorMetaInfo.setMasterReplicatorEndpoint(masterReplicatorEndpoint);
+            
         } catch (Exception e) {
             logger.error("Fail get master replicator endpoint, ", e);
         }

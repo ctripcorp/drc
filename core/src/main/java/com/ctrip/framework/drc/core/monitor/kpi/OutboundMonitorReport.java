@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.monitor.entity.RowsFilterEntity;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.filter.ExtractType;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 
@@ -61,12 +62,12 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
         delayMonitorReport.sendGtid(gtid);
     }
 
-    public void updateFilteredRows(String dbName, String tableName, int beforeSize, int afterSize) {
-        RowsFilterEntity rowsFilterEntity = getRowsFilterEntity(dbName, tableName);
+    public void updateFilteredRows(String dbName, String tableName, int beforeSize, int afterSize, ExtractType extractType) {
+        RowsFilterEntity rowsFilterEntity = getRowsFilterEntity(dbName, tableName, extractType);
         rowsFilterEntity.updateCount(beforeSize, afterSize);
     }
 
-    private RowsFilterEntity getRowsFilterEntity(String dbName, String tableName) {
+    private RowsFilterEntity getRowsFilterEntity(String dbName, String tableName, ExtractType extractType) {
         TableKey tableKey = TableKey.from(dbName, tableName);
         RowsFilterEntity rowsFilterEntity = rowsFilterEntityMap.get(tableKey);
         if (rowsFilterEntity == null) {
@@ -83,6 +84,8 @@ public class OutboundMonitorReport extends AbstractMonitorReport {
                     .tableName(tableName).build();
             rowsFilterEntityMap.put(tableKey, rowsFilterEntity);
         }
+        Map<String, String> tags = rowsFilterEntity.getTags();
+        tags.put("extract", extractType.getName());
         return rowsFilterEntity;
     }
 

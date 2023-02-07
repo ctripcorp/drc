@@ -13,10 +13,12 @@ public class TableCheckVo {
     private String schema;
     private String table;
     private boolean noOnUpdateColumn;
+    private boolean noStandardOnUpdateColumn;
     private boolean noOnUpdateKey;
     private boolean noPkUk;
     private boolean approveTruncate;
     private boolean timeDefaultZero;
+    private String res;
 
     public String getFullName() {
         return String.format("`%s`.`%s`", schema, table);
@@ -28,22 +30,45 @@ public class TableCheckVo {
     }
 
     public boolean hasProblem() {
-        return noOnUpdateColumn || noOnUpdateKey || noPkUk || approveTruncate || timeDefaultZero;
+        if (approveTruncate) {
+            res = "approveTruncate";
+            return true;
+        }
+        if (noPkUk) {
+            res = "noPkUk";
+            return true;
+        }
+        if (noOnUpdateColumn) {
+            res = "noOnUpdateColumn";
+            return true;
+        }
+        if (timeDefaultZero) {
+            res = "timeDefaultZero";
+            return true;
+        }
+        if (noStandardOnUpdateColumn) {
+            res = "noStandardOnUpdateColumn";
+            return true;
+        }
+        res = "ok";
+        return false;
     }
-    
+
     @Override
     public String toString() {
         return "TableCheckVo{" +
                 "schema='" + schema + '\'' +
                 ", table='" + table + '\'' +
                 ", noOnUpdateColumn=" + noOnUpdateColumn +
+                ", noStandardOnUpdateColumn=" + noStandardOnUpdateColumn +
                 ", noOnUpdateKey=" + noOnUpdateKey +
                 ", noPkUk=" + noPkUk +
                 ", approveTruncate=" + approveTruncate +
                 ", timeDefaultZero=" + timeDefaultZero +
+                ", res='" + res + '\'' +
                 '}';
     }
-    
+
     public boolean getTimeDefaultZero() {
         return timeDefaultZero;
     }
@@ -76,6 +101,14 @@ public class TableCheckVo {
         this.noOnUpdateColumn = noOnUpdateColumn;
     }
 
+    public boolean getNoStandardOnUpdateColumn() {
+        return noStandardOnUpdateColumn;
+    }
+
+    public void setNoStandardOnUpdateColumn(boolean noStandardOnUpdateColumn) {
+        this.noStandardOnUpdateColumn = noStandardOnUpdateColumn;
+    }
+
     public boolean getNoOnUpdateKey() {
         return noOnUpdateKey;
     }
@@ -98,5 +131,13 @@ public class TableCheckVo {
 
     public void setApproveTruncate(boolean approveTruncate) {
         this.approveTruncate = approveTruncate;
+    }
+
+    public String getRes() {
+        return res;
+    }
+
+    public void setRes(String res) {
+        this.res = res;
     }
 }

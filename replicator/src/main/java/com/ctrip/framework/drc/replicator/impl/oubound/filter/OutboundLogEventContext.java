@@ -3,10 +3,10 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.List;
 import java.util.Map;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
@@ -27,13 +27,15 @@ public class OutboundLogEventContext {
 
     private long filteredEventSize;
 
-    private LogEvent rowsEvent;
+    private boolean noRewrite = false;
+
+    private LogEvent logEvent;
 
     private Map<Long, TableMapLogEvent> tableMapWithinTransaction;
 
     private Map<String, TableMapLogEvent> drcTableMap;
 
-    private boolean noRowFiltered = false;
+    private Map<String, List<Integer>> extractedColumnsIndexMap;
 
     private boolean skipEvent = false;
 
@@ -69,12 +71,8 @@ public class OutboundLogEventContext {
         return fileChannelPos;
     }
 
-    public boolean isNoRowFiltered() {
-        return noRowFiltered;
-    }
-
-    public LogEvent getRowsEvent() {
-        return rowsEvent;
+    public LogEvent getLogEvent() {
+        return logEvent;
     }
 
     public String getGtid() {
@@ -95,13 +93,15 @@ public class OutboundLogEventContext {
         return drcTableMap.get(tableName);
     }
 
-    public Exception getCause() {
-        return cause;
+    public List<Integer> getExtractedColumnsIndex(String tableName) {
+        if (extractedColumnsIndexMap == null) {
+            return null;
+        }
+        return extractedColumnsIndexMap.get(tableName);
     }
 
-    // write api
-    public void setNoRowFiltered(boolean noRowFiltered) {
-        this.noRowFiltered = noRowFiltered;
+    public Exception getCause() {
+        return cause;
     }
 
     public void setTableMapWithinTransaction(Map<Long, TableMapLogEvent> tableMapWithinTransaction) {
@@ -112,8 +112,12 @@ public class OutboundLogEventContext {
         this.drcTableMap = drcTableMap;
     }
 
-    public void setRowsEvent(LogEvent rowsEvent) {
-        this.rowsEvent = rowsEvent;
+    public void setExtractedColumnsIndexMap(Map<String, List<Integer>> extractedColumnsIndexMap) {
+        this.extractedColumnsIndexMap = extractedColumnsIndexMap;
+    }
+
+    public void setLogEvent(LogEvent logEvent) {
+        this.logEvent = logEvent;
     }
 
     public void setCause(Exception cause) {
@@ -150,5 +154,13 @@ public class OutboundLogEventContext {
 
     public void setSkipEvent(boolean skipEvent) {
         this.skipEvent = skipEvent;
+    }
+
+    public boolean isNoRewrite() {
+        return noRewrite;
+    }
+
+    public void setNoRewrite(boolean noRewrite) {
+        this.noRewrite = noRewrite;
     }
 }

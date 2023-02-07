@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
@@ -16,6 +17,7 @@ import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.vo.MessengerVo;
 import com.ctrip.framework.drc.console.vo.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -196,6 +198,12 @@ public class MessengerServiceImplTest {
 
     
 
+    private MhaTbl mockMhaTbl() {
+        MhaTbl mhaTbl = new MhaTbl();
+        mhaTbl.setId(1L);
+        mhaTbl.setMhaName("mha1");
+        return mhaTbl;
+    }
 
     private MessengerGroupTbl mockMessengerGroupTbl() {
         MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
@@ -272,5 +280,21 @@ public class MessengerServiceImplTest {
         return dto;
     }
 
-    
+
+    @Test
+    public void testGetAllMessengersInfo() throws SQLException {
+        MessengerGroupTbl messengerGroupTbl = mockMessengerGroupTbl();
+        Mockito.when(messengerGroupTblDao.queryBy(Mockito.any(MessengerGroupTbl.class))).
+                thenReturn(Lists.newArrayList(messengerGroupTbl));
+        
+        Mockito.when(mhaTblDao.queryByPk(Mockito.eq(1L))).thenReturn(mockMhaTbl());
+        
+        List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
+        dataMediaPairTbls.add(dataMediaPairTbls.get(0));
+        Mockito.when(dataMediaPairService.getDataMediaPairs(Mockito.anyLong())).thenReturn(dataMediaPairTbls);
+
+        List<MessengerInfo> allMessengersInfo = messengerService.getAllMessengersInfo();
+        Assert.assertEquals(1,allMessengersInfo.size());
+        System.out.println(allMessengersInfo.get(0).getNameFilter());
+    }
 }

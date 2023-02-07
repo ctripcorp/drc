@@ -53,6 +53,9 @@ public class Columns extends ArrayList<Column> {
         return new Columns(columns, identifiers);
     }
 
+    public Columns() {
+    }
+
     public Columns(List<Column> columns, List<List<String>> identifiers) {
         addAll(columns);
         this.identifiers = identifiers;

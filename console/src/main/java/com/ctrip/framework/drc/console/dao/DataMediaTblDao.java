@@ -31,6 +31,16 @@ public class DataMediaTblDao extends AbstractDao<DataMediaTbl>{
 		insert(new DalHints(), keyHolder, dataMediaTbl);
 		return (Long) keyHolder.getKey();
 	}
+
+	public List<DataMediaTbl> queryByAGroupId(Long applierGroupId, Integer deleted) throws SQLException {
+		if (applierGroupId == null) {
+			throw new IllegalArgumentException("build sql: query DataMediaTbl By AGroupId ,but it is empty");
+		}
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("applier_group_id", applierGroupId, Types.BIGINT)
+				.and().equal("deleted", deleted, Types.TINYINT);
+		return client.query(builder,new DalHints());
+	}
 	
 	public List<DataMediaTbl> queryByIdsAndType (List<Long> dataMediaIds,Integer type, Integer deleted) throws SQLException {
 		if(CollectionUtils.isEmpty(dataMediaIds)) {

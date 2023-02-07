@@ -43,6 +43,9 @@
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>
           </FormItem>
+          <FormItem label="同步配置" style="width: 600px">
+            <Button type="primary" ghost @click="goToConfigVosInSrcMha">同步表管理</Button>
+          </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.oldApplyMode" style="width:200px">
               <Option v-for="item in applyModeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
@@ -88,6 +91,9 @@
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInDestApplier">配置行过滤</Button>
           </FormItem>
+          <FormItem label="同步配置" style="width: 600px">
+            <Button type="primary" ghost @click="goToConfigVosInDestMha">同步表管理</Button>
+          </FormItem>
           <FormItem label="设置applyMode" style="width: 600px">
             <Select v-model="drc.newApplyMode" style="width:200px">
               <Option v-for="item in applyModeList" :value="item.value" :key="item.value">{{ item.label }}</Option>
@@ -107,7 +113,7 @@
         title="确认配置信息"
         width="900px"
         @on-ok="submitConfig">
-        <Row gutter="5px">
+        <Row :gutter="5">
           <i-col span="12">
             <Form style="width: 80%">
               <FormItem label="源集群名">
@@ -721,6 +727,79 @@ export default {
     goToConfigRowsFiltersInDestApplier () {
       console.log('go to change rowsFilter config for ' + this.oldClusterName + '-> ' + this.newClusterName)
       this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.oldClusterName, destMha: this.newClusterName } })
+    },
+    goToConfigVosInSrcMha () {
+      // this.$router.push({
+      //   path: '/tables',
+      //   query: {
+      //     initInfo: {
+      //       srcMha: 'srcMha',
+      //       destMha: 'destMha',
+      //       applierGroupId: 0,
+      //       srcDc: 'srcDc',
+      //       destDc: 'destDc',
+      //       order: true
+      //     }
+      //   }
+      // })
+      this.axios.post('/api/drc/v1/build/simplexDrc?srcMha=' + this.oldClusterName + '&destMha=' + this.newClusterName)
+        .then(response => {
+          if (response.data.status === 1) {
+            window.alert('获取或创建该方向同步失败!')
+          } else {
+            const vo = response.data.data
+            console.log('go to change config for ' + this.oldClusterName + '-> ' + this.newClusterName)
+            this.$router.push({
+              path: '/tables',
+              query: {
+                srcMha: vo.srcMha,
+                destMha: vo.destMha,
+                srcMhaId: vo.srcMhaId,
+                applierGroupId: vo.destApplierGroupId,
+                srcDc: vo.srcDc,
+                destDc: vo.destDc,
+                order: true
+              }
+            })
+          }
+        })
+    },
+    goToConfigVosInDestMha () {
+      // this.$router.push({
+      //   path: '/tables',
+      //   query: {
+      //     initInfo: {
+      //       srcMha: 'destMha',
+      //       srcMhaId: 0,
+      //       destMha: 'srcMha',
+      //       applierGroupId: 0,
+      //       srcDc: 'destDc',
+      //       destDc: 'srcDc',
+      //       order: false
+      //     }
+      //   }
+      // })
+      this.axios.post('/api/drc/v1/build/simplexDrc?srcMha=' + this.newClusterName + '&destMha=' + this.oldClusterName)
+        .then(response => {
+          if (response.data.status === 1) {
+            window.alert('获取或创建该方向同步失败!')
+          } else {
+            const vo = response.data.data
+            console.log('go to change config for ' + this.newClusterName + '-> ' + this.oldClusterName)
+            this.$router.push({
+              path: '/tables',
+              query: {
+                srcMha: vo.srcMha,
+                destMha: vo.destMha,
+                srcMhaId: vo.srcMhaId,
+                applierGroupId: vo.destApplierGroupId,
+                srcDc: vo.srcDc,
+                destDc: vo.destDc,
+                order: false
+              }
+            })
+          }
+        })
     },
     checkMysqlTablesInOldMha () {
       this.checkMySqlTables(this.drc.oldClusterName, this.drc.oldNameFilter)

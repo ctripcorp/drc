@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
-import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
+import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -12,7 +12,6 @@ import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 public class OpenApiServiceImplTest {

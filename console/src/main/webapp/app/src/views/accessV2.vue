@@ -53,8 +53,8 @@ export default {
       current: 0,
       clusterPair: {
         // due to leagcy, oldClusterName means first mhaName in mhaGroup
-        oldClusterName: this.$route.query.clustername,
-        newClusterName: this.$route.query.newclustername,
+        oldClusterName: '',
+        newClusterName: '',
         env: '',
         oldDrcZone: '',
         newDrcZone: ''
@@ -97,6 +97,21 @@ export default {
     } else {
       // this.getDcName()
       this.jumpTo(Number(curStep))
+    }
+    // 标识 mha name 的顺序，用于返回
+    const order = this.$route.query.order
+    if (order == null) {
+      console.log('order is null, do nothing')
+      this.clusterPair.oldClusterName = this.$route.query.clustername
+      this.clusterPair.newClusterName = this.$route.query.newclustername
+    } else {
+      if (order) {
+        this.clusterPair.oldClusterName = this.$route.query.clustername
+        this.clusterPair.newClusterName = this.$route.query.newclustername
+      } else {
+        this.clusterPair.oldClusterName = this.$route.query.newclustername
+        this.clusterPair.newClusterName = this.$route.query.clustername
+      }
     }
   }
 }

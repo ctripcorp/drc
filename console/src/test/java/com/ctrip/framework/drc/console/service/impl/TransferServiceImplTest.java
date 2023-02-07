@@ -7,10 +7,12 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.mock.helpers.DcComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,6 +51,8 @@ public class TransferServiceImplTest extends AbstractTest {
 
     @Mock private MonitorTableSourceProvider monitorConfigProvider;
 
+    @Mock private DataMediaService dataMediaService;
+
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
 
@@ -84,7 +88,7 @@ public class TransferServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.getReplicatorGroupId("fat-fx-drc3")).thenReturn(3L);
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW1")).thenReturn(4L);
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW2")).thenReturn(5L);
-
+        Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
 
     }
 

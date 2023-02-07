@@ -287,78 +287,81 @@ public class TableMapLogEvent extends AbstractLogEvent {
                 columns.stream().map(Column::isNullable).collect(Collectors.toList()), out
         );
 
-        // columns field name
-        for (Column column : columns) {
-            ByteHelper.writeVariablesLengthStringDefaultCharset(column.getName(), out);
-        }
-
-        // columns charset nullable
-        final List<Boolean> charsetsNull = columns.stream().map(column -> Objects.isNull(column.getCharset())).collect(Collectors.toList());
-        writeBoolean(
-                charsetsNull, out
-        );
-
-        // columns charset
-        for (int i = 0; i < columns.size(); i++) {
-            if (!charsetsNull.get(i)) {
-                final Column column = columns.get(i);
-                ByteHelper.writeVariablesLengthStringDefaultCharset(column.getCharset(), out);
+        // name, charset, collation, unsigned, binary is added by DRC
+        if (drc_table_map_log_event == logEventType) {
+            // columns field name
+            for (Column column : columns) {
+                ByteHelper.writeVariablesLengthStringDefaultCharset(column.getName(), out);
             }
-        }
 
-        // columns collation nullable
-        final List<Boolean> collationNull = columns.stream().map(column -> Objects.isNull(column.getCollation())).collect(Collectors.toList());
-        writeBoolean(collationNull, out);
+            // columns charset nullable
+            final List<Boolean> charsetsNull = columns.stream().map(column -> Objects.isNull(column.getCharset())).collect(Collectors.toList());
+            writeBoolean(
+                    charsetsNull, out
+            );
 
-        // columns collation
-        for (int i = 0; i < columns.size(); i++) {
-            if (!collationNull.get(i)) {
-                final Column column = columns.get(i);
-                ByteHelper.writeVariablesLengthStringDefaultCharset(column.getCollation(), out);
-            }
-        }
-
-        // columns unsigned
-        writeBoolean(columns.stream().map(Column::isUnsigned).collect(Collectors.toList()), out);
-
-        // columns binary
-        writeBoolean(columns.stream().map(Column::isBinary).collect(Collectors.toList()), out);
-
-        // columns pk
-        writeBoolean(columns.stream().map(Column::isPk).collect(Collectors.toList()), out);
-
-        // columns uk
-        writeBoolean(columns.stream().map(Column::isUk).collect(Collectors.toList()), out);
-
-        // columns onUpdate
-        writeBoolean(columns.stream().map(Column::isOnUpdate).collect(Collectors.toList()), out);
-
-        // columns default value nullable
-        final List<Boolean> columnDefaultNull = columns.stream().map(column -> Objects.isNull(column.getColumnDefault())).collect(Collectors.toList());
-        writeBoolean(columnDefaultNull, out);
-
-        // columns default value
-        for (int i = 0; i < columns.size(); i++) {
-            if (!columnDefaultNull.get(i)) {
-                final Column column = columns.get(i);
-                ByteHelper.writeVariablesLengthStringDefaultCharset(column.getColumnDefault(), out);
-            }
-        }
-
-        List<List<String>> indexes = getIdentifiers();
-        if (indexes != null && !indexes.isEmpty()) {
-            int indexSize = indexes.size();
-            ByteHelper.writeLengthEncodeInt(indexSize, out);
-            for (int i = 0; i < indexSize; ++i) {
-                List<String> indexNames = indexes.get(i);
-                int indexNamesSize = indexNames.size();
-                ByteHelper.writeLengthEncodeInt(indexNamesSize, out);
-                for (int j = 0; j < indexNamesSize; ++j) {
-                    ByteHelper.writeVariablesLengthStringDefaultCharset(indexNames.get(j), out);
+            // columns charset
+            for (int i = 0; i < columns.size(); i++) {
+                if (!charsetsNull.get(i)) {
+                    final Column column = columns.get(i);
+                    ByteHelper.writeVariablesLengthStringDefaultCharset(column.getCharset(), out);
                 }
             }
-        } else {
-            ByteHelper.writeLengthEncodeInt(0, out);
+
+            // columns collation nullable
+            final List<Boolean> collationNull = columns.stream().map(column -> Objects.isNull(column.getCollation())).collect(Collectors.toList());
+            writeBoolean(collationNull, out);
+
+            // columns collation
+            for (int i = 0; i < columns.size(); i++) {
+                if (!collationNull.get(i)) {
+                    final Column column = columns.get(i);
+                    ByteHelper.writeVariablesLengthStringDefaultCharset(column.getCollation(), out);
+                }
+            }
+
+            // columns unsigned
+            writeBoolean(columns.stream().map(Column::isUnsigned).collect(Collectors.toList()), out);
+
+            // columns binary
+            writeBoolean(columns.stream().map(Column::isBinary).collect(Collectors.toList()), out);
+
+            // columns pk
+            writeBoolean(columns.stream().map(Column::isPk).collect(Collectors.toList()), out);
+
+            // columns uk
+            writeBoolean(columns.stream().map(Column::isUk).collect(Collectors.toList()), out);
+
+            // columns onUpdate
+            writeBoolean(columns.stream().map(Column::isOnUpdate).collect(Collectors.toList()), out);
+
+            // columns default value nullable
+            final List<Boolean> columnDefaultNull = columns.stream().map(column -> Objects.isNull(column.getColumnDefault())).collect(Collectors.toList());
+            writeBoolean(columnDefaultNull, out);
+
+            // columns default value
+            for (int i = 0; i < columns.size(); i++) {
+                if (!columnDefaultNull.get(i)) {
+                    final Column column = columns.get(i);
+                    ByteHelper.writeVariablesLengthStringDefaultCharset(column.getColumnDefault(), out);
+                }
+            }
+
+            List<List<String>> indexes = getIdentifiers();
+            if (indexes != null && !indexes.isEmpty()) {
+                int indexSize = indexes.size();
+                ByteHelper.writeLengthEncodeInt(indexSize, out);
+                for (int i = 0; i < indexSize; ++i) {
+                    List<String> indexNames = indexes.get(i);
+                    int indexNamesSize = indexNames.size();
+                    ByteHelper.writeLengthEncodeInt(indexNamesSize, out);
+                    for (int j = 0; j < indexNamesSize; ++j) {
+                        ByteHelper.writeVariablesLengthStringDefaultCharset(indexNames.get(j), out);
+                    }
+                }
+            } else {
+                ByteHelper.writeLengthEncodeInt(0, out);
+            }
         }
 
         // checksum
@@ -912,6 +915,11 @@ public class TableMapLogEvent extends AbstractLogEvent {
 
     public List<Column> getColumns() {
         return columns;
+    }
+
+    public List<String> getColumnsName() {
+        return getColumns().stream().map(Column::getName)
+                .collect(Collectors.toList());
     }
 
     public Long getChecksum() {

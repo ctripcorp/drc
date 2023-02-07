@@ -53,7 +53,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
 //        customConfig.setApplyMode(ApplyMode.mq);
 
         // rowsFilter
-        customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_WITH_UID_UDL);
+        customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX); // rowsFilter
 
         // messenger properties
         customConfig.setProperties(MESSENGER_PROPERTIES);
@@ -165,6 +165,15 @@ public class UnidirectionalStarter extends AbstractTestStarter {
             "        ]," +
             "        \"context\": \"trip.*\"" +
             "      }" +
+            "    }" +
+            "  ]," +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"exclude\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"two\"" +
+            "        ]" +
             "    }" +
             "  ]" +
             "}";

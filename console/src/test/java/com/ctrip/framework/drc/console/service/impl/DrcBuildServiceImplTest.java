@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -16,6 +17,8 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -46,6 +49,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     @Mock private DataCenterService dataCenterService;
     
     @Mock private RowsFilterService rowsFilterService;
+    @Mock private DataMediaService dataMediaService;
     
     @Mock private MessengerService messengerService;
     @Mock private DbClusterSourceProvider dbClusterSourceProvider;
@@ -74,6 +78,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
         Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0))).thenReturn(null);
         Mockito.when(messengerService.generateMessengers(Mockito.anyLong())).thenReturn(Lists.newArrayList());
+        Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
         Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
     }
 

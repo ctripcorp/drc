@@ -299,7 +299,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         }
         UnidirectionalEntity unidirectionalEntity = entityMap.remove(config.getMha());
         if (unidirectionalEntity != null) {
-            DefaultReporterHolder.getInstance().removeRegister(unidirectionalEntity.getTags(), config.getMeasurement());
+            DefaultReporterHolder.getInstance().removeRegister( config.getMeasurement(),"destMha",config.getDestMha());
         }
         log("stopped server success", INFO, null);
     }
@@ -341,6 +341,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
             mhaString = mhaDelayInfo.getM();
         } catch (Exception e) {
             mhaString = mhaDelayInfoJson;
+        }
+        
+        if (!isReplicatorMaster && !mhaString.equalsIgnoreCase(config.getDestMha())) {
+            // filter same region drc other mha delayInfo 
+            return;
         }
         
         String delayString = (String) values.get(3);

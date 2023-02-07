@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.MysqlFieldType;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.util.ByteHelper;
 import com.ctrip.framework.drc.core.driver.util.CharsetConversion;
 import com.google.common.collect.Lists;
@@ -93,6 +94,10 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         payloadByteBuf.writeBytes(payloadBytes);
         payloadByteBuf.skipBytes(payloadLength);
         setPayloadBuf(payloadByteBuf);
+    }
+
+    public AbstractRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
+        throw new UnsupportedOperationException("rows event must implement this method");
     }
 
     @Override
@@ -240,6 +245,43 @@ public abstract class AbstractRowsEvent extends AbstractLogEvent implements Rows
         }
 
         return keysPresent;
+    }
+
+    public void extractColumns(List<Integer> columnsIndex) {
+        LogEventHeader logEventHeader = getLogEventHeader();
+        int eventType = logEventHeader.getEventType();
+        this.numberOfColumns = columnsIndex.size();
+
+        List<Row> newRows = Lists.newArrayList();
+        for (Row row : rows) {
+            Row newRow = new Row();
+            BitSet beforeNullBitMap = row.beforeNullBitMap;
+            BitSet newBeforeNullBitMap = new BitSet();
+            List<Object> beforeValues = row.beforeValues;
+            List<Object> newBeforeValues = Lists.newArrayList();
+            BitSet afterNullBitMap = row.afterNullBitMap;
+            BitSet newAfterNullBitMap = new BitSet();
+            List<Object> afterValues = row.afterValues;
+            List<Object> newAfterValues = Lists.newArrayList();
+            for (int i = 0; i < columnsIndex.size(); i++) {
+                newBeforeNullBitMap.set(i, beforeNullBitMap.get(columnsIndex.get(i)));
+                newBeforeValues.add(beforeValues.get(columnsIndex.get(i)));
+                if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                    newAfterNullBitMap.set(i, afterNullBitMap.get(columnsIndex.get(i)));
+                    newAfterValues.add(afterValues.get(columnsIndex.get(i)));
+                }
+            }
+
+            newRow.setBeforeNullBitMap(newBeforeNullBitMap);
+            newRow.setBeforeValues(newBeforeValues);
+            if (update_rows_event_v2 == LogEventType.getLogEventType(eventType)) {
+                newRow.setAfterNullBitMap(newAfterNullBitMap);
+                newRow.setAfterValues(newAfterValues);
+            }
+
+            newRows.add(newRow);
+        }
+        this.rows = newRows;
     }
 
     public final class Row {

@@ -11,8 +11,16 @@ import java.util.List;
  */
 public class FilteredUpdateRowsEvent extends UpdateRowsEvent implements LogEventMerger {
 
+    public FilteredUpdateRowsEvent() {
+    }
+
     public FilteredUpdateRowsEvent(UpdateRowsEvent rowsEvent, List<TableMapLogEvent.Column> columns) throws IOException {
         super(rowsEvent, columns);
+    }
+
+    @Override
+    public FilteredUpdateRowsEvent extract(List<TableMapLogEvent.Column> columns) throws IOException {
+        return new FilteredUpdateRowsEvent(this, columns);
     }
 
     @Override

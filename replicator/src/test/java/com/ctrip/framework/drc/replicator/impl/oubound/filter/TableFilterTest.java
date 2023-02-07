@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficStatisticKey;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import io.netty.buffer.ByteBuf;
@@ -22,7 +23,7 @@ import static com.ctrip.framework.drc.core.server.common.filter.row.RuleFactory.
  */
 public class  TableFilterTest extends AbstractRowsFilterTest {
 
-    private TableFilter tableFilter = new TableFilter();
+    private TableFilter tableFilter = new TableFilter(new DataMediaConfig());
 
     @Before
     public void setUp() throws Exception {
