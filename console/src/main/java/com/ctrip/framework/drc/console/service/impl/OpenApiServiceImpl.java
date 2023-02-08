@@ -4,8 +4,11 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.OpenApiService;
-import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
+import com.ctrip.framework.drc.console.vo.MessengerVo;
+import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
+import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +31,11 @@ public class OpenApiServiceImpl implements OpenApiService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     
-    @Autowired
-    private MetaGenerator metaGenerator;
+    @Autowired private MetaGenerator metaGenerator;
     
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    @Autowired private MetaInfoServiceImpl metaInfoService;
+    
+    @Autowired private MessengerService messengerService;
     
     @Override
     public List<MhaGroupFilterVo> getAllDrcMhaDbFilters() throws SQLException {
@@ -80,5 +83,10 @@ public class OpenApiServiceImpl implements OpenApiService {
         }
 
         return allDrcMhaDbFilters;
+    }
+
+    @Override
+    public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
+        return messengerService.getAllMessengersInfo();
     }
 }

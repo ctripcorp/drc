@@ -90,7 +90,7 @@ public class ReplicatorLogEventHandlerTest extends AbstractTransactionTest {
 
     private String registerKey = RegistryKey.from(clusterName, SystemConfig.MHA_NAME_TEST);
 
-    private static final int TABLE_MAP_EVENT_SIZE = 19 + 55 + 1;  //1 for identifier
+    private static final int TABLE_MAP_EVENT_SIZE = 19 + 35 + 1;  //1 for identifier
 
     private  Set<UUID> uuidSet = Sets.newHashSet();
 

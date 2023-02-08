@@ -32,6 +32,15 @@ public class DataMediaTbl implements DalPojo {
 	@Type(value = Types.BIGINT)
 	private Long id;
 
+	/**
+	 * data_media 所属 applier_group_id
+	 * default 0 
+	 * todo rowsFilter 中 dataMedia 后续需要补充该字段值
+	 */
+	@Column(name = "applier_group_id")
+	@Type(value = Types.BIGINT)
+	private Long applierGroupId;
+	
     /**
      * schema,topic等，逻辑概念
      */
@@ -84,13 +93,21 @@ public class DataMediaTbl implements DalPojo {
 	public String getFullName() {
 		return namespcae + "\\." + name;
 	}
-	
+
 	public Long getId() {
 		return id;
 	}
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Long getApplierGroupId() {
+		return applierGroupId;
+	}
+
+	public void setApplierGroupId(Long applierGroupId) {
+		this.applierGroupId = applierGroupId;
 	}
 
 	public String getNamespcae() {
@@ -148,5 +165,4 @@ public class DataMediaTbl implements DalPojo {
 	public void setDatachangeLasttime(Timestamp datachangeLasttime) {
 		this.datachangeLasttime = datachangeLasttime;
 	}
-
 }

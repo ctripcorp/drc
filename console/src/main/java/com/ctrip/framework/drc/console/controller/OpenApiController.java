@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.service.OpenApiService;
-import com.ctrip.framework.drc.console.vo.MhaGroupFilterVo;
+import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +36,18 @@ public class OpenApiController {
             return ApiResult.getSuccessInstance(allDrcMhaDbFilters);
         } catch (Exception e) {
             logger.error("error in getDrcAllMhaDb",e);
+            return ApiResult.getFailInstance(e);
+        }
+    }
+
+
+    @GetMapping("info/messengers")
+    @ResponseBody
+    public ApiResult getAllMessengersInfo() {
+        try {
+            return ApiResult.getSuccessInstance(openApiService.getAllMessengersInfo());
+        } catch (Exception e) {
+            logger.error("error in getAllMessengersInfo",e);
             return ApiResult.getFailInstance(e);
         }
     }

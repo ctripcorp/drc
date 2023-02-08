@@ -34,11 +34,25 @@ public class OutboundFilterChainContext {
         return consumeType;
     }
 
+    public boolean shouldExtract() {
+        if (dataMediaConfig == null) {
+            return false;
+        }
+        return dataMediaConfig.shouldFilterRows() || dataMediaConfig.shouldFilterColumns();
+    }
+
     public boolean shouldFilterRows() {
         if (dataMediaConfig == null) {
             return false;
         }
         return dataMediaConfig.shouldFilterRows();
+    }
+
+    public boolean shouldFilterColumns() {
+        if (dataMediaConfig == null) {
+            return false;
+        }
+        return dataMediaConfig.shouldFilterColumns();
     }
 
     public DataMediaConfig getDataMediaConfig() {

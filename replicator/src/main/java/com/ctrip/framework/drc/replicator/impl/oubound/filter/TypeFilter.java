@@ -14,11 +14,11 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private ConsumeType consumeType;
 
-    private boolean shouldFilterRows;
+    private boolean shouldExtract;
 
-    public TypeFilter(ConsumeType consumeType, boolean shouldFilterRows) {
+    public TypeFilter(ConsumeType consumeType, boolean shouldExtract) {
         this.consumeType = consumeType;
-        this.shouldFilterRows = shouldFilterRows;
+        this.shouldExtract = shouldExtract;
     }
 
     @Override
@@ -28,9 +28,9 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             value.setSkipEvent(true);
             return doNext(value, true);
         }
-        if (ConsumeType.Applier != consumeType || !shouldFilterRows) {
-            value.setNoRowFiltered(true);
+        if (ConsumeType.Applier != consumeType || !shouldExtract) {
+            value.setNoRewrite(true);
         }
-        return doNext(value, value.isNoRowFiltered());
+        return doNext(value, value.isNoRewrite());
     }
 }
