@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.service.MessengerService;
+import com.ctrip.framework.drc.console.vo.check.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -77,14 +79,14 @@ public class MessengerController {
         }
     }
 
-    @DeleteMapping("mqConfig/{mqConfigId}")
-    public ApiResult deleteMqConfig(@PathVariable Long mqConfigId) {
+    @DeleteMapping("mqConfig/{mqConfigId}/{mhaName}")
+    public ApiResult deleteMqConfig(@PathVariable String mhaName, @PathVariable Long mqConfigId) {
         try {
             logger.info("[[tag=mqConfig]] delete mqConfig id:{}",mqConfigId);
             if (mqConfigId == 0L ) {
                 return ApiResult.getFailInstance(null,"illegal argument");
             } else {
-                return ApiResult.getSuccessInstance(null,messengerService.processDeleteMqConfig(mqConfigId));
+                return ApiResult.getSuccessInstance(null,messengerService.processDeleteMqConfig(mhaName,mqConfigId));
             }
         } catch (Exception e) {
             logger.error("[[tag=mqConfig]]  error in deleteMqConfig",e);
@@ -94,7 +96,31 @@ public class MessengerController {
     
     @PostMapping("mqConfig/check")
     public ApiResult checkMqConfig(@RequestBody MqConfigDto dto) {
-        return null;
+        try {
+            logger.info("[[tag=mqConfig]] check mqConfig :{}",dto);
+            MqConfigCheckVo mqConfigCheckVo = messengerService.checkMqConfig(dto);
+            return ApiResult.getSuccessInstance(mqConfigCheckVo);
+        } catch (Exception e) {
+            logger.error("[[tag=mqConfig]]  error in check",e);
+            return ApiResult.getFailInstance(null,"check error");
+        }
+    }
+
+
+    @PostMapping("mqConfig/ddl")
+    public ApiResult updateDalMqConfigByDDL(
+            @RequestParam String fileDc,
+            @RequestParam String mhaName,
+            @RequestParam String schema,
+            @RequestParam String table) {
+        try {
+            logger.info("[[tag=mqConfig]] updateDalMqConfigByDDL in mha:{}",mhaName);
+            messengerService.addDalClusterMqConfigByDDL(fileDc,mhaName,schema,table);
+            return ApiResult.getSuccessInstance(null);
+        } catch (SQLException e) {
+            logger.error("[[tag=messenger]] sql error in updateDalMqConfigByDDL in mha:{}",mhaName,e);
+            return ApiResult.getFailInstance(null,"updateDalMqConfigByDDL error");
+        }
     }
     
 
@@ -107,5 +133,6 @@ public class MessengerController {
             return ApiResult.getFailInstance(null,"error in getBusFromQmq");
         }
     }
+   
     
 }

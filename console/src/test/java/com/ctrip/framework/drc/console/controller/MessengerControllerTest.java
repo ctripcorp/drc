@@ -149,9 +149,10 @@ public class MessengerControllerTest extends AbstractControllerTest {
 
     @Test
     public void testDeleteMqConfig() throws Exception {
-        Mockito.when(messengerService.processDeleteMqConfig(Mockito.anyLong())).thenReturn("deleteMqConfig success");
+        Mockito.when(messengerService.processDeleteMqConfig(Mockito.anyString(),Mockito.anyLong())).
+                thenReturn("deleteMqConfig success");
 
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/1")
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/1/mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -161,7 +162,7 @@ public class MessengerControllerTest extends AbstractControllerTest {
         System.out.println(response);
         Assert.assertNotNull(response);
 
-        mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/0")
+        mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/0/mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -170,8 +171,8 @@ public class MessengerControllerTest extends AbstractControllerTest {
         Assert.assertEquals(200, status);
         System.out.println(response);
 
-        Mockito.when(messengerService.processDeleteMqConfig(Mockito.anyLong())).thenThrow(new SQLException());
-        mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/1")
+        Mockito.when(messengerService.processDeleteMqConfig(Mockito.anyString(),Mockito.anyLong())).thenThrow(new SQLException());
+        mvcResult = mvc.perform(MockMvcRequestBuilders.delete("/api/drc/v1/messenger/mqConfig/1/mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
@@ -10,13 +11,16 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
+import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MhaService;
+import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
-import com.ctrip.framework.drc.console.vo.check.MqConfigConflictVo;
+import com.ctrip.framework.drc.console.vo.check.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
@@ -25,13 +29,15 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
-import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.util.ArrayList;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +64,10 @@ public class MessengerServiceImpl implements MessengerService {
     @Autowired private DataMediaPairService dataMediaPairService;
     
     @Autowired private DrcBuildService drcBuildService;
+    
+    @Autowired private QConfigService qConfigService;
+    
+    private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance(); 
     
     @Autowired private MhaService mhaService;
     
@@ -120,53 +130,86 @@ public class MessengerServiceImpl implements MessengerService {
     @Override
     public List<MqConfigVo> getMqConfigVos(Long messengerGroupId) throws SQLException {
         List<MqConfigVo> vos = Lists.newArrayList();
-        List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getDataMediaPairs(messengerGroupId);
+        List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getPairsByMGroupId(messengerGroupId);
         for (DataMediaPairTbl dataMediaPair : dataMediaPairs) {
             vos.add(MqConfigVo.from(dataMediaPair));
         }
         return vos;
     }
-    
-    
+
     @Override
-    public List<MqConfigConflictVo> checkMqConfig(MqConfigDto dto) throws SQLException {
-        // common table in diff topic should add tag
-        // 1.根据messengerGroupId 查询该mha 的相关配置
-        //            List<DataMediaPairTbl>
-        //            List<srcDataMediaName>
-        //            
-        //            
-        //         2.查询匹配到的全部表
-        //            List<FullTableName>
-        //         3.表是否有注册
-        //            db 是否有匹配？
-        //                有： table 是否有匹配？ 
-        //                    有： 需要添加 tag
-        //                    无： 无需tag,正常
-        //                无： 无需tag,正常
-        //         3. 支持tag,元数据需要 增加tag字段
-        //            1.
-        //            2.
-        List<MqConfigConflictVo> res = Lists.newArrayList();
-        List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getDataMediaPairs(dto.getMessengerGroupId());
+    public MqConfigCheckVo checkMqConfig(MqConfigDto dto) throws SQLException {
+        MqConfigCheckVo mqConfigCheckVo = new MqConfigCheckVo();
         
-        
-        String[] dbAndTable = dto.getTable().split("\\.");
-        if (dbAndTable.length != 2) {
-            throw new IllegalArgumentException("illegal logical table in checkMqConfig");
+        // check tag, same topic same tag
+        List<DataMediaPairTbl> mqConfigsByTopic = dataMediaPairService.getPairsByTopic(dto.getTopic());
+        if (!CollectionUtils.isEmpty(mqConfigsByTopic)) {
+            String tagInDb = mqConfigsByTopic.get(0).getTag();
+            if (!Objects.equals(tagInDb,dto.getTag())) {
+                mqConfigCheckVo.setTag(tagInDb);
+            }
         }
-        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(
-                dbAndTable[0],
-                dbAndTable[1], dto.getMhaName(), 0);
-        for (TableSchemaName table: dataMediaPairs.)
-        // 1.dto的 table 查出匹配的表 
-        // 2.每个表 和 已经配置的 logicalTables 匹配
-        // 3.是否有匹配？ 
-        //      有：需要添加 tag 
-        //      无：不需tag
+
+        // check table
+        List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(dto.getMessengerGroupId());
+        String namespace = dto.getTable().split("\\\\.")[0];
+        String name = dto.getTable().split("\\\\.")[1];
+        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, dto.getMhaName(), 0);
+        if (dto.getId() != 0L) {
+            // update remove itself Config first
+            mqConfigs = mqConfigs.stream().filter(tbl -> !tbl.getId().equals(dto.getId())).collect(Collectors.toList());
+        }
+        List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
+        for (TableSchemaName table: matchTables) {
+            for (DataMediaPairTbl mqConfig : mqConfigs) {
+                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
+                boolean tableEqual = filter.filter(table.getDirectSchemaTableName());
+                boolean tagEqual = Objects.equals(dto.getTag(),mqConfig.getTag());
+                if (tableEqual && tagEqual) {
+                    MqConfigConflictTable vo = new MqConfigConflictTable();
+                    vo.setTable(table.getDirectSchemaTableName());
+                    vo.setTopic(mqConfig.getDestDataMediaName());
+                    vo.setTag(mqConfig.getTag());
+                    conflictTables.add(vo);
+                }
+            }
+        }
         
+        mqConfigCheckVo.setConflictTables(conflictTables);
+        
+        if (CollectionUtils.isEmpty(conflictTables) && StringUtils.isEmpty(mqConfigCheckVo.getTag())) {
+            mqConfigCheckVo.setAllowSubmit(true);
+        }
+        return mqConfigCheckVo;
+    }
+    
+        
+    @Override
+    public List<MqConfigConflictTable> checkMqConfig(Long messengerGroupId, Long mqConfigId, String mhaName,
+            String namespace, String name, String tag) throws SQLException {
+        List<MqConfigConflictTable> res = Lists.newArrayList();
+        List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(messengerGroupId);
+        if (null != mqConfigId) {
+            mqConfigs = mqConfigs.stream().filter(tbl -> !tbl.getId().equals(mqConfigId)).collect(Collectors.toList());
+        }
+        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, 0);
+        
+        boolean isTagEmpty = StringUtils.isEmpty(tag);
+        for (TableSchemaName table: matchTables) {
+            for (DataMediaPairTbl mqConfig : mqConfigs) {
+                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
+                boolean conflict0 = filter.filter(table.getDirectSchemaTableName());
+                boolean conflict1 = isTagEmpty || !tag.equals(mqConfig.getTag());
+                if (conflict0 && conflict1) {
+                    MqConfigConflictTable vo = new MqConfigConflictTable();
+                    vo.setTable(table.getDirectSchemaTableName());
+                    vo.setTopic(mqConfig.getDestDataMediaName());
+                    vo.setTag(mqConfig.getTag());
+                    res.add(vo);
+                }
+            }
+        }
         return res;
-        
     }
 
     public List<String> getBusFromQmq() throws Exception {
@@ -182,7 +225,7 @@ public class MessengerServiceImpl implements MessengerService {
     
 
     @Override
-    public String processAddMqConfig(MqConfigDto dto) throws Exception {
+    public String processAddMqConfig(MqConfigDto dto) throws SQLException {
         if (MqType.qmq.name().equalsIgnoreCase(dto.getMqType())) {
             if (!initTopic(dto)) {
                 throw new IllegalArgumentException("init Topic error");
@@ -193,25 +236,7 @@ public class MessengerServiceImpl implements MessengerService {
         } else {
             // kafka todo
         }
-        /*
-         todo overwrite binlog-topic-registry.properties
-         
-        
-         4. 写入 qconfig 配置文件
-            1.跨region写qconfig 问题？ answer: 无需跨region， 写 subEnv 即可
-            2.update 不变 会怎么响应？  
-         5. 延迟监控 收到 DDL,新增表查看是否匹配到原有正则表达式，写入配置文件
-            1.根据库表名，找到匹配的 messenger,再执行第4步，
-            2.如果 console 和 replicator 延迟监控期间有中断
-                中间的 DDL 将丢失，可用会造成漏更新？
-         6.解决方案 
-            1.qconfig 中保存正则表达
-                bbz.fx.drc.qmq.test.dbName=dbadalclustertest0[1-6]db
-                bbz.fx.drc.qmq.test.tableName=test_.*
-                bbz.fx.drc.qmq.test.tag=bbzDrcTest
-            2.推拉结合 ，dal没从qconfig 中找到时，调用DRC console api 刷新qconfig
-         */
-        
+        addDalClusterMqConfig(dto);
         return dataMediaPairService.addMqConfig(dto);
     }
     
@@ -229,11 +254,14 @@ public class MessengerServiceImpl implements MessengerService {
         } else {
             // kafka todo
         }
+        updateDalClusterMqConfig(dto);
         return dataMediaPairService.updateMqConfig(dto);
     }
 
+
     @Override
-    public String processDeleteMqConfig(Long mqConfigId) throws Exception {
+    public String processDeleteMqConfig(String mhaName, Long mqConfigId) throws Exception {
+        disableDalClusterMqConfigIfNecessary(mhaName,mqConfigId);
         return dataMediaPairService.deleteMqConfig(mqConfigId);
     }
 
@@ -268,6 +296,124 @@ public class MessengerServiceImpl implements MessengerService {
         return "remove success";
     }
 
+    @Override
+    public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
+        List<MessengerInfo> res = Lists.newArrayList();
+
+        MessengerGroupTbl sample = new MessengerGroupTbl();
+        sample.setDeleted(BooleanEnum.FALSE.getCode());
+        List<MessengerGroupTbl> mGroups = messengerGroupTblDao.queryBy(sample);
+        for (MessengerGroupTbl mGroup : mGroups) {
+            List<MessengerTbl> messengers = messengerTblDao.queryByGroupId(mGroup.getId());
+            if (CollectionUtils.isEmpty(messengers)) {
+                continue;
+            }
+            MessengerInfo mInfo = new MessengerInfo();
+            MhaTbl mhaTbl = mhaTblDao.queryByPk(mGroup.getMhaId());
+            mInfo.setMhaName(mhaTbl.getMhaName());
+            List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getPairsByMGroupId(mGroup.getId());
+            if (CollectionUtils.isEmpty(dataMediaPairs)) {
+                continue;
+            } else {
+                List<String> tables = dataMediaPairs.stream().map(DataMediaPairTbl::getSrcDataMediaName)
+                        .collect(Collectors.toList());
+                mInfo.setNameFilter(StringUtils.join(tables,","));
+            }
+            res.add(mInfo);
+        }
+        return res;
+    }
+    
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/messenger/mqConfig/ddl",forwardType = ForwardTypeEnum.TO_META_DB,httpType = HttpRequestEnum.POST)
+    public void addDalClusterMqConfigByDDL(String fileDc, String mhaName, String schema, String table) throws SQLException{
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl mGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),
+                BooleanEnum.FALSE.getCode());
+        if (mGroupTbl == null) {
+            logger.info("[DDL] no need to addDalClusterMqConfig");
+        } else {
+            String newTable = schema+"."+table;
+            List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(mGroupTbl.getId());
+            for (DataMediaPairTbl mqConfig : mqConfigs) {
+                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
+                if (filter.filter(newTable)) {
+                    logger.info("[DDL] addDalClusterMqConfig for dc:{},topic:{},table:{}",
+                            fileDc,mqConfig.getDestDataMediaName(),schema+"."+table);
+                    addDalClusterMqConfig(fileDc,mhaName,schema,table,mqConfig.getDestDataMediaName(),mqConfig.getTag());
+                }
+            }
+        }
+    }
+
+    private void addDalClusterMqConfig(String fileDc, String mhaName, String schema, String table,String topic,String tag) {
+        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(schema,table,mhaName,0);
+        transactionMonitor.logTransactionSwallowException(
+                "QConfig.OpenApi.MqConfig.Generate",
+                topic,
+                () -> qConfigService.addOrUpdateDalClusterMqConfig(
+                        fileDc,topic,schema + "\\." + table,tag,matchTables
+                )
+        );
+    }
+    
+    
+    private void addDalClusterMqConfig(MqConfigDto dto) throws SQLException {
+        String[] dbAndTable = dto.getTable().split("\\\\.");
+        if (dbAndTable.length != 2) {
+            throw new IllegalArgumentException("illegal table name" + dto.getTable());
+        }
+        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0],dbAndTable[1],dto.getMhaName(),0);
+        String fileDc = mhaService.getDcNameForMha(dto.getMhaName());
+        
+        transactionMonitor.logTransactionSwallowException(
+                "QConfig.OpenApi.MqConfig.Generate", 
+                dto.getTopic(),
+                () -> qConfigService.addOrUpdateDalClusterMqConfig(
+                        fileDc,dto.getTopic(),dto.getTable(),dto.getTag(),matchTables
+                )
+        );
+    }
+    
+
+    private void updateDalClusterMqConfig(MqConfigDto dto) throws SQLException {
+        // delete + add
+        disableDalClusterMqConfigIfNecessary(dto.getMhaName(),dto.getId());
+        addDalClusterMqConfig(dto);
+    }
+
+    private void disableDalClusterMqConfigIfNecessary(String mhaName,Long mqConfigId)  throws SQLException {
+        List<DataMediaPairTbl> configsByTopic = dataMediaPairService.getPairsByTopic(mqConfigId);
+        DataMediaPairTbl configToBeDeleted = configsByTopic.stream().filter(p -> p.getId().equals(mqConfigId))
+                .findFirst().orElse(null);
+        List<DataMediaPairTbl> otherConfigs = configsByTopic.stream().filter(p -> !p.getId().equals(mqConfigId))
+                .collect(Collectors.toList());
+        if (configToBeDeleted == null) {
+            throw new IllegalArgumentException("illegal mqConfig: " + mqConfigId);
+        }
+
+        String[] dbAndTable = configToBeDeleted.getSrcDataMediaName().split("\\\\.");
+        if (dbAndTable.length != 2) {
+            throw new IllegalArgumentException("illegal table name" + configToBeDeleted.getSrcDataMediaName());
+        }
+        
+        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0],dbAndTable[1],mhaName,0);
+        String fileDc = mhaService.getDcNameForMha(mhaName);
+        
+        transactionMonitor.logTransactionSwallowException(
+                "QConfig.OpenApi.MqConfig.Delete", 
+                configToBeDeleted.getDestDataMediaName(),
+                () -> qConfigService.removeDalClusterMqConfigIfNecessary(
+                        fileDc,
+                        configToBeDeleted.getDestDataMediaName(),
+                        configToBeDeleted.getSrcDataMediaName(),
+                        configToBeDeleted.getTag(), 
+                        matchTables,
+                        otherConfigs.stream().map(DataMediaPairTbl::getSrcDataMediaName).collect(Collectors.toList())
+                )
+        );
+    }
+    
     private boolean initTopic(MqConfigDto dto) throws SQLException {
         String dcNameForMha = mhaService.getDcNameForMha(dto.getMhaName());
         if (consoleConfig.getLocalConfigCloudDc().contains(dcNameForMha)) {
@@ -327,33 +473,6 @@ public class MessengerServiceImpl implements MessengerService {
         return true;
     }
 
-    @Override
-    public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
-        List<MessengerInfo> res = Lists.newArrayList();
-        
-        MessengerGroupTbl sample = new MessengerGroupTbl();
-        sample.setDeleted(BooleanEnum.FALSE.getCode());
-        List<MessengerGroupTbl> mGroups = messengerGroupTblDao.queryBy(sample);
-        for (MessengerGroupTbl mGroup : mGroups) {
-            List<MessengerTbl> messengers = messengerTblDao.queryByGroupId(mGroup.getId());
-            if (CollectionUtils.isEmpty(messengers)) {
-                continue;
-            }
-            MessengerInfo mInfo = new MessengerInfo();
-            MhaTbl mhaTbl = mhaTblDao.queryByPk(mGroup.getMhaId());
-            mInfo.setMhaName(mhaTbl.getMhaName());
-            List<DataMediaPairTbl> dataMediaPairs = dataMediaPairService.getDataMediaPairs(mGroup.getId());
-            if (CollectionUtils.isEmpty(dataMediaPairs)) {
-                continue;
-            } else {
-                List<String> tables = dataMediaPairs.stream().map(DataMediaPairTbl::getSrcDataMediaName)
-                        .collect(Collectors.toList());
-                mInfo.setNameFilter(StringUtils.join(tables,","));
-            }
-            res.add(mInfo);
-        }
-        return res;
-    }
-
+   
 
 }

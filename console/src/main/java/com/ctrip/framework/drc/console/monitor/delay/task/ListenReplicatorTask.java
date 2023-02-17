@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnector;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
@@ -80,20 +81,14 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     private Map<String, ReplicatorWrapper> replicatorWrappers = Maps.newConcurrentMap();
     private Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
 
-    @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
-    @Autowired
-    private ModuleCommunicationServiceImpl moduleCommunicationService;
-    @Autowired
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
-    @Autowired
-    private PeriodicalUpdateDbTask periodicalUpdateDbTask;
-    @Autowired
-    private MonitorService monitorService;
+    @Autowired private DbClusterSourceProvider dbClusterSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private ModuleCommunicationServiceImpl moduleCommunicationService;
+    @Autowired private DrcMaintenanceServiceImpl drcMaintenanceService;
+    @Autowired private DefaultConsoleConfig consoleConfig;
+    @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
+    @Autowired private MonitorService monitorService;
+    @Autowired private MessengerService messengerService;
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
         String prefix = CLOG_TAGS + msg;
@@ -226,7 +221,8 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 config,
                 new DelayMonitorPooledConnector(config.getEndpoint()),
                 periodicalUpdateDbTask,
-                consoleConfig.getDelayExceptionTime()
+                consoleConfig.getDelayExceptionTime(),
+                messengerService
         );
     }
 

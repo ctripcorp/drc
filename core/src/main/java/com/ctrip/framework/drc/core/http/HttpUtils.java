@@ -76,6 +76,12 @@ public class HttpUtils {
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
+    
+    public static<T> T get(String url, Class<T> responseType, Object requestBody,HttpHeaders header) {
+        init();
+        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(requestBody,header);
+        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType).getBody();
+    }
 
     public static <T> T get(String url, Class<T> responseType, Map<String, ?> urlVariables) {
         init();
@@ -96,6 +102,14 @@ public class HttpUtils {
         ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz);
         return response.getBody();
     }
+
+    public static <T> T post(String url, Object body, Class<T> clazz,Map<String, ?> urlVariables) {
+        init();
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz,urlVariables);
+        return response.getBody();
+    }
+
 
     public static <T> T delete(String url, Class<T> clazz) {
         init();

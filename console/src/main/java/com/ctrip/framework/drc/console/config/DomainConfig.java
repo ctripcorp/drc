@@ -67,6 +67,12 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
     private static final String BU_SUFFIX = "/api/producer/getBuList";
+    
+    // QConfig
+    private static String DC_QCONFIG_SUBENV_MAP = "dc.qconfig.subenv.map";
+    private static String QCONFIG_REST_API_URL = "qconfig.rest.api.url";
+    private static String QCONFIG_API_TOKEN = "qconfig.api.token";
+    
 
     public String getCmsGetServerUrl() {
         return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
@@ -155,4 +161,16 @@ public class DomainConfig extends AbstractConfigBean {
         return qmqUrls.get(region);
     }
 
+    public Map<String,String> getDc2QConfigSubEnvMap() {
+        String mapString = getProperty(DC_QCONFIG_SUBENV_MAP, "{}");
+        return JsonCodec.INSTANCE.decode(mapString, new GenericTypeReference<Map<String, String>>() {});
+    }
+
+    public String getQConfigRestApiUrl() {
+        return getProperty(QCONFIG_REST_API_URL,"");
+    }
+
+    public String  getQConfigAPIToken() {
+        return getProperty(QCONFIG_API_TOKEN,"");
+    }
 }

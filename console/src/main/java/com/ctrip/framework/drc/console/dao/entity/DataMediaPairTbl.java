@@ -55,6 +55,15 @@ public class DataMediaPairTbl implements DalPojo {
     @Column(name = "dest_data_media_name")
     @Type(value = Types.VARCHAR)
     private String destDataMediaName;
+
+    /**
+     *  todo cd发布表结构
+     *  tag mark business line 
+     *  default null , distinguish when one table match topic more than one 
+     */
+    @Column(name = "tag")
+    @Type(value = Types.VARCHAR)
+    private String tag;
     
     
     /**
@@ -134,6 +143,14 @@ public class DataMediaPairTbl implements DalPojo {
 
     public void setDestDataMediaName(String destDataMediaName) {
         this.destDataMediaName = destDataMediaName;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public String getProcessor() {

@@ -1,12 +1,12 @@
 package com.ctrip.framework.drc.console.vo.check;
 
 /**
- * @ClassName MqConfigConflictVo
+ * @ClassName MqConfigConflictTable
  * @Author haodongPan
  * @Date 2023/2/7 15:52
  * @Version: $
  */
-public class MqConfigConflictVo {
+public class MqConfigConflictTable {
     
     private String table;
     
@@ -16,7 +16,7 @@ public class MqConfigConflictVo {
 
     @Override
     public String toString() {
-        return "MqConfigConflictVo{" +
+        return "MqConfigConflictTable{" +
                 "table='" + table + '\'' +
                 ", topic='" + topic + '\'' +
                 ", tag='" + tag + '\'' +

@@ -39,5 +39,11 @@ public class RowsFilterConfigDtoTest {
         System.out.println(dto.toString() + rowsFilterMappingTbl +rowsFilterTbl + dataMediaTbl );
         
     }
+    
+    @Test
+    public void testMq() {
+        String test = ".*\\..*";
+        String[] split = test.split("\\\\.");
+    }
 
 }

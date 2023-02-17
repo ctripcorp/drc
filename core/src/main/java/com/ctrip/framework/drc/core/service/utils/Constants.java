@@ -23,6 +23,8 @@ public class Constants {
     public static final Integer tenThousand = 10000;
 
     //
+    public static final String DRC = "drc";
+    
     public static final String DRC_MONITOR_SCHEMA_TABLE = "`drcmonitordb`.`delaymonitor`";
 
     public static String MEMORY_META_SERVER_DAO_KEY = "memory_meta_server_dao_file";

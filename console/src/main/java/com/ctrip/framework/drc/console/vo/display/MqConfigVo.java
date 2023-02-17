@@ -7,7 +7,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import static com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum.DB_TO_MQ;
 
 /**
- * @ClassName MqConfigConflictVo
+ * @ClassName MqConfigConflictTable
  * @Author haodongPan
  * @Date 2022/10/26 15:05
  * @Version: $
@@ -36,6 +36,7 @@ public class MqConfigVo {
     private long delayTime;
     // for otter eventProcessor
     private String processor;
+    private String tag;
 
 
     public static MqConfigVo from(DataMediaPairTbl dataMediaPairTbl) {
@@ -49,6 +50,7 @@ public class MqConfigVo {
         vo.setId(dataMediaPairTbl.getId());
         vo.setTable(dataMediaPairTbl.getSrcDataMediaName());
         vo.setTopic(dataMediaPairTbl.getDestDataMediaName());
+        vo.setTag(dataMediaPairTbl.getTag());
         
         MqConfig mqConfig = JsonUtils.fromJson(dataMediaPairTbl.getProperties(), MqConfig.class);
         vo.setMqType(mqConfig.getMqType());
@@ -69,7 +71,7 @@ public class MqConfigVo {
 
     @Override
     public String toString() {
-        return "MqConfigConflictVo{" +
+        return "MqConfigVo{" +
                 "id=" + id +
                 ", mqType='" + mqType + '\'' +
                 ", table='" + table + '\'' +
@@ -81,6 +83,7 @@ public class MqConfigVo {
                 ", orderKey='" + orderKey + '\'' +
                 ", delayTime=" + delayTime +
                 ", processor='" + processor + '\'' +
+                ", tag='" + tag + '\'' +
                 '}';
     }
 
@@ -114,6 +117,14 @@ public class MqConfigVo {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public String getSerialization() {

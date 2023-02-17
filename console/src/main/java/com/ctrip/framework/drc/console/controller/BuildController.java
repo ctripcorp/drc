@@ -115,9 +115,9 @@ public class BuildController {
     public ApiResult getMatchTable (@RequestParam String namespace,
                                     @RequestParam String name,
                                     @RequestParam String mhaName,
-                                    @RequestParam Integer dataMediaType) {
+                                    @RequestParam Integer type) {
         try {
-            List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, dataMediaType);
+            List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, type);
             return ApiResult.getSuccessInstance(matchTables);
         } catch (Exception e) {
             logger.warn("[[tag=matchTable]] error when get {}.{} from {}",namespace,name, mhaName,e);
