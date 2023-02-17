@@ -90,7 +90,7 @@ public class QConfigServiceImpl implements QConfigService {
         String localEnv = getLocalEnv();
         String fileSubEnv = getFileSubEnv(fileDc);
 
-        String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalServicePrefix(),
+        String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),
                 fullTableName.split("\\\\.")[0]);
         String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
