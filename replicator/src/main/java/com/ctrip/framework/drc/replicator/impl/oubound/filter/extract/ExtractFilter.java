@@ -36,7 +36,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
         LogEventType eventType = value.getEventType();
-        AbstractRowsEvent beforeRowsEvent;
+        AbstractRowsEvent beforeRowsEvent = null;
         try {
             if (LogEventUtils.isRowsEvent(eventType)) {
                 switch (eventType) {
@@ -74,8 +74,6 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                     } catch (Exception e) {
                         logger.error("[ExtractFilter] error", e);
                         value.setCause(e);
-                    } finally {
-                        beforeRowsEvent.release();  // for extraData used in construct afterRowsEvent
                     }
                 }
             } else if (xid_log_event == eventType) {
@@ -84,6 +82,10 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
         } catch (Exception e) {
             logger.error("[ExtractFilter] error", e);
             value.setCause(e);
+        } finally {
+            if (beforeRowsEvent != null) {
+                beforeRowsEvent.release();
+            }
         }
 
         return doNext(value, value.isNoRewrite());
