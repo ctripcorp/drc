@@ -131,7 +131,7 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
 
     @Override
     public String getDalClusterName(String dalClusterUrl, String dbName) {
-        String URL = dalClusterUrl + GET_DB_INFO_BY_DBS + "{" + dbName + "}";
+        String URL = dalClusterUrl + GET_DB_INFO_BY_DBS +  dbName ;
         DbInfosResponse dbInfosResponse = HttpUtils.get(URL, DbInfosResponse.class, Maps.newHashMap());
         if (dbInfosResponse.getStatus().equals(200)) {
             return dbInfosResponse.getResult().get(0).getDbNameBase() + "_dalcluster";
