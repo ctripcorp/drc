@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -65,7 +66,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
 
     @Mock private DalServiceImpl dalService;
     
-    @Mock private RowsFilterServiceImpl rowsFilterService;
+    @Mock private DataMediaService dataMediaService;
 
     @Mock private DefaultConsoleConfig defaultConsoleConfig;
 

@@ -12,7 +12,7 @@ import org.springframework.util.CollectionUtils;
  */
 public class SubEnvResponse {
 
-    private Integer status;
+    private int status;
 
     private String message;
 
@@ -30,12 +30,12 @@ public class SubEnvResponse {
                 ", data=" + data +
                 '}';
     }
-
-    public Integer getStatus() {
+ 
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(Integer status) {
+    public void setStatus(int status) {
         this.status = status;
     }
 

@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
@@ -70,7 +71,7 @@ MetaInfoServiceImpl implements MetaInfoService {
 
     @Autowired private DbClusterSourceProvider dbClusterSourceProvider;
     
-    @Autowired private RowsFilterService rowsFilterService;
+    @Autowired private DataMediaService dataMediaService;
     
     @Autowired private OpenService openService;
     
@@ -728,10 +729,11 @@ MetaInfoServiceImpl implements MetaInfoService {
         if (replicatorGroupTbl == null) return;
         ApplierGroupTbl applierGroupTbl = metaService.getApplierGroupTbls().stream().filter(ag -> ag.getMhaId().equals(mhaTbl.getId()) && ag.getReplicatorGroupId().equals(replicatorGroupTbl.getId())).findFirst().get();
         List<ApplierTbl> applierTbls = dalUtils.getApplierTblDao().queryAll().stream().filter(a -> (a.getDeleted().equals(BooleanEnum.FALSE.getCode()) && a.getApplierGroupId().equals(applierGroupTbl.getId()))).collect(Collectors.toList());
-        List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(applierGroupTbl.getId(), ConsumeType.Applier.getCode());
-        DataMediaConfig properties = new DataMediaConfig();
-        properties.setRowsFilters(rowsFilterConfigs);
-        String propertiesJson = CollectionUtils.isEmpty(rowsFilterConfigs) ? null : JsonCodec.INSTANCE.encode(properties);
+
+        DataMediaConfig properties = dataMediaService.generateConfig(applierGroupTbl.getId());
+        String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
+                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
+        
         for(ApplierTbl applierTbl : applierTbls) {
             ResourceTbl resourceTbl = metaService.getResourceTbls().stream().filter(r -> r.getId().equals(applierTbl.getResourceId())).findFirst().get();
             logger.info("generate view applier: {} for mha: {}", resourceTbl.getIp(), mhaTbl.getMhaName());

@@ -140,6 +140,8 @@ public class MessengerServiceImpl implements MessengerService {
     @Override
     public MqConfigCheckVo checkMqConfig(MqConfigDto dto) throws SQLException {
         MqConfigCheckVo mqConfigCheckVo = new MqConfigCheckVo();
+        mqConfigCheckVo.setAllowSubmit(true);
+        // todo one topic can only bind one dalcluster
         
         // check tag, same topic same tag
         List<DataMediaPairTbl> mqConfigsByTopic = dataMediaPairService.getPairsByTopic(dto.getTopic());
@@ -147,6 +149,7 @@ public class MessengerServiceImpl implements MessengerService {
             String tagInDb = mqConfigsByTopic.get(0).getTag();
             if (!Objects.equals(tagInDb,dto.getTag())) {
                 mqConfigCheckVo.setTag(tagInDb);
+                mqConfigCheckVo.setAllowSubmit(false);
             }
         }
 
@@ -171,14 +174,15 @@ public class MessengerServiceImpl implements MessengerService {
                     vo.setTopic(mqConfig.getDestDataMediaName());
                     vo.setTag(mqConfig.getTag());
                     conflictTables.add(vo);
+                    
                 }
             }
         }
         
         mqConfigCheckVo.setConflictTables(conflictTables);
         
-        if (CollectionUtils.isEmpty(conflictTables) && StringUtils.isEmpty(mqConfigCheckVo.getTag())) {
-            mqConfigCheckVo.setAllowSubmit(true);
+        if (!CollectionUtils.isEmpty(conflictTables) ) {
+            mqConfigCheckVo.setAllowSubmit(false);
         }
         return mqConfigCheckVo;
     }

@@ -45,7 +45,7 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
 
     private static final String DAL_SERVICE_SUFFIX = "?operator=drcAdmin";
     
-    private static final String GET_DB_INFO_BY_DBS = "console/dal/v2/db/dbInfos/";
+    private static final String GET_DB_INFO_BY_DBS = "/console/dal/v2/db/dbInfos/";
     
 
     @Override

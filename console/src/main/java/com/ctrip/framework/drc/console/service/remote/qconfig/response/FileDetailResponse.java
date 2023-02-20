@@ -8,11 +8,18 @@ package com.ctrip.framework.drc.console.service.remote.qconfig.response;
  * API 5.4.1
  */
 public class FileDetailResponse {
-    private Integer status;
+    private int status;
 
     private String message;
 
     private FileDetailData data;
+
+    public FileDetailResponse() {
+    }
+
+    public FileDetailResponse(int status) {
+        this.status = status;
+    }
 
     public boolean isExist(){
         return status == 0;
@@ -27,11 +34,11 @@ public class FileDetailResponse {
                 '}';
     }
 
-    public Integer getStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(Integer status) {
+    public void setStatus(int status) {
         this.status = status;
     }
 

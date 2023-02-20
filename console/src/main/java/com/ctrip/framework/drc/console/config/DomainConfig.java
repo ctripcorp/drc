@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.console.config;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -172,5 +174,9 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String  getQConfigAPIToken() {
         return getProperty(QCONFIG_API_TOKEN,"");
+    }
+    
+    public Set<String> getDcsInSameRegion(String dc) {
+        return consoleConfig.getDcsInSameRegion(dc);
     }
 }

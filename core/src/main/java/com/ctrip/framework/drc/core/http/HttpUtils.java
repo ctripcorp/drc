@@ -76,12 +76,6 @@ public class HttpUtils {
         HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(headers);
         return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType,urlVariables).getBody();
     }
-    
-    public static<T> T get(String url, Class<T> responseType, Object requestBody,HttpHeaders header) {
-        init();
-        HttpEntity<Object> requestWithHeader = new HttpEntity<Object>(requestBody,header);
-        return restTemplate.exchange(url,HttpMethod.GET,requestWithHeader,responseType).getBody();
-    }
 
     public static <T> T get(String url, Class<T> responseType, Map<String, ?> urlVariables) {
         init();

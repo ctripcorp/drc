@@ -1,28 +1,18 @@
 package com.ctrip.framework.drc.console.service.remote.qconfig.response;
 
 /**
- * @ClassName BatchUpdateResponse
+ * @ClassName CreateFileResponse
  * @Author haodongPan
- * @Date 2023/2/9 11:37
+ * @Date 2023/2/20 10:25
  * @Version: $
- * API 5.4.7
  */
-public class BatchUpdateResponse {
+public class CreateFileResponse {
     
     private int status;
     
     private String message;
     
     private String data;
-    
-
-    public int getStatus() {
-        return status;
-    }
-
-    public void setStatus(int status) {
-        this.status = status;
-    }
 
 
     public String getMessage() {
@@ -39,5 +29,13 @@ public class BatchUpdateResponse {
 
     public void setData(String data) {
         this.data = data;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

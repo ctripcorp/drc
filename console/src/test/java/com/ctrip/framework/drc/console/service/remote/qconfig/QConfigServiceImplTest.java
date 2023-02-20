@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ public class QConfigServiceImplTest {
             put("sinaws","SIN-AWS");
             put("shaxy","SHA");
         }});
+        Mockito.when(domainConfig.getDcsInSameRegion("shaxy")).thenReturn(Sets.newHashSet("shaxy"));
     }
 
     @Test

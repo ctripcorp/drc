@@ -459,6 +459,7 @@ export default {
         table: ''
       }
       this.tableData = []
+      this.tagInfo.inputDisplay = false
     },
     mqInitConfigInitFormRow: function (row, index) {
       this.mqConfig = {
@@ -483,6 +484,7 @@ export default {
         db: tableInfo[0],
         table: tableInfo[1]
       }
+      this.tagInfo.inputDisplay = row.tag != null
       this.display.normalTopicForm = row.topic.endsWith('.drc') // 判断是否为规范topic
     },
     goToNormalTopicApplication () {

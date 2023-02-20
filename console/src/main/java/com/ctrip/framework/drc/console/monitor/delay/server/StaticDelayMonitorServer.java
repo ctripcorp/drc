@@ -192,11 +192,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         log(data, ERROR, t);
                     }
                 }
-                if (QueryType.CREATE.equals(queryType) && isReplicatorMaster) {
-                    // add in qconfig
-                    messengerService.addDalClusterMqConfigByDDL(config.getDestDc(), config.getDestMha(), schema, table);
-                    log("[DDL] addDalClusterMqConfig table,res" + schema + "." + table,INFO,null);
-                }
+//                if (QueryType.CREATE.equals(queryType) && isReplicatorMaster) {
+//                    // add in qconfig
+//                    messengerService.addDalClusterMqConfigByDDL(config.getDestDc(), config.getDestMha(), schema, table);
+//                    log("[DDL] addDalClusterMqConfig table,res" + schema + "." + table,INFO,null);
+//                }
             } catch (Exception e) {
                 log("[parse] ParsedDdlLogEvent: ", ERROR, e);
             } finally {
