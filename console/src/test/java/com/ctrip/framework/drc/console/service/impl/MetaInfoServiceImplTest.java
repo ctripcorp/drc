@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.vo.display.MhaGroupPairVo;
 import com.ctrip.framework.drc.console.vo.response.MhaListApiResult;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.DBInfo;
+import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -283,7 +284,7 @@ public class MetaInfoServiceImplTest extends AbstractTest {
         Mockito.when(metaService.getDc2regionMap()).thenReturn(dc2regionMap);
         Mockito.when(defaultConsoleConfig.getDcsInSameRegion(Mockito.any())).thenReturn(Sets.newHashSet(Lists.newArrayList("shaoy","sharb")));
         Mockito.when(defaultConsoleConfig.getAvailablePortSize()).thenReturn(1000);
-        
+        Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
         mock();
     }
 
