@@ -6,18 +6,21 @@ import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.BatchUpdateRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.CreateFileRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.BatchUpdateResponse;
+import com.ctrip.framework.drc.console.service.remote.qconfig.response.CreateFileResponse;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.FileDetailData;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.FileDetailResponse;
 import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -40,13 +43,14 @@ public class QConfigServiceImplTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        Mockito.doReturn("db1_dalcluster").when(dbClusterService).getDalClusterName(Mockito.anyString(),Mockito.eq("db1"));
+        Mockito.doReturn("db1_dalcluster").when(dbClusterService).getDalClusterName(Mockito.anyString(),Mockito.anyString());
         Mockito.doNothing().when(eventMonitor).logEvent(Mockito.anyString(),Mockito.anyString());
+        Mockito.when(domainConfig.getDalClusterUrl()).thenReturn("dalclusterUrl");
         Mockito.when(domainConfig.getQConfigRestApiUrl()).thenReturn("url");
         Mockito.when(domainConfig.getQConfigAPIToken()).thenReturn("token");
         Mockito.when(domainConfig.getDc2QConfigSubEnvMap()).thenReturn(new HashMap<>() {{
             put("sinaws","SIN-AWS");
-            put("shaxy","SHA");
+            put("shaxy","SHAXY");
         }});
         Mockito.when(domainConfig.getDcsInSameRegion("shaxy")).thenReturn(Sets.newHashSet("shaxy"));
     }
@@ -56,43 +60,70 @@ public class QConfigServiceImplTest {
         // create file
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
-                HttpUtils.get(Mockito.eq("url" + "/configs"),Mockito.any(),Mockito.any(Map.class));
-            }).thenReturn(mockInExistentFileDetailResponse());
-
+                HttpUtils.get(
+                        Mockito.eq("url/configs" 
+                                + "?token={token}" 
+                                + "&groupid={groupid}" 
+                                + "&dataid={dataid}" 
+                                + "&env={env}" 
+                                + "&subenv={subenv}" 
+                                + "&targetgroupid={targetgroupid}"),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(JsonUtils.toJson(mockInExistentFileDetailResponse()));
             theMock.when(() -> {
                 HttpUtils.post(
-                        Mockito.eq("url" + "/configs"),
+                        Mockito.eq("url" + "/configs" + "?token={token}"),
                         Mockito.any(CreateFileRequestBody.class),
                         Mockito.any(),
                         Mockito.any(Map.class));
-            }).thenReturn(0);
-            qConfigService.addOrUpdateDalClusterMqConfig(
+            }).thenReturn(new CreateFileResponse() {{setStatus(0);}});
+            boolean res = qConfigService.addOrUpdateDalClusterMqConfig(
                     "shaxy",
                     "topicName",
                     "db1\\.t3",
                     null,
-                    new ArrayList<>() {{add(new TableSchemaName("db1","t3"));}}
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t3"));
+                    }}
             );
+            Assert.assertTrue(res);
         }
         
         
         // update file
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
-                HttpUtils.get(Mockito.eq("url" + "/configs"),Mockito.any(),Mockito.any(Map.class));
-            }).thenReturn(mockExistingFileDetailResponse());
+                HttpUtils.get(
+                        Mockito.eq("url/configs"
+                                + "?token={token}"
+                                + "&groupid={groupid}"
+                                + "&dataid={dataid}"
+                                + "&env={env}"
+                                + "&subenv={subenv}"
+                                + "&targetgroupid={targetgroupid}"),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(JsonUtils.toJson(mockExistingFileDetailResponse()));
 
             theMock.when(() -> {
-                HttpUtils.post(Mockito.eq("url" + "restapi/properties/binlog-topic-registry/envs/fat/subenvs/SHA"),Mockito.any(
-                        BatchUpdateRequestBody.class),Mockito.any(),Mockito.any(Map.class));
+                HttpUtils.post(Mockito.eq("url" 
+                                + "/properties/binlog-topic-registry/envs/fat/subenvs/SHAXY" 
+                                + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
             }).thenReturn(mockBatchUpdateResponse());
-            qConfigService.addOrUpdateDalClusterMqConfig(
+            boolean res = qConfigService.addOrUpdateDalClusterMqConfig(
                     "shaxy",
                     "topicName",
                     "db1\\.t3",
                     null,
-                    new ArrayList<>() {{add(new TableSchemaName("db1","t3"));}}
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t3"));
+                    }}
             );
+            Assert.assertTrue(res);
         }
     }
 
@@ -102,39 +133,60 @@ public class QConfigServiceImplTest {
     public void testDisableDalClusterMqConfigIfNecessary() throws SQLException {
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
-                HttpUtils.get(Mockito.eq("url" + "/configs"),Mockito.any(),Mockito.any(Map.class));
-            }).thenReturn(mockExistingFileDetailResponse());
+                HttpUtils.get(
+                        Mockito.eq("url/configs"
+                                + "?token={token}"
+                                + "&groupid={groupid}"
+                                + "&dataid={dataid}"
+                                + "&env={env}"
+                                + "&subenv={subenv}"
+                                + "&targetgroupid={targetgroupid}"),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(JsonUtils.toJson(mockExistingFileDetailResponse()));
+
 
             theMock.when(() -> {
-                HttpUtils.post(Mockito.eq("url" + "restapi/properties/binlog-topic-registry/envs/fat/subenvs/SHA"),Mockito.any(
-                        BatchUpdateRequestBody.class),Mockito.any(),Mockito.any(Map.class));
+                HttpUtils.post(Mockito.eq("url"
+                                + "/properties/binlog-topic-registry/envs/fat/subenvs/SHAXY"
+                                + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
             }).thenReturn(mockBatchUpdateResponse());
-            qConfigService.removeDalClusterMqConfigIfNecessary(
-                    "shaxy",
-                    "topicName",
-                    "db1\\.t1", 
-                    null,
-                    new ArrayList<>() {{add(new TableSchemaName("db1","t1"));}},
-                    null
-                    );
-            
-            qConfigService.removeDalClusterMqConfigIfNecessary(
+            boolean b = qConfigService.removeDalClusterMqConfigIfNecessary(
                     "shaxy",
                     "topicName",
                     "db1\\.t1",
                     null,
-                    new ArrayList<>() {{add(new TableSchemaName("db1","t1"));}},
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                    }},
+                    null
+            );
+            
+            boolean b1 = qConfigService.removeDalClusterMqConfigIfNecessary(
+                    "shaxy",
+                    "topicName",
+                    "db1\\.t1",
+                    null,
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                    }},
                     Lists.newArrayList("db1\\.t3")
             );
-            
-            qConfigService.removeDalClusterMqConfigIfNecessary(
+
+            boolean b2 = qConfigService.removeDalClusterMqConfigIfNecessary(
                     "shaxy",
                     "topicName",
                     "db1\\.t1",
                     null,
-                    new ArrayList<>() {{add(new TableSchemaName("db1","t1"));}},
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                    }},
                     Lists.newArrayList("db1\\..*")
             );
+            Assert.assertTrue(b & b1 & b2);
         }
     }
 
