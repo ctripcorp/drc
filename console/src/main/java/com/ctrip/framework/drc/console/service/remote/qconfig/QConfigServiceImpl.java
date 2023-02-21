@@ -84,7 +84,7 @@ public class QConfigServiceImpl implements QConfigService {
         bbz.fx.drc.qmq.test.tableName=test
         bbz.fx.drc.qmq.test.tag=bbzDrcTestTag
          */
-        Set<String> dcsInSameRegion = domainConfig.getDcsInSameRegion(fileDc);
+        Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(fileDc);
         boolean batchActionFlag = true;
         for (String affectedDc : dcsInSameRegion) {
             logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] generate todo,topic:{},table:{},matchTable size:{}",
@@ -137,7 +137,7 @@ public class QConfigServiceImpl implements QConfigService {
     @Override
     public boolean removeDalClusterMqConfigIfNecessary(String fileDc, String topic, String table, String tag,
             List<TableSchemaName> matchTables, List<String> otherTablesByTopic) {
-        Set<String> dcsInSameRegion = domainConfig.getDcsInSameRegion(fileDc);
+        Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(fileDc);
         boolean batchActionFlag = true;
         for (String affectedDc : dcsInSameRegion) {
             // machine,fileConfig  env & subEnv is same

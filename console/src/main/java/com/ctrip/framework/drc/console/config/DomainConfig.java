@@ -3,8 +3,11 @@ package com.ctrip.framework.drc.console.config;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -71,6 +74,7 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String BU_SUFFIX = "/api/producer/getBuList";
     
     // QConfig
+    private static String QCONFIG_REGION_IDCS_MAP = "qconfig.region.idcs.map";
     private static String DC_QCONFIG_SUBENV_MAP = "dc.qconfig.subenv.map";
     private static String QCONFIG_REST_API_URL = "qconfig.rest.api.url";
     private static String QCONFIG_API_TOKEN = "qconfig.api.token";
@@ -175,8 +179,26 @@ public class DomainConfig extends AbstractConfigBean {
     public String  getQConfigAPIToken() {
         return getProperty(QCONFIG_API_TOKEN,"");
     }
-    
-    public Set<String> getDcsInSameRegion(String dc) {
-        return consoleConfig.getDcsInSameRegion(dc);
+
+    // QConfig Region to IDCs  Mapping
+    public Map<String, Set<String>> getRegion2IDCsMapping() {
+        String regionsInfo = getProperty(QCONFIG_REGION_IDCS_MAP,"{}");
+        if (StringUtils.isEmpty(regionsInfo)) {
+            return Maps.newHashMap();
+        } else {
+            return JsonCodec.INSTANCE.decode(regionsInfo, new GenericTypeReference<Map<String, Set<String>>>() {
+            });
+        }
+    }
+
+    public Set<String> getIDCsInSameRegion(String dc) {
+        Map<String, Set<String>> region2IDCsMapping = getRegion2IDCsMapping();
+        for (Map.Entry<String, Set<String>> entry : region2IDCsMapping.entrySet()) {
+            Set<String> idcs = entry.getValue();
+            if (idcs.contains(dc)) {
+                return idcs;
+            }
+        }
+        return Sets.newHashSet();
     }
 }

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.remote.qconfig;
 
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.service.remote.qconfig.request.BatchUpdateRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.CreateFileRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.BatchUpdateResponse;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.CreateFileResponse;
@@ -53,7 +52,7 @@ public class QConfigServiceImplTest {
             put("sinaws","SIN-AWS");
             put("shaxy","SHAXY");
         }});
-        Mockito.when(domainConfig.getDcsInSameRegion("shaxy")).thenReturn(Sets.newHashSet("shaxy"));
+        Mockito.when(domainConfig.getIDCsInSameRegion("shaxy")).thenReturn(Sets.newHashSet("shaxy"));
     }
 
     @Test
