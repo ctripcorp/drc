@@ -58,7 +58,7 @@ public class QConfigServiceImplTest {
 
     @Test
     public void testAddOrUpdateDalClusterMqConfig() throws SQLException {
-        String envName = Foundation.server().getEnv().getName();
+        String envName = Foundation.server().getEnv().getName().toLowerCase();
         // create file
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
@@ -135,7 +135,7 @@ public class QConfigServiceImplTest {
 
     @Test
     public void testDisableDalClusterMqConfigIfNecessary() throws SQLException {
-        String envName = Foundation.server().getEnv().getName();
+        String envName = Foundation.server().getEnv().getName().toLowerCase();
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
                 HttpUtils.get(
