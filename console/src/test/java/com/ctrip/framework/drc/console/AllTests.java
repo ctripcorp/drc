@@ -123,10 +123,10 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         DbClusterSourceProviderTest.class,
         ConflictLogCheckerTest.class,
-        QConfigServiceImplTest.class,
 
         OpenApiServiceImplTest.class,
         RemoteHttpAspectTest.class,
+        QConfigServiceImplTest.class,
         
         // controller
         AccessControllerTest.class,

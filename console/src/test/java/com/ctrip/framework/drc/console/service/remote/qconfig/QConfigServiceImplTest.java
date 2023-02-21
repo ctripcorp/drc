@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.foundation.Foundation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
@@ -57,6 +58,7 @@ public class QConfigServiceImplTest {
 
     @Test
     public void testAddOrUpdateDalClusterMqConfig() throws SQLException {
+        String envName = Foundation.server().getEnv().getName();
         // create file
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
@@ -105,10 +107,12 @@ public class QConfigServiceImplTest {
                         Mockito.any(),
                         Mockito.any(Map.class));
             }).thenReturn(JsonUtils.toJson(mockExistingFileDetailResponse()));
-
+            
             theMock.when(() -> {
                 HttpUtils.post(Mockito.eq("url" 
-                                + "/properties/binlog-topic-registry/envs/fat/subenvs/SHAXY" 
+                                + "/properties/binlog-topic-registry/envs/" 
+                                + envName 
+                                + "/subenvs/SHAXY" 
                                 + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
                         Mockito.anyString(),
                         Mockito.any(),
@@ -131,6 +135,7 @@ public class QConfigServiceImplTest {
 
     @Test
     public void testDisableDalClusterMqConfigIfNecessary() throws SQLException {
+        String envName = Foundation.server().getEnv().getName();
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             theMock.when(() -> {
                 HttpUtils.get(
@@ -148,7 +153,9 @@ public class QConfigServiceImplTest {
 
             theMock.when(() -> {
                 HttpUtils.post(Mockito.eq("url"
-                                + "/properties/binlog-topic-registry/envs/fat/subenvs/SHAXY"
+                                + "/properties/binlog-topic-registry/envs/" 
+                                + envName
+                                + "/subenvs/SHAXY"
                                 + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
                         Mockito.anyString(),
                         Mockito.any(),
