@@ -75,8 +75,7 @@ public class StaticDelayMonitorServerTest {
         staticDelayMonitorClient = new StaticDelayMonitorServer(config,
                 connector, 
                 new PeriodicalUpdateDbTask(),
-                864500000L,
-                new MessengerServiceImpl()
+                864500000L
         );
         staticDelayMonitorClient.initialize();
     }

@@ -59,8 +59,6 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     private MySQLConnector mySQLConnector;
 
     private PeriodicalUpdateDbTask periodicalUpdateDbTask;
-    
-    private MessengerService messengerService;
 
     private static ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
 
@@ -222,8 +220,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     public StaticDelayMonitorServer(MySQLSlaveConfig mySQLSlaveConfig,
             MySQLConnector mySQLConnector,
             PeriodicalUpdateDbTask periodicalUpdateDbTask, 
-            long delayExceptionTime,
-            MessengerService messengerService) {
+            long delayExceptionTime) {
         super(mySQLSlaveConfig);
         this.config = (DelayMonitorSlaveConfig) mySQLSlaveConfig;
         this.setLogEventHandler(eventHandler);

@@ -221,8 +221,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 config,
                 new DelayMonitorPooledConnector(config.getEndpoint()),
                 periodicalUpdateDbTask,
-                consoleConfig.getDelayExceptionTime(),
-                messengerService
+                consoleConfig.getDelayExceptionTime()
         );
     }
 
