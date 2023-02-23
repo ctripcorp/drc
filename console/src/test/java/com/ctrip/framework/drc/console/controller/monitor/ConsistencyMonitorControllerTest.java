@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyCheckTestConfig;
 import com.ctrip.framework.drc.console.service.monitor.ConsistencyMonitorService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import org.junit.Assert;
 import org.junit.Before;

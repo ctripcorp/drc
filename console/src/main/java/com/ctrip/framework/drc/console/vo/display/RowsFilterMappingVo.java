@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.vo;
+package com.ctrip.framework.drc.console.vo.display;
 
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;

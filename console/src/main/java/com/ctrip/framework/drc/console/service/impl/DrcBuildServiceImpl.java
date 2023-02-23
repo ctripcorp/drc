@@ -15,9 +15,9 @@ import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.DrcBuildPreCheckVo;
-import com.ctrip.framework.drc.console.vo.SimplexDrcBuildVo;
-import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
+import com.ctrip.framework.drc.console.vo.display.SimplexDrcBuildVo;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -240,7 +240,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check")
     public List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name,
-                                                          String mhaName, Integer type) {
+                                                          String mhaName, Integer dataMediaType) {
         logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,mhaName);
         Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         if (mySqlEndpoint != null) {

@@ -8,8 +8,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
-import com.ctrip.framework.drc.console.vo.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;

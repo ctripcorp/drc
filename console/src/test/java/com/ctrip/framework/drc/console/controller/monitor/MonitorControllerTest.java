@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import org.junit.Assert;
 import org.junit.Before;

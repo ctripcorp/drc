@@ -17,6 +17,8 @@ public interface DataMediaPairService {
     String updateMqConfig(MqConfigDto dto) throws SQLException;
 
     String deleteMqConfig(Long dataMediaPairId) throws SQLException;
-    
-    List<DataMediaPairTbl> getDataMediaPairs(Long messengerGroupId) throws SQLException;
+
+    List<DataMediaPairTbl> getPairsByTopic(Long dataMediaPairId) throws SQLException;
+    List<DataMediaPairTbl> getPairsByTopic(String topic) throws SQLException;
+    List<DataMediaPairTbl> getPairsByMGroupId(Long messengerGroupId) throws SQLException;
 }

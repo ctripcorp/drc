@@ -6,6 +6,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMI
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorConnection;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
+import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.AbstractMySQLSlave;
 import com.ctrip.framework.drc.core.driver.MySQLConnection;
@@ -189,6 +190,11 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                         log(data, ERROR, t);
                     }
                 }
+//                if (QueryType.CREATE.equals(queryType) && isReplicatorMaster) {
+//                    // add in qconfig
+//                    messengerService.addDalClusterMqConfigByDDL(config.getDestDc(), config.getDestMha(), schema, table);
+//                    log("[DDL] addDalClusterMqConfig table,res" + schema + "." + table,INFO,null);
+//                }
             } catch (Exception e) {
                 log("[parse] ParsedDdlLogEvent: ", ERROR, e);
             } finally {
@@ -211,7 +217,10 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         }
     };
 
-    public StaticDelayMonitorServer(MySQLSlaveConfig mySQLSlaveConfig, MySQLConnector mySQLConnector, PeriodicalUpdateDbTask periodicalUpdateDbTask, long delayExceptionTime) {
+    public StaticDelayMonitorServer(MySQLSlaveConfig mySQLSlaveConfig,
+            MySQLConnector mySQLConnector,
+            PeriodicalUpdateDbTask periodicalUpdateDbTask, 
+            long delayExceptionTime) {
         super(mySQLSlaveConfig);
         this.config = (DelayMonitorSlaveConfig) mySQLSlaveConfig;
         this.setLogEventHandler(eventHandler);
@@ -219,7 +228,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         this.periodicalUpdateDbTask = periodicalUpdateDbTask;
         this.delayExceptionTime = delayExceptionTime;
         toleranceTime = TOLERANCE_TIME;
-        
+
         if (config.getMha() != null && config.getMha().equals(config.getDestMha())) {
             this.isReplicatorMaster = false;
         }

@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.vo;
+package com.ctrip.framework.drc.console.vo.check;
 
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 

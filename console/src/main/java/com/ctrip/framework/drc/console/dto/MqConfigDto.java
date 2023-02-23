@@ -24,6 +24,9 @@ public class MqConfigDto {
     
     private long messengerGroupId;
     private String mhaName;
+    
+    // mark topic when one table match many topic
+    private String tag;
 
     @Override
     public String toString() {
@@ -42,6 +45,7 @@ public class MqConfigDto {
                 ", processor='" + processor + '\'' +
                 ", messengerGroupId=" + messengerGroupId +
                 ", mhaName='" + mhaName + '\'' +
+                ", tag='" + tag + '\'' +
                 '}';
     }
 
@@ -156,5 +160,13 @@ public class MqConfigDto {
 
     public void setMhaName(String mhaName) {
         this.mhaName = mhaName;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 }

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveCon
 import com.ctrip.framework.drc.console.monitor.delay.impl.driver.DelayMonitorPooledConnector;
 import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.monitor.netty.NettyServer;
+import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.utils.HeartbeatRequestHandler;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
@@ -71,7 +72,11 @@ public class StaticDelayMonitorServerTest {
         config.setEndpoint(endpoint);
         config.setMeasurement("ut_measurement");
 
-        staticDelayMonitorClient = new StaticDelayMonitorServer(config, connector, new PeriodicalUpdateDbTask(), 864500000L);
+        staticDelayMonitorClient = new StaticDelayMonitorServer(config,
+                connector, 
+                new PeriodicalUpdateDbTask(),
+                864500000L
+        );
         staticDelayMonitorClient.initialize();
     }
 
