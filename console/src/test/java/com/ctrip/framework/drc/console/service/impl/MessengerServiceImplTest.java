@@ -247,36 +247,7 @@ public class MessengerServiceImplTest {
         Assert.assertEquals(1,allMessengersInfo.size());
         System.out.println(allMessengersInfo.get(0).getNameFilter());
     }
-
-    @Test
-    public void testCheckMqConfig() throws SQLException {
-        List<DataMediaPairTbl> mqConfigs = mockDataMediaPairTbls2();
-        Mockito.when(dataMediaPairService.getPairsByMGroupId(Mockito.eq(1L))).thenReturn(mqConfigs);
-
-        Mockito.when(drcBuildService.getMatchTable(
-                Mockito.eq("db"),Mockito.eq("table"),Mockito.anyString(),Mockito.eq(0)
-        )).thenReturn(new ArrayList<>() {{add(new TableSchemaName("db","table"));}});
-
-        List<MqConfigConflictTable> mqConfigConflictTables = messengerService.checkMqConfig(1L, 1L, "mha", "db", "table",
-                null);
-        Assert.assertEquals(1, mqConfigConflictTables.size());
-    }
-
-
-    @Test
-    public void testAddDalClusterMqConfigByDDL() throws SQLException {
-        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("mha1"),Mockito.anyInt())).thenReturn(mockMhaTbl());
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(1L),Mockito.anyInt())).thenReturn(mockMessengerGroupTbl());
-        Mockito.when(dataMediaPairService.getPairsByMGroupId(Mockito.eq(1L))).thenReturn(mockDataMediaPairTbls2());
-        Mockito.when(drcBuildService.getMatchTable(
-                Mockito.eq("db"),
-                Mockito.eq("table"),
-                Mockito.eq("mha1"),
-                Mockito.eq(0)
-                )).thenReturn(new ArrayList<>() {{add(new TableSchemaName("db","table"));}});
-        messengerService.addDalClusterMqConfigByDDL("shaxy","mha1","db","table");
-        
-    }
+    
 
     private MhaTbl mockMhaTbl() {
         MhaTbl mhaTbl = new MhaTbl();

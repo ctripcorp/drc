@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
@@ -11,8 +11,6 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
-import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.MessengerService;
@@ -187,35 +185,7 @@ public class MessengerServiceImpl implements MessengerService {
         return mqConfigCheckVo;
     }
     
-        
-    @Override
-    public List<MqConfigConflictTable> checkMqConfig(Long messengerGroupId, Long mqConfigId, String mhaName,
-            String namespace, String name, String tag) throws SQLException {
-        List<MqConfigConflictTable> res = Lists.newArrayList();
-        List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(messengerGroupId);
-        if (null != mqConfigId) {
-            mqConfigs = mqConfigs.stream().filter(tbl -> !tbl.getId().equals(mqConfigId)).collect(Collectors.toList());
-        }
-        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, mhaName, 0);
-        
-        boolean isTagEmpty = StringUtils.isEmpty(tag);
-        for (TableSchemaName table: matchTables) {
-            for (DataMediaPairTbl mqConfig : mqConfigs) {
-                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
-                boolean conflict0 = filter.filter(table.getDirectSchemaTableName());
-                boolean conflict1 = isTagEmpty || !tag.equals(mqConfig.getTag());
-                if (conflict0 && conflict1) {
-                    MqConfigConflictTable vo = new MqConfigConflictTable();
-                    vo.setTable(table.getDirectSchemaTableName());
-                    vo.setTopic(mqConfig.getDestDataMediaName());
-                    vo.setTag(mqConfig.getTag());
-                    res.add(vo);
-                }
-            }
-        }
-        return res;
-    }
-
+    
     public List<String> getBusFromQmq() throws Exception {
         List<QmqBuEntity> buEntities = getBuEntitiesFromQmq();
         return buEntities.stream().map(buEntity -> buEntity.getEnName().toLowerCase()).collect(Collectors.toList());
@@ -229,7 +199,7 @@ public class MessengerServiceImpl implements MessengerService {
     
 
     @Override
-    public String processAddMqConfig(MqConfigDto dto) throws SQLException {
+    public String processAddMqConfig(MqConfigDto dto) throws Exception {
         if (MqType.qmq.name().equalsIgnoreCase(dto.getMqType())) {
             if (!initTopic(dto)) {
                 throw new IllegalArgumentException("init Topic error");
@@ -328,41 +298,42 @@ public class MessengerServiceImpl implements MessengerService {
         return res;
     }
     
-    @Override
-    @PossibleRemote(path = "/api/drc/v1/messenger/mqConfig/ddl",forwardType = ForwardTypeEnum.TO_META_DB,httpType = HttpRequestEnum.POST)
-    public void addDalClusterMqConfigByDDL(String fileDc, String mhaName, String schema, String table) throws SQLException{
-        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
-        MessengerGroupTbl mGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),
-                BooleanEnum.FALSE.getCode());
-        if (mGroupTbl == null) {
-            logger.info("[DDL] no need to addDalClusterMqConfig");
-        } else {
-            String newTable = schema+"."+table;
-            List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(mGroupTbl.getId());
-            for (DataMediaPairTbl mqConfig : mqConfigs) {
-                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
-                if (filter.filter(newTable)) {
-                    logger.info("[DDL] addDalClusterMqConfig for dc:{},topic:{},table:{}",
-                            fileDc,mqConfig.getDestDataMediaName(),schema+"."+table);
-                    addDalClusterMqConfig(fileDc,mhaName,schema,table,mqConfig.getDestDataMediaName(),mqConfig.getTag());
-                }
-            }
-        }
-    }
-
-    private void addDalClusterMqConfig(String fileDc, String mhaName, String schema, String table,String topic,String tag) {
-        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(schema,table,mhaName,0);
-        transactionMonitor.logTransactionSwallowException(
-                "QConfig.OpenApi.MqConfig.Generate",
-                topic,
-                () -> qConfigService.addOrUpdateDalClusterMqConfig(
-                        fileDc,topic,schema + "\\." + table,tag,matchTables
-                )
-        );
-    }
+//    @Override
+//    @PossibleRemote(path = "/api/drc/v1/messenger/mqConfig/ddl",forwardType = ForwardTypeEnum.TO_META_DB,httpType = HttpRequestEnum.POST)
+//    public void addDalClusterMqConfigByDDL(String fileDc, String mhaName, String schema, String table) throws SQLException{
+//        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+//        MessengerGroupTbl mGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),
+//                BooleanEnum.FALSE.getCode());
+//        if (mGroupTbl == null) {
+//            logger.info("[DDL] no need to addDalClusterMqConfig");
+//        } else {
+//            String newTable = schema+"."+table;
+//            List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(mGroupTbl.getId());
+//            for (DataMediaPairTbl mqConfig : mqConfigs) {
+//                AviatorRegexFilter filter = new AviatorRegexFilter(mqConfig.getSrcDataMediaName());
+//                if (filter.filter(newTable)) {
+//                    logger.info("[DDL] addDalClusterMqConfig for dc:{},topic:{},table:{}",
+//                            fileDc,mqConfig.getDestDataMediaName(),schema+"."+table);
+//                    addDalClusterMqConfig(fileDc,mhaName,schema,table,mqConfig.getDestDataMediaName(),mqConfig.getTag());
+//                }
+//            }
+//        }
+//    }
+//
+//    private void addDalClusterMqConfig(String fileDc, String mhaName, String schema, String table,String topic,String tag)
+//            throws Exception {
+//        List<TableSchemaName> matchTables = drcBuildService.getMatchTable(schema,table,mhaName,0);
+//        transactionMonitor.logTransaction(
+//                "QConfig.OpenApi.MqConfig.Generate",
+//                topic,
+//                () -> qConfigService.addOrUpdateDalClusterMqConfig(
+//                        fileDc,topic,schema + "\\." + table,tag,matchTables
+//                )
+//        );
+//    }
     
     
-    private void addDalClusterMqConfig(MqConfigDto dto) throws SQLException {
+    private void addDalClusterMqConfig(MqConfigDto dto) throws Exception {
         String[] dbAndTable = dto.getTable().split("\\\\.");
         if (dbAndTable.length != 2) {
             throw new IllegalArgumentException("illegal table name" + dto.getTable());
@@ -370,7 +341,7 @@ public class MessengerServiceImpl implements MessengerService {
         List<TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0],dbAndTable[1],dto.getMhaName(),0);
         String fileDc = mhaService.getDcNameForMha(dto.getMhaName());
         
-        transactionMonitor.logTransactionSwallowException(
+        transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Generate", 
                 dto.getTopic(),
                 () -> qConfigService.addOrUpdateDalClusterMqConfig(
@@ -380,13 +351,13 @@ public class MessengerServiceImpl implements MessengerService {
     }
     
 
-    private void updateDalClusterMqConfig(MqConfigDto dto) throws SQLException {
+    private void updateDalClusterMqConfig(MqConfigDto dto) throws Exception {
         // delete + add
         disableDalClusterMqConfigIfNecessary(dto.getMhaName(),dto.getId());
         addDalClusterMqConfig(dto);
     }
 
-    private void disableDalClusterMqConfigIfNecessary(String mhaName,Long mqConfigId)  throws SQLException {
+    private void disableDalClusterMqConfigIfNecessary(String mhaName,Long mqConfigId) throws Exception {
         List<DataMediaPairTbl> configsByTopic = dataMediaPairService.getPairsByTopic(mqConfigId);
         DataMediaPairTbl configToBeDeleted = configsByTopic.stream().filter(p -> p.getId().equals(mqConfigId))
                 .findFirst().orElse(null);
@@ -404,7 +375,7 @@ public class MessengerServiceImpl implements MessengerService {
         List<TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0],dbAndTable[1],mhaName,0);
         String fileDc = mhaService.getDcNameForMha(mhaName);
         
-        transactionMonitor.logTransactionSwallowException(
+        transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Delete", 
                 configToBeDeleted.getDestDataMediaName(),
                 () -> qConfigService.removeDalClusterMqConfigIfNecessary(

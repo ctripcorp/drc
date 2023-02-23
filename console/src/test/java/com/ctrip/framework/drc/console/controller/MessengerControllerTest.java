@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.controller;
 
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
-import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -11,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -19,8 +17,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.sql.SQLException;
-
-import static org.junit.Assert.*;
 
 public class MessengerControllerTest extends AbstractControllerTest {
     

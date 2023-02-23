@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
-import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.vo.check.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
@@ -30,7 +28,7 @@ public interface MessengerService {
     // mqConfig
     List<MqConfigVo> getMqConfigVos(Long messengerGroupId) throws SQLException;
     
-    String processAddMqConfig(MqConfigDto dto) throws SQLException;
+    String processAddMqConfig(MqConfigDto dto) throws Exception;
 
     String processUpdateMqConfig(MqConfigDto dto) throws Exception;
     
@@ -38,14 +36,11 @@ public interface MessengerService {
 
     MqConfigCheckVo checkMqConfig(MqConfigDto dto) throws SQLException;
 
-    List<MqConfigConflictTable> checkMqConfig(Long messengerGroupId, Long mqConfigId, String mhaName,
-            String namespace, String name, String tag) throws SQLException;
-
     List<String> getBusFromQmq() throws Exception;
     
     // openApi
     List<MessengerInfo> getAllMessengersInfo() throws SQLException;
 
     
-    void addDalClusterMqConfigByDDL(String dc, String mhaName, String schema, String table) throws SQLException;
+//    void addDalClusterMqConfigByDDL(String dc, String mhaName, String schema, String table) throws SQLException;
 }

@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.controller;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.vo.check.MqConfigCheckVo;
-import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -107,21 +106,21 @@ public class MessengerController {
     }
 
 
-    @PostMapping("mqConfig/ddl")
-    public ApiResult updateDalMqConfigByDDL(
-            @RequestParam String fileDc,
-            @RequestParam String mhaName,
-            @RequestParam String schema,
-            @RequestParam String table) {
-        try {
-            logger.info("[[tag=mqConfig]] updateDalMqConfigByDDL in mha:{}",mhaName);
-            messengerService.addDalClusterMqConfigByDDL(fileDc,mhaName,schema,table);
-            return ApiResult.getSuccessInstance(null);
-        } catch (SQLException e) {
-            logger.error("[[tag=messenger]] sql error in updateDalMqConfigByDDL in mha:{}",mhaName,e);
-            return ApiResult.getFailInstance(null,"updateDalMqConfigByDDL error");
-        }
-    }
+//    @PostMapping("mqConfig/ddl")
+//    public ApiResult updateDalMqConfigByDDL(
+//            @RequestParam String fileDc,
+//            @RequestParam String mhaName,
+//            @RequestParam String schema,
+//            @RequestParam String table) {
+//        try {
+//            logger.info("[[tag=mqConfig]] updateDalMqConfigByDDL in mha:{}",mhaName);
+//            messengerService.addDalClusterMqConfigByDDL(fileDc,mhaName,schema,table);
+//            return ApiResult.getSuccessInstance(null);
+//        } catch (SQLException e) {
+//            logger.error("[[tag=messenger]] sql error in updateDalMqConfigByDDL in mha:{}",mhaName,e);
+//            return ApiResult.getFailInstance(null,"updateDalMqConfigByDDL error");
+//        }
+//    }
     
 
     @PostMapping("qmq/bus")
