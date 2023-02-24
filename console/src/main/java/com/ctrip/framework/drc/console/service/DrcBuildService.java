@@ -29,7 +29,7 @@ public interface DrcBuildService {
     List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter);
 
     // route By mhaName
-    List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name, String mhaName, Integer dataMediaType);
+    List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name, String mhaName, Integer type);
 
     // route By mhaName
     Set<String>  getCommonColumnInDataMedias(String mhaName, String namespace, String name);

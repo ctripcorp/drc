@@ -240,7 +240,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check")
     public List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name,
-                                                          String mhaName, Integer dataMediaType) {
+                                                          String mhaName, Integer type) {
         logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,mhaName);
         Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         if (mySqlEndpoint != null) {
