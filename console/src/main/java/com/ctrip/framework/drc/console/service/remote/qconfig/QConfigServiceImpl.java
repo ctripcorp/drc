@@ -157,7 +157,7 @@ public class QConfigServiceImpl implements QConfigService {
                 BatchUpdateResponse batchUpdateResponse = null;
                 if (CollectionUtils.isEmpty(otherTablesByTopic)) {
                     // topic no use,remove directly
-                    Map<String, String> configContext = processRemoveAllConfig(topic,originalConfig);
+                    Map<String, String> configContext = processRemoveAllConfig(topic);
                     List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
                     batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv,
                             updateRequestBodies);
@@ -165,33 +165,25 @@ public class QConfigServiceImpl implements QConfigService {
                 } else {
                     // check table is in use or not
                     List<TableSchemaName> tablesToDeleted = Lists.newArrayList();
-                    List<TableSchemaName> tablesNotToDeleted = Lists.newArrayList();
                     List<AviatorRegexFilter> filters = Lists.newArrayList();
                     otherTablesByTopic.forEach(logicalTable -> filters.add(new AviatorRegexFilter(logicalTable)));
                     for (TableSchemaName match : matchTables) {
                         String tableName = match.getDirectSchemaTableName();
                         for (AviatorRegexFilter filter : filters) {
                             if (filter.filter(tableName)) {
-                                tablesNotToDeleted.add(match);
                                 break;
                             } else {
                                 tablesToDeleted.add(match);
                             }
                         }
                     }
-
-                    if (CollectionUtils.isEmpty(tablesNotToDeleted)) {
-                        // topic no use in this dalcluster ,remove director
-                        Map<String, String> configContext = processRemoveAllConfig(topic,originalConfig);
-                        List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
-                        batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
-                    } else {
-                        // remove only some table
-                        Map<String, String> configContext = processRemovePartialConfig(topic, tag, tablesToDeleted,
-                                originalConfig);
-                        List<UpdateRequestBody> updateRequestBodies= transformRequest(configContext, fileName, version);
-                        batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
-                    }
+                    
+                    // remove only some tables
+                    Map<String, String> configContext = processRemovePartialConfig(topic, tag, tablesToDeleted,
+                            originalConfig);
+                    List<UpdateRequestBody> updateRequestBodies= transformRequest(configContext, fileName, version);
+                    batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
+                    
                 }
 
                 if (batchUpdateResponse.getStatus() == 0) {
@@ -211,7 +203,7 @@ public class QConfigServiceImpl implements QConfigService {
     }
     
 
-    private Map<String, String> processRemoveAllConfig(String topic, Map<String, String> originalConfig) {
+    private Map<String, String> processRemoveAllConfig(String topic) {
         Map<String, String> config = Maps.newLinkedHashMap();
         config.put(topic + "." + STATUS,OFF);
         config.put(topic + "." + DBNAME,"");
@@ -288,11 +280,17 @@ public class QConfigServiceImpl implements QConfigService {
             String tableString = originalConfig.get(topic + "." + TABLENAME);
             if (StringUtils.isNotEmpty(tableString)) {
                 tables.addAll(Sets.newHashSet(tableString.split(",")));
-                for (TableSchemaName table : tablesToBeDelete) {
-                    tables.remove(table.getName());
+                for (TableSchemaName tableToBeDeleted : tablesToBeDelete) {
+                    tables.remove(tableToBeDeleted.getName());
                 }
+                
                 Map<String, String> config = Maps.newLinkedHashMap();
-                config.put(topic + "." + TABLENAME,StringUtils.join(tables, ","));
+                if (tables.isEmpty()) {
+                    // all Table remove
+                    config =  processRemoveAllConfig(topic);
+                } else {
+                    config.put(topic + "." + TABLENAME,StringUtils.join(tables, ","));
+                }
                 return config;
             }
         }
