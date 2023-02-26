@@ -335,6 +335,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 checkFileGaps(file);
 
                 logger.info("[Serving] {} begin, first file name {}", applierName, file.getName());
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.serve.binlog", applierName);
                 // 3、open file，send every file
                 while (loop()) {
                     if (sendBinlog(file, excludedSet) == 1) {
