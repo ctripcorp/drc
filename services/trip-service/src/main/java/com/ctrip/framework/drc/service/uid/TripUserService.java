@@ -29,6 +29,8 @@ public class TripUserService implements UserService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    public static final Logger UID_LOGGER = LoggerFactory.getLogger("UID");
+
     private static final int RETRY_TIME = 2;
 
     private static UcsClient ucsClient = UcsClientFactory.getInstance().getUcsClient();
@@ -108,7 +110,7 @@ public class TripUserService implements UserService {
         protected Region regionFor(String attr) {
             com.ctrip.soa.platform.accountregionroute.v1.Region region =  AccountUidRoute.regionForUid(attr);
             String regionName = region.name().toUpperCase();
-            ROWS_FILTER_LOGGER.info("{}:{}", attr, regionName);
+            UID_LOGGER.info("{}:{}", attr, regionName);
             return Region.nameFor(regionName);
         }
     }
