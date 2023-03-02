@@ -156,6 +156,20 @@
             </DefaultRolloverStrategy>
         </RollingFile>
 
+        <RollingFile name="RollingFileUidInfo" fileName="${baseDir}/uid.log"
+                     filePattern="${baseDir}/uid-%i.log.gz">
+            <PatternLayout pattern="[%d][%t] - %m%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="100">
+                <Delete basePath="${baseDir}" maxDepth="2">
+                    <IfFileName glob="uid-*.log.gz"/>
+                    <IfLastModified age="14d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
         <RollingFile name="RollingFileHeartBeatInfo" fileName="${baseDir}/heartbeat.log"
                      filePattern="${baseDir}/${appName}-%d{yyyyMMdd}-%i.heartbeat.log.gz">
             <PatternLayout pattern="[${appName}][%d][%p][%t][%c] - %m%n"/>
@@ -230,6 +244,9 @@
         </Logger>
         <Logger name="ROWS FILTER" additivity="false">
             <AppenderRef ref="RollingFileFilterInfo"/>
+        </Logger>
+        <Logger name="UID" additivity="false">
+            <AppenderRef ref="RollingFileUidInfo"/>
         </Logger>
 
         <Logger name="GTID RES" additivity="false">
