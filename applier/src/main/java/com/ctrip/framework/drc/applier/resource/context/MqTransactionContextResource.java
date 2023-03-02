@@ -116,7 +116,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                 }
 
                 TableMapLogEvent.Column column = selectColumns.get(j);
-                String columnName = selectColumns.get(j).getName();
+                String columnName = column.getName();
 
                 boolean beforeIsNull = beforeRow.get(j) == null;
                 String beforeColumnValue = beforeIsNull ? null : parseOneValue(beforeRow.get(j), column);
