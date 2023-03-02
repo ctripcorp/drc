@@ -89,6 +89,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             bitmapOfIdentifier = new Bitmap();
         }
 
+        Columns selectColumns = selectColumns(columns, beforeBitmap);
         for (int i = 0; i < beforeRows.size(); i++) {
             List<Object> beforeRow = beforeRows.get(i);
             List<Object> afterRow = null;
@@ -106,7 +107,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             eventData.setBeforeColumns(beforeList);
             eventData.setAfterColumns(afterList);
 
-            for (int j = 0; j < columns.size(); j++) {
+            for (int j = 0; j < selectColumns.size(); j++) {
                 boolean isKey = false;
                 if (j < bitmapOfIdentifier.size()) {
                     if (bitmapOfIdentifier.get(j)) {
@@ -114,8 +115,8 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                     }
                 }
 
-                TableMapLogEvent.Column column = columns.get(j);
-                String columnName = column.getName();
+                TableMapLogEvent.Column column = selectColumns.get(j);
+                String columnName = selectColumns.get(j).getName();
 
                 boolean beforeIsNull = beforeRow.get(j) == null;
                 String beforeColumnValue = beforeIsNull ? null : parseOneValue(beforeRow.get(j), column);
