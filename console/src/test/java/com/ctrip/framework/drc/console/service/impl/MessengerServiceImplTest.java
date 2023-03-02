@@ -14,9 +14,13 @@ import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
+import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.MhaService;
-import com.ctrip.framework.drc.console.vo.MessengerVo;
-import com.ctrip.framework.drc.console.vo.MqConfigVo;
+import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
+import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
+import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
+import com.ctrip.framework.drc.console.vo.display.MessengerVo;
+import com.ctrip.framework.drc.console.vo.display.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
@@ -28,6 +32,7 @@ import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +47,10 @@ public class MessengerServiceImplTest {
     private MessengerServiceImpl messengerService;
 
     @Mock private DataMediaPairService dataMediaPairService;
+    
+    @Mock private DrcBuildService drcBuildService;
+    
+    @Mock private QConfigService qConfigService;
 
     @Mock private MhaService mhaService;
 
@@ -72,9 +81,18 @@ public class MessengerServiceImplTest {
 
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp("ip1");
-        Mockito.when( resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl);
+        Mockito.when(resourceTblDao.queryByPk(Mockito.eq(1L))).thenReturn(resourceTbl);
         
         Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet());
+        
+        Mockito.doReturn(true).when(qConfigService).addOrUpdateDalClusterMqConfig(
+                Mockito.anyString(),Mockito.anyString(),Mockito.anyString(),Mockito.anyString(),Mockito.anyList());
+        
+        Mockito.doReturn(true).when(qConfigService).removeDalClusterMqConfigIfNecessary(
+                Mockito.anyString(),Mockito.anyString(),
+                Mockito.anyString(),Mockito.anyString(),
+                Mockito.anyList(),Mockito.anyList()
+        );
 
     }
 
@@ -117,7 +135,7 @@ public class MessengerServiceImplTest {
 
     @Test
     public void testGetMqConfigVos() throws SQLException {
-        Mockito.when(dataMediaPairService.getDataMediaPairs(Mockito.anyLong())).thenReturn(mockDataMediaPairTbls());
+        Mockito.when(dataMediaPairService.getPairsByMGroupId(Mockito.anyLong())).thenReturn(mockDataMediaPairTbls());
         
         List<MqConfigVo> mqConfigVos = messengerService.getMqConfigVos(1L);
         Assert.assertEquals(1,mqConfigVos.size());
@@ -147,6 +165,11 @@ public class MessengerServiceImplTest {
         Mockito.when(domainConfig.getQmqTopicApplicationUrl(Mockito.eq("shaxy"))).thenReturn("qmqTopicUrl");
         Mockito.when(domainConfig.getQmqProducerApplicationUrl(Mockito.eq("shaxy"))).thenReturn("qmqProducerUrl");
         Mockito.when(dataMediaPairService.addMqConfig(Mockito.any(MqConfigDto.class))).thenReturn("addMqConfig success");
+        Mockito.when(drcBuildService.getMatchTable(
+                Mockito.eq("db"),Mockito.eq("table"),Mockito.anyString(),Mockito.eq(0)
+        )).thenReturn(new ArrayList<>() {{
+            add(new TableSchemaName("db","table"));
+        }});
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             QmqApiResponse qmqApiResponse = new QmqApiResponse();
             qmqApiResponse.setStatus(0);
@@ -165,6 +188,12 @@ public class MessengerServiceImplTest {
         Mockito.when(domainConfig.getQmqTopicApplicationUrl(Mockito.eq("shaxy"))).thenReturn("qmqTopicUrl");
         Mockito.when(domainConfig.getQmqProducerApplicationUrl(Mockito.eq("shaxy"))).thenReturn("qmqProducerUrl");
         Mockito.when(dataMediaPairService.updateMqConfig(Mockito.any(MqConfigDto.class))).thenReturn("updateMqConfig success");
+        Mockito.when(dataMediaPairService.getPairsByTopic(Mockito.eq(1L))).thenReturn(mockDataMediaPairTbls2());
+        Mockito.when(drcBuildService.getMatchTable(
+                Mockito.eq("db"),Mockito.eq("table"),Mockito.anyString(),Mockito.eq(0)
+        )).thenReturn(new ArrayList<>() {{
+            add(new TableSchemaName("db","table"));
+        }});
         try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
             QmqApiResponse qmqApiResponse = new QmqApiResponse();
             qmqApiResponse.setStatus(0);
@@ -178,7 +207,13 @@ public class MessengerServiceImplTest {
     @Test
     public void testProcessDeleteMqConfig() throws Exception {
         Mockito.when(dataMediaPairService.deleteMqConfig(1L)).thenReturn("deleteMqConfig success");
-        String s = messengerService.processDeleteMqConfig(1L);
+        Mockito.when(dataMediaPairService.getPairsByTopic(Mockito.eq(1L))).thenReturn(mockDataMediaPairTbls2());
+        Mockito.when(drcBuildService.getMatchTable(
+                Mockito.eq("db"),Mockito.eq("table"),Mockito.anyString(),Mockito.eq(0)
+        )).thenReturn(new ArrayList<>() {{add(new TableSchemaName("db","table"));}});
+        Mockito.when(mhaService.getDcNameForMha(Mockito.eq("mha1"))).thenReturn("shaxy");
+        
+        String s = messengerService.processDeleteMqConfig("mha1",1L);
         Assert.assertEquals("deleteMqConfig success",s);
     }
 
@@ -196,6 +231,22 @@ public class MessengerServiceImplTest {
         Assert.assertEquals(1,allMessengerVos.size());
     }
 
+    @Test
+    public void testGetAllMessengersInfo() throws SQLException {
+        MessengerGroupTbl messengerGroupTbl = mockMessengerGroupTbl();
+        Mockito.when(messengerGroupTblDao.queryBy(Mockito.any(MessengerGroupTbl.class))).
+                thenReturn(Lists.newArrayList(messengerGroupTbl));
+
+        Mockito.when(mhaTblDao.queryByPk(Mockito.eq(1L))).thenReturn(mockMhaTbl());
+
+        List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
+        dataMediaPairTbls.add(dataMediaPairTbls.get(0));
+        Mockito.when(dataMediaPairService.getPairsByMGroupId(Mockito.anyLong())).thenReturn(dataMediaPairTbls);
+
+        List<MessengerInfo> allMessengersInfo = messengerService.getAllMessengersInfo();
+        Assert.assertEquals(1,allMessengersInfo.size());
+        System.out.println(allMessengersInfo.get(0).getNameFilter());
+    }
     
 
     private MhaTbl mockMhaTbl() {
@@ -247,6 +298,28 @@ public class MessengerServiceImplTest {
         dataMediaPairTbl.setProperties(JsonUtils.toJson(mockMessengerProperties().getMqConfigs().get(0)));
         return Lists.newArrayList(dataMediaPairTbl);
     }
+
+    private List<DataMediaPairTbl> mockDataMediaPairTbls2() {
+        DataMediaPairTbl dataMediaPairTbl = new DataMediaPairTbl();
+        dataMediaPairTbl.setId(1L);
+        dataMediaPairTbl.setType(1);
+        dataMediaPairTbl.setGroupId(1L);
+        dataMediaPairTbl.setSrcDataMediaName("db\\.table");
+        dataMediaPairTbl.setDestDataMediaName("topicName");
+        dataMediaPairTbl.setProperties(JsonUtils.toJson(mockMessengerProperties().getMqConfigs().get(0)));
+        
+        DataMediaPairTbl dataMediaPairTbl2 = new DataMediaPairTbl();
+        dataMediaPairTbl2.setId(2L);
+        dataMediaPairTbl2.setType(1);
+        dataMediaPairTbl2.setGroupId(1L);
+        dataMediaPairTbl2.setSrcDataMediaName("db\\..*");
+        dataMediaPairTbl2.setDestDataMediaName("topicName");
+        dataMediaPairTbl2.setTag("tag");
+        dataMediaPairTbl2.setProperties(JsonUtils.toJson(mockMessengerProperties().getMqConfigs().get(0)));
+        
+        return Lists.newArrayList(dataMediaPairTbl,dataMediaPairTbl2);
+    }
+    
     
     private QmqBuList mockQmqBuList() {
         QmqBuList response = new QmqBuList();
@@ -281,20 +354,5 @@ public class MessengerServiceImplTest {
     }
 
 
-    @Test
-    public void testGetAllMessengersInfo() throws SQLException {
-        MessengerGroupTbl messengerGroupTbl = mockMessengerGroupTbl();
-        Mockito.when(messengerGroupTblDao.queryBy(Mockito.any(MessengerGroupTbl.class))).
-                thenReturn(Lists.newArrayList(messengerGroupTbl));
-        
-        Mockito.when(mhaTblDao.queryByPk(Mockito.eq(1L))).thenReturn(mockMhaTbl());
-        
-        List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
-        dataMediaPairTbls.add(dataMediaPairTbls.get(0));
-        Mockito.when(dataMediaPairService.getDataMediaPairs(Mockito.anyLong())).thenReturn(dataMediaPairTbls);
-
-        List<MessengerInfo> allMessengersInfo = messengerService.getAllMessengersInfo();
-        Assert.assertEquals(1,allMessengersInfo.size());
-        System.out.println(allMessengersInfo.get(0).getNameFilter());
-    }
+   
 }

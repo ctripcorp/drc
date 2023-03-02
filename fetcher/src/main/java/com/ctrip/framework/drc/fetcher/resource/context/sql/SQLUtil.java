@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.fetcher.resource.context.sql;
 
+import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -77,5 +79,20 @@ public interface SQLUtil {
             }
         }
         return namesSelected;
+    }
+
+    default Columns selectColumns(Columns columns, List<Boolean> bitmap) {
+        if (bitmap == null) {
+            return columns;
+        }
+        Columns columnsSelected = new Columns();
+        for (int i = 0; i < columns.size(); i++) {
+            if (i < bitmap.size()) {
+                if (bitmap.get(i)) {
+                    columnsSelected.add(columns.get(i));
+                }
+            }
+        }
+        return columnsSelected;
     }
 }

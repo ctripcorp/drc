@@ -6,8 +6,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.ConsistencyMonitorCo
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyCheckTestConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyMonitorConfig;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
-import org.springframework.web.bind.annotation.PathVariable;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 
 import java.sql.SQLException;
 import java.util.List;

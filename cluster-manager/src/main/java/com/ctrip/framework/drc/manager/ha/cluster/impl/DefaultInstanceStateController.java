@@ -129,7 +129,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         STATE_LOGGER.info("[addApplier] for {}", body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
-            STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
+            STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", clusterId);
             return body;
         }
         executors.submit(() -> applierNotifier.notifyAdd(body));
@@ -212,6 +212,11 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
         STATE_LOGGER.info("[applierMasterChange] for {}", body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty][applierMasterChange] replicators and do nothing for {}", clusterId);
+            return body;
+        }
         executors.submit(() -> applierNotifier.notifyAdd(body));
         return body;
     }

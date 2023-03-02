@@ -13,6 +13,8 @@ import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.xpipe.api.monitor.Task;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -20,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.ctrip.framework.drc.core.monitor.datasource.AbstractDataSource.setCommonProperty;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 
 /**
  * @Author Slight
@@ -29,6 +32,9 @@ public class DataSourceResource extends AbstractResource implements DataSource {
 
     @InstanceActivity
     public MetricsActivity reporter;
+
+    @InstanceConfig(path = "target.ip")
+    public String ip = "";
 
     @InstanceConfig(path = "target.URL")
     public String URL;
@@ -93,6 +99,14 @@ public class DataSourceResource extends AbstractResource implements DataSource {
                 }
             }
         }, 100, 200, TimeUnit.MILLISECONDS);
+
+        scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                HEARTBEAT_LOGGER.info("{} - HOST - {}", registryKey, InetAddress.getByName(ip));
+            } catch (UnknownHostException e) {
+                HEARTBEAT_LOGGER.error("{} - HOST ERROR - {}", registryKey, ip);
+            }
+        }, 60, 10, TimeUnit.SECONDS);
     }
 
     @Override

@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.server.common.filter.row.FetchMode;

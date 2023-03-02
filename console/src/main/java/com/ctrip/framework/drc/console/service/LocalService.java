@@ -1,5 +1,5 @@
 package com.ctrip.framework.drc.console.service;
-import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import java.util.List;
 import java.util.Map;
 

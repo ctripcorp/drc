@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyC
 import com.ctrip.framework.drc.console.monitor.delay.config.FullDataConsistencyMonitorConfig;
 import com.ctrip.framework.drc.console.service.checker.UserAccessChecker;
 import com.ctrip.framework.drc.console.service.monitor.ConsistencyMonitorService;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;

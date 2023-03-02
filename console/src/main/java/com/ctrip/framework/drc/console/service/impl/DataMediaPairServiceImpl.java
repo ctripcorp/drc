@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -91,7 +92,21 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     }
 
     @Override
-    public List<DataMediaPairTbl> getDataMediaPairs(Long messengerGroupId) throws SQLException {
+    public List<DataMediaPairTbl> getPairsByTopic(Long dataMediaPairId) throws SQLException {
+        DataMediaPairTbl dataMediaPairTbl = dataMediaPairTblDao.queryByPk(dataMediaPairId);
+        return getPairsByTopic(dataMediaPairTbl.getDestDataMediaName());
+    }
+
+    @Override
+    public List<DataMediaPairTbl> getPairsByTopic(String topic) throws SQLException {
+        DataMediaPairTbl sample = new DataMediaPairTbl();
+        sample.setDestDataMediaName(topic);
+        sample.setDeleted(BooleanEnum.FALSE.getCode());
+        return dataMediaPairTblDao.queryBy(sample);
+    }
+
+    @Override
+    public List<DataMediaPairTbl> getPairsByMGroupId(Long messengerGroupId) throws SQLException {
        return dataMediaPairTblDao.queryByGroupId(messengerGroupId);
     }
     
@@ -104,6 +119,7 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         dataMediaPair.setDestDataMediaName(dto.getTopic());
         dataMediaPair.setGroupId(dto.getMessengerGroupId());
         dataMediaPair.setProcessor(dto.getProcessor());
+        dataMediaPair.setTag(StringUtils.isEmpty(dto.getTag()) ? null : dto.getTag());
         
         MqConfig mqConfig = new MqConfig();
         mqConfig.setMqType(dto.getMqType());

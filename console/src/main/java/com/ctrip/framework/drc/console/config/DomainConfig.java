@@ -3,6 +3,11 @@ package com.ctrip.framework.drc.console.config;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import java.util.List;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -67,6 +72,13 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
     private static final String BU_SUFFIX = "/api/producer/getBuList";
+    
+    // QConfig
+    private static String QCONFIG_REGION_IDCS_MAP = "qconfig.region.idcs.map";
+    private static String DC_QCONFIG_SUBENV_MAP = "dc.qconfig.subenv.map";
+    private static String QCONFIG_REST_API_URL = "qconfig.rest.api.url";
+    private static String QCONFIG_API_TOKEN = "qconfig.api.token";
+    
 
     public String getCmsGetServerUrl() {
         return getProperty(CMS_GET_SERVER_URL,DEFAULT_CMS_GET_SERVER_URL);
@@ -155,4 +167,38 @@ public class DomainConfig extends AbstractConfigBean {
         return qmqUrls.get(region);
     }
 
+    public Map<String,String> getDc2QConfigSubEnvMap() {
+        String mapString = getProperty(DC_QCONFIG_SUBENV_MAP, "{}");
+        return JsonCodec.INSTANCE.decode(mapString, new GenericTypeReference<Map<String, String>>() {});
+    }
+
+    public String getQConfigRestApiUrl() {
+        return getProperty(QCONFIG_REST_API_URL,"");
+    }
+
+    public String  getQConfigAPIToken() {
+        return getProperty(QCONFIG_API_TOKEN,"");
+    }
+
+    // QConfig Region to IDCs  Mapping
+    public Map<String, Set<String>> getRegion2IDCsMapping() {
+        String regionsInfo = getProperty(QCONFIG_REGION_IDCS_MAP,"{}");
+        if (StringUtils.isEmpty(regionsInfo)) {
+            return Maps.newHashMap();
+        } else {
+            return JsonCodec.INSTANCE.decode(regionsInfo, new GenericTypeReference<Map<String, Set<String>>>() {
+            });
+        }
+    }
+
+    public Set<String> getIDCsInSameRegion(String dc) {
+        Map<String, Set<String>> region2IDCsMapping = getRegion2IDCsMapping();
+        for (Map.Entry<String, Set<String>> entry : region2IDCsMapping.entrySet()) {
+            Set<String> idcs = entry.getValue();
+            if (idcs.contains(dc)) {
+                return idcs;
+            }
+        }
+        return Sets.newHashSet();
+    }
 }

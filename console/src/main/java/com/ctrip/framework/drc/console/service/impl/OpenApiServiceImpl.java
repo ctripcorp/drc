@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.OpenApiService;
-import com.ctrip.framework.drc.console.vo.MessengerVo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.google.common.collect.Lists;

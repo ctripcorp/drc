@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.LocalService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;

@@ -82,7 +82,7 @@ public class DataMediaPairServiceImplTest {
     @Test
     public void testGetDataMediaPairs() throws SQLException {
         Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(null);
-        dataMediaPairService.getDataMediaPairs(1L);
+        dataMediaPairService.getPairsByMGroupId(1L);
     }
 
     private List<DataMediaPairTbl> mockDataMediaPairTbls() {

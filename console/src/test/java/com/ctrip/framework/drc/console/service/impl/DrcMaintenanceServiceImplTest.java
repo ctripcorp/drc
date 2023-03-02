@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.MhaGroupPair;
+import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.assertj.core.util.Lists;

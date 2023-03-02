@@ -30,6 +30,12 @@
      title="MQ 投递配置"
      width="1000px"
    >
+     <Modal
+       v-model="tagInfo.modal"
+     title="冲突配置"
+     width="500px">
+       <Table :columns="tagInfo.columns" :data="tagInfo.conflictVos"></Table>
+     </Modal>
      <Row>
        <Col span="2">
          <Button type="dashed" size="large" @click="goToNormalTopicApplication">标准</Button>
@@ -73,7 +79,7 @@
                      </Input>
                    </Col>
                    <Col span="4">
-                     <Button type="info" @click="showMatchTables"  style="margin-left: 10px">表校验</Button>
+                     <Button type="info" @click="check"  style="margin-left: 10px">表校验</Button>
                    </Col>
                  </Row>
              </FormItem>
@@ -105,6 +111,9 @@
 <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
 <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
 <!--             </FormItem>-->
+             <FormItem   label="tag" v-if="tagInfo.inputDisplay">
+               <Input v-model="mqConfig.tag" style="width:350px" placeholder="存在冲突配置，需要输入业务名（小写英文）区分"/>
+             </FormItem>
            </Form>
            <Form v-if="!display.normalTopicForm" :model="mqConfig" :label-width="100"
                  style="margin-top: 10px" >
@@ -130,11 +139,10 @@
                    <Input v-model="topic.table" style="width:200px" placeholder="表名（支持正则）"/>
                  </Col>
                  <Col span="4">
-                   <Button type="info" @click="showMatchTables"  style="margin-left: 10px">表校验</Button>
+                   <Button type="info" @click="check"  style="margin-left: 10px">表校验</Button>
                  </Col>
                </Row>
              </FormItem>
-
              <FormItem   label="MQ主题">
                <Input v-model="mqConfig.topic" style="width:350px" placeholder="请输入自定义Topic"/>
              </FormItem>
@@ -166,6 +174,9 @@
              <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
              <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
              <!--             </FormItem>-->
+             <FormItem   label="tag" v-if="tagInfo.inputDisplay">
+               <Input v-model="mqConfig.tag" style="width:350px" placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>
+             </FormItem>
            </Form>
          </Card>
        </Col>
@@ -225,7 +236,42 @@ export default {
         orderKey: '',
         delayTime: 0,
         processor: '',
-        refreshCache: false
+        refreshCache: false,
+        tag: ''
+      },
+      tagInfo: {
+        inputDisplay: false,
+        modal: false,
+        conflictVos: [],
+        columns: [
+          {
+            title: '序号',
+            width: 75,
+            align: 'center',
+            fixed: 'left',
+            render: (h, params) => {
+              return h(
+                'span',
+                params.index + 1
+              )
+            }
+          },
+          {
+            title: '标识',
+            key: 'tag',
+            width: 100
+          },
+          {
+            title: '库表名',
+            key: 'table',
+            width: 200
+          },
+          {
+            title: '主题',
+            key: 'topic',
+            width: 200
+          }
+        ]
       },
       topic: {
         bu: '',
@@ -315,6 +361,10 @@ export default {
           key: 'processor'
         },
         {
+          title: '业务标识',
+          key: 'tag'
+        },
+        {
           title: '操作',
           slot: 'action',
           align: 'center',
@@ -352,7 +402,7 @@ export default {
   methods: {
     goToShowConfig (row, index) {
       this.mqInitConfigInitFormRow(row, index)
-      this.showMatchTables()
+      this.check()
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = true
@@ -360,14 +410,14 @@ export default {
     },
     goToUpdateConfig  (row, index) {
       this.mqInitConfigInitFormRow(row, index)
-      this.showMatchTables()
+      this.check()
       this.columnsForChose = []
       this.columnsForChose.push(row.orderKey)
       this.display.showOnly = false
       this.display.mqConfigModal = true
     },
     deleteConfig (row, index) {
-      this.axios.delete('/api/drc/v1/messenger/mqConfig/' + row.id).then(response => {
+      this.axios.delete('/api/drc/v1/messenger/mqConfig/' + row.id + '/' + this.drc.mhaName).then(response => {
         console.log(response.data)
         console.log(response.data.data)
         if (response.data.status === 0) {
@@ -400,7 +450,8 @@ export default {
         orderKey: '',
         delayTime: 0,
         processor: '',
-        refreshCache: false
+        refreshCache: false,
+        tag: ''
       }
       this.topic = {
         bu: '',
@@ -408,6 +459,7 @@ export default {
         table: ''
       }
       this.tableData = []
+      this.tagInfo.inputDisplay = false
     },
     mqInitConfigInitFormRow: function (row, index) {
       this.mqConfig = {
@@ -422,7 +474,8 @@ export default {
         orderKey: row.orderKey,
         delayTime: row.delayTime,
         processor: row.processor,
-        refreshCache: false
+        refreshCache: false,
+        tag: row.tag == null ? '' : row.tag
       }
       const topicInfo = row.topic.split('.')
       const tableInfo = row.table.split('\\.')
@@ -431,6 +484,7 @@ export default {
         db: tableInfo[0],
         table: tableInfo[1]
       }
+      this.tagInfo.inputDisplay = row.tag != null
       this.display.normalTopicForm = row.topic.endsWith('.drc') // 判断是否为规范topic
     },
     goToNormalTopicApplication () {
@@ -522,18 +576,38 @@ export default {
         processor: this.mqConfig.processor === '' ? null : this.processor,
 
         messengerGroupId: this.drc.messengerGroupId,
-        mhaName: this.drc.mhaName
+        mhaName: this.drc.mhaName,
 
+        tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag
       }
-      // submit
-      this.axios.post('/api/drc/v1/messenger/mqConfig', dto)
+      this.tagInfo.conflictVos = []
+      // check mqConfig before sumbit
+      this.axios.post('/api/drc/v1/messenger/mqConfig/check', dto)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('mqConfig 提交失败!   ' + response.data.message)
+            window.alert('mqConfig 配置校验失败!   ' + response.data.message)
           } else {
-            window.alert('提交成功!' + response.data.message)
-            this.display.mqConfigModal = false
-            this.getMqConfigs()
+            const res = response.data.data
+            if (res.allowSubmit) {
+              // submit
+              this.axios.post('/api/drc/v1/messenger/mqConfig', dto)
+                .then(response => {
+                  if (response.data.status === 1) {
+                    window.alert('mqConfig 提交失败!   ' + response.data.message)
+                  } else {
+                    window.alert('提交成功!' + response.data.message)
+                    this.display.mqConfigModal = false
+                    this.getMqConfigs()
+                  }
+                })
+            } else {
+              if (res.tag != null) {
+                this.mqConfig.tag = res.tag
+              }
+              this.tagInfo.conflictVos = res.conflictTables
+              this.tagInfo.inputDisplay = true
+              this.tagInfo.modal = true
+            }
           }
         })
     },
@@ -583,6 +657,9 @@ export default {
         alert('有序topic 需要联系QMQ团队配置!!!')
         this.getCommonColumns()
       }
+    },
+    check () {
+      this.showMatchTables()
     },
     showMatchTables () {
       if (this.topic.db === '' || this.topic.table === '') {

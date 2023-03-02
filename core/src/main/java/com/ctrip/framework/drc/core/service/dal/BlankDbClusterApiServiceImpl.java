@@ -82,6 +82,12 @@ public class BlankDbClusterApiServiceImpl implements DbClusterApiService {
     }
 
     @Override
+    public String getDalClusterName(String dalServicePrefix, String dbName) {
+        return null;
+    }
+
+
+    @Override
     public int getOrder() {
         return 1;
     }

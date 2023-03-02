@@ -30,4 +30,6 @@ public interface DbClusterApiService extends Ordered {
     JsonNode registerDalCluster(String dalRegisterPrefix,String requestBody, String goal);
 
     JsonNode getResultNode(String uri);
+
+    String getDalClusterName(String dalServicePrefix, String dbName);
 }
