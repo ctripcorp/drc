@@ -38,7 +38,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             String message = getLastUnbearable().getMessage();
             DefaultEventMonitorHolder.getInstance().logBatchEvent("alert", message, 1, 0);
             rollback();
-            if (message.equals("Deadlock found when trying to get lock; try restarting transaction") |
+            if (message.equals("Deadlock found when trying to get lock; try restarting transaction") ||
                     message.equals("Lock wait timeout exceeded; try restarting transaction")) {
                 return deadlock();
             }
