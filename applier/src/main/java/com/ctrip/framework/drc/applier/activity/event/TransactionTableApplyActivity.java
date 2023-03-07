@@ -25,7 +25,7 @@ public class TransactionTableApplyActivity extends ApplyActivity {
 
     @Override
     protected Transaction onDeadLock(Transaction transaction) throws InterruptedException {
-        logger.info("deadlock gtid is: " + batch.fetchGtid());
+        logger.info("deadlock gtid is: {} for: {}", batch.fetchGtid(), registryKey);
         transactionTable.rollback(batch.fetchGtid());
         return super.onDeadLock(transaction);
     }
@@ -34,7 +34,7 @@ public class TransactionTableApplyActivity extends ApplyActivity {
     protected boolean handleEmptyTransaction(Transaction transaction) throws InterruptedException {
         if (transaction.isEmptyTransaction()) {
             transaction.reset();
-            ApplierGtidEvent event = (ApplierGtidEvent)transaction.next();
+            ApplierGtidEvent event = (ApplierGtidEvent) transaction.next();
             transactionTable.recordToMemory(event.getGtid());
             loggerTE.info("({}) record empty transaction to memory", event.getGtid());
             return true;

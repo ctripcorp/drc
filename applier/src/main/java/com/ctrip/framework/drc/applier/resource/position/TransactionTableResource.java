@@ -265,7 +265,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
         long gno = Long.parseLong(uuidAndGno[1]);
         int index = (int) (gno % TRANSACTION_TABLE_SIZE);
         beginState.replace(index, false);
-        loggerTT.info("[TT][{}] clear begin state: {}", registryKey, index);
+        loggerTT.info("[TT][{}][ROLLBACK] clear begin state: {} for: {}", registryKey, index, gtid);
     }
 
     @Override
