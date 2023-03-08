@@ -93,9 +93,9 @@ public class QConfigServiceImpl implements QConfigService {
             // machine,fileConfig  env & subEnv is same
             String localEnv = getLocalEnv();
             String fileSubEnv = getFileSubEnv(affectedDc);
-
+            
             String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),
-                    fullTableName.split("\\\\.")[0]);
+                    matchTables.get(0).getSchema());
             String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
             FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
@@ -144,7 +144,7 @@ public class QConfigServiceImpl implements QConfigService {
             String localEnv = getLocalEnv();
             String fileSubEnv = getFileSubEnv(affectedDc);
 
-            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),table.split("\\\\.")[0]);
+            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),matchTables.get(0).getSchema());
             String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
             logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{},topic:{},table:{}",fileName,topic,table);
