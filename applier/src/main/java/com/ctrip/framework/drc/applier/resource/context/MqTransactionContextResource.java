@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.MqMonitorContext;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.applier.mq.MqProvider;
@@ -15,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +26,8 @@ import java.util.List;
 public class MqTransactionContextResource extends TransactionContextResource implements SQLUtil {
 
     private static final Logger loggerMsgSend = LoggerFactory.getLogger("MESSENGER SEND");
+
+    private static final String DEFAULT_BINARY_CHARSET = "ISO-8859-1";
 
     @InstanceResource
     public MqProvider mqProvider;
@@ -85,6 +89,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             bitmapOfIdentifier = new Bitmap();
         }
 
+        Columns selectColumns = selectColumns(columns, beforeBitmap);
         for (int i = 0; i < beforeRows.size(); i++) {
             List<Object> beforeRow = beforeRows.get(i);
             List<Object> afterRow = null;
@@ -102,8 +107,7 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             eventData.setBeforeColumns(beforeList);
             eventData.setAfterColumns(afterList);
 
-            List<String> names = selectColumnNames(columns.getNames(), beforeBitmap);
-            for (int j = 0; j < names.size(); j++) {
+            for (int j = 0; j < selectColumns.size(); j++) {
                 boolean isKey = false;
                 if (j < bitmapOfIdentifier.size()) {
                     if (bitmapOfIdentifier.get(j)) {
@@ -111,16 +115,18 @@ public class MqTransactionContextResource extends TransactionContextResource imp
                     }
                 }
 
-                String columnName = names.get(j);
+                TableMapLogEvent.Column column = selectColumns.get(j);
+                String columnName = column.getName();
+
                 boolean beforeIsNull = beforeRow.get(j) == null;
-                String beforeColumnValue = beforeIsNull ? null : beforeRow.get(j).toString();
+                String beforeColumnValue = beforeIsNull ? null : parseOneValue(beforeRow.get(j), column);
 
                 switch (eventType) {
                     case UPDATE:
                         beforeList.add(new EventColumn(columnName, beforeColumnValue, beforeIsNull, isKey, false));
                         if (afterRow != null) {
                             boolean afterIsNull = afterRow.get(j) == null;
-                            String afterColumnValue = afterIsNull ? null : afterRow.get(j).toString();
+                            String afterColumnValue = afterIsNull ? null : parseOneValue(afterRow.get(j), column);
                             afterList.add(new EventColumn(columnName, afterColumnValue, afterIsNull, isKey, !StringUtils.equals(beforeColumnValue, afterColumnValue)));
                         }
                         break;
@@ -135,6 +141,21 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             eventDatas.add(eventData);
         }
         return eventDatas;
+    }
+
+    private String parseOneValue(Object value, TableMapLogEvent.Column column) {
+        if (column.isBinary()) {
+            String charset = column.getCharset();
+            if (charset == null) {
+                charset = DEFAULT_BINARY_CHARSET;
+            }
+            try {
+                return new String((byte[]) value, charset);
+            } catch (UnsupportedEncodingException e) {
+                loggerMsgSend.error("parse one value of row error with charset {}: ", charset, e);
+            }
+        }
+        return value.toString();
     }
 
     private void reportHickWall(List<EventData> eventDatas) {
