@@ -50,10 +50,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.channels.FileChannel;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
@@ -239,11 +236,42 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             if (excludedSet != null && excludedSet.isContainedWithin(executedGtids)) {
                 return true;
             }
+            return downgradeCheck(excludedSet, executedGtids);
+        }
+
+        private boolean downgradeCheck(GtidSet excludedSet, GtidSet executedGtids) {
+            Set<String> masterUuid = gtidManager.getMasterUuid();
+            if (!masterUuid.isEmpty()) {
+                logger.info("[downgrade] check gtidset for {} with uuid: {} for {}", applierName, masterUuid, consumeType);
+                GtidSet downgradeMasterGtidSet = excludedSet.filterGtid(masterUuid);
+                boolean isContained = downgradeMasterGtidSet.isContainedWithin(executedGtids);
+                logger.info("[downgrade] check gtidset for {} with result: {} for {}", applierName, isContained, consumeType);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.downgrade", applierName + ":" + consumeType);
+                return isContained;
+            }
             return false;
         }
 
         private File getFirstFile(GtidSet excludedSet, boolean onlyLocalUuids) {
-            return gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
+            File file = gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
+            if (file == null) {
+                file = downgradeGetFirstFile(excludedSet, onlyLocalUuids);
+            }
+            return file;
+        }
+
+        //downgrade to use the current master uuid for filtering
+        private File downgradeGetFirstFile(GtidSet excludedSet, boolean onlyLocalUuids) {
+            File file = null;
+            Set<String> masterUuid = gtidManager.getMasterUuid();
+            if (!masterUuid.isEmpty()) {
+                logger.info("[downgrade] get first file for {} with uuid: {} for {}", applierName, masterUuid, consumeType);
+                GtidSet downgradeMasterGtidSet = excludedSet.filterGtid(masterUuid);
+                file = gtidManager.getFirstLogNotInGtidSet(downgradeMasterGtidSet, onlyLocalUuids);
+                logger.info("[downgrade] get first file for {} with file: {} for {}", applierName, file, consumeType);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.get.file.downgrade", applierName + ":" + consumeType);
+            }
+            return file;
         }
 
         private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {
