@@ -235,6 +235,11 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         for (Applier applier : activeApplier) {
             DbCluster dbCluster = getDbClusterWithRefreshApplier(clusterId, applier, mysqlMaster);
+            List<Replicator> replicators = dbCluster.getReplicators();
+            if (replicators == null || replicators.isEmpty()) {
+                STATE_LOGGER.warn("[Empty][mysqlMasterChanged] replicators and do nothing for {}", clusterId);
+                continue;
+            }
             applierNotifier.notify(dbCluster);
             res.add(dbCluster);
         }
