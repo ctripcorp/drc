@@ -39,6 +39,9 @@ applier/src/main/META-INF/
 #properties
 applier.properties
 
+#meta info
+console/src/test/resources/meta.online.xml
+
 #npm
 node_modules/
 dist/

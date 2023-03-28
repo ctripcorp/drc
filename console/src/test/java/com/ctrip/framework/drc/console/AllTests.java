@@ -42,7 +42,6 @@ import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
-import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
