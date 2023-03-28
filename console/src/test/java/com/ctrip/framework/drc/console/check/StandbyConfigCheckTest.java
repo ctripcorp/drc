@@ -20,7 +20,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.XML_FILE_META_ON
  * Created by jixinwang on 2023/3/23
  */
 //1. call get request http://drc.ctripcorp.com/api/drc/v1/meta/ to get xml config of all meta information
-//2. add step 1 meta information to file meta.online.xml(contains sensitive information and cannot be uploaded to the gitlab, has been added to the ignore file)
+//2. add step 1 meta information to file console/src/test/resources/meta.online.xml(contains sensitive information and cannot be uploaded to the gitlab, has been added to the ignore file)
 //3. Execute method checkConfig in this class
 public class StandbyConfigCheckTest {
 
