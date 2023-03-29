@@ -239,6 +239,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             return downgradeCheck(excludedSet, executedGtids);
         }
 
+        //downgrade to use the current master uuid for checking
         private boolean downgradeCheck(GtidSet excludedSet, GtidSet executedGtids) {
             Set<String> masterUuid = gtidManager.getMasterUuid();
             if (!masterUuid.isEmpty()) {
@@ -253,25 +254,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File getFirstFile(GtidSet excludedSet, boolean onlyLocalUuids) {
-            File file = gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
-            if (file == null) {
-                file = downgradeGetFirstFile(excludedSet, onlyLocalUuids);
-            }
-            return file;
-        }
-
-        //downgrade to use the current master uuid for filtering
-        private File downgradeGetFirstFile(GtidSet excludedSet, boolean onlyLocalUuids) {
-            File file = null;
-            Set<String> masterUuid = gtidManager.getMasterUuid();
-            if (!masterUuid.isEmpty()) {
-                logger.info("[downgrade] get first file for {} with uuid: {} for {}", applierName, masterUuid, consumeType);
-                GtidSet downgradeMasterGtidSet = excludedSet.filterGtid(masterUuid);
-                file = gtidManager.getFirstLogNotInGtidSet(downgradeMasterGtidSet, onlyLocalUuids);
-                logger.info("[downgrade] get first file for {} with file: {} for {}", applierName, file, consumeType);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.get.file.downgrade", applierName + ":" + consumeType);
-            }
-            return file;
+            return gtidManager.getFirstLogNotInGtidSet(excludedSet, onlyLocalUuids);
         }
 
         private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {
