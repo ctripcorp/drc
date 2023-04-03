@@ -446,6 +446,19 @@ public class QueryLogEvent extends AbstractLogEvent {
                     return q_update_db_names;
                 case 13:
                     return q_microseconds;
+                    // todo mysql 8.0 queryLogEvent
+                case 14:
+                    return q_commit_ts;
+                case 15:
+                    return q_commit_ts2;
+                case 16:
+                    return q_explicit_defaults_for_timestamp;
+                case 17:
+                    return q_ddl_logged_with_xid;
+                case 18:
+                    return q_default_collation_for_utf8mb4;
+                case 19:
+                    return q_sql_require_primary_key;
                 default:
                     throw new IllegalStateException(String.format("can't match QueryStatusCode when parse QueryLogEvent.QueryStatusCode, code is %d", code));
             }
