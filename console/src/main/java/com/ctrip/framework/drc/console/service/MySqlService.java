@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service;
 
+import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 
 import java.util.Map;
@@ -13,5 +14,8 @@ public interface MySqlService {
     Integer getAutoIncrement(String mha,String sql,int index,Endpoint endpoint);
     
     // forward by mha
-    String getRealExecutedGtid(String mha);
+    String getDrcExecutedGtid(String mha);
+
+    // forward by mha
+    String getMhaExecutedGtid(String mha);
 }

@@ -43,14 +43,27 @@ public class MySqlServiceImpl implements MySqlService {
 
     @Override
     @PossibleRemote(path="/api/drc/v1/mha/gtid")
-    public String getRealExecutedGtid(String mha) {
-        logger.info("[[tag=gtidQuery]] try to getRealExecutedGtid from mha{}",mha);
+    public String getDrcExecutedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getDrcExecutedGtid from mha{}",mha);
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
         if (endpoint == null) {
-            logger.warn("[[tag=gtidQuery]] getRealExecutedGtid from mha{},machine not exist",mha);
+            logger.warn("[[tag=gtidQuery]] getDrcExecutedGtid from mha{},machine not exist",mha);
             return null;
         } else {
             return MySqlUtils.getUnionExecutedGtid(endpoint);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path="/api/drc/v1/mha/mhaGtid")
+    public String getMhaExecutedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaExecutedGtid from mha{}",mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaExecutedGtid from mha {},machine not exist",mha);
+            return null;
+        } else {
+            return MySqlUtils.getExecutedGtid(endpoint);
         }
 
     }

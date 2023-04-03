@@ -105,18 +105,33 @@ public class MhaController {
         }
         return ApiResult.getFailInstance(null);
     }
-
+    
     @GetMapping("gtid")
-    public ApiResult getRealExecutedGtid(@RequestParam String mha){
+    public ApiResult getDrcExecutedGtid(@RequestParam String mha){
         try {
-            String unionGtid = mySqlService.getRealExecutedGtid(mha);
+            String unionGtid = mySqlService.getDrcExecutedGtid(mha);
             if (StringUtils.isEmpty(unionGtid)) {
                 return ApiResult.getFailInstance(null);
             } else {
                 return ApiResult.getSuccessInstance(unionGtid);
             }
         } catch (Throwable e) {
-            logger.error("[[tag=gtidQuery]] getRealExecutedGtid from mha: {}",mha,e);
+            logger.error("[[tag=gtidQuery]] getDrcExecutedGtid from mha: {}",mha,e);
+        }
+        return ApiResult.getFailInstance(null);
+    }
+
+    @GetMapping("mhaGtid")
+    public ApiResult getMhaExecutedGtidGtid(@RequestParam String mha){
+        try {
+            String unionGtid = mySqlService.getDrcExecutedGtid(mha);
+            if (StringUtils.isEmpty(unionGtid)) {
+                return ApiResult.getFailInstance(null);
+            } else {
+                return ApiResult.getSuccessInstance(unionGtid);
+            }
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaExecutedGtidGtid from mha: {}",mha,e);
         }
         return ApiResult.getFailInstance(null);
     }

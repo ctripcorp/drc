@@ -96,6 +96,13 @@ public class ApplierGroupTbl implements DalPojo {
 	@Type(value = Types.VARCHAR)
 	private String targetName;
 
+	/**
+	 * applier gtid position
+	 */
+	@Column(name = "executed_gtid")
+	@Type(value = Types.VARCHAR)
+	private String executedGtid;
+
 	public Long getId() {
 		return id;
 	}
@@ -182,5 +189,13 @@ public class ApplierGroupTbl implements DalPojo {
 
 	public void setTargetName(String targetName) {
 		this.targetName = targetName;
+	}
+
+	public String getExecutedGtid() {
+		return executedGtid;
+	}
+
+	public void setExecutedGtid(String executedGtid) {
+		this.executedGtid = executedGtid;
 	}
 }

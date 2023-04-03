@@ -1,18 +1,10 @@
 package com.ctrip.framework.drc.console.controller;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -171,7 +163,7 @@ public class MhaControllerTest {
     
     @Test
     public void testGetGtd() throws Exception {
-        Mockito.when(mySqlService.getRealExecutedGtid(Mockito.anyString())).thenReturn("gtid");
+        Mockito.when(mySqlService.getDrcExecutedGtid(Mockito.anyString())).thenReturn("gtid");
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
@@ -183,7 +175,7 @@ public class MhaControllerTest {
         Assert.assertNotNull(response);
         Assert.assertNotEquals("", response);
 
-        Mockito.when(mySqlService.getRealExecutedGtid(Mockito.anyString())).thenReturn("");
+        Mockito.when(mySqlService.getDrcExecutedGtid(Mockito.anyString())).thenReturn("");
         mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
