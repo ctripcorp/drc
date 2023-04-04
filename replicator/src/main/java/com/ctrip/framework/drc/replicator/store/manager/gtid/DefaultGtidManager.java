@@ -29,8 +29,7 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
 
     private Set<String> uuids = Sets.newHashSet();
 
-    //might not be accurate, just for downgrade use
-    private Set<String> masterUuid = Sets.newHashSet();
+    private volatile String currentUuid;
 
     private FileManager fileManager;
 
@@ -43,7 +42,6 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
         this.uuidOperator = uuidOperator;
         this.config = replicatorConfig;
         uuids.addAll(getAndUpdateUuids());
-        masterUuid.addAll(toStringSet(replicatorConfig.getWhiteUUID()));
         logger.info("[Uuids] update to {} for {}", uuids, replicatorConfig.getRegistryKey());
     }
 
@@ -106,8 +104,13 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
     }
 
     @Override
-    public Set<String> getMasterUuid() {
-        return new HashSet<>(masterUuid);
+    public void setCurrentUuid(String currentUuid) {
+        this.currentUuid = currentUuid;
+    }
+
+    @Override
+    public String getCurrentUuid() {
+        return currentUuid;
     }
 
     @Override

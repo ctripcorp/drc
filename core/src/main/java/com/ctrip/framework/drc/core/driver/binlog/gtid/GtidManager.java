@@ -24,7 +24,9 @@ public interface GtidManager extends Lifecycle, GtidReader, GtidObserver {
 
     Set<String> getUuids();
 
-    Set<String> getMasterUuid();
+    void setCurrentUuid(String currentUuid);
+
+    String getCurrentUuid();
 
     boolean removeUuid(String uuid);
 
