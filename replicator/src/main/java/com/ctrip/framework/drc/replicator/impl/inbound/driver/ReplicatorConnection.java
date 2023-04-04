@@ -262,6 +262,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
                 public void onSuccess(SimpleObjectPool<NettyClient> simpleObjectPool) {
                     currentUuid = fetchServerUuid(simpleObjectPool);
                     if (StringUtils.isNotBlank(currentUuid)) {
+                        gtidManager.setCurrentUuid(currentUuid);
                         Set<String> previousUuids = gtidManager.getUuids();
                         boolean added = previousUuids.add(currentUuid);
                         logger.info("[Uuid] {} add to previous set {} with res {}", currentUuid, previousUuids, added);

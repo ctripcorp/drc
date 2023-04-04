@@ -21,6 +21,8 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String INDEPENDENT_EMBEDDED_MYSQL_SWITCH_KEY = INDEPENDENT_EMBEDDED_MYSQL_SWITCH + ".%s";
 
+    private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
+
     private DynamicConfig() {}
 
     private static class ConfigHolder {
@@ -47,6 +49,14 @@ public class DynamicConfig extends AbstractConfigBean {
         String value = getProperty(String.format(INDEPENDENT_EMBEDDED_MYSQL_SWITCH_KEY, key));
         if (StringUtils.isBlank(value)) {
             return getBooleanProperty(INDEPENDENT_EMBEDDED_MYSQL_SWITCH, false);
+        }
+        return Boolean.parseBoolean(value);
+    }
+
+    public boolean getPurgedGtidSetCheckSwitch() {
+        String value = getProperty(PURGED_GTID_SET_CHECK_SWITCH);
+        if (StringUtils.isBlank(value)) {
+            return getBooleanProperty(PURGED_GTID_SET_CHECK_SWITCH, false);
         }
         return Boolean.parseBoolean(value);
     }
