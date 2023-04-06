@@ -705,6 +705,10 @@ public class MySqlUtils {
     public static final class TableSchemaName {
         private String schema;
         private String name;
+
+        public TableSchemaName() {
+        }
+
         public TableSchemaName(String schema, String name) {
             this.schema = schema;
             this.name = name;
