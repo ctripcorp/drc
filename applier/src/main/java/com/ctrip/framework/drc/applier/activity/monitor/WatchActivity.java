@@ -37,9 +37,9 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
     private ExecutorService executorService = ThreadUtils.newCachedThreadPool("WatchActivityRemove");
 
     public WatchActivity() {
-        String binlogPurgeScaleOut = System.getProperty(SystemConfig.APPLIER_LWM_TOLERANCE_TIME);
-        if (binlogPurgeScaleOut != null) {
-            LWM_TOLERANCE_TIME = Long.parseLong(binlogPurgeScaleOut);
+        String lwmToleranceTime = System.getProperty(SystemConfig.APPLIER_LWM_TOLERANCE_TIME);
+        if (lwmToleranceTime != null) {
+            LWM_TOLERANCE_TIME = Long.parseLong(lwmToleranceTime);
         }
         logger.info("lwm tolerance time is: {}", LWM_TOLERANCE_TIME);
     }
