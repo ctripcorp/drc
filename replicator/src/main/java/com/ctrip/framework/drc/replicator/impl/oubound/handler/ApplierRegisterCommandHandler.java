@@ -232,38 +232,38 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean check(GtidSet excludedSet) {
+            //1. check the gtid set associated with the uuid of mysql master node
             GtidSet executedGtids = gtidManager.getExecutedGtids();
-            GtidSet purgedGtids = gtidManager.getPurgedGtids();
             String currentUuid = gtidManager.getCurrentUuid();
-            Set<String> uuids = Sets.newHashSet(gtidManager.getUuids());
-            logger.info("[GtidSet] check : current uuid {}, mha uuids {}, excludedSet {}, executedGtids {}, purgedGtids {}", currentUuid, uuids, excludedSet, executedGtids, purgedGtids);
-
-            //1. check gtid set of current uuid
-            GtidSet currentUuidGtidSet = excludedSet.filterGtid(Sets.newHashSet(currentUuid));
-            boolean currentUuidGtidSetCheck = currentUuidGtidSet.isContainedWithin(executedGtids);
-            logger.info("[GtidSet] check current uuid gtidset for {} with result: {} for {}", applierName, currentUuidGtidSetCheck, consumeType);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.current.uuid", applierName + "-" + consumeType + ":" + currentUuidGtidSetCheck);
-            if (!currentUuidGtidSetCheck) {
+            GtidSet masterGtidSet = excludedSet.filterGtid(Sets.newHashSet(currentUuid));
+            boolean masterGtidSetCheck = masterGtidSet.isContainedWithin(executedGtids);
+            logger.info("[GtidSet][{}][{}] check master gtidset result: {}, master gtidset: {}, executed gtidset: {}", applierName, consumeType, masterGtidSetCheck, masterGtidSet, executedGtids);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.master.uuid", applierName + "-" + consumeType + ":" + masterGtidSetCheck);
+            if (!masterGtidSetCheck) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", applierName + "-" + consumeType + ":" + false);
                 return false;
             }
 
-            //2. check gtid set exclude current uuid just for logging
-            uuids.remove(currentUuid);
-            GtidSet excludeCurrentUuidGtidSet = excludedSet.filterGtid(uuids);
-            boolean excludeCurrentUuidGtidSetCheck = excludeCurrentUuidGtidSet.isContainedWithin(executedGtids);
-            logger.info("[GtidSet] check exclude current uuid gtidset for {} with result: {} for {}", applierName, excludeCurrentUuidGtidSetCheck, consumeType);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.exclude.current.uuid", applierName + "-" + consumeType + ":" + excludeCurrentUuidGtidSetCheck);
+            //2. check gtid set associated with the uuids of mysql slave nodes, the result just for logging
+            Set<String> slaveUuids = Sets.newHashSet(gtidManager.getUuids());
+            slaveUuids.remove(currentUuid);
+            GtidSet slaveGtidSet = excludedSet.filterGtid(slaveUuids);
+            boolean slaveGtidSetCheck = slaveGtidSet.isContainedWithin(executedGtids);
+            logger.info("[GtidSet][{}][{}] check slave gtidset result: {}, slave gtidset: {}, executed gtidset: {}", applierName, consumeType, slaveGtidSetCheck, slaveGtidSet, executedGtids);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.slave.uuid", applierName + "-" + consumeType + ":" + slaveGtidSetCheck);
 
             //3. check purged gtid set
-            boolean purgedGtidSetCheck = purgedGtids.isContainedWithin(excludedSet);
-            logger.info("[GtidSet] check purged gtidset for {} with result: {} for {}", applierName, excludeCurrentUuidGtidSetCheck, consumeType);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.purged", applierName + "-" + consumeType + ":" + excludeCurrentUuidGtidSetCheck);
+            GtidSet purgedGtidSet = gtidManager.getPurgedGtids();
+            boolean purgedGtidSetCheck = purgedGtidSet.isContainedWithin(excludedSet);
+            logger.info("[GtidSet][{}][{}] check purged gtidset result: {}, purged gtidset: {}, excluded gtidset: {}", applierName, consumeType, purgedGtidSetCheck, purgedGtidSet, purgedGtidSetCheck);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.purged", applierName + "-" + consumeType + ":" + purgedGtidSetCheck);
 
             if (DynamicConfig.getInstance().getPurgedGtidSetCheckSwitch()) {
-                logger.info("[GtidSet] check final result include purged check for {} with result: {} for {}", applierName, excludeCurrentUuidGtidSetCheck, consumeType);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.purged.on", applierName + "-" + consumeType + ":" + excludeCurrentUuidGtidSetCheck);
+                logger.info("[GtidSet][{}][{}] check purged gtidset switch on, result: {}", applierName, consumeType, purgedGtidSetCheck);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", applierName + "-" + consumeType + ":" + purgedGtidSetCheck);
                 return purgedGtidSetCheck;
             } else {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", applierName + "-" + consumeType + ":" + true);
                 return true;
             }
         }
