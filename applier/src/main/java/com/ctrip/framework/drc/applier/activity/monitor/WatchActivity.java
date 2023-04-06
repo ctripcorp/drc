@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.applier.activity.monitor;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.server.ApplierServer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.fetcher.system.*;
 import org.slf4j.Logger;
@@ -23,6 +24,10 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
 
     private final Logger loggerP = LoggerFactory.getLogger("PROGRESS");
 
+    private static long FIRST_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
+
+    private static long LWM_TOLERANCE_TIME = 60 * 1000; //1 minutes
+
     @InstanceConfig(path = "servers")
     public ConcurrentHashMap<String, ? extends ApplierServer> servers;
 
@@ -30,6 +35,14 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
     public ApplierServerContainer container;
 
     private ExecutorService executorService = ThreadUtils.newCachedThreadPool("WatchActivityRemove");
+
+    public WatchActivity() {
+        String binlogPurgeScaleOut = System.getProperty(SystemConfig.APPLIER_LWM_TOLERANCE_TIME);
+        if (binlogPurgeScaleOut != null) {
+            LWM_TOLERANCE_TIME = Long.parseLong(binlogPurgeScaleOut);
+        }
+        logger.info("lwm tolerance time is: {}", LWM_TOLERANCE_TIME);
+    }
 
     @Override
     public void loop() {
@@ -65,9 +78,9 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
         try {
             long currentLWM = server.getLWM();
             long currentProgress = server.getProgress();
-            long bearingTimeMillis = 60 * 1000; //1 minutes
+            long bearingTimeMillis = LWM_TOLERANCE_TIME;
             if (currentLWM == 0)
-                bearingTimeMillis = 10 * 60 * 1000; //10 minutes
+                bearingTimeMillis = FIRST_LWM_TOLERANCE_TIME;
             long currentTimeMillis = System.currentTimeMillis();
             LastLWM lastLWM = lastLWMHashMap.computeIfAbsent(key, k -> new LastLWM(currentLWM, currentProgress, currentTimeMillis));
             if (lastLWM.lwm == currentLWM && lastLWM.progress == currentProgress) {
