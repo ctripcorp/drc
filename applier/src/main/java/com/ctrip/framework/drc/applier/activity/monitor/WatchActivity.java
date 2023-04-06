@@ -36,7 +36,9 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
 
     private ExecutorService executorService = ThreadUtils.newCachedThreadPool("WatchActivityRemove");
 
-    public WatchActivity() {
+    @Override
+    public void initialize() throws Exception {
+        super.initialize();
         String lwmToleranceTime = System.getProperty(SystemConfig.APPLIER_LWM_TOLERANCE_TIME);
         if (lwmToleranceTime != null) {
             LWM_TOLERANCE_TIME = Long.parseLong(lwmToleranceTime);
