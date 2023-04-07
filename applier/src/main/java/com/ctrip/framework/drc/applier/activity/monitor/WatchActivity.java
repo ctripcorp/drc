@@ -64,7 +64,6 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
 
     public void patrol(String key, ApplierServer server) {
         try {
-            logger.info("first lwm: {}, lwm: {}", ApplierDynamicConfig.getInstance().getFirstLwmToleranceTime(), ApplierDynamicConfig.getInstance().getLwmToleranceTime());
             long currentLWM = server.getLWM();
             long currentProgress = server.getProgress();
             long bearingTimeMillis = ApplierDynamicConfig.getInstance().getLwmToleranceTime();
