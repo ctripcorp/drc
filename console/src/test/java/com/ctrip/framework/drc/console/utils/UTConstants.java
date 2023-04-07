@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 public class UTConstants {
     // xml files
     public static final String XML_FILE_META = "meta.xml";
+    public static final String XML_FILE_META_ONLINE = "meta.online.xml";
     public static final String XML_FILE_META_one2many = "meta_one2many.xml";
     public static final String XML_FILE_META1 = "meta1.xml";
     public static final String XML_FILE_META2 = "meta2.xml";
