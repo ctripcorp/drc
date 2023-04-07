@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.reponse.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
@@ -238,7 +239,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
     
     @Override
-    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check")
+    @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check" ,responseType = TableSchemaListApiResult.class)
     public List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name,
                                                           String mhaName, Integer type) {
         logger.info("[[tag=matchTable]] get {}.{} from {} ",namespace,name,mhaName);
