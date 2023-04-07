@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResourceTest;
 import com.ctrip.framework.drc.applier.server.ApplierServerInClusterTest;
 import com.ctrip.framework.drc.applier.server.ApplierWatcherTest;
 import com.ctrip.framework.drc.applier.server.LocalApplierServerTest;
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfigTest;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -44,6 +45,7 @@ import static com.ctrip.framework.drc.applier.resource.context.AbstractPartialTr
         LocalApplierServerTest.class,
         ApplierServerInClusterTest.class,
         ApplierWatcherTest.class,
+        ApplierDynamicConfigTest.class,
 
         //Event
         ApplierDrcTableMapEventTest.class,
