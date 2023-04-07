@@ -24,9 +24,9 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
 
     private final Logger loggerP = LoggerFactory.getLogger("PROGRESS");
 
-    private static long FIRST_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
+    private long FIRST_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
 
-    private static long LWM_TOLERANCE_TIME = 60 * 1000; //1 minutes
+    private long LWM_TOLERANCE_TIME = 60 * 1000; //1 minutes
 
     @InstanceConfig(path = "servers")
     public ConcurrentHashMap<String, ? extends ApplierServer> servers;
