@@ -43,8 +43,6 @@ public class SystemConfig {
 
     public static final String REPLICATOR_BINLOG_PURGE_SCALE_OUT = "drc.replicator.binlog.scaleout";
 
-    public static final String APPLIER_LWM_TOLERANCE_TIME = "drc.applier.lwm.tolerance.time";
-
     public static final String PREVIOUS_GTID_INTERVAL = "drc.replicator.previousgtid.interval";
 
     public static final String JDBC_PREFIX = "jdbc:mysql://%s:";
