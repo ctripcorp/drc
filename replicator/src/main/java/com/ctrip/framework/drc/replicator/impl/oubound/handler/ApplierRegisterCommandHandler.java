@@ -88,8 +88,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private ExecutorService dumpExecutorService;
 
-    private String replicatorName;
-
     private boolean setGitdMode;
 
     private String replicatorRegion;
@@ -100,7 +98,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
-        this.replicatorName = replicatorConfig.getRegistryKey();
         this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
         this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
         this.replicatorRegion = RegionConfig.getInstance().getRegion();
@@ -202,8 +199,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
             this.dumpCommandPacket = dumpCommandPacket;
+            this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
-            this.applierName = ConsumeType.Replicator == consumeType ? (replicatorName + "-slave") : dumpCommandPacket.getApplierName();
             this.skipDrcGtidLogEvent = setGitdMode && !consumeType.requestAllBinlog();
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
