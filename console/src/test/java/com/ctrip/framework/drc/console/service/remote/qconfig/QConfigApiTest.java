@@ -3,8 +3,9 @@ package com.ctrip.framework.drc.console.service.remote.qconfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.UpdateRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.FileDetailResponse;
-import com.ctrip.framework.drc.console.service.remote.qconfig.response.QConfigVersionResponse;
-import com.ctrip.framework.drc.console.service.remote.qconfig.response.UpdateQConfigResponse;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
+import com.ctrip.framework.drc.console.vo.filter.QConfigVersionResponse;
+import com.ctrip.framework.drc.console.vo.filter.UpdateQConfigResponse;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
@@ -68,10 +69,11 @@ public class QConfigApiTest {
         urlParams.put("env", Foundation.server().getEnv().getName().toLowerCase());
         urlParams.put("subenv", (Foundation.server().getSubEnv() == null ? "" : Foundation.server().getSubEnv()));
         urlParams.put("targetgroupid", "100023928");
-        String result = HttpUtils.get(getUrl, String.class, urlParams);
-        System.out.println("result---------------------- \n" + result);
-        FileDetailResponse fileDetailResponse = JsonUtils.fromJson(result, FileDetailResponse.class);
-        System.out.println("fileDetailResponse------------------- \n" + fileDetailResponse);
+//        String result = HttpUtils.get(getUrl, String.class, urlParams);
+        QConfigDataResponse response = HttpUtils.get(getUrl, QConfigDataResponse.class, urlParams);
+//        System.out.println("result---------------------- \n" + result);
+//        FileDetailResponse fileDetailResponse = JsonUtils.fromJson(result, FileDetailResponse.class);
+        System.out.println("response------------------- \n" + response);
     }
 
     @Test

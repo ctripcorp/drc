@@ -1,6 +1,4 @@
-package com.ctrip.framework.drc.console.service.remote.qconfig.response;
-
-import java.util.Map;
+package com.ctrip.framework.drc.console.vo.filter;
 
 /**
  * Created by dengquanliang

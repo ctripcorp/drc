@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.service.remote.qconfig.response;
+package com.ctrip.framework.drc.console.vo.filter;
 
 /**
  * Created by dengquanliang

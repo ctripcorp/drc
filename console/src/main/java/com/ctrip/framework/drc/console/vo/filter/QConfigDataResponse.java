@@ -1,22 +1,22 @@
-package com.ctrip.framework.drc.console.service.remote.qconfig.response;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+package com.ctrip.framework.drc.console.vo.filter;
 
 /**
  * Created by dengquanliang
- * 2023/4/19 16:17
+ * 2023/4/24 14:36
  */
-public class QConfigVersionResponse {
+public class QConfigDataResponse {
+
     private int status;
     private String message;
+    private QConfigDetailData data;
 
-    private List<QConfigVersion> data;
+    public boolean exist() {
+        return this.status == 0;
+    }
 
     @Override
     public String toString() {
-        return "QConfigVersionResponse{" +
+        return "QConfigDataResponse{" +
                 "status=" + status +
                 ", message='" + message + '\'' +
                 ", data=" + data +
@@ -39,11 +39,11 @@ public class QConfigVersionResponse {
         this.message = message;
     }
 
-    public List<QConfigVersion> getData() {
+    public QConfigDetailData getData() {
         return data;
     }
 
-    public void setData(List<QConfigVersion> data) {
+    public void setData(QConfigDetailData data) {
         this.data = data;
     }
 }

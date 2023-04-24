@@ -29,9 +29,9 @@ public class RowsFilterMetaMappingTbl implements DalPojo {
     /**
      * 行过滤唯一标识
      */
-    @Column(name = "meta_filter_name")
-    @Type(value = Types.VARCHAR)
-    private String metaFilterName;
+    @Column(name = "meta_filter_id")
+    @Type(value = Types.BIGINT)
+    private Long metaFilterId;
 
     /**
      * 行过滤配置key
@@ -69,12 +69,12 @@ public class RowsFilterMetaMappingTbl implements DalPojo {
         this.id = id;
     }
 
-    public String getMetaFilterName() {
-        return metaFilterName;
+    public Long getMetaFilterId() {
+        return metaFilterId;
     }
 
-    public void setMetaFilterName(String metaFilterName) {
-        this.metaFilterName = metaFilterName;
+    public void setMetaFilterId(Long metaFilterId) {
+        this.metaFilterId = metaFilterId;
     }
 
     public String getFilterKey() {
