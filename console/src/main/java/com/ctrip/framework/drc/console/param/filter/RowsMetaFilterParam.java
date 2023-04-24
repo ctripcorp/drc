@@ -8,13 +8,23 @@ import java.util.List;
  */
 public class RowsMetaFilterParam {
 
+    private String metaFilterName;
     private List<String> whiteList;
 
     @Override
     public String toString() {
         return "RowsMetaFilterParam{" +
-                "whiteList=" + whiteList +
+                "metaFilterName='" + metaFilterName + '\'' +
+                ", whiteList=" + whiteList +
                 '}';
+    }
+
+    public String getMetaFilterName() {
+        return metaFilterName;
+    }
+
+    public void setMetaFilterName(String metaFilterName) {
+        this.metaFilterName = metaFilterName;
     }
 
     public List<String> getWhiteList() {

@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.vo.filter;
 
-import com.ctrip.framework.drc.console.vo.filter.QConfigVersion;
-
 import java.util.List;
 
 /**

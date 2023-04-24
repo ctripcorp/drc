@@ -103,14 +103,14 @@ public class QConfigApiTest {
     @Test
     public void testQueryConfigVersion() {
         String urlFormat = domainConfig.getQConfigRestApiUrl() +  "/configs/%s/envs/%s/subenvs/%s/versions";
-        String url = String.format(urlFormat, GROUP_ID, ENV, SUB_ENV, "test.properties");
+        String url = String.format(urlFormat, GROUP_ID, ENV, SUB_ENV, "dql.properties");
         String getUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}&targetdataids={targetdataids}";
         Map<String, String> urlParams = Maps.newHashMap();
         urlParams.put("token", TOKEN);
         urlParams.put("operator", "dengquanliang");
         urlParams.put("serverenv", ENV);
         urlParams.put("groupid", GROUP_ID);
-        urlParams.put("targetdataids", "test.properties");
+        urlParams.put("targetdataids", "test1.properties");
         QConfigVersionResponse response = HttpUtils.get(getUrl, QConfigVersionResponse.class, urlParams);
         System.out.println(response);
     }

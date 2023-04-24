@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.console.service.filter.RowsMetaFilterService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
-import com.ctrip.framework.drc.console.vo.filter.QConfigDetailData;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.foundation.Foundation;
@@ -58,7 +57,7 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         eventMonitor.logEvent("ROWS.META.FILTER.QUERY", metaFilterName);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
         if (rowsFilterMetaTbl == null) {
-            logger.info("metaFilterName: {} not exist", metaFilterName);
+            logger.info("metaFilterName: {} does not exist", metaFilterName);
             return new ArrayList<>();
         }
 
@@ -72,7 +71,7 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         QConfigQueryParam queryParam = buildQueryParam();
         QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
         if (response == null || !response.exist() || response.getData() == null) {
-            logger.info("rows filter whitelist config not exist, metaFilterName: {}", metaFilterName);
+            logger.info("rows filter whitelist config does not exist, metaFilterName: {}", metaFilterName);
             return new ArrayList<>();
         }
 
