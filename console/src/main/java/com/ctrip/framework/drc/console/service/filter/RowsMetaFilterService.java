@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -23,5 +22,5 @@ public interface RowsMetaFilterService {
      * @param param
      * @return
      */
-    boolean updateWhiteList(RowsMetaFilterParam param, String operator);
+    boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws SQLException;
 }

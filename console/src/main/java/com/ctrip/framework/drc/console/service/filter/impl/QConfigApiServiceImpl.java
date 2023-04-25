@@ -60,12 +60,6 @@ public class QConfigApiServiceImpl implements QConfigApiService {
 
         QConfigVersionResponse response = HttpUtils.get(getUrl, QConfigVersionResponse.class, buildQueryVersionParamMap(param));
         return response;
-//        if (response == null || response.getStatus() != 0) {
-//            logger.error("Query QConfig Version Error, QConfigVersionQueryParam: {}", param);
-//            return ERROR_VERSION;
-//        }
-//        Map<String, Integer> versionMap = response.getData().stream().collect(Collectors.toMap(QConfigVersion::getDataId, QConfigVersion::getVersion, (k1, k2) -> k1));
-//        return versionMap.getOrDefault(param.getTargetDataId(), ERROR_VERSION);
     }
 
     @Override

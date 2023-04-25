@@ -104,7 +104,7 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
 
         List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
         QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
-        Map<String, String> configMap = buildConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
+        Map<String, String> configMap = buildAddConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
 
         for (String desRegion : desRegions) {
             QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
@@ -144,8 +144,33 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
     }
 
     @Override
-    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) {
-        return false;
+    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+        eventMonitor.logEvent("ROWS.META.FILTER.UPDATE", param.getMetaFilterName());
+        checkParam(param, operator);
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        if (rowsFilterMetaTbl == null) {
+            logger.error("metaFilterName: {} does not exist, update whitelist fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
+        }
+
+        List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
+        if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
+            logger.error("metaFilterName: {} doesn't match any filter keys, update whitelist fail", param.getWhiteList());
+            throw new IllegalArgumentException(String.format("metaFilterName: {} does not exist, update whitelist fail", param.getWhiteList()));
+        }
+        List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
+
+        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+
+        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
+        Map<String, String> configMap = buildUpdateConfigMap(filterKeys, param.getWhiteList());
+
+        for (String desRegion : desRegions) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+            qConfigApiService.batchUpdateConfig(batchUpdateParam);
+        }
+
+        return true;
     }
 
     private QConfigQueryParam buildQueryParam(String desRegion) {
@@ -178,13 +203,13 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         return param;
     }
 
-    private Map<String, String> buildConfigMap(List<String> filterKeys, List<String> oldWhitelist, List<String> addedWhitelist) {
+    private Map<String, String> buildAddConfigMap(List<String> filterKeys, List<String> oldWhitelist, List<String> addWhitelist) {
         List<String> whitelist = Lists.newArrayList();
         if (!CollectionUtils.isEmpty(oldWhitelist)) {
             whitelist.addAll(oldWhitelist);
         }
 
-        addedWhitelist.stream().filter(e -> !whitelist.contains(e)).forEach(whitelist::add);
+        addWhitelist.stream().filter(e -> !whitelist.contains(e)).forEach(whitelist::add);
         return buildConfigMap(whitelist, filterKeys);
     }
 
@@ -196,6 +221,10 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
 
         whitelist.removeAll(deletedWhitelist);
         return buildConfigMap(whitelist, filterKeys);
+    }
+
+    private Map<String, String> buildUpdateConfigMap(List<String> filterKeys, List<String> updateWhitelist) {
+        return buildConfigMap(updateWhitelist, filterKeys);
     }
 
     private Map<String, String> buildConfigMap(List<String> whitelist, List<String> filterKeys) {
