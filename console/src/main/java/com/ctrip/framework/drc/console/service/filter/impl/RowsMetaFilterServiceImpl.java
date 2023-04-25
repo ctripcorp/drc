@@ -5,6 +5,8 @@ import com.ctrip.framework.drc.console.dao.RowsFilterMetaMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
+import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateDetailParam;
+import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
 import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
@@ -12,9 +14,12 @@ import com.ctrip.framework.drc.console.service.filter.RowsMetaFilterService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
 import com.ctrip.framework.foundation.Foundation;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -24,10 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -53,56 +55,156 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
     private static final int CONFIG_SPLIT_LENGTH = 2;
 
     @Override
-    public List<String> getWhiteList(String metaFilterName) throws SQLException {
+    public QConfigDataVO getWhiteList(String metaFilterName) throws SQLException {
         eventMonitor.logEvent("ROWS.META.FILTER.QUERY", metaFilterName);
+
+        QConfigDataVO qConfigDataVO = new QConfigDataVO();
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
         if (rowsFilterMetaTbl == null) {
-            logger.info("metaFilterName: {} does not exist", metaFilterName);
-            return new ArrayList<>();
+            logger.error("metaFilterName: {} does not exist, query whitelist fail", metaFilterName);
+            return qConfigDataVO;
         }
 
         List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
         if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
-            logger.warn("metaFilterName: {} doesn't match any filter keys", metaFilterName);
-            return new ArrayList<>();
+            logger.error("metaFilterName: {} doesn't match any filter keys, query whitelist fail", metaFilterName);
+            return qConfigDataVO;
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
 
-        QConfigQueryParam queryParam = buildQueryParam();
+        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+        QConfigQueryParam queryParam = buildQueryParam(desRegions.get(0));
         QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
         if (response == null || !response.exist() || response.getData() == null) {
             logger.info("rows filter whitelist config does not exist, metaFilterName: {}", metaFilterName);
-            return new ArrayList<>();
+            return qConfigDataVO;
         }
 
-        return getWhiteList(response.getData().getData(), filterKeys.get(0));
+        qConfigDataVO.setWhitelist(getWhiteList(response.getData().getData(), filterKeys.get(0)));
+        qConfigDataVO.setVersion(response.getData().getEditVersion());
+        return qConfigDataVO;
     }
 
     @Override
-    public boolean addWhiteList(RowsMetaFilterParam requestBody) {
-        return false;
+    public boolean addWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+        eventMonitor.logEvent("ROWS.META.FILTER.ADD", param.getMetaFilterName());
+        checkParam(param, operator);
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        if (rowsFilterMetaTbl == null) {
+            logger.error("metaFilterName: {} does not exist, add whitelist fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, add whitelist fail", param.getMetaFilterName()));
+        }
+
+        List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
+        if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
+            logger.error("metaFilterName: {} doesn't match any filter keys, add whitelist fail", param.getWhiteList());
+            throw new IllegalArgumentException(String.format("metaFilterName: {} does not exist, add whitelist fail", param.getWhiteList()));
+        }
+        List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
+
+        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
+        Map<String, String> configMap = buildConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
+
+        for (String desRegion : desRegions) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+            qConfigApiService.batchUpdateConfig(batchUpdateParam);
+        }
+
+        return true;
     }
 
     @Override
-    public boolean deleteWhiteList(RowsMetaFilterParam requestBody) {
-        return false;
+    public boolean deleteWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+        eventMonitor.logEvent("ROWS.META.FILTER.DELETE", param.getMetaFilterName());
+        checkParam(param, operator);
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        if (rowsFilterMetaTbl == null) {
+            logger.error("metaFilterName: {} does not exist, delete whitelist fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
+        }
+
+        List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
+        if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
+            logger.error("metaFilterName: {} doesn't match any filter keys, delete whitelist fail", param.getWhiteList());
+            throw new IllegalArgumentException(String.format("metaFilterName: {} does not exist, delete whitelist fail", param.getWhiteList()));
+        }
+        List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
+
+        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
+        Map<String, String> configMap = buildDeleteConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
+
+        for (String desRegion : desRegions) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+            qConfigApiService.batchUpdateConfig(batchUpdateParam);
+        }
+
+        return true;
     }
 
     @Override
-    public boolean updateWhiteList(RowsMetaFilterParam requestBody) {
+    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) {
         return false;
     }
 
-    private QConfigQueryParam buildQueryParam() {
+    private QConfigQueryParam buildQueryParam(String desRegion) {
         QConfigQueryParam queryParam = new QConfigQueryParam();
         queryParam.setToken(domainConfig.getQConfigApiConsoleToken());
         queryParam.setGroupId(Foundation.app().getAppId());
         queryParam.setDataId(CONFIG_NAME);
         queryParam.setEnv(EnvUtils.getEnv());
-        queryParam.setSubEnv(domainConfig.getWhiteListTargetSubEnv().get(0));
+        queryParam.setSubEnv(desRegion);
         queryParam.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
 
         return queryParam;
+    }
+
+    private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String desRegion, String operator, int version) {
+        QConfigBatchUpdateParam param = new QConfigBatchUpdateParam();
+        param.setToken(domainConfig.getQConfigApiConsoleToken());
+        param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
+        param.setTargetEnv(EnvUtils.getEnv());
+        param.setTargetSubEnv(desRegion);
+        param.setTargetDataId(CONFIG_NAME);
+        param.setServerEnv(EnvUtils.getEnv());
+        param.setGroupId(Foundation.app().getAppId());
+        param.setOperator(operator);
+
+        QConfigBatchUpdateDetailParam detailParam = new QConfigBatchUpdateDetailParam();
+        detailParam.setVersion(version);
+        detailParam.setConfigMap(configMap);
+        param.setDetailParam(detailParam);
+        return param;
+    }
+
+    private Map<String, String> buildConfigMap(List<String> filterKeys, List<String> oldWhitelist, List<String> addedWhitelist) {
+        List<String> whitelist = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(oldWhitelist)) {
+            whitelist.addAll(oldWhitelist);
+        }
+
+        addedWhitelist.stream().filter(e -> !whitelist.contains(e)).forEach(whitelist::add);
+        return buildConfigMap(whitelist, filterKeys);
+    }
+
+    private Map<String, String> buildDeleteConfigMap(List<String> filterKeys, List<String> oldWhitelist, List<String> deletedWhitelist) {
+        List<String> whitelist = Lists.newArrayList();
+        if (!CollectionUtils.isEmpty(oldWhitelist)) {
+            whitelist.addAll(oldWhitelist);
+        }
+
+        whitelist.removeAll(deletedWhitelist);
+        return buildConfigMap(whitelist, filterKeys);
+    }
+
+    private Map<String, String> buildConfigMap(List<String> whitelist, List<String> filterKeys) {
+        String configValue = Joiner.on(",").join(whitelist);
+        Map<String, String> configMap = Maps.newLinkedHashMap();
+        for (String filterKey : filterKeys) {
+            configMap.put(filterKey, configValue);
+        }
+        return configMap;
     }
 
     private List<String> getWhiteList(String content, String key) {
@@ -127,5 +229,14 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
             }
         }
         return configMap;
+    }
+
+    private void checkParam(RowsMetaFilterParam param, String operator) {
+        if (param == null || StringUtils.isBlank(param.getMetaFilterName()) || CollectionUtils.isEmpty(param.getWhiteList())) {
+            throw new IllegalArgumentException("missing required parameter!");
+        }
+        if (StringUtils.isBlank(operator)) {
+            throw new IllegalArgumentException("require parameter operator!");
+        }
     }
 }

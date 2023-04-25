@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.filter;
 
 import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -11,16 +12,16 @@ import java.util.List;
  */
 public interface RowsMetaFilterService {
 
-    List<String> getWhiteList(String metaFilterName) throws SQLException;
+    QConfigDataVO getWhiteList(String metaFilterName) throws SQLException;
 
-    boolean addWhiteList(RowsMetaFilterParam requestBody);
+    boolean addWhiteList(RowsMetaFilterParam param, String operator) throws SQLException;
 
-    boolean deleteWhiteList (RowsMetaFilterParam requestBody);
+    boolean deleteWhiteList (RowsMetaFilterParam param, String operator) throws SQLException;
 
     /**
      * full override
-     * @param requestBody
+     * @param param
      * @return
      */
-    boolean updateWhiteList(RowsMetaFilterParam requestBody);
+    boolean updateWhiteList(RowsMetaFilterParam param, String operator);
 }

@@ -90,13 +90,13 @@ public class QConfigApiTest {
         urlParams.put("groupid", GROUP_ID);
 
         UpdateRequestBody requestBody = new UpdateRequestBody();
-        requestBody.setVersion(6);
+        requestBody.setVersion(9);
         Map<String, String> data = new HashMap<>();
         requestBody.setData(data);
-        data.put("test", "test");
-        data.put("key1", "val1");
+        data.put("test1", "test1");
+        data.put("key11", "val11");
 
-        UpdateQConfigResponse response = HttpUtils.post(postUrl, JsonUtils.toJson(requestBody), UpdateQConfigResponse.class, urlParams);
+        UpdateQConfigResponse response = HttpUtils.post(postUrl, requestBody, UpdateQConfigResponse.class, urlParams);
         System.out.println(response);
     }
 

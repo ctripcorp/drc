@@ -2,31 +2,32 @@ package com.ctrip.framework.drc.console.param.filter;
 
 /**
  * Created by dengquanliang
- * 2023/4/24 17:20
+ * 2023/4/25 10:43
  */
-public class QConfigVersionQueryParam {
+public class QConfigBatchUpdateParam {
 
     private String token;
+    private String targetGroupId;
     private String targetEnv;
     private String targetSubEnv;
-    private String targetGroupId;
-    // separate with ,
     private String targetDataId;
-    private String operator;
     private String serverEnv;
     private String groupId;
+    private String operator;
+    private QConfigBatchUpdateDetailParam detailParam;
 
     @Override
     public String toString() {
-        return "QConfigVersionQueryParam{" +
+        return "QConfigBatchUpdateParam{" +
                 "token='" + token + '\'' +
+                ", targetGroupId='" + targetGroupId + '\'' +
                 ", targetEnv='" + targetEnv + '\'' +
                 ", targetSubEnv='" + targetSubEnv + '\'' +
-                ", targetGroupId='" + targetGroupId + '\'' +
                 ", targetDataId='" + targetDataId + '\'' +
-                ", operator='" + operator + '\'' +
                 ", serverEnv='" + serverEnv + '\'' +
                 ", groupId='" + groupId + '\'' +
+                ", operator='" + operator + '\'' +
+                ", detailParam=" + detailParam +
                 '}';
     }
 
@@ -36,6 +37,14 @@ public class QConfigVersionQueryParam {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getTargetGroupId() {
+        return targetGroupId;
+    }
+
+    public void setTargetGroupId(String targetGroupId) {
+        this.targetGroupId = targetGroupId;
     }
 
     public String getTargetEnv() {
@@ -54,28 +63,12 @@ public class QConfigVersionQueryParam {
         this.targetSubEnv = targetSubEnv;
     }
 
-    public String getTargetGroupId() {
-        return targetGroupId;
-    }
-
-    public void setTargetGroupId(String targetGroupId) {
-        this.targetGroupId = targetGroupId;
-    }
-
     public String getTargetDataId() {
         return targetDataId;
     }
 
     public void setTargetDataId(String targetDataId) {
         this.targetDataId = targetDataId;
-    }
-
-    public String getOperator() {
-        return operator;
-    }
-
-    public void setOperator(String operator) {
-        this.operator = operator;
     }
 
     public String getServerEnv() {
@@ -92,5 +85,21 @@ public class QConfigVersionQueryParam {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public void setOperator(String operator) {
+        this.operator = operator;
+    }
+
+    public QConfigBatchUpdateDetailParam getDetailParam() {
+        return detailParam;
+    }
+
+    public void setDetailParam(QConfigBatchUpdateDetailParam detailParam) {
+        this.detailParam = detailParam;
     }
 }
