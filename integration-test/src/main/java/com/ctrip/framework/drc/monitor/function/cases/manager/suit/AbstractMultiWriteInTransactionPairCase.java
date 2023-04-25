@@ -211,12 +211,15 @@ public abstract class AbstractMultiWriteInTransactionPairCase extends AbstractPa
     public void test(ReadWriteSqlOperator src, ReadSqlOperator<ReadResource> dst) {
         logger.info(">>>>>>>>>>>> START test [{}] >>>>>>>>>>>>", getClass().getSimpleName());
 
-        if(insertStatementList == null) {
-            doPerformanceTest(src, dst);
-        } else {
-            doFunctionTest(src, dst);
+        boolean caseSwitch = ConfigService.getInstance().getCaseSwitch(getClass().getSimpleName().toLowerCase());
+        logger.info(">>>>>>>>>>>> test [{}] switch:{} >>>>>>>>>>>>", getClass().getSimpleName(),caseSwitch);
+        if (caseSwitch) {
+            if(insertStatementList == null) {
+                doPerformanceTest(src, dst);
+            } else {
+                doFunctionTest(src, dst);
+            }
         }
-
         logger.info(">>>>>>>>>>>> END test [{}] >>>>>>>>>>>>\n", getClass().getSimpleName());
     }
 
