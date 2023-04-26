@@ -10,13 +10,14 @@ import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
 import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
-import com.ctrip.framework.drc.console.service.filter.RowsMetaFilterService;
+import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  * 2023/4/24 10:29
  */
 @Service
-public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
+public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
 
     private static final Logger logger = LoggerFactory.getLogger(QConfigServiceImpl.class);
 
@@ -72,8 +73,8 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
 
-        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
-        QConfigQueryParam queryParam = buildQueryParam(desRegions.get(0));
+        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        QConfigQueryParam queryParam = buildQueryParam(targetSubenvs.get(0));
         QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
         if (response == null || !response.exist() || response.getData() == null) {
             logger.info("rows filter whitelist config does not exist, metaFilterName: {}", metaFilterName);
@@ -102,12 +103,12 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
 
-        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+        List<String> targetSubenvs =JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
         QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
         Map<String, String> configMap = buildAddConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
 
-        for (String desRegion : desRegions) {
-            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+        for (String subenv : targetSubenvs) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, subenv, operator, qConfigDataVO.getVersion());
             qConfigApiService.batchUpdateConfig(batchUpdateParam);
         }
 
@@ -131,12 +132,12 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
 
-        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
+        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
         QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
         Map<String, String> configMap = buildDeleteConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhiteList());
 
-        for (String desRegion : desRegions) {
-            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+        for (String subenv : targetSubenvs) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, subenv, operator, qConfigDataVO.getVersion());
             qConfigApiService.batchUpdateConfig(batchUpdateParam);
         }
 
@@ -160,37 +161,36 @@ public class RowsMetaFilterServiceImpl implements RowsMetaFilterService {
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
 
-        List<String> desRegions = Arrays.stream(rowsFilterMetaTbl.getDesRegion().split(",")).collect(Collectors.toList());
-
+        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
         QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName());
         Map<String, String> configMap = buildUpdateConfigMap(filterKeys, param.getWhiteList());
 
-        for (String desRegion : desRegions) {
-            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, desRegion, operator, qConfigDataVO.getVersion());
+        for (String subenv : targetSubenvs) {
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, subenv, operator, qConfigDataVO.getVersion());
             qConfigApiService.batchUpdateConfig(batchUpdateParam);
         }
 
         return true;
     }
 
-    private QConfigQueryParam buildQueryParam(String desRegion) {
+    private QConfigQueryParam buildQueryParam(String subenv) {
         QConfigQueryParam queryParam = new QConfigQueryParam();
         queryParam.setToken(domainConfig.getQConfigApiConsoleToken());
         queryParam.setGroupId(Foundation.app().getAppId());
         queryParam.setDataId(CONFIG_NAME);
         queryParam.setEnv(EnvUtils.getEnv());
-        queryParam.setSubEnv(desRegion);
+        queryParam.setSubEnv(subenv);
         queryParam.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
 
         return queryParam;
     }
 
-    private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String desRegion, String operator, int version) {
+    private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String subenv, String operator, int version) {
         QConfigBatchUpdateParam param = new QConfigBatchUpdateParam();
         param.setToken(domainConfig.getQConfigApiConsoleToken());
         param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
         param.setTargetEnv(EnvUtils.getEnv());
-        param.setTargetSubEnv(desRegion);
+        param.setTargetSubEnv(subenv);
         param.setTargetDataId(CONFIG_NAME);
         param.setServerEnv(EnvUtils.getEnv());
         param.setGroupId(Foundation.app().getAppId());

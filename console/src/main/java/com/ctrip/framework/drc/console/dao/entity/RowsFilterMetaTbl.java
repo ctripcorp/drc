@@ -57,16 +57,23 @@ public class RowsFilterMetaTbl implements DalPojo {
     /**
      * 源机房
      */
-    @Column(name = "src_region")
+    @Column(name = "src_dc")
     @Type(value = Types.VARCHAR)
-    private String srcRegion;
+    private String srcDc;
 
     /**
      * 目的机房
      */
-    @Column(name = "des_region")
+    @Column(name = "des_dc")
     @Type(value = Types.VARCHAR)
-    private String desRegion;
+    private String desDC;
+
+    /**
+     * 写入子环境
+     */
+    @Column(name = "target_subenv")
+    @Type(value = Types.VARCHAR)
+    private String targetSubenv;
 
     /**
      * token
@@ -136,20 +143,28 @@ public class RowsFilterMetaTbl implements DalPojo {
         this.owner = owner;
     }
 
-    public String getSrcRegion() {
-        return srcRegion;
+    public String getSrcDc() {
+        return srcDc;
     }
 
-    public void setSrcRegion(String srcRegion) {
-        this.srcRegion = srcRegion;
+    public void setSrcDc(String srcDc) {
+        this.srcDc = srcDc;
     }
 
-    public String getDesRegion() {
-        return desRegion;
+    public String getDesDC() {
+        return desDC;
     }
 
-    public void setDesRegion(String desRegion) {
-        this.desRegion = desRegion;
+    public void setDesDC(String desDC) {
+        this.desDC = desDC;
+    }
+
+    public String getTargetSubenv() {
+        return targetSubenv;
+    }
+
+    public void setTargetSubenv(String targetSubenv) {
+        this.targetSubenv = targetSubenv;
     }
 
     public String getToken() {

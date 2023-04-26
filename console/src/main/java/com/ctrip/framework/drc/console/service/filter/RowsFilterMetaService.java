@@ -9,7 +9,7 @@ import java.sql.SQLException;
  * Created by dengquanliang
  * 2023/4/24 10:18
  */
-public interface RowsMetaFilterService {
+public interface RowsFilterMetaService {
 
     QConfigDataVO getWhiteList(String metaFilterName) throws SQLException;
 
