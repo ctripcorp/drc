@@ -8,8 +8,7 @@ import java.util.List;
  */
 public class RowsFilterMetaMessageCreateParam {
     private String clusterName;
-    private String srcMha;
-    private String desMha;
+    private String metaFilterName;
     private List<String> targetSubenv;
     private String bu;
     private String owner;
@@ -20,13 +19,19 @@ public class RowsFilterMetaMessageCreateParam {
     public String toString() {
         return "RowsFilterMetaMessageCreateParam{" +
                 "clusterName='" + clusterName + '\'' +
-                ", srcMha='" + srcMha + '\'' +
-                ", desMha='" + desMha + '\'' +
                 ", targetSubenv='" + targetSubenv + '\'' +
                 ", bu='" + bu + '\'' +
                 ", owner='" + owner + '\'' +
                 ", filterType=" + filterType +
                 '}';
+    }
+
+    public String getMetaFilterName() {
+        return metaFilterName;
+    }
+
+    public void setMetaFilterName(String metaFilterName) {
+        this.metaFilterName = metaFilterName;
     }
 
     public String getClusterName() {
@@ -35,22 +40,6 @@ public class RowsFilterMetaMessageCreateParam {
 
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
-    }
-
-    public String getSrcMha() {
-        return srcMha;
-    }
-
-    public void setSrcMha(String srcMha) {
-        this.srcMha = srcMha;
-    }
-
-    public String getDesMha() {
-        return desMha;
-    }
-
-    public void setDesMha(String desMha) {
-        this.desMha = desMha;
     }
 
     public List<String> getTargetSubenv() {

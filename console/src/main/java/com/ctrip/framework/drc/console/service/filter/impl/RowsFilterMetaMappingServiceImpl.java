@@ -1,22 +1,27 @@
 package com.ctrip.framework.drc.console.service.filter.impl;
 
+import com.ctrip.framework.drc.console.dao.RowsFilterMetaMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
+import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
-import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.base.Preconditions;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -28,52 +33,73 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     private static final Logger logger = LoggerFactory.getLogger(QConfigServiceImpl.class);
 
     @Autowired
-    private MhaService mhaService;
-    @Autowired
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
+    @Autowired
+    private RowsFilterMetaMappingTblDao rowsFilterMetaMappingTblDao;
 
-    private static final String FILTER_KEY_PREFIX = "uid.filter.whitelist.";
+    private static final String TOKEN_PREFIX = "drc.uid.filter.";
 
     @Override
     public boolean createMetaMessage(RowsFilterMetaMessageCreateParam param) throws SQLException {
         checkCreateParam(param);
-        String srcDc = mhaService.getDcNameForMha(param.getSrcMha());
-        String desDc = mhaService.getDcNameForMha(param.getDesMha());
-        if (StringUtils.isBlank(srcDc) || StringUtils.isBlank(desDc)) {
-            logger.error("srcMha: {} or desMha: {} can not find matching dc", param.getSrcMha(), param.getDesMha());
-            throw new IllegalArgumentException("srcMha or desMha is illegal!");
-        }
-
-        RowsFilterMetaTbl rowsFilterMetaTbl = buildRowsFilterMetaTbl(param, srcDc, desDc);
+        RowsFilterMetaTbl rowsFilterMetaTbl = buildRowsFilterMetaTbl(param);
         int result = rowsFilterMetaTblDao.insert(rowsFilterMetaTbl);
         return result == 1;
     }
 
-    private RowsFilterMetaTbl buildRowsFilterMetaTbl(RowsFilterMetaMessageCreateParam param, String srcDc, String desDc) {
+    @Override
+    public boolean createMetaMapping(RowsFilterMetaMappingCreateParam param) throws SQLException {
+        checkMetaMappingCreateParam(param);
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryById(param.getMetaFilterId());
+        if (rowsFilterMetaTbl == null) {
+            logger.error("rowsFilterMetaTbl does not exist, metaFilterId: {}", param.getMetaFilterId());
+            throw new IllegalArgumentException(String.format("metaFilterId: %s does not exist!", param.getMetaFilterId()));
+        }
+
+        List<RowsFilterMetaMappingTbl> metaMappingTbls = param.getFilterKeys().stream().map(source -> {
+            RowsFilterMetaMappingTbl target = new RowsFilterMetaMappingTbl();
+            target.setMetaFilterId(param.getMetaFilterId());
+            target.setFilterKey(source);
+            target.setDeleted(BooleanEnum.FALSE.getCode());
+
+            return target;
+        }).collect(Collectors.toList());
+
+        rowsFilterMetaMappingTblDao.insert(metaMappingTbls);
+        return true;
+    }
+
+    private RowsFilterMetaTbl buildRowsFilterMetaTbl(RowsFilterMetaMessageCreateParam param) {
         RowsFilterMetaTbl rowsFilterMetaTbl = new RowsFilterMetaTbl();
-        rowsFilterMetaTbl.setMetaFilterName(buildMetaFilterName(param.getClusterName(), param.getDesMha(), param.getSrcMha()));
+        rowsFilterMetaTbl.setMetaFilterName(param.getMetaFilterName());
         rowsFilterMetaTbl.setFilterType(param.getFilterType());
         rowsFilterMetaTbl.setBu(param.getBu());
         rowsFilterMetaTbl.setOwner(param.getOwner());
-        rowsFilterMetaTbl.setSrcDc(srcDc);
-        rowsFilterMetaTbl.setDesDC(desDc);
         rowsFilterMetaTbl.setTargetSubenv(JsonUtils.toJson(param.getTargetSubenv()));
         rowsFilterMetaTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        rowsFilterMetaTbl.setToken(createToken(param.getMetaFilterName(), param.getBu()));
 
         return rowsFilterMetaTbl;
     }
 
     private void checkCreateParam(RowsFilterMetaMessageCreateParam param) {
         PreconditionUtils.checkNotNull(param);
-        PreconditionUtils.checkString(param.getSrcMha(), "srcMha requires not empty!");
-        PreconditionUtils.checkString(param.getDesMha(), "desMha requires not empty!");
-        PreconditionUtils.checkCollection(param.getTargetSubenv(), "srcMha requires not empty!");
-        PreconditionUtils.checkString(param.getBu(), "bu requires not null!");
-        PreconditionUtils.checkString(param.getOwner(), "owner requires not null!");
-        Preconditions.checkNotNull(param.getFilterType(), "filterType requires not null");
+        PreconditionUtils.checkString(param.getMetaFilterName(), "metaFilterName requires not empty!");
+        PreconditionUtils.checkCollection(param.getTargetSubenv(), "targetSubenv requires not empty!");
+        PreconditionUtils.checkString(param.getBu(), "bu requires not empty!");
+        PreconditionUtils.checkString(param.getOwner(), "owner requires not empty!");
+        Preconditions.checkNotNull(param.getFilterType(), "filterType requires not null!");
     }
-    
-    private String buildMetaFilterName(String clusterName, String desMha, String srcMha) {
-        return FILTER_KEY_PREFIX + clusterName + "." + desMha + "." + srcMha;
+
+    private void checkMetaMappingCreateParam(RowsFilterMetaMappingCreateParam param) {
+        PreconditionUtils.checkNotNull(param);
+        PreconditionUtils.checkId(param.getMetaFilterId(), "metaFilterId requires not null!");
+        PreconditionUtils.checkCollection(param.getFilterKeys(), "filterKeys requires not empty!");
     }
+
+    private String createToken(String metaFilterName, String bu) {
+        String tokenStr = TOKEN_PREFIX + bu + "." + metaFilterName + "." + EnvUtils.getEnv();
+        return DigestUtils.md5DigestAsHex(tokenStr.getBytes());
+    }
+
 }

@@ -54,19 +54,6 @@ public class RowsFilterMetaTbl implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String owner;
 
-    /**
-     * 源机房
-     */
-    @Column(name = "src_dc")
-    @Type(value = Types.VARCHAR)
-    private String srcDc;
-
-    /**
-     * 目的机房
-     */
-    @Column(name = "des_dc")
-    @Type(value = Types.VARCHAR)
-    private String desDC;
 
     /**
      * 写入子环境
@@ -141,22 +128,6 @@ public class RowsFilterMetaTbl implements DalPojo {
 
     public void setOwner(String owner) {
         this.owner = owner;
-    }
-
-    public String getSrcDc() {
-        return srcDc;
-    }
-
-    public void setSrcDc(String srcDc) {
-        this.srcDc = srcDc;
-    }
-
-    public String getDesDC() {
-        return desDC;
-    }
-
-    public void setDesDC(String desDC) {
-        this.desDC = desDC;
     }
 
     public String getTargetSubenv() {

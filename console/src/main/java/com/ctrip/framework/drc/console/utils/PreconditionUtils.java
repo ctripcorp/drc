@@ -28,6 +28,10 @@ public class PreconditionUtils {
         checkArgument(StringUtils.isNotBlank(str), errorMessage);
     }
 
+    public static void checkId(Long id, String errorMessage) {
+        checkArgument(id != null && id > 0L, errorMessage);
+    }
+
     public static <T> void checkCollection(Collection<T> collection, String errorMessage) {
         checkArgument(!CollectionUtils.isEmpty(collection), errorMessage);
     }
