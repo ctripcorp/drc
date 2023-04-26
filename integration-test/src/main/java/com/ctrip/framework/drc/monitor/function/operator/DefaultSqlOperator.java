@@ -73,6 +73,19 @@ public class DefaultSqlOperator extends AbstractSqlOperator implements ReadWrite
             statement = connection.createStatement();
             String variablesSet = "set global max_allowed_packet=67108864";
             statement.execute(variablesSet);
+        } catch (SQLException e) {
+            logger.error("set global max_allowed_packet=67108864 error", e);
+        } finally {
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        
+        try (final Connection connection = dataSource.getConnection()) {
+            statement = connection.createStatement();
             for (String sql : statements) {
                 statement.addBatch(sql);
                 logger.debug("[{}] execute [{}]", getClass().getSimpleName(), sql);
