@@ -3,10 +3,12 @@ package com.ctrip.framework.drc.console.dao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -23,16 +25,23 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
         super(clazz);
     }
 
-    public RowsFilterMetaTbl queryByMetaFilterName(String metaFilterName) throws SQLException {
-        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
-        return client.queryFirst(sqlBuilder, null);
+    public RowsFilterMetaTbl queryOneByMetaFilterName(String metaFilterName) throws SQLException {
+        return queryByMetaFilterNames(metaFilterName).get(0);
     }
 
     public RowsFilterMetaTbl queryById(Long id) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(ID, id, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.queryFirst(sqlBuilder, null);
+    }
+
+    public List<RowsFilterMetaTbl> queryByMetaFilterNames(String metaFilterName) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.BIGINT);
+        if (StringUtils.isNotBlank(metaFilterName)) {
+            sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
+        }
+        return client.query(sqlBuilder, null);
     }
 
 }

@@ -60,7 +60,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         eventMonitor.logEvent("ROWS.META.FILTER.QUERY", metaFilterName);
 
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
-        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
         if (rowsFilterMetaTbl == null) {
             logger.error("metaFilterName: {} does not exist, query whitelist fail", metaFilterName);
             return qConfigDataVO;
@@ -90,7 +90,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     public boolean addWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
         eventMonitor.logEvent("ROWS.META.FILTER.ADD", param.getMetaFilterName());
         checkParam(param, operator);
-        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
             logger.error("metaFilterName: {} does not exist, add whitelist fail", param.getMetaFilterName());
             throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, add whitelist fail", param.getMetaFilterName()));
@@ -119,7 +119,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     public boolean deleteWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
         eventMonitor.logEvent("ROWS.META.FILTER.DELETE", param.getMetaFilterName());
         checkParam(param, operator);
-        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
             logger.error("metaFilterName: {} does not exist, delete whitelist fail", param.getMetaFilterName());
             throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
@@ -148,7 +148,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     public boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
         eventMonitor.logEvent("ROWS.META.FILTER.UPDATE", param.getMetaFilterName());
         checkParam(param, operator);
-        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByMetaFilterName(param.getMetaFilterName());
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
             logger.error("metaFilterName: {} does not exist, update whitelist fail", param.getMetaFilterName());
             throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
