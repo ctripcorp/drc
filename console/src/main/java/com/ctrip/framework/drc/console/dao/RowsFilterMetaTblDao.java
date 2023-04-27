@@ -21,8 +21,8 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
     private static final String META_FILTER_NAME = "meta_filter_name";
     private static final String DELETED = "deleted";
 
-    public RowsFilterMetaTblDao(Class<RowsFilterMetaTbl> clazz) throws SQLException {
-        super(clazz);
+    public RowsFilterMetaTblDao() throws SQLException {
+        super(RowsFilterMetaTbl.class);
     }
 
     public RowsFilterMetaTbl queryOneByMetaFilterName(String metaFilterName) throws SQLException {

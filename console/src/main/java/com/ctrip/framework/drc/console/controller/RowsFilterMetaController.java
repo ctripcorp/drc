@@ -91,7 +91,7 @@ public class RowsFilterMetaController {
         }
     }
 
-    @GetMapping("/{metaFilterName}")
+    @GetMapping("/mapping/{metaFilterName}")
     public ApiResult<List<RowsFilterMetaMappingVO>> getMappingList(@PathVariable String metaFilterName) {
         try {
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterName));
@@ -100,4 +100,10 @@ public class RowsFilterMetaController {
             return ApiResult.getFailInstance(false);
         }
     }
+
+    @GetMapping("/test")
+    public ApiResult<String> test() {
+        return ApiResult.getSuccessInstance("ok");
+    }
+
 }

@@ -20,8 +20,8 @@ public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappi
 
     private static final String META_FILTER_ID = "meta_filter_id";
 
-    public RowsFilterMetaMappingTblDao(Class<RowsFilterMetaMappingTbl> clazz) throws SQLException {
-        super(clazz);
+    public RowsFilterMetaMappingTblDao() throws SQLException {
+        super(RowsFilterMetaMappingTbl.class);
     }
 
     public List<RowsFilterMetaMappingTbl> queryByMetaFilterId(Long metaFilterId) throws SQLException {
