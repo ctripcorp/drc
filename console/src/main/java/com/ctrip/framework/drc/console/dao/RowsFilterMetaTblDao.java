@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
@@ -26,13 +27,15 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
     }
 
     public RowsFilterMetaTbl queryOneByMetaFilterName(String metaFilterName) throws SQLException {
-        return queryByMetaFilterNames(metaFilterName).get(0);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.BIGINT).and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
+        return client.queryFirst(sqlBuilder, new DalHints());
     }
 
     public RowsFilterMetaTbl queryById(Long id) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(ID, id, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
-        return client.queryFirst(sqlBuilder, null);
+        return client.queryFirst(sqlBuilder, new DalHints());
     }
 
     public List<RowsFilterMetaTbl> queryByMetaFilterNames(String metaFilterName) throws SQLException {
@@ -41,7 +44,7 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
         if (StringUtils.isNotBlank(metaFilterName)) {
             sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
         }
-        return client.query(sqlBuilder, null);
+        return client.query(sqlBuilder, new DalHints());
     }
 
 }

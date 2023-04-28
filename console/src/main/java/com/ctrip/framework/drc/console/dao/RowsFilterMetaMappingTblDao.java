@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
+import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
@@ -37,6 +38,6 @@ public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappi
         }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(META_FILTER_ID, metaFilterIds, Types.BIGINT);
-        return client.query(sqlBuilder, null);
+        return client.query(sqlBuilder, new DalHints());
     }
 }

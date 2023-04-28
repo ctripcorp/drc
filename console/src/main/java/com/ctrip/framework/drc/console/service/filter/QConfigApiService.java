@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.filter;
 
 import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
+import com.ctrip.framework.drc.console.param.filter.QConfigRevertParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigVersionQueryParam;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
 import com.ctrip.framework.drc.console.vo.filter.QConfigVersionResponse;
@@ -23,4 +24,11 @@ public interface QConfigApiService {
      * @return
      */
     UpdateQConfigResponse batchUpdateConfig(QConfigBatchUpdateParam param);
+
+    /**
+     * revert config to last version
+     * @param param
+     * @return
+     */
+    UpdateQConfigResponse revertConfig(QConfigRevertParam param);
 }

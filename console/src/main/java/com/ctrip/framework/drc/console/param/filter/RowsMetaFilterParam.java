@@ -9,13 +9,13 @@ import java.util.List;
 public class RowsMetaFilterParam {
 
     private String metaFilterName;
-    private List<String> whiteList;
+    private List<String> whitelist;
 
     @Override
     public String toString() {
         return "RowsMetaFilterParam{" +
                 "metaFilterName='" + metaFilterName + '\'' +
-                ", whiteList=" + whiteList +
+                ", whitelist=" + whitelist +
                 '}';
     }
 
@@ -27,11 +27,11 @@ public class RowsMetaFilterParam {
         this.metaFilterName = metaFilterName;
     }
 
-    public List<String> getWhiteList() {
-        return whiteList;
+    public List<String> getWhitelist() {
+        return whitelist;
     }
 
-    public void setWhiteList(List<String> whiteList) {
-        this.whiteList = whiteList;
+    public void setWhitelist(List<String> whitelist) {
+        this.whitelist = whitelist;
     }
 }

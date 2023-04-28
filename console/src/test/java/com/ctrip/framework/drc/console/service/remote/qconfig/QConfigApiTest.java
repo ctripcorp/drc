@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.remote.qconfig;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
+import com.ctrip.framework.drc.console.param.filter.QConfigRevertParam;
+import com.ctrip.framework.drc.console.service.filter.impl.QConfigApiServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.request.UpdateRequestBody;
 import com.ctrip.framework.drc.console.service.remote.qconfig.response.FileDetailResponse;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
@@ -15,6 +17,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,9 +33,13 @@ public class QConfigApiTest {
     private static String ENV = Foundation.server().getEnv().getName().toLowerCase(); //fat
     private static String SUB_ENV = Foundation.server().getSubEnv() == null ? "" : Foundation.server().getSubEnv(); //LOCAL-RB-CONSOLE
     private static String GROUP_ID = Foundation.app().getAppId();
+    private static String TARGET_GROUP_ID = "100023498";
+    private static String TARGET_SUBENV = "FAT-RB-REPLICATOR";
 
     @Mock
     private DomainConfig domainConfig;
+    @Spy
+    private QConfigApiServiceImpl qConfigApiService = new QConfigApiServiceImpl();
 
     @Before
     public void init() {
@@ -67,8 +74,8 @@ public class QConfigApiTest {
         urlParams.put("groupid", Foundation.app().getAppId());
         urlParams.put("dataid", "drc.properties");
         urlParams.put("env", Foundation.server().getEnv().getName().toLowerCase());
-        urlParams.put("subenv", (Foundation.server().getSubEnv() == null ? "" : Foundation.server().getSubEnv()));
-        urlParams.put("targetgroupid", "100023928");
+        urlParams.put("subenv", TARGET_SUBENV);
+        urlParams.put("targetgroupid", TARGET_GROUP_ID);
 //        String result = HttpUtils.get(getUrl, String.class, urlParams);
         QConfigDataResponse response = HttpUtils.get(getUrl, QConfigDataResponse.class, urlParams);
 //        System.out.println("result---------------------- \n" + result);
@@ -79,7 +86,7 @@ public class QConfigApiTest {
     @Test
     public void testAddOrUpdateConfig() {
         String urlFormat = domainConfig.getQConfigRestApiUrl() +  "/properties/%s/envs/%s/subenvs/%s/configs/%s";
-        String url = String.format(urlFormat, GROUP_ID, ENV, SUB_ENV, "test.properties");
+        String url = String.format(urlFormat, TARGET_GROUP_ID, ENV, TARGET_SUBENV, "drc.properties");
         System.out.println(url);
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
 
@@ -90,7 +97,7 @@ public class QConfigApiTest {
         urlParams.put("groupid", GROUP_ID);
 
         UpdateRequestBody requestBody = new UpdateRequestBody();
-        requestBody.setVersion(9);
+        requestBody.setVersion(16);
         Map<String, String> data = new HashMap<>();
         requestBody.setData(data);
         data.put("test1", "test1");
@@ -113,5 +120,23 @@ public class QConfigApiTest {
         urlParams.put("targetdataids", "test1.properties");
         QConfigVersionResponse response = HttpUtils.get(getUrl, QConfigVersionResponse.class, urlParams);
         System.out.println(response);
+    }
+
+    @Test
+    public void testRevertConfig() {
+        QConfigRevertParam param = new QConfigRevertParam();
+        param.setToken(TOKEN);
+        param.setOperator("");
+        param.setServerEnv(ENV);
+        param.setGroupId(GROUP_ID);
+        param.setTargetGroupId(GROUP_ID);
+        param.setTargetEnv(ENV);
+        param.setTargetSubEnv(SUB_ENV);
+        param.setTargetDataId("test.properties");
+        param.setVersion(12);
+
+        UpdateQConfigResponse response = qConfigApiService.revertConfig(param);
+        System.out.println(response);
+
     }
 }

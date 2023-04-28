@@ -161,7 +161,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
                 logger.warn("[[monitor=delay]] is leader but switch is off");
             }
         } else {
-            logger.info("[[monitor=delay]] not leader do nothing");
+//            logger.info("[[monitor=delay]] not leader do nothing");
         }
     }
 

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.filter.impl;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
+import com.ctrip.framework.drc.console.param.filter.QConfigRevertParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigVersionQueryParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
@@ -72,6 +73,16 @@ public class QConfigApiServiceImpl implements QConfigApiService {
         return response;
     }
 
+    @Override
+    public UpdateQConfigResponse revertConfig(QConfigRevertParam param) {
+        String urlFormat = domainConfig.getQConfigRestApiUrl() + CONFIG_URL + "/%s/envs/%s/subenvs/%s/%s/versions/%s/revert";
+        String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId(), param.getVersion());
+        String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
+
+        UpdateQConfigResponse response = HttpUtils.post(postUrl, null, UpdateQConfigResponse.class, buildRevertParamMap(param));
+        return response;
+    }
+
     private Map<String, String> buildQueryParamMap(QConfigQueryParam param) {
         HashMap<String, String> urlParams = Maps.newHashMap();
         urlParams.put("token", param.getToken());
@@ -96,6 +107,15 @@ public class QConfigApiServiceImpl implements QConfigApiService {
     }
 
     private Map<String, String> buildBatchUpdateParamMap(QConfigBatchUpdateParam param) {
+        HashMap<String, String> urlParams = Maps.newHashMap();
+        urlParams.put("token", param.getToken());
+        urlParams.put("operator", param.getOperator());
+        urlParams.put("serverenv", param.getServerEnv());
+        urlParams.put("groupid", param.getGroupId());
+        return urlParams;
+    }
+
+    private Map<String, String> buildRevertParamMap(QConfigRevertParam param) {
         HashMap<String, String> urlParams = Maps.newHashMap();
         urlParams.put("token", param.getToken());
         urlParams.put("operator", param.getOperator());

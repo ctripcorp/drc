@@ -118,6 +118,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
     private void checkCreateParam(RowsFilterMetaMessageCreateParam param) {
         PreconditionUtils.checkNotNull(param);
+        PreconditionUtils.checkString(param.getClusterName(), "metaFilterName requires not empty!");
         PreconditionUtils.checkString(param.getMetaFilterName(), "metaFilterName requires not empty!");
         PreconditionUtils.checkCollection(param.getTargetSubenv(), "targetSubenv requires not empty!");
         PreconditionUtils.checkString(param.getBu(), "bu requires not empty!");

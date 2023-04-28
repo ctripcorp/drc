@@ -82,7 +82,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
             // new rowsFilterConfig  trip_udl & configs & updateDb
-            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
+//            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
             rowsFilterConfig.setMode(
                     TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
             );
