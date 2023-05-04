@@ -56,7 +56,7 @@ public class OpenApiController {
             return ApiResult.getSuccessInstance(openApiService.getAllDrcDbInfo());
         } catch (Exception e) {
             logger.error("error in getAllDrcDbInfo",e);
-            return ApiResult.getFailInstance(e);
+            return ApiResult.getFailInstance(e,"error");
         }
     }
     

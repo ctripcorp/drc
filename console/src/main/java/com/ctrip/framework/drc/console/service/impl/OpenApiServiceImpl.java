@@ -181,6 +181,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             List<RowsFilterConfig> rowsFilters = dataMediaConfig.getRowsFilters();
             if (!CollectionUtils.isEmpty(rowsFilters)) {
                 for (RowsFilterConfig rowsFilter : rowsFilters) {
+                    rowsFilter.setParameters(null);
                     String fullTableName = rowsFilter.getTables();
                     String[] split = fullTableName.split("\\\\\\.");
                     String db = split[0];
@@ -219,6 +220,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             List<RowsFilterConfig> rowsFilters = dataMediaConfig.getRowsFilters();
             if (!CollectionUtils.isEmpty(rowsFilters)) {
                 for (RowsFilterConfig rowsFilter : rowsFilters) {
+                    rowsFilter.setParameters(null);
                     drcDbInfo.addRowsFilterConfig(rowsFilter);
                 }
             }
