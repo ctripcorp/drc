@@ -57,8 +57,8 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         checkMetaMappingCreateParam(param);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryById(param.getMetaFilterId());
         if (rowsFilterMetaTbl == null) {
-            logger.error("rowsFilterMetaTbl does not exist, metaFilterId: {}", param.getMetaFilterId());
-            throw new IllegalArgumentException(String.format("metaFilterId: %s does not exist!", param.getMetaFilterId()));
+            logger.error("RowsFilterMetaTbl Does not Exist, MetaFilterId: {}", param.getMetaFilterId());
+            throw new IllegalArgumentException(String.format("MetaFilterId: %s Does not Exist!", param.getMetaFilterId()));
         }
 
         List<RowsFilterMetaMappingTbl> metaMappingTbls = param.getFilterKeys().stream().map(source -> {
@@ -109,7 +109,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         rowsFilterMetaTbl.setFilterType(param.getFilterType());
         rowsFilterMetaTbl.setBu(param.getBu());
         rowsFilterMetaTbl.setOwner(param.getOwner());
-        rowsFilterMetaTbl.setTargetSubenv(JsonUtils.toJson(param.getTargetSubenv()));
+        rowsFilterMetaTbl.setTargetSubenv(JsonUtils.toJson(param.getTargetSubEnv()));
         rowsFilterMetaTbl.setDeleted(BooleanEnum.FALSE.getCode());
         rowsFilterMetaTbl.setToken(createToken(param.getMetaFilterName(), param.getBu()));
 
@@ -118,18 +118,18 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
     private void checkCreateParam(RowsFilterMetaMessageCreateParam param) {
         PreconditionUtils.checkNotNull(param);
-        PreconditionUtils.checkString(param.getClusterName(), "metaFilterName requires not empty!");
-        PreconditionUtils.checkString(param.getMetaFilterName(), "metaFilterName requires not empty!");
-        PreconditionUtils.checkCollection(param.getTargetSubenv(), "targetSubenv requires not empty!");
-        PreconditionUtils.checkString(param.getBu(), "bu requires not empty!");
-        PreconditionUtils.checkString(param.getOwner(), "owner requires not empty!");
-        Preconditions.checkNotNull(param.getFilterType(), "filterType requires not null!");
+        PreconditionUtils.checkString(param.getClusterName(), "ClusterName Requires Not Empty!");
+        PreconditionUtils.checkString(param.getMetaFilterName(), "MetaFilterName Requires Not Empty!");
+        PreconditionUtils.checkCollection(param.getTargetSubEnv(), "TargetSubEnv Requires Not Empty!");
+        PreconditionUtils.checkString(param.getBu(), "Bu Requires Not Empty!");
+        PreconditionUtils.checkString(param.getOwner(), "Owner Requires Not Empty!");
+        Preconditions.checkNotNull(param.getFilterType(), "FilterType Requires Not Null!");
     }
 
     private void checkMetaMappingCreateParam(RowsFilterMetaMappingCreateParam param) {
         PreconditionUtils.checkNotNull(param);
-        PreconditionUtils.checkId(param.getMetaFilterId(), "metaFilterId requires not null!");
-        PreconditionUtils.checkCollection(param.getFilterKeys(), "filterKeys requires not empty!");
+        PreconditionUtils.checkId(param.getMetaFilterId(), "MetaFilterId Requires Not Null!");
+        PreconditionUtils.checkCollection(param.getFilterKeys(), "FilterKeys Requires Not Empty!");
     }
 
     private String createToken(String metaFilterName, String bu) {

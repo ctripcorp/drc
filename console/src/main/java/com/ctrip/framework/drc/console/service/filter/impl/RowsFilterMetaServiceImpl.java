@@ -5,10 +5,7 @@ import com.ctrip.framework.drc.console.dao.RowsFilterMetaMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
-import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateDetailParam;
-import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
-import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
-import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
+import com.ctrip.framework.drc.console.param.filter.*;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
@@ -19,7 +16,6 @@ import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.console.vo.filter.UpdateQConfigResponse;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.google.common.base.Joiner;
@@ -65,7 +61,6 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     private static ExecutorService EXECUTOR_SERVICE = ConsoleThreadFactory.rowsFilterMetaExecutor();
     private static final String CONFIG_NAME = "drc.properties";
     private static final int CONFIG_SPLIT_LENGTH = 2;
-    private static final int ERROR_STATUS = -1;
     private static final int RETRY_TIME = 3;
 
     @Override
@@ -74,13 +69,13 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
         if (rowsFilterMetaTbl == null) {
-            logger.error("metaFilterName: {} does not exist, query whitelist fail", metaFilterName);
+            logger.error("MetaFilterName: {} Does not Exist, Query Whitelist Fail", metaFilterName);
             return qConfigDataVO;
         }
 
         List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
         if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
-            logger.error("metaFilterName: {} doesn't match any filter keys, query whitelist fail", metaFilterName);
+            logger.error("MetaFilterName: {} Doesn't Match Any Filter Keys, Query Whitelist Fail", metaFilterName);
             return qConfigDataVO;
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
@@ -95,14 +90,14 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
-            logger.error("metaFilterName: {} does not exist, add whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, add whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Does not Exist, Add Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Does not Exist, Add Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
         if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
-            logger.error("metaFilterName: {} doesn't match any filter keys, add whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s doesn't match any filter keys add whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Doesn't Match Any Filter Keys, Add Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Doesn't Match Any Filter Keys, Add Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
@@ -119,14 +114,14 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
-            logger.error("metaFilterName: {} does not exist, delete whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Does not Exist, Delete Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Does not Exist, Delete Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
         if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
-            logger.error("metaFilterName: {} doesn't match any filter keys, delete whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s doesn't match any filter keys, delete whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Doesn't Match Any Filter Keys, Delete Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Doesn't Match Any Filter Keys, Delete Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
@@ -143,30 +138,29 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
         if (rowsFilterMetaTbl == null) {
-            logger.error("metaFilterName: {} does not exist, update whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s does not exist, delete whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Does not Exist, Update Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Does not Exist, Update Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<RowsFilterMetaMappingTbl> rowsFilterMetaMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
         if (CollectionUtils.isEmpty(rowsFilterMetaMappings)) {
-            logger.error("metaFilterName: {} doesn't match any filter keys, update whitelist fail", param.getMetaFilterName());
-            throw new IllegalArgumentException(String.format("metaFilterName: %s doesn't match any filter keys, update whitelist fail", param.getMetaFilterName()));
+            logger.error("MetaFilterName: {} Doesn't Match Any Filter Keys, Update Whitelist Fail", param.getMetaFilterName());
+            throw new IllegalArgumentException(String.format("MetaFilterName: %s Doesn't Match Any Filter Keys, Update Whitelist Fail", param.getMetaFilterName()));
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
         List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
-        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName(), targetSubenvs.get(0), filterKeys.get(0));
         Map<String, String> configMap = buildUpdateConfigMap(filterKeys, param.getWhitelist());
 
         return batchUpdateConfig(configMap, targetSubenvs, param.getMetaFilterName(), operator, filterKeys.get(0));
     }
 
-    private QConfigDataVO getWhiteList(String metaFilterName, String targetEnv, String filterKey) throws SQLException {
+    private QConfigDataVO getWhiteList(String metaFilterName, String targetSubEnv, String filterKey) {
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
-        QConfigQueryParam queryParam = buildQueryParam(targetEnv);
+        QConfigQueryParam queryParam = buildQueryParam(targetSubEnv);
         QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
         if (response == null || !response.exist() || response.getData() == null) {
-            logger.info("rows filter whitelist config does not exist, metaFilterName: {}", metaFilterName);
+            logger.info("Config Does not Exist, MetaFilterName: {}, TargetSubEnv: {}", metaFilterName, targetSubEnv);
             return qConfigDataVO;
         }
 
@@ -175,11 +169,11 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         return qConfigDataVO;
     }
 
-    private boolean batchUpdateConfig(Map<String, String> configMap, List<String> targetSubenvs, String metaFilterName, String operator, String filterKey) throws SQLException {
-        ListeningExecutorService listeningExecutorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
-        List<ListenableFuture<Pair<String, Integer>>> futures = Lists.newArrayListWithCapacity(targetSubenvs.size());
-        for (String subenv : targetSubenvs) {
-            ListenableFuture<Pair<String, Integer>> future = listeningExecutorService.submit(() -> batchUpdateConfig(configMap, metaFilterName, subenv, filterKey, operator));
+    private boolean batchUpdateConfig(Map<String, String> configMap, List<String> targetSubEnvs, String metaFilterName, String operator, String filterKey) {
+        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
+        List<ListenableFuture<Pair<String, Integer>>> futures = Lists.newArrayListWithCapacity(targetSubEnvs.size());
+        for (String subEnv : targetSubEnvs) {
+            ListenableFuture<Pair<String, Integer>> future = executorService.submit(() -> updateConfig(configMap, metaFilterName, subEnv, filterKey, operator));
             futures.add(future);
         }
 
@@ -190,55 +184,90 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
             try {
                 resultPair = future.get();
             } catch (ExecutionException | InterruptedException e) {
-                logger.error("batchUpdate config error, {}", e);
+                logger.error("BatchUpdate Config Error, {}", e);
                 throw new RuntimeException(e);
             }
             if (resultPair != null && resultPair.getRight() > 0) {
                 successMap.put(resultPair.getLeft(), resultPair.getRight());
             } else {
+                logger.error("BatchUpdate Whitelist Config Fail, TargetSubEnv: {}", resultPair.getLeft());
                 result = false;
                 break;
             }
         }
 
-        return false;
+        if (!result && MapUtils.isNotEmpty(successMap)) {  // rollback to last version
+            logger.info("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
+            revertConfig(successMap);
+        }
 
-//        if (MapUtils.isNotEmpty(successMap)) {  // rollback to last version
-
-//        }
+        return result;
     }
 
-//    private boolean
-    private Pair<String, Integer> batchUpdateConfig(Map<String, String> configMap, String metaFilterName, String targetSubenv, String filterKey, String operator) throws SQLException {
-        for (int i = 0; i < RETRY_TIME; i++) {
-            QConfigDataVO qConfigDataVO = getWhiteList(metaFilterName, targetSubenv, filterKey);
-            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, targetSubenv, operator, qConfigDataVO.getVersion());
-            UpdateQConfigResponse response = qConfigApiService.batchUpdateConfig(batchUpdateParam);
-            if (response != null && response.getStatus() == 0) {
-                return Pair.of(targetSubenv, qConfigDataVO.getVersion() + 1);
+    private void revertConfig(Map<String, Integer> successMap) {
+        eventMonitor.logEvent("ROWS.META.FILTER.REVERT", "revert");
+        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
+        List<ListenableFuture<Pair<String, Boolean>>> futures = Lists.newArrayListWithCapacity(successMap.size());
+        for (Map.Entry<String, Integer> entry : successMap.entrySet()) {
+            String targetSubEnv = entry.getKey();
+            int version = entry.getValue();
+            ListenableFuture<Pair<String, Boolean>> future = executorService.submit(() -> revertConfig(targetSubEnv, version));
+            futures.add(future);
+        }
+
+        for (ListenableFuture<Pair<String, Boolean>> future : futures) {
+            Pair<String, Boolean> resultPair;
+            try {
+                resultPair = future.get();
+                if (!resultPair.getRight()) {
+                    logger.error("Revert Whitelist Config Error, TargetSubEnv: {}", resultPair.getLeft());
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                logger.error("Revert Config Error, {}", e);
+                throw new RuntimeException(e);
             }
         }
-        return Pair.of(targetSubenv, -1);
     }
 
-    private QConfigQueryParam buildQueryParam(String subenv) {
+    private Pair<String, Boolean> revertConfig(String targetSubEnv, int version) {
+        QConfigRevertParam revertParam = buildRevertParam(targetSubEnv, version);
+        UpdateQConfigResponse response = qConfigApiService.revertConfig(revertParam);
+        if (response != null && response.getStatus() == 0) {
+            return Pair.of(targetSubEnv, true);
+        }
+        return Pair.of(targetSubEnv, false);
+    }
+
+    private Pair<String, Integer> updateConfig(Map<String, String> configMap, String metaFilterName, String targetSubEnv, String filterKey, String operator) throws SQLException {
+        for (int i = 0; i < RETRY_TIME; i++) {
+            QConfigDataVO qConfigDataVO = getWhiteList(metaFilterName, targetSubEnv, filterKey);
+            QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, targetSubEnv, operator, qConfigDataVO.getVersion());
+            UpdateQConfigResponse response = qConfigApiService.batchUpdateConfig(batchUpdateParam);
+            if (response != null && response.getStatus() == 0) {
+                return Pair.of(targetSubEnv, qConfigDataVO.getVersion() + 1);
+            }
+        }
+        return Pair.of(targetSubEnv, -1);
+    }
+
+    private QConfigQueryParam buildQueryParam(String subEnv) {
         QConfigQueryParam queryParam = new QConfigQueryParam();
         queryParam.setToken(domainConfig.getQConfigApiConsoleToken());
         queryParam.setGroupId(Foundation.app().getAppId());
         queryParam.setDataId(CONFIG_NAME);
         queryParam.setEnv(EnvUtils.getEnv());
-        queryParam.setSubEnv(subenv);
+        queryParam.setSubEnv(subEnv);
         queryParam.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
 
         return queryParam;
     }
 
-    private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String subenv, String operator, int version) {
+    private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String targetSubEnv, String operator, int version) {
         QConfigBatchUpdateParam param = new QConfigBatchUpdateParam();
         param.setToken(domainConfig.getQConfigApiConsoleToken());
         param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
         param.setTargetEnv(EnvUtils.getEnv());
-        param.setTargetSubEnv(subenv);
+        param.setTargetSubEnv(targetSubEnv);
         param.setTargetDataId(CONFIG_NAME);
         param.setServerEnv(EnvUtils.getEnv());
         param.setGroupId(Foundation.app().getAppId());
@@ -249,6 +278,21 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         detailParam.setVersion(version);
         detailParam.setData(configMap);
         param.setDetailParam(detailParam);
+        return param;
+    }
+
+    private QConfigRevertParam buildRevertParam(String targetSubEnv, int version) {
+        QConfigRevertParam param = new QConfigRevertParam();
+        param.setToken(domainConfig.getQConfigApiConsoleToken());
+        param.setOperator("");
+        param.setServerEnv(EnvUtils.getEnv());
+        param.setGroupId(Foundation.app().getAppId());
+        param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
+        param.setTargetEnv(EnvUtils.getEnv());
+        param.setTargetSubEnv(targetSubEnv);
+        param.setTargetDataId(CONFIG_NAME);
+        param.setVersion(version);
+
         return param;
     }
 
@@ -311,10 +355,10 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
 
     private void checkParam(RowsMetaFilterParam param, String operator) {
         if (param == null || StringUtils.isBlank(param.getMetaFilterName()) || CollectionUtils.isEmpty(param.getWhitelist())) {
-            throw new IllegalArgumentException("missing required parameter!");
+            throw new IllegalArgumentException("Missing Required Parameter!");
         }
         if (StringUtils.isBlank(operator)) {
-            throw new IllegalArgumentException("require parameter operator!");
+            throw new IllegalArgumentException("Require Parameter Operator!");
         }
     }
 }

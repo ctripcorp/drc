@@ -9,7 +9,7 @@ import java.util.List;
 public class RowsFilterMetaMessageCreateParam {
     private String clusterName;
     private String metaFilterName;
-    private List<String> targetSubenv;
+    private List<String> targetSubEnv;
     private String bu;
     private String owner;
     //1-blacklist 2-whitelist
@@ -19,7 +19,7 @@ public class RowsFilterMetaMessageCreateParam {
     public String toString() {
         return "RowsFilterMetaMessageCreateParam{" +
                 "clusterName='" + clusterName + '\'' +
-                ", targetSubenv='" + targetSubenv + '\'' +
+                ", targetSubEnv='" + targetSubEnv + '\'' +
                 ", bu='" + bu + '\'' +
                 ", owner='" + owner + '\'' +
                 ", filterType=" + filterType +
@@ -42,12 +42,12 @@ public class RowsFilterMetaMessageCreateParam {
         this.clusterName = clusterName;
     }
 
-    public List<String> getTargetSubenv() {
-        return targetSubenv;
+    public List<String> getTargetSubEnv() {
+        return targetSubEnv;
     }
 
-    public void setTargetSubenv(List<String> targetSubenv) {
-        this.targetSubenv = targetSubenv;
+    public void setTargetSubEnv(List<String> targetSubEnv) {
+        this.targetSubEnv = targetSubEnv;
     }
 
     public String getBu() {

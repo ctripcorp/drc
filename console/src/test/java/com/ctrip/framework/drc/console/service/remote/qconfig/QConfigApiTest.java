@@ -76,10 +76,10 @@ public class QConfigApiTest {
         urlParams.put("env", Foundation.server().getEnv().getName().toLowerCase());
         urlParams.put("subenv", TARGET_SUBENV);
         urlParams.put("targetgroupid", TARGET_GROUP_ID);
-//        String result = HttpUtils.get(getUrl, String.class, urlParams);
-        QConfigDataResponse response = HttpUtils.get(getUrl, QConfigDataResponse.class, urlParams);
-//        System.out.println("result---------------------- \n" + result);
-//        FileDetailResponse fileDetailResponse = JsonUtils.fromJson(result, FileDetailResponse.class);
+        String result = HttpUtils.get(getUrl, String.class, urlParams);
+//        QConfigDataResponse response = HttpUtils.get(getUrl, QConfigDataResponse.class, urlParams);
+        System.out.println("result---------------------- \n" + result);
+        QConfigDataResponse response = JsonUtils.fromJson(result, QConfigDataResponse.class);
         System.out.println("response------------------- \n" + response);
     }
 

@@ -16,6 +16,12 @@ public class QConfigDetailData {
     private String status;
     private String updateTime;
 
+    public QConfigDetailData(String msg) {
+
+    }
+
+    public QConfigDetailData() {}
+
     @Override
     public String toString() {
         return "QConfigDetailData{" +

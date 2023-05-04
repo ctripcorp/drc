@@ -13,7 +13,7 @@ import java.util.Collection;
 public class PreconditionUtils {
 
     public static <T> void checkNotNull(T param) {
-        checkNotNull(param, "param requires not null");
+        checkNotNull(param, "Param Requires Not Null");
     }
 
     public static <T> void checkNotNull(T param, String errorMessage) {

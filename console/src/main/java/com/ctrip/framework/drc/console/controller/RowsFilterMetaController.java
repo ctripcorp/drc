@@ -46,7 +46,12 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> addWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Add Rows Filter Whitelist, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaService.addWhiteList(param, operator));
+            boolean result = rowsFilterMetaService.addWhiteList(param, operator);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Add Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
@@ -57,7 +62,12 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> deleteWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Delete Rows Filter Whitelist, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaService.deleteWhiteList(param, operator));
+            boolean result = rowsFilterMetaService.deleteWhiteList(param, operator);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Delete Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
@@ -68,7 +78,12 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> updateWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Update Rows Filter Whitelist, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaService.updateWhiteList(param, operator));
+            boolean result = rowsFilterMetaService.updateWhiteList(param, operator);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Update Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
