@@ -140,7 +140,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                         if (StringUtils.isNotBlank(nameFilter)) {
                             Map<String, DrcDbInfo> dbInfoMap = Maps.newHashMap();
                             for (String fullTableName : nameFilter.split(",")) {
-                                String[] split = fullTableName.split("\\\\.");
+                                String[] split = fullTableName.split("\\\\\\.");
                                 String db = split[0];
                                 String tableRegex = split[1];
                                 if ("drcmonitordb".equalsIgnoreCase(db)) {
@@ -182,7 +182,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             if (!CollectionUtils.isEmpty(rowsFilters)) {
                 for (RowsFilterConfig rowsFilter : rowsFilters) {
                     String fullTableName = rowsFilter.getTables();
-                    String[] split = fullTableName.split("\\\\.");
+                    String[] split = fullTableName.split("\\\\\\.");
                     String db = split[0];
                     if (dbInfoMap.containsKey(db)) {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);
@@ -197,7 +197,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             if (!CollectionUtils.isEmpty(columnsFilters)) {
                 for (ColumnsFilterConfig columnsFilter : columnsFilters) {
                     String fullTableName = columnsFilter.getTables();
-                    String[] split = fullTableName.split("\\\\.");
+                    String[] split = fullTableName.split("\\\\\\.");
                     String db = split[0];
                     if (dbInfoMap.containsKey(db)) {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);
@@ -232,5 +232,7 @@ public class OpenApiServiceImpl implements OpenApiService {
         }
 
     }
+    
+   
 
 }

@@ -3,7 +3,17 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
+import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
+import com.ctrip.xpipe.utils.FileUtils;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.zip.InflaterInputStream;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -12,6 +22,7 @@ import org.mockito.*;
 
 import java.sql.SQLException;
 import java.util.List;
+import org.xml.sax.SAXException;
 
 
 public class OpenApiServiceImplTest {
@@ -21,6 +32,9 @@ public class OpenApiServiceImplTest {
     
     @Mock
     private MetaInfoServiceImpl metaInfoService;
+
+    @Mock
+    private DbClusterSourceProvider dbClusterSourceProvider;
     
     @InjectMocks
     private OpenApiServiceImpl openApiService;
@@ -169,4 +183,25 @@ public class OpenApiServiceImplTest {
         
     }
 
+
+    @Test
+    public void testGetAllDrcDbInfo() throws Exception {
+        Drc drc = DefaultSaxParser.parse(FileUtils.getFileInputStream("api/open_api_meta.xml"));
+        Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
+
+        List<DrcDbInfo> allDrcDbInfo = openApiService.getAllDrcDbInfo();
+        Assert.assertNotEquals(0, allDrcDbInfo.size());
+    }
+
+    @Test
+    public void test() throws Exception {
+        String[] strings = splitFullTableName("drc\\d\\..*");
+    }
+
+    private String[] splitFullTableName(String name) {
+        int i = name.indexOf("\\.");
+        String dbRegex = name.substring(0,i);
+        String tableRegex = name.substring(i+2);
+        return new String[] {dbRegex,tableRegex};
+    }
 }
