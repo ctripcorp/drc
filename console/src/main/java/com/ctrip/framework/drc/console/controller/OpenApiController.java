@@ -29,7 +29,6 @@ public class OpenApiController {
     
     
     @GetMapping("info/mhas")
-    @ResponseBody
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {
             List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
@@ -42,7 +41,6 @@ public class OpenApiController {
 
 
     @GetMapping("info/messengers")
-    @ResponseBody
     public ApiResult getAllMessengersInfo() {
         try {
             return ApiResult.getSuccessInstance(openApiService.getAllMessengersInfo());
@@ -51,5 +49,16 @@ public class OpenApiController {
             return ApiResult.getFailInstance(e);
         }
     }
+
+    @GetMapping("info/dbs")
+    public ApiResult getAllDrcDbInfo() {
+        try {
+            return ApiResult.getSuccessInstance(openApiService.getAllDrcDbInfo());
+        } catch (Exception e) {
+            logger.error("error in getAllDrcDbInfo",e);
+            return ApiResult.getFailInstance(e);
+        }
+    }
+    
     
 }
