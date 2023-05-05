@@ -57,7 +57,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
     public QConfigVersionResponse getQConfigVersion(QConfigVersionQueryParam param) {
         String urlFormat = domainConfig.getQConfigRestApiUrl() + CONFIG_URL + "/%s/envs/%s/subenvs/%s/versions";
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv());
-        String getUrl = urlFormat + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}&targetdataids={targetdataids}";
+        String getUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}&targetdataids={targetdataids}";
 
         QConfigVersionResponse response = HttpUtils.get(getUrl, QConfigVersionResponse.class, buildQueryVersionParamMap(param));
         return response;

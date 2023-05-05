@@ -79,9 +79,9 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
             return qConfigDataVO;
         }
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
-        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        List<String> targetSubEnvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
 
-        return getWhiteList(metaFilterName, targetSubenvs.get(0), filterKeys.get(0));
+        return getWhiteList(metaFilterName, targetSubEnvs.get(0), filterKeys.get(0));
     }
 
     @Override
@@ -101,11 +101,11 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
-        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
-        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName(), targetSubenvs.get(0), filterKeys.get(0));
+        List<String> targetSubEnvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName(), targetSubEnvs.get(0), filterKeys.get(0));
         Map<String, String> configMap = buildAddConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhitelist());
 
-        return batchUpdateConfig(configMap, targetSubenvs, param.getMetaFilterName(), operator, filterKeys.get(0));
+        return batchUpdateConfig(configMap, targetSubEnvs, param.getMetaFilterName(), operator, filterKeys.get(0));
     }
 
     @Override
@@ -125,11 +125,11 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
-        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
-        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName(), targetSubenvs.get(0), filterKeys.get(0));
+        List<String> targetSubEnvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        QConfigDataVO qConfigDataVO = getWhiteList(param.getMetaFilterName(), targetSubEnvs.get(0), filterKeys.get(0));
         Map<String, String> configMap = buildDeleteConfigMap(filterKeys, qConfigDataVO.getWhitelist(), param.getWhitelist());
 
-        return batchUpdateConfig(configMap, targetSubenvs, param.getMetaFilterName(), operator, filterKeys.get(0));
+        return batchUpdateConfig(configMap, targetSubEnvs, param.getMetaFilterName(), operator, filterKeys.get(0));
     }
 
     @Override
@@ -149,10 +149,10 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         }
 
         List<String> filterKeys = rowsFilterMetaMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
-        List<String> targetSubenvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        List<String> targetSubEnvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
         Map<String, String> configMap = buildUpdateConfigMap(filterKeys, param.getWhitelist());
 
-        return batchUpdateConfig(configMap, targetSubenvs, param.getMetaFilterName(), operator, filterKeys.get(0));
+        return batchUpdateConfig(configMap, targetSubEnvs, param.getMetaFilterName(), operator, filterKeys.get(0));
     }
 
     private QConfigDataVO getWhiteList(String metaFilterName, String targetSubEnv, String filterKey) {

@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.controller;
 
+import com.ctrip.framework.drc.console.aop.AuthToken;
+import com.ctrip.framework.drc.console.enums.HttpRequestParamEnum;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsMetaFilterParam;
@@ -31,6 +33,7 @@ public class RowsFilterMetaController {
     @Autowired
     private RowsFilterMetaService rowsFilterMetaService;
 
+    @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.PATH_VARIABLE)
     @GetMapping("/metaFilterName/{metaFilterName}")
     public ApiResult<QConfigDataVO> getWhitelist(@PathVariable String metaFilterName) {
         try {
@@ -42,6 +45,7 @@ public class RowsFilterMetaController {
         }
     }
 
+    @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @PutMapping()
     public ApiResult<Boolean> addWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
@@ -58,6 +62,7 @@ public class RowsFilterMetaController {
         }
     }
 
+    @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @DeleteMapping()
     public ApiResult<Boolean> deleteWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
@@ -74,6 +79,7 @@ public class RowsFilterMetaController {
         }
     }
 
+    @AuthToken(name = "metaFilterName", type = HttpRequestParamEnum.REQUEST_BODY)
     @PostMapping()
     public ApiResult<Boolean> updateWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {

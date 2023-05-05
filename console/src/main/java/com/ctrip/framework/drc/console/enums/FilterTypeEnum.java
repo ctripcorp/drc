@@ -12,7 +12,7 @@ public enum FilterTypeEnum {
     private int code;
     private String desc;
 
-    private FilterTypeEnum(int code, String desc){
+    FilterTypeEnum(int code, String desc){
         this.code = code;
         this.desc = desc;
     }
