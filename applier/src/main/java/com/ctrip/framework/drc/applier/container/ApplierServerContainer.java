@@ -131,10 +131,14 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         });
     }
 
-    private void clearResource(String registryKey) throws Exception {
+    private void clearResource(String registryKey) {
         LeaderElector leaderElector = zkLeaderElectors.remove(registryKey);
         if (leaderElector != null) {
-            leaderElector.stop();
+            try {
+                leaderElector.stop();
+            } catch (Exception e) {
+                logger.error("LeaderElector stop error for {}", registryKey, e);
+            }
         }
         deleteFile(registryKey);
     }
