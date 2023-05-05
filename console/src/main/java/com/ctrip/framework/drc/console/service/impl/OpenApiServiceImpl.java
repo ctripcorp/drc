@@ -143,6 +143,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                         
                         String nameFilter = applier.getNameFilter();
                         if (StringUtils.isNotBlank(nameFilter)) {
+                            // generate by drcDbInfo by db
                             Map<String, DrcDbInfo> dbInfoMap = Maps.newHashMap();
                             for (String fullTableName : nameFilter.split(",")) {
                                 String[] split = fullTableName.split(ESCAPE_CHARACTER_DOT_REGEX);

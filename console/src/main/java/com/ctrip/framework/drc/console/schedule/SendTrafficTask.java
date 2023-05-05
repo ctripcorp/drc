@@ -45,7 +45,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String ALI = "ali";
 
     private static final String FRA_AWS = "FRA-AWS";
-    private static final String SHAXY = "SHAXY";
+    private static final String SHAXY = "SHA";
     private static final String SIN_AWS = "SIN-AWS";
     private static final String SHA_ALI = "SHA-ALI";
 
