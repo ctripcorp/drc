@@ -13,5 +13,6 @@ public interface OpenApiService {
 
     List<MessengerInfo> getAllMessengersInfo() throws SQLException;
 
-    List<DrcDbInfo> getAllDrcDbInfo();
+    // return all infos if dbName is empty
+    List<DrcDbInfo> getDrcDbInfos(String dbName);
 }

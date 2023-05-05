@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -117,7 +118,7 @@ public class OpenApiServiceImpl implements OpenApiService {
     
     
     @Override
-    public List<DrcDbInfo> getAllDrcDbInfo() {
+    public List<DrcDbInfo> getDrcDbInfos(String dbName) {
         List<DrcDbInfo> res = Lists.newArrayList();
         Drc drc = dbClusterSourceProvider.getDrc();
         for (Entry<String, Dc> dcInfo : drc.getDcs().entrySet()) {
@@ -145,17 +146,20 @@ public class OpenApiServiceImpl implements OpenApiService {
                             Map<String, DrcDbInfo> dbInfoMap = Maps.newHashMap();
                             for (String fullTableName : nameFilter.split(",")) {
                                 String[] split = fullTableName.split(ESCAPE_CHARACTER_DOT_REGEX);
-                                String db = split[0];
+                                String dbRegex = split[0];
                                 String tableRegex = split[1];
-                                if ("drcmonitordb".equalsIgnoreCase(db)) {
+                                if ("drcmonitordb".equalsIgnoreCase(dbRegex)) {
                                     continue;
                                 }
-                                if (dbInfoMap.containsKey(db)) {
-                                    DrcDbInfo drcDbInfo = dbInfoMap.get(db);
+                                if (StringUtils.isNotBlank(dbName) && !new AviatorRegexFilter(dbRegex).filter(dbName)) {
+                                    continue;
+                                }
+                                if (dbInfoMap.containsKey(dbRegex)) {
+                                    DrcDbInfo drcDbInfo = dbInfoMap.get(dbRegex);
                                     drcDbInfo.addRegexTable(tableRegex);
                                 } else {
-                                    DrcDbInfo drcDbInfo = new DrcDbInfo(db,tableRegex,srcMha,destMha,srcRegion,destRegion);
-                                    dbInfoMap.put(db,drcDbInfo);
+                                    DrcDbInfo drcDbInfo = new DrcDbInfo(dbRegex,tableRegex,srcMha,destMha,srcRegion,destRegion);
+                                    dbInfoMap.put(dbRegex,drcDbInfo);
                                     res.add(drcDbInfo);
                                 }
                             }
@@ -169,7 +173,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                             processProperties(applier,drcDbInfo,destMha);
                         }
                     } catch (Exception e) {
-                        logger.warn("getAllDrcDbInfo fail in applier which destMha is :{}",destMha,e);
+                        logger.warn("getDrcDbInfos fail in applier which destMha is :{}",destMha,e);
                     }
                 }
             }
