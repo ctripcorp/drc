@@ -13,6 +13,8 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -23,9 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Rows Filter Whitelist AuthTokenAspect
  * Created by dengquanliang
  * 2023/5/5 11:45
  */
+@Order(2)
 @Aspect
 @Component
 public class AuthTokenAspect {
@@ -36,7 +40,8 @@ public class AuthTokenAspect {
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
 
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.AuthToken)")
-    public void pointcut(){}
+    public void pointcut() {
+    }
 
     @Before(value = "pointcut() && @annotation(authToken)")
     public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws SQLException {
@@ -66,7 +71,7 @@ public class AuthTokenAspect {
 
     private Map<String, Object> getParamMap(JoinPoint joinPoint) {
         Map<String, Object> paramMap = new HashMap<>();
-        MethodSignature signature = (MethodSignature)joinPoint.getSignature();
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Object[] paramValues = joinPoint.getArgs();
         String[] paramNames = signature.getParameterNames();
 
@@ -88,4 +93,5 @@ public class AuthTokenAspect {
             throw new IllegalArgumentException("Invalid AccessToken!");
         }
     }
+
 }
