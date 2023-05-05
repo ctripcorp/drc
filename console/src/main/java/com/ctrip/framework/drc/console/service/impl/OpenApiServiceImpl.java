@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
@@ -21,7 +23,6 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -45,6 +46,7 @@ import org.springframework.util.CollectionUtils;
  */
 @Service
 public class OpenApiServiceImpl implements OpenApiService {
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     
@@ -55,6 +57,8 @@ public class OpenApiServiceImpl implements OpenApiService {
     @Autowired private MessengerService messengerService;
     
     @Autowired private DbClusterSourceProvider  dbClusterSourceProvider;
+    
+    
     
     
     @Override
@@ -140,7 +144,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                         if (StringUtils.isNotBlank(nameFilter)) {
                             Map<String, DrcDbInfo> dbInfoMap = Maps.newHashMap();
                             for (String fullTableName : nameFilter.split(",")) {
-                                String[] split = fullTableName.split("\\\\\\.");
+                                String[] split = fullTableName.split(ESCAPE_CHARACTER_DOT_REGEX);
                                 String db = split[0];
                                 String tableRegex = split[1];
                                 if ("drcmonitordb".equalsIgnoreCase(db)) {
@@ -183,7 +187,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                 for (RowsFilterConfig rowsFilter : rowsFilters) {
                     rowsFilter.setParameters(null);
                     String fullTableName = rowsFilter.getTables();
-                    String[] split = fullTableName.split("\\\\\\.");
+                    String[] split = fullTableName.split(ESCAPE_CHARACTER_DOT_REGEX);
                     String db = split[0];
                     if (dbInfoMap.containsKey(db)) {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);
@@ -198,7 +202,7 @@ public class OpenApiServiceImpl implements OpenApiService {
             if (!CollectionUtils.isEmpty(columnsFilters)) {
                 for (ColumnsFilterConfig columnsFilter : columnsFilters) {
                     String fullTableName = columnsFilter.getTables();
-                    String[] split = fullTableName.split("\\\\\\.");
+                    String[] split = fullTableName.split(ESCAPE_CHARACTER_DOT_REGEX);
                     String db = split[0];
                     if (dbInfoMap.containsKey(db)) {
                         DrcDbInfo drcDbInfo = dbInfoMap.get(db);

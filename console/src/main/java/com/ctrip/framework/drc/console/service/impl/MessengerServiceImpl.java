@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
@@ -153,8 +155,8 @@ public class MessengerServiceImpl implements MessengerService {
 
         // check table
         List<DataMediaPairTbl> mqConfigs = dataMediaPairService.getPairsByMGroupId(dto.getMessengerGroupId());
-        String namespace = dto.getTable().split("\\\\\\.")[0];
-        String name = dto.getTable().split("\\\\\\.")[1];
+        String namespace = dto.getTable().split(ESCAPE_CHARACTER_DOT_REGEX)[0];
+        String name = dto.getTable().split(ESCAPE_CHARACTER_DOT_REGEX)[1];
         List<TableSchemaName> matchTables = drcBuildService.getMatchTable(namespace, name, dto.getMhaName(), 0);
         if (dto.getId() != 0L) {
             // update remove itself Config first
@@ -334,7 +336,7 @@ public class MessengerServiceImpl implements MessengerService {
     
     
     private void addDalClusterMqConfig(MqConfigDto dto) throws Exception {
-        String[] dbAndTable = dto.getTable().split("\\\\\\.");
+        String[] dbAndTable = dto.getTable().split(ESCAPE_CHARACTER_DOT_REGEX);
         if (dbAndTable.length != 2) {
             throw new IllegalArgumentException("illegal table name" + dto.getTable());
         }
@@ -367,7 +369,7 @@ public class MessengerServiceImpl implements MessengerService {
             throw new IllegalArgumentException("illegal mqConfig: " + mqConfigId);
         }
 
-        String[] dbAndTable = configToBeDeleted.getSrcDataMediaName().split("\\\\\\.");
+        String[] dbAndTable = configToBeDeleted.getSrcDataMediaName().split(ESCAPE_CHARACTER_DOT_REGEX);
         if (dbAndTable.length != 2) {
             throw new IllegalArgumentException("illegal table name" + configToBeDeleted.getSrcDataMediaName());
         }
