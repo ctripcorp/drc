@@ -72,7 +72,7 @@ public abstract class AbstractResourceManager implements Releasable {
 
     private void doRestart(LeaderElector leaderElector, String registryKey) {
         try {
-            if (leaderElector.getLifecycleState().isInitialized()) {
+            if (leaderElector.getLifecycleState().isInitialized() && leaderElector == zkLeaderElectors.get(registryKey)) {
                 logger.info("LeaderElector restart for {}", registryKey);
                 leaderElector.start();
                 if (leaderElector != zkLeaderElectors.get(registryKey)) {
