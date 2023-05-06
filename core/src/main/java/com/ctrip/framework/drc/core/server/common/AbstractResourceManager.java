@@ -11,6 +11,7 @@ import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.lifecycle.Lifecycle;
 import com.ctrip.xpipe.api.lifecycle.Releasable;
 import com.ctrip.xpipe.cluster.ElectContext;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ public abstract class AbstractResourceManager implements Releasable {
 
     protected Map<String, LeaderElector> zkLeaderElectors = Maps.newConcurrentMap();
 
-    private final static int RESTART_DELAY_TIME = 5;
+    private static int RESTART_DELAY_TIME = 5;
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(getClass().getSimpleName());
 
@@ -98,5 +99,10 @@ public abstract class AbstractResourceManager implements Releasable {
                 logger.error("lifecycle stop error", e);
             }
         }
+    }
+
+    @VisibleForTesting
+    protected void setRestartDelayTime(int time) {
+        RESTART_DELAY_TIME = time;
     }
 }
