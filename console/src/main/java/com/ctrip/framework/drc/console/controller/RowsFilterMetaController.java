@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServi
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaService;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
+import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,24 +123,35 @@ public class RowsFilterMetaController {
         }
     }
 
-    @PutMapping("/mapping")
-    public ApiResult<Boolean> createMetaMapping(@RequestBody RowsFilterMetaMappingCreateParam param) {
+    @PostMapping("/mapping")
+    public ApiResult<Boolean> createOrUpdateMetaMapping(@RequestBody RowsFilterMetaMappingCreateParam param) {
         try {
             logger.info("Create Meta Mapping, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.createMetaMapping(param));
+            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.createOrUpdateMetaMapping(param));
         } catch (SQLException e) {
             logger.error("Create Meta Mapping Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
     }
 
-    @GetMapping("/mapping/all")
-    public ApiResult<List<RowsFilterMetaMappingVO>> getMappingList(@RequestParam(required = false) String metaFilterName) {
+    @GetMapping("/meta/all")
+    public ApiResult<List<RowsFilterMetaMessageVO>> getMetaMessageList(@RequestParam(required = false) String metaFilterName) {
         try {
-            logger.info("Get Rows Filter Meta Mapping List, metaFilterName: {}", metaFilterName);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterName));
+            logger.info("Get Rows Filter Meta Message List, metaFilterName: {}", metaFilterName);
+            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMessages(metaFilterName));
         } catch (SQLException e) {
-            logger.error("Get Rows Filter Meta Mapping List error, metaFilterName: {}", metaFilterName, e);
+            logger.error("Get Rows Filter Meta Message List error, metaFilterName: {}", metaFilterName, e);
+            return ApiResult.getFailInstance(false);
+        }
+    }
+
+    @GetMapping("/mapping")
+    public ApiResult<RowsFilterMetaMappingVO> getMappingList(@RequestParam Long metaFilterId) {
+        try {
+            logger.info("Get Rows Filter Meta Mapping List, metaFilterId: {}", metaFilterId);
+            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterId));
+        } catch (SQLException e) {
+            logger.error("Get Rows Filter Meta Mapping List error, metaFilterId: {}", metaFilterId, e);
             return ApiResult.getFailInstance(false);
         }
     }
