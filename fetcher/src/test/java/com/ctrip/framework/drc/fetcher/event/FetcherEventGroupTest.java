@@ -4,8 +4,10 @@ import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.fetcher.event.config.BigTransactionThreshold;
 import com.ctrip.framework.drc.fetcher.event.transaction.BaseBeginEvent;
 import com.ctrip.framework.drc.fetcher.event.transaction.TerminateEvent;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionEvent;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -400,5 +402,28 @@ public class FetcherEventGroupTest {
         latch.await();
         group.close();
         Mockito.verify(events.get(0), atLeastOnce()).release();
+    }
+
+    @Test
+    public void testIsEmptyTransaction() throws InterruptedException {
+        MonitoredGtidLogEvent gtidLogEvent = new MonitoredGtidLogEvent();
+        MonitoredTableMapEvent tableMapEvent = new MonitoredTableMapEvent();
+        MonitoredWriteRowsEvent writeRowsEvent = new MonitoredWriteRowsEvent();
+        MonitoredXidEvent xidEvent = new MonitoredXidEvent();
+
+        FetcherEventGroup group1 = new FetcherEventGroup();
+        group1.append(gtidLogEvent);
+        group1.append(tableMapEvent);
+        group1.append(xidEvent);
+        boolean isEmpty1 = group1.isEmptyTransaction();
+        Assert.assertTrue(isEmpty1);
+
+        FetcherEventGroup group2 = new FetcherEventGroup();
+        group2.append(gtidLogEvent);
+        group2.append(tableMapEvent);
+        group2.append(writeRowsEvent);
+        group2.append(xidEvent);
+        boolean isEmpty2 = group2.isEmptyTransaction();
+        Assert.assertFalse(isEmpty2);
     }
 }
