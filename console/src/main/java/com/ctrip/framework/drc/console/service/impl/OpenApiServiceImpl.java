@@ -171,7 +171,7 @@ public class OpenApiServiceImpl implements OpenApiService {
                             DrcDbInfo drcDbInfo = new DrcDbInfo(".*", ".*", srcMha, destMha, srcRegion, destRegion);
                             res.add(drcDbInfo);
                             
-                            processProperties(applier,drcDbInfo,destMha);
+                            processProperties(applier,drcDbInfo);
                         }
                     } catch (Exception e) {
                         logger.warn("getDrcDbInfos fail in applier which destMha is :{}",destMha,e);
@@ -220,7 +220,7 @@ public class OpenApiServiceImpl implements OpenApiService {
         
     }
 
-    private void processProperties(Applier applier, DrcDbInfo drcDbInfo, String destMha) {
+    private void processProperties(Applier applier, DrcDbInfo drcDbInfo) {
         if (StringUtils.isNotBlank(applier.getProperties())) { 
             String properties = applier.getProperties();
             DataMediaConfig dataMediaConfig = JsonCodec.INSTANCE.decode(properties, DataMediaConfig.class);
