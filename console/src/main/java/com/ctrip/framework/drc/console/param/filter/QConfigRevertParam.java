@@ -4,11 +4,7 @@ package com.ctrip.framework.drc.console.param.filter;
  * Created by dengquanliang
  * 2023/4/28 17:40
  */
-public class QConfigRevertParam {
-    private String token;
-    private String operator;
-    private String serverEnv;
-    private String groupId;
+public class QConfigRevertParam extends QConfigBaseParam {
     private String targetGroupId;
     private String targetEnv;
     private String targetSubEnv;
@@ -18,48 +14,12 @@ public class QConfigRevertParam {
     @Override
     public String toString() {
         return "QConfigRevertParam{" +
-                "token='" + token + '\'' +
-                ", operator='" + operator + '\'' +
-                ", serverEnv='" + serverEnv + '\'' +
-                ", groupId='" + groupId + '\'' +
-                ", targetGroupId='" + targetGroupId + '\'' +
+                "targetGroupId='" + targetGroupId + '\'' +
                 ", targetEnv='" + targetEnv + '\'' +
                 ", targetSubEnv='" + targetSubEnv + '\'' +
                 ", targetDataId='" + targetDataId + '\'' +
                 ", version=" + version +
                 '}';
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getOperator() {
-        return operator;
-    }
-
-    public void setOperator(String operator) {
-        this.operator = operator;
-    }
-
-    public String getServerEnv() {
-        return serverEnv;
-    }
-
-    public void setServerEnv(String serverEnv) {
-        this.serverEnv = serverEnv;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
     }
 
     public String getTargetGroupId() {

@@ -142,6 +142,16 @@ const routes = [
     component: () => import('../components/configs/configFlow.vue')
   },
   {
+    path: '/buildMetaMessage',
+    name: 'buildMetaMessage',
+    component: () => import('../views/filter/buildMetaMessage.vue')
+  },
+  {
+    path: '/metaMessage',
+    name: 'metaMessage',
+    component: () => import('../views/filter/metaMessage.vue')
+  },
+  {
     path: '/mqConfigs',
     name: 'mqConfigs',
     component: () => import('../views/drcConfig/mqConfigs.vue')

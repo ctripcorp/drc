@@ -38,7 +38,7 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 
-    public List<RowsFilterMetaTbl> queryByMetaFilterNames(String metaFilterName) throws SQLException {
+    public List<RowsFilterMetaTbl> queryByMetaFilterName(String metaFilterName) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.BIGINT);
         if (StringUtils.isNotBlank(metaFilterName)) {

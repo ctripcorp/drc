@@ -54,7 +54,7 @@ public class RowsFilterMetaMappingServiceTest {
 
     @Test
     public void getMetaMappings() throws SQLException {
-        Mockito.when(rowsFilterMetaTblDao.queryByMetaFilterNames(Mockito.anyString())).thenReturn(buildValidMetaTbls());
+        Mockito.when(rowsFilterMetaTblDao.queryByMetaFilterName(Mockito.anyString())).thenReturn(buildValidMetaTbls());
         Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterIdS(Mockito.anyList())).thenReturn(buildValidMappingTbls());
         List<RowsFilterMetaMappingVO> result = rowsFilterMetaMappingService.getMetaMappings("metaFilterName");
         Assert.assertTrue(result.size() > 0);

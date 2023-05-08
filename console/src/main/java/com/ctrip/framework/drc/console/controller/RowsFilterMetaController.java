@@ -101,6 +101,16 @@ public class RowsFilterMetaController {
         }
     }
 
+    @PostMapping("/test")
+    public ApiResult<Boolean> test(@RequestParam String id) {
+        boolean result = id.equals("1");
+        if (result) {
+            return ApiResult.getSuccessInstance(true);
+        } else {
+            return ApiResult.getFailInstance(false);
+        }
+    }
+
     @PutMapping("/meta")
     public ApiResult<Boolean> createMetaMessage(@RequestBody RowsFilterMetaMessageCreateParam param) {
         try {
@@ -123,8 +133,8 @@ public class RowsFilterMetaController {
         }
     }
 
-    @GetMapping("/mapping/metaFilterName/{metaFilterName}")
-    public ApiResult<List<RowsFilterMetaMappingVO>> getMappingList(@PathVariable String metaFilterName) {
+    @GetMapping("/mapping/all")
+    public ApiResult<List<RowsFilterMetaMappingVO>> getMappingList(@RequestParam(required = false) String metaFilterName) {
         try {
             logger.info("Get Rows Filter Meta Mapping List, metaFilterName: {}", metaFilterName);
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterName));

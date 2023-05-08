@@ -4,41 +4,29 @@ package com.ctrip.framework.drc.console.param.filter;
  * Created by dengquanliang
  * 2023/4/24 14:32
  */
-public class QConfigQueryParam {
+public class QConfigQueryParam extends QConfigBaseParam {
 
-    private String token;
-    private String groupId;
     private String dataId;
     private String env;
-    private String subEnv;
     private String targetGroupId;
+    private String subEnv;
 
     @Override
     public String toString() {
         return "QConfigQueryParam{" +
-                "token='" + token + '\'' +
-                ", groupId='" + groupId + '\'' +
-                ", dataId='" + dataId + '\'' +
+                "dataId='" + dataId + '\'' +
                 ", env='" + env + '\'' +
-                ", subEnv='" + subEnv + '\'' +
                 ", targetGroupId='" + targetGroupId + '\'' +
+                ", subEnv='" + subEnv + '\'' +
                 '}';
     }
 
-    public String getToken() {
-        return token;
+    public String getSubEnv() {
+        return subEnv;
     }
 
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
+    public void setSubEnv(String subEnv) {
+        this.subEnv = subEnv;
     }
 
     public String getDataId() {
@@ -55,14 +43,6 @@ public class QConfigQueryParam {
 
     public void setEnv(String env) {
         this.env = env;
-    }
-
-    public String getSubEnv() {
-        return subEnv;
-    }
-
-    public void setSubEnv(String subEnv) {
-        this.subEnv = subEnv;
     }
 
     public String getTargetGroupId() {

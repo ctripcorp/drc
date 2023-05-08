@@ -40,6 +40,9 @@
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
             </MenuItem>
+            <MenuItem name="/metaMessage" to="/metaMessage">
+              <span>行过滤元信息配置</span>
+            </MenuItem>
           </Submenu>
           <Submenu name="1">
             <template slot="title">

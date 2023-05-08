@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +76,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     @Override
     public List<RowsFilterMetaMappingVO> getMetaMappings(String metaFilterName) throws SQLException {
         List<RowsFilterMetaMappingVO> metaMappingVOS = new ArrayList<>();
-        List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByMetaFilterNames(metaFilterName);
+        List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
         if (CollectionUtils.isEmpty(rowsFilterMetaTbls)) {
             return metaMappingVOS;
         }
@@ -94,7 +93,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
             target.setBu(source.getBu());
             target.setOwner(source.getOwner());
             target.setTargetSubenv(JsonUtils.fromJsonToList(source.getTargetSubenv(), String.class));
-            target.setFilterType(FilterTypeEnum.getDescByCode(source.getFilterType()));
+            target.setFilterType(source.getFilterType());
             target.setToken(source.getToken());
             target.setFilterKeys(metaMappingMap.getOrDefault(source.getId(), new ArrayList<>()));
 
@@ -123,7 +122,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         PreconditionUtils.checkCollection(param.getTargetSubEnv(), "TargetSubEnv Requires Not Empty!");
         PreconditionUtils.checkString(param.getBu(), "Bu Requires Not Empty!");
         PreconditionUtils.checkString(param.getOwner(), "Owner Requires Not Empty!");
-        Preconditions.checkNotNull(param.getFilterType(), "FilterType Requires Not Null!");
+        PreconditionUtils.checkNotNull(param.getFilterType(), "FilterType Requires Not Null!");
     }
 
     private void checkMetaMappingCreateParam(RowsFilterMetaMappingCreateParam param) {

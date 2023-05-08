@@ -13,7 +13,7 @@ public class RowsFilterMetaMappingVO {
     private String bu;
     private String owner;
     private List<String> targetSubenv;
-    private String filterType;
+    private Integer filterType;
     private String token;
     private List<String> filterKeys;
 
@@ -71,11 +71,11 @@ public class RowsFilterMetaMappingVO {
         this.targetSubenv = targetSubenv;
     }
 
-    public String getFilterType() {
+    public Integer getFilterType() {
         return filterType;
     }
 
-    public void setFilterType(String filterType) {
+    public void setFilterType(Integer filterType) {
         this.filterType = filterType;
     }
 
