@@ -15,6 +15,6 @@ public class ConsoleThreadFactory {
     }
 
     public static ExecutorService rowsFilterMetaExecutor() {
-        return new ThreadPoolExecutor(5, 5, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(10), newThreadFactory("rowsFilterMeta"));
+        return new ThreadPoolExecutor(20, 20, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<>(200), newThreadFactory("rowsFilterMeta"));
     }
 }
