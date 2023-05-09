@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -42,7 +41,7 @@ public class RowsFilterMetaController {
         try {
             logger.info("Get Rows Filter Whitelist, metaFilterName: {}", metaFilterName);
             return ApiResult.getSuccessInstance(rowsFilterMetaService.getWhiteList(metaFilterName));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Get Rows Filter Whitelist Error, metaFilterName: {}", metaFilterName, e);
             return ApiResult.getFailInstance(null);
         }
@@ -60,7 +59,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Add Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
@@ -78,7 +77,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Delete Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
@@ -96,7 +95,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Update Rows Filter Whitelist Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
@@ -112,7 +111,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Create Meta Message Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
@@ -128,7 +127,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Create Meta Mapping Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
         }
@@ -139,7 +138,7 @@ public class RowsFilterMetaController {
         try {
             logger.info("Get Rows Filter Meta Message List, metaFilterName: {}", metaFilterName);
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMessages(metaFilterName));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Get Rows Filter Meta Message List error, metaFilterName: {}", metaFilterName, e);
             return ApiResult.getFailInstance(false);
         }
@@ -150,7 +149,7 @@ public class RowsFilterMetaController {
         try {
             logger.info("Get Rows Filter Meta Mapping List, metaFilterId: {}", metaFilterId);
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterId));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Get Rows Filter Meta Mapping List error, metaFilterId: {}", metaFilterId, e);
             return ApiResult.getFailInstance(false);
         }
@@ -166,7 +165,7 @@ public class RowsFilterMetaController {
             } else {
                 return ApiResult.getFailInstance(false);
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("Delete Rows Filter Meta Message error, metaFilterId: {}", metaFilterId, e);
             return ApiResult.getFailInstance(false);
         }
