@@ -21,4 +21,6 @@ public interface RowsFilterMetaMappingService {
     List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws SQLException;
 
     RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws SQLException;
+
+    boolean deleteMetaMessage(Long metaFilterId) throws SQLException;
 }

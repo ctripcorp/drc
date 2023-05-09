@@ -27,6 +27,7 @@ export default {
   data () {
     return {
       metaMapping: {
+        metaFilterId: '',
         filterKeyList: [
           { filterKey: '' }
         ]

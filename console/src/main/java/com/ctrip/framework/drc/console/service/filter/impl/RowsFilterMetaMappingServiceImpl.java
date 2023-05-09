@@ -92,9 +92,6 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
             return metaMappingVOS;
         }
 
-        List<Long> metaTblIds = rowsFilterMetaTbls.stream().map(RowsFilterMetaTbl::getId).collect(Collectors.toList());
-        List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterIdS(metaTblIds);
-
         metaMappingVOS = rowsFilterMetaTbls.stream().map(source -> {
             RowsFilterMetaMessageVO target = new RowsFilterMetaMessageVO();
             target.setMetaFilterId(source.getId());
@@ -121,6 +118,28 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         }
         mappingVO.setFilterKeys(metaMappingTbls.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList()));
         return mappingVO;
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    @Override
+    public boolean deleteMetaMessage(Long metaFilterId) throws SQLException {
+        PreconditionUtils.checkId(metaFilterId, "MetaFilterId Requires Not Null!");
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByPk(metaFilterId);
+        if (rowsFilterMetaTbl == null || rowsFilterMetaTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {
+            logger.warn("RowsFilterMetaTbl Not Exist, MetaFilterId: {}", metaFilterId);
+            return false;
+        }
+        rowsFilterMetaTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        rowsFilterMetaTblDao.update(rowsFilterMetaTbl);
+
+        List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterId(metaFilterId);
+        if (CollectionUtils.isEmpty(metaMappingTbls)) {
+            logger.warn("RowsFilterMetaMappings Not Exist, MetaFilterId: {}", metaFilterId);
+            return false;
+        }
+        metaMappingTbls.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        rowsFilterMetaMappingTblDao.batchUpdate(metaMappingTbls);
+        return true;
     }
 
     private RowsFilterMetaTbl buildRowsFilterMetaTbl(RowsFilterMetaMessageCreateParam param) {

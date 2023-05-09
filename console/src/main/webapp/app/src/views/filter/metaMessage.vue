@@ -20,18 +20,6 @@
               </Button>
             </template>
           </Table>
-<!--          <div style="text-align: center;margin: 16px 0">-->
-<!--            <Page-->
-<!--              :transfer="true"-->
-<!--              :total="total"-->
-<!--              :current.sync="current"-->
-<!--              :page-size="size"-->
-<!--              :page-size-opts="[10,20,50]"-->
-<!--              show-sizer-->
-<!--              show-elevator-->
-<!--              @on-page-size-change="handleChangeSize">-->
-<!--            </Page>-->
-<!--          </div>-->
         </Card>
       </div>
     </Content>

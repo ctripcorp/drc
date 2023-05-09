@@ -146,4 +146,15 @@ public class RowsFilterMetaController {
         }
     }
 
+    @DeleteMapping ("/meta")
+    public ApiResult<RowsFilterMetaMappingVO> deleteMetaMessage(@RequestParam Long metaFilterId) {
+        try {
+            logger.info("Delete Rows Filter Meta Message, metaFilterId: {}", metaFilterId);
+            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.deleteMetaMessage(metaFilterId));
+        } catch (SQLException e) {
+            logger.error("Delete Rows Filter Meta Message error, metaFilterId: {}", metaFilterId, e);
+            return ApiResult.getFailInstance(false);
+        }
+    }
+
 }

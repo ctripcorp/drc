@@ -6,10 +6,6 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
-        <Alert :type="status" v-if="hasResp" show-icon style="width: 65%; margin-left: 250px">
-          {{title}}
-          <span slot="desc" v-html="message"></span>
-        </Alert>
         <Form ref="metaMessage" :rules="ruleForm" :model="metaMessage" :label-width="250" style="margin-top: 50px">
           <FormItem label="行过滤唯一标识" prop="metaFilterName">
             <Input v-model="metaMessage.metaFilterName" placeholder="请输入行过滤唯一标识" style="width: 600px"></Input>
@@ -59,10 +55,6 @@
 export default {
   name: 'buildMetaMessage',
   props: {
-    // clusterName: String,
-    // metaFilterName: String,
-    // bu: String,
-    // owner: String
   },
   data () {
     return {
@@ -102,7 +94,6 @@ export default {
   },
   methods: {
     test () {
-      // this.hasResp = false
       this.axios.post('/api/drc/v1/filter/row/test?id=' + this.metaMessage.metaFilterName, {
       }).then(response => {
         this.hasResp = true
