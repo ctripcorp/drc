@@ -7,8 +7,6 @@ import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 
 import java.util.List;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.GTID_LOGGER;
-
 /**
  * @Author limingdong
  * @create 2021/10/9
@@ -30,7 +28,6 @@ public class TransactionOffsetFilter extends AbstractTransactionFilter {
             for (int i = 1; i < logEvents.size(); ++i) {
                 nextTransactionStartPosition += logEvents.get(i).getLogEventHeader().getEventSize();
             }
-            GTID_LOGGER.info("[trx] nextTransactionOffset cal: {}, gtid: {}", nextTransactionStartPosition, gtidLogEvent.getGtid());
             gtidLogEvent.setNextTransactionOffsetAndUpdateEventSize(nextTransactionStartPosition);
         } else {
             for (LogEvent logEvent : logEvents) {

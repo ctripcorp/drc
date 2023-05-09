@@ -587,7 +587,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", newGtidForLog, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", applierName);
                 long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
-                GTID_LOGGER.info("[trx] nextTransactionOffset send: {}, gtid: {}", nextTransactionOffset, gtidLogEvent.getGtid());
                 if (nextTransactionOffset > 0) {
                     fileChannel.position(fileChannel.position() + nextTransactionOffset);
                     in_exclude_group = false;

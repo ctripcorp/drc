@@ -41,7 +41,6 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_DRC_MONITOR_QPS_INSERT = "drc.monitor.qps.insert";
     private static final String KEY_DRC_MONITOR_GRAND_TRANSACTION_ROWS = "drc.monitor.grand.transaction.rows";
     private static final String KEY_DRC_MONITOR_GRAND_EVENT_SIZE = "drc.monitor.grand.event.size";
-    private static final String KEY_DRC_MONITOR_GRAND_EVENT_CASE_SWITCH = "drc.monitor.grand.event.case.switch";
     private static final String KEY_DRC_ENV_TYPE = "drc.env.type";
     private static final String KEY_DRC_MONITOR_QPS_SWITCH = "drc.monitor.qps.switch";
     private static final String KEY_GRAND_TRANSACTION_SWITCH = "grand.transaction.switch";
@@ -216,10 +215,6 @@ public class ConfigService extends AbstractConfigBean {
 
     public int getGrandEventSize() {
         return getIntProperty(KEY_DRC_MONITOR_GRAND_EVENT_SIZE, DEFAULT_DRC_MONITOR_GRAND_EVENT_SIZE);
-    }
-
-    public boolean getCaseSwitch(String caseClassName) {
-        return getBooleanProperty(caseClassName,true);
     }
 
     public boolean getCompositeKeysDdlSwitch() {
