@@ -15,7 +15,7 @@
           <Table stripe :columns="columns" :data="metaMappings" border :span-method="handleSpan">
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
-              <Button type="primary" size="small" style="margin-right: 5px" to="/metaMapping">新增映射</Button>
+              <Button type="primary" size="small" style="margin-right: 5px" @click="addMapping(row, index)">新增映射</Button>
               <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">删除
               </Button>
             </template>
@@ -108,7 +108,7 @@ export default {
   },
   methods: {
     getMetaMappings () {
-      let url = '/api/drc/v1/filter/row/mapping/all'
+      let url = '/api/drc/v1/filter/row/meta/all'
       if (this.metaFilterName !== null) {
         url = url + '?metaFilterName=' + this.metaFilterName
       }
@@ -116,6 +116,10 @@ export default {
         this.metaMappings = response.data.data
         console.log(this.metaMappings)
       })
+    },
+    addMapping (row, index) {
+      console.log('add mapping metaFilterId: ' + row.metaFilterId)
+      this.$router.push({ path: '/metaMapping', query: { metaFilterId: row.metaFilterId } })
     }
   },
   created () {

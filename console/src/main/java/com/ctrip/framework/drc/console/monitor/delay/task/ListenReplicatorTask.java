@@ -55,7 +55,7 @@ import org.springframework.stereotype.Component;
 @DependsOn("dbClusterSourceProvider")
 public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
-//    private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
+    private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
     private static final String WARN = "warn";
     private static final String ERROR = "error";
     private static final String DEBUG = "debug";
@@ -92,28 +92,28 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
         String prefix = CLOG_TAGS + msg;
-//        switch (types) {
-//            case WARN:
-//                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(),
-//                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
-//                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
-//                break;
-//            case ERROR:
-//                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(),
-//                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
-//                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo(), e);
-//                break;
-//            case DEBUG:
-//                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(),
-//                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
-//                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
-//                break;
-//            case INFO:
-//                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(),
-//                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
-//                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
-//                break;
-//        }
+        switch (types) {
+            case WARN:
+                logger.warn(prefix, config.getMha(), config.getDc(), config.getDestMha(),
+                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
+                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
+                break;
+            case ERROR:
+                logger.error(prefix, config.getMha(), config.getDc(), config.getDestMha(),
+                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
+                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo(), e);
+                break;
+            case DEBUG:
+                logger.debug(prefix, config.getMha(), config.getDc(), config.getDestMha(),
+                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
+                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
+                break;
+            case INFO:
+                logger.info(prefix, config.getMha(), config.getDc(), config.getDestMha(),
+                        config.getDestDc(), config.getCluster(), config.getEndpoint().getHost(),
+                        config.getEndpoint().getPort(), config.getMeasurement(), config.getRouteInfo());
+                break;
+        }
     }
 
     @Override
@@ -138,7 +138,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                     logger.warn("[[monitor=delaylisten]] is Leader, but listen all replicator switch is off");
                 }
             } else {
-//                logger.info("[[monitor=delaylisten]] not leader,going to close all delayMonitorServers");
+                logger.info("[[monitor=delaylisten]] not leader,going to close all delayMonitorServers");
                 for (String clusterId : delayMonitorServerMap.keySet()) {
                     removeListenServer(clusterId, replicatorWrappers, delayMonitorServerMap);
                 }

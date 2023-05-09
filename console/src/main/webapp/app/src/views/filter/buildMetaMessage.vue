@@ -93,25 +93,6 @@ export default {
     }
   },
   methods: {
-    test () {
-      this.axios.post('/api/drc/v1/filter/row/test?id=' + this.metaMessage.metaFilterName, {
-      }).then(response => {
-        this.hasResp = true
-        if (response.data.status === 0) {
-          this.status = 'success'
-          this.title = '创建成功!'
-          this.message = response.data.message
-        } else {
-          this.status = 'error'
-          this.title = '创建失败'
-          this.message = response.data.message
-        }
-      }).catch(error => {
-        this.status = 'error'
-        this.title = '创建失败!'
-        console.log(error)
-      })
-    },
     putMetaMessage () {
       this.$refs.metaMessage.validate((valid) => {
         if (!valid) {
@@ -128,9 +109,6 @@ export default {
           }).then(response => {
             this.hasResp = true
             if (response.data.status === 0) {
-              // this.status = 'success'
-              // this.title = '创建成功！'
-              // this.message = response.data.message
               this.$router.push('/metaMessage')
             } else {
               // this.status = 'error'

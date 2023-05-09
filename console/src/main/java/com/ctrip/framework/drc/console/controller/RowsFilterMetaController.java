@@ -106,7 +106,12 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> createMetaMessage(@RequestBody RowsFilterMetaMessageCreateParam param) {
         try {
             logger.info("Create Meta Message, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.createMetaMessage(param));
+            boolean result = rowsFilterMetaMappingService.createMetaMessage(param);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Create Meta Message Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
@@ -117,7 +122,12 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> createOrUpdateMetaMapping(@RequestBody RowsFilterMetaMappingCreateParam param) {
         try {
             logger.info("Create Meta Mapping, param: {}", param);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.createOrUpdateMetaMapping(param));
+            boolean result = rowsFilterMetaMappingService.createOrUpdateMetaMapping(param);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Create Meta Mapping Error, param: {}", param, e);
             return ApiResult.getFailInstance(false);
@@ -150,7 +160,12 @@ public class RowsFilterMetaController {
     public ApiResult<RowsFilterMetaMappingVO> deleteMetaMessage(@RequestParam Long metaFilterId) {
         try {
             logger.info("Delete Rows Filter Meta Message, metaFilterId: {}", metaFilterId);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.deleteMetaMessage(metaFilterId));
+            boolean result = rowsFilterMetaMappingService.deleteMetaMessage(metaFilterId);
+            if (result) {
+                return ApiResult.getSuccessInstance(true);
+            } else {
+                return ApiResult.getFailInstance(false);
+            }
         } catch (SQLException e) {
             logger.error("Delete Rows Filter Meta Message error, metaFilterId: {}", metaFilterId, e);
             return ApiResult.getFailInstance(false);
