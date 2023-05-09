@@ -14,13 +14,13 @@ import java.util.List;
  */
 public interface RowsFilterMetaMappingService {
 
-    boolean createMetaMessage(RowsFilterMetaMessageCreateParam param) throws SQLException;
+    boolean createMetaMessage(RowsFilterMetaMessageCreateParam param) throws Exception;
 
-    boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws SQLException;
+    boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws Exception;
 
-    List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws SQLException;
+    List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws Exception;
 
-    RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws SQLException;
+    RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws Exception;
 
-    boolean deleteMetaMessage(Long metaFilterId) throws SQLException;
+    boolean deleteMetaMessage(Long metaFilterId) throws Exception;
 }

@@ -22,10 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,7 +43,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     private static final String TOKEN_PREFIX = "drc.uid.filter.";
 
     @Override
-    public boolean createMetaMessage(RowsFilterMetaMessageCreateParam param) throws SQLException {
+    public boolean createMetaMessage(RowsFilterMetaMessageCreateParam param) throws Exception {
         checkCreateParam(param);
         RowsFilterMetaTbl rowsFilterMetaTbl = buildRowsFilterMetaTbl(param);
         int result = rowsFilterMetaTblDao.insert(rowsFilterMetaTbl);
@@ -54,7 +52,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     @Override
-    public boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws SQLException {
+    public boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws Exception {
         checkMetaMappingCreateParam(param);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryById(param.getMetaFilterId());
         if (rowsFilterMetaTbl == null) {
@@ -85,7 +83,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     }
 
     @Override
-    public List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws SQLException {
+    public List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws Exception {
         List<RowsFilterMetaMessageVO> metaMappingVOS = new ArrayList<>();
         List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
         if (CollectionUtils.isEmpty(rowsFilterMetaTbls)) {
@@ -108,7 +106,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     }
 
     @Override
-    public RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws SQLException {
+    public RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws Exception {
         RowsFilterMetaMappingVO mappingVO = new RowsFilterMetaMappingVO();
         mappingVO.setMetaFilterId(metaFilterId);
 
@@ -122,7 +120,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     @Override
-    public boolean deleteMetaMessage(Long metaFilterId) throws SQLException {
+    public boolean deleteMetaMessage(Long metaFilterId) throws Exception {
         PreconditionUtils.checkId(metaFilterId, "MetaFilterId Requires Not Null!");
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByPk(metaFilterId);
         if (rowsFilterMetaTbl == null || rowsFilterMetaTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {

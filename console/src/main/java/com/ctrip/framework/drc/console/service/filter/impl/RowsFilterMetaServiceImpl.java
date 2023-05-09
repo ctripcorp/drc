@@ -34,9 +34,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -64,7 +69,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     private static final int RETRY_TIME = 3;
 
     @Override
-    public QConfigDataVO getWhiteList(String metaFilterName) throws SQLException {
+    public QConfigDataVO getWhiteList(String metaFilterName) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.QUERY", metaFilterName);
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
@@ -85,7 +90,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean addWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+    public boolean addWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.ADD", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
@@ -109,7 +114,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean deleteWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+    public boolean deleteWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.DELETE", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
@@ -133,7 +138,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws SQLException {
+    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.UPDATE", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
@@ -182,29 +187,31 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         for (ListenableFuture<Pair<String, Integer>> future : futures) {
             Pair<String, Integer> resultPair;
             try {
-                resultPair = future.get();
-            } catch (ExecutionException | InterruptedException e) {
+                resultPair = future.get(5, TimeUnit.SECONDS);
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
                 logger.error("BatchUpdate Config Error, {}", e);
-                throw new RuntimeException(e);
+                result = false;
+                continue;
             }
             if (resultPair != null && resultPair.getRight() > 0) {
                 successMap.put(resultPair.getLeft(), resultPair.getRight());
             } else {
                 logger.error("BatchUpdate Whitelist Config Fail, TargetSubEnv: {}", resultPair.getLeft());
                 result = false;
-                break;
             }
         }
 
         if (!result && MapUtils.isNotEmpty(successMap)) {  // rollback to last version
             logger.info("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
-            revertConfig(successMap);
+            if (!revertConfig(successMap)) {
+                logger.error("Revert Whitelist Config Fail, configMap: {}", configMap);
+            }
         }
 
         return result;
     }
 
-    private void revertConfig(Map<String, Integer> successMap) {
+    private boolean revertConfig(Map<String, Integer> successMap) {
         eventMonitor.logEvent("ROWS.META.FILTER.REVERT", "revert");
         ListeningExecutorService executorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
         List<ListenableFuture<Pair<String, Boolean>>> futures = Lists.newArrayListWithCapacity(successMap.size());
@@ -214,19 +221,25 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
             ListenableFuture<Pair<String, Boolean>> future = executorService.submit(() -> revertConfig(targetSubEnv, version));
             futures.add(future);
         }
-
+        boolean result = true;
         for (ListenableFuture<Pair<String, Boolean>> future : futures) {
-            Pair<String, Boolean> resultPair;
+            Pair<String, Boolean> resultPair = null;
             try {
-                resultPair = future.get();
+                resultPair = future.get(5, TimeUnit.SECONDS);
                 if (!resultPair.getRight()) {
+                    eventMonitor.logEvent("ROWS.META.FILTER.REVERT.FAIL", resultPair.getLeft());
                     logger.error("Revert Whitelist Config Error, TargetSubEnv: {}", resultPair.getLeft());
                 }
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                eventMonitor.logEvent("ROWS.META.FILTER.REVERT.FAIL", "revertTimeOut");
                 logger.error("Revert Config Error, {}", e);
-                throw new RuntimeException(e);
+            } finally {
+                if (resultPair == null || !resultPair.getRight()) {
+                    result = false;
+                }
             }
         }
+        return result;
     }
 
     private Pair<String, Boolean> revertConfig(String targetSubEnv, int version) {

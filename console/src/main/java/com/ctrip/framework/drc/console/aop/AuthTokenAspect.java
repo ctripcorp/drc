@@ -13,7 +13,6 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -44,7 +43,7 @@ public class AuthTokenAspect {
     }
 
     @Before(value = "pointcut() && @annotation(authToken)")
-    public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws SQLException {
+    public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws Exception {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String accessToken = request.getHeader("Access-Token");
 
@@ -89,7 +88,7 @@ public class AuthTokenAspect {
 
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
         if (rowsFilterMetaTbl == null || !accessToken.equals(rowsFilterMetaTbl.getToken())) {
-            logger.error("Invalid AccessToken, metaFilterName: {}", metaFilterName);
+            logger.error("Invalid AccessToken, metaFilterName: {}, accessToken: {}", metaFilterName, accessToken);
             throw new IllegalArgumentException("Invalid AccessToken!");
         }
     }
