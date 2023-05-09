@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingService;
@@ -13,7 +12,9 @@ import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
+import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,8 +52,9 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         return result == 1;
     }
 
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     @Override
-    public boolean createMetaMapping(RowsFilterMetaMappingCreateParam param) throws SQLException {
+    public boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws SQLException {
         checkMetaMappingCreateParam(param);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryById(param.getMetaFilterId());
         if (rowsFilterMetaTbl == null) {
@@ -60,6 +62,15 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
             throw new IllegalArgumentException(String.format("MetaFilterId: %s Does not Exist!", param.getMetaFilterId()));
         }
 
+        List<RowsFilterMetaMappingTbl> existMappings = rowsFilterMetaMappingTblDao.queryByMetaFilterId(rowsFilterMetaTbl.getId());
+        List<RowsFilterMetaMappingTbl> deleteMappings = existMappings.stream().filter(e -> !param.getFilterKeys().contains(e.getFilterKey())).collect(Collectors.toList());
+        deleteMappings.forEach(mapping -> {
+            mapping.setDeleted(BooleanEnum.TRUE.getCode());
+        });
+        rowsFilterMetaMappingTblDao.batchUpdate(deleteMappings);
+
+        List<String> existFilterKeys = existMappings.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList());
+        param.getFilterKeys().removeAll(existFilterKeys);
         List<RowsFilterMetaMappingTbl> metaMappingTbls = param.getFilterKeys().stream().map(source -> {
             RowsFilterMetaMappingTbl target = new RowsFilterMetaMappingTbl();
             target.setMetaFilterId(param.getMetaFilterId());
@@ -74,8 +85,8 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     }
 
     @Override
-    public List<RowsFilterMetaMappingVO> getMetaMappings(String metaFilterName) throws SQLException {
-        List<RowsFilterMetaMappingVO> metaMappingVOS = new ArrayList<>();
+    public List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws SQLException {
+        List<RowsFilterMetaMessageVO> metaMappingVOS = new ArrayList<>();
         List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
         if (CollectionUtils.isEmpty(rowsFilterMetaTbls)) {
             return metaMappingVOS;
@@ -83,23 +94,33 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
         List<Long> metaTblIds = rowsFilterMetaTbls.stream().map(RowsFilterMetaTbl::getId).collect(Collectors.toList());
         List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterIdS(metaTblIds);
-        Map<Long, List<String>> metaMappingMap = metaMappingTbls.stream().collect(Collectors.groupingBy(
-                RowsFilterMetaMappingTbl::getMetaFilterId, Collectors.mapping(RowsFilterMetaMappingTbl::getFilterKey, Collectors.toList())));
 
         metaMappingVOS = rowsFilterMetaTbls.stream().map(source -> {
-            RowsFilterMetaMappingVO target = new RowsFilterMetaMappingVO();
+            RowsFilterMetaMessageVO target = new RowsFilterMetaMessageVO();
             target.setMetaFilterId(source.getId());
             target.setMetaFilterName(source.getMetaFilterName());
             target.setBu(source.getBu());
             target.setOwner(source.getOwner());
-            target.setTargetSubenv(JsonUtils.fromJsonToList(source.getTargetSubenv(), String.class));
+            target.setTargetSubEnv(JsonUtils.fromJsonToList(source.getTargetSubenv(), String.class));
             target.setFilterType(source.getFilterType());
             target.setToken(source.getToken());
-            target.setFilterKeys(metaMappingMap.getOrDefault(source.getId(), new ArrayList<>()));
 
             return target;
         }).collect(Collectors.toList());
         return metaMappingVOS;
+    }
+
+    @Override
+    public RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws SQLException {
+        RowsFilterMetaMappingVO mappingVO = new RowsFilterMetaMappingVO();
+        mappingVO.setMetaFilterId(metaFilterId);
+
+        List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterId(metaFilterId);
+        if (CollectionUtils.isEmpty(metaMappingTbls)) {
+            return mappingVO;
+        }
+        mappingVO.setFilterKeys(metaMappingTbls.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList()));
+        return mappingVO;
     }
 
     private RowsFilterMetaTbl buildRowsFilterMetaTbl(RowsFilterMetaMessageCreateParam param) {

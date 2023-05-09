@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
@@ -20,6 +21,7 @@ import java.util.List;
 public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappingTbl> {
 
     private static final String META_FILTER_ID = "meta_filter_id";
+    private static final String DELETED = "deleted";
 
     public RowsFilterMetaMappingTblDao() throws SQLException {
         super(RowsFilterMetaMappingTbl.class);
@@ -37,7 +39,7 @@ public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappi
             return new ArrayList<>();
         }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().in(META_FILTER_ID, metaFilterIds, Types.BIGINT);
+        sqlBuilder.selectAll().in(META_FILTER_ID, metaFilterIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
     }
 }
