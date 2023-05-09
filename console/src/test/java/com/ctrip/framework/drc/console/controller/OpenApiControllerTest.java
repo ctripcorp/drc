@@ -35,11 +35,26 @@ public class OpenApiControllerTest {
         MockitoAnnotations.openMocks(this);
         mvc = MockMvcBuilders.standaloneSetup(openApiController).build();
         Mockito.doReturn(Lists.newArrayList()).when(openApiService).getAllDrcMhaDbFilters();
+        Mockito.doReturn(Lists.newArrayList()).when(openApiService).getDrcDbInfos(null);
     }
 
     @Test
     public void testGetDrcAllMhaDbFiltersInfo() throws Exception {
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/openapi/info/mhas")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+        int status = mvcResult.getResponse().getStatus();
+        String response = mvcResult.getResponse().getContentAsString();
+        Assert.assertEquals(200, status);
+        System.out.println(response);
+        Assert.assertNotNull(response);
+        Assert.assertNotEquals("", response);
+    }
+
+    @Test
+    public void testQueryDrcDbInfos() throws Exception {
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/openapi/info/dbs")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
