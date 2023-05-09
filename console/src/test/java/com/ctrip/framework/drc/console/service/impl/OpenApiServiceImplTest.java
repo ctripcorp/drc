@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
@@ -189,10 +191,11 @@ public class OpenApiServiceImplTest {
     
     @Test 
     public void testSplit() {
-        String nameFilter = "drc\\d*\\..*";  ///    drc\d*\..*
+        String nameFilter = "drc\\d\\..*";  ///    drc\d\..*
         String[] split = nameFilter.split("\\\\.");  //       \\.
-        String[] split1 = nameFilter.split("\\\\\\.");  //     \\\.
-        System.out.println("split length: " + split.length + "," + "split1 length:" + split1.length );
+        String[] split1 = nameFilter.split(ESCAPE_CHARACTER_DOT_REGEX);  //     \\\.
+        Assert.assertEquals(3,split.length);
+        Assert.assertEquals(2,split1.length);
     }
     
 }
