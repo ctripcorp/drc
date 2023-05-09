@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.filter.impl;
 
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
@@ -35,6 +36,8 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
     private static final Logger logger = LoggerFactory.getLogger(QConfigServiceImpl.class);
 
+    @Autowired
+    private DomainConfig domainConfig;
     @Autowired
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
     @Autowired
@@ -132,12 +135,17 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
 
         List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterId(metaFilterId);
         if (CollectionUtils.isEmpty(metaMappingTbls)) {
-            logger.warn("RowsFilterMetaMappings Not Exist, MetaFilterId: {}", metaFilterId);
-            return false;
+            logger.info("RowsFilterMetaMappings Not Exist, MetaFilterId: {}", metaFilterId);
+            return true;
         }
         metaMappingTbls.stream().forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         rowsFilterMetaMappingTblDao.batchUpdate(metaMappingTbls);
         return true;
+    }
+
+    @Override
+    public List<String> getTargetSubEnvs() {
+        return domainConfig.getWhiteListTargetSubEnv();
     }
 
     private RowsFilterMetaTbl buildRowsFilterMetaTbl(RowsFilterMetaMessageCreateParam param) {

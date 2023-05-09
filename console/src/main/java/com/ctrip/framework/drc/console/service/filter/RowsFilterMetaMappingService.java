@@ -23,4 +23,6 @@ public interface RowsFilterMetaMappingService {
     RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws Exception;
 
     boolean deleteMetaMessage(Long metaFilterId) throws Exception;
+
+    List<String> getTargetSubEnvs();
 }

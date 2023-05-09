@@ -15,9 +15,7 @@
           </FormItem>
           <FormItem label="请选择目标子环境" prop="targetSubEnv">
             <Select v-model="metaMessage.targetSubEnv" placeholder="目标子环境" style="width: 600px" multiple>
-              <Option value="fat1">fat1</Option>
-              <Option value="fat2">fat2</Option>
-              <Option value="3">fat3</Option>
+              <Option v-for="(item, index) in subEnvs" :value="item" :key="index"></Option>
             </Select>
           </FormItem>
           <FormItem label="bu" prop="bu">
@@ -35,15 +33,7 @@
           <FormItem>
             <Button @click="resetForm">重置</Button>
             <Button type="primary" @click="putMetaMessage" style="margin-left: 150px">新建配置</Button>
-<!--            <Button type="primary" @click="putMetaMessage('metaMessage')" style="margin-left: 150px">新建配置</Button>-->
             <Button type="primary" to="metaMessage" style="margin-left: 150px">返回</Button>
-            <!--            <Button type="primary" @click="changeModal('build')" style="margin-left: 150px">新建DRC同步集群</Button>-->
-            <!--            <Modal-->
-            <!--              v-model="build.modal"-->
-            <!--              title="创建DRC"-->
-            <!--              @on-ok="postBuild('build')">-->
-            <!--              <p>确定创建新DRC "{{build.oldClusterName + build.newClusterName}}" 吗？并且设置BU/DAL Cluster/appid为 "{{build.bu}}"/"{{build.dalclustername}}"/"{{build.appid}}"</p>-->
-            <!--            </Modal>-->
           </FormItem>
         </Form>
       </div>
@@ -62,6 +52,7 @@ export default {
       msg: '',
       title: '',
       hasResp: '',
+      subEnvs: [],
       metaMessage: {
         clusterName: '',
         metaFilterName: '',
@@ -78,7 +69,16 @@ export default {
           { required: true, message: '集群名称不能为空', trigger: 'blur' }
         ],
         targetSubEnv: [
-          { required: false, message: '请选择目标子环境', trigger: 'change' }
+          {
+            validator: (rule, value, callback) => {
+              if (value.length === 0) {
+                callback(new Error('请至少选择一个子环境'))
+              } else {
+                callback()
+              }
+            },
+            trigger: 'blur'
+          }
         ],
         bu: [
           { required: true, message: 'BU名不能为空', trigger: 'blur' }
@@ -93,6 +93,12 @@ export default {
     }
   },
   methods: {
+    getSubEnvs () {
+      this.axios.get('/api/drc/v1/filter/row/subEnv').then(response => {
+        this.subEnvs = response.data.data
+        console.log(this.subEnvs)
+      })
+    },
     putMetaMessage () {
       this.$refs.metaMessage.validate((valid) => {
         if (!valid) {
@@ -111,9 +117,6 @@ export default {
             if (response.data.status === 0) {
               this.$router.push('/metaMessage')
             } else {
-              // this.status = 'error'
-              // this.title = '创建失败！'
-              // this.message = response.data.message
               this.$Message.error('新建配置失败')
             }
           }).catch(message => {
@@ -128,6 +131,9 @@ export default {
     resetForm () {
       this.$refs.metaMessage.resetFields()
     }
+  },
+  created () {
+    this.getSubEnvs()
   }
 }
 </script>

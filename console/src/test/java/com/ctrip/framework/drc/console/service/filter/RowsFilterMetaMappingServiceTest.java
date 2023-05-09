@@ -39,21 +39,21 @@ public class RowsFilterMetaMappingServiceTest {
     }
 
     @Test
-    public void testCreateMetaMessage() throws SQLException {
+    public void testCreateMetaMessage() throws Exception {
         Mockito.when(rowsFilterMetaTblDao.insert(Mockito.any(RowsFilterMetaTbl.class))).thenReturn(1);
         boolean result = rowsFilterMetaMappingService.createMetaMessage(buildMessageCreateParam());
         Assert.assertTrue(result);
     }
 
     @Test
-    public void testCreateMetaMapping() throws SQLException {
+    public void testCreateMetaMapping() throws Exception {
         Mockito.when(rowsFilterMetaTblDao.queryById(Mockito.anyLong())).thenReturn(new RowsFilterMetaTbl());
         boolean result = rowsFilterMetaMappingService.createOrUpdateMetaMapping(buildMappingCreateParam());
         Assert.assertTrue(result);
     }
 
     @Test
-    public void getMetaMappings() throws SQLException {
+    public void getMetaMappings() throws Exception {
         Mockito.when(rowsFilterMetaTblDao.queryByMetaFilterName(Mockito.anyString())).thenReturn(buildValidMetaTbls());
         Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterIdS(Mockito.anyList())).thenReturn(buildValidMappingTbls());
         List<RowsFilterMetaMessageVO> result = rowsFilterMetaMappingService.getMetaMessages("metaFilterName");

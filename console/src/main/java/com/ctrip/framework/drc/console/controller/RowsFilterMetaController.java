@@ -171,4 +171,9 @@ public class RowsFilterMetaController {
         }
     }
 
+    @GetMapping("/subEnv")
+    public ApiResult<List<String>> getTargetSubEnvs() {
+        return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getTargetSubEnvs());
+    }
+
 }

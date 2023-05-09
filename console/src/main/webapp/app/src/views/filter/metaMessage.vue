@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/metaMessage">行过滤唯一标识配置</BreadcrumbItem>
+      <BreadcrumbItem to="/metaMessage">行过滤标识配置</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
@@ -12,12 +12,17 @@
           <Button :style="{marginLeft: '50px'}" type="primary" to="/buildMetaMessage">新增</Button>
           <br/>
           <br/>
-          <Table stripe :columns="columns" :data="metaMappings" border :span-method="handleSpan">
+          <Table stripe :columns="columns" :data="metaMappings" border>
             <template slot-scope="{ row, index }" slot="action">
-              <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看</Button>
+              <Button type="success" size="small" style="margin-right: 5px" @click="showMapping(row, index)">查看</Button>
               <Button type="primary" size="small" style="margin-right: 5px" @click="addMapping(row, index)">新增映射</Button>
-              <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">删除
-              </Button>
+              <Button type="error" size="small" style="margin-right: 5px" @click="changeModal(row, index)">删除</Button>
+              <Modal
+                v-model="modal"
+                title="删除行过滤标识"
+                @on-ok="deleteMapping(row, index)">
+                <p>确定删除行过滤标识: "{{row.metaFilterName}}" 吗?</p>
+              </Modal>
             </template>
           </Table>
         </Card>
@@ -33,6 +38,7 @@ export default {
     return {
       metaMappings: [],
       metaFilterName: null,
+      modal: false,
       columns: [
         {
           title: '序号',
@@ -48,6 +54,14 @@ export default {
         {
           title: '行过滤标识',
           key: 'metaFilterName'
+        },
+        {
+          title: '子环境',
+          key: 'targetSubEnv',
+          render: (h, params) => {
+            const dataList = params.row.targetSubEnv
+            return h('span', dataList.join(','))
+          }
         },
         {
           title: 'BU',
@@ -119,7 +133,23 @@ export default {
     },
     addMapping (row, index) {
       console.log('add mapping metaFilterId: ' + row.metaFilterId)
-      this.$router.push({ path: '/metaMapping', query: { metaFilterId: row.metaFilterId } })
+      this.$router.push({ path: '/buildMetaMapping', query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName } })
+    },
+    showMapping (row, index) {
+      this.$router.push({ path: '/metaMapping', query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName } })
+    },
+    deleteMapping (row, index) {
+      this.axios.delete('/api/drc/v1/filter/row/meta?metaFilterId=' + row.metaFilterId).then(response => {
+        if (response.data.status === 0) {
+          this.$Message.success('删除成功')
+          this.getMetaMappings()
+        } else {
+          this.$Message.error('删除失败')
+        }
+      })
+    },
+    changeModal (row, index) {
+      this.modal = true
     }
   },
   created () {

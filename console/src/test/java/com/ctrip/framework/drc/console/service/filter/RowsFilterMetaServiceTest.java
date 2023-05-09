@@ -44,7 +44,7 @@ public class RowsFilterMetaServiceTest {
     private EventMonitor eventMonitor;
 
     @Before
-    public void setUp() throws SQLException {
+    public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
         Mockito.doNothing().when(eventMonitor).logEvent(Mockito.anyString(), Mockito.anyString());
         Mockito.when(domainConfig.getQConfigApiConsoleToken()).thenReturn("token");
@@ -58,7 +58,7 @@ public class RowsFilterMetaServiceTest {
     }
 
     @Test
-    public void testGetWhitelist() throws SQLException {
+    public void testGetWhitelist() throws Exception {
         try (MockedStatic<JsonUtils> theMock = Mockito.mockStatic(JsonUtils.class)) {
             theMock.when(() -> {
                 JsonUtils.fromJsonToList(Mockito.anyString(), Mockito.eq(String.class));
@@ -72,7 +72,7 @@ public class RowsFilterMetaServiceTest {
     }
 
     @Test
-    public void testAddWhitelist() throws SQLException {
+    public void testAddWhitelist() throws Exception {
         try (MockedStatic<JsonUtils> theMock = Mockito.mockStatic(JsonUtils.class)) {
             theMock.when(() -> {
                 JsonUtils.fromJsonToList(Mockito.anyString(), Mockito.eq(String.class));
@@ -86,7 +86,7 @@ public class RowsFilterMetaServiceTest {
     }
 
     @Test
-    public void testDeleteWhitelist() throws SQLException {
+    public void testDeleteWhitelist() throws Exception {
         try (MockedStatic<JsonUtils> theMock = Mockito.mockStatic(JsonUtils.class)) {
             theMock.when(() -> {
                 JsonUtils.fromJsonToList(Mockito.anyString(), Mockito.eq(String.class));
@@ -100,7 +100,7 @@ public class RowsFilterMetaServiceTest {
     }
 
     @Test
-    public void testUpdateWhitelist() throws SQLException {
+    public void testUpdateWhitelist() throws Exception {
         try (MockedStatic<JsonUtils> theMock = Mockito.mockStatic(JsonUtils.class)) {
             theMock.when(() -> {
                 JsonUtils.fromJsonToList(Mockito.anyString(), Mockito.eq(String.class));
