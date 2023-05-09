@@ -152,6 +152,11 @@ const routes = [
     component: () => import('../views/filter/metaMessage.vue')
   },
   {
+    path: '/metaMapping',
+    name: 'metaMapping',
+    component: () => import('../views/filter/metaMapping.vue')
+  },
+  {
     path: '/mqConfigs',
     name: 'mqConfigs',
     component: () => import('../views/drcConfig/mqConfigs.vue')

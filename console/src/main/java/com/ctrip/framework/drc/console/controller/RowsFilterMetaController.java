@@ -101,16 +101,6 @@ public class RowsFilterMetaController {
         }
     }
 
-    @PostMapping("/test")
-    public ApiResult<Boolean> test(@RequestParam String id) {
-        boolean result = id.equals("1");
-        if (result) {
-            return ApiResult.getSuccessInstance(true);
-        } else {
-            return ApiResult.getFailInstance(false);
-        }
-    }
-
     @PutMapping("/meta")
     public ApiResult<Boolean> createMetaMessage(@RequestBody RowsFilterMetaMessageCreateParam param) {
         try {
