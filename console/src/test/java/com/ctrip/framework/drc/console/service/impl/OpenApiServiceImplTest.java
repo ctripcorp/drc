@@ -187,4 +187,12 @@ public class OpenApiServiceImplTest {
         Assert.assertNotEquals(0, allDrcDbInfo.size());
     }
     
+    @Test 
+    public void testSplit() {
+        String nameFilter = "drc\\d*\\..*";  ///    drc\d*\..*
+        String[] split = nameFilter.split("\\\\.");  //       \\.
+        String[] split1 = nameFilter.split("\\\\\\.");  //     \\\.
+        System.out.println("split length: " + split.length + "," + "split1 length:" + split1.length );
+    }
+    
 }
