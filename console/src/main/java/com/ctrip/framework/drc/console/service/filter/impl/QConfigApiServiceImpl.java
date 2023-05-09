@@ -69,7 +69,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
 
-        UpdateQConfigResponse response = HttpUtils.post(postUrl, param.getDetailParam(), UpdateQConfigResponse.class, buildBatchUpdateParamMap(param));
+        UpdateQConfigResponse response = HttpUtils.post(postUrl, param.getDetailParam(), UpdateQConfigResponse.class, param.extractMap());
         return response;
     }
 
@@ -79,12 +79,12 @@ public class QConfigApiServiceImpl implements QConfigApiService {
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId(), param.getVersion());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
 
-        UpdateQConfigResponse response = HttpUtils.post(postUrl, null, UpdateQConfigResponse.class, buildRevertParamMap(param));
+        UpdateQConfigResponse response = HttpUtils.post(postUrl, null, UpdateQConfigResponse.class, param.extractMap());
         return response;
     }
 
     private Map<String, String> buildQueryParamMap(QConfigQueryParam param) {
-        HashMap<String, String> urlParams = Maps.newHashMap();
+        Map<String, String> urlParams = new HashMap<>();
         urlParams.put("token", param.getToken());
         urlParams.put("groupid", param.getGroupId());
         urlParams.put("dataid", param.getDataId());
@@ -96,31 +96,8 @@ public class QConfigApiServiceImpl implements QConfigApiService {
     }
 
     private Map<String, String> buildQueryVersionParamMap(QConfigVersionQueryParam param) {
-        HashMap<String, String> urlParams = Maps.newHashMap();
-        urlParams.put("token", param.getToken());
-        urlParams.put("operator", param.getOperator());
-        urlParams.put("serverenv", param.getServerEnv());
-        urlParams.put("groupid", param.getGroupId());
+        Map<String, String> urlParams = param.extractMap();
         urlParams.put("targetdataids", param.getTargetDataId());
-
-        return urlParams;
-    }
-
-    private Map<String, String> buildBatchUpdateParamMap(QConfigBatchUpdateParam param) {
-        HashMap<String, String> urlParams = Maps.newHashMap();
-        urlParams.put("token", param.getToken());
-        urlParams.put("operator", param.getOperator());
-        urlParams.put("serverenv", param.getServerEnv());
-        urlParams.put("groupid", param.getGroupId());
-        return urlParams;
-    }
-
-    private Map<String, String> buildRevertParamMap(QConfigRevertParam param) {
-        HashMap<String, String> urlParams = Maps.newHashMap();
-        urlParams.put("token", param.getToken());
-        urlParams.put("operator", param.getOperator());
-        urlParams.put("serverenv", param.getServerEnv());
-        urlParams.put("groupid", param.getGroupId());
         return urlParams;
     }
 }

@@ -1,5 +1,8 @@
 package com.ctrip.framework.drc.console.param.filter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by dengquanliang
  * 2023/5/8 20:43
@@ -9,6 +12,16 @@ public class QConfigBaseParam {
     private String serverEnv;
     private String groupId;
     private String operator;
+
+    public Map<String, String> extractMap() {
+        Map<String, String> paramMap = new HashMap<>();
+        paramMap.put("token", this.getToken());
+        paramMap.put("operator", this.getOperator());
+        paramMap.put("serverenv", this.getServerEnv());
+        paramMap.put("groupid", this.getGroupId());
+
+        return paramMap;
+    }
 
     @Override
     public String toString() {

@@ -44,7 +44,7 @@ public class AuthTokenAspect {
     }
 
     @Before(value = "pointcut() && @annotation(authToken)")
-    public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws SQLException {
+    public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws Exception {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String accessToken = request.getHeader("Access-Token");
 
