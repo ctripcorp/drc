@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
 import com.ctrip.framework.drc.console.service.filter.impl.RowsFilterMetaMappingServiceImpl;
+import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -19,6 +20,7 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -46,19 +48,39 @@ public class RowsFilterMetaMappingServiceTest {
     }
 
     @Test
-    public void testCreateMetaMapping() throws Exception {
+    public void testCreateOrUpdateMetaMapping() throws Exception {
         Mockito.when(rowsFilterMetaTblDao.queryById(Mockito.anyLong())).thenReturn(new RowsFilterMetaTbl());
+        Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterId(Mockito.anyLong())).thenReturn(new ArrayList<>());
+        Mockito.when(rowsFilterMetaMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[0]);
+        Mockito.when(rowsFilterMetaMappingTblDao.insert(Mockito.anyList())).thenReturn(new int[0]);
         boolean result = rowsFilterMetaMappingService.createOrUpdateMetaMapping(buildMappingCreateParam());
         Assert.assertTrue(result);
     }
 
     @Test
-    public void getMetaMappings() throws Exception {
+    public void testGetMetaMessages() throws Exception {
         Mockito.when(rowsFilterMetaTblDao.queryByMetaFilterName(Mockito.anyString())).thenReturn(buildValidMetaTbls());
-        Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterIdS(Mockito.anyList())).thenReturn(buildValidMappingTbls());
         List<RowsFilterMetaMessageVO> result = rowsFilterMetaMappingService.getMetaMessages("metaFilterName");
         Assert.assertTrue(result.size() > 0);
     }
+
+    @Test
+    public void testGetMetaMappings() throws Exception {
+        Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterId(Mockito.anyLong())).thenReturn(buildValidMappingTbls());
+        RowsFilterMetaMappingVO result = rowsFilterMetaMappingService.getMetaMappings(1L);
+        Assert.assertTrue(result.getFilterKeys().size() > 0);
+    }
+
+    @Test
+    public void testDeleteMetaMessage() throws Exception {
+        Mockito.when(rowsFilterMetaTblDao.queryByPk(Mockito.anyLong())).thenReturn(buildValidMetaTbl());
+        Mockito.when(rowsFilterMetaTblDao.update(Mockito.any(RowsFilterMetaTbl.class))).thenReturn(1);
+        Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterId(Mockito.anyLong())).thenReturn(buildValidMappingTbls());
+        Mockito.when(rowsFilterMetaMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
+
+        Assert.assertTrue(rowsFilterMetaMappingService.deleteMetaMessage(1L));
+    }
+
 
     private RowsFilterMetaMessageCreateParam buildMessageCreateParam() {
         RowsFilterMetaMessageCreateParam param = new RowsFilterMetaMessageCreateParam();
@@ -86,11 +108,16 @@ public class RowsFilterMetaMappingServiceTest {
     }
 
     private List<RowsFilterMetaTbl> buildValidMetaTbls() {
+        return Lists.newArrayList(buildValidMetaTbl());
+    }
+
+    private RowsFilterMetaTbl buildValidMetaTbl() {
         RowsFilterMetaTbl metaTbl = new RowsFilterMetaTbl();
         metaTbl.setId(0L);
         metaTbl.setTargetSubenv(JsonUtils.toJson(Lists.newArrayList("subEnv")));
         metaTbl.setFilterType(1);
-        return Lists.newArrayList(metaTbl);
+        return metaTbl;
     }
+
 
 }

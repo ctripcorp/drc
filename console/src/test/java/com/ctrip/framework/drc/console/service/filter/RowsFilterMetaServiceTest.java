@@ -21,7 +21,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 
 /**
