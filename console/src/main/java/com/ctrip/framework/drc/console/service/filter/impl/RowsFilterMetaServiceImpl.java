@@ -24,7 +24,6 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -198,7 +197,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
             }
         }
 
-        if (!result && MapUtils.isNotEmpty(successMap)) {  // rollback to last version
+        if (!result && successMap.size() > 0) {  // rollback to last version
             logger.warn("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
             if (!revertConfig(successMap)) {
                 logger.error("Revert Whitelist Config Fail, configKeys: {}", configMap.keySet());
