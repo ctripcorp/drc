@@ -20,8 +20,8 @@
               <Modal
                 v-model="modal"
                 title="删除行过滤标识"
-                @on-ok="deleteMapping(row, index)">
-                <p>确定删除行过滤标识: "{{row.metaFilterName}}" 吗?</p>
+                @on-ok="deleteMapping">
+                <p>确定删除行过滤标识: {{deletedItem.metaFilterName}} 吗?</p>
               </Modal>
             </template>
           </Table>
@@ -39,6 +39,10 @@ export default {
       metaMappings: [],
       metaFilterName: null,
       modal: false,
+      deletedItem: {
+        metaFilterId: Number,
+        metaFilterName: String
+      },
       columns: [
         {
           title: '序号',
@@ -138,8 +142,10 @@ export default {
     showMapping (row, index) {
       this.$router.push({ path: '/metaMapping', query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName } })
     },
-    deleteMapping (row, index) {
-      this.axios.delete('/api/drc/v1/filter/row/meta?metaFilterId=' + row.metaFilterId).then(response => {
+    deleteMapping () {
+      console.log('deleted metaFilterId: ' + this.deletedItem.metaFilterId)
+      console.log('deleted metaFilterName: ' + this.deletedItem.metaFilterName)
+      this.axios.delete('/api/drc/v1/filter/row/meta?metaFilterId=' + this.deletedItem.metaFilterId).then(response => {
         if (response.data.status === 0) {
           this.$Message.success('删除成功')
           this.getMetaMappings()
@@ -149,7 +155,10 @@ export default {
       })
     },
     changeModal (row, index) {
+      console.log('change modal')
       this.modal = true
+      this.deletedItem.metaFilterId = row.metaFilterId
+      this.deletedItem.metaFilterName = row.metaFilterName
     }
   },
   created () {
