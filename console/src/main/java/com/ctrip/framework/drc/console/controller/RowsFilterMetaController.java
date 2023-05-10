@@ -43,7 +43,7 @@ public class RowsFilterMetaController {
             return ApiResult.getSuccessInstance(rowsFilterMetaService.getWhiteList(metaFilterName));
         } catch (Exception e) {
             logger.error("Get Rows Filter Whitelist Error, metaFilterName: {}", metaFilterName, e);
-            return ApiResult.getFailInstance(null);
+            return ApiResult.getFailInstance(null, "Query Config Error");
         }
     }
 
@@ -57,11 +57,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Add Config Fail");
             }
         } catch (Exception e) {
             logger.error("Add Rows Filter Whitelist Error, param: {}", param, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Add Config Error");
         }
     }
 
@@ -75,11 +75,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Delete Config Fail");
             }
         } catch (Exception e) {
             logger.error("Delete Rows Filter Whitelist Error, param: {}", param, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Delete Config Error");
         }
     }
 
@@ -93,11 +93,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Update Config Fail");
             }
         } catch (Exception e) {
             logger.error("Update Rows Filter Whitelist Error, param: {}", param, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Update Config Error");
         }
     }
 
@@ -109,11 +109,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Create MetaMessage Fail");
             }
         } catch (Exception e) {
             logger.error("Create Meta Message Error, param: {}", param, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Create MetaMessage Error");
         }
     }
 
@@ -125,11 +125,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Update MetaMapping Fail");
             }
         } catch (Exception e) {
             logger.error("Create Meta Mapping Error, param: {}", param, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false,"Update MetaMapping Error");
         }
     }
 
@@ -140,7 +140,7 @@ public class RowsFilterMetaController {
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMessages(metaFilterName));
         } catch (Exception e) {
             logger.error("Get Rows Filter Meta Message List error, metaFilterName: {}", metaFilterName, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Query MetaMessage Error");
         }
     }
 
@@ -151,7 +151,7 @@ public class RowsFilterMetaController {
             return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMappings(metaFilterId));
         } catch (Exception e) {
             logger.error("Get Rows Filter Meta Mapping List error, metaFilterId: {}", metaFilterId, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Query MetaMapping Error");
         }
     }
 
@@ -163,11 +163,11 @@ public class RowsFilterMetaController {
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
-                return ApiResult.getFailInstance(false);
+                return ApiResult.getFailInstance(false, "Delete MetaMessage Fail");
             }
         } catch (Exception e) {
             logger.error("Delete Rows Filter Meta Message error, metaFilterId: {}", metaFilterId, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(false, "Delete MetaMessage Error");
         }
     }
 

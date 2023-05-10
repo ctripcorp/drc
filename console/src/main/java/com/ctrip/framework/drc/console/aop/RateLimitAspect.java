@@ -1,9 +1,10 @@
 package com.ctrip.framework.drc.console.aop;
 
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.util.concurrent.RateLimiter;
-import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
@@ -31,15 +32,24 @@ public class RateLimitAspect {
     public void pointcut() {
     }
 
-    @Before("pointcut()")
-    public void doBefore(JoinPoint joinPoint) {
+    @Around("pointcut()")
+    public Object doBefore(ProceedingJoinPoint joinPoint) {
         if (!rateLimiter.tryAcquire()) {
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();
             Method method = signature.getMethod();
             logger.warn("Service Current is Limiting, Method Name: {}", method.getName());
-            throw new RuntimeException("Unable to Provide Service!");
+            return ApiResult.getFailInstance(null, "Service not available!");
         }
+        return invokeMethod(joinPoint);
     }
 
-
+    private Object invokeMethod(ProceedingJoinPoint joinPoint) {
+        Object[] args = joinPoint.getArgs();
+        try {
+            return joinPoint.proceed(args);
+        } catch (Throwable e) {
+            logger.error("[[tag=AuthToken]] error", e);
+            return null;
+        }
+    }
 }

@@ -9,13 +9,13 @@ import com.ctrip.framework.drc.console.param.filter.*;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
-import com.ctrip.framework.drc.console.thread.ConsoleThreadFactory;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
 import com.ctrip.framework.drc.console.vo.filter.UpdateQConfigResponse;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.google.common.base.Joiner;
@@ -33,13 +33,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -63,7 +61,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
 
     private EventMonitor eventMonitor = DefaultEventMonitorHolder.getInstance();
-    private static ExecutorService EXECUTOR_SERVICE = ConsoleThreadFactory.rowsFilterMetaExecutor();
+    private final ListeningExecutorService rowsFilterExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "rowsFilterMeta"));
     private static final String CONFIG_NAME = "drc.properties";
     private static final int CONFIG_SPLIT_LENGTH = 2;
     private static final int RETRY_TIME = 3;
@@ -175,10 +173,9 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     private boolean batchUpdateConfig(Map<String, String> configMap, List<String> targetSubEnvs, String metaFilterName, String operator, String filterKey) {
-        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
         List<ListenableFuture<Pair<String, Integer>>> futures = Lists.newArrayListWithCapacity(targetSubEnvs.size());
         for (String subEnv : targetSubEnvs) {
-            ListenableFuture<Pair<String, Integer>> future = executorService.submit(() -> updateConfig(configMap, metaFilterName, subEnv, filterKey, operator));
+            ListenableFuture<Pair<String, Integer>> future = rowsFilterExecutorService.submit(() -> updateConfig(configMap, metaFilterName, subEnv, filterKey, operator));
             futures.add(future);
         }
 
@@ -202,23 +199,21 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         }
 
         if (!result && MapUtils.isNotEmpty(successMap)) {  // rollback to last version
-            logger.info("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
+            logger.warn("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
             if (!revertConfig(successMap)) {
-                logger.error("Revert Whitelist Config Fail, configMap: {}", configMap);
+                logger.error("Revert Whitelist Config Fail, configKeys: {}", configMap.keySet());
             }
         }
-
         return result;
     }
 
     private boolean revertConfig(Map<String, Integer> successMap) {
         eventMonitor.logEvent("ROWS.META.FILTER.REVERT", "revert");
-        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(EXECUTOR_SERVICE);
         List<ListenableFuture<Pair<String, Boolean>>> futures = Lists.newArrayListWithCapacity(successMap.size());
         for (Map.Entry<String, Integer> entry : successMap.entrySet()) {
             String targetSubEnv = entry.getKey();
             int version = entry.getValue();
-            ListenableFuture<Pair<String, Boolean>> future = executorService.submit(() -> revertConfig(targetSubEnv, version));
+            ListenableFuture<Pair<String, Boolean>> future = rowsFilterExecutorService.submit(() -> revertConfig(targetSubEnv, version));
             futures.add(future);
         }
         boolean result = true;
@@ -251,7 +246,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         return Pair.of(targetSubEnv, false);
     }
 
-    private Pair<String, Integer> updateConfig(Map<String, String> configMap, String metaFilterName, String targetSubEnv, String filterKey, String operator) throws SQLException {
+    private Pair<String, Integer> updateConfig(Map<String, String> configMap, String metaFilterName, String targetSubEnv, String filterKey, String operator) {
         for (int i = 0; i < RETRY_TIME; i++) {
             QConfigDataVO qConfigDataVO = getWhiteList(metaFilterName, targetSubEnv, filterKey);
             QConfigBatchUpdateParam batchUpdateParam = buildBatchUpdateParam(configMap, targetSubEnv, operator, qConfigDataVO.getVersion());

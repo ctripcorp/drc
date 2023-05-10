@@ -2,10 +2,13 @@ package com.ctrip.framework.drc.console.aop;
 
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
+import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
@@ -42,8 +45,8 @@ public class AuthTokenAspect {
     public void pointcut() {
     }
 
-    @Before(value = "pointcut() && @annotation(authToken)")
-    public void doBefore(JoinPoint joinPoint, AuthToken authToken) throws Exception {
+    @Around(value = "pointcut() && @annotation(authToken)")
+    public Object around(ProceedingJoinPoint joinPoint, AuthToken authToken) throws Exception {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         String accessToken = request.getHeader("Access-Token");
 
@@ -65,10 +68,10 @@ public class AuthTokenAspect {
                 break;
         }
 
-        checkToken(accessToken, metaFilterName);
+        return checkToken(accessToken, metaFilterName, joinPoint);
     }
 
-    private Map<String, Object> getParamMap(JoinPoint joinPoint) {
+    private Map<String, Object> getParamMap(ProceedingJoinPoint joinPoint) {
         Map<String, Object> paramMap = new HashMap<>();
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Object[] paramValues = joinPoint.getArgs();
@@ -81,15 +84,30 @@ public class AuthTokenAspect {
         return paramMap;
     }
 
-    private void checkToken(String accessToken, String metaFilterName) throws SQLException {
-        if (StringUtils.isBlank(accessToken) || StringUtils.isBlank(metaFilterName)) {
-            throw new IllegalArgumentException("Invalid AccessToken!");
+    private Object checkToken(String accessToken, String metaFilterName, ProceedingJoinPoint joinPoint) throws Exception {
+        if (StringUtils.isBlank(metaFilterName)) {
+            return ApiResult.getFailInstance("MetaFilterName Requires Not Empty!");
         }
-
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
-        if (rowsFilterMetaTbl == null || !accessToken.equals(rowsFilterMetaTbl.getToken())) {
-            logger.error("Invalid AccessToken, metaFilterName: {}, accessToken: {}", metaFilterName, accessToken);
-            throw new IllegalArgumentException("Invalid AccessToken!");
+        if (rowsFilterMetaTbl == null) {
+            return ApiResult.getFailInstance("MetaFilterName Not Exist!");
+        }
+        if (StringUtils.isBlank(accessToken)) {
+            return ApiResult.getFailInstance("Require AccessToken!");
+        }
+        if (!accessToken.equals(rowsFilterMetaTbl.getToken())) {
+            return ApiResult.getFailInstance("Invalid AccessToken!");
+        }
+        return invokeMethod(joinPoint);
+    }
+
+    private Object invokeMethod(ProceedingJoinPoint joinPoint) {
+        Object[] args = joinPoint.getArgs();
+        try {
+            return joinPoint.proceed(args);
+        } catch (Throwable e) {
+            logger.error("[[tag=AuthToken]] error", e);
+            return null;
         }
     }
 
