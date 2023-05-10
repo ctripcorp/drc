@@ -197,7 +197,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
             }
         }
 
-        if (!result && successMap.size() > 0) {  // rollback to last version
+        if (!result && !successMap.isEmpty()) {  // rollback to last version
             logger.warn("BatchUpdate Whitelist Config Fail Need To Revert, SuccessMap: {}", successMap);
             if (!revertConfig(successMap)) {
                 logger.error("Revert Whitelist Config Fail, configKeys: {}", configMap.keySet());
@@ -225,7 +225,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
                     logger.error("Revert Whitelist Config Error, TargetSubEnv: {}", resultPair.getLeft());
                 }
             } catch (ExecutionException | InterruptedException | TimeoutException e) {
-                eventMonitor.logEvent("ROWS.META.FILTER.REVERT.FAIL", "revertTimeOut");
+                eventMonitor.logEvent("ROWS.META.FILTER.REVERT.FAIL", "revertError");
                 logger.error("Revert Config Error, {}", e);
             } finally {
                 if (resultPair == null || !resultPair.getRight()) {
