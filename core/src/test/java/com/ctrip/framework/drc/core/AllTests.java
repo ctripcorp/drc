@@ -36,6 +36,7 @@ import com.ctrip.framework.drc.core.monitor.column.DelayMonitorColumnTest;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnumTest;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReportTest;
 import com.ctrip.framework.drc.core.monitor.util.IsolateHashCacheTest;
+import com.ctrip.framework.drc.core.server.common.AbstractResourceManagerTest;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeTypeTest;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterTypeTest;
 import com.ctrip.framework.drc.core.server.common.filter.row.*;
@@ -254,8 +255,10 @@ import org.junit.runners.Suite;
         WriteFieldEnumMeta2TypeTest.class,
 
         //mq
-        MessengerPropertiesTest.class
+        MessengerPropertiesTest.class,
 
+        //zookeeper
+        AbstractResourceManagerTest.class
 })
 public class AllTests {
     /**
