@@ -9,12 +9,14 @@ import java.util.List;
 public class RowsFilterMetaMappingVO {
     private Long metaFilterId;
     private List<String> filterKeys;
+    private String filterValue;
 
     @Override
     public String toString() {
         return "RowsFilterMetaMappingVO{" +
                 "metaFilterId=" + metaFilterId +
                 ", filterKeys=" + filterKeys +
+                ", filterValue='" + filterValue + '\'' +
                 '}';
     }
 
@@ -32,5 +34,13 @@ public class RowsFilterMetaMappingVO {
 
     public void setFilterKeys(List<String> filterKeys) {
         this.filterKeys = filterKeys;
+    }
+
+    public String getFilterValue() {
+        return filterValue;
+    }
+
+    public void setFilterValue(String filterValue) {
+        this.filterValue = filterValue;
     }
 }

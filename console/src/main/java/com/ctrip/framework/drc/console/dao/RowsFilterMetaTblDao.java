@@ -6,9 +6,11 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -41,6 +43,15 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
     public List<RowsFilterMetaTbl> queryByMetaFilterName(String metaFilterName) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.BIGINT);
+        if (StringUtils.isNotBlank(metaFilterName)) {
+            sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
+        }
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<RowsFilterMetaTbl> queryByIds(List<Long> ids, String metaFilterName) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(ID, ids, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         if (StringUtils.isNotBlank(metaFilterName)) {
             sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
         }

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.filter;
 
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
@@ -7,6 +8,8 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
 import com.ctrip.framework.drc.console.service.filter.impl.RowsFilterMetaMappingServiceImpl;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDetailData;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -34,6 +37,10 @@ public class RowsFilterMetaMappingServiceTest {
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
     @Mock
     private RowsFilterMetaMappingTblDao rowsFilterMetaMappingTblDao;
+    @Mock
+    private DomainConfig domainConfig;
+    @Mock
+    private QConfigApiService qConfigApiService;
 
     @Before
     public void setUp() {
@@ -59,16 +66,23 @@ public class RowsFilterMetaMappingServiceTest {
 
     @Test
     public void testGetMetaMessages() throws Exception {
-        Mockito.when(rowsFilterMetaTblDao.queryByMetaFilterName(Mockito.anyString())).thenReturn(buildValidMetaTbls());
-        List<RowsFilterMetaMessageVO> result = rowsFilterMetaMappingService.getMetaMessages("metaFilterName");
+        Mockito.when(rowsFilterMetaMappingTblDao.queryByFilterKey(Mockito.anyString())).thenReturn(buildValidMappingTbls());
+        Mockito.when(rowsFilterMetaTblDao.queryByIds(Mockito.anyList(), Mockito.anyString())).thenReturn(buildValidMetaTbls());
+        List<RowsFilterMetaMessageVO> result = rowsFilterMetaMappingService.getMetaMessages("metaFilterName", "mhaName");
         Assert.assertTrue(result.size() > 0);
     }
 
     @Test
     public void testGetMetaMappings() throws Exception {
+        Mockito.when(rowsFilterMetaTblDao.queryByPk(Mockito.anyLong())).thenReturn(buildValidMetaTbl());
         Mockito.when(rowsFilterMetaMappingTblDao.queryByMetaFilterId(Mockito.anyLong())).thenReturn(buildValidMappingTbls());
+        Mockito.when(domainConfig.getQConfigApiConsoleToken()).thenReturn("token");
+        Mockito.when(domainConfig.getWhiteListTargetSubEnv()).thenReturn(Lists.newArrayList("subEnv"));
+        Mockito.when(qConfigApiService.getQConfigData(Mockito.any())).thenReturn(buildExistQConfigResponse());
+
         RowsFilterMetaMappingVO result = rowsFilterMetaMappingService.getMetaMappings(1L);
         Assert.assertTrue(result.getFilterKeys().size() > 0);
+        Assert.assertEquals(result.getFilterValue(), "value");
     }
 
     @Test
@@ -81,6 +95,15 @@ public class RowsFilterMetaMappingServiceTest {
         Assert.assertTrue(rowsFilterMetaMappingService.deleteMetaMessage(1L));
     }
 
+    private QConfigDataResponse buildExistQConfigResponse() {
+        QConfigDataResponse res = new QConfigDataResponse();
+        res.setStatus(0);
+
+        QConfigDetailData detailData = new QConfigDetailData();
+        detailData.setData("key=value");
+        res.setData(detailData);
+        return res;
+    }
 
     private RowsFilterMetaMessageCreateParam buildMessageCreateParam() {
         RowsFilterMetaMessageCreateParam param = new RowsFilterMetaMessageCreateParam();

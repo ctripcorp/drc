@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateP
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -18,7 +17,7 @@ public interface RowsFilterMetaMappingService {
 
     boolean createOrUpdateMetaMapping(RowsFilterMetaMappingCreateParam param) throws Exception;
 
-    List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws Exception;
+    List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName, String mhaName) throws Exception;
 
     RowsFilterMetaMappingVO getMetaMappings(Long metaFilterId) throws Exception;
 

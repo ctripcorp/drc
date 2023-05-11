@@ -134,10 +134,10 @@ public class RowsFilterMetaController {
     }
 
     @GetMapping("/meta/all")
-    public ApiResult<List<RowsFilterMetaMessageVO>> getMetaMessageList(@RequestParam(required = false) String metaFilterName) {
+    public ApiResult<List<RowsFilterMetaMessageVO>> getMetaMessageList(@RequestParam(required = false) String metaFilterName, @RequestParam(required = false) String mhaName) {
         try {
-            logger.info("Get Rows Filter Meta Message List, metaFilterName: {}", metaFilterName);
-            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMessages(metaFilterName));
+            logger.info("Get Rows Filter Meta Message List, metaFilterName: {}, mhaName: {}", metaFilterName, mhaName);
+            return ApiResult.getSuccessInstance(rowsFilterMetaMappingService.getMetaMessages(metaFilterName, mhaName));
         } catch (Exception e) {
             logger.error("Get Rows Filter Meta Message List error, metaFilterName: {}", metaFilterName, e);
             return ApiResult.getFailInstance(null, e.getMessage());

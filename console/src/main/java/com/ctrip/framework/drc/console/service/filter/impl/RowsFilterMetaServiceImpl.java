@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.param.filter.*;
+import com.ctrip.framework.drc.console.service.assistant.RowsFilterServiceAssistant;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
@@ -32,8 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -62,7 +61,6 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     private EventMonitor eventMonitor = DefaultEventMonitorHolder.getInstance();
     private final ListeningExecutorService rowsFilterExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "rowsFilterMeta"));
     private static final String CONFIG_NAME = "drc.properties";
-    private static final int CONFIG_SPLIT_LENGTH = 2;
     private static final int RETRY_TIME = 3;
 
     @Override
@@ -159,14 +157,14 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
 
     private QConfigDataVO getWhiteList(String metaFilterName, String targetSubEnv, String filterKey) {
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
-        QConfigQueryParam queryParam = buildQueryParam(targetSubEnv);
+        QConfigQueryParam queryParam = RowsFilterServiceAssistant.buildQueryParam(targetSubEnv, domainConfig.getQConfigApiConsoleToken(), domainConfig.getWhitelistTargetGroupId());
         QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
         if (response == null || !response.exist() || response.getData() == null) {
-            logger.info("Config Does not Exist, MetaFilterName: {}, TargetSubEnv: {}", metaFilterName, targetSubEnv);
+            logger.warn("Config Does not Exist, MetaFilterName: {}, TargetSubEnv: {}", metaFilterName, targetSubEnv);
             return qConfigDataVO;
         }
 
-        qConfigDataVO.setWhitelist(content2Whitelist(response.getData().getData(), filterKey));
+        qConfigDataVO.setWhitelist(RowsFilterServiceAssistant.content2Whitelist(response.getData().getData(), filterKey));
         qConfigDataVO.setVersion(response.getData().getEditVersion());
         return qConfigDataVO;
     }
@@ -257,18 +255,6 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         return Pair.of(targetSubEnv, -1);
     }
 
-    private QConfigQueryParam buildQueryParam(String subEnv) {
-        QConfigQueryParam queryParam = new QConfigQueryParam();
-        queryParam.setToken(domainConfig.getQConfigApiConsoleToken());
-        queryParam.setGroupId(Foundation.app().getAppId());
-        queryParam.setDataId(CONFIG_NAME);
-        queryParam.setEnv(EnvUtils.getEnv());
-        queryParam.setSubEnv(subEnv);
-        queryParam.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
-
-        return queryParam;
-    }
-
     private QConfigBatchUpdateParam buildBatchUpdateParam(Map<String, String> configMap, String targetSubEnv, String operator, int version) {
         QConfigBatchUpdateParam param = new QConfigBatchUpdateParam();
         param.setToken(domainConfig.getQConfigApiConsoleToken());
@@ -332,30 +318,6 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         Map<String, String> configMap = Maps.newLinkedHashMap();
         for (String filterKey : filterKeys) {
             configMap.put(filterKey, configValue);
-        }
-        return configMap;
-    }
-
-    private List<String> content2Whitelist(String content, String key) {
-        Map<String, String> configMap = string2Map(content);
-        String configValue = configMap.getOrDefault(key, "");
-        if (StringUtils.isBlank(configValue)) {
-            return new ArrayList<>();
-        }
-        return Arrays.stream(configValue.split(",")).collect(Collectors.toList());
-    }
-
-    private Map<String, String> string2Map(String content) {
-        Map<String, String> configMap = Maps.newLinkedHashMap();
-        if (StringUtils.isEmpty(content)) {
-            return configMap;
-        }
-        String[] configs = content.split("\n");
-        for (int i = 0; i < configs.length; i++) {
-            String[] entry = configs[i].split("=");
-            if (entry.length == CONFIG_SPLIT_LENGTH) {
-                configMap.put(entry[0], entry[1]);
-            }
         }
         return configMap;
     }

@@ -22,6 +22,7 @@ public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappi
 
     private static final String META_FILTER_ID = "meta_filter_id";
     private static final String DELETED = "deleted";
+    private static final String FILTER_KEY = "filter_key";
 
     public RowsFilterMetaMappingTblDao() throws SQLException {
         super(RowsFilterMetaMappingTbl.class);
@@ -40,6 +41,12 @@ public class RowsFilterMetaMappingTblDao extends AbstractDao<RowsFilterMetaMappi
         }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(META_FILTER_ID, metaFilterIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<RowsFilterMetaMappingTbl> queryByFilterKey(String filterKey) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().like(FILTER_KEY, "%" + filterKey + "%", Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
     }
 }

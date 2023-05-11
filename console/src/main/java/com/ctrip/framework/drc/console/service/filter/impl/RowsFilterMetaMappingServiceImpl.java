@@ -6,16 +6,21 @@ import com.ctrip.framework.drc.console.dao.RowsFilterMetaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMetaTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMappingCreateParam;
 import com.ctrip.framework.drc.console.param.filter.RowsFilterMetaMessageCreateParam;
+import com.ctrip.framework.drc.console.service.assistant.RowsFilterServiceAssistant;
+import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMappingVO;
 import com.ctrip.framework.drc.console.vo.filter.RowsFilterMetaMessageVO;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +30,7 @@ import org.springframework.util.DigestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +48,8 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     private RowsFilterMetaTblDao rowsFilterMetaTblDao;
     @Autowired
     private RowsFilterMetaMappingTblDao rowsFilterMetaMappingTblDao;
+    @Autowired
+    private QConfigApiService qConfigApiService;
 
     private static final String TOKEN_PREFIX = "drc.uid.filter.";
 
@@ -86,9 +94,19 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     }
 
     @Override
-    public List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName) throws Exception {
+    public List<RowsFilterMetaMessageVO> getMetaMessages(String metaFilterName, String mhaName) throws Exception {
         List<RowsFilterMetaMessageVO> metaMappingVOS = new ArrayList<>();
-        List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByMetaFilterName(metaFilterName);
+
+        List<Long> metaFilterIds = new ArrayList<>();
+
+        if (StringUtils.isNotBlank(mhaName)) {
+            List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByFilterKey(mhaName);
+            if (CollectionUtils.isEmpty(metaMappingTbls)) {
+                return metaMappingVOS;
+            }
+            metaFilterIds = metaMappingTbls.stream().map(RowsFilterMetaMappingTbl::getMetaFilterId).collect(Collectors.toList());
+        }
+        List<RowsFilterMetaTbl> rowsFilterMetaTbls = rowsFilterMetaTblDao.queryByIds(metaFilterIds, metaFilterName);
         if (CollectionUtils.isEmpty(rowsFilterMetaTbls)) {
             return metaMappingVOS;
         }
@@ -113,11 +131,25 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         RowsFilterMetaMappingVO mappingVO = new RowsFilterMetaMappingVO();
         mappingVO.setMetaFilterId(metaFilterId);
 
+        RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByPk(metaFilterId);
+        if (rowsFilterMetaTbl == null) {
+            throw new IllegalArgumentException(String.format("MetaFilterId: %s Not Exist!", metaFilterId));
+        }
         List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterId(metaFilterId);
         if (CollectionUtils.isEmpty(metaMappingTbls)) {
             return mappingVO;
         }
         mappingVO.setFilterKeys(metaMappingTbls.stream().map(RowsFilterMetaMappingTbl::getFilterKey).collect(Collectors.toList()));
+
+        List<String> targetSubEnvs = JsonUtils.fromJsonToList(rowsFilterMetaTbl.getTargetSubenv(), String.class);
+        QConfigQueryParam queryParam = RowsFilterServiceAssistant.buildQueryParam(targetSubEnvs.get(0), domainConfig.getQConfigApiConsoleToken(), domainConfig.getWhitelistTargetGroupId());
+        QConfigDataResponse response = qConfigApiService.getQConfigData(queryParam);
+        if (response == null || !response.exist() || response.getData() == null) {
+            logger.warn("Config Does not Exist, MetaFilterName: {}, TargetSubEnv: {}",rowsFilterMetaTbl.getMetaFilterName(), targetSubEnvs.get(0));
+            return mappingVO;
+        }
+
+        mappingVO.setFilterValue(RowsFilterServiceAssistant.getConfigValue(response.getData().getData(), mappingVO.getFilterKeys().get(0)));
         return mappingVO;
     }
 
