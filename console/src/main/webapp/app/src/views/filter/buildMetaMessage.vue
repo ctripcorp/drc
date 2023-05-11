@@ -10,9 +10,6 @@
           <FormItem label="行过滤唯一标识" prop="metaFilterName">
             <Input v-model="metaMessage.metaFilterName" placeholder="请输入行过滤唯一标识" style="width: 600px"></Input>
           </FormItem>
-          <FormItem label="集群名称" prop="clusterName">
-            <Input v-model="metaMessage.clusterName" placeholder="请输入集群名称" style="width: 600px"></Input>
-          </FormItem>
           <FormItem label="请选择目标子环境" prop="targetSubEnv">
             <Select v-model="metaMessage.targetSubEnv" placeholder="目标子环境" style="width: 600px" multiple>
               <Option v-for="(item, index) in subEnvs" :value="item" :key="index"></Option>
@@ -54,7 +51,6 @@ export default {
       hasResp: '',
       subEnvs: [],
       metaMessage: {
-        clusterName: '',
         metaFilterName: '',
         targetSubEnv: '',
         bu: '',
@@ -64,9 +60,6 @@ export default {
       ruleForm: {
         metaFilterName: [
           { required: true, message: '行过滤唯一标识不能为空', trigger: 'blur' }
-        ],
-        clusterName: [
-          { required: true, message: '集群名称不能为空', trigger: 'blur' }
         ],
         targetSubEnv: [
           {
@@ -106,7 +99,6 @@ export default {
         } else {
           console.log(this.metaMessage)
           this.axios.put('/api/drc/v1/filter/row/meta', {
-            clusterName: this.metaMessage.clusterName,
             metaFilterName: this.metaMessage.metaFilterName,
             targetSubEnv: this.metaMessage.targetSubEnv,
             bu: this.metaMessage.bu,

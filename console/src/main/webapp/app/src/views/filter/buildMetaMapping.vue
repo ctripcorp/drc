@@ -10,7 +10,7 @@
         <Form style="margin-top: 30px">
           <div v-for="(item, index) in formData" :key="index">
             <FormItem>
-              <Input type="text" v-model="formData[index]" placeholder="请输入行过滤key" required="true" style="width: 500px"></Input>
+              <Input type="text" v-model="formData[index]" placeholder="请输入行过滤key" required="true" style="width: 600px"></Input>
               <Button :style="{marginLeft: '50px'}" type="primary" @click="delRow(item, index)">删除</Button>
             </FormItem>
           </div>
