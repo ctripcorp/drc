@@ -7,7 +7,6 @@ import java.util.List;
  * 2023/4/25 17:37
  */
 public class RowsFilterMetaMessageCreateParam {
-    private String clusterName;
     private String metaFilterName;
     private List<String> targetSubEnv;
     private String bu;
@@ -18,8 +17,8 @@ public class RowsFilterMetaMessageCreateParam {
     @Override
     public String toString() {
         return "RowsFilterMetaMessageCreateParam{" +
-                "clusterName='" + clusterName + '\'' +
-                ", targetSubEnv='" + targetSubEnv + '\'' +
+                "metaFilterName='" + metaFilterName + '\'' +
+                ", targetSubEnv=" + targetSubEnv +
                 ", bu='" + bu + '\'' +
                 ", owner='" + owner + '\'' +
                 ", filterType=" + filterType +
@@ -32,14 +31,6 @@ public class RowsFilterMetaMessageCreateParam {
 
     public void setMetaFilterName(String metaFilterName) {
         this.metaFilterName = metaFilterName;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
     }
 
     public List<String> getTargetSubEnv() {

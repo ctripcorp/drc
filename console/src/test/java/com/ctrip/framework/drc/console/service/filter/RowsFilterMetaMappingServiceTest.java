@@ -84,7 +84,6 @@ public class RowsFilterMetaMappingServiceTest {
 
     private RowsFilterMetaMessageCreateParam buildMessageCreateParam() {
         RowsFilterMetaMessageCreateParam param = new RowsFilterMetaMessageCreateParam();
-        param.setClusterName("clusterName");
         param.setMetaFilterName("metaFilterName");
         param.setTargetSubEnv(Lists.newArrayList("subEnv"));
         param.setBu("bu");
