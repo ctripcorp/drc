@@ -47,3 +47,4 @@ console/src/main/webapp/drc-admin
 #local
 console/src/main/resources/drc.properties
 
+/console/src/main/resources/static/
