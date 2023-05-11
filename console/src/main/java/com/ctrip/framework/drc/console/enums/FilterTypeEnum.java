@@ -5,8 +5,8 @@ package com.ctrip.framework.drc.console.enums;
  * 2023/4/26 16:24
  */
 public enum FilterTypeEnum {
-    BLACKLIST(1, "黑名单"),
-    WHITELIST(2, "白名单"),
+    BLACKLIST(1, "blacklist"),
+    WHITELIST(2, "whitelist"),
     ;
 
     private int code;
