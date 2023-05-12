@@ -93,9 +93,9 @@ public class QConfigServiceImpl implements QConfigService {
             // machine,fileConfig  env & subEnv is same
             String localEnv = getLocalEnv();
             String fileSubEnv = getFileSubEnv(affectedDc);
-
+            
             String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),
-                    fullTableName.split("\\\\.")[0]);
+                    matchTables.get(0).getSchema());
             String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
             FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
@@ -144,7 +144,7 @@ public class QConfigServiceImpl implements QConfigService {
             String localEnv = getLocalEnv();
             String fileSubEnv = getFileSubEnv(affectedDc);
 
-            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),table.split("\\\\.")[0]);
+            String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(),matchTables.get(0).getSchema());
             String fileName = dalClusterName + PROPERTIES_SUFFIX;
 
             logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{},topic:{},table:{}",fileName,topic,table);
@@ -244,7 +244,7 @@ public class QConfigServiceImpl implements QConfigService {
     }
 
     private  Map<String,String> string2config(String context) {
-        Map<String,String>  res = Maps.newHashMap();
+        Map<String,String>  res = Maps.newLinkedHashMap();
         if (StringUtils.isBlank(context)) {
             return res;
         }
@@ -274,12 +274,12 @@ public class QConfigServiceImpl implements QConfigService {
     private Map<String, String> processRemovePartialConfig(String topic,String tag, List<TableSchemaName> tablesToBeDelete,
             Map<String, String> originalConfig) {
         // only update tableName is enough
-        Set<String> tables = Sets.newHashSet();
+        Set<String> tables = Sets.newLinkedHashSet();
         if (!CollectionUtils.isEmpty(originalConfig)) {
             // remove some originalConfig
             String tableString = originalConfig.get(topic + "." + TABLENAME);
             if (StringUtils.isNotEmpty(tableString)) {
-                tables.addAll(Sets.newHashSet(tableString.split(",")));
+                tables.addAll(Lists.newArrayList(tableString.split(",")));
                 for (TableSchemaName tableToBeDeleted : tablesToBeDelete) {
                     tables.remove(tableToBeDeleted.getName());
                 }
@@ -302,8 +302,8 @@ public class QConfigServiceImpl implements QConfigService {
     
     private Map<String, String> processAddOrUpdateConfig(String topicRelated,String tagRelated, List<TableSchemaName> matchTables,
             Map<String, String> originalConfig) {
-        Set<String> dbs = Sets.newHashSet();
-        Set<String> tables = Sets.newHashSet();
+        Set<String> dbs = Sets.newLinkedHashSet();
+        Set<String> tables = Sets.newLinkedHashSet();
         String tag = null;
         for (TableSchemaName table: matchTables) {
             dbs.add(table.getSchema());
@@ -321,10 +321,10 @@ public class QConfigServiceImpl implements QConfigService {
             String tableString = originalConfig.get(tableNameKey);
             String tagString = originalConfig.get(tagKey);
             if (StringUtils.isNotEmpty(dbString)) {
-                dbs.addAll(Sets.newHashSet(dbString.split(",")));
+                dbs.addAll(Lists.newArrayList(dbString.split(",")));
             }
             if (StringUtils.isNotEmpty(tableString)) {
-                tables.addAll(Sets.newHashSet(tableString.split(",")));
+                tables.addAll(Lists.newArrayList(tableString.split(",")));
             }
             if (StringUtils.isNotEmpty(tagString)) {
                 if (StringUtils.isNotEmpty(tagRelated) && !tagString.equalsIgnoreCase(tagRelated)) {

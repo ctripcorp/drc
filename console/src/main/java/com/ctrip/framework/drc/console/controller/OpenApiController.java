@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,7 +29,6 @@ public class OpenApiController {
     
     
     @GetMapping("info/mhas")
-    @ResponseBody
     public ApiResult getDrcAllMhaDbFiltersInfo() {
         try {
             List<MhaGroupFilterVo> allDrcMhaDbFilters = openApiService.getAllDrcMhaDbFilters();
@@ -42,7 +41,6 @@ public class OpenApiController {
 
 
     @GetMapping("info/messengers")
-    @ResponseBody
     public ApiResult getAllMessengersInfo() {
         try {
             return ApiResult.getSuccessInstance(openApiService.getAllMessengersInfo());
@@ -51,5 +49,16 @@ public class OpenApiController {
             return ApiResult.getFailInstance(e);
         }
     }
+
+    @GetMapping("info/dbs")
+    public ApiResult queryDrcDbInfos(@RequestParam(required=false) String dbName) {
+        try {
+            return ApiResult.getSuccessInstance(openApiService.getDrcDbInfos(dbName));
+        } catch (Exception e) {
+            logger.error("error in queryDrcDbInfos",e);
+            return ApiResult.getFailInstance(e,"error");
+        }
+    }
+    
     
 }

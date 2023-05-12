@@ -2,12 +2,12 @@ package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.activity.monitor.MqMetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.MqMonitorContext;
-import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.applier.mq.MqProvider;
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.mq.*;
 import com.ctrip.framework.drc.fetcher.resource.context.sql.SQLUtil;
 import com.ctrip.framework.drc.fetcher.system.InstanceActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
@@ -77,6 +77,9 @@ public class MqTransactionContextResource extends TransactionContextResource imp
             producer.send(eventDatas);
             rowsSize += eventDatas.size();
             reportHickWall(eventDatas);
+        }
+        if (progress != null) {
+            progress.tick();
         }
     }
 
