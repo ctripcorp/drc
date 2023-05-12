@@ -51,7 +51,10 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
 
     public List<RowsFilterMetaTbl> queryByIds(List<Long> ids, String metaFilterName) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().in(ID, ids, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        sqlBuilder.selectAll().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.BIGINT);
+        if (!CollectionUtils.isEmpty(ids)) {
+            sqlBuilder.and().in(ID, ids, Types.BIGINT);
+        }
         if (StringUtils.isNotBlank(metaFilterName)) {
             sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
         }

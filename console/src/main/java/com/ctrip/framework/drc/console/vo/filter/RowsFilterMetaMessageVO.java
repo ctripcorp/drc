@@ -14,7 +14,6 @@ public class RowsFilterMetaMessageVO {
     private String owner;
     private List<String> targetSubEnv;
     private Integer filterType;
-    private String token;
 
     @Override
     public String toString() {
@@ -25,7 +24,6 @@ public class RowsFilterMetaMessageVO {
                 ", owner='" + owner + '\'' +
                 ", targetSubEnv=" + targetSubEnv +
                 ", filterType=" + filterType +
-                ", token='" + token + '\'' +
                 '}';
     }
 
@@ -75,14 +73,6 @@ public class RowsFilterMetaMessageVO {
 
     public void setFilterType(Integer filterType) {
         this.filterType = filterType;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
     }
 
 }

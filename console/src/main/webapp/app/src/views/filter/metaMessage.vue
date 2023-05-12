@@ -8,7 +8,9 @@
       <div style="padding: 1px 1px">
         <Card>
           行过滤标识:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="metaFilterName"/>
+          mha:<Input :style="{width: '200px', marginRight: '10px'}" placeholder="默认全部" v-model="mhaName"/>
           <Button :style="{marginLeft: '50px'}" type="primary" @click="getMetaMappings">查询</Button>
+          <Button :style="{marginLeft: '50px'}" type="primary" @click="reset">重置</Button>
           <Button :style="{marginLeft: '50px'}" type="primary" to="/buildMetaMessage">新增</Button>
           <br/>
           <br/>
@@ -38,6 +40,7 @@ export default {
     return {
       metaMappings: [],
       metaFilterName: null,
+      mhaName: null,
       modal: false,
       deletedItem: {
         metaFilterId: Number,
@@ -113,10 +116,6 @@ export default {
           }
         },
         {
-          title: 'token',
-          key: 'token'
-        },
-        {
           title: '操作',
           slot: 'action',
           align: 'center'
@@ -127,8 +126,18 @@ export default {
   methods: {
     getMetaMappings () {
       let url = '/api/drc/v1/filter/row/meta/all'
-      if (this.metaFilterName !== null) {
+      let flag = false
+      if (this.metaFilterName !== null && this.metaFilterName !== '') {
+        flag = true
         url = url + '?metaFilterName=' + this.metaFilterName
+      }
+      if (this.mhaName !== null && this.mhaName !== '') {
+        if (flag) {
+          url = url + '&'
+        } else {
+          url = url + '?'
+        }
+        url = url + 'mhaName=' + this.mhaName
       }
       this.axios.get(url).then(response => {
         this.metaMappings = response.data.data
@@ -137,10 +146,16 @@ export default {
     },
     addMapping (row, index) {
       console.log('add mapping metaFilterId: ' + row.metaFilterId)
-      this.$router.push({ path: '/buildMetaMapping', query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName } })
+      this.$router.push({
+        path: '/buildMetaMapping',
+        query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName }
+      })
     },
     showMapping (row, index) {
-      this.$router.push({ path: '/metaMapping', query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName } })
+      this.$router.push({
+        path: '/metaMapping',
+        query: { metaFilterId: row.metaFilterId, metaFilterName: row.metaFilterName }
+      })
     },
     deleteMapping () {
       console.log('deleted metaFilterId: ' + this.deletedItem.metaFilterId)
@@ -159,6 +174,10 @@ export default {
       this.modal = true
       this.deletedItem.metaFilterId = row.metaFilterId
       this.deletedItem.metaFilterName = row.metaFilterName
+    },
+    reset () {
+      this.metaFilterName = null
+      this.mhaName = null
     }
   },
   created () {

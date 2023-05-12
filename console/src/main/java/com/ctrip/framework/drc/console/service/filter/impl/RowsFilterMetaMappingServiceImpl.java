@@ -119,7 +119,6 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
             target.setOwner(source.getOwner());
             target.setTargetSubEnv(JsonUtils.fromJsonToList(source.getTargetSubenv(), String.class));
             target.setFilterType(source.getFilterType());
-            target.setToken(source.getToken());
 
             return target;
         }).collect(Collectors.toList());
@@ -135,6 +134,9 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
         if (rowsFilterMetaTbl == null) {
             throw new IllegalArgumentException(String.format("MetaFilterId: %s Not Exist!", metaFilterId));
         }
+        mappingVO.setToken(rowsFilterMetaTbl.getToken());
+        mappingVO.setFilterType(rowsFilterMetaTbl.getFilterType());
+
         List<RowsFilterMetaMappingTbl> metaMappingTbls = rowsFilterMetaMappingTblDao.queryByMetaFilterId(metaFilterId);
         if (CollectionUtils.isEmpty(metaMappingTbls)) {
             return mappingVO;

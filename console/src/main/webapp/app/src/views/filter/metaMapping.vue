@@ -8,8 +8,15 @@
       <div style="padding: 1px 1px">
         <p style="font-size: 16px; font-weight: bold">行过滤标识: {{metaFilterName}}</p>
         <br>
+        <p style="font-weight: bold">token: </p>
+        <p>{{formData.token}}</p>
+        <br>
+        <p v-if="formData.filterType !== null" style="font-weight: bold">{{filterLabel}}: </p>
+        <textarea disabled v-model="formData.filterValue" style="width: 100%"></textarea>
+        <br><br>
         <List>
-          <ListItem v-for="(item , index) in formData" :key="index">{{ item }}</ListItem>
+          <ListItem style="font-weight: bold">行过滤映射key:</ListItem>
+          <ListItem v-for="(item , index) in formData.filterKeys" :key="index">{{ item }}</ListItem>
         </List>
         <Button type="primary" to="/metaMessage" style="margin-left: 100px">返回</Button>
       </div>
@@ -25,18 +32,28 @@ export default {
     return {
       metaFilterId: Number,
       metaFilterName: String,
-      formData: ['']
+      filterLabel: '',
+      filterKeys: [''],
+      formData: {
+        etaFilterId: Number,
+        filterType: null,
+        filterValue: '',
+        token: '',
+        filterKeys: ['']
+      }
     }
   },
   methods: {
     getMetaMappings () {
-      console.log('metaFilterName:' + this.metaFilterName)
       const url = '/api/drc/v1/filter/row/mapping?metaFilterId=' + this.metaFilterId
       this.axios.get(url).then(response => {
-        if (response.data.data.filterKeys.length > 0) {
-          this.formData = response.data.data.filterKeys
+        if (response.data.status === 0) {
+          this.formData = response.data.data
+          const filterType = response.data.data.filterType
+          this.filterLabel = filterType != null ? filterType === 0 ? '黑名单' : '白名单' : null
+        } else {
+          this.$Message.error(response.data.message)
         }
-        console.log('formData: ' + this.formData)
       })
     }
   },

@@ -10,6 +10,8 @@ public class RowsFilterMetaMappingVO {
     private Long metaFilterId;
     private List<String> filterKeys;
     private String filterValue;
+    private String token;
+    private Integer filterType;
 
     @Override
     public String toString() {
@@ -17,6 +19,8 @@ public class RowsFilterMetaMappingVO {
                 "metaFilterId=" + metaFilterId +
                 ", filterKeys=" + filterKeys +
                 ", filterValue='" + filterValue + '\'' +
+                ", token='" + token + '\'' +
+                ", filterType=" + filterType +
                 '}';
     }
 
@@ -42,5 +46,21 @@ public class RowsFilterMetaMappingVO {
 
     public void setFilterValue(String filterValue) {
         this.filterValue = filterValue;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public Integer getFilterType() {
+        return filterType;
+    }
+
+    public void setFilterType(Integer filterType) {
+        this.filterType = filterType;
     }
 }
