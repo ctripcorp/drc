@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.param.filter.QConfigVersionQueryParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
-import com.ctrip.framework.drc.console.vo.filter.QConfigVersionResponse;
 import com.ctrip.framework.drc.console.vo.filter.UpdateQConfigResponse;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -53,17 +52,8 @@ public class QConfigApiServiceImpl implements QConfigApiService {
     }
 
     @Override
-    public QConfigVersionResponse getQConfigVersion(QConfigVersionQueryParam param) {
-        String urlFormat = domainConfig.getQConfigRestApiUrl() + CONFIG_URL + "/%s/envs/%s/subenvs/%s/versions";
-        String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv());
-        String getUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}&targetdataids={targetdataids}";
-
-        QConfigVersionResponse response = HttpUtils.get(getUrl, QConfigVersionResponse.class, buildQueryVersionParamMap(param));
-        return response;
-    }
-
-    @Override
     public UpdateQConfigResponse batchUpdateConfig(QConfigBatchUpdateParam param) {
+        eventMonitor.logEvent("QCONFIG.CONSOLE.UPDATE", param.getTargetDataId());
         String urlFormat = domainConfig.getQConfigRestApiUrl() + PROPERTY_URL + "/%s/envs/%s/subenvs/%s" + CONFIG_URL + "/%s";
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
@@ -74,6 +64,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
 
     @Override
     public UpdateQConfigResponse revertConfig(QConfigRevertParam param) {
+        eventMonitor.logEvent("QCONFIG.CONSOLE.REVERT", param.getTargetDataId());
         String urlFormat = domainConfig.getQConfigRestApiUrl() + CONFIG_URL + "/%s/envs/%s/subenvs/%s/%s/versions/%s/revert";
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId(), param.getVersion());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";

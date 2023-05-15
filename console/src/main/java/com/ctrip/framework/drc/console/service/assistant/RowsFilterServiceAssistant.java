@@ -5,7 +5,6 @@ import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.foundation.Foundation;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;

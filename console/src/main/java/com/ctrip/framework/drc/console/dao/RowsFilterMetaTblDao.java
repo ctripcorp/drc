@@ -23,6 +23,7 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
     private static final String ID = "id";
     private static final String META_FILTER_NAME = "meta_filter_name";
     private static final String DELETED = "deleted";
+    private static final String DATACHANGE_LASTTIME = "datachange_lasttime";
 
     public RowsFilterMetaTblDao() throws SQLException {
         super(RowsFilterMetaTbl.class);
@@ -46,6 +47,7 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
         if (StringUtils.isNotBlank(metaFilterName)) {
             sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
         }
+        sqlBuilder.orderBy(DATACHANGE_LASTTIME, false);
         return client.query(sqlBuilder, new DalHints());
     }
 
@@ -58,6 +60,7 @@ public class RowsFilterMetaTblDao extends AbstractDao<RowsFilterMetaTbl> {
         if (StringUtils.isNotBlank(metaFilterName)) {
             sqlBuilder.and().equal(META_FILTER_NAME, metaFilterName, Types.VARCHAR);
         }
+        sqlBuilder.orderBy(DATACHANGE_LASTTIME, false);
         return client.query(sqlBuilder, new DalHints());
     }
 
