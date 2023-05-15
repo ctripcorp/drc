@@ -159,6 +159,10 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     public boolean deleteMetaMessage(Long metaFilterId) throws Exception {
         PreconditionUtils.checkId(metaFilterId, "MetaFilterId Requires Not Null!");
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryByPk(metaFilterId);
+        if (rowsFilterMetaTbl == null || BooleanEnum.TRUE.getCode().equals(rowsFilterMetaTbl.getDeleted())) {
+            logger.warn("RowsFilterMetaTbl Not Exist, MetaFilterId: {}", metaFilterId);
+            return false;
+        }
         if (rowsFilterMetaTbl == null || rowsFilterMetaTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {
             logger.warn("RowsFilterMetaTbl Not Exist, MetaFilterId: {}", metaFilterId);
             return false;
