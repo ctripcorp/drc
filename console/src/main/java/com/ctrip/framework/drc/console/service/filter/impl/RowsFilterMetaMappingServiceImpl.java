@@ -163,10 +163,6 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
             logger.warn("RowsFilterMetaTbl Not Exist, MetaFilterId: {}", metaFilterId);
             return false;
         }
-        if (rowsFilterMetaTbl == null || rowsFilterMetaTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {
-            logger.warn("RowsFilterMetaTbl Not Exist, MetaFilterId: {}", metaFilterId);
-            return false;
-        }
         rowsFilterMetaTbl.setDeleted(BooleanEnum.TRUE.getCode());
         rowsFilterMetaTblDao.update(rowsFilterMetaTbl);
 
