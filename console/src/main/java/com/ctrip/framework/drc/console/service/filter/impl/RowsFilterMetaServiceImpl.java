@@ -64,7 +64,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     private static final int RETRY_TIME = 3;
 
     @Override
-    public QConfigDataVO getWhiteList(String metaFilterName) throws Exception {
+    public QConfigDataVO getWhitelist(String metaFilterName) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.QUERY", metaFilterName);
         QConfigDataVO qConfigDataVO = new QConfigDataVO();
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(metaFilterName);
@@ -85,7 +85,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean addWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
+    public boolean addWhitelist(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.ADD", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
@@ -109,7 +109,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean deleteWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
+    public boolean deleteWhitelist(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.DELETE", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());
@@ -133,7 +133,7 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
     }
 
     @Override
-    public boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws Exception {
+    public boolean updateWhitelist(RowsMetaFilterParam param, String operator) throws Exception {
         eventMonitor.logEvent("ROWS.META.FILTER.UPDATE", param.getMetaFilterName());
         checkParam(param, operator);
         RowsFilterMetaTbl rowsFilterMetaTbl = rowsFilterMetaTblDao.queryOneByMetaFilterName(param.getMetaFilterName());

@@ -9,16 +9,16 @@ import com.ctrip.framework.drc.console.vo.filter.QConfigDataVO;
  */
 public interface RowsFilterMetaService {
 
-    QConfigDataVO getWhiteList(String metaFilterName) throws Exception;
+    QConfigDataVO getWhitelist(String metaFilterName) throws Exception;
 
-    boolean addWhiteList(RowsMetaFilterParam param, String operator) throws Exception;
+    boolean addWhitelist(RowsMetaFilterParam param, String operator) throws Exception;
 
-    boolean deleteWhiteList (RowsMetaFilterParam param, String operator) throws Exception;
+    boolean deleteWhitelist(RowsMetaFilterParam param, String operator) throws Exception;
 
     /**
      * full override
      * @param param
      * @return
      */
-    boolean updateWhiteList(RowsMetaFilterParam param, String operator) throws Exception;
+    boolean updateWhitelist(RowsMetaFilterParam param, String operator) throws Exception;
 }

@@ -63,7 +63,7 @@ public class RowsFilterMetaServiceTest {
                 JsonUtils.fromJsonToList(Mockito.anyString(), Mockito.eq(String.class));
             }).thenReturn(Lists.newArrayList("sub"));
 
-            QConfigDataVO result = rowsFilterMetaService.getWhiteList("metaFilterName");
+            QConfigDataVO result = rowsFilterMetaService.getWhitelist("metaFilterName");
             Mockito.verify(qConfigApiService, Mockito.times(1)).getQConfigData(Mockito.any(QConfigQueryParam.class));
             Assert.assertNotNull(result);
         }
@@ -78,7 +78,7 @@ public class RowsFilterMetaServiceTest {
             }).thenReturn(Lists.newArrayList("sub"));
 
             Mockito.when(qConfigApiService.batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class))).thenReturn(getValidResponse());
-            boolean result = rowsFilterMetaService.addWhiteList(buildRowsMetaFilterParam(), "operator");
+            boolean result = rowsFilterMetaService.addWhitelist(buildRowsMetaFilterParam(), "operator");
             Mockito.verify(qConfigApiService, Mockito.times(1)).batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class));
             Assert.assertTrue(result);
         }
@@ -92,7 +92,7 @@ public class RowsFilterMetaServiceTest {
             }).thenReturn(Lists.newArrayList("sub"));
 
             Mockito.when(qConfigApiService.batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class))).thenReturn(getValidResponse());
-            boolean result = rowsFilterMetaService.deleteWhiteList(buildRowsMetaFilterParam(), "operator");
+            boolean result = rowsFilterMetaService.deleteWhitelist(buildRowsMetaFilterParam(), "operator");
             Mockito.verify(qConfigApiService, Mockito.times(1)).batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class));
             Assert.assertTrue(result);
         }
@@ -106,7 +106,7 @@ public class RowsFilterMetaServiceTest {
             }).thenReturn(Lists.newArrayList("sub"));
 
             Mockito.when(qConfigApiService.batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class))).thenReturn(getInValidResponse());
-            boolean result = rowsFilterMetaService.updateWhiteList(buildRowsMetaFilterParam(), "operator");
+            boolean result = rowsFilterMetaService.updateWhitelist(buildRowsMetaFilterParam(), "operator");
             Mockito.verify(qConfigApiService, Mockito.times(3)).batchUpdateConfig(Mockito.any(QConfigBatchUpdateParam.class));
             Assert.assertFalse(result);
         }

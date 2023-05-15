@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigRevertParam;
-import com.ctrip.framework.drc.console.param.filter.QConfigVersionQueryParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
@@ -26,8 +25,6 @@ import java.util.Map;
  */
 @Service
 public class QConfigApiServiceImpl implements QConfigApiService {
-
-    private static final Logger logger = LoggerFactory.getLogger(QConfigServiceImpl.class);
 
     @Autowired
     private DomainConfig domainConfig;
@@ -85,9 +82,4 @@ public class QConfigApiServiceImpl implements QConfigApiService {
         return urlParams;
     }
 
-    private Map<String, String> buildQueryVersionParamMap(QConfigVersionQueryParam param) {
-        Map<String, String> urlParams = param.extractMap();
-        urlParams.put("targetdataids", param.getTargetDataId());
-        return urlParams;
-    }
 }

@@ -40,7 +40,7 @@ public class RowsFilterMetaController {
     public ApiResult<QConfigDataVO> getWhitelist(@PathVariable String metaFilterName) {
         try {
             logger.info("Get Rows Filter Whitelist, metaFilterName: {}", metaFilterName);
-            return ApiResult.getSuccessInstance(rowsFilterMetaService.getWhiteList(metaFilterName));
+            return ApiResult.getSuccessInstance(rowsFilterMetaService.getWhitelist(metaFilterName));
         } catch (Exception e) {
             logger.error("Get Rows Filter Whitelist Error, metaFilterName: {}", metaFilterName, e);
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -53,7 +53,7 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> addWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Add Rows Filter Whitelist, param: {}", param);
-            boolean result = rowsFilterMetaService.addWhiteList(param, operator);
+            boolean result = rowsFilterMetaService.addWhitelist(param, operator);
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
@@ -71,7 +71,7 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> deleteWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Delete Rows Filter Whitelist, param: {}", param);
-            boolean result = rowsFilterMetaService.deleteWhiteList(param, operator);
+            boolean result = rowsFilterMetaService.deleteWhitelist(param, operator);
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
@@ -89,7 +89,7 @@ public class RowsFilterMetaController {
     public ApiResult<Boolean> updateWhitelist(@RequestBody RowsMetaFilterParam param, @RequestParam String operator) {
         try {
             logger.info("Update Rows Filter Whitelist, param: {}", param);
-            boolean result = rowsFilterMetaService.updateWhiteList(param, operator);
+            boolean result = rowsFilterMetaService.updateWhitelist(param, operator);
             if (result) {
                 return ApiResult.getSuccessInstance(true);
             } else {
