@@ -40,6 +40,7 @@ import com.ctrip.framework.drc.console.monitor.unit.UnitVerificationManagerTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
+import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
 import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
@@ -131,6 +132,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         RowsFilterMetaServiceTest.class,
         RowsFilterMetaMappingServiceTest.class,
+        QConfigApiServiceTest.class,
         
         // controller
         AccessControllerTest.class,
@@ -149,6 +151,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterServiceImplTest.class,
         MessengerControllerTest.class,
         DataMediaControllerTest.class,
+        RowsFilterMetaControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,

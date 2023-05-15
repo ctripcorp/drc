@@ -5,14 +5,11 @@ import com.ctrip.framework.drc.console.param.filter.QConfigBatchUpdateParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigQueryParam;
 import com.ctrip.framework.drc.console.param.filter.QConfigRevertParam;
 import com.ctrip.framework.drc.console.service.filter.QConfigApiService;
-import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.vo.filter.QConfigDataResponse;
 import com.ctrip.framework.drc.console.vo.filter.UpdateQConfigResponse;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.EventMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
