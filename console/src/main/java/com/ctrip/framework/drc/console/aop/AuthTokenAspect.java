@@ -64,6 +64,7 @@ public class AuthTokenAspect {
                 if (jsonObject.get(paramName) != null) {
                     metaFilterName = jsonObject.get(paramName).getAsString();
                 }
+                break;
             default:
                 break;
         }
