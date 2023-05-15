@@ -38,7 +38,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
 
     @Override
     public QConfigDataResponse getQConfigData(QConfigQueryParam param) {
-        eventMonitor.logEvent("QCONFIG.CONSOLE.QUERY", param.getDataId());
+        eventMonitor.logEvent("QCONFIG.CONSOLE.QUERY", param.getSubEnv());
         String url = domainConfig.getQConfigRestApiUrl() + CONFIG_URL
                 + "?token={token}" +
                 "&groupid={groupid}" +
@@ -53,7 +53,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
 
     @Override
     public UpdateQConfigResponse batchUpdateConfig(QConfigBatchUpdateParam param) {
-        eventMonitor.logEvent("QCONFIG.CONSOLE.UPDATE", param.getTargetDataId());
+        eventMonitor.logEvent("QCONFIG.CONSOLE.UPDATE", param.getTargetSubEnv());
         String urlFormat = domainConfig.getQConfigRestApiUrl() + PROPERTY_URL + "/%s/envs/%s/subenvs/%s" + CONFIG_URL + "/%s";
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
@@ -64,7 +64,7 @@ public class QConfigApiServiceImpl implements QConfigApiService {
 
     @Override
     public UpdateQConfigResponse revertConfig(QConfigRevertParam param) {
-        eventMonitor.logEvent("QCONFIG.CONSOLE.REVERT", param.getTargetDataId());
+        eventMonitor.logEvent("QCONFIG.CONSOLE.REVERT", param.getTargetSubEnv());
         String urlFormat = domainConfig.getQConfigRestApiUrl() + CONFIG_URL + "/%s/envs/%s/subenvs/%s/%s/versions/%s/revert";
         String url = String.format(urlFormat, param.getTargetGroupId(), param.getTargetEnv(), param.getTargetSubEnv(), param.getTargetDataId(), param.getVersion());
         String postUrl = url + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}";
