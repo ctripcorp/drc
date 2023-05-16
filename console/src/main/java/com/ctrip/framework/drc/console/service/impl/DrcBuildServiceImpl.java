@@ -371,8 +371,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     continue;
                 }
                 int applierPort = metaInfoService.findAvailableApplierPort(ip);
-                // todo discuss
-                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : getGtidInit(targetMhaTbl);
+                String gtidInit = StringUtils.isNotBlank(targetGtidExecuted) ? formatGtid(targetGtidExecuted) : null;
                 logger.info("[[mha={}]]configure replicator instance: {}:{}", mhaName, ip, applierPort);
                 dalUtils.insertReplicator(DEFAULT_REPLICATOR_PORT, applierPort, gtidInit, resourceId, replicatorGroupId, BooleanEnum.FALSE);
                 replicatorInstancesAdded.add(ip+':'+applierPort);
@@ -519,8 +518,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
         logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
-        gtidExecuted = StringUtils.isBlank(gtidExecuted) ? getNativeGtid(mhaName) : formatGtid(gtidExecuted);
-        return messengerGroupTblDao.upsertIfNotExist(mhaId,replicatorGroupId,gtidExecuted);
+        return messengerGroupTblDao.upsertIfNotExist(mhaId,replicatorGroupId,formatGtid(gtidExecuted));
     }
 
     protected void configureMessengerInstances(MhaTbl mhaTbl, List<String> messengerIps, Long messengerGroupId) throws SQLException {

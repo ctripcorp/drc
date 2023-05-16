@@ -124,7 +124,7 @@ public class MhaController {
     @GetMapping("mhaGtid")
     public ApiResult getMhaExecutedGtidGtid(@RequestParam String mha){
         try {
-            String unionGtid = mySqlService.getDrcExecutedGtid(mha);
+            String unionGtid = mySqlService.getMhaExecutedGtid(mha);
             if (StringUtils.isEmpty(unionGtid)) {
                 return ApiResult.getFailInstance(null);
             } else {

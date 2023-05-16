@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
@@ -73,7 +74,11 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                     @Override
                     public void onSuccess(String gtid) {
                         List<Applier> appliers = dbCluster.getAppliers();
-                        appliers.forEach(applier -> applier.setGtidExecuted(gtid));
+                        appliers.forEach(applier ->  {
+                            GtidSet gtidSet = new GtidSet(applier.getGtidExecuted());
+                            String unionedGtid = gtidSet.union(new GtidSet(gtid)).toString();
+                            applier.setGtidExecuted(unionedGtid);
+                        });
                         ApplierNotifier.super.notify(dbCluster);
                     }
 

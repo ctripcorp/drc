@@ -32,7 +32,7 @@
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
-            <Input v-model="drc.oldRExecutedGtid" placeholder="请输入binlog拉取位点，不填自动获取本侧gtid"/>
+            <Input v-model="drc.oldRExecutedGtid" placeholder="请输入binlog拉取位点"/>
             <Button @click="queryOldMhaMachineGtid">查询mha位点</Button>
             <span v-if="hasTest1">
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
@@ -41,13 +41,7 @@
             </span>
           </FormItem>
           <FormItem label="初始同步位点A" style="width: 600px">
-            <Input v-model="drc.oldAExecutedGtid" placeholder="请输入同步起始位点，不填自动获取本侧gtid"/>
-            <Button @click="queryOldApplierGtid">查询applier位点</Button>
-            <span v-if="hasTest3">
-                  <Icon :type="testSuccess3 ? 'ios-checkmark-circle' : 'ios-close-circle'"
-                        :color="testSuccess3 ? 'green' : 'red'"/>
-                    {{ testSuccess3 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-            </span>
+            <Input v-model="drc.oldAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>
@@ -89,7 +83,7 @@
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
-            <Input v-model="drc.newRExecutedGtid" placeholder="请输入binlog拉取位点，不填自动获取本侧gtid"/>
+            <Input v-model="drc.newRExecutedGtid" placeholder="请输入binlog拉取位点"/>
             <Button @click="queryNewMhaMachineGtid">查询mha位点</Button>
             <span v-if="hasTest2">
                   <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
@@ -98,13 +92,7 @@
                 </span>
           </FormItem>
           <FormItem label="初始同步位点A" style="width: 600px">
-            <Input v-model="drc.newAExecutedGtid" placeholder="请输入同步起始位点，不填自动获取本侧gtid"/>
-            <Button @click="queryNewApplierGtid">查询applier位点</Button>
-            <span v-if="hasTest4">
-                  <Icon :type="testSuccess4 ? 'ios-checkmark-circle' : 'ios-close-circle'"
-                        :color="testSuccess4 ? 'green' : 'red'"/>
-                    {{ testSuccess4 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-            </span>
+            <Input v-model="drc.newAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInDestApplier">配置行过滤</Button>
@@ -625,45 +613,17 @@ export default {
           }
         })
     },
-    queryOldApplierGtid () {
-      const that = this
-      console.log('/api/drc/v1/mha/gtid?mha=' + this.drc.oldClusterName)
-      that.axios.get('/api/drc/v1/mha/gtid?mha=' + this.drc.oldClusterName)
-        .then(response => {
-          this.hasTest3 = true
-          if (response.data.status === 0) {
-            this.drc.oldAExecutedGtid = response.data.data
-            this.testSuccess3 = true
-          } else {
-            this.testSuccess3 = false
-          }
-        })
-    },
     queryNewMhaMachineGtid () {
       const that = this
       console.log('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.newClusterName)
       that.axios.get('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.newClusterName)
         .then(response => {
-          this.hasTest1 = true
+          this.hasTest2 = true
           if (response.data.status === 0) {
             this.drc.newRExecutedGtid = response.data.data
-            this.testSuccess1 = true
+            this.testSuccess2 = true
           } else {
-            this.testSuccess1 = false
-          }
-        })
-    },
-    queryNewApplierGtid () {
-      const that = this
-      console.log('/api/drc/v1/mha/gtid?mha=' + this.drc.newClusterName)
-      that.axios.get('/api/drc/v1/mha/gtid?mha=' + this.drc.newClusterName)
-        .then(response => {
-          this.hasTest4 = true
-          if (response.data.status === 0) {
-            this.drc.newAExecutedGtid = response.data.data
-            this.testSuccess4 = true
-          } else {
-            this.testSuccess4 = false
+            this.testSuccess2 = false
           }
         })
     },

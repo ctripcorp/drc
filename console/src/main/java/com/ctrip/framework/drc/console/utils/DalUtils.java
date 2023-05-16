@@ -368,7 +368,7 @@ public class DalUtils {
                 || !(nameFilter == null ? applierGroupTbl.getNameFilter() == null : nameFilter.equalsIgnoreCase(applierGroupTbl.getNameFilter()))
                 || !(nameMapping == null ? applierGroupTbl.getNameMapping() == null : nameMapping.equalsIgnoreCase(applierGroupTbl.getNameMapping()))
                 || !(targetName == null ? applierGroupTbl.getTargetName() == null : targetName.equalsIgnoreCase(applierGroupTbl.getTargetName()))
-                || !(gtid == null ? applierGroupTbl.getExecutedGtid() == null : gtid.equalsIgnoreCase(applierGroupTbl.getExecutedGtid()))
+                || (StringUtils.isNotBlank(gtid) && !gtid.equalsIgnoreCase(applierGroupTbl.getGtidExecuted()))
         ) {
             logger.info("[[mhaId={}]] update AGroup, included dbs is: {}, apply mode is: {}", mhaId, includedDbs, applyMode);
             applierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
@@ -377,7 +377,7 @@ public class DalUtils {
             applierGroupTbl.setNameFilter((StringUtils.isBlank(nameFilter)) ? null : nameFilter);
             applierGroupTbl.setNameMapping((StringUtils.isBlank(nameMapping)) ? null : nameMapping);
             applierGroupTbl.setTargetName((StringUtils.isBlank(targetName)) ? null : targetName);
-            applierGroupTbl.setExecutedGtid((StringUtils.isBlank(gtid)) ? null : gtid);
+            applierGroupTbl.setGtidExecuted(gtid);
             DalHints dalHints=new DalHints();
             dalHints.updateNullField();
             applierGroupTblDao.update(dalHints, applierGroupTbl);
@@ -618,7 +618,7 @@ public class DalUtils {
         daoPojo.setNameFilter(nameFilter);
         daoPojo.setNameMapping(nameMapping);
         daoPojo.setTargetName(targetName);
-        daoPojo.setExecutedGtid(gtid);
+        daoPojo.setGtidExecuted(gtid);
         return daoPojo;
     }
 
