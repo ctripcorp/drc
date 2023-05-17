@@ -1,9 +1,16 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
+
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
+import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
+import com.ctrip.xpipe.utils.FileUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,6 +28,9 @@ public class OpenApiServiceImplTest {
     
     @Mock
     private MetaInfoServiceImpl metaInfoService;
+
+    @Mock
+    private DbClusterSourceProvider dbClusterSourceProvider;
     
     @InjectMocks
     private OpenApiServiceImpl openApiService;
@@ -169,4 +179,23 @@ public class OpenApiServiceImplTest {
         
     }
 
+
+    @Test
+    public void testGetAllDrcDbInfo() throws Exception {
+        Drc drc = DefaultSaxParser.parse(FileUtils.getFileInputStream("api/open_api_meta.xml"));
+        Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
+
+        List<DrcDbInfo> allDrcDbInfo = openApiService.getDrcDbInfos(null);
+        Assert.assertNotEquals(0, allDrcDbInfo.size());
+    }
+    
+    @Test 
+    public void testSplit() {
+        String nameFilter = "drc\\d\\..*";  ///    drc\d\..*
+        String[] split = nameFilter.split("\\\\.");  //       \\.
+        String[] split1 = nameFilter.split(ESCAPE_CHARACTER_DOT_REGEX);  //     \\\.
+        Assert.assertEquals(3,split.length);
+        Assert.assertEquals(2,split1.length);
+    }
+    
 }

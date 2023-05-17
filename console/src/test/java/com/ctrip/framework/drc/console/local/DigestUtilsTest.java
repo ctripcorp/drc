@@ -18,4 +18,11 @@ public class DigestUtilsTest {
         System.out.println("timestamp: " + timestamp);
         System.out.println("generatedAppSign: " + generatedAppSign);
     }
+
+    @Test
+    public void testMD5() {
+        String str = "drc.token.pro";
+        String md = DigestUtils.md5DigestAsHex(str.getBytes());
+        System.out.println(md.length());
+    }
 }

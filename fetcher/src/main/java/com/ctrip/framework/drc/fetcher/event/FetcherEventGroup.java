@@ -27,6 +27,7 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
     private int writeIndex = 0;
     private int readIndex = 0;
     private int length = 0;
+    private boolean hasRowsEvent = false;
 
     private boolean isClosed = false;
 
@@ -60,6 +61,9 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
                 return;
             events[writeIndex] = event;
             writeIndex = (writeIndex + 1) % CAPACITY;
+            if (event instanceof FetcherRowsEvent) {
+                hasRowsEvent = true;
+            }
             if (event instanceof TerminateEvent) {
                 isTerminated = true;
                 fulfilledOrTerminated.signal();
@@ -137,7 +141,7 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
 
     @Override
     public boolean isEmptyTransaction() {
-        return (length == 2);
+        return !hasRowsEvent && !isOverflowed;
     }
 
     public void close() {

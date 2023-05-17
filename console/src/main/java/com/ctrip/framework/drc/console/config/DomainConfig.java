@@ -5,13 +5,14 @@ import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName DomainConifg
@@ -78,6 +79,10 @@ public class DomainConfig extends AbstractConfigBean {
     private static String DC_QCONFIG_SUBENV_MAP = "dc.qconfig.subenv.map";
     private static String QCONFIG_REST_API_URL = "qconfig.rest.api.url";
     private static String QCONFIG_API_TOKEN = "qconfig.api.token";
+
+    private static final String QCONFIG_API_CONSOLE_TOKEN = "qconfig.api.console.token";
+    private static final String ROWS_FILTER_WHITELIST_TARGET_SUB_ENV = "rows.filter.whitelist.targetSubenv";
+    private static final String ROWS_FILTER_WHITELIST_TARGET_GROUP_ID = "rows.filter.whitelist.targetGroupId";
     
 
     public String getCmsGetServerUrl() {
@@ -178,6 +183,22 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String  getQConfigAPIToken() {
         return getProperty(QCONFIG_API_TOKEN,"");
+    }
+
+    public String getQConfigApiConsoleToken () {
+        return getProperty(QCONFIG_API_CONSOLE_TOKEN, "");
+    }
+
+    public String getWhitelistTargetGroupId() {
+        return getProperty(ROWS_FILTER_WHITELIST_TARGET_GROUP_ID, "");
+    }
+
+    public List<String> getWhiteListTargetSubEnv() {
+        String targetSubEnvStr = getProperty(ROWS_FILTER_WHITELIST_TARGET_SUB_ENV, "");
+        if (StringUtils.isBlank(targetSubEnvStr)) {
+            return new ArrayList<>();
+        }
+        return Arrays.stream(targetSubEnvStr.split(",")).collect(Collectors.toList());
     }
 
     // QConfig Region to IDCs  Mapping
