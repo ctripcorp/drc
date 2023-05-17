@@ -298,7 +298,7 @@ public class MetaController {
             return ApiResult.getSuccessInstance(null);
         }
     }
-
+    
     @GetMapping("dcs/{dc}/resources/types/{type}")
     public ApiResult getResources(@PathVariable String dc, @PathVariable String type) {
         logger.info("[meta] get {} resources in {}", type, dc);

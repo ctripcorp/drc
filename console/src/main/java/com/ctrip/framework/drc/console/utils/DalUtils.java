@@ -280,6 +280,7 @@ public class DalUtils {
         if(null == mhaTbl) {
             return insertMha(mhaName, null, dcId);
         } else if(!dcId.equals(mhaTbl.getDcId()) || BooleanEnum.TRUE.getCode().equals(mhaTbl.getDeleted())) {
+            // todo 防止修改 mha dc
             mhaTbl.setDcId(dcId);
             mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(mhaTbl);

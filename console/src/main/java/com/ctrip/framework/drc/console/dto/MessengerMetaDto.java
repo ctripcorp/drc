@@ -13,7 +13,8 @@ public class MessengerMetaDto {
     private String mhaName;
     private List<String> replicatorIps;
     private List<String> messengerIps;
-    private String gtidExecuted;
+    private String  rGtidExecuted;
+    private String aGtidExecuted;
 
     @Override
     public String toString() {
@@ -21,7 +22,8 @@ public class MessengerMetaDto {
                 "mhaName='" + mhaName + '\'' +
                 ", replicatorIps=" + replicatorIps +
                 ", messengerIps=" + messengerIps +
-                ", gtidExecuted='" + gtidExecuted + '\'' +
+                ", rGtidExecuted='" + rGtidExecuted + '\'' +
+                ", aGtidExecuted='" + aGtidExecuted + '\'' +
                 '}';
     }
 
@@ -49,11 +51,19 @@ public class MessengerMetaDto {
         this.messengerIps = messengerIps;
     }
 
-    public String getGtidExecuted() {
-        return gtidExecuted;
+    public String getrGtidExecuted() {
+        return rGtidExecuted;
     }
 
-    public void setGtidExecuted(String gtidExecuted) {
-        this.gtidExecuted = gtidExecuted;
+    public void setrGtidExecuted(String rGtidExecuted) {
+        this.rGtidExecuted = rGtidExecuted;
+    }
+
+    public String getaGtidExecuted() {
+        return aGtidExecuted;
+    }
+
+    public void setaGtidExecuted(String aGtidExecuted) {
+        this.aGtidExecuted = aGtidExecuted;
     }
 }

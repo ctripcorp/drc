@@ -32,7 +32,7 @@
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
-            <Input v-model="drc.oldRExecutedGtid" placeholder="请输入binlog拉取位点"/>
+            <Input v-model="drc.oldRExecutedGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
             <Button @click="queryOldMhaMachineGtid">查询mha位点</Button>
             <span v-if="hasTest1">
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
@@ -83,7 +83,7 @@
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
-            <Input v-model="drc.newRExecutedGtid" placeholder="请输入binlog拉取位点"/>
+            <Input v-model="drc.newRExecutedGtid" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
             <Button @click="queryNewMhaMachineGtid">查询mha位点</Button>
             <span v-if="hasTest2">
                   <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"

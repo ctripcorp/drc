@@ -134,8 +134,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             return "mha not record";
         }
         // 3. configure and persistent in database
-        long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getGtidExecuted());
-        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getGtidExecuted());
+        long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
+        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
         
         return metaInfoService.getXmlConfiguration(mhaTbl);
     }
