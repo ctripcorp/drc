@@ -204,7 +204,8 @@ public class TransferServiceImpl implements TransferService {
                     String nameMapping = appliers.size() == 0 ? "" : appliers.get(0).getNameMapping();
                     String targetName = appliers.size() == 0 ? "" : appliers.get(0).getTargetName();
                     int applyMode = appliers.size() == 0 ? 0 : appliers.get(0).getApplyMode();
-                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName,null);
+                    String gtid = appliers.size() == 0 ? "" : appliers.get(0).getGtidExecuted();
+                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtid);
 
                     // rough implementation, only for duo repl
                     for(Applier applier : appliers) {

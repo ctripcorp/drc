@@ -205,6 +205,7 @@ CREATE TABLE `applier_group_tbl` (
  `target_name`               varchar(64)  DEFAULT NULL   comment 'targetMha cluster_name,if null default use this mhas cluster_name',
  `create_time`              timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
  `datachange_lasttime`      timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `gtid_executed`           varchar(2000)  NULL default null COMMENT 'applier 起始位点，可以替代qconfig 配置',
  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='applier group表';
 
