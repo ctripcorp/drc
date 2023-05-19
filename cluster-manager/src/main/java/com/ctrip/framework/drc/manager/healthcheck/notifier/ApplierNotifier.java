@@ -235,10 +235,4 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
     public void setCurrentMetaManager(CurrentMetaManager currentMetaManager) {
         this.currentMetaManager = currentMetaManager;
     }
-    
-    private void unionGtid(String applier, String queryGtid) {
-        GtidSet gtidSet = new GtidSet(applier.getGtidExecuted());
-        String unionedGtid = gtidSet.union(new GtidSet(queryGtid)).toString();
-        applier.setGtidExecuted(unionedGtid);
-    }
 }
