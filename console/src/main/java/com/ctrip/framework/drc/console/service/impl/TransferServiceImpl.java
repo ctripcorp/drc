@@ -147,7 +147,7 @@ public class TransferServiceImpl implements TransferService {
 
     protected Long loadMha(long dcId, long clusterId, String mhaName, Dbs dbs, Map<String, String> targetMhaNames) throws SQLException {
 
-        Long mhaId = dalUtils.updateOrCreateMha(mhaName, dcId);
+        Long mhaId = dalUtils.recoverOrCreateMha(mhaName, dcId);
         dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
 
         for (Map.Entry<String, String> entry : targetMhaNames.entrySet()) {
@@ -160,7 +160,7 @@ public class TransferServiceImpl implements TransferService {
             } else {
                 logger.info("already loaded mha group for {}-{}", mhaName, targetMhaName);
             }
-            Long dstMhaId = dalUtils.updateOrCreateMha(targetMhaName, targetDcId);
+            Long dstMhaId = dalUtils.recoverOrCreateMha(targetMhaName, targetDcId);
             dalUtils.updateOrCreateClusterMhaMap(clusterId, dstMhaId);
             dalUtils.updateOrCreateGroupMapping(mhaGroupId, mhaId);
             dalUtils.updateOrCreateGroupMapping(mhaGroupId, dstMhaId);

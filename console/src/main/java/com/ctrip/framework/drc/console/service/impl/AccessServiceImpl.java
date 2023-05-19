@@ -409,8 +409,8 @@ public class AccessServiceImpl implements AccessService {
                 usersAndPasswords.get(WRITE_PASSWORD_KEY), 
                 usersAndPasswords.get(MONITOR_USER_KEY), 
                 usersAndPasswords.get(MONITOR_PASSWORD_KEY));
-        Long originalMhaId = dalUtils.updateOrCreateMha(originalMha, originalDcId);
-        Long newBuiltMhaId = dalUtils.updateOrCreateMha(newBuiltMha, newBuiltDcId);
+        Long originalMhaId = dalUtils.recoverOrCreateMha(originalMha, originalDcId);
+        Long newBuiltMhaId = dalUtils.recoverOrCreateMha(newBuiltMha, newBuiltDcId);
 
         dalUtils.updateOrCreateGroupMapping(mhaGroupId, originalMhaId);
         dalUtils.updateOrCreateGroupMapping(mhaGroupId, newBuiltMhaId);

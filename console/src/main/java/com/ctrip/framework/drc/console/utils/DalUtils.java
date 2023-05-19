@@ -262,26 +262,12 @@ public class DalUtils {
         return (Long) keyHolder.getKey();
     }
 
-    public Long updateOrCreateMha(String mhaName, Long mhaGroupId, Long dcId) throws SQLException {
-        MhaTbl mhaTbl = mhaTblDao.queryAll().stream().filter(p -> p.getMhaName().equalsIgnoreCase(mhaName)).findFirst().orElse(null);
-        if(null == mhaTbl) {
-            return insertMha(mhaName, mhaGroupId, dcId);
-        } else if(!mhaGroupId.equals(mhaTbl.getMhaGroupId()) || !dcId.equals(mhaTbl.getDcId()) || BooleanEnum.TRUE.getCode().equals(mhaTbl.getDeleted())) {
-            mhaTbl.setMhaGroupId(mhaGroupId);
-            mhaTbl.setDcId(dcId);
-            mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
-            mhaTblDao.update(mhaTbl);
-        }
-        return mhaTbl.getId();
-    }
-
-    public Long updateOrCreateMha(String mhaName, Long dcId) throws SQLException {
+    public Long recoverOrCreateMha(String mhaName, Long dcId) throws SQLException {
         MhaTbl mhaTbl = mhaTblDao.queryAll().stream().filter(p -> p.getMhaName().equalsIgnoreCase(mhaName)).findFirst().orElse(null);
         if(null == mhaTbl) {
             return insertMha(mhaName, null, dcId);
-        } else if(!dcId.equals(mhaTbl.getDcId()) || BooleanEnum.TRUE.getCode().equals(mhaTbl.getDeleted())) {
-            // todo 防止修改 mha dc
-            mhaTbl.setDcId(dcId);
+        } else if(BooleanEnum.TRUE.getCode().equals(mhaTbl.getDeleted())) {
+            // change dc is forbidden when recover deleted mha
             mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(mhaTbl);
         }
