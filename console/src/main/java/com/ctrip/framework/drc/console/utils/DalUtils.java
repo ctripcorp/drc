@@ -267,7 +267,7 @@ public class DalUtils {
         if(null == mhaTbl) {
             return insertMha(mhaName, null, dcId);
         } else if(BooleanEnum.TRUE.getCode().equals(mhaTbl.getDeleted())) {
-            // change dc is forbidden when recover deleted mha
+            // change dc is forbidden when record mha
             mhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(mhaTbl);
         }
