@@ -78,6 +78,8 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                             GtidSet gtidSet = new GtidSet(applier.getGtidExecuted());
                             String unionedGtid = gtidSet.union(new GtidSet(gtid)).toString();
                             applier.setGtidExecuted(unionedGtid);
+                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}", 
+                                    applier.getTargetMhaName(),dbCluster.getMhaName(),applier.getGtidExecuted());
                         });
                         ApplierNotifier.super.notify(dbCluster);
                     }

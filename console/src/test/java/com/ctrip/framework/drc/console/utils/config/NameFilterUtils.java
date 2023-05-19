@@ -23,16 +23,15 @@ public class NameFilterUtils {
     @Test
     public void distinctAndUnion(){
         // input dbName & tableNames &(commonPrefix) check and get nameFilter
-        String dbName = "CarSDVendorDB";
-        String tableNames = "osd_vendor_store_mapping,platform_vendor_mapping";
+        String dbName = "ttlorderbookingdb";
+        String tableNames ="ibuprocesssuggestion,fullskill_businesstypecfg,o_flightproductsaletype,rebookingrelatedreason";
         String commonPrefix = "";
-
+        
         List<String> tables = removeBlankAndSplit(tableNames);
         distinctAndCount(tables);
 
 //        String nameFilter = combine(dbName, tables);
         String nameFilter = combine(dbName,tables,commonPrefix);
-
         logger.info("nameFilter as follows: \n{}",nameFilter);
     }
 
