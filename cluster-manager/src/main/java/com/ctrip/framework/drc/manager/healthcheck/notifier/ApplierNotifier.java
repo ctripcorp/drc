@@ -75,11 +75,9 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                     public void onSuccess(String gtid) {
                         List<Applier> appliers = dbCluster.getAppliers();
                         appliers.forEach(applier ->  {
-                            GtidSet gtidSet = new GtidSet(applier.getGtidExecuted());
-                            String unionedGtid = gtidSet.union(new GtidSet(gtid)).toString();
-                            applier.setGtidExecuted(unionedGtid);
-                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}", 
+                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}",
                                     applier.getTargetMhaName(),dbCluster.getMhaName(),applier.getGtidExecuted());
+                            applier.setGtidExecuted(new GtidSet(applier.getGtidExecuted()).union(new GtidSet(gtid)).toString());
                         });
                         ApplierNotifier.super.notify(dbCluster);
                     }
@@ -105,7 +103,11 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
                     @Override
                     public void onSuccess(String gtid) {
                         List<Applier> appliers = dbCluster.getAppliers();
-                        appliers.forEach(applier -> applier.setGtidExecuted(gtid));
+                        appliers.forEach(applier ->  {
+                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}",
+                                    applier.getTargetMhaName(),dbCluster.getMhaName(),applier.getGtidExecuted());
+                            applier.setGtidExecuted(new GtidSet(applier.getGtidExecuted()).union(new GtidSet(gtid)).toString());
+                        });
                         NOTIFY_LOGGER.info("[ExecutedGtid] is set to {}", gtid);
                         ApplierNotifier.super.notifyAdd(dbCluster);
                     }
@@ -232,5 +234,11 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
     @VisibleForTesting
     public void setCurrentMetaManager(CurrentMetaManager currentMetaManager) {
         this.currentMetaManager = currentMetaManager;
+    }
+    
+    private void unionGtid(String applier, String queryGtid) {
+        GtidSet gtidSet = new GtidSet(applier.getGtidExecuted());
+        String unionedGtid = gtidSet.union(new GtidSet(queryGtid)).toString();
+        applier.setGtidExecuted(unionedGtid);
     }
 }
