@@ -41,11 +41,11 @@ public class MhaTblV2 implements DalPojo {
     private Long dcId;
 
     /**
-     * bu名
+     * buId
      */
-    @Column(name = "bu_name")
-    @Type(value = Types.VARCHAR)
-    private String buName;
+    @Column(name = "bu_id")
+    @Type(value = Types.BIGINT)
+    private Long buId;
 
     /**
      * 集群名称，兼容老版
@@ -131,6 +131,13 @@ public class MhaTblV2 implements DalPojo {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * appId
+     */
+    @Column(name = "app_id")
+    @Type(value = Types.BIGINT)
+    private Long appId;
+
     public Long getId() {
         return id;
     }
@@ -155,12 +162,12 @@ public class MhaTblV2 implements DalPojo {
         this.dcId = dcId;
     }
 
-    public String getBuName() {
-        return buName;
+    public Long getBuId() {
+        return buId;
     }
 
-    public void setBuName(String buName) {
-        this.buName = buName;
+    public void setBuId(Long buId) {
+        this.buId = buId;
     }
 
     public String getClusterName() {
@@ -259,4 +266,11 @@ public class MhaTblV2 implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    public Long getAppId() {
+        return appId;
+    }
+
+    public void setAppId(Long appId) {
+        this.appId = appId;
+    }
 }
