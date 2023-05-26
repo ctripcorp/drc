@@ -2,14 +2,12 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
+import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -17,6 +15,7 @@ import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.codec.JsonCodec;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -49,7 +48,7 @@ public class MetaGeneratorV2 {
     private MonitorTableSourceProvider monitorConfigProvider;
 
     @Autowired
-    private DataMediaService dataMediaService;
+    private DataMediaServiceV2 dataMediaService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -71,6 +70,9 @@ public class MetaGeneratorV2 {
     private List<ReplicatorTbl> replicatorTbls;
     private List<ApplierTblV2> applierTbls;
     private List<MhaReplicationTbl> mhaReplicationTbls;
+    private List<MhaDbMappingTbl> mhaDbMappingTbls;
+    private List<DbReplicationTbl> dbReplicationTbls;
+    private List<DbTbl> dbTbls;
 
     private static final String OFF = "off";
 
@@ -278,18 +280,26 @@ public class MetaGeneratorV2 {
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 mhaTbl, ApplierGroupTblV2 applierGroupTbl, Map<Long, MhaReplicationTbl> mhaReplicationTblMap) throws SQLException {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblMap.get(applierGroupTbl.getMhaReplicationId());
         MhaTblV2 srcMhatbl = mhaTbls.stream().filter(e -> e.getId().equals(mhaReplicationTbl.getSrcMhaId())).findFirst().get();
+        
+        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhatbl.getId())).collect(Collectors.toList());
+        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
+        List<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        List<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+        List<Long> srcDbIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> srcDbTbls = dbTbls.stream().filter(e -> srcDbIds.contains(e.getId())).collect(Collectors.toList());
+        Map<Long, String> srcDbTblMap = srcDbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId);
+
+        List<DbReplicationTbl> dbReplicationTblList = dbReplicationTbls.stream()
+                .filter(e -> srcMhaDbMappingIds.contains(e.getSrcMhaDbMappingId()) && dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId()))
+                .collect(Collectors.toList());
+        DcTbl srcDcTbl = dcTbls.stream().filter(e -> e.getId().equals(srcMhatbl.getDcId())).findFirst().get();
 
         List<ApplierTblV2> curMhaAppliers = applierTbls.stream().
                 filter(e -> e.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
-        // columnsFilters && rowsFilters
-        DataMediaConfig properties = dataMediaService.generateConfig(applierGroupTbl.getId());
-
-        String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
-                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
-
-        DcTbl srcDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(srcMhatbl.getDcId())).findFirst().get();
         for (ApplierTblV2 applierTbl : curMhaAppliers) {
-            String resourceIp = resourceTbls.stream().filter(predicate -> predicate.getId().equals(applierTbl.getResourceId())).findFirst().map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
+            String resourceIp = resourceTbls.stream().filter(e -> e.getId().equals(applierTbl.getResourceId())).findFirst().map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
             logger.debug("generate applier: {} for mha: {}", resourceIp, mhaTbl.getMhaName());
             Applier applier = new Applier();
             applier.setIp(resourceIp)
@@ -297,17 +307,45 @@ public class MetaGeneratorV2 {
                     .setTargetIdc(srcDcTbl.getDcName())
                     .setTargetMhaName(srcMhatbl.getMhaName())
                     .setGtidExecuted(applierGroupTbl.getGtidInit())
-                    .setIncludedDbs(applierGroupTbl.getIncludedDbs())
-                    .setNameFilter(applierGroupTbl.getNameFilter())
+                    .setNameFilter(buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList))
                     .setNameMapping(applierGroupTbl.getNameMapping())
-                    .setTargetName(applierGroupTbl.getTargetName())
+                    .setTargetName(srcMhatbl.getClusterName())
                     .setApplyMode(mhaTbl.getApplyMode())
-                    .setProperties(propertiesJson);
+                    .setProperties(getProperties(dbReplicationTblList));
             if (OFF.equals(consoleConfig.getSwitchMetaRollBack())) {
                 applier.setTargetRegion(srcDcTbl.getRegionName());
             }
             dbCluster.addApplier(applier);
         }
+    }
+
+    private String getProperties(List<DbReplicationTbl> dbReplicationTblList) throws SQLException {
+        List<DbReplicationDto> dbReplicationDto = dbReplicationTblList.stream().map(source -> {
+            DbReplicationDto target = new DbReplicationDto();
+            target.setDbReplicationId(source.getId());
+            target.setSrcMhaDbMappingId(source.getSrcMhaDbMappingId());
+            target.setSrcLogicTableName(source.getSrcLogicTableName());
+
+            return target;
+        }).collect(Collectors.toList());
+        DataMediaConfig properties = dataMediaService.generateConfig(dbReplicationDto);
+
+        //todo
+        String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
+                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
+        return propertiesJson;
+    }
+
+    private String buildNameFilter(Map<Long, String> srcDbTblMap, Map<Long, Long> srcMhaDbMappingMap, List<DbReplicationTbl> dbReplicationTblList) {
+        List<String> nameFilterList = new ArrayList<>();
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTblList) {
+            long dbId = srcMhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
+            if (srcDbTblMap.containsKey(dbId)) {
+                nameFilterList.add(srcDbTblMap.get(dbId) + "\\." + dbReplicationTbl.getSrcLogicTableName());
+            }
+        }
+        String nameFilter = Joiner.on(",").join(nameFilterList);
+        return nameFilter;
     }
 
     private String generateRouteInfo(String srcProxyIds, String relayProxyIds, String dstProxyIds) {

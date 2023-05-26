@@ -27,7 +27,7 @@ public class ColumnsFilterTblV2 implements DalPojo {
     private Long id;
 
     /**
-     * 列过滤配置 模式 0-xclude 1-include
+     * 列过滤配置 模式 0-exclude 1-include
      */
     @Column(name = "mode")
     @Type(value = Types.TINYINT)
