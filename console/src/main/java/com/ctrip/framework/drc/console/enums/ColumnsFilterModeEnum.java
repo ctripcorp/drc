@@ -26,13 +26,21 @@ public enum ColumnsFilterModeEnum {
         throw new IllegalArgumentException(String.format("Unexpected ColumnsFilterMode: %s", code));
     }
 
-    public static int gecodeByName (String name) {
+    public static int getCodeByName (String name) {
         for (ColumnsFilterModeEnum value : ColumnsFilterModeEnum.values()) {
             if (value.name.equals(name)) {
                 return value.code;
             }
         }
         throw new IllegalArgumentException(String.format("Unexpected ColumnsFilterMode: %s", name));
+    }
+
+    public Integer getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
     }
 
 }

@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.monitor.Task;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.base.Joiner;
@@ -298,16 +299,15 @@ public class MetaGeneratorV2 {
         Map<Long, MhaReplicationTbl> mhaReplicationTblMap = mhaReplicationTblList.stream().collect(Collectors.toMap(MhaReplicationTbl::getId, Function.identity(), (k1, k2) -> k1));
 
         for (ApplierGroupTblV2 applierGroupTbl : applierGroupTblList) {
-            generateApplierInstances(dbCluster, mhaTbl, applierGroupTbl, mhaReplicationTblMap);
+            MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblMap.get(applierGroupTbl.getMhaReplicationId());
+            MhaTblV2 srcMhatbl = mhaTbls.stream().filter(e -> e.getId().equals(mhaReplicationTbl.getSrcMhaId())).findFirst().get();
+            generateApplierInstances(dbCluster, srcMhatbl, mhaTbl, applierGroupTbl);
         }
     }
 
-    private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 mhaTbl, ApplierGroupTblV2 applierGroupTbl, Map<Long, MhaReplicationTbl> mhaReplicationTblMap) throws SQLException {
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblMap.get(applierGroupTbl.getMhaReplicationId());
-        MhaTblV2 srcMhatbl = mhaTbls.stream().filter(e -> e.getId().equals(mhaReplicationTbl.getSrcMhaId())).findFirst().get();
-
+    private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhatbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
         List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhatbl.getId())).collect(Collectors.toList());
-        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
+        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaTbl.getId())).collect(Collectors.toList());
         List<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
 
@@ -329,7 +329,7 @@ public class MetaGeneratorV2 {
                 filter(e -> e.getApplierGroupId().equals(applierGroupTbl.getId())).collect(Collectors.toList());
         for (ApplierTblV2 applierTbl : curMhaAppliers) {
             String resourceIp = resourceTbls.stream().filter(e -> e.getId().equals(applierTbl.getResourceId())).findFirst().map(ResourceTbl::getIp).orElse(StringUtils.EMPTY);
-            logger.debug("generate applier: {} for mha: {}", resourceIp, mhaTbl.getMhaName());
+            logger.debug("generate applier: {} for mha: {}", resourceIp, dstMhaTbl.getMhaName());
             Applier applier = new Applier();
             applier.setIp(resourceIp)
                     .setPort(applierTbl.getPort())
@@ -339,7 +339,7 @@ public class MetaGeneratorV2 {
                     .setNameFilter(buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList))
                     .setNameMapping(buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList))
                     .setTargetName(srcMhatbl.getClusterName())
-                    .setApplyMode(mhaTbl.getApplyMode())
+                    .setApplyMode(dstMhaTbl.getApplyMode())
                     .setProperties(getProperties(dbReplicationTblList));
             if (OFF.equals(consoleConfig.getSwitchMetaRollBack())) {
                 applier.setTargetRegion(srcDcTbl.getRegionName());
@@ -359,9 +359,8 @@ public class MetaGeneratorV2 {
         }).collect(Collectors.toList());
 
         DataMediaConfig properties = dataMediaService.generateConfig(dbReplicationDto);
-        //todo
         String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
-                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);
+                CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonUtils.toJson(properties);
         return propertiesJson;
     }
 
@@ -370,7 +369,7 @@ public class MetaGeneratorV2 {
         for (DbReplicationTbl dbReplicationTbl : dbReplicationTblList) {
             long dbId = srcMhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
             if (srcDbTblMap.containsKey(dbId)) {
-                nameFilterList.add(srcDbTblMap.get(dbId) + "\\." + dbReplicationTbl.getSrcLogicTableName());
+                nameFilterList.add(srcDbTblMap.getOrDefault(dbId, "") + "\\." + dbReplicationTbl.getSrcLogicTableName());
             }
         }
         String nameFilter = Joiner.on(",").join(nameFilterList);
