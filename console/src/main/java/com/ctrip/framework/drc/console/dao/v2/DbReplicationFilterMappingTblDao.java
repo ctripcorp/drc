@@ -27,12 +27,9 @@ public class DbReplicationFilterMappingTblDao extends AbstractDao<DbReplicationF
         super(DbReplicationFilterMappingTbl.class);
     }
 
-    public List<DbReplicationFilterMappingTbl> queryByDbReplicationIds(List<Long> dbReplicationIds) throws SQLException {
-        if (CollectionUtils.isEmpty(dbReplicationIds)) {
-            return new ArrayList<>();
-        }
+    public List<DbReplicationFilterMappingTbl> queryByDbReplicationId(long dbReplicationId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        sqlBuilder.selectAll().equal(DB_REPLICATION_ID, dbReplicationId, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
     }
 }

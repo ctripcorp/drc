@@ -82,6 +82,13 @@ public class DbReplicationTbl implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String dstLogicTableName;
 
+    /**
+     * mq json
+     */
+    @Column(name = "properties")
+    @Type(value = Types.VARCHAR)
+    private String properties;
+
     public Long getId() {
         return id;
     }
@@ -154,4 +161,11 @@ public class DbReplicationTbl implements DalPojo {
         this.dstLogicTableName = dstLogicTableName;
     }
 
+    public String getProperties() {
+        return properties;
+    }
+
+    public void setProperties(String properties) {
+        this.properties = properties;
+    }
 }

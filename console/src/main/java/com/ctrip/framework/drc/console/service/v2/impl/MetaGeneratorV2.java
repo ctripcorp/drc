@@ -1,13 +1,14 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -40,26 +41,31 @@ public class MetaGeneratorV2 {
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-
     @Autowired
-    private MessengerService messengerService;
-
-    @Autowired
-    private MonitorTableSourceProvider monitorConfigProvider;
-
+    private MessengerServiceV2 messengerService;
     @Autowired
     private DataMediaServiceV2 dataMediaService;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblDao;
+    @Autowired
+    private ApplierTblV2Dao applierTblDao;
+    @Autowired
+    private DbReplicationTblDao dbReplicationTblDao;
+    @Autowired
+    private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblDao;
+    @Autowired
+    private DbTblDao dbTblDao;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
     private List<BuTbl> buTbls;
     private List<RouteTbl> routeTbls;
     private List<ProxyTbl> proxyTbls;
-    private List<ClusterMhaMapTbl> clusterMhaMapTbls;
-    private List<GroupMappingTbl> groupMappingTbls;
     private List<DcTbl> dcTbls;
-    private List<ClusterTbl> clusterTbls;
-    private List<MhaGroupTbl> mhaGroupTbls;
     private List<MhaTblV2> mhaTbls;
     private List<ResourceTbl> resourceTbls;
     private List<MachineTbl> machineTbls;
@@ -99,11 +105,29 @@ public class MetaGeneratorV2 {
                 generateRoute(dc, dcTbl.getId());
                 generateClusterManager(dc, dcTbl.getId());
                 generateZk(dc, dcTbl.getId());
+                generateDbClusters(dc, dcTbl.getId());
             }
         });
     }
 
-    private void refreshMetaData() {
+    private void refreshMetaData() throws SQLException {
+        buTbls = dalUtils.getBuTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        routeTbls = dalUtils.getRouteTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        proxyTbls = dalUtils.getProxyTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        dcTbls = dalUtils.getDcTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        resourceTbls = dalUtils.getResourceTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        machineTbls = dalUtils.getMachineTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        replicatorGroupTbls = dalUtils.getReplicatorGroupTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        clusterManagerTbls = dalUtils.getClusterManagerTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        zookeeperTbls = dalUtils.getZookeeperTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        replicatorTbls = dalUtils.getReplicatorTblDao().queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        applierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        dbReplicationTbls = dbReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
     }
 
     private Dc generateDcFrame(Drc drc, DcTbl dcTbl) {
@@ -186,7 +210,7 @@ public class MetaGeneratorV2 {
         dc.setZkServer(zkServer);
     }
 
-    private void generateDbClusters(Dc dc, Long dcId) {
+    private void generateDbClusters(Dc dc, Long dcId) throws SQLException {
         List<MhaTblV2> localMhaTbls = mhaTbls.stream().filter(mhaTbl -> (mhaTbl.getDcId().equals(dcId))).collect(Collectors.toList());
         for (MhaTblV2 mhaTbl : localMhaTbls) {
             DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
@@ -194,6 +218,7 @@ public class MetaGeneratorV2 {
             generateDb(dbs, mhaTbl);
             generateReplicators(dbCluster, mhaTbl);
             generateMessengers(dbCluster, mhaTbl);
+            generateAppliers(dbCluster, mhaTbl);
         }
     }
 
@@ -227,8 +252,8 @@ public class MetaGeneratorV2 {
     }
 
     private void generateDb(Dbs dbs, MhaTblV2 mhaTbl) {
-        List<MachineTbl> curMhaMachineTbls = machineTbls.stream().filter(e -> e.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
-        for (MachineTbl machineTbl : curMhaMachineTbls) {
+        List<MachineTbl> mhaMachineTblList = machineTbls.stream().filter(e -> e.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
+        for (MachineTbl machineTbl : mhaMachineTblList) {
             logger.debug("generate machine: {} for mha: {}", machineTbl.getIp(), mhaTbl.getMhaName());
             Db db = new Db();
             db.setIp(machineTbl.getIp())
@@ -280,16 +305,20 @@ public class MetaGeneratorV2 {
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 mhaTbl, ApplierGroupTblV2 applierGroupTbl, Map<Long, MhaReplicationTbl> mhaReplicationTblMap) throws SQLException {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblMap.get(applierGroupTbl.getMhaReplicationId());
         MhaTblV2 srcMhatbl = mhaTbls.stream().filter(e -> e.getId().equals(mhaReplicationTbl.getSrcMhaId())).findFirst().get();
-        
+
         List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhatbl.getId())).collect(Collectors.toList());
         List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaTbl.getId())).collect(Collectors.toList());
         List<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
 
         List<Long> srcDbIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<Long> dstDbIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> srcDbTbls = dbTbls.stream().filter(e -> srcDbIds.contains(e.getId())).collect(Collectors.toList());
+        List<DbTbl> dstDbTbls = dbTbls.stream().filter(e -> dstDbIds.contains(e.getId())).collect(Collectors.toList());
         Map<Long, String> srcDbTblMap = srcDbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
-        Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId);
+        Map<Long, String> dstDbTblMap = dstDbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        Map<Long, Long> dstMhaDbMappingMap = dstMhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
 
         List<DbReplicationTbl> dbReplicationTblList = dbReplicationTbls.stream()
                 .filter(e -> srcMhaDbMappingIds.contains(e.getSrcMhaDbMappingId()) && dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId()))
@@ -308,7 +337,7 @@ public class MetaGeneratorV2 {
                     .setTargetMhaName(srcMhatbl.getMhaName())
                     .setGtidExecuted(applierGroupTbl.getGtidInit())
                     .setNameFilter(buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList))
-                    .setNameMapping(applierGroupTbl.getNameMapping())
+                    .setNameMapping(buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList))
                     .setTargetName(srcMhatbl.getClusterName())
                     .setApplyMode(mhaTbl.getApplyMode())
                     .setProperties(getProperties(dbReplicationTblList));
@@ -346,6 +375,23 @@ public class MetaGeneratorV2 {
         }
         String nameFilter = Joiner.on(",").join(nameFilterList);
         return nameFilter;
+    }
+
+    private String buildNameMapping(Map<Long, String> srcDbTblMap,
+                                    Map<Long, Long> srcMhaDbMappingMap,
+                                    Map<Long, String> dstDbTblMap,
+                                    Map<Long, Long> dstMhaDbMappingMap,
+                                    List<DbReplicationTbl> dbReplicationTblList) {
+        List<String> nameMappingList = new ArrayList<>();
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTblList) {
+            long srcDbId = srcMhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
+            long dstDbId = dstMhaDbMappingMap.getOrDefault(dbReplicationTbl.getDstMhaDbMappingId(), 0L);
+            String srcDbName = srcDbTblMap.getOrDefault(srcDbId, "");
+            String dstDbName = dstDbTblMap.getOrDefault(dstDbId, "");
+            String dstTableName = StringUtils.isBlank(dbReplicationTbl.getDstLogicTableName()) ? dbReplicationTbl.getSrcLogicTableName() : dbReplicationTbl.getDstLogicTableName();
+            nameMappingList.add(srcDbName + "." + dbReplicationTbl.getSrcLogicTableName() + "," + dstDbName + "." + dstTableName);
+        }
+        return Joiner.on(";").join(nameMappingList);
     }
 
     private String generateRouteInfo(String srcProxyIds, String relayProxyIds, String dstProxyIds) {
