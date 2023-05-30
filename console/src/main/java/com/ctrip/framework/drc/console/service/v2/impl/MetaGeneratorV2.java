@@ -328,8 +328,8 @@ public class MetaGeneratorV2 {
 
             return target;
         }).collect(Collectors.toList());
-        DataMediaConfig properties = dataMediaService.generateConfig(dbReplicationDto);
 
+        DataMediaConfig properties = dataMediaService.generateConfig(dbReplicationDto);
         //todo
         String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
                 CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonCodec.INSTANCE.encode(properties);

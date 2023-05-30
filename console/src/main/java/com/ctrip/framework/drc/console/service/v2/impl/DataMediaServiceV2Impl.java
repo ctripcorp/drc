@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -33,6 +34,8 @@ public class DataMediaServiceV2Impl implements DataMediaServiceV2 {
 
     @Autowired
     private ColumnsFilterServiceV2 columnsFilterService;
+    @Autowired
+    private RowsFilterServiceV2 rowsFilterService;
     @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Autowired
@@ -70,6 +73,8 @@ public class DataMediaServiceV2Impl implements DataMediaServiceV2 {
 
             List<ColumnsFilterConfig> columnsFilterConfigs = columnsFilterService.generateColumnsFilterConfig(tableName, columnsFilterIds);
             columnsFilters.addAll(columnsFilterConfigs);
+            List<RowsFilterConfig> rowsFilterConfigs = rowsFilterService.generateRowsFiltersConfig(tableName, rowsFilterIds);
+            rowsFilters.addAll(rowsFilterConfigs);
         }
 
         DataMediaConfig dataMediaConfig = new DataMediaConfig();
