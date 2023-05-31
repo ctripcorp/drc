@@ -68,6 +68,13 @@ public class DbReplicationFilterMappingTbl implements DalPojo {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * messenger过滤规则id
+     */
+    @Column(name = "messenger_filter_id")
+    @Type(value = Types.BIGINT)
+    private Long messengerFilterId;
+
     public Long getId() {
         return id;
     }
@@ -124,4 +131,11 @@ public class DbReplicationFilterMappingTbl implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    public Long getMessengerFilterId() {
+        return messengerFilterId;
+    }
+
+    public void setMessengerFilterId(Long messengerFilterId) {
+        this.messengerFilterId = messengerFilterId;
+    }
 }

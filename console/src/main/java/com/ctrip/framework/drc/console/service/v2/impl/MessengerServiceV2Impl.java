@@ -10,9 +10,11 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MessengerFilterTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
@@ -61,6 +63,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private ResourceTblDao resourceTblDao;
     @Autowired
     private DbTblDao dbTblDao;
+    @Autowired
+    private MessengerFilterTblDao messengerFilterTblDao;
 
     @Override
     public List<Messenger> generateMessengers(Long mhaId) throws SQLException {
@@ -108,7 +112,17 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         List<RowsFilterConfig> rowFilters = new ArrayList<>();
 
         for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
-            MqConfig mqConfig = JsonUtils.fromJson(dbReplicationTbl.getProperties(), MqConfig.class);
+            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationTbl.getId());
+            List<Long> messengerFilterIds = dbReplicationFilterMappings.stream()
+                    .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
+                    .filter(e -> e != null && e > 0L).collect(Collectors.toList());
+
+            MessengerFilterTbl messengerFilterTbl = messengerFilterTblDao.queryById(messengerFilterIds.get(0));
+            if (null == messengerFilterTbl) {
+                logger.warn("Messenger Filter is Null, dbReplicationTbl: {}", dbReplicationTbl);
+                continue;
+            }
+            MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
 
             long dbId = mhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
             String dbName = dbTblMap.getOrDefault(dbId, "");
@@ -119,7 +133,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             // processor is null
             mqConfigs.add(mqConfig);
 
-            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationTbl.getId());
             List<Long> rowsFilterIds = dbReplicationFilterMappings.stream()
                     .map(DbReplicationFilterMappingTbl::getRowsFilterId)
                     .filter(e -> e != null && e > 0L).collect(Collectors.toList());
