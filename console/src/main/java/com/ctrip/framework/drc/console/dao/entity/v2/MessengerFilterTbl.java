@@ -4,6 +4,7 @@ import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 /**
@@ -27,9 +28,30 @@ public class MessengerFilterTbl {
     /**
      * properties
      */
-    @Column(name = "gtid_init")
+    @Column(name = "properties")
     @Type(value = Types.LONGVARCHAR)
     private String properties;
+
+    /**
+     * 是否删除, 0:否; 1:是
+     */
+    @Column(name = "deleted")
+    @Type(value = Types.TINYINT)
+    private Integer deleted;
+
+    /**
+     * 创建时间
+     */
+    @Column(name = "create_time")
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp createTime;
+
+    /**
+     * 更新时间
+     */
+    @Column(name = "datachange_lasttime", insertable = false, updatable = false)
+    @Type(value = Types.TIMESTAMP)
+    private Timestamp datachangeLasttime;
 
     public Long getId() {
         return id;
@@ -45,5 +67,29 @@ public class MessengerFilterTbl {
 
     public void setProperties(String properties) {
         this.properties = properties;
+    }
+
+    public Integer getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Integer deleted) {
+        this.deleted = deleted;
+    }
+
+    public Timestamp getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Timestamp createTime) {
+        this.createTime = createTime;
+    }
+
+    public Timestamp getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Timestamp datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 }

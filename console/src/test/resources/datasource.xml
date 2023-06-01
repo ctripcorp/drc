@@ -23,7 +23,7 @@
                 timeBetweenEvictionRunsMillis="5000"
                 maxActive="100"
                 minIdle="1"
-                maxWait="500"
+                maxWait="86400"
                 initialSize="1"
                 removeAbandonedTimeout="60"
                 removeAbandoned="true"

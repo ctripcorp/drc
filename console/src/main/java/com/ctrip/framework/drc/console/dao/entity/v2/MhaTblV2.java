@@ -273,4 +273,27 @@ public class MhaTblV2 implements DalPojo {
     public void setAppId(Long appId) {
         this.appId = appId;
     }
+
+    @Override
+    public String toString() {
+        return "MhaTblV2{" +
+                "id=" + id +
+                ", mhaName='" + mhaName + '\'' +
+                ", dcId=" + dcId +
+                ", buId=" + buId +
+                ", clusterName='" + clusterName + '\'' +
+                ", readUser='" + readUser + '\'' +
+                ", readPassword='" + readPassword + '\'' +
+                ", writeUser='" + writeUser + '\'' +
+                ", writePassword='" + writePassword + '\'' +
+                ", monitorUser='" + monitorUser + '\'' +
+                ", monitorPassword='" + monitorPassword + '\'' +
+                ", monitorSwitch=" + monitorSwitch +
+                ", applyMode=" + applyMode +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                ", appId=" + appId +
+                '}';
+    }
 }

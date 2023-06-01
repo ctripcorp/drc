@@ -109,4 +109,15 @@ public class DcTbl implements DalPojo {
 		this.datachangeLasttime = datachangeLasttime;
 	}
 
+	@Override
+	public String toString() {
+		return "DcTbl{" +
+				"id=" + id +
+				", dcName='" + dcName + '\'' +
+				", regionName='" + regionName + '\'' +
+				", deleted=" + deleted +
+				", createTime=" + createTime +
+				", datachangeLasttime=" + datachangeLasttime +
+				'}';
+	}
 }
