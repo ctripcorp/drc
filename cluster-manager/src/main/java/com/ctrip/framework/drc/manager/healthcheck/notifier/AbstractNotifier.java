@@ -50,31 +50,28 @@ public abstract class AbstractNotifier implements Notifier {
     }
 
     @Override
-    public void notify(DbCluster dbCluster) {  //retry when failed
+    public void notify(String clusterId, DbCluster dbCluster) {  //retry when failed
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PostSend postSend = new PostSend(ipAndPort, url, dbCluster);
-            String clusterId = dbCluster.getId();
             notifyExecutor.execute(clusterId, new SendTask(clusterId, postSend));
         }
     }
 
     @Override
-    public void notifyAdd(DbCluster dbCluster) {
+    public void notifyAdd(String clusterId, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getUrlPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, false);
-            String clusterId = dbCluster.getId();
             notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
         }
     }
 
     @Override
-    public void notifyRegister(DbCluster dbCluster) {
+    public void notifyRegister(String clusterId, DbCluster dbCluster) {
         for (String ipAndPort : getDomains(dbCluster)) {
             String url = String.format(NOTIFY_URL, ipAndPort, getRegisterPath());
             PutSend putSend = new PutSend(ipAndPort, url, dbCluster, true);
-            String clusterId = dbCluster.getId();
             notifyExecutor.execute(clusterId, new SendTask(clusterId, putSend));
         }
     }
