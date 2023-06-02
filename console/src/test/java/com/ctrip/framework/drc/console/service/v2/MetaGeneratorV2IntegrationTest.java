@@ -4,9 +4,7 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -122,7 +120,6 @@ public class MetaGeneratorV2IntegrationTest  {
     @Test
     public void testGetDrc() throws Exception {
         initDao();
-//        System.out.println(mhaTblDao.queryAll());
         Drc drc = metaGenerator.getDrc();
         logger.info("drc: \n{}", drc.toString());
 

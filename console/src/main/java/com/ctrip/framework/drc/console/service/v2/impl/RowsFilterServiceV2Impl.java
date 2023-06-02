@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.impl.RowsFilterServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -36,7 +35,7 @@ public class RowsFilterServiceV2Impl implements RowsFilterServiceV2 {
 
     @Override
     public List<RowsFilterConfig> generateRowsFiltersConfig(String tableName, List<Long> rowsFilterIds) throws SQLException {
-        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryByIds(rowsFilterIds, BooleanEnum.FALSE.getCode());
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryByIds(rowsFilterIds);
         List<RowsFilterConfig> rowsFilterConfigs = rowsFilterTbls.stream().map(source -> {
             RowsFilterConfig target = new RowsFilterConfig();
             target.setTables(tableName);
