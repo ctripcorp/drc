@@ -35,7 +35,7 @@ public class RowsFilterServiceV2Test {
 
     @Test
     public void testGenerateConfig() throws SQLException {
-        Mockito.when(rowsFilterTblDao.queryByIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(buildRowsFilterTbls());
+        Mockito.when(rowsFilterTblDao.queryByIds(Mockito.anyList())).thenReturn(buildRowsFilterTbls());
         List<RowsFilterConfig> result = rowsFilterService.generateRowsFiltersConfig("table", new ArrayList<>());
         Assert.assertEquals(result.size(), 2);
     }

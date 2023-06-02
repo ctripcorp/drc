@@ -88,26 +88,26 @@ public class MetaGeneratorV2IntegrationTest {
 
     private static DB testDb;
 
-//    @BeforeClass
-//    public static void setUp() throws Exception {
-//        try {
-//            if (testDb == null) {
-//                // fxdrcmetadb for test
-//                testDb = getDb(12345);
-//            }
-//        } catch (Exception e) {
-//            logger.error("setUp fail", e);
-//        }
-//    }
-//
-//    @AfterClass
-//    public static void tearDown() {
-//        try {
-//            testDb.stop();
-//        } catch (Exception e) {
-//            logger.error("tearDown fail...");
-//        }
-//    }
+    @BeforeClass
+    public static void setUp() throws Exception {
+        try {
+            if (testDb == null) {
+                // fxdrcmetadb for test
+                testDb = getDb(12345);
+            }
+        } catch (Exception e) {
+            logger.error("setUp fail", e);
+        }
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        try {
+            testDb.stop();
+        } catch (Exception e) {
+            logger.error("tearDown fail...");
+        }
+    }
 
     @Test
     public void testGetDrc() throws Exception {

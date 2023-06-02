@@ -17,7 +17,7 @@ public class MetaGeneratorBuilder {
 
     public static List<DcTbl> getDcTbls() {
         DcTbl dcTbl = new DcTbl();
-        dcTbl.setId(1L);
+        dcTbl.setId(100L);
         dcTbl.setDeleted(BooleanEnum.FALSE.getCode());
         dcTbl.setDcName("dc");
         dcTbl.setRegionName("region");
@@ -27,10 +27,10 @@ public class MetaGeneratorBuilder {
     public static List<RouteTbl> getRouteTbls() {
         RouteTbl routeTbl = new RouteTbl();
         routeTbl.setDeleted(0);
-        routeTbl.setSrcDcId(1L);
-        routeTbl.setDstDcId(1L);
-        routeTbl.setId(1L);
-        routeTbl.setRouteOrgId(1L);
+        routeTbl.setSrcDcId(100L);
+        routeTbl.setDstDcId(100L);
+        routeTbl.setId(100L);
+        routeTbl.setRouteOrgId(100L);
         routeTbl.setSrcProxyIds("0");
         routeTbl.setOptionalProxyIds("1");
         routeTbl.setDstProxyIds("2");
@@ -47,7 +47,7 @@ public class MetaGeneratorBuilder {
             proxyTbl.setId(Long.valueOf(i));
             proxyTbl.setUri("uri" + i);
             proxyTbls.add(proxyTbl);
-            proxyTbl.setDcId(1L);
+            proxyTbl.setDcId(100L);
             proxyTbl.setActive(0);
             proxyTbl.setMonitorActive(0);
         }
@@ -63,7 +63,7 @@ public class MetaGeneratorBuilder {
             resourceTbl.setIp("127.0.0." + value.getCode());
             resourceTbls.add(resourceTbl);
             resourceTbl.setType(value.getCode());
-            resourceTbl.setDcId(1L);
+            resourceTbl.setDcId(100L);
             resourceTbl.setAppId(100023928L);
         }
 
@@ -73,7 +73,7 @@ public class MetaGeneratorBuilder {
         resourceTbl.setIp("127.0.1.1");
         resourceTbls.add(resourceTbl);
         resourceTbl.setType(-1);
-        resourceTbl.setDcId(1L);
+        resourceTbl.setDcId(100L);
         resourceTbl.setAppId(100023928L);
         return resourceTbls;
     }
@@ -99,9 +99,9 @@ public class MetaGeneratorBuilder {
         MhaTblV2 mhaTbl = new MhaTblV2();
         mhaTbl.setDeleted(0);
         mhaTbl.setMhaName("mhaA");
-        mhaTbl.setId(1L);
-        mhaTbl.setDcId(1L);
-        mhaTbl.setBuId(1L);
+        mhaTbl.setId(100L);
+        mhaTbl.setDcId(100L);
+        mhaTbl.setBuId(100L);
         mhaTbl.setClusterName("cluster");
         mhaTbl.setReadUser("readUser");
         mhaTbl.setReadPassword("readPassword");
@@ -120,14 +120,14 @@ public class MetaGeneratorBuilder {
         BuTbl buTbl = new BuTbl();
         buTbl.setDeleted(0);
         buTbl.setBuName("BU");
-        buTbl.setId(1L);
+        buTbl.setId(100L);
         return Lists.newArrayList(buTbl);
     }
 
     public static List<MachineTbl> getMachineTbls() {
         MachineTbl machineTbl = new MachineTbl();
         machineTbl.setDeleted(0);
-        machineTbl.setMhaId(1L);
+        machineTbl.setMhaId(100L);
         machineTbl.setMaster(1);
         machineTbl.setUuid("uuid");
         machineTbl.setIp("127.0.0.1");
@@ -138,8 +138,8 @@ public class MetaGeneratorBuilder {
     public static List<ReplicatorGroupTbl> getReplicatorGroupTbls() {
         ReplicatorGroupTbl replicatorGroupTbl = new ReplicatorGroupTbl();
         replicatorGroupTbl.setDeleted(0);
-        replicatorGroupTbl.setId(1L);
-        replicatorGroupTbl.setMhaId(1L);
+        replicatorGroupTbl.setId(100L);
+        replicatorGroupTbl.setMhaId(100L);
         replicatorGroupTbl.setExcludedTables("");
         return Lists.newArrayList(replicatorGroupTbl);
     }
@@ -147,7 +147,7 @@ public class MetaGeneratorBuilder {
     public static List<ReplicatorTbl> getReplicatorTbls() {
         ReplicatorTbl replicatorTbl = new ReplicatorTbl();
         replicatorTbl.setDeleted(0);
-        replicatorTbl.setRelicatorGroupId(1L);
+        replicatorTbl.setRelicatorGroupId(100L);
         replicatorTbl.setResourceId(Long.valueOf(ModuleEnum.REPLICATOR.getCode()) + 1);
         replicatorTbl.setApplierPort(1010);
         replicatorTbl.setGtidInit("gtId");
@@ -159,27 +159,27 @@ public class MetaGeneratorBuilder {
     public static List<MhaReplicationTbl> getMhaReplicationTbls() {
         MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
         mhaReplicationTbl.setDeleted(0);
-        mhaReplicationTbl.setId(1L);
-        mhaReplicationTbl.setSrcMhaId(1L);
-        mhaReplicationTbl.setDstMhaId(1L);
+        mhaReplicationTbl.setId(100L);
+        mhaReplicationTbl.setSrcMhaId(100L);
+        mhaReplicationTbl.setDstMhaId(100L);
         return Lists.newArrayList(mhaReplicationTbl);
     }
 
     public static List<ApplierGroupTblV2> getApplierGroupTbls() {
         ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
         applierGroupTbl.setDeleted(0);
-        applierGroupTbl.setId(1L);
+        applierGroupTbl.setId(100L);
         applierGroupTbl.setGtidInit("applierGtId");
-        applierGroupTbl.setMhaReplicationId(1L);
+        applierGroupTbl.setMhaReplicationId(100L);
         return Lists.newArrayList(applierGroupTbl);
     }
 
     public static List<MhaDbMappingTbl> getMhaDbMappingTbls() {
         MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
         mhaDbMappingTbl.setDeleted(0);
-        mhaDbMappingTbl.setMhaId(1L);
-        mhaDbMappingTbl.setDbId(1L);
-        mhaDbMappingTbl.setId(1L);
+        mhaDbMappingTbl.setMhaId(100L);
+        mhaDbMappingTbl.setDbId(100L);
+        mhaDbMappingTbl.setId(100L);
 
         return Lists.newArrayList(mhaDbMappingTbl);
     }
@@ -187,7 +187,7 @@ public class MetaGeneratorBuilder {
     public static List<DbTbl> getDbTbls() {
         DbTbl dbTbl = new DbTbl();
         dbTbl.setDeleted(0);
-        dbTbl.setId(1L);
+        dbTbl.setId(100L);
         dbTbl.setDbName("db");
         dbTbl.setDbOwner("");
         dbTbl.setBuCode("buCode");
@@ -199,17 +199,17 @@ public class MetaGeneratorBuilder {
     public static List<DbReplicationTbl> getDbReplicationTbls() {
         DbReplicationTbl tbl = new DbReplicationTbl();
         tbl.setDeleted(0);
-        tbl.setSrcMhaDbMappingId(1L);
-        tbl.setDstMhaDbMappingId(1L);
+        tbl.setSrcMhaDbMappingId(100L);
+        tbl.setDstMhaDbMappingId(100L);
         tbl.setSrcLogicTableName("srcTable");
         tbl.setDstLogicTableName("dstTable");
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setReplicationType(1);
 
 //        DbReplicationTbl tbl1 = new DbReplicationTbl();
 //        tbl.setDeleted(0);
-//        tbl.setSrcMhaDbMappingId(1L);
-//        tbl.setDstMhaDbMappingId(-1L);
+//        tbl.setSrcMhaDbMappingId(100L);
+//        tbl.setDstMhaDbMappingId(-100L);
 //        tbl.setSrcLogicTableName("srcTable");
 //        tbl.setDstLogicTableName("topic");
 //        tbl.setId(2L);
@@ -219,22 +219,22 @@ public class MetaGeneratorBuilder {
 
     public static List<ApplierTblV2> getApplierTbls() {
         ApplierTblV2 tbl = new ApplierTblV2();
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setDeleted(0);
         tbl.setResourceId(Long.valueOf(ModuleEnum.APPLIER.getCode()) + 1);
         tbl.setMaster(1);
         tbl.setPort(2020);
-        tbl.setApplierGroupId(1L);
+        tbl.setApplierGroupId(100L);
         return Lists.newArrayList(tbl);
     }
 
     public static List<MessengerGroupTbl> getMessengerGroupTbls() {
         MessengerGroupTbl tbl = new MessengerGroupTbl();
         tbl.setDeleted(0);
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setGtidExecuted("messengerGtId");
-        tbl.setMhaId(1L);
-        tbl.setReplicatorGroupId(1L);
+        tbl.setMhaId(100L);
+        tbl.setReplicatorGroupId(100L);
 
         return Lists.newArrayList(tbl);
     }
@@ -242,10 +242,10 @@ public class MetaGeneratorBuilder {
     public static List<MessengerTbl> getMessengerTbls() {
         MessengerTbl tbl = new MessengerTbl();
         tbl.setDeleted(0);
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setResourceId(10L);
         tbl.setPort(30);
-        tbl.setMessengerGroupId(1L);
+        tbl.setMessengerGroupId(100L);
 
         return Lists.newArrayList(tbl);
     }
@@ -253,11 +253,11 @@ public class MetaGeneratorBuilder {
     public static List<DbReplicationFilterMappingTbl> getFilterMappingTbls() {
         DbReplicationFilterMappingTbl tbl = new DbReplicationFilterMappingTbl();
         tbl.setDeleted(0);
-        tbl.setDbReplicationId(1L);
-        tbl.setColumnsFilterId(1L);
-        tbl.setRowsFilterId(1L);
-        tbl.setMessengerFilterId(1L);
-        tbl.setId(1L);
+        tbl.setDbReplicationId(100L);
+        tbl.setColumnsFilterId(100L);
+        tbl.setRowsFilterId(100L);
+        tbl.setMessengerFilterId(100L);
+        tbl.setId(100L);
 
         return Lists.newArrayList(tbl);
     }
@@ -265,7 +265,7 @@ public class MetaGeneratorBuilder {
     public static List<RowsFilterTbl> getRowsFilterTbls() {
         RowsFilterTbl tbl = new RowsFilterTbl();
         tbl.setDeleted(0);
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setMode("mode");
         tbl.setConfigs("{\"parameterList\":[{\"columns\":[\"AgentUID\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"uid\"}],\"drcStrategyId\":0,\"routeStrategyId\":0}");
         tbl.setParameters("");
@@ -276,7 +276,7 @@ public class MetaGeneratorBuilder {
     public static List<ColumnsFilterTblV2> getColumnsFilterTbls() {
         ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
         tbl.setDeleted(0);
-        tbl.setId(1L);
+        tbl.setId(100L);
         tbl.setMode(0);
         tbl.setColumns("[\"column\"]");
 
@@ -287,7 +287,7 @@ public class MetaGeneratorBuilder {
         MessengerFilterTbl tbl = new MessengerFilterTbl();
         tbl.setDeleted(0);
         tbl.setProperties("{\"mqType\":\"qmq\",\"serialization\":\"json\",\"persistent\":false,\"order\":true,\"orderKey\":\"id\",\"delayTime\":0}");
-        tbl.setId(1L);
+        tbl.setId(100L);
         return Lists.newArrayList(tbl);
     }
 }
