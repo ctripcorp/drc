@@ -110,17 +110,10 @@ public class MetaGeneratorV2IntegrationTest {
 //    }
 
     @Test
-    public void test02() throws Exception {
-        mhaDbMappingTblDao.batchInsert(getMhaDbMappingTbls());
-        List<MhaDbMappingTbl> tbls = mhaDbMappingTblDao.queryAll();
-        System.out.println(tbls);
-    }
-
-    @Test
     public void testGetDrc() throws Exception {
         initDao();
         Drc drc = metaGenerator.getDrc();
-        logger.info("drc: \n{}", drc.toString());
+//        logger.info("drc: \n{}", drc.toString());
 
     }
 
