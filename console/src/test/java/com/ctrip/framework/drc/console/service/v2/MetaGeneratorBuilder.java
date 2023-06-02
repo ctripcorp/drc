@@ -31,9 +31,9 @@ public class MetaGeneratorBuilder {
         routeTbl.setDstDcId(100L);
         routeTbl.setId(100L);
         routeTbl.setRouteOrgId(100L);
-        routeTbl.setSrcProxyIds("0");
-        routeTbl.setOptionalProxyIds("1");
-        routeTbl.setDstProxyIds("2");
+        routeTbl.setSrcProxyIds("100");
+        routeTbl.setOptionalProxyIds("101");
+        routeTbl.setDstProxyIds("102");
         routeTbl.setTag("console");
 
         return Lists.newArrayList(routeTbl);
@@ -44,7 +44,7 @@ public class MetaGeneratorBuilder {
         for (int i = 0; i < 3; i++) {
             ProxyTbl proxyTbl = new ProxyTbl();
             proxyTbl.setDeleted(0);
-            proxyTbl.setId(Long.valueOf(i));
+            proxyTbl.setId(Long.valueOf(i + 100));
             proxyTbl.setUri("uri" + i);
             proxyTbls.add(proxyTbl);
             proxyTbl.setDcId(100L);
@@ -59,7 +59,7 @@ public class MetaGeneratorBuilder {
         for (ModuleEnum value : ModuleEnum.values()) {
             ResourceTbl resourceTbl = new ResourceTbl();
             resourceTbl.setDeleted(0);
-            resourceTbl.setId(Long.valueOf(value.getCode() + 1));
+            resourceTbl.setId(Long.valueOf(value.getCode() + 100));
             resourceTbl.setIp("127.0.0." + value.getCode());
             resourceTbls.add(resourceTbl);
             resourceTbl.setType(value.getCode());
@@ -69,7 +69,7 @@ public class MetaGeneratorBuilder {
 
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setDeleted(0);
-        resourceTbl.setId(10L);
+        resourceTbl.setId(110L);
         resourceTbl.setIp("127.0.1.1");
         resourceTbls.add(resourceTbl);
         resourceTbl.setType(-1);
@@ -83,7 +83,7 @@ public class MetaGeneratorBuilder {
         clusterManagerTbl.setDeleted(0);
         clusterManagerTbl.setPort(80);
         clusterManagerTbl.setMaster(1);
-        clusterManagerTbl.setResourceId(Long.valueOf(ModuleEnum.CLUSTER_MANAGER.getCode()) + 1);
+        clusterManagerTbl.setResourceId(Long.valueOf(ModuleEnum.CLUSTER_MANAGER.getCode() + 100));
         return Lists.newArrayList(clusterManagerTbl);
     }
 
@@ -91,7 +91,7 @@ public class MetaGeneratorBuilder {
         ZookeeperTbl zookeeperTbl = new ZookeeperTbl();
         zookeeperTbl.setDeleted(0);
         zookeeperTbl.setPort(80);
-        zookeeperTbl.setResourceId(Long.valueOf(ModuleEnum.ZOOKEEPER.getCode() + 1));
+        zookeeperTbl.setResourceId(Long.valueOf(ModuleEnum.ZOOKEEPER.getCode() + 100));
         return Lists.newArrayList(zookeeperTbl);
     }
 
@@ -221,7 +221,7 @@ public class MetaGeneratorBuilder {
         ApplierTblV2 tbl = new ApplierTblV2();
         tbl.setId(100L);
         tbl.setDeleted(0);
-        tbl.setResourceId(Long.valueOf(ModuleEnum.APPLIER.getCode()) + 1);
+        tbl.setResourceId(Long.valueOf(ModuleEnum.APPLIER.getCode() + 100));
         tbl.setMaster(1);
         tbl.setPort(2020);
         tbl.setApplierGroupId(100L);
@@ -243,7 +243,7 @@ public class MetaGeneratorBuilder {
         MessengerTbl tbl = new MessengerTbl();
         tbl.setDeleted(0);
         tbl.setId(100L);
-        tbl.setResourceId(10L);
+        tbl.setResourceId(110L);
         tbl.setPort(30);
         tbl.setMessengerGroupId(100L);
 
