@@ -3,14 +3,12 @@ package com.ctrip.framework.drc.console.service.v2;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
-import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.platform.dal.dao.DalHints;
-import org.junit.*;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +18,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import java.sql.SQLException;
-import java.util.List;
 
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.*;
 
@@ -88,26 +85,26 @@ public class MetaGeneratorV2IntegrationTest {
 
     private static DB testDb;
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        try {
-            if (testDb == null) {
-                // fxdrcmetadb for test
-                testDb = getDb(12345);
-            }
-        } catch (Exception e) {
-            logger.error("setUp fail", e);
-        }
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        try {
-            testDb.stop();
-        } catch (Exception e) {
-            logger.error("tearDown fail...");
-        }
-    }
+//    @BeforeClass
+//    public static void setUp() throws Exception {
+//        try {
+//            if (testDb == null) {
+//                // fxdrcmetadb for test
+//                testDb = getDb(12345);
+//            }
+//        } catch (Exception e) {
+//            logger.error("setUp fail", e);
+//        }
+//    }
+//
+//    @AfterClass
+//    public static void tearDown() {
+//        try {
+//            testDb.stop();
+//        } catch (Exception e) {
+//            logger.error("tearDown fail...");
+//        }
+//    }
 
     @Test
     public void testGetDrc() throws Exception {
