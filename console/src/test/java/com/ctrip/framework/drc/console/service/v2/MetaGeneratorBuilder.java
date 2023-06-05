@@ -60,7 +60,7 @@ public class MetaGeneratorBuilder {
             ResourceTbl resourceTbl = new ResourceTbl();
             resourceTbl.setDeleted(0);
             resourceTbl.setId(Long.valueOf(value.getCode() + 100));
-            resourceTbl.setIp("127.0.0." + value.getCode());
+            resourceTbl.setIp("127.0.2." + value.getCode());
             resourceTbls.add(resourceTbl);
             resourceTbl.setType(value.getCode());
             resourceTbl.setDcId(100L);
@@ -148,7 +148,7 @@ public class MetaGeneratorBuilder {
         ReplicatorTbl replicatorTbl = new ReplicatorTbl();
         replicatorTbl.setDeleted(0);
         replicatorTbl.setRelicatorGroupId(100L);
-        replicatorTbl.setResourceId(Long.valueOf(ModuleEnum.REPLICATOR.getCode()) + 1);
+        replicatorTbl.setResourceId(Long.valueOf(ModuleEnum.REPLICATOR.getCode()) + 100);
         replicatorTbl.setApplierPort(1010);
         replicatorTbl.setGtidInit("gtId");
         replicatorTbl.setPort(3030);

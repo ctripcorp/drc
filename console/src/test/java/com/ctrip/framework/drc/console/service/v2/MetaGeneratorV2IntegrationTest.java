@@ -110,7 +110,7 @@ public class MetaGeneratorV2IntegrationTest {
     public void testGetDrc() throws Exception {
         initDao();
         Drc drc = metaGenerator.getDrc();
-//        logger.info("drc: \n{}", drc.toString());
+        logger.info("drc: \n{}", drc.toString());
 
     }
 
