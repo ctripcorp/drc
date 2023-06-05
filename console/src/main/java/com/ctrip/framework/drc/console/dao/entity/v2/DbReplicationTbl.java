@@ -82,6 +82,21 @@ public class DbReplicationTbl implements DalPojo {
     @Type(value = Types.VARCHAR)
     private String dstLogicTableName;
 
+    @Override
+    public String toString() {
+        return "DbReplicationTbl{" +
+                "id=" + id +
+                ", srcMhaDbMappingId=" + srcMhaDbMappingId +
+                ", dstMhaDbMappingId=" + dstMhaDbMappingId +
+                ", replicationType=" + replicationType +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                ", srcLogicTableName='" + srcLogicTableName + '\'' +
+                ", dstLogicTableName='" + dstLogicTableName + '\'' +
+                '}';
+    }
+
     public Long getId() {
         return id;
     }
