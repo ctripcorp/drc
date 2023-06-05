@@ -160,7 +160,7 @@ public class MhaController {
         try {
             String purgedGtid = mySqlService.getMhaPurgedGtid(mha);
             GtidSet purgedGtidSet = new GtidSet(purgedGtid);
-            boolean legal = purgedGtidSet.isContainedWithin(configGtid);
+            boolean legal = purgedGtidSet.isContainedWithin(new GtidSet(configGtid));
             GtidCheckResVo resVo = new GtidCheckResVo(legal, purgedGtid);
             return ApiResult.getSuccessInstance(resVo);
         } catch (Throwable e) {

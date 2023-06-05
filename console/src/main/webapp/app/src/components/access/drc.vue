@@ -242,14 +242,17 @@
         title="gitd位点校验结果"
         width="900px">
         <Form style="width: 80%">
+          <FormItem  label="校验结果">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
+          </FormItem>
           <FormItem label="当前Mha">
             <Input  :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
           </FormItem>
-          <FormItem style="color: yellow" label="校验结果">
-            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.res" readonly/>
+          <FormItem  label="配置位点">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
           </FormItem>
           <FormItem label="purgedGtid">
-            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.replicators.old" readonly/>
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.purgedGtid" readonly/>
           </FormItem>
         </Form>
       </Modal>
@@ -306,7 +309,8 @@ export default {
         modal: false,
         resVo: {
           mha: '',
-          legal: false,
+          legal: '',
+          configGtid: '',
           purgedGtid: ''
         }
       },
@@ -665,7 +669,8 @@ export default {
           if (response.data.status === 0) {
             this.gtidCheck.resVo = {
               mha: this.drc.oldClusterName,
-              legal: response.data.data.legal,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.oldRExecutedGtid,
               purgedGtid: response.data.data.purgedGtid
             }
             this.gtidCheck.modal = true
@@ -703,7 +708,8 @@ export default {
           if (response.data.status === 0) {
             this.gtidCheck.resVo = {
               mha: this.drc.newClusterName,
-              legal: response.data.data.legal,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.newRExecutedGtid,
               purgedGtid: response.data.data.purgedGtid
             }
             this.gtidCheck.modal = true
