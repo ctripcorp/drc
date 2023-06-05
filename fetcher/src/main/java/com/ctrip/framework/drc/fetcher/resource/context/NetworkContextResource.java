@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.fetcher.resource.context;
 
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
@@ -10,7 +11,6 @@ import com.ctrip.framework.drc.fetcher.system.qconfig.ConfigKey;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.apache.commons.lang3.StringUtils;
 
-import static com.ctrip.framework.drc.core.server.common.enums.ConsumeType.Applier;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CONFIG_FILE_NAME;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
 
@@ -57,37 +57,59 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
             return fetchGtidSet();
         }
 
-        if (Applier == ApplyMode.getApplyMode(applyMode).getConsumeType()) {
-            Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
-            ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
-            String gtidFromDb = queryTask.doQuery();
-            logger.info("[{}][NETWORK GTID] query the newest gtidset from DB is: {}", registryKey, gtidFromDb);
-            if (StringUtils.isNotBlank(gtidFromDb)) {
-                GtidSet executedGtidSet = unionGtidSet(gtidFromDb);
-                updateGtidSet(executedGtidSet);
-            }
-        }
-
+        GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
+        updateGtidSet(executedGtidSet);
         return fetchGtidSet();
     }
 
     private GtidSet unionGtidSet(String initialGtidExecuted) {
         GtidSet executedGtidSet = new GtidSet(initialGtidExecuted);
-        String initialGtidPurged = (String) source.get(ConfigKey.from(DEFAULT_CONFIG_FILE_NAME, registryKey + ".purgedgtid"));
-        logger.info("[{}][NETWORK GTID] executed from cluster manager: {}, from qconfig: {}", registryKey, initialGtidExecuted, initialGtidPurged);
+        logger.info("[{}][NETWORK GTID] initial position: {}", registryKey, executedGtidSet);
 
-        if (StringUtils.isNotBlank(initialGtidExecuted) && initialGtidPurged != null) {
-            GtidSet purgedGtidSet = new GtidSet(initialGtidPurged);
-            executedGtidSet = executedGtidSet.union(purgedGtidSet);
-            logger.info("[{}][NETWORK GTID] union gtid executed", registryKey);
-        }
+        executedGtidSet = unionPositionFromQConfig(executedGtidSet);
 
-        if (ApplyMode.mq == ApplyMode.getApplyMode(applyMode)) {
-            String position = mqPosition.getPosition();
-            executedGtidSet = executedGtidSet.union(new GtidSet(position));
+        ConsumeType consumeType = ApplyMode.getApplyMode(applyMode).getConsumeType();
+        switch (consumeType) {
+            case Applier:
+                executedGtidSet = unionPositionFromDb(executedGtidSet);
+            case Messenger:
+                executedGtidSet = unionPositionFromZk(executedGtidSet);
         }
 
         logger.info("[{}][NETWORK GTID] executed gtidset: {}", registryKey, executedGtidSet);
         return executedGtidSet;
+    }
+
+    private GtidSet unionPositionFromQConfig(GtidSet gtidSet) {
+        String positionFromQConfig = (String) source.get(ConfigKey.from(DEFAULT_CONFIG_FILE_NAME, registryKey + ".purgedgtid"));
+        if (StringUtils.isBlank(positionFromQConfig)) {
+            return gtidSet;
+        } else {
+            logger.info("[{}][NETWORK GTID] qconfig position: {}", registryKey, positionFromQConfig);
+            return gtidSet.union(new GtidSet(positionFromQConfig));
+        }
+    }
+
+    private GtidSet unionPositionFromDb(GtidSet gtidSet) {
+        GtidSet positionFromDb = queryPositionFromDb();
+        logger.info("[{}][NETWORK GTID] db position: {}", registryKey, positionFromDb);
+        return gtidSet.union(positionFromDb);
+    }
+
+    private GtidSet unionPositionFromZk(GtidSet gtidSet) {
+        String positionFromZk = mqPosition.getPosition();
+        if (StringUtils.isBlank(positionFromZk)) {
+            return gtidSet;
+        } else {
+            logger.info("[{}][NETWORK GTID] zk position: {}", registryKey, positionFromZk);
+            return gtidSet.union(new GtidSet(positionFromZk));
+        }
+    }
+
+    private GtidSet queryPositionFromDb() {
+        Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
+        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
+        String gtidSet = queryTask.doQuery();
+        return new GtidSet(gtidSet);
     }
 }
