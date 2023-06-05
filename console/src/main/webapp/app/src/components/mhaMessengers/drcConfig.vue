@@ -20,12 +20,24 @@
         </FormItem>
         <FormItem label="初始拉取位点R" style="width: 600px">
           <Input v-model="drc.rGtidExecuted" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
-          <Button @click="queryMhaMachineGtid">查询mha位点</Button>
-          <span v-if="hasTest1">
+          <Row>
+            <Col span="12">
+              <Button @click="queryMhaMachineGtid">查询mha位点</Button>
+              <span v-if="hasTest1">
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess1 ? 'green' : 'red'"/>
-                    {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-            </span>
+                    {{ testSuccess1 ? '查询实时位点成功' : '连接查询失败' }}
+                </span>
+            </Col>
+            <Col span="12">
+              <Button @click="queryMhaMachinePurgedGtid">查询purge位点</Button>
+              <span v-if="hasTest2">
+                  <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess2 ? 'green' : 'red'"/>
+                    {{ testSuccess2 ? '查询purged位点成功' : '连接查询失败' }}
+                </span>
+            </Col>
+          </Row>
         </FormItem>
         <FormItem label="初始同步位点A" style="width: 600px">
           <Input v-model="drc.aGtidExecuted" placeholder="请输入DRC同步起始位点"/>
@@ -117,6 +129,8 @@ export default {
     return {
       hasTest1: false,
       testSuccess1: false,
+      hasTest2: false,
+      testSuccess2: false,
       result: false,
       drc: {
         reviewModal: false,
@@ -199,8 +213,8 @@ export default {
     },
     queryMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.mhaName)
-      that.axios.get('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.mhaName)
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -208,6 +222,20 @@ export default {
             this.testSuccess1 = true
           } else {
             this.testSuccess1 = false
+          }
+        })
+    },
+    queryMhaMachinePurgedGtid () {
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.mhaName)
+      that.axios.get('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.mhaName)
+        .then(response => {
+          this.hasTest2 = true
+          if (response.data.status === 0) {
+            this.drc.rGtidExecuted = response.data.data
+            this.testSuccess2 = true
+          } else {
+            this.testSuccess2 = false
           }
         })
     },

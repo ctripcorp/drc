@@ -18,4 +18,7 @@ public interface MySqlService {
 
     // forward by mha
     String getMhaExecutedGtid(String mha);
+
+    // forward by mha
+    String getMhaPurgedGtid(String mha);
 }

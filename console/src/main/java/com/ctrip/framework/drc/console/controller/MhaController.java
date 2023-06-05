@@ -106,34 +106,50 @@ public class MhaController {
         return ApiResult.getFailInstance(null);
     }
     
-    @GetMapping("gtid")
+    @GetMapping("gtid/drcExecuted")
     public ApiResult getDrcExecutedGtid(@RequestParam String mha){
         try {
             String unionGtid = mySqlService.getDrcExecutedGtid(mha);
             if (StringUtils.isEmpty(unionGtid)) {
-                return ApiResult.getFailInstance(null);
+                return ApiResult.getFailInstance(null,"result is empty");
             } else {
                 return ApiResult.getSuccessInstance(unionGtid);
             }
         } catch (Throwable e) {
             logger.error("[[tag=gtidQuery]] getDrcExecutedGtid from mha: {}",mha,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
         }
-        return ApiResult.getFailInstance(null);
     }
 
-    @GetMapping("mhaGtid")
-    public ApiResult getMhaExecutedGtidGtid(@RequestParam String mha){
+    @GetMapping("gtid/executed")
+    public ApiResult getMhaExecutedGtid(@RequestParam String mha){
         try {
             String unionGtid = mySqlService.getMhaExecutedGtid(mha);
             if (StringUtils.isEmpty(unionGtid)) {
-                return ApiResult.getFailInstance(null);
+                return ApiResult.getFailInstance(null,"result is empty");
             } else {
                 return ApiResult.getSuccessInstance(unionGtid);
             }
         } catch (Throwable e) {
-            logger.error("[[tag=gtidQuery]] getMhaExecutedGtidGtid from mha: {}",mha,e);
+            logger.error("[[tag=gtidQuery]] getMhaExecutedGtid from mha: {}",mha,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
         }
-        return ApiResult.getFailInstance(null);
+    }
+
+
+    @GetMapping("gtid/purged")
+    public ApiResult getMhaPurgedGtid(@RequestParam String mha){
+        try {
+            String purgedGtid = mySqlService.getMhaPurgedGtid(mha);
+            if (StringUtils.isEmpty(purgedGtid)) {
+                return ApiResult.getFailInstance(null,"result is empty");
+            } else {
+                return ApiResult.getSuccessInstance(purgedGtid);
+            }
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaPurgedGtid from mha: {}",mha,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
+        }
     }
     
 

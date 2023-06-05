@@ -23,8 +23,9 @@ public class NameFilterUtils {
     @Test
     public void distinctAndUnion(){
         // input dbName & tableNames &(commonPrefix) check and get nameFilter
-        String dbName = "carosddb";
-        String tableNames ="";
+        String dbName = "";
+        String tableNames =""
+                ;
         String commonPrefix = "";
         
         

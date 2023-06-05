@@ -33,12 +33,24 @@
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="drc.oldRExecutedGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
-            <Button @click="queryOldMhaMachineGtid">查询mha位点</Button>
-            <span v-if="hasTest1">
+            <Row>
+              <Col span="12">
+                <Button @click="queryOldMhaMachineGtid">查询mha位点</Button>
+                <span v-if="hasTest1">
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess1 ? 'green' : 'red'"/>
-                    {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-            </span>
+                    {{ testSuccess1 ? '查询实时位点成功' : '连接查询失败' }}
+                </span>
+              </Col>
+              <Col span="12">
+                <Button @click="queryOldMhaMachineGtidPurged">查询purge位点</Button>
+                <span v-if="hasTest3">
+                  <Icon :type="testSuccess3 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess3 ? 'green' : 'red'"/>
+                    {{ testSuccess3 ? '查询purged位点成功' : '连接查询失败' }}
+                </span>
+              </Col>
+            </Row>
           </FormItem>
           <FormItem label="初始同步位点A" style="width: 600px">
             <Input v-model="drc.oldAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
@@ -84,12 +96,24 @@
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="drc.newRExecutedGtid" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
-            <Button @click="queryNewMhaMachineGtid">查询mha位点</Button>
-            <span v-if="hasTest2">
+            <Row>
+              <Col span="12">
+                <Button @click="queryNewMhaMachineGtid">查询mha位点</Button>
+                <span v-if="hasTest2">
                   <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess2 ? 'green' : 'red'"/>
-                    {{ testSuccess2 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
+                    {{ testSuccess2 ? '查询实时位点成功' : '连接查询失败' }}
                 </span>
+              </Col>
+              <Col span="12">
+                <Button @click="queryNewMhaMachineGtidPurged">查询purge位点</Button>
+                <span v-if="hasTest4">
+                  <Icon :type="testSuccess4 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess4 ? 'green' : 'red'"/>
+                    {{ testSuccess4 ? '查询purged位点成功' : '连接查询失败' }}
+                </span>
+              </Col>
+            </Row>
           </FormItem>
           <FormItem label="初始同步位点A" style="width: 600px">
             <Input v-model="drc.newAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
@@ -601,8 +625,8 @@ export default {
     },
     queryOldMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.oldClusterName)
-      that.axios.get('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.oldClusterName)
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.oldClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.oldClusterName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -613,10 +637,24 @@ export default {
           }
         })
     },
+    queryOldMhaMachineGtidPurged () {
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.oldClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.oldClusterName)
+        .then(response => {
+          this.hasTest3 = true
+          if (response.data.status === 0) {
+            this.drc.oldRExecutedGtid = response.data.data
+            this.testSuccess3 = true
+          } else {
+            this.testSuccess3 = false
+          }
+        })
+    },
     queryNewMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.newClusterName)
-      that.axios.get('/api/drc/v1/mha/mhaGtid?mha=' + this.drc.newClusterName)
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.newClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.newClusterName)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -624,6 +662,20 @@ export default {
             this.testSuccess2 = true
           } else {
             this.testSuccess2 = false
+          }
+        })
+    },
+    queryNewMhaMachineGtidPurged () {
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.newClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.newClusterName)
+        .then(response => {
+          this.hasTest4 = true
+          if (response.data.status === 0) {
+            this.drc.newRExecutedGtid = response.data.data
+            this.testSuccess4 = true
+          } else {
+            this.testSuccess4 = false
           }
         })
     },

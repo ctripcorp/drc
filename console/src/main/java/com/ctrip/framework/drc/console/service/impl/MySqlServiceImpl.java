@@ -4,9 +4,13 @@ import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +68,21 @@ public class MySqlServiceImpl implements MySqlService {
             return null;
         } else {
             return MySqlUtils.getExecutedGtid(endpoint);
+        }
+
+    }
+
+
+    @Override
+    @PossibleRemote(path="/api/drc/v1/mha/mhaGtidPurged")
+    public String getMhaPurgedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaPurgedGtid from mha{}",mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaPurgedGtid from mha {},machine not exist",mha);
+            return null;
+        } else {
+            return MySqlUtils.getPurgedGtid(endpoint);
         }
 
     }
