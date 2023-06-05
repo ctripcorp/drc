@@ -72,8 +72,10 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         switch (consumeType) {
             case Applier:
                 executedGtidSet = unionPositionFromDb(executedGtidSet);
+                break;
             case Messenger:
                 executedGtidSet = unionPositionFromZk(executedGtidSet);
+                break;
         }
 
         logger.info("[{}][NETWORK GTID] executed gtidset: {}", registryKey, executedGtidSet);
