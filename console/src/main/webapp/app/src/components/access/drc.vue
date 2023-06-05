@@ -652,7 +652,7 @@ export default {
         })
     },
     queryOldMhaGtidCheckRes () {
-      if (this.drc.oldRExecutedGtid == null || this.drc.newRExecutedGtid === '') {
+      if (this.drc.oldRExecutedGtid == null || this.drc.oldRExecutedGtid === '') {
         alert('位点为空！')
         return
       }

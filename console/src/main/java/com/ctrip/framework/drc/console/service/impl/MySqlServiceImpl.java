@@ -41,7 +41,7 @@ public class MySqlServiceImpl implements MySqlService {
     }
 
     @Override
-    @PossibleRemote(path="/api/drc/v1/mha/gtid")
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/drcExecuted")
     public String getDrcExecutedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getDrcExecutedGtid from mha{}",mha);
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
@@ -54,7 +54,7 @@ public class MySqlServiceImpl implements MySqlService {
     }
 
     @Override
-    @PossibleRemote(path="/api/drc/v1/mha/mhaGtid")
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/executed")
     public String getMhaExecutedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getMhaExecutedGtid from mha{}",mha);
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
@@ -69,7 +69,7 @@ public class MySqlServiceImpl implements MySqlService {
 
 
     @Override
-    @PossibleRemote(path="/api/drc/v1/mha/mhaGtidPurged")
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/purged")
     public String getMhaPurgedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getMhaPurgedGtid from mha{}",mha);
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
