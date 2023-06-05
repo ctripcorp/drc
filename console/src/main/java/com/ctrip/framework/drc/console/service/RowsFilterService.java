@@ -9,8 +9,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface RowsFilterService {
-    
-   
+
     List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException;
     
     String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;

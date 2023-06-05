@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ProxyTbl;
+import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
  * @author shb沈海波
  * @date 2021-05-12
  */
+@Repository
 public class ProxyTblDao extends AbstractDao<ProxyTbl> {
 
 	public ProxyTblDao() throws SQLException {

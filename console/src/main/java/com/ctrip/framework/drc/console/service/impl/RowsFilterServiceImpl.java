@@ -51,29 +51,29 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
-    
+
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
-    
+
     @Autowired
     private RowsFilterTblDao rowsFilterTblDao;
-    
+
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
-    
-    
+
+
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
-    
+
     @Override
-    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException {
+    public List<RowsFilterConfig> generateRowsFiltersConfig(Long applierGroupId, int applierType) throws SQLException {
         List<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
-        List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
-                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
-        
-        for (RowsFilterMappingTbl mapping :  rowsFilterMappingTbls) {
+        List<RowsFilterMappingTbl> rowsFilterMappingTbls =
+                rowsFilterMappingTblDao.queryBy(applierGroupId, applierType, BooleanEnum.FALSE.getCode());
+
+        for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
-            
+
             DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByIdsAndType(
                     Lists.newArrayList(mapping.getDataMediaId()), DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode()
             ).get(0);
@@ -82,7 +82,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
             // new rowsFilterConfig  trip_udl & configs & updateDb
-            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
+            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config", applierGroupId);
             rowsFilterConfig.setMode(
                     TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
             );
@@ -92,27 +92,26 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                 Configs configs = new Configs();
                 configs.setParameterList(Lists.newArrayList(parameters));
                 rowsFilterConfig.setConfigs(configs);
-                
-                migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
+
+                migrateUdlConfigs(rowsFilterConfig, rowsFilterTbl);
             } else {
-                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
+                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson, Configs.class));
             }
             rowsFilterConfigs.add(rowsFilterConfig);
         }
 
         return rowsFilterConfigs;
     }
-    
-    
+
 
     @Override
-    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException {
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId, int applierType) throws SQLException {
         List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
         if (applierGroupId == null) {
             return mappingVos;
         }
         List<RowsFilterMappingTbl> rowsFilterMappingTbls =
-                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
+                rowsFilterMappingTblDao.queryBy(applierGroupId, applierType, BooleanEnum.FALSE.getCode());
         for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             List<DataMediaTbl> dataMediaTbls =
                     dataMediaTblDao.queryByIdsAndType(
@@ -128,7 +127,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         return mappingVos;
     }
-    
+
     @Override
     @DalTransactional(logicDbName = DB_NAME)
     public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
@@ -141,7 +140,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         mappingTbl.setDataMediaId(dataMediaId);
         mappingTbl.setRowsFilterId(rowsFilterId);
         int insert = rowsFilterMappingTblDao.insert(mappingTbl);
-        return insert == 1 ?  "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
+        return insert == 1 ? "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
     @Override
@@ -176,16 +175,16 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update0 = rowsFilterMappingTblDao.update(mappingTbl);
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
-        
-        return update0+update1+update2 == 3 ?  "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
+
+        return update0 + update1 + update2 == 3 ? "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }
-    
+
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/columnCheck")
-    public List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName) {
+    public List<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName) {
         List<String> tables = Lists.newArrayList();
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
-        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = 
+        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter =
                 MySqlUtils.getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(namespace + "\\." + name));
         Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(endpoint, tablesAfterRegexFilter, true);
         for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
@@ -197,16 +196,16 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         return tables;
     }
 
-    
+
     @Override
     public List<String> getLogicalTables(
-            Long applierGroupId, 
+            Long applierGroupId,
             int applierType,
-            Long dataMediaId, 
-            String namespace, 
+            Long dataMediaId,
+            String namespace,
             String name,
             String mhaName) throws SQLException {
-        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId,applierType);
+        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId, applierType);
         List<String> logicalTables = Lists.newArrayList();
         if (dataMediaId == 0) { // add
             logicalTables = rowsFilterMappingVos.stream().
@@ -219,10 +218,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         logicalTables.add(namespace + "\\." + name);
         return logicalTables;
     }
-    
+
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck/remote")
-    public List<String> getConflictTables(String mhaName, String logicalTables)  {
+    public List<String> getConflictTables(String mhaName, String logicalTables) {
         String[] tables = logicalTables.split(",");
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();
@@ -230,10 +229,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         for (String logicalTable : tables) {
             AviatorRegexFilter filter = new AviatorRegexFilter(logicalTable);
             List<String> tablesAfterFilter = MySqlUtils.getTablesAfterRegexFilter(endpoint, filter).stream().
-                    map(MySqlUtils.TableSchemaName ::getDirectSchemaTableName).collect(Collectors.toList());
+                    map(MySqlUtils.TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList());
             for (String table : tablesAfterFilter) {
                 if (allTable.contains(table)) {
-                    logger.warn("[[tag=checkTable]] contain common table: {}",table);
+                    logger.warn("[[tag=checkTable]] contain common table: {}", table);
                     conflictTables.add(table);
                 } else {
                     allTable.add(table);
@@ -243,7 +242,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         return conflictTables;
     }
 
-    private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig,RowsFilterTbl rowsFilterTbl) {
+    private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig, RowsFilterTbl rowsFilterTbl) {
         try {
             DefaultTransactionMonitorHolder.getInstance().logTransaction(
                     "console.meta",
@@ -261,8 +260,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                     }
             );
         } catch (Exception e) {
-            logger.error("[[tag=rowsFilter]] udl.migrate.updateDb fail,id:{}",rowsFilterTbl.getId(),e);
+            logger.error("[[tag=rowsFilter]] udl.migrate.updateDb fail,id:{}", rowsFilterTbl.getId(), e);
         }
     }
-    
+
 }
