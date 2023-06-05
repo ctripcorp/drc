@@ -44,6 +44,8 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @InstanceConfig(path = "target.password")
     public String password;
 
+    private static final String initialPositionUsed = "drc.initial.position.used";
+
     @Override
     public void doInitialize() throws Exception {
         super.doInitialize();
@@ -63,8 +65,12 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     }
 
     private GtidSet unionGtidSet(String initialGtidExecuted) {
-        GtidSet executedGtidSet = new GtidSet(initialGtidExecuted);
-        logger.info("[{}][NETWORK GTID] initial position: {}", registryKey, executedGtidSet);
+        GtidSet executedGtidSet = new GtidSet(StringUtils.EMPTY);
+        String useInitialPosition= (String) source.get(ConfigKey.from(DEFAULT_CONFIG_FILE_NAME, initialPositionUsed));
+        if ("true".equalsIgnoreCase(useInitialPosition)) {
+            executedGtidSet = executedGtidSet.union(new GtidSet(initialGtidExecuted));
+            logger.info("[{}][NETWORK GTID] initial position: {}", registryKey, executedGtidSet);
+        }
 
         executedGtidSet = unionPositionFromQConfig(executedGtidSet);
 
