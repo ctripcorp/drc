@@ -137,7 +137,7 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
                     identifier = ((Traceable) task).identifier();
                 }
                 logger.error("{}({}) - UNLIKELY: ", getClass().getSimpleName(), identifier, e);
-                if (isDisposed()) {
+                if (!isStarted()) {
                     finish(task);
                     while(!tasks.isEmpty()) {
                         task = next();
