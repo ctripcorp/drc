@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +153,21 @@ public class MhaController {
             return ApiResult.getFailInstance(e,"unexpected exception");
         }
     }
-    
+
+
+    @GetMapping("gtid/checkResult")
+    public ApiResult getGtidCheckResult(@RequestParam String mha,@RequestParam String configGtid){
+        try {
+            String purgedGtid = mySqlService.getMhaPurgedGtid(mha);
+            GtidSet purgedGtidSet = new GtidSet(purgedGtid);
+            boolean legal = purgedGtidSet.isContainedWithin(configGtid);
+            GtidCheckResVo resVo = new GtidCheckResVo(legal, purgedGtid);
+            return ApiResult.getSuccessInstance(resVo);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getGtidCheckResult from mha: {},configGtid:{}",mha,configGtid,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
+        }
+    }
 
 
 }

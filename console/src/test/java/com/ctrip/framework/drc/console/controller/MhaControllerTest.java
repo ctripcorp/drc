@@ -162,9 +162,9 @@ public class MhaControllerTest {
     }
     
     @Test
-    public void testGetGtd() throws Exception {
+    public void testGetGtid() throws Exception {
         Mockito.when(mySqlService.getDrcExecutedGtid(Mockito.anyString())).thenReturn("gtid");
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/executed?mha=mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
@@ -176,11 +176,16 @@ public class MhaControllerTest {
         Assert.assertNotEquals("", response);
 
         Mockito.when(mySqlService.getDrcExecutedGtid(Mockito.anyString())).thenReturn("");
-        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid?mha=mha1")
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/purged?mha=mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
-        
+
+        Mockito.when(mySqlService.getDrcExecutedGtid(Mockito.anyString())).thenReturn("");
+        mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/mha/gtid/purged?mha=mha1")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
         
         
     }

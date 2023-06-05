@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.service;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 
 import java.util.Map;
