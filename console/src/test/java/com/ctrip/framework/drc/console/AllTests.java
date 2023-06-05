@@ -140,7 +140,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MessengerServiceV2Test.class,
         MetaGeneratorV2Test.class,
         RowsFilterServiceV2Test.class,
-//        MetaGeneratorV2IntegrationTest.class,
+        MetaGeneratorV2IntegrationTest.class,
         
         // controller
         AccessControllerTest.class,
