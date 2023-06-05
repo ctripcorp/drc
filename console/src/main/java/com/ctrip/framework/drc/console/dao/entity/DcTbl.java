@@ -33,6 +33,13 @@ public class DcTbl implements DalPojo {
 	@Type(value = Types.VARCHAR)
 	private String dcName;
 
+	/**
+	 * region名称
+	 */
+	@Column(name = "region_name")
+	@Type(value = Types.VARCHAR)
+	private String regionName;
+
     /**
      * 是否删除, 0:否; 1:是
      */
@@ -70,6 +77,14 @@ public class DcTbl implements DalPojo {
 		this.dcName = dcName;
 	}
 
+	public String getRegionName() {
+		return regionName;
+	}
+
+	public void setRegionName(String regionName) {
+		this.regionName = regionName;
+	}
+
 	public Integer getDeleted() {
 		return deleted;
 	}
@@ -94,4 +109,15 @@ public class DcTbl implements DalPojo {
 		this.datachangeLasttime = datachangeLasttime;
 	}
 
+	@Override
+	public String toString() {
+		return "DcTbl{" +
+				"id=" + id +
+				", dcName='" + dcName + '\'' +
+				", regionName='" + regionName + '\'' +
+				", deleted=" + deleted +
+				", createTime=" + createTime +
+				", datachangeLasttime=" + datachangeLasttime +
+				'}';
+	}
 }
