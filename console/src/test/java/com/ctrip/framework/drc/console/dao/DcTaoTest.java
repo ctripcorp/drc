@@ -6,6 +6,7 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.platform.dal.dao.DalHints;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -52,15 +53,21 @@ public class DcTaoTest {
 
     @Test
     public void testBatchInsert() throws SQLException {
-        int[] results = DalUtils.getInstance().getDcTblDao().batchInsert(getDcTbls());
+        int[] results = DalUtils.getInstance().getDcTblDao().batchInsert(new DalHints().enableIdentityInsert(), getDcTbls());
+        System.out.println("result: ");
         for (int i : results) {
             System.out.print(i + " ");
+        }
+
+        List<DcTbl> dcTbls = DalUtils.getInstance().getDcTblDao().queryAll();
+        for (DcTbl dcTbl : dcTbls) {
+            System.out.println(dcTbl);
         }
     }
 
     public static List<DcTbl> getDcTbls() {
         List<DcTbl> dcTbls = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 4; i++) {
             DcTbl dcTbl = new DcTbl();
             dcTbl.setId(Long.valueOf(i));
             dcTbl.setDeleted(BooleanEnum.FALSE.getCode());
@@ -68,6 +75,13 @@ public class DcTaoTest {
             dcTbl.setRegionName("region");
             dcTbls.add(dcTbl);
         }
+
+        DcTbl dcTbl = new DcTbl();
+        dcTbl.setId(Long.valueOf(4));
+        dcTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        dcTbl.setDcName("dc" + 11);
+        dcTbl.setRegionName("region");
+        dcTbls.add(dcTbl);
 
         return dcTbls;
     }

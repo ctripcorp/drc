@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
@@ -9,7 +11,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.google.common.base.Joiner;
-import org.apache.thrift.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +84,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private static final int MHA_GROUP_SIZE = 2;
 
     @Override
-    public void migrateMhaTbl() throws Exception {
+    public int migrateMhaTbl() throws Exception {
         List<MhaTbl> oldMhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaGroupTbl> mhaGroupTbls = mhaGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<GroupMappingTbl> groupMappingTbls = groupMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -98,30 +99,31 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         List<String> errorMhaNames = new ArrayList<>();
         List<MhaTblV2> newMhaTbls = new ArrayList<>();
-        for (MhaTbl mhaTbl :oldMhaTbls) {
-            if (!groupMap.containsKey(mhaTbl.getId()) || clusterMhaMap.containsKey(mhaTbl.getId())) {
-                errorMhaNames.add(mhaTbl.getMhaName());
+        for (MhaTbl oldMhaTbl :oldMhaTbls) {
+            if (!groupMap.containsKey(oldMhaTbl.getId()) || clusterMhaMap.containsKey(oldMhaTbl.getId())) {
+                errorMhaNames.add(oldMhaTbl.getMhaName());
                 continue;
             }
-            long mhaGroupId = groupMap.get(mhaTbl.getId());
-            long clusterId = clusterMhaMap.get(mhaTbl.getId());
+            long mhaGroupId = groupMap.get(oldMhaTbl.getId());
+            long clusterId = clusterMhaMap.get(oldMhaTbl.getId());
             MhaGroupTbl mhaGroupTbl = mhaGroupMap.get(mhaGroupId);
             ClusterTbl clusterTbl = clusterMap.get(clusterId);
 
-            MhaTblV2 newMhaTbl = buildMhaTblV2(mhaTbl, mhaGroupTbl, clusterTbl);
+            MhaTblV2 newMhaTbl = buildMhaTblV2(oldMhaTbl, mhaGroupTbl, clusterTbl);
             newMhaTbls.add(newMhaTbl);
         }
 
         if (CollectionUtils.isEmpty(errorMhaNames)) {
-            logger.info("newMhaTbl size: {}", newMhaTbls.size());
             mhaTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), newMhaTbls);
         } else {
-            throw new IllegalArgumentException(String.format("batchInsert mhaTblV2 fail, error mhaNames: %s", Joiner.on(",").join(errorMhaNames)));
+            throw new IllegalArgumentException(String.format("batchInsert mhaTblV2 fail, error mhaNames: %s", errorMhaNames));
         }
+
+        return newMhaTbls.size();
     }
 
     @Override
-    public void migrateMhaReplication() throws Exception {
+    public int migrateMhaReplication() throws Exception {
         List<MhaGroupTbl> mhaGroupTbls = mhaGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<GroupMappingTbl> groupMappingTbls = groupMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -156,8 +158,62 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
-        logger.info("batchInsert mhaReplicationTbls size: {}", mhaReplicationTbls.size());
         mhaReplicationTblDao.batchInsert(mhaReplicationTbls);
+        return mhaReplicationTbls.size();
+    }
+
+    @Override
+    public int migrateApplierGroup() throws Exception {
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ApplierGroupTbl> oldApplierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
+
+        List<Long> errorApplierGroupIds = new ArrayList<>();
+        List<ApplierGroupTblV2> newApplierGroupTbls = new ArrayList<>();
+        for (ApplierGroupTbl oldApplierGroupTbl : oldApplierGroupTbls) {
+            Long srcMhaId = replicatorGroupMap.get(oldApplierGroupTbl.getReplicatorGroupId());
+            if (srcMhaId == null) {
+                errorApplierGroupIds.add(oldApplierGroupTbl.getId());
+                continue;
+            }
+            Long dstMhaId = oldApplierGroupTbl.getMhaId();
+            Long mhaReplicationId = mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId)).findFirst().map(MhaReplicationTbl::getId).orElse(-1L);
+            ApplierGroupTblV2 newApplierGroupTbl = new ApplierGroupTblV2();
+            newApplierGroupTbl.setId(oldApplierGroupTbl.getId());
+            newApplierGroupTbl.setMhaReplicationId(mhaReplicationId);
+            newApplierGroupTbl.setGtidInit(oldApplierGroupTbl.getGtidExecuted());
+            newApplierGroupTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+            newApplierGroupTbls.add(newApplierGroupTbl);
+        }
+
+        if (CollectionUtils.isEmpty(errorApplierGroupIds)) {
+            applierGroupTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), newApplierGroupTbls);
+        } else {
+            throw new IllegalArgumentException(String.format("batchInsert applierGroup fail, errorApplierGroupIds: %s", errorApplierGroupIds));
+        }
+
+        return newApplierGroupTbls.size();
+    }
+
+    @Override
+    public int migrateApplier() throws Exception {
+        List<ApplierTbl> oldApplierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ApplierTblV2> newApplierTbls = oldApplierTbls.stream().map(source -> {
+            ApplierTblV2 target = new ApplierTblV2();
+            target.setId(source.getId());
+            target.setApplierGroupId(source.getApplierGroupId());
+            target.setPort(source.getPort());
+            target.setResourceId(source.getResourceId());
+            target.setMaster(source.getMaster());
+            target.setDeleted(source.getDeleted());
+
+            return target;
+        }).collect(Collectors.toList());
+
+        applierTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), newApplierTbls);
+        return newApplierTbls.size();
     }
 
     private boolean existReplication(Long srcMhaId, Long dstMhaId, Map<Long, Long> replicatorGroupMap, Map<Long, List<ApplierGroupTbl>> applierGroupMap, Map<Long, List<ApplierTbl>> applierMap) {
