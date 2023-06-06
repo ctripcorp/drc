@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.manager.healthcheck.notifier;
 
-import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
@@ -60,65 +59,6 @@ public class ApplierNotifier extends AbstractNotifier implements Notifier {
 
     public static ApplierNotifier getInstance() {
         return ApplierNotifierHolder.INSTANCE;
-    }
-
-    @Override
-    public void notify(DbCluster dbCluster) {
-        Dbs dbs = dbCluster.getDbs();
-        for (Db db : dbs.getDbs()) {
-            if (db.isMaster()) {
-                NOTIFY_LOGGER.info("[Gtid] query for restart {} begin", db.getIp());
-                Endpoint newMaster = new DefaultEndPoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword());
-                ListenableFuture<String> listenableFuture =  gtidQueryExecutorService.submit(new ExecutedGtidQueryTask(newMaster));
-                Futures.addCallback(listenableFuture, new FutureCallback<String>() {
-                    @Override
-                    public void onSuccess(String gtid) {
-                        List<Applier> appliers = dbCluster.getAppliers();
-                        appliers.forEach(applier ->  {
-                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}",
-                                    applier.getTargetMhaName(),dbCluster.getMhaName(),applier.getGtidExecuted());
-                            applier.setGtidExecuted(new GtidSet(applier.getGtidExecuted()).union(new GtidSet(gtid)).toString());
-                        });
-                        ApplierNotifier.super.notify(dbCluster);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        NOTIFY_LOGGER.error("[Query] new master executed gtid error", t);
-                    }
-                });
-            }
-        }
-    }
-
-    @Override
-    public void notifyAdd(DbCluster dbCluster) {
-        Dbs dbs = dbCluster.getDbs();
-        for (Db db : dbs.getDbs()) {
-            if (db.isMaster()) {
-                NOTIFY_LOGGER.info("[Gtid] query for add {} begin", db.getIp());
-                Endpoint newMaster = new DefaultEndPoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword());
-                ListenableFuture<String> listenableFuture =  gtidQueryExecutorService.submit(new ExecutedGtidQueryTask(newMaster));
-                Futures.addCallback(listenableFuture, new FutureCallback<String>() {
-                    @Override
-                    public void onSuccess(String gtid) {
-                        List<Applier> appliers = dbCluster.getAppliers();
-                        appliers.forEach(applier ->  {
-                            NOTIFY_LOGGER.info("[Gtid] applier:{}->{} config gitd: {}",
-                                    applier.getTargetMhaName(),dbCluster.getMhaName(),applier.getGtidExecuted());
-                            applier.setGtidExecuted(new GtidSet(applier.getGtidExecuted()).union(new GtidSet(gtid)).toString());
-                        });
-                        NOTIFY_LOGGER.info("[ExecutedGtid] is set to {}", gtid);
-                        ApplierNotifier.super.notifyAdd(dbCluster);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        NOTIFY_LOGGER.error("[Query] new master executed gtid error", t);
-                    }
-                });
-            }
-        }
     }
 
     @Override
