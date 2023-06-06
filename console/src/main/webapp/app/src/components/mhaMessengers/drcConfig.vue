@@ -18,14 +18,24 @@
         <FormItem label="mq配置" style="width: 600px">
           <Button type="primary" ghost @click="goToMqConfigs">mq配置</Button>
         </FormItem>
-        <FormItem label="设置executedGtid" style="width: 600px">
-          <Input v-model="drc.gtidExecuted" placeholder="请输入源集群executedGtid，不填自动获取本侧gtid"/>
-<!--          <Button @click="queryExecutedGtid">查询gtid</Button>-->
-          <span v-if="hasTest1">
-                    <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
-                          :color="testSuccess1 ? 'green' : 'red'"/>
-                      {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-              </span>
+        <FormItem label="初始拉取位点R" style="width: 600px">
+          <Input v-model="drc.rGtidExecuted" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
+          <Row>
+            <Col span="12">
+              <Button @click="queryMhaMachineGtid">查询mha位点</Button>
+              <span v-if="hasTest1">
+                  <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess1 ? 'green' : 'red'"/>
+                    {{ testSuccess1 ? '查询实时位点成功' : '连接查询失败' }}
+                </span>
+            </Col>
+            <Col span="12">
+              <Button type="success" @click="queryMhaGtidCheckRes">位点校验</Button>
+            </Col>
+          </Row>
+        </FormItem>
+        <FormItem label="初始同步位点A" style="width: 600px">
+          <Input v-model="drc.aGtidExecuted" placeholder="请输入DRC同步起始位点"/>
         </FormItem>
   <!--      <FormItem label="行过滤" style="width: 600px">-->
   <!--        <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>-->
@@ -58,8 +68,11 @@
               <FormItem label="集群Messenger">
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.messengers" readonly/>
               </FormItem>
-              <FormItem label="Messenger集群executedGtid">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.gtidExecuted" readonly/>
+              <FormItem label="新增Replicator的新增binlog拉取位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.rGtidExecuted" readonly/>
+              </FormItem>
+              <FormItem label="Messenger集群的起始位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.aGtidExecuted" readonly/>
               </FormItem>
             </Form>
       </Modal>
@@ -96,6 +109,25 @@
           </ul>
         </div>
       </Modal>
+      <Modal
+        v-model="gtidCheck.modal"
+        title="gitd位点校验结果"
+        width="900px">
+        <Form style="width: 80%">
+          <FormItem  label="校验结果">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
+          </FormItem>
+          <FormItem label="当前Mha">
+            <Input  :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
+          </FormItem>
+          <FormItem  label="配置位点">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
+          </FormItem>
+          <FormItem label="purgedGtid">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.purgedGtid" readonly/>
+          </FormItem>
+        </Form>
+      </Modal>
     </Form>
   </div>
 </template>
@@ -112,11 +144,21 @@ export default {
       hasTest1: false,
       testSuccess1: false,
       result: false,
+      gtidCheck: {
+        modal: false,
+        resVo: {
+          mha: '',
+          legal: '',
+          configGtid: '',
+          purgedGtid: ''
+        }
+      },
       drc: {
         reviewModal: false,
         warnModal: false,
         mhaName: this.mhaName,
-        gtidExecuted: '',
+        rGtidExecuted: '',
+        aGtidExecuted: '',
         replicators: {},
         messengers: {},
         replicatorList: {},
@@ -155,6 +197,11 @@ export default {
           this.drc.messengers = []
           response.data.data.forEach(ip => this.drc.messengers.push(ip))
         })
+      this.axios.get('/api/drc/v1/messenger/executedGtid?localMha=' + this.drc.mhaName)
+        .then(response => {
+          console.log('aGtidExecuted:' + response.data.data)
+          this.drc.aGtidExecuted = response.data.data
+        })
     },
     goToMqConfigs () {
       console.log('go to change mq config for ' + this.drc.mhaName)
@@ -167,8 +214,7 @@ export default {
       this.axios.post('/api/drc/v1/build/replicatorIps/check', {
         mhaName: this.drc.mhaName,
         replicatorIps: this.drc.replicators,
-        messengerIps: this.drc.messengers,
-        gtidExecuted: this.drc.gtidExecuted
+        messengerIps: this.drc.messengers
       }).then(response => {
         const preCheckRes = response.data.data
         if (preCheckRes.status === 0) {
@@ -186,13 +232,53 @@ export default {
         }
       })
     },
+    queryMhaMachineGtid () {
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
+        .then(response => {
+          this.hasTest1 = true
+          if (response.data.status === 0) {
+            this.drc.rGtidExecuted = response.data.data
+            this.testSuccess1 = true
+          } else {
+            this.testSuccess1 = false
+          }
+        })
+    },
+    queryMhaGtidCheckRes () {
+      if (this.drc.rGtidExecuted == null || this.drc.rGtidExecuted === '') {
+        alert('位点为空！')
+        return
+      }
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+        '&configGtid=' + this.drc.rGtidExecuted)
+      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+        '&configGtid=' + this.drc.rGtidExecuted)
+        .then(response => {
+          if (response.data.status === 0) {
+            this.gtidCheck.resVo = {
+              mha: this.drc.mhaName,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.rGtidExecuted,
+              purgedGtid: response.data.data.purgedGtid
+            }
+            this.gtidCheck.modal = true
+          } else {
+            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+              '&configGtid=' + this.drc.rGtidExecuted)
+          }
+        })
+    },
     submitConfig () {
       const that = this
       this.axios.post('/api/drc/v1/build/config', {
         mhaName: this.drc.mhaName,
         replicatorIps: this.drc.replicators,
         messengerIps: this.drc.messengers,
-        gtidExecuted: this.drc.gtidExecuted
+        aGtidExecuted: this.drc.aGtidExecuted,
+        rGtidExecuted: this.drc.rGtidExecuted
       }).then(response => {
         console.log(response.data)
         that.result = response.data.data

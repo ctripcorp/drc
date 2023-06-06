@@ -147,7 +147,7 @@ public class TransferServiceImpl implements TransferService {
 
     protected Long loadMha(long dcId, long clusterId, String mhaName, Dbs dbs, Map<String, String> targetMhaNames) throws SQLException {
 
-        Long mhaId = dalUtils.updateOrCreateMha(mhaName, dcId);
+        Long mhaId = dalUtils.recoverOrCreateMha(mhaName, dcId);
         dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
 
         for (Map.Entry<String, String> entry : targetMhaNames.entrySet()) {
@@ -160,7 +160,7 @@ public class TransferServiceImpl implements TransferService {
             } else {
                 logger.info("already loaded mha group for {}-{}", mhaName, targetMhaName);
             }
-            Long dstMhaId = dalUtils.updateOrCreateMha(targetMhaName, targetDcId);
+            Long dstMhaId = dalUtils.recoverOrCreateMha(targetMhaName, targetDcId);
             dalUtils.updateOrCreateClusterMhaMap(clusterId, dstMhaId);
             dalUtils.updateOrCreateGroupMapping(mhaGroupId, mhaId);
             dalUtils.updateOrCreateGroupMapping(mhaGroupId, dstMhaId);
@@ -204,7 +204,8 @@ public class TransferServiceImpl implements TransferService {
                     String nameMapping = appliers.size() == 0 ? "" : appliers.get(0).getNameMapping();
                     String targetName = appliers.size() == 0 ? "" : appliers.get(0).getTargetName();
                     int applyMode = appliers.size() == 0 ? 0 : appliers.get(0).getApplyMode();
-                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName);
+                    String gtid = appliers.size() == 0 ? "" : appliers.get(0).getGtidExecuted();
+                    Long applierGroupId = dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtid);
 
                     // rough implementation, only for duo repl
                     for(Applier applier : appliers) {

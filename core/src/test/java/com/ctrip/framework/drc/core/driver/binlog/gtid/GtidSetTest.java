@@ -32,6 +32,13 @@ public class GtidSetTest {
     }
 
     @Test
+    public void testNull() {
+        GtidSet purgedGtidSet = new GtidSet("");
+        boolean legal = purgedGtidSet.isContainedWithin(new GtidSet("b63f7e4a-a213-11ed-989f-02720d9a4dd2:1-16863592"));
+        Assert.assertTrue(legal);
+    }
+    
+    @Test
     public void encode() throws IOException {
         byte[] decoded = gtidSet.encode();
         GtidSet clone = new GtidSet(Maps.newLinkedHashMap());

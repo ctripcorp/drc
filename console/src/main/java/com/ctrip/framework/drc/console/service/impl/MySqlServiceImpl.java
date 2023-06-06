@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.aop.PossibleRemote;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import org.slf4j.Logger;
@@ -42,15 +41,43 @@ public class MySqlServiceImpl implements MySqlService {
     }
 
     @Override
-    @PossibleRemote(path="/api/drc/v1/mha/gtid")
-    public String getRealExecutedGtid(String mha) {
-        logger.info("[[tag=gtidQuery]] try to getRealExecutedGtid from mha{}",mha);
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/drcExecuted")
+    public String getDrcExecutedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getDrcExecutedGtid from mha{}",mha);
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
         if (endpoint == null) {
-            logger.warn("[[tag=gtidQuery]] getRealExecutedGtid from mha{},machine not exist",mha);
+            logger.warn("[[tag=gtidQuery]] getDrcExecutedGtid from mha{},machine not exist",mha);
             return null;
         } else {
             return MySqlUtils.getUnionExecutedGtid(endpoint);
+        }
+    }
+
+    @Override
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/executed")
+    public String getMhaExecutedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaExecutedGtid from mha{}",mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaExecutedGtid from mha {},machine not exist",mha);
+            return null;
+        } else {
+            return MySqlUtils.getExecutedGtid(endpoint);
+        }
+
+    }
+
+
+    @Override
+    @PossibleRemote(path="/api/drc/v1/mha/gtid/purged")
+    public String getMhaPurgedGtid(String mha) {
+        logger.info("[[tag=gtidQuery]] try to getMhaPurgedGtid from mha{}",mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=gtidQuery]] getMhaPurgedGtid from mha {},machine not exist",mha);
+            return null;
+        } else {
+            return MySqlUtils.getPurgedGtid(endpoint);
         }
 
     }

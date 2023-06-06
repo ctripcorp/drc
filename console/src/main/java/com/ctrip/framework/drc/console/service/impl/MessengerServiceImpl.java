@@ -299,7 +299,14 @@ public class MessengerServiceImpl implements MessengerService {
         }
         return res;
     }
-    
+
+    @Override
+    public String getMessengerGtidExecuted(String localMha) throws SQLException {
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(localMha, BooleanEnum.FALSE.getCode());
+        MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
+        return mGroup.getGtidExecuted();
+    }
+
 //    @Override
 //    @PossibleRemote(path = "/api/drc/v1/messenger/mqConfig/ddl",forwardType = ForwardTypeEnum.TO_META_DB,httpType = HttpRequestEnum.POST)
 //    public void addDalClusterMqConfigByDDL(String fileDc, String mhaName, String schema, String table) throws SQLException{
