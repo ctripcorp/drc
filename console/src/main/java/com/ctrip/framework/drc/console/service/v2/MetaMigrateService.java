@@ -13,4 +13,8 @@ public interface MetaMigrateService {
     int migrateApplierGroup() throws Exception;
 
     int migrateApplier() throws Exception;
+
+    String checkMhaDbMapping() throws Exception;
+
+    String migrateMhaDbMapping() throws Exception;
 }

@@ -2,15 +2,13 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.platform.dal.dao.DalHints;
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -80,8 +79,12 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private ZookeeperTblDao zookeeperTblDao;
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
+    @Autowired
+    private DalServiceImpl dalService;
 
     private static final int MHA_GROUP_SIZE = 2;
+    private static final int QUERY_SIZE = 100;
+    private static final int BATCH_INSERT_SIZE = 2000;
 
     @Override
     public int migrateMhaTbl() throws Exception {
@@ -214,6 +217,115 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         applierTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), newApplierTbls);
         return newApplierTbls.size();
+    }
+
+    @Override
+    public String checkMhaDbMapping() throws Exception {
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<String> existMhaNames = mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
+        List<String> existDbNames = dbTbls.stream().map(DbTbl::getDbName).collect(Collectors.toList());
+
+        Map<String, List<String>> mhaDbMap = getAllDbNames(existMhaNames);
+        List<String> allDbNames = new ArrayList<>();
+        List<String> allMhaNames = new ArrayList<>();
+
+        mhaDbMap.forEach((mhaName, dbNames) -> {
+            allMhaNames.add(mhaName);
+            allDbNames.addAll(dbNames);
+        });
+
+        List<String> notExistDbNames = new ArrayList<>();
+        List<String> notExistMhaNames = new ArrayList<>();
+        for (String dbName : allDbNames) {
+            if (!existDbNames.contains(dbName)) {
+                notExistDbNames.add(dbName);
+            }
+        }
+        for (String mhaName : existMhaNames) {
+            if (!allMhaNames.contains(mhaName)) {
+                notExistMhaNames.add(mhaName);
+            }
+        }
+
+        String result = String.format("notExistMhaNames: %s\n notExistDbNames: %s", notExistMhaNames, notExistDbNames);
+        return result;
+    }
+
+    @Override
+    public String migrateMhaDbMapping() throws Exception {
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<String> existMhaNames = mhaTbls.stream().map(MhaTbl::getMhaName).collect(Collectors.toList());
+        List<String> existDbNames = dbTbls.stream().map(DbTbl::getDbName).collect(Collectors.toList());
+
+        Map<String, List<String>> mhaDbMap = getAllDbNames(existMhaNames);
+        List<String> allDbNames = new ArrayList<>();
+        List<String> allMhaNames = new ArrayList<>();
+
+        mhaDbMap.forEach((mhaName, dbNames) -> {
+            allMhaNames.add(mhaName);
+            allDbNames.addAll(dbNames);
+        });
+
+        List<String> notExistDbNames = new ArrayList<>();
+        List<String> notExistMhaNames = new ArrayList<>();
+        for (String dbName : allDbNames) {
+            if (!existDbNames.contains(dbName)) {
+                notExistDbNames.add(dbName);
+            }
+        }
+        for (String mhaName : existMhaNames) {
+            if (!allMhaNames.contains(mhaName)) {
+                notExistMhaNames.add(mhaName);
+            }
+        }
+        if (!CollectionUtils.isEmpty(notExistDbNames)) {
+            throw new IllegalArgumentException(String.format("the following db does not exist: %s", notExistDbNames));
+        }
+
+        Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+        Map<String, Long> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getMhaName, MhaTbl::getId));
+
+        List<MhaDbMappingTbl> mhaDbMappingTblList = new ArrayList<>();
+        mhaDbMap.forEach((mhaName, dbNames) -> {
+            dbNames.forEach(dbName -> {
+                MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
+                mhaDbMappingTbl.setMhaId(mhaTblMap.get(mhaName));
+                mhaDbMappingTbl.setDbId(dbTblMap.get(dbName));
+                mhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                mhaDbMappingTblList.add(mhaDbMappingTbl);
+            });
+        });
+
+        int size = mhaDbMappingTblList.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + BATCH_INSERT_SIZE, size);
+            List<MhaDbMappingTbl> subMhaDbMappingList = mhaDbMappingTblList.subList(i, toIndex);
+            mhaDbMappingTblDao.batchInsert(subMhaDbMappingList);
+        }
+        String result = String.format("batchInsert MhaDbMappingTbl totol size: %s, notExistMhaNames: %s", size, notExistMhaNames);
+        return result;
+    }
+
+    private Map<String, List<String>> getAllDbNames(List<String> mhaNames) {
+        Map<String, List<String>> mhaDbMap = new HashMap<>();
+        int size = mhaNames.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + QUERY_SIZE, size);
+            List<String> subMhaNames = mhaNames.subList(i, toIndex);
+            i += QUERY_SIZE;
+            Map<String, Map<String, List<String>>> dbNameMap = dalService.getDbNames(subMhaNames, EnvUtils.getEnv());
+            dbNameMap.forEach((mhaName, dbClusterMap) -> {
+                List<String> dbNames = new ArrayList<>();
+                dbClusterMap.values().forEach(dbNames::addAll);
+                if (!CollectionUtils.isEmpty(dbNames)) {
+                    mhaDbMap.put(mhaName, dbNames);
+                }
+            });
+        }
+
+        return mhaDbMap;
     }
 
     private boolean existReplication(Long srcMhaId, Long dstMhaId, Map<Long, Long> replicatorGroupMap, Map<Long, List<ApplierGroupTbl>> applierGroupMap, Map<Long, List<ApplierTbl>> applierMap) {

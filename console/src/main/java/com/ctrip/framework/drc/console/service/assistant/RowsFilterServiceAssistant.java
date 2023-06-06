@@ -26,7 +26,7 @@ public class RowsFilterServiceAssistant {
         queryParam.setToken(token);
         queryParam.setGroupId(Foundation.app().getAppId());
         queryParam.setDataId(CONFIG_NAME);
-        queryParam.setEnv(EnvUtils.getEnv());
+        queryParam.setEnv(EnvUtils.getEnvStr());
         queryParam.setSubEnv(subEnv);
         queryParam.setTargetGroupId(targetGroupId);
 
