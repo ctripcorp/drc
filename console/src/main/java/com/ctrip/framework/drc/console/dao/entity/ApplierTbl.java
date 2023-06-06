@@ -78,6 +78,7 @@ public class ApplierTbl implements DalPojo {
     /**
      * 初始gtid
      */
+	@Deprecated
 	@Column(name = "gtid_init")
 	@Type(value = Types.VARCHAR)
 	private String gtidInit;

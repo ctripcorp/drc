@@ -212,21 +212,21 @@ CREATE TABLE `replicator_group_tbl`
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='replicator group表';
 
-CREATE TABLE `applier_group_tbl`
-(
-    `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `replicator_group_id` bigint(20) COMMENT 'replicator group id',
-    `gtid_init`           varchar(1000) COMMENT '初始gtid',
-    `mha_id`              bigint(20) COMMENT '集群mha id',
-    `includedDbs`         varchar(255)          DEFAULT NULL COMMENT 'request db list, seprated by commas,',
-    `name_filter`         varchar(2047)         DEFAULT NULL COMMENT 'table name filter, seprated by commas',
-    `apply_mode`          tinyint      NOT NULL DEFAULT 0 COMMENT 'apply mode, 0:set gtid; 1:transaction table',
-    `deleted`             tinyint      NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
-    `name_mapping`        varchar(5000)         DEFAULT NULL COMMENT 'table name mapping',
-    `target_name`         varchar(64)           DEFAULT NULL comment 'targetMha cluster_name,if null default use this mhas cluster_name',
-    `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
-    PRIMARY KEY (`id`)
+CREATE TABLE `applier_group_tbl` (
+ `id`                       bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+ `replicator_group_id`      bigint(20) COMMENT 'replicator group id',
+ `gtid_init`                varchar(1000) COMMENT '初始gtid',
+ `mha_id`                   bigint(20) COMMENT '集群mha id',
+ `includedDbs`              varchar(255) DEFAULT NULL COMMENT 'request db list, seprated by commas,',
+ `name_filter`              varchar(2047) DEFAULT NULL COMMENT 'table name filter, seprated by commas',
+ `apply_mode`               tinyint NOT NULL DEFAULT 0 COMMENT 'apply mode, 0:set gtid; 1:transaction table',
+ `deleted`                  tinyint NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
+ `name_mapping`             varchar(5000) DEFAULT NULL COMMENT 'table name mapping',
+ `target_name`               varchar(64)  DEFAULT NULL   comment 'targetMha cluster_name,if null default use this mhas cluster_name',
+ `create_time`              timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+ `datachange_lasttime`      timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `gtid_executed`           varchar(2000)  NULL default null COMMENT 'applier 起始位点，可以替代qconfig 配置',
+ PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='applier group表';
 
 CREATE TABLE `cluster_manager_tbl`

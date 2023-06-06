@@ -31,14 +31,24 @@
             <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true"
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
-          <FormItem label="设置executedGtid" style="width: 600px">
-            <Input v-model="drc.oldExecutedGtid" placeholder="请输入源集群executedGtid，不填自动获取本侧gtid"/>
-            <Button @click="queryNewMhaMachineGtid">查询对侧gtid</Button>
-            <span v-if="hasTest1">
+          <FormItem label="初始拉取位点R" style="width: 600px">
+            <Input v-model="drc.oldRExecutedGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
+            <Row>
+              <Col span="12">
+                <Button @click="queryOldMhaMachineGtid">查询mha位点</Button>
+                <span v-if="hasTest1">
                   <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess1 ? 'green' : 'red'"/>
-                    {{ testSuccess1 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
-            </span>
+                    {{ testSuccess1 ? '查询实时位点成功' : '连接查询失败' }}
+                </span>
+              </Col>
+              <Col span="12">
+                <Button type="success" @click="queryOldMhaGtidCheckRes">位点校验</Button>
+              </Col>
+            </Row>
+          </FormItem>
+          <FormItem label="初始同步位点A" style="width: 600px">
+            <Input v-model="drc.oldAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInSrcApplier">配置行过滤</Button>
@@ -79,14 +89,24 @@
             <Input v-model="drc.newNameMapping" type="textarea" :autosize="true"
                    placeholder="请输入映射关系，如：srcDb1.srcTable1,destDb1.destTable1;srcDb2.srcTable2,destDb2.destTable2"/>
           </FormItem>
-          <FormItem label="设置executedGtid" style="width: 600px">
-            <Input v-model="drc.newExecutedGtid" placeholder="请输入新集群executedGtid，不填自动获取本侧gtid"/>
-            <Button @click="queryOldMhaMachineGtid">查询对侧gtid</Button>
-            <span v-if="hasTest2">
+          <FormItem label="初始拉取位点R" style="width: 600px">
+            <Input v-model="drc.newRExecutedGtid" placeholder="变更replicator机器时，请输入binlog拉取位点"/>
+            <Row>
+              <Col span="12">
+                <Button @click="queryNewMhaMachineGtid">查询mha位点</Button>
+                <span v-if="hasTest2">
                   <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                         :color="testSuccess2 ? 'green' : 'red'"/>
-                    {{ testSuccess2 ? '连接查询成功' : '连接查询失败，请手动输入gtid' }}
+                    {{ testSuccess2 ? '查询实时位点成功' : '连接查询失败' }}
                 </span>
+              </Col>
+              <Col span="12">
+                <Button type="success" @click="queryNewMhaGtidCheckRes">位点校验</Button>
+              </Col>
+            </Row>
+          </FormItem>
+          <FormItem label="初始同步位点A" style="width: 600px">
+            <Input v-model="drc.newAExecutedGtid" placeholder="请输入DRC同步起始位点"/>
           </FormItem>
           <FormItem label="行过滤" style="width: 600px">
             <Button type="primary" ghost @click="goToConfigRowsFiltersInDestApplier">配置行过滤</Button>
@@ -135,8 +155,11 @@
               <FormItem label="源集群端表名映射">
                 <Input v-model="drc.oldNameMapping" type="textarea" :autosize="true" readonly/>
               </FormItem>
-              <FormItem label="源集群端executedGtid">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldExecutedGtid" readonly/>
+              <FormItem label="源集群端R位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldRExecutedGtid" readonly/>
+              </FormItem>
+              <FormItem label="源集群端A位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.oldAExecutedGtid" readonly/>
               </FormItem>
               <FormItem label="源集群端applyMode">
                 <Select v-model="drc.oldApplyMode" disabled>
@@ -166,8 +189,11 @@
               <FormItem label="新集群端表名映射">
                 <Input v-model="drc.newNameMapping" type="textarea" :autosize="true" readonly/>
               </FormItem>
-              <FormItem label="新集群端executedGtid">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newExecutedGtid" readonly/>
+              <FormItem label="新集群端R位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newRExecutedGtid" readonly/>
+              </FormItem>
+              <FormItem label="新集群端A位点">
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="drc.newAExecutedGtid" readonly/>
               </FormItem>
               <FormItem label="新集群端applyMode">
                 <Select v-model="drc.newApplyMode" disabled>
@@ -210,6 +236,25 @@
             <ol v-for="item in drc.replicators.conflictCurrent" :key="item">{{item}}</ol>
           </ul>
         </div>
+      </Modal>
+      <Modal
+        v-model="gtidCheck.modal"
+        title="gitd位点校验结果"
+        width="900px">
+        <Form style="width: 80%">
+          <FormItem  label="校验结果">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
+          </FormItem>
+          <FormItem label="当前Mha">
+            <Input  :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
+          </FormItem>
+          <FormItem  label="配置位点">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
+          </FormItem>
+          <FormItem label="purgedGtid">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.purgedGtid" readonly/>
+          </FormItem>
+        </Form>
       </Modal>
     </Form>
     <Modal
@@ -256,6 +301,19 @@ export default {
       testSuccess1: false,
       hasTest2: false,
       testSuccess2: false,
+      hasTest3: false,
+      testSuccess3: false,
+      hasTest4: false,
+      testSuccess4: false,
+      gtidCheck: {
+        modal: false,
+        resVo: {
+          mha: '',
+          legal: '',
+          configGtid: '',
+          purgedGtid: ''
+        }
+      },
       applyModeList: [
         {
           value: 0,
@@ -278,8 +336,10 @@ export default {
         oldNameMapping: '',
         newNameFilter: '',
         newNameMapping: '',
-        oldExecutedGtid: '',
-        newExecutedGtid: '',
+        oldRExecutedGtid: '',
+        newRExecutedGtid: '',
+        oldAExecutedGtid: '',
+        newAExecutedGtid: '',
         oldApplyMode: 1,
         newApplyMode: 1,
         env: this.env,
@@ -520,6 +580,11 @@ export default {
           console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' applymode ' + response.data.data)
           this.drc.oldApplyMode = response.data.data
         })
+      this.axios.get('/api/drc/v1/meta/applierExecutedGtid?localMha=' + this.drc.oldClusterName + '&remoteMha=' + this.drc.newClusterName)
+        .then(response => {
+          console.log(this.drc.oldClusterName + ' request ' + this.drc.newClusterName + ' applierExecutedGtid ' + response.data.data)
+          this.drc.oldAExecutedGtid = response.data.data
+        })
     },
     getResourcesInNew () {
       this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.newClusterName + '/resources/all/types/R')
@@ -570,32 +635,87 @@ export default {
           console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' applymode ' + response.data.data)
           this.drc.newApplyMode = response.data.data
         })
+      this.axios.get('/api/drc/v1/meta/applierExecutedGtid?localMha=' + this.drc.newClusterName + '&remoteMha=' + this.drc.oldClusterName)
+        .then(response => {
+          console.log(this.drc.newClusterName + ' request ' + this.drc.oldClusterName + ' applierExecutedGtid ' + response.data.data)
+          this.drc.newAExecutedGtid = response.data.data
+        })
     },
     queryOldMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/gtid?mha=' + this.drc.oldClusterName)
-      that.axios.get('/api/drc/v1/mha/gtid?mha=' + this.drc.oldClusterName)
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.oldClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.oldClusterName)
+        .then(response => {
+          this.hasTest1 = true
+          if (response.data.status === 0) {
+            this.drc.oldRExecutedGtid = response.data.data
+            this.testSuccess1 = true
+          } else {
+            this.testSuccess1 = false
+          }
+        })
+    },
+    queryOldMhaGtidCheckRes () {
+      if (this.drc.oldRExecutedGtid == null || this.drc.oldRExecutedGtid === '') {
+        alert('位点为空！')
+        return
+      }
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.oldClusterName +
+        '&configGtid=' + this.drc.oldRExecutedGtid)
+      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.oldClusterName +
+        '&configGtid=' + this.drc.oldRExecutedGtid)
+        .then(response => {
+          if (response.data.status === 0) {
+            this.gtidCheck.resVo = {
+              mha: this.drc.oldClusterName,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.oldRExecutedGtid,
+              purgedGtid: response.data.data.purgedGtid
+            }
+            this.gtidCheck.modal = true
+          } else {
+            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.oldClusterName +
+              '&configGtid=' + this.drc.oldRExecutedGtid)
+          }
+        })
+    },
+    queryNewMhaMachineGtid () {
+      const that = this
+      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.newClusterName)
+      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.newClusterName)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
-            this.drc.newExecutedGtid = response.data.data
+            this.drc.newRExecutedGtid = response.data.data
             this.testSuccess2 = true
           } else {
             this.testSuccess2 = false
           }
         })
     },
-    queryNewMhaMachineGtid () {
+    queryNewMhaGtidCheckRes () {
+      if (this.drc.newRExecutedGtid == null || this.drc.newRExecutedGtid === '') {
+        alert('位点为空！')
+        return
+      }
       const that = this
-      console.log('/api/drc/v1/mha/gtid?mha=' + this.drc.newClusterName)
-      that.axios.get('/api/drc/v1/mha/gtid?mha=' + this.drc.newClusterName)
+      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.newClusterName +
+        '&configGtid=' + this.drc.newRExecutedGtid)
+      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.newClusterName +
+        '&configGtid=' + this.drc.newRExecutedGtid)
         .then(response => {
-          this.hasTest1 = true
           if (response.data.status === 0) {
-            this.drc.oldExecutedGtid = response.data.data
-            this.testSuccess1 = true
+            this.gtidCheck.resVo = {
+              mha: this.drc.newClusterName,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.newRExecutedGtid,
+              purgedGtid: response.data.data.purgedGtid
+            }
+            this.gtidCheck.modal = true
           } else {
-            this.testSuccess1 = false
+            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.newClusterName +
+              '&configGtid=' + this.drc.newRExecutedGtid)
           }
         })
     },
@@ -651,12 +771,10 @@ export default {
         srcApplierIps: this.drc.appliers.old,
         srcApplierIncludedDbs: null,
         srcApplierApplyMode: this.drc.oldApplyMode,
-        srcGtidExecuted: this.drc.oldExecutedGtid,
         destReplicatorIps: this.drc.replicators.new,
         destApplierIps: this.drc.appliers.new,
         destApplierIncludedDbs: null,
-        destApplierApplyMode: this.drc.newApplyMode,
-        destGtidExecuted: this.drc.newExecutedGtid
+        destApplierApplyMode: this.drc.newApplyMode
       }).then(response => {
         const preCheckRes = response.data.data
         if (preCheckRes.status === 0) {
@@ -685,13 +803,15 @@ export default {
       console.log(this.drc.oldNameFilter)
       console.log(this.drc.oldNameMapping)
       console.log(this.drc.oldApplyMode)
-      console.log(this.drc.oldExecutedGtid)
+      console.log(this.drc.oldRExecutedGtid)
+      console.log(this.drc.oldAExecutedGtid)
       console.log(this.drc.replicators.new)
       console.log(this.drc.appliers.new)
       console.log(this.drc.newNameFilter)
       console.log(this.drc.newNameMapping)
       console.log(this.drc.newApplyMode)
-      console.log(this.drc.newExecutedGtid)
+      console.log(this.drc.newRExecutedGtid)
+      console.log(this.drc.newAExecutedGtid)
       console.log(this.drc.oldTargetName)
       console.log(this.drc.newTargetName)
       this.axios.post('/api/drc/v1/meta/config', {
@@ -703,7 +823,8 @@ export default {
         srcApplierNameFilter: this.drc.oldNameFilter,
         srcApplierNameMapping: this.drc.oldNameMapping,
         srcApplierApplyMode: this.drc.oldApplyMode,
-        srcGtidExecuted: this.drc.oldExecutedGtid,
+        srcRGtidExecuted: this.drc.oldRExecutedGtid,
+        srcAGtidExecuted: this.drc.oldAExecutedGtid,
         srcClusterName: this.drc.oldTargetName,
         destReplicatorIps: this.drc.replicators.new,
         destApplierIps: this.drc.appliers.new,
@@ -711,7 +832,8 @@ export default {
         destApplierNameFilter: this.drc.newNameFilter,
         destApplierNameMapping: this.drc.newNameMapping,
         destApplierApplyMode: this.drc.newApplyMode,
-        destGtidExecuted: this.drc.newExecutedGtid,
+        destRGtidExecuted: this.drc.newRExecutedGtid,
+        destAGtidExecuted: this.drc.newAExecutedGtid,
         destClusterName: this.drc.newTargetName
       }).then(response => {
         console.log(response.data)

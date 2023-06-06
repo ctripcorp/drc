@@ -42,9 +42,13 @@ public class MetaProposalDto {
 
     private int destApplierApplyMode;
 
-    private String srcGtidExecuted;
+    private String srcRGtidExecuted;
+    
+    private String destRGtidExecuted;
 
-    private String destGtidExecuted;
+    private String destAGtidExecuted;
+    
+    private String srcAGtidExecuted;
 
     public String getSrcMha() {
         return srcMha;
@@ -126,20 +130,20 @@ public class MetaProposalDto {
         this.destApplierApplyMode = destApplierApplyMode;
     }
 
-    public String getSrcGtidExecuted() {
-        return srcGtidExecuted;
+    public String getSrcRGtidExecuted() {
+        return srcRGtidExecuted;
     }
 
-    public void setSrcGtidExecuted(String srcGtidExecuted) {
-        this.srcGtidExecuted = srcGtidExecuted;
+    public void setSrcRGtidExecuted(String srcRGtidExecuted) {
+        this.srcRGtidExecuted = srcRGtidExecuted;
     }
 
-    public String getDestGtidExecuted() {
-        return destGtidExecuted;
+    public String getDestRGtidExecuted() {
+        return destRGtidExecuted;
     }
 
-    public void setDestGtidExecuted(String destGtidExecuted) {
-        this.destGtidExecuted = destGtidExecuted;
+    public void setDestRGtidExecuted(String destRGtidExecuted) {
+        this.destRGtidExecuted = destRGtidExecuted;
     }
 
     public String getSrcApplierNameFilter() {
@@ -190,31 +194,54 @@ public class MetaProposalDto {
         this.srcClusterName = srcClusterName;
     }
 
+    public String getDestAGtidExecuted() {
+        return destAGtidExecuted;
+    }
+
+    public void setDestAGtidExecuted(String destAGtidExecuted) {
+        this.destAGtidExecuted = destAGtidExecuted;
+    }
+
+    public String getSrcAGtidExecuted() {
+        return srcAGtidExecuted;
+    }
+
+    public void setSrcAGtidExecuted(String srcAGtidExecuted) {
+        this.srcAGtidExecuted = srcAGtidExecuted;
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         MetaProposalDto that = (MetaProposalDto) o;
-        return Objects.equals(srcMha, that.srcMha) &&
-                Objects.equals(destMha, that.destMha) &&
-                Objects.equals(srcReplicatorIps, that.srcReplicatorIps) &&
-                Objects.equals(srcApplierIps, that.srcApplierIps) &&
-                Objects.equals(srcApplierIncludedDbs, that.srcApplierIncludedDbs) &&
-                Objects.equals(srcApplierNameFilter, that.srcApplierNameFilter) &&
-                Objects.equals(srcClusterName, that.srcClusterName) &&
-                srcApplierApplyMode == that.srcApplierApplyMode &&
-                Objects.equals(destReplicatorIps, that.destReplicatorIps) &&
-                Objects.equals(destApplierIps, that.destApplierIps) &&
-                Objects.equals(destApplierIncludedDbs, that.destApplierIncludedDbs) &&
-                Objects.equals(destApplierNameFilter, that.destApplierNameFilter) &&
-                Objects.equals(destApplierNameMapping, that.destApplierNameMapping) &&
-                Objects.equals(destClusterName, that.destClusterName) &&
-                destApplierApplyMode == that.destApplierApplyMode;
+        return srcApplierApplyMode == that.srcApplierApplyMode && destApplierApplyMode == that.destApplierApplyMode
+                && Objects.equals(srcMha, that.srcMha) && Objects.equals(destMha, that.destMha)
+                && Objects.equals(srcReplicatorIps, that.srcReplicatorIps) && Objects.equals(
+                srcApplierIps, that.srcApplierIps) && Objects.equals(srcApplierIncludedDbs,
+                that.srcApplierIncludedDbs) && Objects.equals(srcApplierNameFilter, that.srcApplierNameFilter)
+                && Objects.equals(srcApplierNameMapping, that.srcApplierNameMapping) && Objects.equals(
+                srcClusterName, that.srcClusterName) && Objects.equals(destReplicatorIps, that.destReplicatorIps)
+                && Objects.equals(destApplierIps, that.destApplierIps) && Objects.equals(
+                destApplierIncludedDbs, that.destApplierIncludedDbs) && Objects.equals(destApplierNameFilter,
+                that.destApplierNameFilter) && Objects.equals(destApplierNameMapping, that.destApplierNameMapping)
+                && Objects.equals(destClusterName, that.destClusterName) && Objects.equals(
+                srcRGtidExecuted, that.srcRGtidExecuted) && Objects.equals(destRGtidExecuted, that.destRGtidExecuted)
+                && Objects.equals(destAGtidExecuted, that.destAGtidExecuted) && Objects.equals(
+                srcAGtidExecuted, that.srcAGtidExecuted);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs, srcApplierNameFilter, srcApplierNameMapping, srcClusterName, srcApplierApplyMode, destReplicatorIps, destApplierIps, destApplierIncludedDbs, destApplierNameFilter, destApplierNameMapping, destClusterName, destApplierApplyMode);
+        return Objects.hash(srcMha, destMha, srcReplicatorIps, srcApplierIps, srcApplierIncludedDbs,
+                srcApplierNameFilter,
+                srcApplierNameMapping, srcClusterName, srcApplierApplyMode, destReplicatorIps, destApplierIps,
+                destApplierIncludedDbs, destApplierNameFilter, destApplierNameMapping, destClusterName,
+                destApplierApplyMode, srcRGtidExecuted, destRGtidExecuted, destAGtidExecuted, srcAGtidExecuted);
     }
 
     @Override
@@ -228,15 +255,18 @@ public class MetaProposalDto {
                 ", srcApplierNameFilter='" + srcApplierNameFilter + '\'' +
                 ", srcApplierNameMapping='" + srcApplierNameMapping + '\'' +
                 ", srcClusterName='" + srcClusterName + '\'' +
-                ", srcApplierApplyMode='" + srcApplierApplyMode + '\'' +
+                ", srcApplierApplyMode=" + srcApplierApplyMode +
                 ", destReplicatorIps=" + destReplicatorIps +
                 ", destApplierIps=" + destApplierIps +
                 ", destApplierIncludedDbs='" + destApplierIncludedDbs + '\'' +
                 ", destApplierNameFilter='" + destApplierNameFilter + '\'' +
                 ", destApplierNameMapping='" + destApplierNameMapping + '\'' +
                 ", destClusterName='" + destClusterName + '\'' +
-                ", destApplierApplyMode='" + destApplierApplyMode + '\'' +
-                ", destGtidExecuted='" + destGtidExecuted + '\'' +
+                ", destApplierApplyMode=" + destApplierApplyMode +
+                ", srcRGtidExecuted='" + srcRGtidExecuted + '\'' +
+                ", destRGtidExecuted='" + destRGtidExecuted + '\'' +
+                ", destAGtidExecuted='" + destAGtidExecuted + '\'' +
+                ", srcAGtidExecuted='" + srcAGtidExecuted + '\'' +
                 '}';
     }
 }
