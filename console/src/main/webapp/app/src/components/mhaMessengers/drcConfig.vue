@@ -30,12 +30,7 @@
                 </span>
             </Col>
             <Col span="12">
-              <Button @click="queryMhaMachinePurgedGtid">查询purge位点</Button>
-              <span v-if="hasTest2">
-                  <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
-                        :color="testSuccess2 ? 'green' : 'red'"/>
-                    {{ testSuccess2 ? '查询purged位点成功' : '连接查询失败' }}
-                </span>
+              <Button type="success" @click="queryMhaGtidCheckRes">位点校验</Button>
             </Col>
           </Row>
         </FormItem>
@@ -114,6 +109,25 @@
           </ul>
         </div>
       </Modal>
+      <Modal
+        v-model="gtidCheck.modal"
+        title="gitd位点校验结果"
+        width="900px">
+        <Form style="width: 80%">
+          <FormItem  label="校验结果">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
+          </FormItem>
+          <FormItem label="当前Mha">
+            <Input  :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
+          </FormItem>
+          <FormItem  label="配置位点">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
+          </FormItem>
+          <FormItem label="purgedGtid">
+            <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.purgedGtid" readonly/>
+          </FormItem>
+        </Form>
+      </Modal>
     </Form>
   </div>
 </template>
@@ -129,9 +143,16 @@ export default {
     return {
       hasTest1: false,
       testSuccess1: false,
-      hasTest2: false,
-      testSuccess2: false,
       result: false,
+      gtidCheck: {
+        modal: false,
+        resVo: {
+          mha: '',
+          legal: '',
+          configGtid: '',
+          purgedGtid: ''
+        }
+      },
       drc: {
         reviewModal: false,
         warnModal: false,
@@ -225,17 +246,28 @@ export default {
           }
         })
     },
-    queryMhaMachinePurgedGtid () {
+    queryMhaGtidCheckRes () {
+      if (this.drc.rGtidExecuted == null || this.drc.rGtidExecuted === '') {
+        alert('位点为空！')
+        return
+      }
       const that = this
-      console.log('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.mhaName)
-      that.axios.get('/api/drc/v1/mha/gtid/purged?mha=' + this.drc.mhaName)
+      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+        '&configGtid=' + this.drc.rGtidExecuted)
+      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+        '&configGtid=' + this.drc.rGtidExecuted)
         .then(response => {
-          this.hasTest2 = true
           if (response.data.status === 0) {
-            this.drc.rGtidExecuted = response.data.data
-            this.testSuccess2 = true
+            this.gtidCheck.resVo = {
+              mha: this.drc.mhaName,
+              legal: response.data.data.legal === true ? '合理位点' : 'binlog已经被purge',
+              configGtid: this.drc.rGtidExecuted,
+              purgedGtid: response.data.data.purgedGtid
+            }
+            this.gtidCheck.modal = true
           } else {
-            this.testSuccess2 = false
+            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+              '&configGtid=' + this.drc.rGtidExecuted)
           }
         })
     },

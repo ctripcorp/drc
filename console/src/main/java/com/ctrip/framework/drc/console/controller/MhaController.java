@@ -138,21 +138,7 @@ public class MhaController {
         }
     }
 
-
-    @GetMapping("gtid/purged")
-    public ApiResult getMhaPurgedGtid(@RequestParam String mha){
-        try {
-            String purgedGtid = mySqlService.getMhaPurgedGtid(mha);
-            if (StringUtils.isEmpty(purgedGtid)) {
-                return ApiResult.getFailInstance(null,"result is empty");
-            } else {
-                return ApiResult.getSuccessInstance(purgedGtid);
-            }
-        } catch (Throwable e) {
-            logger.error("[[tag=gtidQuery]] getMhaPurgedGtid from mha: {}",mha,e);
-            return ApiResult.getFailInstance(e,"unexpected exception");
-        }
-    }
+    
 
 
     @GetMapping("gtid/checkResult")

@@ -381,7 +381,14 @@ public class AccessServiceImpl implements AccessService {
             Long mhaGroupId = metaInfoService.getMhaGroupId(dto.getOriginalMha(), dto.getNewBuiltMha(), BooleanEnum.TRUE);
             if (mhaGroupId != null) {
                 logger.warn("Fail init mha group: {}, already exist in deleted ,please rollback ", dto);
-                return ApiResult.getInstance(false, ResultCode.HANDLE_FAIL.getCode(),"already exist group in deleted ,please rollback");
+                return ApiResult.getInstance(false, ResultCode.HANDLE_FAIL.getCode(),
+                        "already exist group in deleted ,please rollback");
+            }
+            mhaGroupId = metaInfoService.getMhaGroupId(dto.getOriginalMha(), dto.getNewBuiltMha(), BooleanEnum.FALSE);
+            if (mhaGroupId != null) {
+                logger.warn("Fail init mha group: {}, already exist,", dto);
+                return ApiResult.getInstance(false, ResultCode.HANDLE_FAIL.getCode(),
+                        "already exist mhaGroup");
             }
             initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
             return ApiResult.getSuccessInstance(true);
