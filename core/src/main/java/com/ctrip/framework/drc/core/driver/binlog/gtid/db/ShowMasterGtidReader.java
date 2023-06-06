@@ -18,21 +18,13 @@ public class ShowMasterGtidReader implements GtidReader {
 
     protected static final String ALI_RDS = "/*FORCE_MASTER*/";
 
-    private static final String EXECUTED_GTID_SUPER = ALI_RDS + "show master status;";
-
-    private static final int EXECUTED_GTID_SUPER_INDEX = 5;
-
     private static final String EXECUTED_GTID = ALI_RDS + "show global variables like \"gtid_executed\";";
 
     private static final int EXECUTED_GTID_INDEX = 2;
 
     @Override
     public String getExecutedGtids(Connection connection) {
-        String executedGtid = select(connection, EXECUTED_GTID_SUPER, EXECUTED_GTID_SUPER_INDEX);
-        if (StringUtils.isEmpty(executedGtid)) {
-            return select(connection, EXECUTED_GTID, EXECUTED_GTID_INDEX);
-        }
-        return executedGtid;
+        return select(connection, EXECUTED_GTID, EXECUTED_GTID_INDEX);
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
