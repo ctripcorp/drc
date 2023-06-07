@@ -80,6 +80,7 @@ public class DefaultSqlOperator extends AbstractSqlOperator implements ReadWrite
                 try {
                     statement.close();
                 } catch (SQLException e) {
+                    logger.error("statement close error", e);
                 }
             }
         }

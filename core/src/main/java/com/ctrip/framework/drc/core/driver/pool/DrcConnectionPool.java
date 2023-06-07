@@ -76,22 +76,8 @@ public class DrcConnectionPool extends ConnectionPool {
     private void trySetSessionWaitTimeout(Connection conn) {
         try {
             setSessionWaitTimeout(conn, SESSION_WAIT_TIMEOUT);
-            setSessionWaitTimeout1(conn);
         } catch (Exception e) {
             logger.error("set sessionWaitTimeout exception for {}", getName(), e);
-        }
-    }
-
-    private void setSessionWaitTimeout1(Connection conn) throws SQLException {
-        try (Statement statement = conn.createStatement()) {
-            if (statement != null) {
-                statement.setQueryTimeout(1);
-                statement.execute("set session default_collation_for_utf8mb4=utf8mb4_general_ci;");
-            } else {
-                logger.error("set setSessionWaitTimeout1 error for null statement");
-            }
-        } catch (Throwable t) {
-
         }
     }
 
