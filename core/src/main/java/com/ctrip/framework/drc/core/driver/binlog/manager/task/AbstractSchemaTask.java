@@ -10,6 +10,9 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -168,4 +171,11 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
         return (BatchTask) constructor.newInstance(sqls, inMemoryEndpoint, inMemoryDataSource);
     }
 
+    //set default_collation_for_utf8mb4 to be compatible with mysql8.0
+    //mysql8.0 default_collation_for_utf8mb4 is utf8mb4_0900_ai_ci while memory-db (mysql5.7) does not have this collation
+    protected void setDefaultCollationForUtf8mb4(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("set session default_collation_for_utf8mb4=utf8mb4_general_ci;");
+        }
+    }
 }
