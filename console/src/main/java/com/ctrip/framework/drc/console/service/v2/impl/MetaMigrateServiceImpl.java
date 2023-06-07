@@ -5,20 +5,24 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
+import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
+import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
+import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -80,6 +84,14 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
+    private DataMediaTblDao dataMediaTblDao;
+    @Autowired
+    private RowsFilterMappingTblDao rowsFilterMappingTblDao;
+    @Autowired
+    private ColumnsFilterTblDao columnsFilterTblDao;
+    @Autowired
+    private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
+    @Autowired
     private DalServiceImpl dalService;
 
     private static final int MHA_GROUP_SIZE = 2;
@@ -102,7 +114,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         List<String> errorMhaNames = new ArrayList<>();
         List<MhaTblV2> newMhaTbls = new ArrayList<>();
-        for (MhaTbl oldMhaTbl :oldMhaTbls) {
+        for (MhaTbl oldMhaTbl : oldMhaTbls) {
             if (!groupMap.containsKey(oldMhaTbl.getId()) || clusterMhaMap.containsKey(oldMhaTbl.getId())) {
                 errorMhaNames.add(oldMhaTbl.getMhaName());
                 continue;
@@ -307,6 +319,92 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         String result = String.format("batchInsert MhaDbMappingTbl totol size: %s, notExistMhaNames: %s", size, notExistMhaNames);
         return result;
     }
+
+    @Override
+    public List<MhaNameFilterVo> checkMhaFilter() throws Exception {
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getReplicatorGroupId));
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
+        Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+
+        List<MhaNameFilterVo> mhaNameFilterVos = new ArrayList<>();
+        for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
+            Set<String> filterTables = new HashSet<>();
+
+            //columnsFilter
+            List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByAGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
+            filterTables.addAll(dataMediaTbls.stream().map(DataMediaTbl::getFullName).collect(Collectors.toList()));
+
+            //rowsFilter
+            List<RowsFilterMappingTbl> rowsFilterMappingTbls = rowsFilterMappingTblDao.queryBy(applierGroupTbl.getId(), ConsumeType.Applier.getCode(), BooleanEnum.FALSE.getCode());
+            for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
+                DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByIdsAndType(
+                        Lists.newArrayList(mapping.getDataMediaId()), DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode()).get(0);
+                filterTables.add(dataMediaTbl.getFullName());
+            }
+
+            if (filterNeedSplit(applierGroupTbl, filterTables)) {
+                MhaNameFilterVo mhaNameFilterVo = new MhaNameFilterVo();
+                mhaNameFilterVo.setMhaName(mhaTblMap.get(replicatorGroupMap.get(applierGroupMap.get(applierGroupTbl.getId()))));
+                mhaNameFilterVo.setFilterTables(filterTables);
+                mhaNameFilterVos.add(mhaNameFilterVo);
+            }
+
+        }
+        return mhaNameFilterVos;
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    @Override
+    public int migrateColumnsFilter() throws Exception {
+        List<ColumnsFilterTbl> oldColumnsFilterTbls = columnsFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<Long> existIds = columnFilterTblV2Dao.queryAll().stream()
+                .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()))
+                .map(ColumnsFilterTblV2::getId).collect(Collectors.toList());
+
+        List<ColumnsFilterTblV2> insertColumnsFilterTbls = new ArrayList<>();
+        List<ColumnsFilterTblV2> updateColumnsFilterTbls = new ArrayList<>();
+        for (ColumnsFilterTbl oldColumnsFilterTbl : oldColumnsFilterTbls) {
+            ColumnsFilterTblV2 newColumnsFilterTbl = new ColumnsFilterTblV2();
+            newColumnsFilterTbl.setId(oldColumnsFilterTbl.getId());
+            newColumnsFilterTbl.setColumns(oldColumnsFilterTbl.getColumns());
+            newColumnsFilterTbl.setMode(ColumnsFilterModeEnum.getCodeByName(oldColumnsFilterTbl.getMode()));
+            if (existIds.contains(oldColumnsFilterTbl.getId())) {
+                updateColumnsFilterTbls.add(newColumnsFilterTbl);
+            } else {
+                insertColumnsFilterTbls.add(newColumnsFilterTbl);
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(updateColumnsFilterTbls)) {
+            columnFilterTblV2Dao.batchUpdate(updateColumnsFilterTbls);
+        }
+        if (!CollectionUtils.isEmpty(insertColumnsFilterTbls)) {
+            columnFilterTblV2Dao.batchInsert(insertColumnsFilterTbls);
+        }
+        return 0;
+    }
+
+    @Override
+    public int migrateDbReplicationTbl() throws Exception {
+
+        return 0;
+    }
+
+    private boolean filterNeedSplit(ApplierGroupTbl applierGroupTbl, Set<String> filterTables) {
+        if (CollectionUtils.isEmpty(filterTables)) {
+            return false;
+        }
+        if (StringUtils.isBlank(applierGroupTbl.getNameFilter())) {
+            return true;
+        }
+        List<String> nameFilters = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
+        return !nameFilters.containsAll(filterTables);
+    }
+
 
     private Map<String, List<String>> getAllDbNames(List<String> mhaNames) {
         Map<String, List<String>> mhaDbMap = new HashMap<>();
