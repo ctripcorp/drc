@@ -133,7 +133,6 @@ public class SchemeApplyTask extends AbstractSchemaTask<Boolean> implements Name
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private boolean doExecute(String query) throws DdlException {
         try (Connection connection = inMemoryDataSource.getConnection()) {
-            setDefaultCollationForUtf8mb4(connection);
             try (Statement statement = connection.createStatement()) {
                 return statement.execute(query);
             }

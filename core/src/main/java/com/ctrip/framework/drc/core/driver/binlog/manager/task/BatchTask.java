@@ -31,7 +31,6 @@ public abstract class BatchTask extends AbstractSchemaTask<Boolean> implements N
     @Override
     public Boolean call() throws Exception {
         try (Connection connection = inMemoryDataSource.getConnection()) {
-            setDefaultCollationForUtf8mb4(connection);
             try (Statement statement = connection.createStatement()) {
                 beforeExecute(statement);
 
