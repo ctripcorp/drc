@@ -291,7 +291,7 @@ public class MhaServiceImplTest {
         Mockito.when(dalUtils.updateOrCreateDc(Mockito.anyString())).thenReturn(1L);
         Mockito.when(dalUtils.updateOrCreateBu(Mockito.anyString())).thenReturn(1L);
         Mockito.when(dalUtils.updateOrCreateCluster(Mockito.anyString(),Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
-        Mockito.when(dalUtils.updateOrCreateMha(Mockito.anyString(),Mockito.anyLong())).thenReturn(1L);
+        Mockito.when(dalUtils.recoverOrCreateMha(Mockito.anyString(),Mockito.anyLong())).thenReturn(1L);
         Mockito.when(dalUtils.updateOrCreateClusterMhaMap(Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
 
         apiResult = mhaService.recordMha(mockDto);

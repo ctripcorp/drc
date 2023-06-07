@@ -5,7 +5,9 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "dev_t": "set NODE_OPTIONS=\"--openssl-legacy-provider\" & npm run serve\n",
+    "build_t": "set NODE_OPTIONS=\"--openssl-legacy-provider\" & npm run build\n"
   },
   "dependencies": {
     "core-js": "^3.6.4",

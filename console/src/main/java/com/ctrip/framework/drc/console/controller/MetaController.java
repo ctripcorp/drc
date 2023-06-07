@@ -287,6 +287,18 @@ public class MetaController {
         }
     }
 
+    @GetMapping("applierExecutedGtid")
+    public ApiResult getApplierExecutedGtid(@RequestParam(value = "localMha") String localMha,
+            @RequestParam(value = "remoteMha") String remoteMha) {
+        logger.info("[meta] get applyExecutedGtid setting for appliers being used by {}<-{}", localMha, remoteMha);
+        try {
+            return ApiResult.getSuccessInstance(metaInfoService.getApplierExecutedGtid(localMha, remoteMha));
+        } catch (SQLException e) {
+            logger.error("[meta] Fail get applyExecutedGtid setting for appliers being used by {}<-{}", localMha, remoteMha);
+            return ApiResult.getSuccessInstance(null);
+        }
+    }
+    
     @GetMapping("dcs/{dc}/resources/types/{type}")
     public ApiResult getResources(@PathVariable String dc, @PathVariable String type) {
         logger.info("[meta] get {} resources in {}", type, dc);

@@ -29,6 +29,8 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
 
     private Set<String> uuids = Sets.newHashSet();
 
+    private volatile String currentUuid;
+
     private FileManager fileManager;
 
     private UuidOperator uuidOperator;
@@ -99,6 +101,16 @@ public class DefaultGtidManager extends AbstractLifecycle implements GtidManager
     @Override
     public Set<String> getUuids() {
         return new HashSet<>(uuids);
+    }
+
+    @Override
+    public void setCurrentUuid(String currentUuid) {
+        this.currentUuid = currentUuid;
+    }
+
+    @Override
+    public String getCurrentUuid() {
+        return currentUuid;
     }
 
     @Override

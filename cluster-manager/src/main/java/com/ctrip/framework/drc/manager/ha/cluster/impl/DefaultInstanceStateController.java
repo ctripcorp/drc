@@ -12,15 +12,12 @@ import com.ctrip.framework.drc.manager.healthcheck.notifier.ReplicatorNotifier;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
-import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
 import com.ctrip.xpipe.tuple.Pair;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
@@ -41,9 +38,6 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
 
     @Autowired
     private ClusterManagerConfig config;
-
-    @Resource(name = AbstractSpringConfigContext.GLOBAL_EXECUTOR)
-    private ExecutorService executors;
 
     @Override
     protected void doInitialize() throws Exception {
@@ -66,8 +60,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
                 body.getReplicators().add(r);
             }
         }
-        STATE_LOGGER.info("[addReplicator] for {}", body);
-        executors.submit(() -> replicatorNotifier.notifyAdd(body));
+        STATE_LOGGER.info("[addReplicator] for {},{}", clusterId, body);
+        replicatorNotifier.notifyAdd(clusterId, body);
         return body;
     }
 
@@ -81,8 +75,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerReplicator(String clusterId, Replicator replicator) {
         ReplicatorNotifier replicatorNotifier = ReplicatorNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshReplicator(clusterId, replicator);
-        STATE_LOGGER.info("[registerReplicator] for {}", body);
-        executors.submit(() -> replicatorNotifier.notifyRegister(body));
+        STATE_LOGGER.info("[registerReplicator] for {},{}", clusterId, body);
+        replicatorNotifier.notifyRegister(clusterId, body);
         return body;
     }
 
@@ -96,8 +90,10 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        STATE_LOGGER.info("[registerApplier] for {}", body);
-        executors.submit(() -> applierNotifier.notifyRegister(body));
+        String targetMhaName = applier.getTargetMhaName();
+        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        STATE_LOGGER.info("[registerApplier] for {},{}", newClusterId, body);
+        applierNotifier.notifyRegister(newClusterId, body);
         return body;
     }
 
@@ -111,8 +107,8 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster registerMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[registerMessenger] for {}", body);
-        executors.submit(() -> messengerNotifier.notifyRegister(body));
+        STATE_LOGGER.info("[registerMessenger] for {},{}", clusterId, body);
+        messengerNotifier.notifyRegister(clusterId, body);
         return body;
     }
 
@@ -126,13 +122,15 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addApplier(String clusterId, Applier applier) {
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        STATE_LOGGER.info("[addApplier] for {}", body);
+        String targetMhaName = applier.getTargetMhaName();
+        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        STATE_LOGGER.info("[addApplier] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty][addApplier] replicators and do nothing for {}", clusterId);
             return body;
         }
-        executors.submit(() -> applierNotifier.notifyAdd(body));
+        applierNotifier.notifyAdd(newClusterId, body);
 
         List<Applier> appliers = currentMetaManager.getSurviveAppliers(clusterId, RegistryKey.from(applier.getTargetName(), applier.getTargetMhaName()));
         for (Applier a : appliers) {
@@ -147,13 +145,13 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster addMessenger(String clusterId, Messenger messenger) {
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
-        STATE_LOGGER.info("[addMessenger] for {}", body);
+        STATE_LOGGER.info("[addMessenger] for {},{}", clusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty] replicators and do nothing for {}", clusterId);
             return body;
         }
-        executors.submit(() -> messengerNotifier.notifyAdd(body));
+        messengerNotifier.notifyAdd(clusterId, body);
 
         List<Messenger> messengers = currentMetaManager.getSurviveMessengers(clusterId);
         for (Messenger m : messengers) {
@@ -172,7 +170,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         }
         ReplicatorNotifier replicatorNotifier = ReplicatorNotifier.getInstance();
         STATE_LOGGER.info("[removeReplicator] for {},{}", clusterId, replicator);
-        executors.submit(() -> replicatorNotifier.notifyRemove(clusterId, replicator, true));
+        replicatorNotifier.notifyRemove(clusterId, replicator, true);
     }
 
     @Override
@@ -184,7 +182,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
         String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
         STATE_LOGGER.info("[removeMessenger] for {},{}, delete: {}", newClusterId, messenger, delete);
-        executors.submit(() -> messengerNotifier.notifyRemove(newClusterId, messenger, delete));
+        messengerNotifier.notifyRemove(newClusterId, messenger, delete);
     }
 
     @Override
@@ -197,7 +195,7 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         String targetMhaName = applier.getTargetMhaName();
         String newClusterId = RegistryKey.from(clusterId, targetMhaName);
         STATE_LOGGER.info("[removeApplier] for {},{}", newClusterId, applier);
-        executors.submit(() -> applierNotifier.notifyRemove(newClusterId, applier, delete));
+        applierNotifier.notifyRemove(newClusterId, applier, delete);
     }
 
     /**
@@ -211,13 +209,15 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
     public DbCluster applierMasterChange(String clusterId, Pair<String, Integer> newMaster, Applier applier) {  //notify by http
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
-        STATE_LOGGER.info("[applierMasterChange] for {}", body);
+        String targetMhaName = applier.getTargetMhaName();
+        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        STATE_LOGGER.info("[applierMasterChange] for {},{}", newClusterId, body);
         List<Replicator> replicators = body.getReplicators();
         if (replicators == null || replicators.isEmpty()) {
             STATE_LOGGER.warn("[Empty][applierMasterChange] replicators and do nothing for {}", clusterId);
             return body;
         }
-        executors.submit(() -> applierNotifier.notifyAdd(body));
+        applierNotifier.notifyAdd(newClusterId, body);
         return body;
     }
 
@@ -235,7 +235,14 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
         for (Applier applier : activeApplier) {
             DbCluster dbCluster = getDbClusterWithRefreshApplier(clusterId, applier, mysqlMaster);
-            applierNotifier.notify(dbCluster);
+            List<Replicator> replicators = dbCluster.getReplicators();
+            if (replicators == null || replicators.isEmpty()) {
+                STATE_LOGGER.warn("[Empty][mysqlMasterChanged] replicators and do nothing for {}", clusterId);
+                continue;
+            }
+            String targetMhaName = applier.getTargetMhaName();
+            String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+            applierNotifier.notify(newClusterId, dbCluster);
             res.add(dbCluster);
         }
 
@@ -243,9 +250,9 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         DbCluster dbCluster = getDbClusterWithRefreshReplicator(clusterId, replicator, mysqlMaster);
         dbCluster.getReplicators().clear();
         dbCluster.getReplicators().add(replicator);
-        executors.submit(() -> replicatorNotifier.notify(dbCluster));
+        replicatorNotifier.notify(clusterId, dbCluster);
         res.add(dbCluster);
-        STATE_LOGGER.info("[mysqlMasterChanged] for {}", res);
+        STATE_LOGGER.info("[mysqlMasterChanged] for {},{}", clusterId, res);
 
         return res;
     }
@@ -356,9 +363,5 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         } catch (Throwable t) {
         }
         return mysqlMaster;
-    }
-
-    public void setExecutors(ExecutorService executors) {
-        this.executors = executors;
     }
 }

@@ -40,10 +40,13 @@ import com.ctrip.framework.drc.console.monitor.unit.UnitVerificationManagerTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
+import com.ctrip.framework.drc.console.service.filter.QConfigApiServiceTest;
+import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaMappingServiceTest;
+import com.ctrip.framework.drc.console.service.filter.RowsFilterMetaServiceTest;
 import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
-import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
@@ -127,6 +130,17 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         OpenApiServiceImplTest.class,
         RemoteHttpAspectTest.class,
         QConfigServiceImplTest.class,
+
+        RowsFilterMetaServiceTest.class,
+        RowsFilterMetaMappingServiceTest.class,
+        QConfigApiServiceTest.class,
+
+        ColumnsFilterServiceV2Test.class,
+        DataMediaServiceV2Test.class,
+        MessengerServiceV2Test.class,
+        MetaGeneratorV2Test.class,
+        RowsFilterServiceV2Test.class,
+        MetaGeneratorV2IntegrationTest.class,
         
         // controller
         AccessControllerTest.class,
@@ -145,6 +159,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterServiceImplTest.class,
         MessengerControllerTest.class,
         DataMediaControllerTest.class,
+        RowsFilterMetaControllerTest.class,
 
         //task
         ExecutedGtidQueryTaskTest.class,
