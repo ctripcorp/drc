@@ -320,6 +320,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File blankUuidSets() {
+            if (isIntegrityTest()) {
+                return fileManager.getFirstLogFile();
+            }
             resultCode = ResultCode.APPLIER_GTID_ERROR;
             logger.warn("[GTID SET] is blank for {}", dumpCommandPacket.getApplierName());
             return null;
@@ -343,9 +346,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private File firstFileToSend() {
-            if (isIntegrityTest()) {
-                return fileManager.getFirstLogFile();
-            }
             GtidSet excludedSet = dumpCommandPacket.getGtidSet();
             Collection<GtidSet.UUIDSet> uuidSets = excludedSet.getUUIDSets();
             return (uuidSets == null || uuidSets.isEmpty()) ? blankUuidSets() : calculateGtidSet(excludedSet);
