@@ -2,14 +2,14 @@ package com.ctrip.framework.drc.applier.activity.monitor;
 
 import com.ctrip.framework.drc.core.monitor.entity.UnidirectionalEntity;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
-import com.ctrip.framework.drc.fetcher.system.DelayReporter;
+import com.ctrip.framework.drc.fetcher.system.MetricReporter;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
 import com.google.common.collect.Maps;
 
 import java.util.Map;
 
-public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Delay, Boolean> implements DelayReporter {
+public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Metric, Boolean> implements MetricReporter {
 
     private UnidirectionalEntity unidirectionalEntity;
 
@@ -66,36 +66,40 @@ public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Delay, Bo
     }
 
     @Override
-    public Delay doTask(Delay delay) {
-        String measurement = "fx.drc.applier." + delay.name;
+    public Metric doTask(Metric metric) {
+        String measurement = "fx.drc.applier." + metric.name;
         if(measurement.contains("conflict")) {
-            DefaultReporterHolder.getInstance().reportResetCounter(unidirectionalEntity.getTags(), delay.value, measurement);
+            DefaultReporterHolder.getInstance().reportResetCounter(unidirectionalEntity.getTags(), metric.value, measurement);
         } else if (measurement.contains("transaction") || measurement.contains("rows")) {
             Map<String, String> tags = unidirectionalEntity.getTags();
-            tags.put("db", delay.dbName);
-            DefaultReporterHolder.getInstance().reportResetCounter(tags, delay.value, measurement);
+            tags.put("db", metric.tags.get("dbName"));
+            DefaultReporterHolder.getInstance().reportResetCounter(tags, metric.value, measurement);
             tags.remove("db");
-            DefaultReporterHolder.getInstance().reportResetCounter(instanceTags, delay.value, measurement);
+            DefaultReporterHolder.getInstance().reportResetCounter(instanceTags, metric.value, measurement);
         } else {
-            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, delay.value, measurement);
+            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, metric.value, measurement);
         }
-        return finish(delay);
+        return finish(metric);
     }
+
+   
 
     @Override
-    public void report(String name, String dbName, long value) {
-        trySubmit(new Delay(name, dbName, value));
+    public void report(String name, Map<String,String> tags, long value) {
+        trySubmit(new Metric(name,  tags, value));
     }
 
-    public static class Delay {
+
+    public static class Metric {
 
         public String name;
-        public String dbName;
+        public Map<String,String> tags;
         public Long value;
+        
 
-        public Delay(String name, String dbName, Long value) {
+        public Metric(String name, Map<String,String> tags, Long value) {
             this.name = name;
-            this.dbName = dbName;
+            this.tags = tags;
             this.value = value;
         }
     }

@@ -33,8 +33,8 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
 
     private LinkedBlockingQueue<TrackedTask<T>> tasks = new LinkedBlockingQueue<>(queueSize());
 
-    protected DelayReporter getDelayReporter() {
-        return DelayReporter.DEFAULT;
+    protected MetricReporter getMetricReporter() {
+        return MetricReporter.DEFAULT;
     }
 
     @Override
@@ -54,7 +54,7 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
 
     protected T next() throws InterruptedException {
         TrackedTask<T> next = tasks.take();
-        getDelayReporter().report(toString() + ".wait.delay", "", System.currentTimeMillis() - next.time);
+        getMetricReporter().report(toString() + ".wait.delay", null, System.currentTimeMillis() - next.time);
         return next.unwrap();
     }
 
@@ -148,7 +148,7 @@ public abstract class TaskQueueActivity<T, U> extends AbstractLoopActivity imple
                 Thread.sleep(2000);
             }
         }
-        getDelayReporter().report(toString() + ".execute.delay", "", System.currentTimeMillis() - start);
+        getMetricReporter().report(toString() + ".execute.delay", null, System.currentTimeMillis() - start);
     }
 
     private final List<TaskActivity<U, ?>> alters = Lists.newArrayList();

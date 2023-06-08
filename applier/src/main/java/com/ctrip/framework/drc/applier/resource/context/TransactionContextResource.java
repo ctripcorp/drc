@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
+import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
@@ -18,6 +19,10 @@ import com.ctrip.framework.drc.fetcher.resource.context.AbstractContext;
 import com.ctrip.framework.drc.fetcher.system.*;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
@@ -112,6 +117,7 @@ public class TransactionContextResource extends AbstractContext
     protected String conflictHandleSqlResult = null;
     protected Throwable lastUnbearable;
     public long costTimeNS = 0;
+    protected Map<ConflictTable,Long> conflictTableRowsCount;
 
     @Override
     public Throwable getLastUnbearable() {
@@ -153,24 +159,34 @@ public class TransactionContextResource extends AbstractContext
                     ((delayMs > 1000) ? "SUPER SLOW" : ""));
 
             if (metricsActivity != null) {
-                metricsActivity.report("trx.delay", "", delayMs);
+                metricsActivity.report("trx.delay", null, delayMs);
 
                 if (conflictMap.isEmpty()) {
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty xid", 1, 0);
                 } else {
                     int rowsSize = conflictMap.size();
-                    metricsActivity.report("transaction", tableKey != null ? tableKey.getDatabaseName() : "", 1);
-                    metricsActivity.report("rows", tableKey != null ? tableKey.getDatabaseName() : "", rowsSize);
+                    String dbName = tableKey != null ? tableKey.getDatabaseName() : "";
+                    HashMap<String, String> dbTag = new HashMap<>() {{
+                        put("dbName", dbName);
+                    }};
+                    metricsActivity.report("transaction", dbTag, 1);
+                    metricsActivity.report("rows", dbTag, rowsSize);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", rowsSize, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
-
-                if (getOverwriteMap().contains(false)) {
-                    metricsActivity.report("trx.conflict.rollback", "", 1);
-                } else if (getConflictMap().contains(true)) {
-                    metricsActivity.report("trx.conflict.commit", "", 1);
+                
+                for (Entry<ConflictTable, Long> entry : conflictTableRowsCount.entrySet()) {
+                    ConflictTable conflictRow = entry.getKey();
+                    Map<String,String> tags = Maps.newHashMap();
+                    tags.put("gtid",fetchGtid());
+                    tags.putAll(conflictRow.generateTags());
+                    if (conflictRow.isRollback()) {
+                        metricsActivity.report("trx.conflict.rollback", tags, entry.getValue());
+                    } else {
+                        metricsActivity.report("trx.conflict.commit", tags, entry.getValue());
+                    }
                 }
             }
 
@@ -197,6 +213,7 @@ public class TransactionContextResource extends AbstractContext
         overwriteMap = new ArrayList<>(CONFLICT_SIZE);
         logs = new CircularFifoQueue<>(CONFLICT_SIZE);
         conflictTransactionLog = new ConflictTransactionLog();
+        conflictTableRowsCount = Maps.newHashMap();
         lastUnbearable = null;
         costTimeNS = 0;
         beginTrace("t");
@@ -836,12 +853,26 @@ public class TransactionContextResource extends AbstractContext
     }
 
     private void overwriteMark(Boolean isOverwrite, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
+        recordConflictRow(isOverwrite);
         overwriteMap.add(isOverwrite);
         if (overwriteMap.size() < CONFLICT_SIZE) {
             conflictTransactionLog.getDestCurrentRecordList().add(destCurrentRecord);
             conflictTransactionLog.getConflictHandleSqlList().add(conflictHandleSql);
             conflictTransactionLog.getConflictHandleSqlExecutedResultList().add(conflictHandleSqlResult);
         }
+    }
+    
+    private void recordConflictRow(Boolean isOverwrite) {
+        String db = fetchTableKey().getDatabaseName();
+        String table = fetchTableKey().getTableName();
+        ConflictTable thisRow;
+        if (isOverwrite) {
+            thisRow = new ConflictTable(db, table, 1);
+        } else {
+            thisRow = new ConflictTable(db, table, 0);
+        }
+        Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
+        conflictTableRowsCount.put(thisRow,++count);
     }
 
     private void logRawSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
