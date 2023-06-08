@@ -12,6 +12,8 @@ public enum Region {
 
     SIN(Sets.newHashSet("SIN")),
 
+    FRA(Sets.newHashSet("FRA")),
+
     SHA(Sets.newHashSet("SHA", "SH"));
 
     private Set<String> names;
