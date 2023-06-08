@@ -28,4 +28,6 @@ public interface MetaMigrateService {
 
     int migrateDbReplicationTbl() throws Exception;
 
+    List<String> checkNameMapping() throws Exception;
+
 }

@@ -41,6 +41,8 @@ public class MySqlUtils {
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
+    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%';";
+
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
     
     public static final String DRC_MONITOR_DB = "drcmonitordb";
@@ -623,7 +625,13 @@ public class MySqlUtils {
         logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
         return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
-    
+
+    public static List<String> checkDbsWithFilter(Endpoint endpoint, String nameFilter) {
+        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+        List<String> dbNames = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.toList());
+        return dbNames;
+    }
+
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
         List<TableCheckVo> checkTableVos = Lists.newLinkedList();
         

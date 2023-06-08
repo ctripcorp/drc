@@ -7,13 +7,16 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -93,10 +96,13 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
     @Autowired
     private DalServiceImpl dalService;
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
 
     private static final int MHA_GROUP_SIZE = 2;
     private static final int QUERY_SIZE = 100;
     private static final int BATCH_INSERT_SIZE = 2000;
+    private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
 
     @Override
     public int migrateMhaTbl() throws Exception {
@@ -390,8 +396,100 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     @Override
     public int migrateDbReplicationTbl() throws Exception {
+        List<MhaReplicationTbl> mhaReplicationTbl = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ApplierGroupTbl> oldApplierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ApplierGroupTblV2> newApplierGroupTbls = applierGroupTblV2Dao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Map<Long, List<Long>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId, Collectors.mapping(MhaDbMappingTbl::getDbId, Collectors.toList())));
+        Map<Long, Long> newApplierGroupMap = newApplierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, ApplierGroupTblV2::getId));
+        Map<Long, String> oldApplierGroupMap = oldApplierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getNameFilter));
+        Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+
 
         return 0;
+    }
+
+    @Override
+    public List<String> checkNameMapping() throws Exception {
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream()
+                .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
+                .collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
+
+        Set<String> errorMhaNames = new HashSet<>();
+        List<String> mhaNames = new ArrayList<>();
+        for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
+            String nameMappings = applierGroupTbl.getNameMapping();
+            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getId()));
+            if (!checkNameMapping(nameMappings)) {
+                errorMhaNames.add(mhaName);
+                continue;
+            }
+            mhaNames.add(mhaName);
+        }
+        if (!CollectionUtils.isEmpty(errorMhaNames)) {
+            throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
+        }
+        return mhaNames;
+    }
+
+    private boolean checkNameMapping(String nameMappings) {
+        List<String> nameMappingList = Lists.newArrayList(nameMappings.split(";"));
+        for (String nameMapping : nameMappingList) {
+            String[] dbs = nameMappings.split(",");
+            String srcDb = dbs[0].split("\\.")[0];
+            String dstDb = dbs[1].split("\\.")[0];
+            if (!srcDb.equals(dstDb)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void splitNameFilter(ApplierGroupTbl applierGroupTbl, Set<Long> errorApplierGroupIds) {
+        List<String> splitDbs = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
+        if (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB)) {
+            errorApplierGroupIds.add(applierGroupTbl.getId());
+            return;
+        }
+        splitDbs.remove(MONITOR_DB);
+        List<String> dbs = splitDbs.stream().map(db -> splitNameFilter(db)).collect(Collectors.toList());
+        applierGroupTbl.setNameFilter(StringUtils.join(dbs, ","));
+    }
+
+    private String splitNameFilter(String db) {
+        if (!db.contains("(")) {
+            return db;
+        }
+        String[] dbStrings = db.split("\\.");
+        String dbName = dbStrings[0];
+        String[] preTableStr = dbStrings[1].split("\\(");
+        String prefixTable = preTableStr[0];
+
+        String[] sufTableStr = preTableStr[1].split("\\)");
+        String tableFilter = sufTableStr[0];
+
+        String suffixTable = "";
+        if (sufTableStr.length == 2) {
+            suffixTable = sufTableStr[1];
+        }
+        String finalSuffixTable = suffixTable;
+
+        String[] tables = tableFilter.split("\\|");
+        List<String> dbFilters = Arrays.stream(tables).map(table -> buildNameFilter(dbName, table, prefixTable, finalSuffixTable)).collect(Collectors.toList());
+        String newNameFilter = StringUtils.join(dbFilters, ",");
+        return newNameFilter;
+    }
+
+    private String buildNameFilter(String dbName, String table, String prefixTable, String suffixTable) {
+        return dbName + "." + prefixTable + table + suffixTable;
     }
 
     private boolean filterNeedSplit(ApplierGroupTbl applierGroupTbl, Set<String> filterTables) {
@@ -403,6 +501,15 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         }
         List<String> nameFilters = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
         return !nameFilters.containsAll(filterTables);
+    }
+
+    private List<String> checkDbsWithFilter(String mhaName, String nameFilter) {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        if (endpoint == null) {
+            logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
+            return new ArrayList<>();
+        }
+        return MySqlUtils.checkDbsWithFilter(endpoint, nameFilter);
     }
 
 
