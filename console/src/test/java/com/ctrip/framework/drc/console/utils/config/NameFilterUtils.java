@@ -23,8 +23,8 @@ public class NameFilterUtils {
     @Test
     public void distinctAndUnion(){
         // input dbName & tableNames &(commonPrefix) check and get nameFilter
-        String dbName = "FltTicketIssueDB";
-        String tableNames ="issuebillautofailopconfig,expirydateconfigdetail,issuebillsuspendconfigdetail,issuebillsuspendconfig,expirydateconfig"
+        String dbName = "";
+        String tableNames =""
                 ;
         String commonPrefix = "";
         

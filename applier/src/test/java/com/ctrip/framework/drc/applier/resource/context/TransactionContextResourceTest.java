@@ -540,14 +540,6 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         );
         // table 2
         context.setTableKey(TableKey.from("prod", "monitor"));
-        context.insert(
-                buildArray(
-                        buildArray(3, "shaoy", "shaoy", "2019-12-23 19:18:17.281"),
-                        buildArray(4, "sharb", "sharb", "2019-12-09 00:31:14.717")
-                ),
-                Bitmap.from(true, true, true, true),
-                columns4());
-        context.setTableKey(TableKey.from("prod", "hello1"));
         context.update(
                 buildArray(
                         buildArray(3, "shaoy", "shaoy", "2019-12-23 00:00:00.000"),
