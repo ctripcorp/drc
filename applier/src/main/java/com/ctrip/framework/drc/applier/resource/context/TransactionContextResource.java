@@ -182,10 +182,10 @@ public class TransactionContextResource extends AbstractContext
                     Map<String,String> tags = Maps.newHashMap();
                     tags.put("gtid",fetchGtid());
                     tags.putAll(conflictRow.generateTags());
-                    if (conflictRow.isRollback()) {
-                        metricsActivity.report("trx.conflict.rollback", tags, entry.getValue());
-                    } else {
+                    if (conflictRow.getCommitted() == 1) {
                         metricsActivity.report("trx.conflict.commit", tags, entry.getValue());
+                    } else {
+                        metricsActivity.report("trx.conflict.rollback", tags, entry.getValue());
                     }
                 }
             }
@@ -862,11 +862,11 @@ public class TransactionContextResource extends AbstractContext
         }
     }
     
-    private void recordConflictRow(Boolean isOverwrite) {
+    private void recordConflictRow(Boolean isOverwriteSuccess) {
         String db = fetchTableKey().getDatabaseName();
         String table = fetchTableKey().getTableName();
         ConflictTable thisRow;
-        if (isOverwrite) {
+        if (isOverwriteSuccess) {
             thisRow = new ConflictTable(db, table, 1);
         } else {
             thisRow = new ConflictTable(db, table, 0);

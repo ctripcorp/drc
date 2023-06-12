@@ -14,7 +14,7 @@ public class ConflictTable {
     
     private String db;
     private String table;
-    private int type;   // 0-commit,1-rollback
+    private int committed;   // 1-commit,0-rollback
 
 
     public Map<String,String> generateTags() {
@@ -24,18 +24,14 @@ public class ConflictTable {
         return tags;
     }
     
-    public boolean isRollback() {
-        return type == 1;
-    }
-    
     
     public ConflictTable() {
     }
 
-    public ConflictTable(String db, String table, int type) {
+    public ConflictTable(String db, String table, int committed) {
         this.db = db;
         this.table = table;
-        this.type = type;
+        this.committed = committed;
     }
 
     @Override
@@ -47,12 +43,12 @@ public class ConflictTable {
             return false;
         }
         ConflictTable that = (ConflictTable) o;
-        return type == that.type && Objects.equals(db, that.db) && Objects.equals(table, that.table);
+        return committed == that.committed && Objects.equals(db, that.db) && Objects.equals(table, that.table);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(db, table, type);
+        return Objects.hash(db, table, committed);
     }
 
     public String getDb() {
@@ -71,12 +67,12 @@ public class ConflictTable {
         this.table = table;
     }
 
-    public int getType() {
-        return type;
+    public int getCommitted() {
+        return committed;
     }
 
-    public void setType(int type) {
-        this.type = type;
+    public void setCommitted(int committed) {
+        this.committed = committed;
     }
     
     
