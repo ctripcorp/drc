@@ -547,7 +547,6 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 ),
                 Bitmap.from(true, true, true, true),
                 columns4());
-        context.dispose();
         context.setTableKey(TableKey.from("prod", "hello1"));
         context.update(
                 buildArray(
@@ -571,7 +570,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(1L,count.longValue());
         count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
         assertEquals(2L,count.longValue());
-        context.rollback();
+        context.commit();
         context.dispose();
     }
 
