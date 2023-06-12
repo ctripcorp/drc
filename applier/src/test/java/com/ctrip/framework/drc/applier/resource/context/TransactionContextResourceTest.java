@@ -97,7 +97,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 0));
         assertEquals(1L,count.longValue());
         context.commit();
         context.dispose();
@@ -239,7 +239,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(false, true), context.getConflictMap());
         assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 0));
         assertEquals(1L,count.longValue());
         context.rollback();
         context.dispose();
@@ -490,5 +490,90 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         context.commit();
         context.dispose();
     }
+
+    @Test
+    public void testLogMetricWhenUpdateDiffTable() throws Exception {
+        context = new TransactionContextResource();
+        context.dataSource = DataSource.wrap(dataSource);
+        // init
+        context.initialize();
+        // table 1
+        context.setTableKey(TableKey.from("prod", "hello1"));
+        context.insert(
+                buildArray(
+                        buildArray(1, "Phi", "2019-12-09 16:00:00.000"),
+                        buildArray(2, "Sli", "2019-12-09 17:00:00.000")
+                ),
+                Bitmap.from(true, true, true),
+                columns0()
+        );
+        // table 2
+        context.setTableKey(TableKey.from("prod", "monitor"));
+        context.insert(
+                buildArray(
+                        buildArray(3, "shaoy", "shaoy", "2019-12-23 19:18:17.281"),
+                        buildArray(4, "sharb", "sharb", "2019-12-09 00:31:14.717")
+                ),
+                Bitmap.from(true, true, true, true),
+                columns4());
+        context.dispose();
+
+
+        // mock conflict
+        context = new TransactionContextResource();
+        context.dataSource = DataSource.wrap(dataSource);
+        context.initialize();
+        // table 1
+        context.setTableKey(TableKey.from("prod", "hello1"));
+        context.update(
+                buildArray(
+                        buildArray(1, "Phy", "2019-12-09 16:00:00.000"),
+                        buildArray(2, "Sly", "2019-12-09 16:00:00.000")
+                ),
+                Bitmap.from(true, true, true),
+                buildArray(
+                        buildArray(1, "Phy", "2019-12-09 16:00:00.001"),
+                        buildArray(2, "Sly", "2019-12-09 18:00:00.001")
+                ),
+                Bitmap.from(true, true, true),
+                columns0()
+        );
+        // table 2
+        context.setTableKey(TableKey.from("prod", "monitor"));
+        context.insert(
+                buildArray(
+                        buildArray(3, "shaoy", "shaoy", "2019-12-23 19:18:17.281"),
+                        buildArray(4, "sharb", "sharb", "2019-12-09 00:31:14.717")
+                ),
+                Bitmap.from(true, true, true, true),
+                columns4());
+        context.dispose();
+        context.setTableKey(TableKey.from("prod", "hello1"));
+        context.update(
+                buildArray(
+                        buildArray(3, "shaoy", "shaoy", "2019-12-23 00:00:00.000"),
+                        buildArray(4, "sharb", "sharb", "2019-12-09 00:31:14.717")
+                ),
+                Bitmap.from(true, true, true, true),
+                buildArray(
+                        buildArray(3, "shaoy", "shaoy", "2019-12-25 19:18:17.281"),
+                        buildArray(4, "sharb", "sharb", "2019-12-19 00:31:14.717")
+                ),
+                Bitmap.from(true, true, true, true),
+                columns4()
+        );
+        
+        
+        assertEquals(Lists.newArrayList(false, true,true,true), context.getConflictMap());
+        assertEquals(Lists.newArrayList(true,true,true), context.getOverwriteMap());
+        assertEquals(2,context.conflictTableRowsCount.size());
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        assertEquals(1L,count.longValue());
+        count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        assertEquals(2L,count.longValue());
+        context.rollback();
+        context.dispose();
+    }
+
 
 }
