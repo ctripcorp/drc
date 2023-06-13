@@ -14,6 +14,15 @@ public enum DataMediaPairTypeEnum {
         this.comment = comment;
     }
 
+    public static DataMediaPairTypeEnum getByType(Integer type) {
+        for (DataMediaPairTypeEnum value : DataMediaPairTypeEnum.values()) {
+            if (value.type.equals(type)) {
+                return value;
+            }
+        }
+        throw new IllegalArgumentException(String.format("unknown dataMediaPairType: %s", type));
+    }
+
     public String getComment() {
         return comment;
     }

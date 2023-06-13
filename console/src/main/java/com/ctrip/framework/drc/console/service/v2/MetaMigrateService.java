@@ -32,4 +32,8 @@ public interface MetaMigrateService {
 
     int migrateMessengerGroup() throws Exception;
 
+    int migrateMessengerFilter() throws Exception;
+
+    int migrateDbReplicationFilterMapping() throws Exception;
+
 }
