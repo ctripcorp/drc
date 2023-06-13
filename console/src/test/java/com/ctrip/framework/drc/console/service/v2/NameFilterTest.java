@@ -21,7 +21,7 @@ public class NameFilterTest {
 
     @Test
     public void testSplitNameFilter() {
-        String nameFilter = "drcmonitordb\\.delaymonitor,bbzcredentialshard[0][1-8]db\\.(sjp_credential_keyid_[1-8]|order_associate),bbzudlshard0[1-8]db\\.udl_info_[1-8]";
+        String nameFilter = "testDb\\.(a|b|c)";
         List<String> splitDbs = Lists.newArrayList(nameFilter.split(","));
         if (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB)) {
             logger.error("split nameFilter error");

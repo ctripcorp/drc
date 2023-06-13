@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
+import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -14,10 +15,14 @@ import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -99,6 +107,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
 
+    private final ListeningExecutorService migrateExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "migrateMeta"));
     private static final int MHA_GROUP_SIZE = 2;
     private static final int QUERY_SIZE = 100;
     private static final int BATCH_INSERT_SIZE = 2000;
@@ -271,6 +280,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String migrateMhaDbMapping() throws Exception {
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -363,8 +373,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return mhaNameFilterVos;
     }
 
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int migrateColumnsFilter() throws Exception {
         List<ColumnsFilterTbl> oldColumnsFilterTbls = columnsFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<Long> existIds = columnFilterTblV2Dao.queryAll().stream()
@@ -395,21 +405,101 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int migrateDbReplicationTbl() throws Exception {
-        List<MhaReplicationTbl> mhaReplicationTbl = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierGroupTbl> oldApplierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierGroupTblV2> newApplierGroupTbls = applierGroupTblV2Dao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
-        Map<Long, List<Long>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId, Collectors.mapping(MhaDbMappingTbl::getDbId, Collectors.toList())));
+        Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
         Map<Long, Long> newApplierGroupMap = newApplierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, ApplierGroupTblV2::getId));
-        Map<Long, String> oldApplierGroupMap = oldApplierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getNameFilter));
+        Map<Long, ApplierGroupTbl> oldApplierGroupMap = oldApplierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, Function.identity()));
         Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+        Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
 
+        List<DbReplicationTbl> dbReplicationTbls = buildDbReplicationTbls(mhaReplicationTbls, mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap);
+        int size = dbReplicationTbls.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + BATCH_INSERT_SIZE, size);
+            List<DbReplicationTbl> subMhaDbMappingList = dbReplicationTbls.subList(i, toIndex);
+            dbReplicationTblDao.batchInsert(subMhaDbMappingList);
+        }
+        return dbReplicationTbls.size();
+    }
 
-        return 0;
+    private List<DbReplicationTbl> buildDbReplicationTbls(List<MhaReplicationTbl> mhaReplicationTbls,
+                                                          Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap,
+                                                          Map<Long, Long> newApplierGroupMap,
+                                                          Map<Long, ApplierGroupTbl> oldApplierGroupMap,
+                                                          Map<String, Long> dbTblMap,
+                                                          Map<Long, String> mhaTblMap) throws Exception {
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        List<ListenableFuture<List<DbReplicationTbl>>> futures = Lists.newArrayListWithCapacity(mhaReplicationTbls.size());
+        for (MhaReplicationTbl mhaReplication : mhaReplicationTbls) {
+            ListenableFuture<List<DbReplicationTbl>> future = migrateExecutorService.submit(
+                    () -> getDbReplications(mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap, mhaReplication));
+            futures.add(future);
+        }
+
+        for (ListenableFuture<List<DbReplicationTbl>> future : futures) {
+            try {
+                List<DbReplicationTbl> dbReplicationTblList = future.get(3, TimeUnit.SECONDS);
+                dbReplicationTbls.addAll(dbReplicationTblList);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                logger.error("getDbReplications fail, {}", e);
+                throw e;
+            }
+        }
+        return dbReplicationTbls;
+    }
+
+    private List<DbReplicationTbl> getDbReplications(Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap,
+                                                     Map<Long, Long> newApplierGroupMap,
+                                                     Map<Long, ApplierGroupTbl> oldApplierGroupMap,
+                                                     Map<String, Long> dbTblMap,
+                                                     Map<Long, String> mhaTblMap,
+                                                     MhaReplicationTbl mhaReplication) {
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        long applierGroupId = newApplierGroupMap.get(mhaReplication.getId());
+        ApplierGroupTbl applierGroupTbl = oldApplierGroupMap.get(applierGroupId);
+
+        Map<String, String> tableNameMappingMap = new HashMap<>();
+        String nameMappings = applierGroupTbl.getNameMapping();
+        if (StringUtils.isNotBlank(nameMappings)) {
+            List<String> nameMappingList = Lists.newArrayList(nameMappings.split(";"));
+            for (String nameMapping : nameMappingList) {
+                String[] tables = nameMapping.split(",");
+                tableNameMappingMap.put(tables[0].split("\\.")[1], tables[1].split("\\.")[1]);
+            }
+        }
+
+        String nameFilter = applierGroupTbl.getNameFilter();
+        if (StringUtils.isBlank(nameFilter)) {
+            List<String> dbNames = queryDbsWithFilter(mhaTblMap.get(mhaReplication.getSrcMhaId()), nameFilter);
+            for (String dbName : dbNames) {
+                Long dbId = dbTblMap.get(dbName);
+                dbReplicationTbls.add(buildDbReplicationTbl(dbId, ".*", "", mhaDbMappingMap, mhaReplication));
+            }
+        } else {
+            List<String> dbFilterList = Lists.newArrayList(nameFilter.split(","));
+            for (String dbFilter : dbFilterList) {
+                if (MONITOR_DB.equals(dbFilter)) {
+                    continue;
+                }
+                List<String> dbNames = queryDbsWithFilter(mhaTblMap.get(mhaReplication.getSrcMhaId()), dbFilter);
+                String[] db = dbFilter.split("\\\\.");
+                for (String dbName : dbNames) {
+                    String srcTableName = db[1];
+                    String dstTableName = tableNameMappingMap.getOrDefault(srcTableName, "");
+                    Long dbId = dbTblMap.get(dbName);
+                    dbReplicationTbls.add(buildDbReplicationTbl(dbId, srcTableName, dstTableName, mhaDbMappingMap, mhaReplication));
+                }
+            }
+        }
+        return dbReplicationTbls;
     }
 
     @Override
@@ -440,10 +530,27 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return mhaNames;
     }
 
+    private DbReplicationTbl buildDbReplicationTbl(Long dbId,
+                                                   String srcTableName,
+                                                   String dstTableName,
+                                                   Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap,
+                                                   MhaReplicationTbl mhaReplication) {
+        long srcMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getSrcMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
+        long dstMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getDstMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
+        DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
+        dbReplicationTbl.setSrcMhaDbMappingId(srcMhaDbMappingId);
+        dbReplicationTbl.setDstMhaDbMappingId(dstMhaDbMappingId);
+        dbReplicationTbl.setSrcLogicTableName(srcTableName);
+        dbReplicationTbl.setDstLogicTableName(dstTableName);
+        dbReplicationTbl.setReplicationType(DataMediaPairTypeEnum.DB_TO_DB.getType());
+        dbReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return dbReplicationTbl;
+    }
+
     private boolean checkNameMapping(String nameMappings) {
         List<String> nameMappingList = Lists.newArrayList(nameMappings.split(";"));
         for (String nameMapping : nameMappingList) {
-            String[] dbs = nameMappings.split(",");
+            String[] dbs = nameMapping.split(",");
             String srcDb = dbs[0].split("\\.")[0];
             String dstDb = dbs[1].split("\\.")[0];
             if (!srcDb.equals(dstDb)) {
@@ -503,7 +610,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return !nameFilters.containsAll(filterTables);
     }
 
-    private List<String> checkDbsWithFilter(String mhaName, String nameFilter) {
+    private List<String> queryDbsWithFilter(String mhaName, String nameFilter) {
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         if (endpoint == null) {
             logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
