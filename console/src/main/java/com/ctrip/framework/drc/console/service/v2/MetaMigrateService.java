@@ -30,4 +30,6 @@ public interface MetaMigrateService {
 
     List<String> checkNameMapping() throws Exception;
 
+    int migrateMessengerGroup() throws Exception;
+
 }

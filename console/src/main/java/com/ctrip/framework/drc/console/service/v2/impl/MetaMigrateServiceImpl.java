@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -96,6 +97,10 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
+    @Autowired
+    private DataMediaPairTblDao dataMediaPairTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
     @Autowired
@@ -421,13 +426,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
 
         List<DbReplicationTbl> dbReplicationTbls = buildDbReplicationTbls(mhaReplicationTbls, mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap);
-        int size = dbReplicationTbls.size();
-        for (int i = 0; i < size; ) {
-            int toIndex = Math.min(i + BATCH_INSERT_SIZE, size);
-            List<DbReplicationTbl> subMhaDbMappingList = dbReplicationTbls.subList(i, toIndex);
-            dbReplicationTblDao.batchInsert(subMhaDbMappingList);
-        }
-        return dbReplicationTbls.size();
+        return batchInsertDbReplications(dbReplicationTbls);
     }
 
     private List<DbReplicationTbl> buildDbReplicationTbls(List<MhaReplicationTbl> mhaReplicationTbls,
@@ -439,8 +438,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
         List<ListenableFuture<List<DbReplicationTbl>>> futures = Lists.newArrayListWithCapacity(mhaReplicationTbls.size());
         for (MhaReplicationTbl mhaReplication : mhaReplicationTbls) {
-            ListenableFuture<List<DbReplicationTbl>> future = migrateExecutorService.submit(
-                    () -> getDbReplications(mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap, mhaReplication));
+            ListenableFuture<List<DbReplicationTbl>> future = migrateExecutorService.submit(() ->
+                    getDbReplications(mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap, mhaReplication));
             futures.add(future);
         }
 
@@ -530,6 +529,71 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return mhaNames;
     }
 
+    @Override
+    public int migrateMessengerGroup() throws Exception {
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<DataMediaPairTbl> dataMediaPairTbls = dataMediaPairTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Map<Long, DataMediaPairTbl> dataMediaPairTblMap = dataMediaPairTbls.stream().collect(Collectors.toMap(DataMediaPairTbl::getGroupId, Function.identity()));
+        Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
+        Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+        Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        List<ListenableFuture<List<DbReplicationTbl>>> futures = Lists.newArrayListWithCapacity(messengerGroupTbls.size());
+        for (MessengerGroupTbl messengerGroupTbl : messengerGroupTbls) {
+            DataMediaPairTbl dataMediaPairTbl = dataMediaPairTblMap.get(messengerGroupTbl.getId());
+            ListenableFuture<List<DbReplicationTbl>> future = migrateExecutorService.submit(() ->
+                    getMessengerDbReplications(mhaDbMappingMap, dbTblMap, mhaTblMap, dataMediaPairTbl, messengerGroupTbl));
+            futures.add(future);
+        }
+
+        for (ListenableFuture<List<DbReplicationTbl>> future : futures) {
+            try {
+                List<DbReplicationTbl> dbReplicationTblList = future.get(3, TimeUnit.SECONDS);
+                dbReplicationTbls.addAll(dbReplicationTblList);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                logger.error("getDbReplications fail, {}", e);
+                throw e;
+            }
+        }
+
+        return batchInsertDbReplications(dbReplicationTbls);
+    }
+
+    private int batchInsertDbReplications(List<DbReplicationTbl> dbReplicationTbls) throws SQLException {
+        int size = dbReplicationTbls.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + BATCH_INSERT_SIZE, size);
+            List<DbReplicationTbl> subMhaDbMappingList = dbReplicationTbls.subList(i, toIndex);
+            dbReplicationTblDao.batchInsert(subMhaDbMappingList);
+        }
+        return dbReplicationTbls.size();
+    }
+
+    private List<DbReplicationTbl> getMessengerDbReplications(Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap,
+                                                              Map<String, Long> dbTblMap,
+                                                              Map<Long, String> mhaTblMap,
+                                                              DataMediaPairTbl dataMediaPairTbl,
+                                                              MessengerGroupTbl messengerGroupTbl) {
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        String srcDataMediaName = dataMediaPairTbl.getSrcDataMediaName();
+        List<String> dbNameFilters = Lists.newArrayList(srcDataMediaName.split(","));
+        for (String dbNameFilter : dbNameFilters) {
+            List<String> dbNames = queryDbsWithFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
+            String[] tables = dbNameFilter.split("\\\\.");
+            for (String dbName : dbNames) {
+                long dbId = dbTblMap.get(dbName);
+                long srcMhaDbMappingId = mhaDbMappingMap.get(messengerGroupTbl.getMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
+                dbReplicationTbls.add(buildDbReplicationTbl(tables[1], dataMediaPairTbl.getDestDataMediaName(), srcMhaDbMappingId, -1));
+            }
+        }
+        return dbReplicationTbls;
+    }
+
     private DbReplicationTbl buildDbReplicationTbl(Long dbId,
                                                    String srcTableName,
                                                    String dstTableName,
@@ -537,6 +601,10 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                                                    MhaReplicationTbl mhaReplication) {
         long srcMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getSrcMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
         long dstMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getDstMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
+        return buildDbReplicationTbl(srcTableName, dstTableName, srcMhaDbMappingId, dstMhaDbMappingId);
+    }
+
+    private DbReplicationTbl buildDbReplicationTbl(String srcTableName, String dstTableName, long srcMhaDbMappingId, long dstMhaDbMappingId) {
         DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
         dbReplicationTbl.setSrcMhaDbMappingId(srcMhaDbMappingId);
         dbReplicationTbl.setDstMhaDbMappingId(dstMhaDbMappingId);
