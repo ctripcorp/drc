@@ -543,7 +543,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         context.update(
                 buildArray(
                         buildArray(3, "shaoy", "shaoy", "2019-12-23 00:00:00.000"),
-                        buildArray(4, "sharb", "sharb", "2019-12-09 00:31:14.717")
+                        buildArray(4, "sharb", "sharb", "2019-12-09 00:00:00.000")
                 ),
                 Bitmap.from(true, true, true, true),
                 buildArray(
