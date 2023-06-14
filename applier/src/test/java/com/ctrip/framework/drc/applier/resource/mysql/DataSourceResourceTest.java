@@ -18,8 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.REPLICATOR_WHITE_LIST;
-
 /**
  * @Author limingdong
  * @create 2020/10/16
@@ -61,7 +59,6 @@ public class DataSourceResourceTest {
 
     @Test
     public void testWaitTimeout() throws Exception {
-        System.setProperty(REPLICATOR_WHITE_LIST, "true");
         List<Connection> connectionList = new ArrayList<>();
         DrcConnectionPool.SESSION_WAIT_TIMEOUT = 1;
         DataSourceResource dataSourceResource = new DataSourceResource();
