@@ -153,7 +153,8 @@ public class TransactionContextResource extends AbstractContext
         try {
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
-            loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, fetchGtid(), fetchDepth(), costTimeNS / 1000,
+            String gtid = fetchGtid();
+            loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
                     ((delayMs > 1000) ? "SUPER SLOW" : ""));
@@ -176,15 +177,25 @@ public class TransactionContextResource extends AbstractContext
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
+
                 
                 for (Entry<ConflictTable, Long> entry : conflictTableRowsCount.entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
-                    tags.put("gtid",fetchGtid()); // to discuss
                     if (conflictRow.getCommitted() == 1) {
                         metricsActivity.report("trx.conflict.commit", tags, entry.getValue());
+                        DefaultEventMonitorHolder.getInstance().logEvent(
+                                conflictRow.getDb()+ "." + conflictRow.getTable() + ".conflict.commit",
+                                gtid, 
+                                entry.getValue()
+                        );
                     } else {
                         metricsActivity.report("trx.conflict.rollback", tags, entry.getValue());
+                        DefaultEventMonitorHolder.getInstance().logEvent(
+                                conflictRow.getDb()+ "." + conflictRow.getTable() + ".conflict.rollback",
+                                gtid,
+                                entry.getValue()
+                        );
                     }
                 }
             }
