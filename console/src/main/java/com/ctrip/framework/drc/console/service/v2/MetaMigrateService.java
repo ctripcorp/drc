@@ -3,12 +3,17 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dengquanliang
  * 2023/6/5 16:51
  */
 public interface MetaMigrateService {
+
+    int batchInsertRegions(List<String> regionNames) throws Exception;
+
+    int batchUpdateDcRegions(Map<String, String> dcRegionMap) throws Exception;
 
     int migrateMhaTbl() throws Exception;
 
