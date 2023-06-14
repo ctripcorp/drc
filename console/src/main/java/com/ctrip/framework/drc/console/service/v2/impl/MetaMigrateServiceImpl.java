@@ -9,11 +9,13 @@ import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -403,10 +405,32 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 MhaNameFilterVo mhaNameFilterVo = new MhaNameFilterVo();
                 mhaNameFilterVo.setMhaName(mhaTblMap.get(replicatorGroupMap.get(applierGroupMap.get(applierGroupTbl.getId()))));
                 mhaNameFilterVo.setFilterTables(filterTables);
+                mhaNameFilterVo.setApplierGroupId(applierGroupTbl.getId());
+                mhaNameFilterVo.setNameFilter(applierGroupTbl.getNameFilter());
                 mhaNameFilterVos.add(mhaNameFilterVo);
             }
         }
         return mhaNameFilterVos;
+    }
+
+    @Override
+    public int splitNameFilter(List<NameFilterSplitParam> paramList) throws Exception {
+        List<Long> applierGroupIds = paramList.stream().map(NameFilterSplitParam::getApplierGroupId).collect(Collectors.toList());
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> applierGroupIds.contains(e.getId())).collect(Collectors.toList());
+
+        Map<Long, NameFilterSplitParam> paramMap = paramList.stream().collect(Collectors.toMap(NameFilterSplitParam::getApplierGroupId, Function.identity()));
+
+        List<NameFilterSplitParam> errorParamList = new ArrayList<>();
+        for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
+            NameFilterSplitParam splitParam = paramMap.get(applierGroupTbl.getId());
+            if (!checkNameFilterContainsSameTables(splitParam.getMhaName(), applierGroupTbl.getNameFilter(), splitParam.getNameFilter())) {
+                errorParamList.add(splitParam);
+                continue;
+            }
+            applierGroupTbl.setNameFilter(splitParam.getNameFilter());
+        }
+        applierGroupTblDao.batchUpdate(applierGroupTbls);
+        return applierGroupTbls.size();
     }
 
     @Override
@@ -486,6 +510,36 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
         }
         return mhaNames;
+    }
+
+    @Override
+    public int splitNameFilterWithNameMapping() throws Exception {
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream()
+                .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
+                .collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+
+        Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
+
+        Set<String> errorMhaNames = new HashSet<>();
+        for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
+            String nameMappings = applierGroupTbl.getNameMapping();
+            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getId()));
+            if (!checkNameMapping(nameMappings)) {
+                errorMhaNames.add(mhaName);
+                continue;
+            }
+
+            splitNameFilter(applierGroupTbl, mhaName, errorMhaNames);
+        }
+        if (!CollectionUtils.isEmpty(errorMhaNames)) {
+            throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
+        }
+
+        applierGroupTblDao.batchUpdate(applierGroupTbls);
+        return applierGroupTbls.size();
     }
 
     @Override
@@ -766,15 +820,33 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return true;
     }
 
-    private void splitNameFilter(ApplierGroupTbl applierGroupTbl, Set<Long> errorApplierGroupIds) {
+    private void splitNameFilter(ApplierGroupTbl applierGroupTbl, String mhaName, Set<String> errorMhaNames) {
         List<String> splitDbs = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
         if (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB)) {
-            errorApplierGroupIds.add(applierGroupTbl.getId());
+            errorMhaNames.add(mhaName);
             return;
         }
         splitDbs.remove(MONITOR_DB);
         List<String> dbs = splitDbs.stream().map(db -> splitNameFilter(db)).collect(Collectors.toList());
-        applierGroupTbl.setNameFilter(StringUtils.join(dbs, ","));
+        String newNameFilter = StringUtils.join(dbs, ",");
+        if (!checkNameFilterContainsSameTables(mhaName, applierGroupTbl.getNameFilter(), newNameFilter)) {
+            errorMhaNames.add(mhaName);
+            return;
+        }
+
+        applierGroupTbl.setNameFilter(newNameFilter);
+    }
+
+    private boolean checkNameFilterContainsSameTables(String mhaName, String oldNameFilter, String newNameFilter) {
+        List<String> oldTables = queryTablesWithFilter(mhaName, oldNameFilter);
+        List<String> newTables = queryTablesWithFilter(mhaName, newNameFilter);
+
+        if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables)) {
+            return false;
+        }
+        Collections.sort(oldTables);
+        Collections.sort(newTables);
+        return oldTables.equals(newTables);
     }
 
     private String splitNameFilter(String db) {
@@ -823,6 +895,17 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             return new ArrayList<>();
         }
         return MySqlUtils.checkDbsWithFilter(endpoint, nameFilter);
+    }
+
+    private List<String> queryTablesWithFilter(String mhaName, String nameFilter) {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        if (endpoint == null) {
+            logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
+            return new ArrayList<>();
+        }
+
+        List<TableCheckVo> tableCheckVos = MySqlUtils.checkTablesWithFilter(endpoint, nameFilter);
+        return tableCheckVos.stream().map(TableCheckVo::getFullName).collect(Collectors.toList());
     }
 
 

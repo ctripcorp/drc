@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 
 import java.util.List;
@@ -29,11 +30,15 @@ public interface MetaMigrateService {
 
     List<MhaNameFilterVo> checkMhaFilter() throws Exception;
 
+    int splitNameFilter(List<NameFilterSplitParam> paramList) throws Exception;
+
     int migrateColumnsFilter() throws Exception;
 
     int migrateDbReplicationTbl() throws Exception;
 
     List<String> checkNameMapping() throws Exception;
+
+    int splitNameFilterWithNameMapping() throws Exception;
 
     int migrateMessengerGroup() throws Exception;
 

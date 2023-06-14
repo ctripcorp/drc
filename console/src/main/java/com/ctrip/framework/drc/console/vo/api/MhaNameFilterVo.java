@@ -8,6 +8,8 @@ import java.util.Set;
  */
 public class MhaNameFilterVo {
     private String mhaName;
+    private long applierGroupId;
+    private String nameFilter;
     private Set<String> filterTables;
 
     public String getMhaName() {
@@ -24,5 +26,21 @@ public class MhaNameFilterVo {
 
     public void setFilterTables(Set<String> filterTables) {
         this.filterTables = filterTables;
+    }
+
+    public long getApplierGroupId() {
+        return applierGroupId;
+    }
+
+    public void setApplierGroupId(long applierGroupId) {
+        this.applierGroupId = applierGroupId;
+    }
+
+    public String getNameFilter() {
+        return nameFilter;
+    }
+
+    public void setNameFilter(String nameFilter) {
+        this.nameFilter = nameFilter;
     }
 }
