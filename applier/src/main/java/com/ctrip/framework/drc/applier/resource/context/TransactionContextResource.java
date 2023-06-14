@@ -180,8 +180,7 @@ public class TransactionContextResource extends AbstractContext
                 for (Entry<ConflictTable, Long> entry : conflictTableRowsCount.entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
-//                    tags.put("gtid",fetchGtid());
-//                    tags.putAll(conflictRow.generateTags());
+                    tags.put("gtid",fetchGtid()); // to discuss
                     if (conflictRow.getCommitted() == 1) {
                         metricsActivity.report("trx.conflict.commit", tags, entry.getValue());
                     } else {

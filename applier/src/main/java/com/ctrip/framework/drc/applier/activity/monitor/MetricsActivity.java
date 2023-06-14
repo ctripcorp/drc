@@ -69,7 +69,9 @@ public class MetricsActivity extends TaskQueueActivity<MetricsActivity.Metric, B
     public Metric doTask(Metric metric) {
         String measurement = "fx.drc.applier." + metric.name;
         if(measurement.contains("conflict")) {
-            DefaultReporterHolder.getInstance().reportResetCounter(unidirectionalEntity.getTags(), metric.value, measurement);
+            Map<String,String> tags = metric.tags;
+            tags.putAll(unidirectionalEntity.getTags());
+            DefaultReporterHolder.getInstance().reportResetCounter(tags, metric.value, measurement);
         } else if (measurement.contains("transaction") || measurement.contains("rows")) {
             Map<String, String> tags = unidirectionalEntity.getTags();
             tags.put("db", metric.tags.get("dbName"));
