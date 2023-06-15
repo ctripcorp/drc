@@ -8,7 +8,7 @@ create table if not exists `generic_ddl`.`generic_test` (
    primary key(`id`)
 )engine = innoDB;
 
-update mysql.user set authentication_string=now() where user='root' and host='%';
+-- update mysql.user set authentication_string=now() where user='root' and host='%';
 
 insert into `generic_ddl`.`generic_test` (`name`, `datachange_lasttime`) values ('value1', '2019-10-16 15:15:15.666661');
 

@@ -29,10 +29,30 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     private String registryKey;
 
     public void setImage(String image) {
-        this.image = image;
+        this.srcImage = image;
+        this.destImage = image;
     }
 
-    private String image = "mysql:5.7";
+    private String srcImage = "mysql:5.7";
+    private String destImage = "mysql:5.7";
+
+    public String getSrcImage() {
+        return srcImage;
+    }
+
+    public void setSrcImage(String srcImage) {
+        this.srcImage = srcImage;
+    }
+
+    public String getDestImage() {
+        return destImage;
+    }
+
+    public void setDestImage(String destImage) {
+        this.destImage = destImage;
+    }
+
+
 
     public UnidirectionalReplicateModule() {
         this(SOURCE_MASTER_PORT, DESTINATION_MASTER_PORT, REPLICATOR_MASTER_PORT, REGISTRY_KEY);
@@ -92,7 +112,7 @@ public class UnidirectionalReplicateModule extends AbstractLifecycle implements 
     @Override
     public void startMySQLModule() {
         try {
-            mySQLModule = new SrcDstMySQLModule(srcMySQLPort, destMySQLPort, image);
+            mySQLModule = new SrcDstMySQLModule(srcMySQLPort, destMySQLPort, srcImage,destImage);
             mySQLModule.initialize();
             mySQLModule.start();
 

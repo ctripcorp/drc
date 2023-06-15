@@ -62,7 +62,8 @@ public class GtidLogEvent extends AbstractLogEvent {
             this.sequenceNumber = payloadBuf.readLongLE();
         }
 
-        if (hasRemaining(payloadBuf)) {
+        if (hasNextTransactionOffset(payloadBuf)) {
+            payloadBuf.readerIndex(payloadBuf.capacity() - BINLOG_TRANSACTION_OFFSET_LENGTH - BINLOG_CHECKSUM_LENGTH);
             nextTransactionOffset = payloadBuf.readUnsignedIntLE();
         }
 
@@ -213,5 +214,9 @@ public class GtidLogEvent extends AbstractLogEvent {
         ByteHelper.writeUnsignedInt64LittleEndian(this.sequenceNumber, out);
         ByteHelper.writeUnsignedIntLittleEndian(this.checksum, out);
         return out.toByteArray();
+    }
+
+    protected boolean hasNextTransactionOffset(final ByteBuf payloadBuf) {
+        return payloadBuf.readableBytes() >= 8; // 4 is nextTransactionOffset, 4 is checksum length
     }
 }

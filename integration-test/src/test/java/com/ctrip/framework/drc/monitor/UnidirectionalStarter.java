@@ -31,6 +31,8 @@ public class UnidirectionalStarter extends AbstractTestStarter {
 
     @Test
     public void doTest() throws Exception {
+        unidirectionalReplicateModule.setSrcImage("mysql:8.0");
+        unidirectionalReplicateModule.setDestImage("mysql:5.7");
         unidirectionalReplicateModule.startMySQLModule();
         unidirectionalReplicateModule.startRAModule(getSrcConfig(), getDstConfig());
         unidirectionalReplicateModule.startMonitorModule();
