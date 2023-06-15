@@ -446,7 +446,6 @@ public class QueryLogEvent extends AbstractLogEvent {
                     return q_update_db_names;
                 case 13:
                     return q_microseconds;
-                    // todo mysql 8.0 queryLogEvent
                 case 14:
                     return q_commit_ts;
                 case 15:
