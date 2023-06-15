@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.applier.activity.monitor.ConflictType;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
 import com.ctrip.framework.drc.applier.confirmed.mysql.ConflictTest;
@@ -65,7 +66,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.commit();
         context.dispose();
@@ -97,7 +98,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 0));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
         context.commit();
         context.dispose();
@@ -116,7 +117,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -147,7 +148,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -178,7 +179,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 0));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -197,7 +198,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(true), context.getConflictMap());
         assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -239,7 +240,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(false, true), context.getConflictMap());
         assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 0));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
         context.rollback();
         context.dispose();
@@ -277,7 +278,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(buildArray(true), context.getConflictMap());
         assertEquals(buildArray(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.commit();
     }
@@ -389,7 +390,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(buildArray(true, false), context.getConflictMap());
         assertEquals(buildArray(true), context.getOverwriteMap());
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         
         context.dispose();
@@ -415,7 +416,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(buildArray(true), context.getOverwriteMap());
 
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(1L,count.longValue());
         context.dispose();
     }
@@ -446,7 +447,7 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(buildArray(true, true), context.getOverwriteMap());
 
         assertEquals(1,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(2L,count.longValue());
         context.dispose();
     }
@@ -558,9 +559,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         assertEquals(Lists.newArrayList(false, true,true,true), context.getConflictMap());
         assertEquals(Lists.newArrayList(true,true,true), context.getOverwriteMap());
         assertEquals(2,context.conflictTableRowsCount.size());
-        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", 1));
+        Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
-        count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", 1));
+        count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(2L,count.longValue());
         context.commit();
         context.dispose();

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import com.ctrip.framework.drc.applier.activity.monitor.ConflictType;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
@@ -182,10 +183,12 @@ public class TransactionContextResource extends AbstractContext
                 for (Entry<ConflictTable, Long> entry : conflictTableRowsCount.entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
-                    if (conflictRow.getCommitted() == 1) {
-                        metricsActivity.report("trx.conflict.commit", tags, entry.getValue());
+                    if (conflictRow.getType() == ConflictType.Commit) {
+                        metricsActivity.report("trx.conflict.commit", tags, 1);
+                        metricsActivity.report("rows.conflict.commit", tags, entry.getValue());
                     } else {
-                        metricsActivity.report("trx.conflict.rollback", tags, entry.getValue());
+                        metricsActivity.report("trx.conflict.rollback", tags, 1);
+                        metricsActivity.report("rows.conflict.rollback", tags, entry.getValue());
                     }
                 }
             }
@@ -867,9 +870,9 @@ public class TransactionContextResource extends AbstractContext
         String table = fetchTableKey().getTableName();
         ConflictTable thisRow;
         if (isOverwriteSuccess) {
-            thisRow = new ConflictTable(db, table, 1);
+            thisRow = new ConflictTable(db, table, ConflictType.Commit);
         } else {
-            thisRow = new ConflictTable(db, table, 0);
+            thisRow = new ConflictTable(db, table, ConflictType.Rollback);
         }
         Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
         conflictTableRowsCount.put(thisRow,++count);
