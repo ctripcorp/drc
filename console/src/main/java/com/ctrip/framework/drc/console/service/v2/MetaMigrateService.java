@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
+import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateMhaDbMappingResult;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 
 import java.util.List;
 import java.util.Map;
@@ -16,17 +19,17 @@ public interface MetaMigrateService {
 
     int batchUpdateDcRegions(Map<String, String> dcRegionMap) throws Exception;
 
-    int migrateMhaTbl() throws Exception;
+    MigrateResult migrateMhaTbl() throws Exception;
 
-    int migrateMhaReplication() throws Exception;
+    MigrateResult migrateMhaReplication() throws Exception;
 
-    int migrateApplierGroup() throws Exception;
+    MigrateResult migrateApplierGroup() throws Exception;
 
-    int migrateApplier() throws Exception;
+    MigrateResult migrateApplier() throws Exception;
 
-    String checkMhaDbMapping() throws Exception;
+    MhaDbMappingResult checkMhaDbMapping() throws Exception;
 
-    String migrateMhaDbMapping() throws Exception;
+    MigrateMhaDbMappingResult migrateMhaDbMapping() throws Exception;
 
     List<MhaNameFilterVo> checkMhaFilter() throws Exception;
 

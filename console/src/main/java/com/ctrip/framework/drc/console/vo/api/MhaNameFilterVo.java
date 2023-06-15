@@ -43,4 +43,14 @@ public class MhaNameFilterVo {
     public void setNameFilter(String nameFilter) {
         this.nameFilter = nameFilter;
     }
+
+    @Override
+    public String toString() {
+        return "MhaNameFilterVo{" +
+                "mhaName='" + mhaName + '\'' +
+                ", applierGroupId=" + applierGroupId +
+                ", nameFilter='" + nameFilter + '\'' +
+                ", filterTables=" + filterTables +
+                '}';
+    }
 }

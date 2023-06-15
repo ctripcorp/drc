@@ -32,4 +32,13 @@ public class NameFilterSplitParam {
     public void setMhaName(String mhaName) {
         this.mhaName = mhaName;
     }
+
+    @Override
+    public String toString() {
+        return "NameFilterSplitParam{" +
+                "nameFilter='" + nameFilter + '\'' +
+                ", applierGroupId=" + applierGroupId +
+                ", mhaName='" + mhaName + '\'' +
+                '}';
+    }
 }
