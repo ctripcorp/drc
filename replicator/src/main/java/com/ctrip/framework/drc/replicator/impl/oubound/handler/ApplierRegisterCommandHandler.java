@@ -322,10 +322,11 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private File blankUuidSets() {
             if (isIntegrityTest()) {
                 return fileManager.getFirstLogFile();
+            } else {
+                resultCode = ResultCode.APPLIER_GTID_ERROR;
+                logger.warn("[GTID SET] is blank for {}", dumpCommandPacket.getApplierName());
+                return null;
             }
-            resultCode = ResultCode.APPLIER_GTID_ERROR;
-            logger.warn("[GTID SET] is blank for {}", dumpCommandPacket.getApplierName());
-            return null;
         }
 
         private File calculateGtidSet(GtidSet excludedSet) {
