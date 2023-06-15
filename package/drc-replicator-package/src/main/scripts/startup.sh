@@ -28,7 +28,7 @@ function getTotalMem() {
 
 function getSafeFileSize() {
     total=`getTotalDisk`;
-    result=`expr $total \* 2 \* 9 / 60`
+    result=`expr $total \* 2 / 20`
     echo "$result";
 }
 
