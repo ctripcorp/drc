@@ -122,6 +122,12 @@
             <groupId>com.ctrip.basebiz.account</groupId>
             <artifactId>tripaccount-udl-route-sdk</artifactId>
             <version>1.0.10</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>commons-collections4</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.ctrip.framework.fx</groupId>
