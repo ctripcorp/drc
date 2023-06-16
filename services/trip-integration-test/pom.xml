@@ -15,6 +15,12 @@
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
             <artifactId>trip-service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>commons-collections4</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.ctrip.framework.drc</groupId>
