@@ -21,7 +21,7 @@ public interface MetaMigrateService {
 
     MigrateResult migrateMhaTbl() throws Exception;
 
-    MigrateResult migrateMhaReplication() throws Exception;
+    int migrateMhaReplication() throws Exception;
 
     MigrateResult migrateApplierGroup() throws Exception;
 
@@ -35,7 +35,7 @@ public interface MetaMigrateService {
 
     int splitNameFilter(List<NameFilterSplitParam> paramList) throws Exception;
 
-    int migrateColumnsFilter() throws Exception;
+    MigrateResult migrateColumnsFilter() throws Exception;
 
     int migrateDbReplicationTbl() throws Exception;
 

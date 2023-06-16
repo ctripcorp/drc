@@ -25,13 +25,17 @@ import org.junit.Test;
 import org.mockito.*;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
+import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getApplierGroupTbls;
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getDbTbls;
+import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getColumnsFilterTblV2;
+import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getColumnsFilterTbls;
 
 /**
  * Created by dengquanliang
@@ -69,25 +73,7 @@ public class MigrateServiceTest {
     @Mock
     private DbTblDao dbTblDao;
     @Mock
-    private BuTblDao buTblDao;
-    @Mock
-    private RouteTblDao routeTblDao;
-    @Mock
-    private ProxyTblDao proxyTblDao;
-    @Mock
-    private DcTblDao dcTblDao;
-    @Mock
-    private ResourceTblDao resourceTblDao;
-    @Mock
-    private MachineTblDao machineTblDao;
-    @Mock
     private ReplicatorGroupTblDao replicatorGroupTblDao;
-    @Mock
-    private ClusterManagerTblDao clusterManagerTblDao;
-    @Mock
-    private ZookeeperTblDao zookeeperTblDao;
-    @Mock
-    private ReplicatorTblDao replicatorTblDao;
     @Mock
     private DataMediaTblDao dataMediaTblDao;
     @Mock
@@ -98,8 +84,6 @@ public class MigrateServiceTest {
     private MessengerFilterTblDao messengerFilterTblDao;
     @Mock
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
-    @Mock
-    private RowsFilterTblDao rowsFilterTblDao;
     @Mock
     private RegionTblDao regionTblDao;
     @Mock
@@ -151,11 +135,11 @@ public class MigrateServiceTest {
     @Test
     public void testMigrateMhaReplication() throws Exception {
         Mockito.when(mhaReplicationTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
-        MigrateResult result = migrationService.migrateMhaReplication();
+        Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(new ArrayList<>());
+        int result = migrationService.migrateMhaReplication();
         Mockito.verify(mhaReplicationTblDao, times(1)).batchInsert(Mockito.anyList());
-        Mockito.verify(mhaReplicationTblDao, times(2)).batchUpdate(Mockito.anyList());
-        Assert.assertEquals(result.getInsertSize(), 9);
-        Assert.assertEquals(result.getUpdateSize(), 1);
+        Mockito.verify(mhaReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
+        Assert.assertEquals(result, 10);
     }
 
     @Test
@@ -173,7 +157,7 @@ public class MigrateServiceTest {
 
     @Test
     public void testMigrateApplierGroup() throws Exception {
-        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(MetaGeneratorBuilder.getApplierGroupTbls());
+        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(getApplierGroupTbls());
         Mockito.when(applierGroupTblV2Dao.batchUpdate(Mockito.anyList())).thenReturn(new int[0]);
         Mockito.when(applierGroupTblV2Dao.batchInsert(Mockito.any(DalHints.class), Mockito.anyList())).thenReturn(new int[0]);
         Mockito.when(mhaReplicationTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
@@ -197,13 +181,15 @@ public class MigrateServiceTest {
     public void testMigrateMhaDbMapping() throws Exception {
         initMhaDbMapping();
         Mockito.when(mhaDbMappingTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
+        Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(new ArrayList<>());
         MigrateMhaDbMappingResult result = migrationService.migrateMhaDbMapping();
+        Mockito.verify(mhaDbMappingTblDao, Mockito.never()).batchDelete(Mockito.anyList());
         Assert.assertEquals(result.getTotal(), 1);
         Assert.assertTrue(CollectionUtils.isEmpty(result.getNotExistMhaNames()));
     }
 
     @Test
-    public void testCheckMhaFilter() throws Exception{
+    public void testCheckMhaFilter() throws Exception {
         Mockito.when(dataMediaTblDao.queryByAGroupId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(getDataMediaTbl()));
         Mockito.when(dataMediaTblDao.queryByIdsAndType(Mockito.anyList(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(Lists.newArrayList(getDataMediaTbl()));
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMapping());
@@ -225,8 +211,8 @@ public class MigrateServiceTest {
         MySqlUtils.TableSchemaName table = new MySqlUtils.TableSchemaName("test", "table");
         TableCheckVo vo = new TableCheckVo(table);
 
-        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(() -> MySqlUtils.checkTablesWithFilter(Mockito.any(),Mockito.anyString())).thenReturn(Lists.newArrayList(vo));
+        try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.checkTablesWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList(vo));
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString()))
                     .thenReturn(new MySqlEndpoint("ip", 20, "user", "pwd", true));
             int result = migrationService.splitNameFilter(params);
@@ -245,8 +231,8 @@ public class MigrateServiceTest {
         MySqlUtils.TableSchemaName table = new MySqlUtils.TableSchemaName("test", "table");
         TableCheckVo vo = new TableCheckVo(table);
 
-        try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(() -> MySqlUtils.checkTablesWithFilter(Mockito.any(),Mockito.anyString())).thenReturn(Lists.newArrayList(vo));
+        try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.checkTablesWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList(vo));
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString()))
                     .thenReturn(new MySqlEndpoint("ip", 20, "user", "pwd", true));
             Mockito.when(applierGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(getApplierGroup()));
@@ -254,6 +240,96 @@ public class MigrateServiceTest {
             Assert.assertEquals(result, 1);
         }
     }
+
+    @Test
+    public void testMigrateColumnsFilter() throws Exception {
+        Mockito.when(columnsFilterTblDao.queryAll()).thenReturn(getColumnsFilterTbls());
+        Mockito.when(columnFilterTblV2Dao.queryAll()).thenReturn(Lists.newArrayList(getColumnsFilterTblV2()));
+        MigrateResult result = migrationService.migrateColumnsFilter();
+        Mockito.verify(columnFilterTblV2Dao, times(1)).batchInsert(Mockito.any(DalHints.class), Mockito.anyList());
+        Mockito.verify(columnFilterTblV2Dao, times(2)).batchUpdate(Mockito.anyList());
+        Assert.assertEquals(result.getInsertSize(), 9);
+        Assert.assertEquals(result.getUpdateSize(), 1);
+    }
+
+    @Test
+    public void testMigrateDbReplicationTbl() throws Exception {
+        try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.checkDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
+
+            Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
+
+            Mockito.when(dbReplicationTblDao.queryAll()).thenReturn(new ArrayList<>());
+            Mockito.when(dbReplicationTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
+            Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMhaReplicationTbl()));
+            Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMhaDbMappingTbls());
+            Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
+            Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(getApplierGroupTbls());
+
+            int result = migrationService.migrateDbReplicationTbl();
+            Mockito.verify(dbReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
+            Assert.assertEquals(result, 0);
+        }
+
+    }
+
+    @Test
+    public void testMigrateMessengerGroup() throws Exception {
+        try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.checkDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
+            Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
+
+            Mockito.when(dbReplicationTblDao.queryAll()).thenReturn(new ArrayList<>());
+            Mockito.when(dbReplicationTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
+            Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMhaReplicationTbl()));
+            Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMessengerGroup()));
+            Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
+            Mockito.when(dataMediaPairTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getDataMediaPairTbl()));
+
+            int result = migrationService.migrateMessengerGroup();
+            Mockito.verify(dbReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
+            Assert.assertEquals(result, 0);
+        }
+    }
+
+    @Test
+    public void testMigrateMessengerFilter() throws Exception {
+        Mockito.when(dataMediaPairTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getDataMediaPairTbl()));
+        Mockito.when(messengerFilterTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
+        Mockito.when(messengerFilterTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[0]);
+        Mockito.when(messengerFilterTblDao.queryAll()).thenReturn(new ArrayList<>());
+
+        int result = migrationService.migrateMessengerFilter();
+        Mockito.verify(messengerFilterTblDao, Mockito.never()).batchDelete(Mockito.anyList());
+        Assert.assertEquals(result, 1);
+    }
+
+    @Test
+    public void testMigrateDbReplicationFilterMapping() throws Exception {
+        Mockito.when(dbReplicationTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbReplicationTbls());
+        Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMhaDbMappingTbls());
+        Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMhaReplicationTbl()));
+        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(getApplierGroupTbls());
+
+        Mockito.when(dataMediaTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDataMediaTbls());
+        Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMappings());
+        Mockito.when(columnsFilterTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getColumnsFilterTbls()));
+
+        Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
+        Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMessengerGroup()));
+        Mockito.when(messengerFilterTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMessengerFilters());
+        Mockito.when(dataMediaPairTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getDataMediaPairTbl()));
+
+        Mockito.when(dbReplicationFilterMappingTblDao.queryAll()).thenReturn(new ArrayList<>());
+        Mockito.when(dbReplicationFilterMappingTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[0]);
+
+        int result = migrationService.migrateDbReplicationFilterMapping();
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchDelete(Mockito.anyList());
+        Assert.assertEquals(result, 2);
+
+    }
+
+
 
     private void initMhaDbMapping() throws Exception {
         List<MhaTbl> mhaTblList = MigrateEntityBuilder.getMhaTbls().stream().filter(e -> e.getId().equals(100L)).collect(Collectors.toList());

@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -124,29 +124,24 @@ public class MigrateEntityBuilder {
     }
 
     public static List<DataMediaTbl> getDataMediaTbls() {
-        List<DataMediaTbl> dataMediaTbls = new ArrayList<>();
-        for (int i = 100; i < 104; i++) {
-            DataMediaTbl dataMediaTbl = new DataMediaTbl();
-            dataMediaTbl.setId(Long.valueOf(i));
-            dataMediaTbl.setDeleted(0);
-            dataMediaTbl.setNamespcae("testDb");
-            String name = i % 2 == 0 ? "table" : "table" + i;
-            dataMediaTbl.setName(name);
-            dataMediaTbl.setApplierGroupId(Long.valueOf(i));
-            dataMediaTbls.add(dataMediaTbl);
-        }
+        DataMediaTbl tbl1 = new DataMediaTbl();
+        tbl1.setId(100L);
+        tbl1.setDeleted(0);
+        tbl1.setNamespcae("db100");
+        tbl1.setName("table1");
+        tbl1.setApplierGroupId(100L);
 
-        for (int i = 106; i < 110; i++) {
-            DataMediaTbl dataMediaTbl = new DataMediaTbl();
-            dataMediaTbl.setId(Long.valueOf(i));
-            dataMediaTbl.setDeleted(0);
-            dataMediaTbl.setNamespcae("testDb");
-            String name = i % 2 == 0 ? "table" : "table" + i;
-            dataMediaTbl.setName(name);
-            dataMediaTbls.add(dataMediaTbl);
-        }
+        return Lists.newArrayList(tbl1);
+    }
 
-        return dataMediaTbls;
+    public static List<RowsFilterMappingTbl> getRowsFilterMappings() {
+        RowsFilterMappingTbl tbl = new RowsFilterMappingTbl();
+        tbl.setId(100L);
+        tbl.setDeleted(0);
+        tbl.setApplierGroupId(100L);
+        tbl.setRowsFilterId(100L);
+        tbl.setDataMediaId(100L);
+        return Lists.newArrayList(tbl);
     }
 
     public static List<RowsFilterMappingTbl> getRowsFilterMapping() {
@@ -161,4 +156,109 @@ public class MigrateEntityBuilder {
 
         return rowsFilterMappingTbls;
     }
+
+    public static List<ColumnsFilterTbl> getColumnsFilterTbls() {
+        List<ColumnsFilterTbl> tbls = new ArrayList<>();
+        for (int i = 100; i < 110; i++) {
+            ColumnsFilterTbl tbl = new ColumnsFilterTbl();
+            tbl.setDeleted(0);
+            tbl.setId(Long.valueOf(i));
+            tbl.setMode("exclude");
+            tbls.add(tbl);
+            tbl.setDataMediaId(Long.valueOf(i));
+        }
+        return tbls;
+    }
+
+    public static ColumnsFilterTblV2 getColumnsFilterTblV2() {
+        ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
+        tbl.setDeleted(0);
+        tbl.setId(100L);
+        return tbl;
+    }
+
+    public static MhaReplicationTbl getMhaReplicationTbl() {
+        MhaReplicationTbl tbl = new MhaReplicationTbl();
+        tbl.setDeleted(0);
+        tbl.setSrcMhaId(100L);
+        tbl.setDstMhaId(101L);
+        tbl.setId(100L);
+        return tbl;
+    }
+
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 100; i <= 101; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(100L);
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static List<DbTbl> getDbTbls() {
+        List<DbTbl> tbls = new ArrayList<>();
+        for (int i = 100; i <= 101; i++) {
+            DbTbl tbl = new DbTbl();
+            tbl.setDeleted(0);
+            tbl.setDbName("db" + i);
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+
+        return tbls;
+    }
+
+    public static MessengerGroupTbl getMessengerGroup() {
+        MessengerGroupTbl tbl = new MessengerGroupTbl();
+        tbl.setDeleted(0);
+        tbl.setId(100L);
+        tbl.setMhaId(100L);
+        return tbl;
+    }
+
+    public static DataMediaPairTbl getDataMediaPairTbl() {
+        DataMediaPairTbl tbl = new DataMediaPairTbl();
+        tbl.setDeleted(0);
+        tbl.setId(100L);
+        tbl.setGroupId(100L);
+        tbl.setSrcDataMediaName("db100\\.table1");
+        tbl.setDestDataMediaName("topic");
+        tbl.setProperties("properties");
+        return tbl;
+    }
+
+    public static List<DbReplicationTbl> getDbReplicationTbls() {
+        DbReplicationTbl tbl1 = new DbReplicationTbl();
+        tbl1.setDeleted(0);
+        tbl1.setReplicationType(0);
+        tbl1.setSrcLogicTableName("table1");
+        tbl1.setSrcMhaDbMappingId(100L);
+        tbl1.setDstLogicTableName("table2");
+        tbl1.setDstMhaDbMappingId(101L);
+        tbl1.setId(100L);
+
+        DbReplicationTbl tbl2 = new DbReplicationTbl();
+        tbl2.setDeleted(0);
+        tbl2.setReplicationType(1);
+        tbl2.setSrcLogicTableName("table1");
+        tbl2.setSrcMhaDbMappingId(100L);
+        tbl2.setDstLogicTableName("topic");
+        tbl2.setDstMhaDbMappingId(-1L);
+        tbl2.setId(101L);
+
+        return Lists.newArrayList(tbl1, tbl2);
+    }
+
+    public static List<MessengerFilterTbl> getMessengerFilters() {
+        MessengerFilterTbl tbl = new MessengerFilterTbl();
+        tbl.setDeleted(0);
+        tbl.setId(100L);
+        tbl.setProperties("properties");
+        return Lists.newArrayList(tbl);
+    }
+
 }
