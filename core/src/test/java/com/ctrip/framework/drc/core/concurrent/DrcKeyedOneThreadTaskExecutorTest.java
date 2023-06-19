@@ -1,14 +1,13 @@
-package com.ctrip.framework.drc.manager.concurrent;
+package com.ctrip.framework.drc.core.concurrent;
 
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.manager.MockTest;
-import com.ctrip.framework.drc.manager.healthcheck.notifier.AbstractNotifier;
 import com.ctrip.xpipe.api.command.Command;
 import com.ctrip.xpipe.command.AbstractCommand;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +19,7 @@ import java.util.concurrent.locks.LockSupport;
  * @create 2021/1/21
  */
 @FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
-public class DrcKeyedOneThreadTaskExecutorTest extends MockTest {
+public class DrcKeyedOneThreadTaskExecutorTest {
 
     private DrcKeyedOneThreadTaskExecutor drcKeyedOneThreadTaskExecutor;
 
@@ -41,8 +40,8 @@ public class DrcKeyedOneThreadTaskExecutorTest extends MockTest {
 
     @Before
     public void setUp() throws Exception {
-        super.setUp();
-        drcKeyedOneThreadTaskExecutor = new DrcKeyedOneThreadTaskExecutor(executors);
+        MockitoAnnotations.initMocks(this);
+        drcKeyedOneThreadTaskExecutor = new TestDrcKeyedOneThreadTaskExecutor(executors);
         command = new AbstractCommand() {
             @Override
             protected void doExecute() throws Exception {
@@ -104,8 +103,6 @@ public class DrcKeyedOneThreadTaskExecutorTest extends MockTest {
         scount.set(0);
         fcount.set(0);
 
-        AbstractNotifier.RETRY_INTERVAL = 20;
-
         String key = RandomStringUtils.randomAlphabetic(10);
         drcKeyedOneThreadTaskExecutor.execute(key, failCommand);
         drcKeyedOneThreadTaskExecutor.execute(key, command);
@@ -113,4 +110,6 @@ public class DrcKeyedOneThreadTaskExecutorTest extends MockTest {
         Assert.assertEquals(1 , scount.get());
         Assert.assertEquals(successCount , fcount.get());
     }
+
+
 }

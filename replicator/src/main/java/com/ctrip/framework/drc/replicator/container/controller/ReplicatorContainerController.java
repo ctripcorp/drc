@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.container.controller;
 
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
@@ -7,6 +8,8 @@ import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfi
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.command.AbstractCommand;
+import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * Created by mingdongli
@@ -29,7 +33,8 @@ public class ReplicatorContainerController {
     @Autowired
     private ServerContainer<ReplicatorConfig, ApiResult> serverContainer;
 
-    private ExecutorService replicatorExecutorService = ThreadUtils.newFixedThreadPool(16, "ReplicatorContainerController");
+    private ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "Replicator-Start-Service");
+    private KeyedOneThreadTaskExecutor<String> notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);;
 
     /**
      *curl -H "Content-Type:application/json" -X PUT -d '{
@@ -66,17 +71,7 @@ public class ReplicatorContainerController {
                 return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
             }
 
-            replicatorExecutorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        serverContainer.removeServer(registryKey, false);
-                        serverContainer.addServer(replicatorConfig);
-                    } catch (Exception e) {
-                        logger.error("start error", e);
-                    }
-                }
-            });
+            notifyExecutor.execute(registryKey, new StartTask(registryKey, replicatorConfig));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
             logger.error("init error", t);
@@ -91,13 +86,7 @@ public class ReplicatorContainerController {
         String registryKey = replicatorConfig.getRegistryKey();
         try {
             logger.info("[Restart] {} with config {}", registryKey, replicatorConfigDto);
-            replicatorExecutorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    serverContainer.removeServer(registryKey, false);
-                    serverContainer.addServer(replicatorConfig);
-                }
-            });
+            notifyExecutor.execute(registryKey, new StartTask(registryKey, replicatorConfig));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
             logger.error("[Restart] error for {}", registryKey, t);
@@ -123,6 +112,38 @@ public class ReplicatorContainerController {
     public void destroy(@PathVariable String registryKey) {
         logger.info("[Remove] replicator registryKey {}", registryKey);
         serverContainer.removeServer(registryKey, true);
+    }
+
+    class StartTask extends AbstractCommand {
+
+        private String registryKey;
+
+        private ReplicatorConfig replicatorConfig;
+
+        public StartTask(String registryKey, ReplicatorConfig replicatorConfig) {
+            this.registryKey = registryKey;
+            this.replicatorConfig = replicatorConfig;
+        }
+
+        @Override
+        protected void doExecute() throws Throwable {
+            try {
+                serverContainer.removeServer(registryKey, false);
+                serverContainer.addServer(replicatorConfig);
+            } catch (Exception e) {
+                logger.error("start error", e);
+            }
+        }
+
+        @Override
+        protected void doReset() {
+
+        }
+
+        @Override
+        public String getName() {
+            return registryKey;
+        }
     }
 
 }

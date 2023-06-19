@@ -49,8 +49,6 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
 
     private Set<String> processingReplicators = Sets.newConcurrentHashSet();
 
-    private ExecutorService addExecutorService = ThreadUtils.newFixedThreadPool(OsUtils.getCpuCount(), "ReplicatorServerContainer");
-
     @Override
     public ApiResult addServer(ReplicatorConfig config) {
         String registryKey = config.getRegistryKey();
@@ -69,13 +67,11 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
                         logger.error("[Add] replicator {} fail due to already in processingReplicators", registryKey);
                         return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
                     }
-                    addExecutorService.submit(() -> {
-                        try {
-                            new RetryTask<>(new RegisterTask(config), 2).call();
-                        } finally {
-                            processingReplicators.remove(registryKey);
-                        }
-                    });
+                    try {
+                        new RetryTask<>(new RegisterTask(config), 2).call();
+                    } finally {
+                        processingReplicators.remove(registryKey);
+                    }
                     return ApiResult.getInstance(Boolean.TRUE, ResultCode.HANDLE_SUCCESS.getCode(), ResultCode.HANDLE_SUCCESS.getMessage());
 
                 }
