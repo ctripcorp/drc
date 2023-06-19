@@ -255,7 +255,7 @@ public class MigrateServiceTest {
     @Test
     public void testMigrateDbReplicationTbl() throws Exception {
         try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(() -> MySqlUtils.checkDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
+            theMock.when(() -> MySqlUtils.queryDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
 
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
 
@@ -276,7 +276,7 @@ public class MigrateServiceTest {
     @Test
     public void testMigrateMessengerGroup() throws Exception {
         try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
-            theMock.when(() -> MySqlUtils.checkDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
+            theMock.when(() -> MySqlUtils.queryDbsWithFilter(Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db100"));
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
 
             Mockito.when(dbReplicationTblDao.queryAll()).thenReturn(new ArrayList<>());

@@ -240,4 +240,28 @@ public class BuildController {
         }
     }
 
+    @GetMapping("queryDbs")
+    public ApiResult<List<String>> queryDbsWithNameFilter(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=queryDbs,mha={}]] queryDbsWithNameFilter with nameFilter:{}",mha,nameFilter);
+            List<String> dbs = drcBuildService.queryDbsWithNameFilter(mha, nameFilter);
+            return ApiResult.getSuccessInstance(dbs);
+        } catch (Exception e) {
+            logger.warn("[[tag=queryDbs,mha={}]]  in queryDbsWithNameFilter",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("queryTables")
+    public ApiResult<List<String>> queryTablesWithNameFilter(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=queryTables,mha={}]] queryTablesWithNameFilter with nameFilter:{}",mha,nameFilter);
+            List<String> dbs = drcBuildService.queryTablesWithNameFilter(mha, nameFilter);
+            return ApiResult.getSuccessInstance(dbs);
+        } catch (Exception e) {
+            logger.warn("[[tag=queryTables,mha={}]]  in queryTablesWithNameFilter",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
 }

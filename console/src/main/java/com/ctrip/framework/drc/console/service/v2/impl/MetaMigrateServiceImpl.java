@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
+import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
@@ -17,7 +18,6 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
-import com.ctrip.framework.drc.console.vo.response.migrate.MigrateMhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -105,11 +105,14 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private DalServiceImpl dalService;
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+    @Autowired
+    private DrcBuildService drcBuildService;
 
     private final ListeningExecutorService migrateExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "migrateMeta"));
     private static final int MHA_GROUP_SIZE = 2;
     private static final int QUERY_SIZE = 100;
     private static final int BATCH_SIZE = 2000;
+    private static final int TIME_OUT = 10;
     private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
 
     @Override
@@ -120,11 +123,13 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             regionTbl.setDeleted(BooleanEnum.FALSE.getCode());
             return regionTbl;
         }).collect(Collectors.toList());
-        regionTblDao.batchInsert(regionTbls);
-        return regionTbls.size();
+        logger.info("batchInsert size: {}, regionTbls: {}", regionTbls.size(), regionTbls);
+        int[] result = regionTblDao.batchInsert(regionTbls);
+        return result.length;
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int batchUpdateDcRegions(Map<String, String> dcRegionMap) throws Exception {
         List<DcTbl> dcTbls = dcTblDao.queryAll();
         for (DcTbl dcTbl : dcTbls) {
@@ -132,8 +137,16 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 dcTbl.setRegionName(dcRegionMap.get(dcTbl.getDcName()));
             }
         }
-        dcTblDao.batchUpdate(dcTbls);
-        return dcTbls.size();
+        logger.info("batchInsert size: {}, dcTbls: {}", dcTbls.size(), dcTbls);
+        int[] result = dcTblDao.batchUpdate(dcTbls);
+
+        dcTbls = dcTblDao.queryAll();
+        for (DcTbl dcTbl : dcTbls) {
+            if (StringUtils.isEmpty(dcTbl.getRegionName())) {
+                throw new IllegalArgumentException("regionName is empty");
+            }
+        }
+        return result.length;
     }
 
     @Override
@@ -179,37 +192,38 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
+        int insertSize = insertMhaTbls.size();
+        int updateSize = updateMhaTbls.size();
+        int deleteSize = existMhaTbls.size();
+        logger.info("[[migrateMhaTbl]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, updateSize, deleteSize);
+
         if (CollectionUtils.isEmpty(errorMhaNames)) {
             if (!CollectionUtils.isEmpty(existMhaTbls)) {
                 existMhaTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-                mhaTblV2Dao.batchUpdate(existMhaTbls);
+                deleteSize = mhaTblV2Dao.batchUpdate(existMhaTbls).length;
             }
             if (!CollectionUtils.isEmpty(insertMhaTbls)) {
-                mhaTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertMhaTbls);
+                insertSize = mhaTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertMhaTbls).length;
             }
             if (!CollectionUtils.isEmpty(updateMhaTbls)) {
-                mhaTblV2Dao.batchUpdate(updateMhaTbls);
+                updateSize = mhaTblV2Dao.batchUpdate(updateMhaTbls).length;
             }
         } else {
             throw new IllegalArgumentException(String.format("batchInsert mhaTblV2 fail, error mhaNames: %s", errorMhaNames));
         }
 
-        return new MigrateResult(insertMhaTbls.size(), updateMhaTbls.size());
+        return new MigrateResult(insertSize, updateSize, deleteSize, oldMhaTbls.size());
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public int migrateMhaReplication() throws Exception {
+    public MigrateResult migrateMhaReplication() throws Exception {
         List<MhaGroupTbl> mhaGroupTbls = mhaGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<GroupMappingTbl> groupMappingTbls = groupMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierTbl> applierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaReplicationTbl> existMhaReplications = mhaReplicationTblDao.queryAll();
-//        if (!CollectionUtils.isEmpty(existMhaReplications)) {
-//            existMhaReplications.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-//            mhaReplicationTblDao.batchUpdate(existMhaReplications);
-//        }
 
         Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, ReplicatorGroupTbl::getId));
         Map<Long, List<ApplierGroupTbl>> applierGroupMap = applierGroupTbls.stream().collect(Collectors.groupingBy(ApplierGroupTbl::getReplicatorGroupId));
@@ -239,39 +253,13 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
-//        List<MhaReplicationTbl> insertMhaReplications = new ArrayList<>();
-//        List<MhaReplicationTbl> updateMhaReplications = new ArrayList<>();
-//
-//        for (MhaReplicationTbl mhaReplication : mhaReplicationTbls) {
-//            if (mhaReplicationExist(mhaReplication, existMhaReplications)) {
-//                updateMhaReplications.add(mhaReplication);
-//            } else {
-//                insertMhaReplications.add(mhaReplication);
-//            }
-//        }
-//
-//        if (!CollectionUtils.isEmpty(insertMhaReplications)) {
-//            mhaReplicationTblDao.batchInsert(insertMhaReplications);
-//        }
-//        if (!CollectionUtils.isEmpty(updateMhaReplications)) {
-//            mhaReplicationTblDao.batchUpdate(updateMhaReplications);
-//        }
+        int deleteSize = existMhaReplications.size();
+        logger.info("[[migrateMhaReplication]] insertSize: {}, updateSize: {}, deleteSize: {}", mhaReplicationTbls.size(), 0, deleteSize);
         if (!CollectionUtils.isEmpty(existMhaReplications)) {
-            mhaReplicationTblDao.batchDelete(existMhaReplications);
+            deleteSize = mhaReplicationTblDao.batchDelete(existMhaReplications).length;
         }
-        mhaReplicationTblDao.batchInsert(mhaReplicationTbls);
-        return mhaReplicationTbls.size();
-    }
-
-    private boolean mhaReplicationExist(MhaReplicationTbl mhaReplicationTbl, List<MhaReplicationTbl> existMhaReplications) {
-        if (CollectionUtils.isEmpty(existMhaReplications)) {
-            return false;
-        }
-        MhaReplicationTbl existMhaReplication = existMhaReplications.stream()
-                .filter(e -> e.getSrcMhaId().equals(mhaReplicationTbl.getSrcMhaId()) && e.getDstMhaId().equals(mhaReplicationTbl.getDstMhaId()))
-                .findFirst()
-                .orElse(null);
-        return existMhaReplication != null;
+        int insertSize = mhaReplicationTblDao.batchInsert(mhaReplicationTbls).length;
+        return new MigrateResult(insertSize, 0, deleteSize, mhaReplicationTbls.size());
     }
 
     @Override
@@ -312,32 +300,34 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
+        int insertSize = insertApplierGroups.size();
+        int updateSize = updateApplierGroups.size();
+        int deleteSize = existApplierGroups.size();
+        logger.info("[[migrateApplierGroup]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, updateSize, deleteSize);
+
         if (CollectionUtils.isEmpty(errorApplierGroupIds)) {
             if (!CollectionUtils.isEmpty(existApplierGroups)) {
                 existApplierGroups.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-                applierGroupTblV2Dao.batchUpdate(existApplierGroups);
+                deleteSize = applierGroupTblV2Dao.batchUpdate(existApplierGroups).length;
             }
             if (!CollectionUtils.isEmpty(insertApplierGroups)) {
-                applierGroupTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertApplierGroups);
+                insertSize = applierGroupTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertApplierGroups).length;
             }
             if (!CollectionUtils.isEmpty(updateApplierGroups)) {
-                applierGroupTblV2Dao.batchUpdate(updateApplierGroups);
+                updateSize = applierGroupTblV2Dao.batchUpdate(updateApplierGroups).length;
             }
         } else {
             throw new IllegalArgumentException(String.format("batchInsert applierGroup fail, errorApplierGroupIds: %s", errorApplierGroupIds));
         }
 
-        return new MigrateResult(insertApplierGroups.size(), updateApplierGroups.size());
+        return new MigrateResult(insertSize, updateSize, deleteSize, oldApplierGroupTbls.size());
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public MigrateResult migrateApplier() throws Exception {
         List<ApplierTbl> oldApplierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierTblV2> existAppliers = applierTblV2Dao.queryAll().stream().collect(Collectors.toList());
-        if (!CollectionUtils.isEmpty(existAppliers)) {
-            existAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            applierTblV2Dao.batchUpdate(existAppliers);
-        }
         List<Long> existApplierIds = existAppliers.stream().map(ApplierTblV2::getId).collect(Collectors.toList());
 
         List<ApplierTblV2> newApplierTbls = oldApplierTbls.stream().map(source -> {
@@ -361,14 +351,24 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 insertAppliers.add(applierTbl);
             }
         }
+
+        int insertSize = insertAppliers.size();
+        int updateSize = updateAppliers.size();
+        int deleteSize = existAppliers.size();
+        logger.info("[[migrateApplier]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, updateSize, deleteSize);
+
+        if (!CollectionUtils.isEmpty(existAppliers)) {
+            existAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            deleteSize = applierTblV2Dao.batchUpdate(existAppliers).length;
+        }
         if (!CollectionUtils.isEmpty(insertAppliers)) {
-            applierTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertAppliers);
+            insertSize = applierTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertAppliers).length;
         }
         if (!CollectionUtils.isEmpty(updateAppliers)) {
-            applierTblV2Dao.batchUpdate(updateAppliers);
+            updateSize = applierTblV2Dao.batchUpdate(updateAppliers).length;
         }
 
-        return new MigrateResult(insertAppliers.size(), updateAppliers.size());
+        return new MigrateResult(insertSize, updateSize, deleteSize, oldApplierTbls.size());
     }
 
     @Override
@@ -405,7 +405,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public MigrateMhaDbMappingResult migrateMhaDbMapping() throws Exception {
+    public MigrateResult migrateMhaDbMapping() throws Exception {
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> existMhaDbMappings = mhaDbMappingTblDao.queryAll();
@@ -436,6 +436,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         if (!CollectionUtils.isEmpty(notExistDbNames)) {
             throw new IllegalArgumentException(String.format("the following db does not exist: %s", notExistDbNames));
         }
+        if (!CollectionUtils.isEmpty(notExistMhaNames)) {
+            throw new IllegalArgumentException(String.format("the following mha not contains any dbs: %s", notExistMhaNames));
+        }
 
         Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
         Map<String, Long> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getMhaName, MhaTbl::getId));
@@ -451,9 +454,10 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             });
         });
 
-        batchDeleteMhaDbMappings(existMhaDbMappings);
-        batchInsertMhaDbMappings(mhaDbMappingTblList);
-        return new MigrateMhaDbMappingResult(mhaDbMappingTblList.size(), notExistMhaNames);
+        logger.info("[[migrateMhaDbMapping]] insertSize: {}, updateSize: {}, deleteSize: {}", mhaDbMappingTblList.size(), 0, existMhaDbMappings.size());
+        int deleteSize = batchDeleteMhaDbMappings(existMhaDbMappings);
+        int insertSize = batchInsertMhaDbMappings(mhaDbMappingTblList);
+        return new MigrateResult(insertSize, 0, deleteSize, allDbNames.size());
     }
 
     @Override
@@ -481,7 +485,6 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 List<DataMediaTbl> dataMediaTblsList = dataMediaTblDao.queryByIdsAndType(dataMediaIds, DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode());
                 filterTables.addAll(dataMediaTblsList.stream().map(DataMediaTbl::getFullName).collect(Collectors.toList()));
             }
-
 
             if (filterNeedSplit(applierGroupTbl, filterTables)) {
                 MhaNameFilterVo mhaNameFilterVo = new MhaNameFilterVo();
@@ -514,8 +517,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         if (!CollectionUtils.isEmpty(errorParamList)) {
             throw new IllegalArgumentException(String.format("errorParamList: %s", errorParamList));
         }
-        applierGroupTblDao.batchUpdate(applierGroupTbls);
-        return applierGroupTbls.size();
+        int result = applierGroupTblDao.batchUpdate(applierGroupTbls).length;
+        return result;
     }
 
     @Override
@@ -539,22 +542,27 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
+        int insertSize = insertColumnsFilterTbls.size();
+        int updateSize = updateColumnsFilterTbls.size();
+        int deleteSize = existColumnsFilters.size();
+        logger.info("[[migrateColumnsFilter]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, updateSize, deleteSize);
+
         if (!CollectionUtils.isEmpty(existColumnsFilters)) {
             existColumnsFilters.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            columnFilterTblV2Dao.batchUpdate(existColumnsFilters);
+            deleteSize = columnFilterTblV2Dao.batchUpdate(existColumnsFilters).length;
         }
         if (!CollectionUtils.isEmpty(updateColumnsFilterTbls)) {
-            columnFilterTblV2Dao.batchUpdate(updateColumnsFilterTbls);
+            updateSize = columnFilterTblV2Dao.batchUpdate(updateColumnsFilterTbls).length;
         }
         if (!CollectionUtils.isEmpty(insertColumnsFilterTbls)) {
-            columnFilterTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertColumnsFilterTbls);
+            insertSize = columnFilterTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertColumnsFilterTbls).length;
         }
-        return new MigrateResult(insertColumnsFilterTbls.size(), updateColumnsFilterTbls.size());
+        return new MigrateResult(insertSize, updateSize, deleteSize, oldColumnsFilterTbls.size());
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public int migrateDbReplicationTbl() throws Exception {
+    public MigrateResult migrateDbReplicationTbl() throws Exception {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -572,10 +580,14 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
 
         List<DbReplicationTbl> dbReplicationTbls = buildDbReplicationTbls(mhaReplicationTbls, mhaDbMappingMap, newApplierGroupMap, oldApplierGroupMap, dbTblMap, mhaTblMap);
+
+        int deleteSize = existDbReplicationTbls.size();
+        logger.info("[[migrateDbReplicationTbl]] insertSize: {}, updateSize: {}, deleteSize: {}", dbReplicationTbls.size(), 0, deleteSize);
         if (!CollectionUtils.isEmpty(existDbReplicationTbls)) {
-            dbReplicationTblDao.batchDelete(existDbReplicationTbls);
+            deleteSize = dbReplicationTblDao.batchDelete(existDbReplicationTbls).length;
         }
-        return batchInsertDbReplications(dbReplicationTbls);
+        int insertSize = batchInsertDbReplications(dbReplicationTbls);
+        return new MigrateResult(insertSize, 0, deleteSize, dbReplicationTbls.size());
     }
 
     @Override
@@ -593,7 +605,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> mhaNames = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             String nameMappings = applierGroupTbl.getNameMapping();
-            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getId()));
+            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getReplicatorGroupId()));
             if (!checkNameMapping(nameMappings)) {
                 errorMhaNames.add(mhaName);
                 continue;
@@ -637,7 +649,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     @Override
-    public int migrateMessengerGroup() throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MigrateResult migrateMessengerGroup() throws Exception {
         List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DataMediaPairTbl> dataMediaPairTbls = dataMediaPairTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -665,7 +678,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         for (ListenableFuture<List<DbReplicationTbl>> future : futures) {
             try {
-                List<DbReplicationTbl> dbReplicationTblList = future.get(5, TimeUnit.SECONDS);
+                List<DbReplicationTbl> dbReplicationTblList = future.get(TIME_OUT, TimeUnit.SECONDS);
                 dbReplicationTbls.addAll(dbReplicationTblList);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 logger.error("getDbReplications fail, {}", e);
@@ -673,14 +686,18 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
 
+        int deleteSize = existDbReplicationTbls.size();
+        logger.info("[[migrateMessengerGroup]] insertSize: {}, updateSize: {}, deleteSize: {}", dbReplicationTbls.size(), 0, deleteSize);
         if (!CollectionUtils.isEmpty(existDbReplicationTbls)) {
-            dbReplicationTblDao.batchDelete(existDbReplicationTbls);
+            deleteSize = dbReplicationTblDao.batchDelete(existDbReplicationTbls).length;
         }
-        return batchInsertDbReplications(dbReplicationTbls);
+        int insertSize = batchInsertDbReplications(dbReplicationTbls);
+        return new MigrateResult(insertSize, 0, deleteSize, dbReplicationTbls.size());
     }
 
     @Override
-    public int migrateMessengerFilter() throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MigrateResult migrateMessengerFilter() throws Exception {
         List<DataMediaPairTbl> dataMediaPairTbls = dataMediaPairTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MessengerFilterTbl> existMessengerFilters = messengerFilterTblDao.queryAll();
 
@@ -692,15 +709,18 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             return messengerFilterTbl;
         }).collect(Collectors.toList());
 
+        int deleteSize = existMessengerFilters.size();
+        logger.info("[[migrateMessengerFilter]] insertSize: {}, updateSize: {}, deleteSize: {}", messengerFilterTbls.size(), 0, deleteSize);
         if (!CollectionUtils.isEmpty(existMessengerFilters)) {
-            messengerFilterTblDao.batchDelete(existMessengerFilters);
+            deleteSize = messengerFilterTblDao.batchDelete(existMessengerFilters).length;
         }
-        messengerFilterTblDao.batchInsert(messengerFilterTbls);
-        return messengerFilterTbls.size();
+        int insertSize = messengerFilterTblDao.batchInsert(messengerFilterTbls).length;
+        return new MigrateResult(insertSize, 0, deleteSize, messengerFilterTbls.size());
     }
 
     @Override
-    public int migrateDbReplicationFilterMapping() throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MigrateResult migrateDbReplicationFilterMapping() throws Exception {
         List<DbReplicationTbl> dbReplications = dbReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
@@ -787,34 +807,40 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         }
 
         List<DbReplicationFilterMappingTbl> existTbls = dbReplicationFilterMappingTblDao.queryAll();
+        int deleteSize = existTbls.size();
+        logger.info("[[migrateDbReplicationFilterMapping]] insertSize: {}, updateSize: {}, deleteSize: {}", dbReplicationFilterMappingTbls.size(), 0, deleteSize);
         if (!CollectionUtils.isEmpty(existTbls)) {
-            dbReplicationFilterMappingTblDao.batchDelete(existTbls);
+            deleteSize = dbReplicationFilterMappingTblDao.batchDelete(existTbls).length;
         }
-        dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappingTbls);
-        return dbReplicationFilterMappingTbls.size();
+        int insertSize = dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappingTbls).length;
+        return new MigrateResult(insertSize, 0, deleteSize, dbReplicationFilterMappingTbls.size());
     }
 
-    private void batchDeleteMhaDbMappings(List<MhaDbMappingTbl> existMhaDbMappingTblList) throws Exception {
+    private int batchDeleteMhaDbMappings(List<MhaDbMappingTbl> existMhaDbMappingTblList) throws Exception {
+        int resultSize = 0;
         if (CollectionUtils.isEmpty(existMhaDbMappingTblList)) {
-            return;
+            return resultSize;
         }
         int size = existMhaDbMappingTblList.size();
         for (int i = 0; i < size; ) {
             int toIndex = Math.min(i + BATCH_SIZE, size);
             List<MhaDbMappingTbl> subMhaDbMappingList = existMhaDbMappingTblList.subList(i, toIndex);
             i += BATCH_SIZE;
-            mhaDbMappingTblDao.batchDelete(subMhaDbMappingList);
+            resultSize += mhaDbMappingTblDao.batchDelete(subMhaDbMappingList).length;
         }
+        return resultSize;
     }
 
-    private void batchInsertMhaDbMappings(List<MhaDbMappingTbl> mhaDbMappingTblList) throws Exception {
+    private int batchInsertMhaDbMappings(List<MhaDbMappingTbl> mhaDbMappingTblList) throws Exception {
+        int resultSize = 0;
         int size = mhaDbMappingTblList.size();
         for (int i = 0; i < size; ) {
             int toIndex = Math.min(i + BATCH_SIZE, size);
             List<MhaDbMappingTbl> subMhaDbMappingList = mhaDbMappingTblList.subList(i, toIndex);
             i += BATCH_SIZE;
-            mhaDbMappingTblDao.batchInsert(subMhaDbMappingList);
+            resultSize += mhaDbMappingTblDao.batchInsert(subMhaDbMappingList).length;
         }
+        return resultSize;
     }
 
     private List<DbReplicationTbl> buildDbReplicationTbls(List<MhaReplicationTbl> mhaReplicationTbls,
@@ -834,7 +860,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         for (ListenableFuture<List<DbReplicationTbl>> future : futures) {
             try {
-                List<DbReplicationTbl> dbReplicationTblList = future.get(5, TimeUnit.SECONDS);
+                List<DbReplicationTbl> dbReplicationTblList = future.get(TIME_OUT, TimeUnit.SECONDS);
                 dbReplicationTbls.addAll(dbReplicationTblList);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 logger.error("getDbReplications fail, {}", e);
@@ -867,7 +893,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         String nameFilter = applierGroupTbl.getNameFilter();
         if (StringUtils.isBlank(nameFilter)) {
-            List<String> dbNames = queryDbsWithFilter(srcMhaName, nameFilter);
+            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(srcMhaName, nameFilter);
             for (String dbName : dbNames) {
                 Long dbId = dbTblMap.get(dbName);
                 dbReplicationTbls.add(buildDbReplicationTbl(dbId, ".*", "", mhaDbMappingMap, mhaReplication));
@@ -878,7 +904,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 if (MONITOR_DB.equals(dbFilter)) {
                     continue;
                 }
-                List<String> dbNames = queryDbsWithFilter(srcMhaName, dbFilter);
+                List<String> dbNames = drcBuildService.queryDbsWithNameFilter(srcMhaName, dbFilter);
                 String[] db = dbFilter.split("\\\\.");
                 for (String dbName : dbNames) {
                     String srcTableName = db[1];
@@ -892,14 +918,15 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     private int batchInsertDbReplications(List<DbReplicationTbl> dbReplicationTbls) throws Exception {
+        int result = 0;
         int size = dbReplicationTbls.size();
         for (int i = 0; i < size; ) {
             int toIndex = Math.min(i + BATCH_SIZE, size);
             List<DbReplicationTbl> subMhaDbMappingList = dbReplicationTbls.subList(i, toIndex);
             i += BATCH_SIZE;
-            dbReplicationTblDao.batchInsert(subMhaDbMappingList);
+            result += dbReplicationTblDao.batchInsert(subMhaDbMappingList).length;
         }
-        return dbReplicationTbls.size();
+        return result;
     }
 
     private List<DbReplicationTbl> getMessengerDbReplications(Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap,
@@ -911,7 +938,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         String srcDataMediaName = dataMediaPairTbl.getSrcDataMediaName();
         List<String> dbNameFilters = Lists.newArrayList(srcDataMediaName.split(","));
         for (String dbNameFilter : dbNameFilters) {
-            List<String> dbNames = queryDbsWithFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
+            List<String> dbNames = drcBuildService.queryTablesWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
             String[] tables = dbNameFilter.split("\\\\.");
             for (String dbName : dbNames) {
                 long dbId = dbTblMap.get(dbName);
@@ -974,8 +1001,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     private boolean checkNameFilterContainsSameTables(String mhaName, String oldNameFilter, String newNameFilter) {
-        List<String> oldTables = queryTablesWithFilter(mhaName, oldNameFilter);
-        List<String> newTables = queryTablesWithFilter(mhaName, newNameFilter);
+        List<String> oldTables = drcBuildService.queryTablesWithNameFilter(mhaName, oldNameFilter);
+        List<String> newTables = drcBuildService.queryTablesWithNameFilter(mhaName, newNameFilter);
 
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables)) {
             return false;
@@ -1030,7 +1057,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
             return new ArrayList<>();
         }
-        return MySqlUtils.checkDbsWithFilter(endpoint, nameFilter);
+        return MySqlUtils.queryDbsWithFilter(endpoint, nameFilter);
     }
 
     private List<String> queryTablesWithFilter(String mhaName, String nameFilter) {

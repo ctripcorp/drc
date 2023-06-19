@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
-import com.ctrip.framework.drc.console.vo.response.migrate.MigrateMhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 
 import java.util.List;
@@ -21,7 +20,7 @@ public interface MetaMigrateService {
 
     MigrateResult migrateMhaTbl() throws Exception;
 
-    int migrateMhaReplication() throws Exception;
+    MigrateResult migrateMhaReplication() throws Exception;
 
     MigrateResult migrateApplierGroup() throws Exception;
 
@@ -29,7 +28,7 @@ public interface MetaMigrateService {
 
     MhaDbMappingResult checkMhaDbMapping() throws Exception;
 
-    MigrateMhaDbMappingResult migrateMhaDbMapping() throws Exception;
+    MigrateResult migrateMhaDbMapping() throws Exception;
 
     List<MhaNameFilterVo> checkMhaFilter() throws Exception;
 
@@ -37,16 +36,16 @@ public interface MetaMigrateService {
 
     MigrateResult migrateColumnsFilter() throws Exception;
 
-    int migrateDbReplicationTbl() throws Exception;
+    MigrateResult migrateDbReplicationTbl() throws Exception;
 
     List<String> checkNameMapping() throws Exception;
 
     int splitNameFilterWithNameMapping() throws Exception;
 
-    int migrateMessengerGroup() throws Exception;
+    MigrateResult migrateMessengerGroup() throws Exception;
 
-    int migrateMessengerFilter() throws Exception;
+    MigrateResult migrateMessengerFilter() throws Exception;
 
-    int migrateDbReplicationFilterMapping() throws Exception;
+    MigrateResult migrateDbReplicationFilterMapping() throws Exception;
 
 }

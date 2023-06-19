@@ -7,10 +7,14 @@ package com.ctrip.framework.drc.console.vo.response.migrate;
 public class MigrateResult {
     private int insertSize;
     private int updateSize;
+    private int deleteSize;
+    private int expectedSize;
 
-    public MigrateResult(int insertSize, int updateSize) {
+    public MigrateResult(int insertSize, int updateSize, int deleteSize, int expectedSize) {
         this.insertSize = insertSize;
         this.updateSize = updateSize;
+        this.deleteSize = deleteSize;
+        this.expectedSize = expectedSize;
     }
 
     public int getInsertSize() {
@@ -27,5 +31,21 @@ public class MigrateResult {
 
     public void setUpdateSize(int updateSize) {
         this.updateSize = updateSize;
+    }
+
+    public int getDeleteSize() {
+        return deleteSize;
+    }
+
+    public void setDeleteSize(int deleteSize) {
+        this.deleteSize = deleteSize;
+    }
+
+    public int getExpectedSize() {
+        return expectedSize;
+    }
+
+    public void setExpectedSize(int expectedSize) {
+        this.expectedSize = expectedSize;
     }
 }

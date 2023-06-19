@@ -626,10 +626,16 @@ public class MySqlUtils {
         return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
 
-    public static List<String> checkDbsWithFilter(Endpoint endpoint, String nameFilter) {
+    public static List<String> queryDbsWithFilter(Endpoint endpoint, String nameFilter) {
         List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
         List<String> dbNames = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.toList());
         return dbNames;
+    }
+
+    public static List<String> queryTablesWithFilter(Endpoint endpoint, String nameFilter) {
+        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+        List<String> allTables = tables.stream().map(TableSchemaName::getDirectSchemaTableName).distinct().collect(Collectors.toList());
+        return allTables;
     }
 
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
