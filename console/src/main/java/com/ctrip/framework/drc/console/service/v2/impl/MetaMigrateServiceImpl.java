@@ -14,16 +14,13 @@ import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
-import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -619,7 +616,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     @Override
-    public int splitNameFilterWithNameMapping() throws Exception {
+    public MigrateResult splitNameFilterWithNameMapping() throws Exception {
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream()
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
                 .collect(Collectors.toList());
@@ -644,8 +641,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
         }
 
-        applierGroupTblDao.batchUpdate(applierGroupTbls);
-        return applierGroupTbls.size();
+        int result = applierGroupTblDao.batchUpdate(applierGroupTbls).length;
+        return new MigrateResult(0, result, 0, applierGroupTbls.size());
     }
 
     @Override
@@ -938,7 +935,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         String srcDataMediaName = dataMediaPairTbl.getSrcDataMediaName();
         List<String> dbNameFilters = Lists.newArrayList(srcDataMediaName.split(","));
         for (String dbNameFilter : dbNameFilters) {
-            List<String> dbNames = drcBuildService.queryTablesWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
+            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
             String[] tables = dbNameFilter.split("\\\\.");
             for (String dbName : dbNames) {
                 long dbId = dbTblMap.get(dbName);
@@ -1049,26 +1046,6 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         }
         List<String> nameFilters = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
         return !nameFilters.containsAll(filterTables);
-    }
-
-    private List<String> queryDbsWithFilter(String mhaName, String nameFilter) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
-        if (endpoint == null) {
-            logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
-            return new ArrayList<>();
-        }
-        return MySqlUtils.queryDbsWithFilter(endpoint, nameFilter);
-    }
-
-    private List<String> queryTablesWithFilter(String mhaName, String nameFilter) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
-        if (endpoint == null) {
-            logger.error("[[tag=preCheck]] preCheckMySqlTables from mha: {},db not exist", mhaName);
-            return new ArrayList<>();
-        }
-
-        List<TableCheckVo> tableCheckVos = MySqlUtils.checkTablesWithFilter(endpoint, nameFilter);
-        return tableCheckVos.stream().map(TableCheckVo::getFullName).collect(Collectors.toList());
     }
 
     private Map<String, List<String>> getAllDbNames(List<String> mhaNames) {

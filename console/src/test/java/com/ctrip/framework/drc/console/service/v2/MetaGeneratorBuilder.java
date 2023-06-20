@@ -168,9 +168,9 @@ public class MetaGeneratorBuilder {
     public static List<ApplierGroupTblV2> getApplierGroupTbls() {
         ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
         applierGroupTbl.setDeleted(0);
-        applierGroupTbl.setId(100L);
+        applierGroupTbl.setId(200L);
         applierGroupTbl.setGtidInit("applierGtId");
-        applierGroupTbl.setMhaReplicationId(100L);
+        applierGroupTbl.setMhaReplicationId(200L);
         return Lists.newArrayList(applierGroupTbl);
     }
 

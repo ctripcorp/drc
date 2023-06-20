@@ -40,7 +40,7 @@ public interface MetaMigrateService {
 
     List<String> checkNameMapping() throws Exception;
 
-    int splitNameFilterWithNameMapping() throws Exception;
+    MigrateResult splitNameFilterWithNameMapping() throws Exception;
 
     MigrateResult migrateMessengerGroup() throws Exception;
 
