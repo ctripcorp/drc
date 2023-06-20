@@ -109,4 +109,15 @@ public class ApplierGroupTblV2 implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    @Override
+    public String toString() {
+        return "ApplierGroupTblV2{" +
+                "id=" + id +
+                ", mhaReplicationId=" + mhaReplicationId +
+                ", gtidInit='" + gtidInit + '\'' +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
 }

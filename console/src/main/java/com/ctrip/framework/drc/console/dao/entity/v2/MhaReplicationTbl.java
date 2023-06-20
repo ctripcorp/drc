@@ -109,4 +109,15 @@ public class MhaReplicationTbl implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    @Override
+    public String toString() {
+        return "MhaReplicationTbl{" +
+                "id=" + id +
+                ", srcMhaId=" + srcMhaId +
+                ", dstMhaId=" + dstMhaId +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
 }

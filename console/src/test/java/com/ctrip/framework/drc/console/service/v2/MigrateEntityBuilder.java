@@ -21,6 +21,8 @@ public class MigrateEntityBuilder {
             mhaTbl.setMhaName("mha" + i);
             mhaTbl.setDeleted(0);
             mhaTbls.add(mhaTbl);
+            mhaTbl.setDcId(1L);
+            mhaTbl.setMonitorSwitch(1);
         }
         return mhaTbls;
     }
@@ -31,6 +33,12 @@ public class MigrateEntityBuilder {
         mhaGroupTbl.setId(200L);
         mhaGroupTbl.setDeleted(0);
         mhaGroups.add(mhaGroupTbl);
+        mhaGroupTbl.setReadUser("readUser");
+        mhaGroupTbl.setReadPassword("readPassword");
+        mhaGroupTbl.setWriteUser("writerUser");
+        mhaGroupTbl.setWritePassword("writePassword");
+        mhaGroupTbl.setMonitorUser("monitorUser");
+        mhaGroupTbl.setMonitorPassword("monitorPassword");
         return mhaGroups;
     }
 
@@ -55,6 +63,7 @@ public class MigrateEntityBuilder {
         clusterTbl.setId(200L);
         clusterTbl.setClusterName("cluster");
         clusterTbls.add(clusterTbl);
+        clusterTbl.setBuId(1L);
         return clusterTbls;
     }
 
@@ -93,6 +102,9 @@ public class MigrateEntityBuilder {
             applierGroupTbls.add(applierGroupTbl);
             applierGroupTbl.setNameFilter("testDb\\.table" + i);
             applierGroupTbl.setNameMapping("test.db,test.db1");
+            applierGroupTbl.setGtidExecuted("GTID");
+            applierGroupTbl.setIncludedDbs("includedDbs");
+            applierGroupTbl.setTargetName("targetName");
         }
         return applierGroupTbls;
     }
@@ -104,7 +116,12 @@ public class MigrateEntityBuilder {
             applierTbl.setApplierGroupId(Long.valueOf(i));
             applierTbl.setDeleted(0);
             applierTbl.setId(Long.valueOf(i));
+            applierTbl.setMaster(1);
+            applierTbl.setGtidInit("gtid");
             applierTbls.add(applierTbl);
+            applierTbl.setMaster(1);
+            applierTbl.setPort(80);
+            applierTbl.setResourceId(200L);
         }
         return applierTbls;
     }
@@ -125,6 +142,8 @@ public class MigrateEntityBuilder {
         tbl1.setNamespcae("db200");
         tbl1.setName("table1");
         tbl1.setApplierGroupId(200L);
+        tbl1.setType(0);
+        tbl1.setDataMediaSourceId(-1L);
 
         return Lists.newArrayList(tbl1);
     }
@@ -146,6 +165,7 @@ public class MigrateEntityBuilder {
         tbl.setApplierGroupId(200L);
         tbl.setDeleted(0);
         tbl.setDataMediaId(200L);
+        tbl.setRowsFilterId(200L);
         rowsFilterMappingTbls.add(tbl);
 
         return rowsFilterMappingTbls;
@@ -159,6 +179,7 @@ public class MigrateEntityBuilder {
         tbl.setMode("exclude");
         tbls.add(tbl);
         tbl.setDataMediaId(200L);
+        tbl.setColumns("udl");
         return tbls;
     }
 
@@ -209,6 +230,8 @@ public class MigrateEntityBuilder {
         tbl.setDeleted(0);
         tbl.setId(200L);
         tbl.setMhaId(200L);
+        tbl.setReplicatorGroupId(-1L);
+        tbl.setGtidExecuted("gtid");
         return tbl;
     }
 
@@ -220,6 +243,9 @@ public class MigrateEntityBuilder {
         tbl.setSrcDataMediaName("db200\\.table1");
         tbl.setDestDataMediaName("topic");
         tbl.setProperties("properties");
+        tbl.setTag("tag");
+        tbl.setType(1);
+        tbl.setProcessor("processor");
         return tbl;
     }
 
@@ -251,6 +277,15 @@ public class MigrateEntityBuilder {
         tbl.setId(200L);
         tbl.setProperties("properties");
         return Lists.newArrayList(tbl);
+    }
+
+    public static List<ApplierGroupTblV2> getApplierGroupTblV2s() {
+        ApplierGroupTblV2 applierGroupTbl = new ApplierGroupTblV2();
+        applierGroupTbl.setDeleted(0);
+        applierGroupTbl.setId(200L);
+        applierGroupTbl.setGtidInit("applierGtId");
+        applierGroupTbl.setMhaReplicationId(200L);
+        return Lists.newArrayList(applierGroupTbl);
     }
 
 }

@@ -5,12 +5,10 @@ import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaMigrateServiceImpl;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
@@ -20,7 +18,10 @@ import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
-import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getApplierGroupTbls;
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getDbTbls;
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getColumnsFilterTbls;
 
@@ -91,8 +91,6 @@ public class MigrateServiceTest {
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Mock
     private DalServiceImpl dalService;
-    @Mock
-    private DbClusterSourceProvider dbClusterSourceProvider;
     @Mock
     private DrcBuildService drcBuildService;
 
@@ -200,7 +198,7 @@ public class MigrateServiceTest {
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMapping());
 
         List<MhaNameFilterVo> mhaNameFilterVos = migrationService.checkMhaFilter();
-        mhaNameFilterVos.forEach(System.out::println);
+//        mhaNameFilterVos.forEach(System.out::println);
         Assert.assertEquals(mhaNameFilterVos.size(), 1);
     }
 
@@ -213,7 +211,6 @@ public class MigrateServiceTest {
             target.setNameFilter("nameFilter");
             return target;
         }).collect(Collectors.toList());
-        MySqlUtils.TableSchemaName table = new MySqlUtils.TableSchemaName("test", "table");
 
         Mockito.when(drcBuildService.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("test.db"));
         Mockito.when(applierGroupTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[params.size()]);
@@ -263,7 +260,7 @@ public class MigrateServiceTest {
         Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMhaReplicationTbl()));
         Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMhaDbMappingTbls());
         Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
-        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(getApplierGroupTbls());
+        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(MigrateEntityBuilder.getApplierGroupTblV2s());
 
         MigrateResult result = migrationService.migrateDbReplicationTbl();
         Mockito.verify(dbReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
@@ -310,7 +307,7 @@ public class MigrateServiceTest {
         Mockito.when(dbReplicationTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbReplicationTbls());
         Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMhaDbMappingTbls());
         Mockito.when(mhaReplicationTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMhaReplicationTbl()));
-        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(getApplierGroupTbls());
+        Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(MigrateEntityBuilder.getApplierGroupTblV2s());
 
         Mockito.when(dataMediaTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDataMediaTbls());
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMappings());

@@ -203,7 +203,7 @@ CREATE TABLE `machine_tbl`
 CREATE TABLE `replicator_group_tbl`
 (
     `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `gtid_init`           varchar(1000) COMMENT '初始gtid',
+--     `gtid_init`           varchar(1000) COMMENT '初始gtid',
     `mha_id`              bigint(20) COMMENT '集群mha id',
     `deleted`             tinyint       NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
     `excluded_tables`     varchar(1024) NOT NULL DEFAULT '' COMMENT '过滤表',
@@ -216,7 +216,7 @@ CREATE TABLE `applier_group_tbl`
 (
     `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
     `replicator_group_id` bigint(20) COMMENT 'replicator group id',
-    `gtid_init`           varchar(1000) COMMENT '初始gtid',
+    `gtid_executed`           varchar(1000) COMMENT '初始gtid',
     `mha_id`              bigint(20) COMMENT '集群mha id',
     `includedDbs`         varchar(255)          DEFAULT NULL COMMENT 'request db list, seprated by commas,',
     `name_filter`         varchar(2047)         DEFAULT NULL COMMENT 'table name filter, seprated by commas',
@@ -354,6 +354,7 @@ CREATE TABLE `rows_filter_mapping_tbl`
     data_media_id       bigint       NOT NULL default '-1' COMMENT 'data_media_index',
     rows_filter_id      bigint       NOT NULL default '-1' COMMENT 'rows_filter_index',
     deleted             tinyint      NOT NULL default '0' COMMENT '是否删除, 0:否; 1:是',
+    type                tinyint      NOT NULL default '0' COMMENT 'type',
     create_time         timestamp(3) NOT NULL default CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     datachange_lasttime timestamp(3) NOT NULL default CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
     applier_group_id    bigint       NOT NULL default '-1' COMMENT 'applier_group_id_index',
@@ -384,6 +385,7 @@ CREATE TABLE `data_media_tbl`
     name                 varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL default '' COMMENT '表名，逻辑概念',
     type                 tinyint unsigned NOT NULL default '0' COMMENT '0 正则逻辑表，1 映射逻辑表',
     data_media_source_id bigint                                                        NOT NULL default '-1' COMMENT 'mysql 使用mha_id,索引列',
+    applier_group_id     bigint                                                        NOT NULL default '-1' COMMENT 'applier_group_id',
     deleted              tinyint                                                       NOT NULL default '0' COMMENT '是否删除, 0:否; 1:是',
     create_time          timestamp(3)                                                  NOT NULL default CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     datachange_lasttime  timestamp(3)                                                  NOT NULL default CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
@@ -552,3 +554,34 @@ CREATE TABLE `messenger_tbl`
     KEY                   `ix_messenger_group_id` (`messenger_group_id`),
     KEY                   `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='messengerz表关联资源';
+
+
+CREATE TABLE `columns_filter_tbl` (
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'pk',
+    `data_media_id` bigint(20) NOT NULL DEFAULT '0' COMMENT 'data_media_id',
+    `mode` varchar(40) NOT NULL DEFAULT 'exclude' COMMENT '列过滤配置 模式 exclude, include',
+    `columns` text NOT NULL COMMENT '包含或者不包含的列',
+    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `ix_data_media_id` (`data_media_id`),
+    KEY `ix_datachange_lasttime` (`datachange_lasttime`)
+) ENGINE=InnoDB COMMENT='字段过滤配置表';
+
+CREATE TABLE `datamediapair_tbl` (
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '0:db->db，1:db->mq',
+    `group_id` bigint(20) NOT NULL DEFAULT '0' COMMENT 'applier/messenger_group_id',
+    `src_data_media_name` varchar(2000) DEFAULT NULL COMMENT '源端表级别名',
+    `dest_data_media_name` varchar(255) DEFAULT NULL COMMENT '目标端表级别名',
+    `properties` text COMMENT 'json保存相关配置,由type决定类型',
+    `processor` text COMMENT '保存java 文件兼容Otter EventProcessor',
+    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    `tag` varchar(255) DEFAULT NULL COMMENT '一对n时业务区分tag,正常为空',
+    PRIMARY KEY (`id`),
+    KEY `ix_group_id` (`group_id`),
+    KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
+) ENGINE=InnoDB COMMENT='同步表级别配置';
