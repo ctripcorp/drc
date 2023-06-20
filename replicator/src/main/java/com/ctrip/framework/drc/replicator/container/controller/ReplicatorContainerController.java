@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
@@ -56,25 +55,14 @@ public class ReplicatorContainerController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ApiResult<Boolean> start(@RequestBody ReplicatorConfigDto replicatorConfigDto) {
+        ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
+        String registryKey = replicatorConfig.getRegistryKey();
         try {
-            logger.info("[Start] replicator instance with {}", replicatorConfigDto);
-            ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
-            String registryKey = replicatorConfig.getRegistryKey();
-            InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
-            logger.info("[Add] {} instance {}", instanceStatus, registryKey);
-
-            Endpoint upstreamMaster = serverContainer.getUpstreamMaster(registryKey);
-            Endpoint currentUpstreamMaster = replicatorConfig.getEndpoint();
-            logger.info("[upstreamMaster] is {}, current is {}", upstreamMaster, currentUpstreamMaster);
-            if (upstreamMaster != null && upstreamMaster.equals(replicatorConfig.getEndpoint())) {
-                logger.info("[Add] duplicate {} instance {}", instanceStatus, registryKey);
-                return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
-            }
-
+            logger.info("[Start] replicator instance({}) with {}", registryKey, replicatorConfigDto);
             notifyExecutor.execute(registryKey, new StartTask(registryKey, replicatorConfig));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
-            logger.error("init error", t);
+            logger.error("[Start] error for {}", registryKey, t);
             return ApiResult.getFailInstance(t);
         }
     }
@@ -85,7 +73,7 @@ public class ReplicatorContainerController {
         ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
         String registryKey = replicatorConfig.getRegistryKey();
         try {
-            logger.info("[Restart] {} with config {}", registryKey, replicatorConfigDto);
+            logger.info("[Restart] replicator instance({}) with config {}", registryKey, replicatorConfigDto);
             notifyExecutor.execute(registryKey, new StartTask(registryKey, replicatorConfig));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
@@ -128,11 +116,41 @@ public class ReplicatorContainerController {
         @Override
         protected void doExecute() throws Throwable {
             try {
-                serverContainer.removeServer(registryKey, false);
-                serverContainer.addServer(replicatorConfig);
+                if (checkConfig()) {
+                    return;
+                }
+                removeOldInstance();
+                addNewInstance();
             } catch (Exception e) {
-                logger.error("start error", e);
+                logger.error("Start] replicator instance({}) error", registryKey, e);
             }
+        }
+
+        private boolean checkConfig() {
+            InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
+            logger.info("[Start] replicator instance({}) with role: {}", registryKey, instanceStatus);
+            Endpoint upstreamMaster = serverContainer.getUpstreamMaster(registryKey);
+            Endpoint currentUpstreamMaster = replicatorConfig.getEndpoint();
+            logger.info("[Start] replicator instance({}), upstreamMaster is {}, current is {}", registryKey, upstreamMaster, currentUpstreamMaster);
+            if (upstreamMaster != null && upstreamMaster.equals(replicatorConfig.getEndpoint())) {
+                logger.info("[Start] replicator instance({}), ignore duplicate instance, with role: {}", registryKey, instanceStatus);
+                return false;
+            }
+            return true;
+        }
+
+        private void removeOldInstance() {
+            logger.info("[Start] replicator instance({}), remove old instance", registryKey);
+            long start = System.currentTimeMillis();
+            serverContainer.removeServer(registryKey, false);
+            logger.info("[Start] replicator instance{}, remove old instance cost: {}s", registryKey, (System.currentTimeMillis() - start) / 1000);
+        }
+
+        private void addNewInstance() {
+            logger.info("[Start] replicator instance({}), add new instance", registryKey);
+            long start = System.currentTimeMillis();
+            serverContainer.addServer(replicatorConfig);
+            logger.info("[Start] replicator instance({}), add new instance cost: {}s", registryKey, (System.currentTimeMillis() - start) / 1000);
         }
 
         @Override

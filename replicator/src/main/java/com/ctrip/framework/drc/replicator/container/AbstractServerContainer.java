@@ -11,7 +11,6 @@ import com.ctrip.framework.drc.core.server.common.AbstractResourceManager;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
-import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.replicator.ReplicatorServer;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLSchemaManager;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.SchemaManagerFactory;
@@ -21,7 +20,6 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.ComponentRegistry;
 import com.ctrip.xpipe.exception.ErrorMessage;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
-import com.ctrip.xpipe.utils.OsUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -32,7 +30,6 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.PORT_ALREADY_EXIST;
 import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
@@ -47,35 +44,18 @@ public abstract class AbstractServerContainer extends AbstractResourceManager im
 
     private Map<String, DrcServer> drcServers = Maps.newConcurrentMap();
 
-    private Set<String> processingReplicators = Sets.newConcurrentHashSet();
-
     @Override
     public ApiResult addServer(ReplicatorConfig config) {
         String registryKey = config.getRegistryKey();
         int port = config.getApplierPort();
         if (!drcServers.containsKey(registryKey)) {
-            synchronized (this) {
-                if (!drcServers.containsKey(registryKey)) {
-                    Set<Integer> ports = Sets.newHashSet(runningPorts.values());
-                    if (ports.contains(port)) {
-                        logger.error("[Used] port {} for cluster {}", port, registryKey);
-                        return ApiResult.getInstance(Boolean.FALSE, PORT_ALREADY_EXIST.getCode(), String.valueOf(getMaxNotInUsedPort()));
-                    }
-                    if (!processingReplicators.contains(registryKey)) {
-                        processingReplicators.add(registryKey);
-                    } else {
-                        logger.error("[Add] replicator {} fail due to already in processingReplicators", registryKey);
-                        return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
-                    }
-                    try {
-                        new RetryTask<>(new RegisterTask(config), 2).call();
-                    } finally {
-                        processingReplicators.remove(registryKey);
-                    }
-                    return ApiResult.getInstance(Boolean.TRUE, ResultCode.HANDLE_SUCCESS.getCode(), ResultCode.HANDLE_SUCCESS.getMessage());
-
-                }
+            Set<Integer> ports = Sets.newHashSet(runningPorts.values());
+            if (ports.contains(port)) {
+                logger.error("[Used] port {} for cluster {}", port, registryKey);
+                return ApiResult.getInstance(Boolean.FALSE, PORT_ALREADY_EXIST.getCode(), String.valueOf(getMaxNotInUsedPort()));
             }
+            new RetryTask<>(new RegisterTask(config), 2).call();
+            return ApiResult.getInstance(Boolean.TRUE, ResultCode.HANDLE_SUCCESS.getCode(), ResultCode.HANDLE_SUCCESS.getMessage());
         }
 
         logger.error("[Add] replicator {} fail due to server already exist in port {}", registryKey, port);
