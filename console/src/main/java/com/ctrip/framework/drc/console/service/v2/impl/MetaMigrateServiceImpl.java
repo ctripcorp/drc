@@ -459,12 +459,12 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     @Override
     public List<MhaNameFilterVo> checkMhaFilter() throws Exception {
-        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+//        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
-        Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getReplicatorGroupId));
-        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
+//        Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getReplicatorGroupId));
+//        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
         Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
 
         List<MhaNameFilterVo> mhaNameFilterVos = new ArrayList<>();
@@ -485,7 +485,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
             if (filterNeedSplit(applierGroupTbl, filterTables)) {
                 MhaNameFilterVo mhaNameFilterVo = new MhaNameFilterVo();
-                mhaNameFilterVo.setMhaName(mhaTblMap.get(replicatorGroupMap.get(applierGroupMap.get(applierGroupTbl.getId()))));
+                mhaNameFilterVo.setMhaName(mhaTblMap.get(applierGroupTbl.getMhaId()));
                 mhaNameFilterVo.setFilterTables(filterTables);
                 mhaNameFilterVo.setApplierGroupId(applierGroupTbl.getId());
                 mhaNameFilterVo.setNameFilter(applierGroupTbl.getNameFilter());

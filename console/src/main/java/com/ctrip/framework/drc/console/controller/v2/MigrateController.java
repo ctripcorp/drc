@@ -2,8 +2,8 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
+import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
-import com.ctrip.framework.drc.console.vo.response.migrate.MigrateMhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ public class MigrateController {
     }
 
     @GetMapping ("/nameFilter")
-    public ApiResult<MhaDbMappingResult> checkMhaFilter() {
+    public ApiResult<List<MhaNameFilterVo>> checkMhaFilter() {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.checkMhaFilter());
         } catch (Exception e) {
@@ -51,7 +51,7 @@ public class MigrateController {
     }
 
     @PostMapping("/nameMapping")
-    public ApiResult<Integer> splitNameFilterWithNameMapping() {
+    public ApiResult<MigrateResult> splitNameFilterWithNameMapping() {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.splitNameFilterWithNameMapping());
         } catch (Exception e) {
@@ -87,7 +87,7 @@ public class MigrateController {
     }
 
     @PostMapping("/mhaReplication")
-    public ApiResult<Integer> migrateMhaReplication() {
+    public ApiResult<MigrateResult> migrateMhaReplication() {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaReplication());
         } catch (Exception e) {
@@ -123,7 +123,7 @@ public class MigrateController {
     }
 
     @PostMapping("/mhaDbMapping")
-    public ApiResult<MigrateMhaDbMappingResult> migrateMhaDbMapping() {
+    public ApiResult<MigrateResult> migrateMhaDbMapping() {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaDbMapping());
         } catch (Exception e) {
