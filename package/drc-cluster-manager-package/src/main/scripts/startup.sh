@@ -115,7 +115,7 @@ then
     XMN=`getSafeXmn $USED_MEM`
     MAX_DIRECT=2
     JAVA_OPTS="$JAVA_OPTS -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
-elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ];then
+elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     #GB
     USED_MEM=`getSafeXmx`
     XMN=`getSafeXmn $USED_MEM`

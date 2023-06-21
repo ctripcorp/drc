@@ -116,13 +116,14 @@ public class ReplicatorContainerController {
         @Override
         protected void doExecute() throws Throwable {
             try {
-                if (checkConfig()) {
+                if (!checkConfig()) {
                     return;
                 }
                 removeOldInstance();
                 addNewInstance();
+                logger.info("[Start] replicator instance({}) success", registryKey);
             } catch (Exception e) {
-                logger.error("Start] replicator instance({}) error", registryKey, e);
+                logger.error("[Start] replicator instance({}) error", registryKey, e);
             }
         }
 
