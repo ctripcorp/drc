@@ -24,7 +24,7 @@ public class MigrateController {
     private MetaMigrateService metaMigrateService;
 
     @GetMapping ("/nameMapping")
-    public ApiResult<List<String>> checkNameMapping() {
+    public ApiResult<List<MhaNameFilterVo>> checkNameMapping() {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.checkNameMapping());
         } catch (Exception e) {

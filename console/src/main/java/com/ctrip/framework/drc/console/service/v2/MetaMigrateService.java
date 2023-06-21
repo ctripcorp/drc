@@ -38,7 +38,7 @@ public interface MetaMigrateService {
 
     MigrateResult migrateDbReplicationTbl() throws Exception;
 
-    List<String> checkNameMapping() throws Exception;
+    List<MhaNameFilterVo> checkNameMapping() throws Exception;
 
     MigrateResult splitNameFilterWithNameMapping() throws Exception;
 

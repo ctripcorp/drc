@@ -222,7 +222,7 @@ public class MigrateServiceTest {
     public void testCheckNameMapping() throws Exception {
         ApplierGroupTbl applierGroupTbl = getApplierGroup();
         Mockito.when(applierGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(applierGroupTbl));
-        List<String> result = migrationService.checkNameMapping();
+        List<MhaNameFilterVo> result = migrationService.checkNameMapping();
         Assert.assertEquals(result.size(), 1);
     }
 

@@ -588,31 +588,32 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     @Override
-    public List<String> checkNameMapping() throws Exception {
+    public List<MhaNameFilterVo> checkNameMapping() throws Exception {
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream()
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
                 .collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-
         Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
-        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
 
-        Set<String> errorMhaNames = new HashSet<>();
-        List<String> mhaNames = new ArrayList<>();
+        List<Long> errorApplierGroupIds = new ArrayList<>();
+        List<MhaNameFilterVo> nameFilterVos = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             String nameMappings = applierGroupTbl.getNameMapping();
-            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getReplicatorGroupId()));
+            String mhaName = mhaMap.get(applierGroupTbl.getMhaId());
             if (!checkNameMapping(nameMappings)) {
-                errorMhaNames.add(mhaName);
+                errorApplierGroupIds.add(applierGroupTbl.getId());
                 continue;
             }
-            mhaNames.add(mhaName);
+            MhaNameFilterVo mhaNameFilterVo = new MhaNameFilterVo();
+            mhaNameFilterVo.setApplierGroupId(applierGroupTbl.getId());
+            mhaNameFilterVo.setMhaName(mhaName);
+            mhaNameFilterVo.setNameFilter(applierGroupTbl.getNameFilter());
+            nameFilterVos.add(mhaNameFilterVo);
         }
-        if (!CollectionUtils.isEmpty(errorMhaNames)) {
-            throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
+        if (!CollectionUtils.isEmpty(errorApplierGroupIds)) {
+            throw new IllegalArgumentException(String.format("errorApplierGroupIds: %s", errorApplierGroupIds));
         }
-        return mhaNames;
+        return nameFilterVos;
     }
 
     @Override
@@ -621,24 +622,21 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
                 .collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-
         Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
-        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
 
-        Set<String> errorMhaNames = new HashSet<>();
+        List<Long> errorApplierGroupIds = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             String nameMappings = applierGroupTbl.getNameMapping();
-            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getId()));
+            String mhaName = mhaMap.get(applierGroupTbl.getMhaId());
             if (!checkNameMapping(nameMappings)) {
-                errorMhaNames.add(mhaName);
+                errorApplierGroupIds.add(applierGroupTbl.getId());
                 continue;
             }
 
-            splitNameFilter(applierGroupTbl, mhaName, errorMhaNames);
+            splitNameFilter(applierGroupTbl, mhaName, errorApplierGroupIds);
         }
-        if (!CollectionUtils.isEmpty(errorMhaNames)) {
-            throw new IllegalArgumentException(String.format("errorMhaNames: %s", errorMhaNames));
+        if (!CollectionUtils.isEmpty(errorApplierGroupIds)) {
+            throw new IllegalArgumentException(String.format("errorApplierGroupIds: %s", errorApplierGroupIds));
         }
 
         int result = applierGroupTblDao.batchUpdate(applierGroupTbls).length;
@@ -980,17 +978,17 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return true;
     }
 
-    private void splitNameFilter(ApplierGroupTbl applierGroupTbl, String mhaName, Set<String> errorMhaNames) {
+    private void splitNameFilter(ApplierGroupTbl applierGroupTbl, String mhaName, List<Long> errorApplierGroupIds) {
         List<String> splitDbs = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
         if (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB)) {
-            errorMhaNames.add(mhaName);
+            errorApplierGroupIds.add(applierGroupTbl.getId());
             return;
         }
         splitDbs.remove(MONITOR_DB);
         List<String> dbs = splitDbs.stream().map(db -> splitNameFilter(db)).collect(Collectors.toList());
         String newNameFilter = StringUtils.join(dbs, ",");
         if (!checkNameFilterContainsSameTables(mhaName, applierGroupTbl.getNameFilter(), newNameFilter)) {
-            errorMhaNames.add(mhaName);
+            errorApplierGroupIds.add(applierGroupTbl.getId());
             return;
         }
 
