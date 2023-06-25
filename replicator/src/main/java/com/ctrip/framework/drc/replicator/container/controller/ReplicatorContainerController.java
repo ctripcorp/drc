@@ -145,14 +145,14 @@ public class ReplicatorContainerController {
             logger.info("[Start] replicator instance({}), remove old instance start", registryKey);
             long start = System.currentTimeMillis();
             serverContainer.removeServer(registryKey, false);
-            logger.info("[Start] replicator instance{}, remove old instance end, cost: {}s", registryKey, (System.currentTimeMillis() - start) / 1000);
+            logger.info("[Start] replicator instance{}, remove old instance end, cost: {}ms", registryKey, (System.currentTimeMillis() - start));
         }
 
         private void addNewInstance() {
             logger.info("[Start] replicator instance({}), add new instance start", registryKey);
             long start = System.currentTimeMillis();
             serverContainer.addServer(replicatorConfig);
-            logger.info("[Start] replicator instance({}), add new instance end, cost: {}s", registryKey, (System.currentTimeMillis() - start) / 1000);
+            logger.info("[Start] replicator instance({}), add new instance end, cost: {}ms", registryKey, (System.currentTimeMillis() - start));
         }
 
         @Override
