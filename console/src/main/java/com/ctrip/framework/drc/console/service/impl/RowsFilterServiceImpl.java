@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
@@ -262,10 +263,9 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                             if (currentStrategyId ==  OLD_UCS_ID) {
                                 res.add(rowsFilterTbl.getId());
                             } else if (currentStrategyId ==  NEW_UCS_ID) {
-                                logger.info("udl rowsFilter currentStrategyId already migrate,id:{}",rowsFilterTbl.getId());
+                                logger.info("udl rowsFilter StrategyId already migrate,id:{}",rowsFilterTbl.getId());
                             } else {
-                                throw new IllegalArgumentException("udl rowsFilter has unexpected strategy,id:" 
-                                        + rowsFilterTbl.getId());
+                                throw new IllegalArgumentException("unexpected strategy,rowsFilter id:"  + rowsFilterTbl.getId());
                             }
                         }
                     }
@@ -277,7 +277,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     }
 
     @Override
-    public List<Integer> migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException {
+    @DalTransactional(logicDbName = DB_NAME)
+    public MigrateResult migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException {
         List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryByIds(rowsFilterIds, BooleanEnum.FALSE.getCode());
         List<RowsFilterTbl> rowsFilterTblsToBeUpdated = Lists.newArrayList();
         for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
@@ -295,6 +296,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                                 configs.setDrcStrategyId(NEW_UCS_ID);
                                 rowsFilterTbl.setConfigs(JsonUtils.toJson(configs));
                                 rowsFilterTblsToBeUpdated.add(rowsFilterTbl);
+                            } else if (currentStrategyId == NEW_UCS_ID) {
+                                logger.info("udl rowsFilter StrategyId already migrate,id:{}",rowsFilterTbl.getId());
+                            } else {
+                                throw new IllegalArgumentException("unexpected strategy,rowsFilter id:" + rowsFilterTbl.getId());
                             }
                             break;
                         }
@@ -302,11 +307,9 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                 }
             }
         }
-        int[] ints = rowsFilterTblDao.batchUpdate(rowsFilterTblsToBeUpdated);
-        return null;
+        int[] updateRes = rowsFilterTblDao.batchUpdate(rowsFilterTblsToBeUpdated);
+        return new MigrateResult(0, Arrays.stream(updateRes).sum(),0,rowsFilterIds.size());
     }
-    
-    
     
 
     private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig, RowsFilterTbl rowsFilterTbl) {

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service;
 
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 
 import java.sql.SQLException;
@@ -36,6 +37,6 @@ public interface RowsFilterService {
     List<String> getConflictTables(String mhaName, String logicalTables);
     
     List<Long> getMigrateRowsFilterIds() throws SQLException;
-    
-    List<Integer> migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException; 
+
+    MigrateResult migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException; 
 }

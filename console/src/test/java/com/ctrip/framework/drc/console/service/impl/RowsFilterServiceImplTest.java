@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -151,5 +152,61 @@ public class RowsFilterServiceImplTest extends AbstractTest {
         Assert.assertEquals(RowsFilterType.TripUdl.getName(),rowsFilterConfigs.get(0).getMode());
         
     }
-    
+
+    @Test
+    public void testGetConflictTables() throws SQLException{
+        List<RowsFilterTbl> res = Lists.newArrayList();
+        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
+        rowsFilterTbl.setId(1L);
+        rowsFilterTbl.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl.setConfigs("{\"parameterList\":[{\"columns\":[\"udl\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":20001,\"routeStrategyId\":0}");
+        res.add(rowsFilterTbl);
+        RowsFilterTbl rowsFilterTbl2 = new RowsFilterTbl();
+        rowsFilterTbl2.setId(2L);
+        rowsFilterTbl2.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl2.setConfigs("{\"parameterList\":[{\"columns\":[\"udl\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":2000000002,\"routeStrategyId\":0}");
+        res.add(rowsFilterTbl2);
+        Mockito.when(rowsFilterTblDao.queryAllByDeleted(Mockito.eq(BooleanEnum.FALSE.getCode()))).
+                thenReturn(res);
+        List<Long> migrateRowsFilterIds = rowsFilterService.getMigrateRowsFilterIds();
+        Assert.assertEquals(1L,migrateRowsFilterIds.get(0).longValue());
+
+
+        RowsFilterTbl rowsFilterTbl3 = new RowsFilterTbl();
+        rowsFilterTbl3.setId(2L);
+        rowsFilterTbl3.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl3.setConfigs("{\"parameterList\":[{\"columns\":[\"udl\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":1,\"routeStrategyId\":0}");
+        res.clear();
+        res.add(rowsFilterTbl3);
+        Mockito.when(rowsFilterTblDao.queryAllByDeleted(Mockito.eq(BooleanEnum.FALSE.getCode()))).
+                thenReturn(res);
+        
+        try {
+            rowsFilterService.getMigrateRowsFilterIds();
+        }catch (Exception e) {
+            Assert.assertEquals(IllegalArgumentException.class,e.getClass());
+        }
+        
+        
+    }
+
+    @Test
+    public void testGetMigrateRowsFilterIds() throws SQLException {
+        
+        List<RowsFilterTbl> res = Lists.newArrayList();
+        RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
+        rowsFilterTbl.setId(1L);
+        rowsFilterTbl.setMode(RowsFilterType.TripUdl.getName());
+        rowsFilterTbl.setConfigs("{\"parameterList\":[{\"columns\":[\"udl\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":20001,\"routeStrategyId\":0}");
+        res.add(rowsFilterTbl);
+        Mockito.when(rowsFilterTblDao.queryByIds(Mockito.anyList(),Mockito.eq(BooleanEnum.FALSE.getCode()))).
+                thenReturn(res);
+
+
+        List<Long> rowsFilterIds = Lists.newArrayList();
+        rowsFilterIds.add(2L);
+        Mockito.when(rowsFilterTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1});
+        MigrateResult migrateResult = rowsFilterService.migrateUdlStrategyId(rowsFilterIds);
+        Assert.assertEquals(1,migrateResult.getUpdateSize());
+    }
 }
