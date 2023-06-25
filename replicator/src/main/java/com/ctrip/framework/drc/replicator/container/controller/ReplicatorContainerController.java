@@ -32,7 +32,7 @@ public class ReplicatorContainerController {
     @Autowired
     private ServerContainer<ReplicatorConfig, ApiResult> serverContainer;
 
-    private ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "Replicator-Start-Service");
+    private ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "Keyed-Task-Service");
     private KeyedOneThreadTaskExecutor<String> notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);;
 
     /**

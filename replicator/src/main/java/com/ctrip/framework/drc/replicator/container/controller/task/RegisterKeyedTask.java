@@ -17,8 +17,7 @@ public class RegisterKeyedTask extends AbstractKeyedTask {
     protected void doExecute() {
         try {
             logger.info("[Register] replicator instance for {} with {}", registryKey, replicatorConfig);
-            String registryPath = replicatorConfig.getRegistryKey();
-            serverContainer.register(registryPath, replicatorConfig.getApplierPort());
+            serverContainer.register(registryKey, replicatorConfig.getApplierPort());
             future().setSuccess();
         } catch (Throwable t) {
             logger.error("[Register] replicator instance({}) error", registryKey, t);

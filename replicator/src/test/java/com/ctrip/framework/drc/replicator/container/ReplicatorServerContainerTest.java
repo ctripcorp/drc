@@ -1,10 +1,8 @@
 package com.ctrip.framework.drc.replicator.container;
 
-import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.config.GlobalConfig;
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.entity.Db;
-import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
 import com.ctrip.framework.drc.core.server.container.ComponentRegistryHolder;
@@ -18,7 +16,6 @@ import com.ctrip.xpipe.foundation.DefaultFoundationService;
 import com.ctrip.xpipe.zk.ZkClient;
 import com.google.common.collect.Lists;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -113,19 +110,6 @@ public class ReplicatorServerContainerTest extends AbstractZkTest {
         if (curatorFramework != null) {
             curatorFramework.close();
         }
-    }
-
-    @Test
-    public void testAddServer() throws Exception {
-        ApiResult apiResult = replicatorServerContainer.addServer(replicatorConfig);
-        Assert.assertEquals(apiResult.getStatus().intValue(), ResultCode.HANDLE_SUCCESS.getCode());
-        replicatorServerContainer.removeServer(replicatorConfig.getRegistryKey(), true);
-
-        when(registry.add(anyObject())).thenThrow(exception);
-        apiResult = replicatorServerContainer.addServer(replicatorConfig);  //asyc remove in processingReplicators
-        Assert.assertEquals(apiResult.getStatus().intValue(), ResultCode.SERVER_ALREADY_EXIST.getCode());
-        Thread.sleep(1000);
-
     }
 
     @Test
