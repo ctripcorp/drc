@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
@@ -64,6 +65,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
+    private final int OLD_UCS_ID = 20001;
+    private final int NEW_UCS_ID = 2000000002;
 
     @Override
     public List<RowsFilterConfig> generateRowsFiltersConfig(Long applierGroupId, int applierType) throws SQLException {
@@ -73,7 +76,6 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
         for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
-
             DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByIdsAndType(
                     Lists.newArrayList(mapping.getDataMediaId()), DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode()
             ).get(0);
@@ -81,13 +83,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
-            // new rowsFilterConfig  trip_udl & configs & updateDb
-            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config", applierGroupId);
             rowsFilterConfig.setMode(
                     TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
             );
             String configsJson = rowsFilterTbl.getConfigs();
             if (StringUtils.isBlank(configsJson)) {
+                // new rowsFilterConfig  trip_udl & configs & updateDb
+                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config", applierGroupId);
                 Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
                 Configs configs = new Configs();
                 configs.setParameterList(Lists.newArrayList(parameters));
@@ -241,6 +243,71 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         return conflictTables;
     }
+
+    @Override
+    public List<Long> getMigrateRowsFilterIds() throws SQLException {
+        List<Long> res = Lists.newArrayList();
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.TRUE.getCode());
+        for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
+            if (rowsFilterTbl.getMode().equalsIgnoreCase(TRIP_UDL)) {
+                String configsJson = rowsFilterTbl.getConfigs();
+                if (StringUtils.isBlank(configsJson)) {
+                    throw new IllegalArgumentException("udl rowsFilter has empty configs,id:" + rowsFilterTbl.getId());
+                } else {
+                    Configs configs = JsonUtils.fromJson(configsJson, Configs.class);
+                    List<Parameters> parameterList = configs.getParameterList();
+                    for (Parameters parameters : parameterList) {
+                        if (parameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                            int currentStrategyId = configs.getDrcStrategyId();
+                            if (currentStrategyId ==  OLD_UCS_ID) {
+                                res.add(rowsFilterTbl.getId());
+                            } else if (currentStrategyId ==  NEW_UCS_ID) {
+                                logger.info("udl rowsFilter currentStrategyId already migrate,id:{}",rowsFilterTbl.getId());
+                            } else {
+                                throw new IllegalArgumentException("udl rowsFilter has unexpected strategy,id:" 
+                                        + rowsFilterTbl.getId());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return res;
+
+    }
+
+    @Override
+    public List<Integer> migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException {
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryByIds(rowsFilterIds, BooleanEnum.FALSE.getCode());
+        List<RowsFilterTbl> rowsFilterTblsToBeUpdated = Lists.newArrayList();
+        for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
+            if (rowsFilterTbl.getMode().equalsIgnoreCase(TRIP_UDL)) {
+                String configsJson = rowsFilterTbl.getConfigs();
+                if (StringUtils.isBlank(configsJson)) {
+                    throw new IllegalArgumentException("udl rowsFilter has empty configs,id:" + rowsFilterTbl.getId());
+                } else {
+                    Configs configs = JsonUtils.fromJson(configsJson, Configs.class);
+                    List<Parameters> parameterList = configs.getParameterList();
+                    for (Parameters parameters : parameterList) {
+                        if (parameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                            int currentStrategyId = configs.getDrcStrategyId();
+                            if (currentStrategyId ==  OLD_UCS_ID) {
+                                configs.setDrcStrategyId(NEW_UCS_ID);
+                                rowsFilterTbl.setConfigs(JsonUtils.toJson(configs));
+                                rowsFilterTblsToBeUpdated.add(rowsFilterTbl);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        int[] ints = rowsFilterTblDao.batchUpdate(rowsFilterTblsToBeUpdated);
+        return null;
+    }
+    
+    
+    
 
     private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig, RowsFilterTbl rowsFilterTbl) {
         try {

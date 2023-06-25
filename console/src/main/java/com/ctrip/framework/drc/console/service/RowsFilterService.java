@@ -34,4 +34,8 @@ public interface RowsFilterService {
 
     // forward by mhaName
     List<String> getConflictTables(String mhaName, String logicalTables);
+    
+    List<Long> getMigrateRowsFilterIds() throws SQLException;
+    
+    List<Integer> migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException; 
 }
