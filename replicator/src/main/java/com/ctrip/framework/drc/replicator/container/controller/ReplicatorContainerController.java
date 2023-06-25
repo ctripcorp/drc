@@ -114,16 +114,17 @@ public class ReplicatorContainerController {
         }
 
         @Override
-        protected void doExecute() throws Throwable {
+        protected void doExecute() {
             try {
-                if (!checkConfig()) {
-                    return;
+                if (checkConfig()) {
+                    removeOldInstance();
+                    addNewInstance();
+                    logger.info("[Start] replicator instance({}) success", registryKey);
                 }
-                removeOldInstance();
-                addNewInstance();
-                logger.info("[Start] replicator instance({}) success", registryKey);
-            } catch (Exception e) {
-                logger.error("[Start] replicator instance({}) error", registryKey, e);
+                future().setSuccess();
+            } catch (Throwable t) {
+                logger.error("[Start] replicator instance({}) error", registryKey, t);
+                future().setFailure(t);
             }
         }
 
