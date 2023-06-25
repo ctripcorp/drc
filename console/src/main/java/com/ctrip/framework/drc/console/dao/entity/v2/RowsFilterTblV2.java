@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.dao.entity.v2;
 
-import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
 
@@ -10,14 +9,13 @@ import java.sql.Types;
 import java.util.Objects;
 
 /**
- * @author dql邓权亮
- * @date 2023-05-25
+ * Created by dengquanliang
+ * 2023/6/25 16:39
  */
 @Entity
 @Database(name = "fxdrcmetadb_w")
-@Table(name = "columns_filter_tbl_v2")
-public class ColumnsFilterTblV2 implements DalPojo {
-
+@Table(name = "rows_filter_tbl_v2")
+public class RowsFilterTblV2 {
     /**
      * pk
      */
@@ -28,7 +26,7 @@ public class ColumnsFilterTblV2 implements DalPojo {
     private Long id;
 
     /**
-     * 列过滤配置 模式 0-exclude 1-include
+     * 列过滤配置 模式 0-java_regex 1-trip_udl 2-trip_uid
      */
     @Column(name = "mode")
     @Type(value = Types.TINYINT)
@@ -37,9 +35,9 @@ public class ColumnsFilterTblV2 implements DalPojo {
     /**
      * 列
      */
-    @Column(name = "columns")
+    @Column(name = "configs")
     @Type(value = Types.LONGVARCHAR)
-    private String columns;
+    private String configs;
 
     /**
      * 是否删除, 0-否; 1-是
@@ -78,12 +76,12 @@ public class ColumnsFilterTblV2 implements DalPojo {
         this.mode = mode;
     }
 
-    public String getColumns() {
-        return columns;
+    public String getConfigs() {
+        return configs;
     }
 
-    public void setColumns(String columns) {
-        this.columns = columns;
+    public void setConfigs(String configs) {
+        this.configs = configs;
     }
 
     public Integer getDeleted() {
@@ -111,18 +109,6 @@ public class ColumnsFilterTblV2 implements DalPojo {
     }
 
     @Override
-    public String toString() {
-        return "ColumnsFilterTblV2{" +
-                "id=" + id +
-                ", mode=" + mode +
-                ", columns='" + columns + '\'' +
-                ", deleted=" + deleted +
-                ", createTime=" + createTime +
-                ", datachangeLasttime=" + datachangeLasttime +
-                '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -130,12 +116,24 @@ public class ColumnsFilterTblV2 implements DalPojo {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ColumnsFilterTblV2 that = (ColumnsFilterTblV2) o;
-        return Objects.equals(mode, that.mode) && Objects.equals(columns, that.columns);
+        RowsFilterTblV2 that = (RowsFilterTblV2) o;
+        return Objects.equals(mode, that.mode) && Objects.equals(configs, that.configs);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mode, columns);
+        return Objects.hash(mode, configs);
+    }
+
+    @Override
+    public String toString() {
+        return "RowsFilterTblV2{" +
+                "id=" + id +
+                ", mode=" + mode +
+                ", configs='" + configs + '\'' +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
     }
 }

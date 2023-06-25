@@ -140,6 +140,15 @@ public class MigrateController {
         }
     }
 
+    @PostMapping("/rowsFilter")
+    public ApiResult<MigrateResult> migrateRowsFilter() {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.migrateRowsFilter());
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
     @PostMapping("/dbReplication")
     public ApiResult<MigrateResult> migrateDbReplicationTbl() {
         try {

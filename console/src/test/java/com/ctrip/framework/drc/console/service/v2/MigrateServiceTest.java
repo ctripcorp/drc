@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
 import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getDbTbls;
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getColumnsFilterTbls;
+import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getRowsFilterTbls;
 
 /**
  * Created by dengquanliang
@@ -87,6 +88,10 @@ public class MigrateServiceTest {
     private ColumnsFilterTblDao columnsFilterTblDao;
     @Mock
     private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
+    @Mock
+    private RowsFilterTblDao rowsFilterTblDao;
+    @Mock
+    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
     @Mock
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Mock
@@ -246,7 +251,21 @@ public class MigrateServiceTest {
 
         MigrateResult result = migrationService.migrateColumnsFilter();
         Mockito.verify(columnFilterTblV2Dao, times(1)).batchInsert(Mockito.any(DalHints.class), Mockito.anyList());
-        Mockito.verify(columnFilterTblV2Dao, times(0)).batchUpdate(Mockito.anyList());
+        Mockito.verify(columnFilterTblV2Dao, times(0)).batchDelete(Mockito.anyList());
+        Assert.assertEquals(result.getInsertSize(), 1);
+        Assert.assertEquals(result.getUpdateSize(), 0);
+        Assert.assertEquals(result.getDeleteSize(), 0);
+    }
+
+    @Test
+    public void testMigrateRowsFilter() throws Exception {
+        Mockito.when(rowsFilterTblDao.queryAll()).thenReturn(getRowsFilterTbls());
+        Mockito.when(rowsFilterTblV2Dao.queryAll()).thenReturn(new ArrayList<>());
+        Mockito.when(rowsFilterTblV2Dao.batchInsert(Mockito.any(), Mockito.anyList())).thenReturn(new int[1]);
+
+        MigrateResult result = migrationService.migrateRowsFilter();
+        Mockito.verify(rowsFilterTblV2Dao, times(1)).batchInsert(Mockito.any(DalHints.class), Mockito.anyList());
+        Mockito.verify(rowsFilterTblV2Dao, times(0)).batchDelete(Mockito.anyList());
         Assert.assertEquals(result.getInsertSize(), 1);
         Assert.assertEquals(result.getUpdateSize(), 0);
         Assert.assertEquals(result.getDeleteSize(), 0);
@@ -312,6 +331,9 @@ public class MigrateServiceTest {
         Mockito.when(dataMediaTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDataMediaTbls());
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMappings());
         Mockito.when(columnsFilterTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getColumnsFilterTbls()));
+        Mockito.when(rowsFilterTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterTbls());
+        Mockito.when(rowsFilterTblV2Dao.queryByConfigs(Mockito.anyInt(), Mockito.anyString())).thenReturn(MigrateEntityBuilder.getRowsFilterTblV2());
+        Mockito.when(columnFilterTblV2Dao.queryByColumns(Mockito.anyInt(), Mockito.anyString())).thenReturn(MigrateEntityBuilder.getColumnsFilterTblV2());
 
         Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
         Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMessengerGroup()));

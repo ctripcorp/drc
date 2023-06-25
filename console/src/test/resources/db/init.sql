@@ -585,3 +585,13 @@ CREATE TABLE `datamediapair_tbl` (
     KEY `ix_group_id` (`group_id`),
     KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='同步表级别配置';
+
+CREATE TABLE `rows_filter_tbl_v2` (
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `mode` tinyint(4) NOT NULL DEFAULT '-1' COMMENT '行过滤配置 模式 0-java_regex,1-trip_udl 2-trip_uid',
+    `configs` text COMMENT 'json保存parameters List',
+    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB COMMENT='行过滤配置表';

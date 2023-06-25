@@ -79,11 +79,13 @@ public class MigrateServiceIntegrationTest {
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
     @Autowired
-    private RegionTblDao regionTblDao;
-    @Autowired
     private ColumnsFilterTblDao columnsFilterTblDao;
     @Autowired
     private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
+    @Autowired
+    private RowsFilterTblDao rowsFilterTblDao;
+    @Autowired
+    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
     @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
 
@@ -92,7 +94,7 @@ public class MigrateServiceIntegrationTest {
             "mha_group_tbl", "db_tbl", "replicator_group_tbl", "applier_group_tbl", "applier_tbl", "rows_filter_mapping_tbl",
             "rows_filter_tbl", "data_media_tbl", "mha_tbl_v2", "mha_replication_tbl", "mha_db_mapping_tbl", "db_replication_tbl",
             "db_replication_filter_mapping_tbl", "columns_filter_tbl_v2", "columns_filter_tbl", "applier_group_tbl_v2", "applier_tbl_v2",
-            "messenger_filter_tbl", "messenger_group_tbl", "datamediapair_tbl");
+            "messenger_filter_tbl", "messenger_group_tbl", "datamediapair_tbl", "rows_filter_tbl_v2");
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -206,11 +208,28 @@ public class MigrateServiceIntegrationTest {
         Assert.assertEquals(result.getDeleteSize(), 0);
 
         result = migrationService.migrateColumnsFilter();
-        Assert.assertEquals(result.getInsertSize(), 0);
-        Assert.assertEquals(result.getUpdateSize(), 1);
+        Assert.assertEquals(result.getInsertSize(), 1);
+        Assert.assertEquals(result.getUpdateSize(), 0);
         Assert.assertEquals(result.getDeleteSize(), 1);
 
         List<ColumnsFilterTblV2> tbls = columnFilterTblV2Dao.queryAll();
+        Assert.assertEquals(tbls.size(), 1);
+        tbls.forEach(System.out::println);
+    }
+
+    @Test
+    public void testMigrateRowsFilter() throws Exception {
+        MigrateResult result = migrationService.migrateRowsFilter();
+        Assert.assertEquals(result.getInsertSize(), 1);
+        Assert.assertEquals(result.getUpdateSize(), 0);
+        Assert.assertEquals(result.getDeleteSize(), 0);
+
+        result = migrationService.migrateRowsFilter();
+        Assert.assertEquals(result.getInsertSize(), 1);
+        Assert.assertEquals(result.getUpdateSize(), 0);
+        Assert.assertEquals(result.getDeleteSize(), 1);
+
+        List<RowsFilterTblV2> tbls = rowsFilterTblV2Dao.queryAll();
         Assert.assertEquals(tbls.size(), 1);
         tbls.forEach(System.out::println);
     }
@@ -245,6 +264,9 @@ public class MigrateServiceIntegrationTest {
         dbTblDao.batchInsert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getDbTbls());
         messengerGroupTblDao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getMessengerGroup());
         messengerFilterTblDao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getMessengerFilters());
+
+        rowsFilterTblV2Dao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getRowsFilterTblV2());
+        columnFilterTblV2Dao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getColumnsFilterTblV2());
 
         MigrateResult result = migrationService.migrateDbReplicationFilterMapping();
         Assert.assertEquals(result.getInsertSize(), 2);
@@ -283,5 +305,6 @@ public class MigrateServiceIntegrationTest {
         applierTblDao.batchInsert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getApplierTbls());
         columnsFilterTblDao.batchInsert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getColumnsFilterTbls());
         dataMediaPairTblDao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getDataMediaPairTbl());
+        rowsFilterTblDao.batchInsert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getRowsFilterTbls());
     }
 }

@@ -4,11 +4,7 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
-import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
-import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -97,11 +93,13 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     @Autowired
     private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
     @Autowired
+    private RowsFilterTblDao rowsFilterTblDao;
+    @Autowired
+    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
+    @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Autowired
     private DalServiceImpl dalService;
-    @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
     @Autowired
     private DrcBuildService drcBuildService;
 
@@ -523,38 +521,55 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     public MigrateResult migrateColumnsFilter() throws Exception {
         List<ColumnsFilterTbl> oldColumnsFilterTbls = columnsFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ColumnsFilterTblV2> existColumnsFilters = columnFilterTblV2Dao.queryAll();
-        List<Long> existIds = existColumnsFilters.stream().map(ColumnsFilterTblV2::getId).collect(Collectors.toList());
 
-        List<ColumnsFilterTblV2> insertColumnsFilterTbls = new ArrayList<>();
-        List<ColumnsFilterTblV2> updateColumnsFilterTbls = new ArrayList<>();
-        for (ColumnsFilterTbl oldColumnsFilterTbl : oldColumnsFilterTbls) {
-            ColumnsFilterTblV2 newColumnsFilterTbl = new ColumnsFilterTblV2();
-            newColumnsFilterTbl.setId(oldColumnsFilterTbl.getId());
-            newColumnsFilterTbl.setColumns(oldColumnsFilterTbl.getColumns());
-            newColumnsFilterTbl.setMode(ColumnsFilterModeEnum.getCodeByName(oldColumnsFilterTbl.getMode()));
-            if (existIds.contains(oldColumnsFilterTbl.getId())) {
-                updateColumnsFilterTbls.add(newColumnsFilterTbl);
-            } else {
-                insertColumnsFilterTbls.add(newColumnsFilterTbl);
-            }
-        }
+        Set<ColumnsFilterTblV2> columnsFilterSet = oldColumnsFilterTbls.stream().map(source -> {
+            ColumnsFilterTblV2 target = new ColumnsFilterTblV2();
+            target.setColumns(source.getColumns());
+            target.setMode(ColumnsFilterModeEnum.getCodeByName(source.getMode()));
+            target.setDeleted(BooleanEnum.FALSE.getCode());
+            return target;
+        }).collect(Collectors.toSet());
+        List<ColumnsFilterTblV2> insertColumnsFilterTbls = new ArrayList<>(columnsFilterSet);
 
         int insertSize = insertColumnsFilterTbls.size();
-        int updateSize = updateColumnsFilterTbls.size();
         int deleteSize = existColumnsFilters.size();
-        logger.info("[[migrateColumnsFilter]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, updateSize, deleteSize);
+        logger.info("[[migrateColumnsFilter]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, 0, deleteSize);
 
         if (!CollectionUtils.isEmpty(existColumnsFilters)) {
-            existColumnsFilters.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            deleteSize = columnFilterTblV2Dao.batchUpdate(existColumnsFilters).length;
-        }
-        if (!CollectionUtils.isEmpty(updateColumnsFilterTbls)) {
-            updateSize = columnFilterTblV2Dao.batchUpdate(updateColumnsFilterTbls).length;
+            deleteSize = columnFilterTblV2Dao.batchDelete(existColumnsFilters).length;
         }
         if (!CollectionUtils.isEmpty(insertColumnsFilterTbls)) {
             insertSize = columnFilterTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertColumnsFilterTbls).length;
         }
-        return new MigrateResult(insertSize, updateSize, deleteSize, oldColumnsFilterTbls.size());
+        return new MigrateResult(insertSize, 0, deleteSize, columnsFilterSet.size());
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MigrateResult migrateRowsFilter() throws Exception {
+        List<RowsFilterTbl> oldRowsFilters = rowsFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<RowsFilterTblV2> existRowsFilters = rowsFilterTblV2Dao.queryAll();
+
+        Set<RowsFilterTblV2> rowsFilterSet = oldRowsFilters.stream().map(source -> {
+            RowsFilterTblV2 target = new RowsFilterTblV2();
+            target.setConfigs(source.getConfigs());
+            target.setMode(RowsFilterModeEnum.getCodeByName(source.getMode()));
+            target.setDeleted(BooleanEnum.FALSE.getCode());
+            return target;
+        }).collect(Collectors.toSet());
+        List<RowsFilterTblV2> insertRowsFilterTbls = new ArrayList<>(rowsFilterSet);
+
+        int insertSize = insertRowsFilterTbls.size();
+        int deleteSize = existRowsFilters.size();
+        logger.info("[[migrateRowsFilter]] insertSize: {}, updateSize: {}, deleteSize: {}", insertSize, 0, deleteSize);
+
+        if (!CollectionUtils.isEmpty(existRowsFilters)) {
+            deleteSize = rowsFilterTblV2Dao.batchDelete(existRowsFilters).length;
+        }
+        if (!CollectionUtils.isEmpty(insertRowsFilterTbls)) {
+            insertSize = rowsFilterTblV2Dao.batchInsert(new DalHints().enableIdentityInsert(), insertRowsFilterTbls).length;
+        }
+        return new MigrateResult(insertSize, 0, deleteSize, rowsFilterSet.size());
     }
 
     @Override
@@ -727,15 +742,17 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DataMediaPairTbl> dataMediaPairTbls = dataMediaPairTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
         Map<Long, MhaDbMappingTbl> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
         Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTblV2::getMhaReplicationId, ApplierGroupTblV2::getId));
         Map<Long, DataMediaTbl> dataMediaMap = dataMediaTbls.stream().collect(Collectors.toMap(DataMediaTbl::getId, Function.identity()));
         Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
-        Map<Long, Long> columnsFilterMap = columnsFilterTbls.stream().collect(Collectors.toMap(ColumnsFilterTbl::getDataMediaId, ColumnsFilterTbl::getId));
+        Map<Long, ColumnsFilterTbl> columnsFilterMap = columnsFilterTbls.stream().collect(Collectors.toMap(ColumnsFilterTbl::getDataMediaId, Function.identity()));
         Map<Long, List<RowsFilterMappingTbl>> rowsFilterMappingMap = rowsFilterMappingTbls.stream().collect(Collectors.groupingBy(RowsFilterMappingTbl::getApplierGroupId));
         Map<String, Long> messengerFilterMap = messengerFilterTbls.stream().collect(Collectors.toMap(MessengerFilterTbl::getProperties, MessengerFilterTbl::getId));
         Map<Long, Long> messengerGroupMap = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, MessengerGroupTbl::getId));
+        Map<Long, RowsFilterTbl> rowsFilterTblMap = rowsFilterTbls.stream().collect(Collectors.toMap(RowsFilterTbl::getId, Function.identity()));
 
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = new ArrayList<>();
         for (DbReplicationTbl dbReplicationTbl : dbReplications) {
@@ -761,7 +778,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                             .findFirst()
                             .orElse(null);
                     if (columnsDataMediaTbl != null) {
-                        columnsFilterId = columnsFilterMap.get(columnsDataMediaTbl.getId());
+                        ColumnsFilterTbl columnsFilter = columnsFilterMap.get(columnsDataMediaTbl.getId());
+                        ColumnsFilterTblV2 newColumnsFilter = columnFilterTblV2Dao.queryByColumns(ColumnsFilterModeEnum.getCodeByName(columnsFilter.getMode()), columnsFilter.getColumns());
+                        columnsFilterId = newColumnsFilter.getId();
                     }
 
                     //rowsFilter
@@ -770,7 +789,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                         for (RowsFilterMappingTbl mapping : rowsFilterMappings) {
                             DataMediaTbl rowsDataMediaTbl = dataMediaMap.get(mapping.getDataMediaId());
                             if (rowsDataMediaTbl.getFullName().equals(fullName)) {
-                                rowsFilterId = mapping.getRowsFilterId();
+                                RowsFilterTbl rowsFilterTbl = rowsFilterTblMap.get(mapping.getRowsFilterId());
+                                RowsFilterTblV2 newRowsFilter = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()), rowsFilterTbl.getConfigs());
+                                rowsFilterId = newRowsFilter.getId();
                                 break;
                             }
                         }

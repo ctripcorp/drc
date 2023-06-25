@@ -173,13 +173,15 @@ public class MigrateEntityBuilder {
 
     public static List<ColumnsFilterTbl> getColumnsFilterTbls() {
         List<ColumnsFilterTbl> tbls = new ArrayList<>();
-        ColumnsFilterTbl tbl = new ColumnsFilterTbl();
-        tbl.setDeleted(0);
-        tbl.setId(200L);
-        tbl.setMode("exclude");
-        tbls.add(tbl);
-        tbl.setDataMediaId(200L);
-        tbl.setColumns("udl");
+        for (int i = 200; i < 202; i++) {
+            ColumnsFilterTbl tbl = new ColumnsFilterTbl();
+            tbl.setDeleted(0);
+            tbl.setId(Long.valueOf(i));
+            tbl.setMode("exclude");
+            tbls.add(tbl);
+            tbl.setDataMediaId(tbl.getId());
+            tbl.setColumns("udl");
+        }
         return tbls;
     }
 
@@ -187,6 +189,31 @@ public class MigrateEntityBuilder {
         ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
         tbl.setDeleted(0);
         tbl.setId(200L);
+        tbl.setMode(0);
+        tbl.setColumns("udl");
+        return tbl;
+    }
+
+    public static List<RowsFilterTbl> getRowsFilterTbls() {
+        List<RowsFilterTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            RowsFilterTbl tbl = new RowsFilterTbl();
+            tbl.setId(Long.valueOf(i));
+            tbl.setMode("java_regex");
+            tbl.setConfigs("configs");
+            tbl.setParameters("");
+            tbl.setDeleted(0);
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static RowsFilterTblV2 getRowsFilterTblV2() {
+        RowsFilterTblV2 tbl = new RowsFilterTblV2();
+        tbl.setId(200L);
+        tbl.setMode(0);
+        tbl.setConfigs("configs");
+        tbl.setDeleted(0);
         return tbl;
     }
 
