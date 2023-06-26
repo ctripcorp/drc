@@ -89,7 +89,7 @@ public class FetcherConnectionTest {
         Mockito.verify(networkContextResource, times(0)).fetchGtidSet();  //connected
         stopReplicatorServer(replicatorServer);
         Thread.sleep(1100);
-        Mockito.verify(networkContextResource, atLeast(1)).fetchGtidSet();  //no binlog, so no exception, stop server, reconnect
+        Mockito.verify(networkContextResource, atLeast(1)).queryTheNewestGtidset();  //no binlog, so no exception, stop server, reconnect
 
         replicatorServer = getReplicatorServer();
 
