@@ -308,7 +308,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             }
         }
         int[] updateRes = rowsFilterTblDao.batchUpdate(rowsFilterTblsToBeUpdated);
-        return new MigrateResult(0, Arrays.stream(updateRes).sum(),0,rowsFilterIds.size());
+        return new MigrateResult(0, Arrays.stream(updateRes).sum(),0,rowsFilterTblsToBeUpdated.size());
     }
     
 
