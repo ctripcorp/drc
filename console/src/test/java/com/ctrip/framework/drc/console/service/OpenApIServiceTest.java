@@ -39,7 +39,7 @@ public class OpenApIServiceTest {
     private static final String FAT_URL = "http://service.dbcluster.fws.qa.nt.ctripcorp.com/api/dal/v2/";
     private static final String PRO_URL = "http://service.dbcluster.ctripcorp.com/api/dal/v2/";
     private static final String MHA_INSTANCES_GROUP_CLUSTER_INFO = "instanceGroups/%s/clusters?operator=DRCConsole";
-    private static final List<String> FAT_MHA_LIST = Arrays.asList("sinfatpub01", "sin-drc2test", "commonordershardnt", "fat-fx-drc1");
+    private static final List<String> FAT_MHA_LIST = Arrays.asList("oy-drc2test","rb-drc2test","sin-drc2test","mode_gtid_1","mode_gtid_2","oy-mq-test","rb-mq-test","test_mha","sin_drctest","uat-sin-mysql","rb_drctest");
     private static final List<String> PRO_MHA_LIST = Arrays.asList("sindrcpub03test", "sinfltpub01", "gscrawlerbigdatanew", "pkgproductmetanew");
     private static final String TOKEN = "6kx7Lihuc3vBNKeMWMa51gMgDbJkn9s4";
     public static final int DEFAULT_TIME_OUT = 10000;

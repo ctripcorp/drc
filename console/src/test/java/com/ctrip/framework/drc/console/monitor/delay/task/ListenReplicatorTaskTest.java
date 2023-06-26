@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveCon
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
@@ -17,6 +18,7 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +29,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import org.springframework.util.CollectionUtils;
+import org.xml.sax.SAXException;
 
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
@@ -60,7 +64,10 @@ public class ListenReplicatorTaskTest extends MockTest {
 
     @Mock
     private DefaultConsoleConfig consoleConfig;
-
+    
+    @Mock
+    private ModuleCommunicationServiceImpl moduleCommunicationService;
+    
     private Map<String, ReplicatorWrapper> oldReplicatorWrappers;
 
     private Map<String, ReplicatorWrapper> newReplicatorWrappers;
@@ -136,6 +143,22 @@ public class ListenReplicatorTaskTest extends MockTest {
         listenReplicatorTask.setDelayMonitorServerMap(delayMonitorServerMap);
     }
 
+    @Test
+    public void testUpdateListenReplicatorSlaves() throws SQLException, IOException, SAXException {
+        String oldFile = ClassUtils.getDefaultClassLoader().getResource(XML_DELAY_MONITOR_DRC_OLD).getPath();
+        String oldRouteDrcXmlStr = AllTests.readFileContent(oldFile);
+        drc = DefaultSaxParser.parse(oldRouteDrcXmlStr);
+        Mockito.when(dbClusterSourceProvider.getAllReplicatorsInLocalRegion()).thenReturn(getAllReplicatorsInDc(drc,"dc1"));
+        
+        Mockito.doNothing().when(listenReplicatorTask).updateMasterReplicatorIfChange(Mockito.anyString(),Mockito.anyString());
+        
+        
+        // case1: get null
+        Mockito.when(moduleCommunicationService.getActiveReplicator(Mockito.anyString(),Mockito.anyString())).thenReturn(null);
+        listenReplicatorTask.updateListenReplicatorSlaves();
+    }
+    
+    
     @Test
     public void testListeningReplicatorComparator() {
         try (MockedStatic<RouteUtils> theMock = Mockito.mockStatic(RouteUtils.class)) {
@@ -226,5 +249,32 @@ public class ListenReplicatorTaskTest extends MockTest {
             );
         }
         return replicatorWrappers;
+    }
+
+
+    private Map<String, List<ReplicatorWrapper>> getAllReplicatorsInDc(Drc drc,String dcName) {
+        Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
+        Dc dc = drc.getDcs().get(dcName);
+        for (DbCluster dbCluster : dc.getDbClusters().values()) {
+            String mhaName = dbCluster.getMhaName();
+            logger.info("[[monitor=ReplicatorSlave]] mha:{} , gray open",mhaName);
+            List<ReplicatorWrapper> rWrappers = Lists.newArrayList();
+            for (Replicator replicator: dbCluster.getReplicators()) {
+                ReplicatorWrapper rWrapper = new ReplicatorWrapper(
+                        replicator,
+                        dcName,
+                        dcName,
+                        dbCluster.getName(),
+                        mhaName,
+                        mhaName,
+                        Lists.newArrayList());
+                rWrappers.add(rWrapper);
+            }
+            if (!CollectionUtils.isEmpty(rWrappers)) {
+                replicators.put(dbCluster.getId(), rWrappers);
+            }
+            
+        }
+        return replicators;
     }
 }

@@ -109,6 +109,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private static final int BATCH_SIZE = 2000;
     private static final int TIME_OUT = 10;
     private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
+    private static final String TEST_BU_NAME = "TEST";
 
     @Override
     public int batchInsertRegions(List<String> regionNames) throws Exception {
@@ -376,7 +377,6 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         Map<String, List<String>> mhaDbMap = getAllDbNames(existMhaNames);
         List<String> allDbNames = new ArrayList<>();
         List<String> allMhaNames = new ArrayList<>();
-
         mhaDbMap.forEach((mhaName, dbNames) -> {
             allMhaNames.add(mhaName);
             allDbNames.addAll(dbNames);
@@ -429,10 +429,10 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             }
         }
         if (!CollectionUtils.isEmpty(notExistDbNames)) {
-            throw new IllegalArgumentException(String.format("the following db does not exist: %s", notExistDbNames));
+            logger.info("the following db does not exist: {}", notExistDbNames);
         }
         if (!CollectionUtils.isEmpty(notExistMhaNames)) {
-            throw new IllegalArgumentException(String.format("the following mha not contains any dbs: %s", notExistMhaNames));
+            logger.info("the following mha not contains any dbs: {}", notExistMhaNames);
         }
 
         Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
@@ -457,12 +457,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     @Override
     public List<MhaNameFilterVo> checkMhaFilter() throws Exception {
-//        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
 
-//        Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, ApplierGroupTbl::getReplicatorGroupId));
-//        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
         Map<Long, String> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
 
         List<MhaNameFilterVo> mhaNameFilterVos = new ArrayList<>();
@@ -832,6 +829,77 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         return new MigrateResult(insertSize, 0, deleteSize, dbReplicationFilterMappingTbls.size());
     }
 
+    @Override
+    public MigrateResult manualMigrateDbs(List<String> dbs) throws Exception {
+        List<String> existDbs = dbTblDao.queryAll().stream()
+                .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()))
+                .map(DbTbl::getDbName)
+                .collect(Collectors.toList());
+        List<DbTbl> insertTbls = dbs.stream().filter(db -> !existDbs.contains(db)).map(db -> {
+            DbTbl dbTbl = new DbTbl();
+            dbTbl.setDbName(db);
+            dbTbl.setIsDrc(0);
+            dbTbl.setBuName(TEST_BU_NAME);
+            dbTbl.setBuCode(TEST_BU_NAME);
+            dbTbl.setDbOwner(TEST_BU_NAME);
+            dbTbl.setDeleted(0);
+            return dbTbl;
+        }).collect(Collectors.toList());
+
+        int insertSize = 0;
+        if (!CollectionUtils.isEmpty(insertTbls)) {
+            insertSize = dbTblDao.batchInsert(insertTbls).length;
+        }
+        return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
+    @Override
+    public MigrateResult manualMigrateMhaDbMapping(List<String> mhaNames) throws Exception {
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<String> existDbs = dbTbls.stream().map(DbTbl::getDbName).collect(Collectors.toList());
+        Map<String, Long> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+
+        Map<String, List<String>> notExistMhaMap = new HashMap<>();
+        List<String> notExistMhas = new ArrayList<>();
+        Map<String, List<String>> mhaDbMap = new HashMap<>();
+        for (String mhaName : mhaNames) {
+            List<String> dbs = drcBuildService.queryDbsWithNameFilter(mhaName, "");
+            if (CollectionUtils.isEmpty(dbs)) {
+                notExistMhas.add(mhaName);
+            } else {
+                mhaDbMap.put(mhaName, dbs);
+                List<String> notExistDbs = dbs.stream().filter(db -> !existDbs.contains(db)).collect(Collectors.toList());
+                if (!CollectionUtils.isEmpty(notExistDbs)) {
+                    notExistMhaMap.put(mhaName, notExistDbs);
+                }
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(notExistMhas)) {
+            throw new IllegalArgumentException(String.format("notExistMhas: %s", notExistMhas));
+        }
+        if (notExistMhaMap.size() > 0) {
+            throw new IllegalArgumentException(String.format("notExistMhaMap: %s", notExistMhaMap));
+        }
+
+        List<MhaDbMappingTbl> insertTbls = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : mhaDbMap.entrySet()) {
+            String mha = entry.getKey();
+            List<String> dbs = entry.getValue();
+            MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
+            dbs.forEach(db -> {
+                MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+                tbl.setMhaId(mhaTbl.getId());
+                tbl.setDbId(dbTblMap.get(db));
+                tbl.setDeleted(0);
+                insertTbls.add(tbl);
+            });
+        }
+
+        int insertSize = mhaDbMappingTblDao.batchInsert(insertTbls).length;
+        return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
     private int batchDeleteMhaDbMappings(List<MhaDbMappingTbl> existMhaDbMappingTblList) throws Exception {
         int resultSize = 0;
         if (CollectionUtils.isEmpty(existMhaDbMappingTblList)) {
@@ -1020,6 +1088,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> oldTables = drcBuildService.queryTablesWithNameFilter(mhaName, oldNameFilter);
         List<String> newTables = drcBuildService.queryTablesWithNameFilter(mhaName, newNameFilter);
 
+        logger.info("mha: {} query tables, oldTables: {}, \n, newTables: {}", mhaName, oldTables, newTables);
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables)) {
             return false;
         }

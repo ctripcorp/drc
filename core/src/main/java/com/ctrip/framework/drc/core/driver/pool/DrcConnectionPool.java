@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.isIntegrityTest;
 
 /**
  * Created by jixinwang on 2020/12/4
@@ -76,8 +77,23 @@ public class DrcConnectionPool extends ConnectionPool {
     private void trySetSessionWaitTimeout(Connection conn) {
         try {
             setSessionWaitTimeout(conn, SESSION_WAIT_TIMEOUT);
+            if (isIntegrityTest()) {
+                setDefaultCollationForUtf8mb4(conn);
+            }
         } catch (Exception e) {
             logger.error("set sessionWaitTimeout exception for {}", getName(), e);
+        }
+    }
+
+    private void setDefaultCollationForUtf8mb4(Connection conn) {
+        try (Statement statement = conn.createStatement()) {
+            if (statement != null) {
+                statement.execute("set session default_collation_for_utf8mb4=utf8mb4_general_ci;");
+            } else {
+                logger.error("set default_collation_for_utf8mb4 error for null statement");
+            }
+        } catch (Exception e) {
+            logger.error("set default_collation_for_utf8mb4 exception for {}", getName(), e);
         }
     }
 

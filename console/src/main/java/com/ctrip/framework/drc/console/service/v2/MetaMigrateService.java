@@ -50,4 +50,8 @@ public interface MetaMigrateService {
 
     MigrateResult migrateDbReplicationFilterMapping() throws Exception;
 
+    MigrateResult manualMigrateDbs(List<String> dbs) throws Exception;
+
+    MigrateResult manualMigrateMhaDbMapping(List<String> mhaNames) throws Exception;
+
 }

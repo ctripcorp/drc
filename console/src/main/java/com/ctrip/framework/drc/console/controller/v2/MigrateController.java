@@ -184,4 +184,22 @@ public class MigrateController {
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
+
+    @PostMapping("/manual/mhaDbMapping")
+    public ApiResult<MigrateResult> manualMigrateMhaDbMapping(@RequestBody List<String> mhaNames) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateMhaDbMapping(mhaNames));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual/db")
+    public ApiResult<MigrateResult> manualMigrateDbs(@RequestBody List<String> dbs) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateDbs(dbs));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
 }
