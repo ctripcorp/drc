@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.replicator.container.controller.task;
 
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 
@@ -21,6 +22,7 @@ public class RegisterKeyedTask extends AbstractKeyedTask {
             future().setSuccess();
         } catch (Throwable t) {
             logger.error("[Register] replicator instance({}) error", registryKey, t);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.instance.error", "register");
             future().setFailure(t);
         }
     }

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.replicator.container.controller.task;
 
 import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -26,6 +27,7 @@ public class AddKeyedTask extends AbstractKeyedTask {
             future().setSuccess();
         } catch (Throwable t) {
             logger.error("[Start] replicator instance({}) error", registryKey, t);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.instance.error", "start");
             future().setFailure(t);
         }
     }

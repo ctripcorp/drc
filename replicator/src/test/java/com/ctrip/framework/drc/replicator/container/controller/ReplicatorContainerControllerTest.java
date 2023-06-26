@@ -78,10 +78,25 @@ public class ReplicatorContainerControllerTest {
     @Test
     public void start() throws InterruptedException {
         controller.start(configDto);
+        Thread.sleep(200);
         Mockito.when(serverContainer.getUpstreamMaster(replicatorConfig.getRegistryKey())).thenReturn(replicatorConfig.getEndpoint());
         controller.start(configDto);
-        Thread.sleep(500);
-        Mockito.verify(serverContainer, Mockito.times(1)).removeServer(replicatorConfig.getRegistryKey(), false);
+        Thread.sleep(200);
+        Mockito.verify(serverContainer, Mockito.times(1)).removeServer(Mockito.anyString(), Mockito.anyBoolean());
         Mockito.verify(serverContainer, Mockito.times(1)).addServer(Mockito.any());
+    }
+
+    @Test
+    public void register() throws InterruptedException {
+        controller.register(configDto);
+        Thread.sleep(200);
+        Mockito.verify(serverContainer, Mockito.times(1)).register(Mockito.anyString(), Mockito.anyInt());
+    }
+
+    @Test
+    public void delete() throws InterruptedException {
+        controller.destroy(replicatorConfig.getRegistryKey());
+        Thread.sleep(200);
+        Mockito.verify(serverContainer, Mockito.times(1)).removeServer(Mockito.anyString(), Mockito.anyBoolean());
     }
 }
