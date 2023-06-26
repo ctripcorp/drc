@@ -118,9 +118,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
         ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
         String gtidSet = queryTask.doQuery();
-        if (StringUtils.isBlank(gtidSet)) {
-            emptyPositionFromDb = true;
-        }
+        emptyPositionFromDb = StringUtils.isBlank(gtidSet);
         return new GtidSet(gtidSet);
     }
 }
