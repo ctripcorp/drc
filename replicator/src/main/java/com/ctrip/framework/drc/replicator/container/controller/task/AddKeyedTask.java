@@ -49,7 +49,7 @@ public class AddKeyedTask extends AbstractKeyedTask {
         logger.info("[Start] replicator instance({}), remove old instance start", registryKey);
         long start = System.currentTimeMillis();
         serverContainer.removeServer(registryKey, false);
-        logger.info("[Start] replicator instance{}, remove old instance end, cost: {}ms", registryKey, (System.currentTimeMillis() - start));
+        logger.info("[Start] replicator instance({}), remove old instance end, cost: {}ms", registryKey, (System.currentTimeMillis() - start));
     }
 
     private void addNewInstance() {
