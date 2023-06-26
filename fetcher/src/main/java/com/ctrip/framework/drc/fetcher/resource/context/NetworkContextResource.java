@@ -44,7 +44,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @InstanceConfig(path = "target.password")
     public String password;
 
-    private static final String initialPositionUsed = "drc.initial.position.used";
+    private String positionFromDb;
 
     @Override
     public void doInitialize() throws Exception {
@@ -59,18 +59,18 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
             return fetchGtidSet();
         }
 
-        GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
-        updateGtidSet(executedGtidSet);
+        if (StringUtils.isBlank(positionFromDb)) {
+            GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
+            updateGtidSet(executedGtidSet);
+        }
+
         return fetchGtidSet();
     }
 
     private GtidSet unionGtidSet(String initialGtidExecuted) {
         GtidSet executedGtidSet = new GtidSet(StringUtils.EMPTY);
-        String useInitialPosition= (String) source.get(ConfigKey.from(DEFAULT_CONFIG_FILE_NAME, initialPositionUsed));
-        if ("true".equalsIgnoreCase(useInitialPosition)) {
-            executedGtidSet = executedGtidSet.union(new GtidSet(initialGtidExecuted));
-            logger.info("[{}][NETWORK GTID] initial position: {}", registryKey, executedGtidSet);
-        }
+        executedGtidSet = executedGtidSet.union(new GtidSet(initialGtidExecuted));
+        logger.info("[{}][NETWORK GTID] initial position: {}", registryKey, executedGtidSet);
 
         executedGtidSet = unionPositionFromQConfig(executedGtidSet);
 
@@ -118,6 +118,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
         ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
         String gtidSet = queryTask.doQuery();
+        positionFromDb = gtidSet;
         return new GtidSet(gtidSet);
     }
 }
