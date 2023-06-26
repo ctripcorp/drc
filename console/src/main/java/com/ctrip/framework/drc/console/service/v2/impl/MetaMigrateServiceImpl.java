@@ -861,6 +861,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         Map<String, List<String>> notExistMhaMap = new HashMap<>();
         List<String> notExistMhas = new ArrayList<>();
+        Set<String> notExistDbSet = new HashSet<>();
         Map<String, List<String>> mhaDbMap = new HashMap<>();
         for (String mhaName : mhaNames) {
             List<String> dbs = drcBuildService.queryDbsWithNameFilter(mhaName, "");
@@ -870,6 +871,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 mhaDbMap.put(mhaName, dbs);
                 List<String> notExistDbs = dbs.stream().filter(db -> !existDbs.contains(db)).collect(Collectors.toList());
                 if (!CollectionUtils.isEmpty(notExistDbs)) {
+                    notExistDbSet.addAll(notExistDbs);
                     notExistMhaMap.put(mhaName, notExistDbs);
                 }
             }
@@ -878,8 +880,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         if (!CollectionUtils.isEmpty(notExistMhas)) {
             throw new IllegalArgumentException(String.format("notExistMhas: %s", notExistMhas));
         }
-        if (notExistMhaMap.size() > 0) {
-            throw new IllegalArgumentException(String.format("notExistMhaMap: %s", notExistMhaMap));
+        if (!CollectionUtils.isEmpty(notExistDbSet)) {
+            throw new IllegalArgumentException(String.format("notExistMhaMap: %s\n notExistDbs: %s", notExistMhaMap, notExistDbSet));
         }
 
         List<MhaDbMappingTbl> insertTbls = new ArrayList<>();

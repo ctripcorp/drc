@@ -126,6 +126,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                         }
 
                         //handle offline dbs
+                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
                         List<String> remoteDbNameList = new ArrayList<>();
                         for (JsonElement jsonElement : dbArray) {
                             JsonObject jsonObject = jsonElement.getAsJsonObject();
@@ -133,9 +134,10 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                             remoteDbNameList.add(name);
                         }
 
+
                         List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
                         final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
-                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
+                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName()) && !dbWhiteList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
 
                         // update
                         int size = 100;
