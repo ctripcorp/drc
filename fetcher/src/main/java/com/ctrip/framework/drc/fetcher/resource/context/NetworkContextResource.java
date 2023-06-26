@@ -44,7 +44,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @InstanceConfig(path = "target.password")
     public String password;
 
-    private String positionFromDb;
+    private boolean emptyPositionFromDb = false;
 
     @Override
     public void doInitialize() throws Exception {
@@ -59,7 +59,7 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
             return fetchGtidSet();
         }
 
-        if (StringUtils.isBlank(positionFromDb)) {
+        if (emptyPositionFromDb) {
             GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
             updateGtidSet(executedGtidSet);
         }
@@ -118,7 +118,9 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
         ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
         String gtidSet = queryTask.doQuery();
-        positionFromDb = gtidSet;
+        if (StringUtils.isBlank(gtidSet)) {
+            emptyPositionFromDb = true;
+        }
         return new GtidSet(gtidSet);
     }
 }
