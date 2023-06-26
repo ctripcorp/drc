@@ -154,7 +154,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
     }
 
     @Test
-    public void testGetConflictTables() throws SQLException{
+    public void testGetMigrateRowsFilterIds() throws SQLException{
         List<RowsFilterTbl> res = Lists.newArrayList();
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
         rowsFilterTbl.setId(1L);
@@ -191,7 +191,7 @@ public class RowsFilterServiceImplTest extends AbstractTest {
     }
 
     @Test
-    public void testGetMigrateRowsFilterIds() throws SQLException {
+    public void testMigrateUdlStrategyId() throws SQLException {
         
         List<RowsFilterTbl> res = Lists.newArrayList();
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();

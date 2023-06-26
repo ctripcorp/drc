@@ -248,7 +248,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Override
     public List<Long> getMigrateRowsFilterIds() throws SQLException {
         List<Long> res = Lists.newArrayList();
-        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.TRUE.getCode());
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.FALSE.getCode());
         for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
             if (rowsFilterTbl.getMode().equalsIgnoreCase(TRIP_UDL)) {
                 String configsJson = rowsFilterTbl.getConfigs();
