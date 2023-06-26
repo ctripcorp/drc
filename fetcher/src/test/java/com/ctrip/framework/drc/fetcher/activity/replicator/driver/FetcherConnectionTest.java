@@ -93,7 +93,7 @@ public class FetcherConnectionTest {
 
         replicatorServer = getReplicatorServer();
 
-        Mockito.verify(networkContextResource, atLeast(1)).fetchGtidSet();
+        Mockito.verify(networkContextResource, atLeast(1)).queryTheNewestGtidset();
         stopReplicatorServer(replicatorServer);
     }
 
