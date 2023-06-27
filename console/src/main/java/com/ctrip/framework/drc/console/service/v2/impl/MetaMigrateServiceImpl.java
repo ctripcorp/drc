@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -762,7 +763,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = new ArrayList<>();
         for (DbReplicationTbl dbReplicationTbl : dbReplications) {
             MhaDbMappingTbl srcMhaDbMapping = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
-            String fullName = dbTblMap.get(srcMhaDbMapping.getDbId()) + "\\." + dbReplicationTbl.getSrcLogicTableName();
+            String fullName = dbTblMap.get(srcMhaDbMapping.getDbId()) + "." + dbReplicationTbl.getSrcLogicTableName();
+            String srcDbName = dbTblMap.get(srcMhaDbMapping.getDbId());
+            String srcTableName = dbReplicationTbl.getSrcLogicTableName();
 
             long columnsFilterId = -1L;
             long rowsFilterId = -1L;
@@ -779,7 +782,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
                     //columnsFilter
                     DataMediaTbl columnsDataMediaTbl = dataMediaTbls.stream()
-                            .filter(e -> e.getApplierGroupId().equals(applierGroupId) && e.getFullName().equals(fullName))
+                            .filter(e -> e.getApplierGroupId().equals(applierGroupId) && filterMatch(e, srcDbName, srcTableName))
                             .findFirst()
                             .orElse(null);
                     if (columnsDataMediaTbl != null) {
@@ -793,7 +796,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                     if (!CollectionUtils.isEmpty(rowsFilterMappings)) {
                         for (RowsFilterMappingTbl mapping : rowsFilterMappings) {
                             DataMediaTbl rowsDataMediaTbl = dataMediaMap.get(mapping.getDataMediaId());
-                            if (rowsDataMediaTbl.getFullName().equals(fullName)) {
+                            if (filterMatch(rowsDataMediaTbl, srcDbName, srcTableName)) {
                                 RowsFilterTbl rowsFilterTbl = rowsFilterTblMap.get(mapping.getRowsFilterId());
                                 List<RowsFilterTblV2> newRowsFilters = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()), rowsFilterTbl.getConfigs());
                                 rowsFilterId = newRowsFilters.stream().filter(e -> e.getConfigs().equals(rowsFilterTbl.getConfigs())).findFirst().get().getId();
@@ -806,7 +809,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                     long messengerGroupId = messengerGroupMap.get(srcMhaDbMapping.getMhaId());
                     DataMediaPairTbl dataMediaPairTbl = dataMediaPairTbls.stream()
                             .filter(e -> e.getGroupId().equals(messengerGroupId)
-                                    && e.getSrcDataMediaName().equals(fullName)
+                                    && messengerFilterMatch(e, fullName)
                                     && e.getDestDataMediaName().equals(dbReplicationTbl.getDstLogicTableName()))
                             .findFirst()
                             .get();
@@ -922,6 +925,17 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         int insertSize = mhaDbMappingTblDao.batchInsert(insertTbls).length;
         return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
+    private boolean filterMatch(DataMediaTbl dataMediaTbl, String db, String table) {
+        String dbRegex = dataMediaTbl.getNamespcae();
+        return table.equals(dataMediaTbl.getName()) && Pattern.matches(dbRegex, db);
+    }
+
+    private boolean messengerFilterMatch(DataMediaPairTbl dataMediaPairTbl, String fullName) {
+        String dbRegex = dataMediaPairTbl.getSrcDataMediaName();
+        boolean result = Pattern.matches(dbRegex, fullName);
+        return result;
     }
 
     private Pair<String, List<String>> queryMhaDb(String mha) {
