@@ -1,12 +1,15 @@
 package com.ctrip.framework.drc.replicator.container.controller;
 
-import com.ctrip.framework.drc.core.driver.config.InstanceStatus;
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.replicator.ReplicatorConfig;
 import com.ctrip.framework.drc.core.server.config.replicator.dto.ReplicatorConfigDto;
 import com.ctrip.framework.drc.core.server.container.ServerContainer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.framework.drc.replicator.container.controller.task.AddKeyedTask;
+import com.ctrip.framework.drc.replicator.container.controller.task.DeleteKeyedTask;
+import com.ctrip.framework.drc.replicator.container.controller.task.RegisterKeyedTask;
+import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.ExecutorService;
 
-import static com.ctrip.framework.drc.core.driver.command.packet.ResultCode.SERVER_ALREADY_EXIST;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.PROCESSORS_SIZE;
 
 /**
  * Created by mingdongli
@@ -29,7 +32,8 @@ public class ReplicatorContainerController {
     @Autowired
     private ServerContainer<ReplicatorConfig, ApiResult> serverContainer;
 
-    private ExecutorService replicatorExecutorService = ThreadUtils.newFixedThreadPool(16, "ReplicatorContainerController");
+    private ExecutorService notifyExecutorService = ThreadUtils.newFixedThreadPool(PROCESSORS_SIZE, "Keyed-Task-Service");
+    private KeyedOneThreadTaskExecutor<String> notifyExecutor = new DrcKeyedOneThreadTaskExecutor(notifyExecutorService);;
 
     /**
      *curl -H "Content-Type:application/json" -X PUT -d '{
@@ -51,53 +55,25 @@ public class ReplicatorContainerController {
      */
     @RequestMapping(method = RequestMethod.PUT)
     public ApiResult<Boolean> start(@RequestBody ReplicatorConfigDto replicatorConfigDto) {
+        ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
+        String registryKey = replicatorConfig.getRegistryKey();
         try {
-            logger.info("[Start] replicator instance with {}", replicatorConfigDto);
-            ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
-            String registryKey = replicatorConfig.getRegistryKey();
-            InstanceStatus instanceStatus = InstanceStatus.getInstanceStatus(replicatorConfig.getStatus());
-            logger.info("[Add] {} instance {}", instanceStatus, registryKey);
-
-            Endpoint upstreamMaster = serverContainer.getUpstreamMaster(registryKey);
-            Endpoint currentUpstreamMaster = replicatorConfig.getEndpoint();
-            logger.info("[upstreamMaster] is {}, current is {}", upstreamMaster, currentUpstreamMaster);
-            if (upstreamMaster != null && upstreamMaster.equals(replicatorConfig.getEndpoint())) {
-                logger.info("[Add] duplicate {} instance {}", instanceStatus, registryKey);
-                return ApiResult.getInstance(Boolean.FALSE, SERVER_ALREADY_EXIST.getCode(), SERVER_ALREADY_EXIST.getMessage());
-            }
-
-            replicatorExecutorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        serverContainer.removeServer(registryKey, false);
-                        serverContainer.addServer(replicatorConfig);
-                    } catch (Exception e) {
-                        logger.error("start error", e);
-                    }
-                }
-            });
+            logger.info("[Receive][Start] replicator instance({}) with {}", registryKey, replicatorConfigDto);
+            notifyExecutor.execute(registryKey, new AddKeyedTask(registryKey, replicatorConfig, serverContainer));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
-            logger.error("init error", t);
+            logger.error("[Start] error for {}", registryKey, t);
             return ApiResult.getFailInstance(t);
         }
     }
 
     @RequestMapping(method = RequestMethod.POST)
     public ApiResult<Boolean> restart(@RequestBody ReplicatorConfigDto replicatorConfigDto) {
-
         ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
         String registryKey = replicatorConfig.getRegistryKey();
         try {
-            logger.info("[Restart] {} with config {}", registryKey, replicatorConfigDto);
-            replicatorExecutorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    serverContainer.removeServer(registryKey, false);
-                    serverContainer.addServer(replicatorConfig);
-                }
-            });
+            logger.info("[Receive][Restart] replicator instance({}) with config {}", registryKey, replicatorConfigDto);
+            notifyExecutor.execute(registryKey, new AddKeyedTask(registryKey, replicatorConfig, serverContainer));
             return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
             logger.error("[Restart] error for {}", registryKey, t);
@@ -107,22 +83,22 @@ public class ReplicatorContainerController {
 
     @RequestMapping(value = "/register", method = RequestMethod.PUT)
     public ApiResult<Boolean> register(@RequestBody ReplicatorConfigDto replicatorConfigDto) {
-
+        ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
+        String registryKey = replicatorConfig.getRegistryKey();
         try {
-            logger.info("[Register] replicator instance with {}", replicatorConfigDto);
-            ReplicatorConfig replicatorConfig = replicatorConfigDto.toReplicatorConfig();
-            String registryPath = replicatorConfig.getRegistryKey();
-            return serverContainer.register(registryPath, replicatorConfig.getApplierPort());
+            logger.info("[Receive][Register] replicator instance with {}", replicatorConfig);
+            notifyExecutor.execute(registryKey, new RegisterKeyedTask(registryKey, replicatorConfig, serverContainer));
+            return ApiResult.getSuccessInstance(Boolean.TRUE);
         } catch (Throwable t) {
-            logger.error("register error", t);
+            logger.error("register error for {}", registryKey, t);
             return ApiResult.getFailInstance(t);
         }
     }
 
     @RequestMapping(value = "/{registryKey}/", method = RequestMethod.DELETE)
     public void destroy(@PathVariable String registryKey) {
-        logger.info("[Remove] replicator registryKey {}", registryKey);
-        serverContainer.removeServer(registryKey, true);
+        logger.info("[Receive][Remove] replicator registryKey {}", registryKey);
+        notifyExecutor.execute(registryKey, new DeleteKeyedTask(registryKey, null, serverContainer));
     }
 
 }

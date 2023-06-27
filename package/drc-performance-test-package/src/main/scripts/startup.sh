@@ -120,7 +120,7 @@ then
     MAX_DIRECT=2
     #JAVA_OPTS="$JAVA_OPTS -ea -Xms${USED_MEM}g -Xmx${USED_MEM}g -Xmn${XMN}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
     JAVA_OPTS="$JAVA_OPTS -ea -Xms${USED_MEM}g -Xmx${USED_MEM}g -XX:+AlwaysPreTouch  -XX:MaxDirectMemorySize=${MAX_DIRECT}g"
-elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ];then
+elif [ $ENV = "FWS" ] || [ $ENV = "FAT" ] || [ $ENV = "UAT" ];then
     #GB
     USED_MEM=`getSafeXmx`
     XMN=`getSafeXmn $USED_MEM`

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/api/drc/v1")
+@RequestMapping("/api/drc/v2")
 public class UserController {
 
     

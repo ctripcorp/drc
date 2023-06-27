@@ -1,7 +1,6 @@
-package com.ctrip.framework.drc.manager.concurrent;
+package com.ctrip.framework.drc.core.concurrent;
 
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.manager.healthcheck.notifier.AbstractNotifier;
 import com.ctrip.xpipe.command.DefaultRetryCommandFactory;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.concurrent.OneThreadTaskExecutor;
@@ -16,6 +15,8 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class DrcKeyedOneThreadTaskExecutor extends KeyedOneThreadTaskExecutor {
 
+    private final static int RETRY_INTERVAL = 2000;
+
     protected ScheduledExecutorService executorService = ThreadUtils.newFixedThreadScheduledPool(OsUtils.getCpuCount(), "DrcKeyedOneThreadTaskExecutor");
 
     public DrcKeyedOneThreadTaskExecutor(Executor executors) {
@@ -27,7 +28,7 @@ public class DrcKeyedOneThreadTaskExecutor extends KeyedOneThreadTaskExecutor {
     }
 
     protected int getRetryInterval() {
-        return AbstractNotifier.RETRY_INTERVAL;
+        return RETRY_INTERVAL;
     }
 
     @Override

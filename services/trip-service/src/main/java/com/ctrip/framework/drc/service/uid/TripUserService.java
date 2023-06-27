@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.service.uid;
 
 import com.ctrip.basebiz.tripaccount.region.route.sdk.AccountUidRoute;
+import com.ctrip.basebiz.tripaccount.region.route.sdk.udlwrite.UdlRoute;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.server.common.filter.row.Region;
@@ -19,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.common.filter.row.RowsFilterResult.Status.Illegal;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.ROWS_FILTER_LOGGER;
 
 /**
  * @Author limingdong
@@ -34,6 +34,8 @@ public class TripUserService implements UserService {
     private static final int RETRY_TIME = 2;
 
     private static UcsClient ucsClient = UcsClientFactory.getInstance().getUcsClient();
+
+    private static final int DRC_UCS_STRATEGY_ID = 2000000002;
 
     @Override
     public RowsFilterResult.Status filterUid(UserContext userContext) throws Exception {
@@ -112,6 +114,10 @@ public class TripUserService implements UserService {
             String regionName = region.name().toUpperCase();
             UID_LOGGER.info("{}:{}", attr, regionName);
             return Region.nameFor(regionName);
+
+//            String udl = UdlRoute.udlForUid(attr);
+//            UID_LOGGER.info("{}:{}", attr, udl);
+//            return regionForUdl(DRC_UCS_STRATEGY_ID, udl);
         }
     }
 
@@ -126,16 +132,20 @@ public class TripUserService implements UserService {
 
         @Override
         protected Region regionFor(String attr) {
-            if (StringUtils.isBlank(attr)) {
-                return Region.SHA;
-            }
-            ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(attr);
-            RequestContext ctx = ucsClient.buildDrcContext(drcStrategyId, udlKey);
-            Optional<String> region = ctx.getRequestRegion();
-            if (region.isEmpty()) {
-                throw new IllegalArgumentException("region is empty for udl:" + attr);
-            }
-            return Region.nameFor(region.get().toUpperCase());
+            return regionForUdl(drcStrategyId, attr);
         }
+    }
+
+    private Region regionForUdl(int drcStrategyId, String udl) {
+        if (StringUtils.isBlank(udl)) {
+            return Region.SHA;
+        }
+        ShardingKeyValue udlKey = ShardingKeyValue.ofUdl(udl.toUpperCase());
+        RequestContext ctx = ucsClient.buildDrcContext(drcStrategyId, udlKey);
+        Optional<String> region = ctx.getRequestRegion();
+        if (region.isEmpty()) {
+            throw new IllegalArgumentException("region is empty for udl:" + udl);
+        }
+        return Region.nameFor(region.get().toUpperCase());
     }
 }
