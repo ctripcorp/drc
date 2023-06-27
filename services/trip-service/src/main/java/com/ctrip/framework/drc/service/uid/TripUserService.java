@@ -110,9 +110,14 @@ public class TripUserService implements UserService {
 
         @Override
         protected Region regionFor(String attr) {
-            String udl = UdlRoute.udlForUid(attr);
-            UID_LOGGER.info("{}:{}", attr, udl);
-            return regionForUdl(DRC_UCS_STRATEGY_ID, udl);
+            com.ctrip.soa.platform.accountregionroute.v1.Region region =  AccountUidRoute.regionForUid(attr);
+            String regionName = region.name().toUpperCase();
+            UID_LOGGER.info("{}:{}", attr, regionName);
+            return Region.nameFor(regionName);
+
+//            String udl = UdlRoute.udlForUid(attr);
+//            UID_LOGGER.info("{}:{}", attr, udl);
+//            return regionForUdl(DRC_UCS_STRATEGY_ID, udl);
         }
     }
 
