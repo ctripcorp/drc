@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.core;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutorTest;
 import com.ctrip.framework.drc.core.config.DynamicConfigTest;
 import com.ctrip.framework.drc.core.config.RegionConfigTest;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventTypeTest;
@@ -258,7 +259,9 @@ import org.junit.runners.Suite;
         MessengerPropertiesTest.class,
 
         //zookeeper
-        AbstractResourceManagerTest.class
+        AbstractResourceManagerTest.class,
+
+        DrcKeyedOneThreadTaskExecutorTest.class
 })
 public class AllTests {
     /**

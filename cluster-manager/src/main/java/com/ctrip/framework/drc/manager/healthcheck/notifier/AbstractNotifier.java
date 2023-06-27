@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.exception.DrcServerException;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
-import com.ctrip.framework.drc.manager.concurrent.DrcKeyedOneThreadTaskExecutor;
+import com.ctrip.framework.drc.core.concurrent.DrcKeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.command.AbstractCommand;
 import com.ctrip.xpipe.concurrent.KeyedOneThreadTaskExecutor;
 import com.ctrip.xpipe.retry.RestOperationsRetryPolicyFactory;
