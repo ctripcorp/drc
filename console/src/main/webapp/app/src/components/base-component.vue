@@ -172,7 +172,7 @@ export default {
     getUserName () {
       if (!sessionStorage.getItem('userName')) {
         const that = this
-        this.axios.get('/api/drc/v1/user/current')
+        this.axios.get('/api/drc/v2/user/current')
           .then(res => {
             console.log(res.data.data)
             that.userNameFirstLogin = res.data.data
@@ -183,7 +183,7 @@ export default {
     getLogoutUrl () {
       if (!sessionStorage.getItem('logoutUrl')) {
         const that = this
-        this.axios.get('/api/drc/v1/user/logout')
+        this.axios.get('/api/drc/v2/user/logout')
           .then(res => {
             console.log(res.data.data)
             that.logoutUrlFirstLogin = res.data.data
