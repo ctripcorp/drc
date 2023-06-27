@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.*;
+import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
@@ -22,6 +23,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +104,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private DalServiceImpl dalService;
     @Autowired
     private DrcBuildService drcBuildService;
+    @Autowired
+    private MonitorTableSourceProvider monitorTableSourceProvider;
 
     private final ListeningExecutorService migrateExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(20, "migrateMeta"));
     private static final int MHA_GROUP_SIZE = 2;
@@ -165,11 +169,11 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> errorMhaNames = new ArrayList<>();
         List<MhaTblV2> newMhaTbls = new ArrayList<>();
         for (MhaTbl oldMhaTbl : oldMhaTbls) {
-            if (!groupMap.containsKey(oldMhaTbl.getId()) || !clusterMhaMap.containsKey(oldMhaTbl.getId())) {
+            if (!clusterMhaMap.containsKey(oldMhaTbl.getId())) {
                 errorMhaNames.add(oldMhaTbl.getMhaName());
                 continue;
             }
-            long mhaGroupId = groupMap.get(oldMhaTbl.getId());
+            long mhaGroupId = groupMap.getOrDefault(oldMhaTbl.getId(), 0L);
             long clusterId = clusterMhaMap.get(oldMhaTbl.getId());
             MhaGroupTbl mhaGroupTbl = mhaGroupMap.get(mhaGroupId);
             ClusterTbl clusterTbl = clusterMap.get(clusterId);
@@ -400,7 +404,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public MigrateResult migrateMhaDbMapping() throws Exception {
+    public MigrateResult migrateMhaDbMapping(List<String> dbBlackList) throws Exception {
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaDbMappingTbl> existMhaDbMappings = mhaDbMappingTblDao.queryAll();
@@ -440,19 +444,23 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         List<MhaDbMappingTbl> mhaDbMappingTblList = new ArrayList<>();
         mhaDbMap.forEach((mhaName, dbNames) -> {
-            dbNames.forEach(dbName -> {
+            for (String dbName : dbNames) {
+                if (dbBlackList.contains(dbName)) {
+                    continue;
+                }
                 MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
                 mhaDbMappingTbl.setMhaId(mhaTblMap.get(mhaName));
                 mhaDbMappingTbl.setDbId(dbTblMap.get(dbName));
                 mhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
                 mhaDbMappingTblList.add(mhaDbMappingTbl);
-            });
+            }
+
         });
 
         logger.info("[[migrateMhaDbMapping]] insertSize: {}, updateSize: {}, deleteSize: {}", mhaDbMappingTblList.size(), 0, existMhaDbMappings.size());
         int deleteSize = batchDeleteMhaDbMappings(existMhaDbMappings);
         int insertSize = batchInsertMhaDbMappings(mhaDbMappingTblList);
-        return new MigrateResult(insertSize, 0, deleteSize, allDbNames.size());
+        return new MigrateResult(insertSize, 0, deleteSize, mhaDbMappingTblList.size());
     }
 
     @Override
@@ -776,8 +784,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                             .orElse(null);
                     if (columnsDataMediaTbl != null) {
                         ColumnsFilterTbl columnsFilter = columnsFilterMap.get(columnsDataMediaTbl.getId());
-                        ColumnsFilterTblV2 newColumnsFilter = columnFilterTblV2Dao.queryByColumns(ColumnsFilterModeEnum.getCodeByName(columnsFilter.getMode()), columnsFilter.getColumns());
-                        columnsFilterId = newColumnsFilter.getId();
+                        List<ColumnsFilterTblV2> newColumnsFilters = columnFilterTblV2Dao.queryByColumns(ColumnsFilterModeEnum.getCodeByName(columnsFilter.getMode()), columnsFilter.getColumns());
+                        columnsFilterId = newColumnsFilters.stream().filter(e -> e.getColumns().equals(columnsFilter.getColumns())).findFirst().get().getId();
                     }
 
                     //rowsFilter
@@ -787,8 +795,8 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                             DataMediaTbl rowsDataMediaTbl = dataMediaMap.get(mapping.getDataMediaId());
                             if (rowsDataMediaTbl.getFullName().equals(fullName)) {
                                 RowsFilterTbl rowsFilterTbl = rowsFilterTblMap.get(mapping.getRowsFilterId());
-                                RowsFilterTblV2 newRowsFilter = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()), rowsFilterTbl.getConfigs());
-                                rowsFilterId = newRowsFilter.getId();
+                                List<RowsFilterTblV2> newRowsFilters = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()), rowsFilterTbl.getConfigs());
+                                rowsFilterId = newRowsFilters.stream().filter(e -> e.getConfigs().equals(rowsFilterTbl.getConfigs())).findFirst().get().getId();
                                 break;
                             }
                         }
@@ -863,8 +871,22 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> notExistMhas = new ArrayList<>();
         Set<String> notExistDbSet = new HashSet<>();
         Map<String, List<String>> mhaDbMap = new HashMap<>();
+        List<ListenableFuture<Pair<String, List<String>>>> futures = new ArrayList<>();
         for (String mhaName : mhaNames) {
-            List<String> dbs = drcBuildService.queryDbsWithNameFilter(mhaName, "");
+            ListenableFuture<Pair<String, List<String>>> future = migrateExecutorService.submit(() -> queryMhaDb(mhaName));
+            futures.add(future);
+        }
+
+        for (ListenableFuture<Pair<String, List<String>>> future : futures) {
+            Pair<String, List<String>> mhaPair;
+            try {
+                mhaPair = future.get(TIME_OUT, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                logger.error("query mha db fail, {}", e);
+                throw e;
+            }
+            String mhaName = mhaPair.getLeft();
+            List<String> dbs = mhaPair.getRight();
             if (CollectionUtils.isEmpty(dbs)) {
                 notExistMhas.add(mhaName);
             } else {
@@ -900,6 +922,11 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         int insertSize = mhaDbMappingTblDao.batchInsert(insertTbls).length;
         return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
+    private Pair<String, List<String>> queryMhaDb(String mha) {
+        List<String> dbs = drcBuildService.queryDbsWithNameFilter(mha, "");
+        return Pair.of(mha, dbs);
     }
 
     private int batchDeleteMhaDbMappings(List<MhaDbMappingTbl> existMhaDbMappingTblList) throws Exception {
@@ -1071,7 +1098,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
     private void splitNameFilter(ApplierGroupTbl applierGroupTbl, String mhaName, List<Long> errorApplierGroupIds) {
         List<String> splitDbs = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
-        if (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB)) {
+        if (EnvUtils.pro() && (splitDbs.size() <= 1 || !splitDbs.get(0).equals(MONITOR_DB))) {
             errorApplierGroupIds.add(applierGroupTbl.getId());
             return;
         }
@@ -1185,13 +1212,24 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         newMhaTbl.setBuId(clusterTbl.getBuId());
         newMhaTbl.setClusterName(clusterTbl.getClusterName());
         newMhaTbl.setAppId(clusterTbl.getClusterAppId());
-        newMhaTbl.setReadUser(mhaGroupTbl.getReadUser());
-        newMhaTbl.setReadPassword(mhaGroupTbl.getReadPassword());
-        newMhaTbl.setWriteUser(mhaGroupTbl.getWriteUser());
-        newMhaTbl.setWritePassword(mhaGroupTbl.getWritePassword());
-        newMhaTbl.setMonitorUser(mhaGroupTbl.getMonitorUser());
-        newMhaTbl.setMonitorPassword(mhaGroupTbl.getMonitorPassword());
         newMhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+        if (mhaGroupTbl != null) {
+            newMhaTbl.setReadUser(mhaGroupTbl.getReadUser());
+            newMhaTbl.setReadPassword(mhaGroupTbl.getReadPassword());
+            newMhaTbl.setWriteUser(mhaGroupTbl.getWriteUser());
+            newMhaTbl.setWritePassword(mhaGroupTbl.getWritePassword());
+            newMhaTbl.setMonitorUser(mhaGroupTbl.getMonitorUser());
+            newMhaTbl.setMonitorPassword(mhaGroupTbl.getMonitorPassword());
+        } else {
+            newMhaTbl.setReadUser(monitorTableSourceProvider.getReadUserVal());
+            newMhaTbl.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
+            newMhaTbl.setWriteUser(monitorTableSourceProvider.getWriteUserVal());
+            newMhaTbl.setWritePassword(monitorTableSourceProvider.getWritePasswordVal());
+            newMhaTbl.setMonitorUser(monitorTableSourceProvider.getMonitorUserVal());
+            newMhaTbl.setMonitorPassword(monitorTableSourceProvider.getMonitorPasswordVal());
+        }
+
         return newMhaTbl;
     }
 }

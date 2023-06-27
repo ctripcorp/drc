@@ -123,9 +123,9 @@ public class MigrateController {
     }
 
     @PostMapping("/mhaDbMapping")
-    public ApiResult<MigrateResult> migrateMhaDbMapping() {
+    public ApiResult<MigrateResult> migrateMhaDbMapping(@RequestBody List<String> dbBlackList) {
         try {
-            return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaDbMapping());
+            return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaDbMapping(dbBlackList));
         } catch (Exception e) {
             return ApiResult.getFailInstance(e.getMessage());
         }

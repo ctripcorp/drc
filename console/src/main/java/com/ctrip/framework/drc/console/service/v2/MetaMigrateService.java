@@ -28,7 +28,7 @@ public interface MetaMigrateService {
 
     MhaDbMappingResult checkMhaDbMapping() throws Exception;
 
-    MigrateResult migrateMhaDbMapping() throws Exception;
+    MigrateResult migrateMhaDbMapping(List<String> dbBlackList) throws Exception;
 
     List<MhaNameFilterVo> checkMhaFilter() throws Exception;
 

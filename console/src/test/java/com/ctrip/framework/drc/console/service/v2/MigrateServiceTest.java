@@ -188,7 +188,7 @@ public class MigrateServiceTest {
         initMhaDbMapping();
         Mockito.when(mhaDbMappingTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[1]);
         Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(new ArrayList<>());
-        MigrateResult result = migrationService.migrateMhaDbMapping();
+        MigrateResult result = migrationService.migrateMhaDbMapping(new ArrayList<>());
         Mockito.verify(mhaDbMappingTblDao, Mockito.never()).batchDelete(Mockito.anyList());
         Assert.assertNotEquals(result.getInsertSize(), 0);
         Assert.assertEquals(result.getUpdateSize(), 0);
@@ -332,8 +332,8 @@ public class MigrateServiceTest {
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMappings());
         Mockito.when(columnsFilterTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getColumnsFilterTbls()));
         Mockito.when(rowsFilterTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterTbls());
-        Mockito.when(rowsFilterTblV2Dao.queryByConfigs(Mockito.anyInt(), Mockito.anyString())).thenReturn(MigrateEntityBuilder.getRowsFilterTblV2());
-        Mockito.when(columnFilterTblV2Dao.queryByColumns(Mockito.anyInt(), Mockito.anyString())).thenReturn(MigrateEntityBuilder.getColumnsFilterTblV2());
+        Mockito.when(rowsFilterTblV2Dao.queryByConfigs(Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getRowsFilterTblV2()));
+        Mockito.when(columnFilterTblV2Dao.queryByColumns(Mockito.anyInt(), Mockito.anyString())).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getColumnsFilterTblV2()));
 
         Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
         Mockito.when(messengerGroupTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMessengerGroup()));
