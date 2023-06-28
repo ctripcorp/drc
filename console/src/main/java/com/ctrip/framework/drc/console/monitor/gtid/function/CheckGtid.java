@@ -108,10 +108,11 @@ public class CheckGtid extends AbstractConfigBean {
                                     localDcName, mhaName, mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), getGtid(uuid, intervals), mySqlMasterEndpoint.getHost(), mySqlMasterEndpoint.getPort(), uuid, gapCount);
 
                             reportRepeatedGtidGap(gtidGapEntity, uuid, intervals);
-                            mhaGtidSet.put(mhaName, curGtidSet);
                             MDC.remove("mhaName");
                         }
                     }
+                    mhaGtidSet.put(mhaName, curGtidSet);
+                    CONSOLE_GTID_LOGGER.info("put current gtidset for {}, with: {}", mhaName, curGtidSet);
                 }
 
                 @Override
