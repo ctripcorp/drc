@@ -84,8 +84,8 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
                 break;
         }
 
-        logger.info("[{}][NETWORK GTID] executed gtidset: {}", registryKey, executedGtidSet);
-        return executedGtidSet;
+        logger.info("[{}][NETWORK GTID]union emptyPositionFromDb: {}, executed gtidset: {}", registryKey, emptyPositionFromDb, executedGtidSet);
+        return emptyPositionFromDb ? new GtidSet(StringUtils.EMPTY) : executedGtidSet;
     }
 
     private GtidSet unionPositionFromQConfig(GtidSet gtidSet) {
