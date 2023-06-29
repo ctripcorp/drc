@@ -94,7 +94,7 @@ public class MigrateServiceIntegrationTest {
             "mha_group_tbl", "db_tbl", "replicator_group_tbl", "applier_group_tbl", "applier_tbl", "rows_filter_mapping_tbl",
             "rows_filter_tbl", "data_media_tbl", "mha_tbl_v2", "mha_replication_tbl", "mha_db_mapping_tbl", "db_replication_tbl",
             "db_replication_filter_mapping_tbl", "columns_filter_tbl_v2", "columns_filter_tbl", "applier_group_tbl_v2", "applier_tbl_v2",
-            "messenger_filter_tbl", "messenger_group_tbl", "datamediapair_tbl", "rows_filter_tbl_v2");
+            "messenger_filter_tbl", "messenger_group_tbl", "dataMediaPair_tbl", "rows_filter_tbl_v2");
 
     @BeforeClass
     public static void setUp() throws Exception {
