@@ -773,7 +773,6 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         Map<Long, Long> errorMessengerMap = new HashMap<>();
         for (DbReplicationTbl dbReplicationTbl : dbReplications) {
             MhaDbMappingTbl srcMhaDbMapping = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
-            String fullName = dbTblMap.get(srcMhaDbMapping.getDbId()) + "." + dbReplicationTbl.getSrcLogicTableName();
             String srcDbName = dbTblMap.get(srcMhaDbMapping.getDbId());
             String srcTableName = dbReplicationTbl.getSrcLogicTableName();
 
@@ -1054,7 +1053,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 try {
                     dbReplicationTbls.add(buildDbReplicationTbl(dbId, ".*", "", mhaDbMappingMap, mhaReplication));
                 } catch (Exception e) {
-
+                    errorDbs.add(dbName);
                 }
             }
         } else {
