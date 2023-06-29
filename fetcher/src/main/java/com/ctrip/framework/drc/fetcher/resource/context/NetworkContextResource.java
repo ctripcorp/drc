@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
 import com.ctrip.framework.drc.fetcher.system.qconfig.ConfigKey;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CONFIG_FILE_NAME;
@@ -44,7 +45,8 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     @InstanceConfig(path = "target.password")
     public String password;
 
-    private boolean emptyPositionFromDb = false;
+    @VisibleForTesting
+    protected volatile boolean emptyPositionFromDb = false;
 
     @Override
     public void doInitialize() throws Exception {
@@ -114,7 +116,8 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
         }
     }
 
-    private GtidSet queryPositionFromDb() {
+    @VisibleForTesting
+    protected GtidSet queryPositionFromDb() {
         Endpoint endpoint = new DefaultEndPoint(ip, port, username, password);
         ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint);
         String gtidSet = queryTask.doQuery();
