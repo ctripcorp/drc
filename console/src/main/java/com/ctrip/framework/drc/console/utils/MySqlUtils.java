@@ -116,8 +116,7 @@ public class MySqlUtils {
             }
         } catch(Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
-//            removeSqlOperator(endpoint);
-            throw new RuntimeException(String.format("getTables fail, %s", t));
+            removeSqlOperator(endpoint);
         } finally {
             if(readResource != null) {
                 readResource.close();
