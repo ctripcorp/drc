@@ -141,6 +141,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGeneratorV2Test.class,
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
+        MigrateServiceTest.class,
         
         // controller
         AccessControllerTest.class,
@@ -219,7 +220,10 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MhaInstanceGroupDtoTest.class,
         RowsFilterConfigDtoTest.class,
         RowsFilterMappingVoTest.class,
-        SimplexDrcBuildVoTest.class
+        SimplexDrcBuildVoTest.class,
+
+        //integrationTest
+        MigrateServiceIntegrationTest.class
         
 })
 public class AllTests {
@@ -321,6 +325,13 @@ public class AllTests {
         }
         if (dstDb == null) {
             dstDb = getDb(DST_PORT);
+        }
+    }
+
+    public static void initTestDb() throws ManagedProcessException {
+        if (testDb == null) {
+            // fxdrcmetadb for test
+            testDb = getDb(12345);
         }
     }
 

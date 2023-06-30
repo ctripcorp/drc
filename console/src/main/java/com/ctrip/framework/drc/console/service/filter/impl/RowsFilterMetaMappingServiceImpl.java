@@ -210,7 +210,7 @@ public class RowsFilterMetaMappingServiceImpl implements RowsFilterMetaMappingSe
     }
 
     private String createToken(String metaFilterName, String bu) {
-        String tokenStr = TOKEN_PREFIX + bu + "." + metaFilterName + "." + EnvUtils.getEnv();
+        String tokenStr = TOKEN_PREFIX + bu + "." + metaFilterName + "." + EnvUtils.getEnvStr();
         return DigestUtils.md5DigestAsHex(tokenStr.getBytes());
     }
 

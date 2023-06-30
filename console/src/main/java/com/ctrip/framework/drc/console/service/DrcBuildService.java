@@ -28,6 +28,12 @@ public interface DrcBuildService {
     // route By mha
     List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter);
 
+    // route By mha
+    List<String> queryDbsWithNameFilter(String mha, String nameFilter);
+
+    // route By mha
+    List<String> queryTablesWithNameFilter(String mha, String nameFilter);
+
     // route By mhaName
     List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name, String mhaName, Integer type);
 

@@ -259,10 +259,10 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         QConfigBatchUpdateParam param = new QConfigBatchUpdateParam();
         param.setToken(domainConfig.getQConfigApiConsoleToken());
         param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
-        param.setTargetEnv(EnvUtils.getEnv());
+        param.setTargetEnv(EnvUtils.getEnvStr());
         param.setTargetSubEnv(targetSubEnv);
         param.setTargetDataId(CONFIG_NAME);
-        param.setServerEnv(EnvUtils.getEnv());
+        param.setServerEnv(EnvUtils.getEnvStr());
         param.setGroupId(Foundation.app().getAppId());
         param.setOperator(operator);
 
@@ -278,10 +278,10 @@ public class RowsFilterMetaServiceImpl implements RowsFilterMetaService {
         QConfigRevertParam param = new QConfigRevertParam();
         param.setToken(domainConfig.getQConfigApiConsoleToken());
         param.setOperator("");
-        param.setServerEnv(EnvUtils.getEnv());
+        param.setServerEnv(EnvUtils.getEnvStr());
         param.setGroupId(Foundation.app().getAppId());
         param.setTargetGroupId(domainConfig.getWhitelistTargetGroupId());
-        param.setTargetEnv(EnvUtils.getEnv());
+        param.setTargetEnv(EnvUtils.getEnvStr());
         param.setTargetSubEnv(targetSubEnv);
         param.setTargetDataId(CONFIG_NAME);
         param.setVersion(version);

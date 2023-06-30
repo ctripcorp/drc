@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.dao;
 
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -7,6 +8,7 @@ import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -19,6 +21,12 @@ public class AbstractDao<T> {
 
     public AbstractDao(Class<T> clazz) throws SQLException {
         this.client = new DalTableDao<>(new DalDefaultJpaParser<>(clazz));
+    }
+
+    public SelectSqlBuilder initSqlBuilder() throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal("deleted", BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return sqlBuilder;
     }
 
     /**

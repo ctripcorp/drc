@@ -138,4 +138,18 @@ public class DbReplicationFilterMappingTbl implements DalPojo {
     public void setMessengerFilterId(Long messengerFilterId) {
         this.messengerFilterId = messengerFilterId;
     }
+
+    @Override
+    public String toString() {
+        return "DbReplicationFilterMappingTbl{" +
+                "id=" + id +
+                ", dbReplicationId=" + dbReplicationId +
+                ", rowsFilterId=" + rowsFilterId +
+                ", columnsFilterId=" + columnsFilterId +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                ", messengerFilterId=" + messengerFilterId +
+                '}';
+    }
 }

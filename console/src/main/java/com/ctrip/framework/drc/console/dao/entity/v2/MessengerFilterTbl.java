@@ -92,4 +92,15 @@ public class MessengerFilterTbl {
     public void setDatachangeLasttime(Timestamp datachangeLasttime) {
         this.datachangeLasttime = datachangeLasttime;
     }
+
+    @Override
+    public String toString() {
+        return "MessengerFilterTbl{" +
+                "id=" + id +
+                ", properties='" + properties + '\'' +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
 }
