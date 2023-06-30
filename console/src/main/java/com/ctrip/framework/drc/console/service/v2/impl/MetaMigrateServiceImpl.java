@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
@@ -955,6 +956,62 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             insertSize = mhaDbMappingTblDao.batchInsert(insertTbls).length;
         }
         return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
+    @Override
+    public MigrateResult manualMigrateVPCMhaDbMapping(MhaDbMappingMigrateParam param) throws Exception {
+        logger.info("manualMigrateVPCMhaDbMapping param: {}", param);
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(param.getMhaName());
+        List<Long> existDbIds = mhaDbMappingTblDao.queryByMhaId(mhaTbl.getId()).stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        Map<String, Long> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+
+        List<MhaDbMappingTbl> insertTbls = new ArrayList<>();
+        List<String> notExistDbs = new ArrayList<>();
+        for (String dbName : param.getDbs()) {
+            if (!dbMap.containsKey(dbName)) {
+                notExistDbs.add(dbName);
+                continue;
+            }
+            long dbId = dbMap.get(dbName);
+            if (existDbIds.contains(dbId)) {
+                continue;
+            }
+
+            MhaDbMappingTbl mhaDbMappingTbl = new MhaDbMappingTbl();
+            mhaDbMappingTbl.setMhaId(mhaTbl.getId());
+            mhaDbMappingTbl.setDbId(dbId);
+            mhaDbMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            insertTbls.add(mhaDbMappingTbl);
+        }
+
+        if (!CollectionUtils.isEmpty(notExistDbs)) {
+            throw new RuntimeException(String.format("notExistDbs: %s", notExistDbs));
+        }
+        int insertSize = 0;
+        if (!CollectionUtils.isEmpty(insertTbls)) {
+            insertSize = mhaDbMappingTblDao.batchInsert(insertTbls).length;
+        }
+        return new MigrateResult(insertSize, 0, 0, insertTbls.size());
+    }
+
+    @Override
+    public List<MhaNameFilterVo> checkVPCMha(List<String> mhaNames) throws Exception {
+        List<MhaTblV2> mhaList = mhaTblV2Dao.queryByMhaNames(mhaNames);
+        List<Long> mhaIds = mhaList.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+
+        List<ApplierGroupTbl> applierGroups = applierGroupTblDao.queryAll().stream()
+                .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && mhaIds.contains(e.getMhaId()))
+                .collect(Collectors.toList());
+
+        Map<Long, String> mhaMap = mhaList.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+        return applierGroups.stream().map(source -> {
+            MhaNameFilterVo target = new MhaNameFilterVo();
+            target.setApplierGroupId(source.getId());
+            target.setNameFilter(source.getNameFilter());
+            target.setMhaName(mhaMap.get(source.getMhaId()));
+            return target;
+        }).collect(Collectors.toList());
     }
 
     private boolean filterMatch(DataMediaTbl dataMediaTbl, String db, String table) {

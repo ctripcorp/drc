@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
@@ -211,7 +212,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateMhaDbMapping(mhaNames));
         } catch (Exception e) {
-            logger.error("migrateMessengerGroup fail: {}", e);
+            logger.error("manualMigrateMhaDbMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -221,7 +222,17 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateDbs(dbs));
         } catch (Exception e) {
-            logger.error("migrateMessengerGroup fail: {}", e);
+            logger.error("manualMigrateDbs fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual/vpc/mhaDbMapping")
+    public ApiResult<MigrateResult> manualMigrateVPCMhaDbMapping(@RequestBody MhaDbMappingMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateVPCMhaDbMapping(param));
+        } catch (Exception e) {
+            logger.error("manualMigrateVPCMhaDbMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
