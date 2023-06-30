@@ -188,10 +188,11 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                 logger.info("[[task=SyncDbInfoTask,batch={}]] this batch cost time:{}", i, end - start);
                             }
                         }
-                        if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
-                            dbTblDao.batchDelete(excessDbInfos);
-                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch:{}", excessDbInfos.size());
-                        }
+//                        if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
+//                            dbTblDao.batchDelete(excessDbInfos);
+//                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
+//                        }
+                        logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
                     });
         } catch (Exception e) {
             logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);
