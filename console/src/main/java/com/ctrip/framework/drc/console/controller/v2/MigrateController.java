@@ -236,4 +236,14 @@ public class MigrateController {
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
+
+    @GetMapping ("/vpc/mha")
+    public ApiResult<List<MhaNameFilterVo>> checkVPCMha(@RequestBody List<String> mhaNames) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.checkVPCMha(mhaNames));
+        } catch (Exception e) {
+            logger.error("checkVPCMha fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
 }
