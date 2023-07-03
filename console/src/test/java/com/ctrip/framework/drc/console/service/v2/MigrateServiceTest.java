@@ -201,18 +201,19 @@ public class MigrateServiceTest {
         Mockito.when(dataMediaTblDao.queryByAGroupId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(Lists.newArrayList(getDataMediaTbl()));
         Mockito.when(dataMediaTblDao.queryByIdsAndType(Mockito.anyList(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(Lists.newArrayList(getDataMediaTbl()));
         Mockito.when(rowsFilterMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getRowsFilterMapping());
+        Mockito.when(replicatorGroupTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getReplicatorGroupTbls());
 
         List<MhaNameFilterVo> mhaNameFilterVos = migrationService.checkMhaFilter();
-//        mhaNameFilterVos.forEach(System.out::println);
+        mhaNameFilterVos.forEach(System.out::println);
         Assert.assertEquals(mhaNameFilterVos.size(), 1);
     }
 
     @Test
     public void testSplitNameFilter() throws Exception {
-        List<NameFilterSplitParam> params = MigrateEntityBuilder.getApplierGroupTbls().stream().map(source -> {
+        List<NameFilterSplitParam> params = MigrateEntityBuilder.getApplierGroupTbls().stream().filter(e -> e.getId() == 200L).map(source -> {
             NameFilterSplitParam target = new NameFilterSplitParam();
             target.setApplierGroupId(source.getId());
-            target.setMhaName("mha");
+            target.setMhaName("mha200");
             target.setNameFilter("nameFilter");
             return target;
         }).collect(Collectors.toList());
@@ -281,7 +282,7 @@ public class MigrateServiceTest {
         Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
         Mockito.when(applierGroupTblV2Dao.queryAll()).thenReturn(MigrateEntityBuilder.getApplierGroupTblV2s());
 
-        MigrateResult result = migrationService.migrateDbReplicationTbl();
+        MigrateResult result = migrationService.migrateDbReplicationTbl(new ArrayList<>());
         Mockito.verify(dbReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
         Mockito.verify(dbReplicationTblDao, times(1)).batchInsert(Mockito.anyList());
         Assert.assertEquals(result.getInsertSize(), 1);

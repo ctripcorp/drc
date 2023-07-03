@@ -6,7 +6,9 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaMigrateServiceImpl;
+import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -281,6 +283,29 @@ public class MigrateServiceIntegrationTest {
         List<DbReplicationFilterMappingTbl> tbls = dbReplicationFilterMappingTblDao.queryAll();
         Assert.assertEquals(tbls.size(), 2);
         tbls.forEach(System.out::println);
+    }
+
+    @Test
+    public void testManualMigrateVPCMhaDbMapping() throws Exception{
+        mhaTblV2Dao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getMhaTblV2());
+        dbTblDao.batchInsert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getDbTbls());
+        mhaDbMappingTblDao.batchInsert(MigrateEntityBuilder.getMhaDbMappingTbls());
+
+
+        MigrateResult result = migrationService.manualMigrateVPCMhaDbMapping(new MhaDbMappingMigrateParam("mha", Lists.newArrayList("db200", "db201")));
+        Assert.assertEquals(result.getInsertSize(), 1);
+
+        MigrateResult result1 = migrationService.manualMigrateVPCMhaDbMapping(new MhaDbMappingMigrateParam("mha", Lists.newArrayList("db200", "db201")));
+        Assert.assertEquals(result1.getInsertSize(), 0);
+
+    }
+
+    @Test
+    public void testCheckVPCMha() throws Exception{
+        mhaTblV2Dao.insert(new DalHints().enableIdentityInsert(), MigrateEntityBuilder.getMhaTblV2());
+        List<MhaNameFilterVo> result = migrationService.checkVPCMha(Lists.newArrayList("mha"));
+        System.out.println(result);
+        Assert.assertEquals(result.size(), 1);
     }
 
     private static void truncateDbs() {
