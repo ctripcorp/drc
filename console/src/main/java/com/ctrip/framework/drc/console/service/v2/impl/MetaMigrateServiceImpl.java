@@ -1264,11 +1264,11 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     }
 
     private String splitNameFilter(String db) {
-        if (!db.contains("(")) {
-            return db;
-        }
         String[] dbStrings = db.split("\\.");
         String dbName = dbStrings[0];
+        if (!dbStrings[1].contains("(")) {
+            return db;
+        }
         String[] preTableStr = dbStrings[1].split("\\(");
         String prefixTable = preTableStr[0];
 
