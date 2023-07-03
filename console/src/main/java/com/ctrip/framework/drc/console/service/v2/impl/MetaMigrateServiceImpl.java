@@ -523,7 +523,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<NameFilterSplitParam> errorMhaParamList = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             NameFilterSplitParam splitParam = paramMap.get(applierGroupTbl.getId());
-            if (!splitParam.getMhaName().equals(mhaMap.get(replicatorMap.get(splitParam.getApplierGroupId())))) {
+            if (!splitParam.getMhaName().equals(mhaMap.get(replicatorMap.get(applierGroupTbl.getReplicatorGroupId())))) {
                 errorMhaParamList.add(splitParam);
             }
             if (!checkNameFilterContainsSameTables(splitParam.getMhaName(), applierGroupTbl.getNameFilter(), splitParam.getNameFilter())) {
