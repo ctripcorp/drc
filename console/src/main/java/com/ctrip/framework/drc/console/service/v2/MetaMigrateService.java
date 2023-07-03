@@ -39,7 +39,7 @@ public interface MetaMigrateService {
 
     MigrateResult migrateRowsFilter() throws Exception;
 
-    MigrateResult migrateDbReplicationTbl() throws Exception;
+    MigrateResult migrateDbReplicationTbl(List<String> vpcMhaNames) throws Exception;
 
     List<MhaNameFilterVo> checkNameMapping() throws Exception;
 

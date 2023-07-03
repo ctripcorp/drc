@@ -168,9 +168,9 @@ public class MigrateController {
     }
 
     @PostMapping("/dbReplication")
-    public ApiResult<MigrateResult> migrateDbReplicationTbl() {
+    public ApiResult<MigrateResult> migrateDbReplicationTbl(@RequestBody List<String> vpcMhaNames) {
         try {
-            return ApiResult.getSuccessInstance(metaMigrateService.migrateDbReplicationTbl());
+            return ApiResult.getSuccessInstance(metaMigrateService.migrateDbReplicationTbl(vpcMhaNames));
         } catch (Exception e) {
             logger.error("migrateDbReplicationTbl fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
