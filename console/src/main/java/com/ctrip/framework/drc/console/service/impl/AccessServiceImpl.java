@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.AccessService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -75,6 +76,9 @@ public class AccessServiceImpl implements AccessService {
     
     @Autowired 
     private DomainConfig domainConfig;
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
     
     private MySQLToolsApiService mySQLToolsApiServiceImpl = ApiContainer.getMySQLToolsApiServiceImpl();
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
@@ -391,6 +395,7 @@ public class AccessServiceImpl implements AccessService {
                         "already exist mhaGroup");
             }
             initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
+            drcDoubleWriteService.buildMha(mhaGroupId);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("Fail init mha group: {}, ", dto, e);

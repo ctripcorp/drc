@@ -4,7 +4,9 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -70,6 +72,16 @@ public class DcTaoTest {
         for (DcTbl dcTbl : dcTbls) {
             System.out.println(dcTbl);
         }
+    }
+
+    @Test
+    public void testInsert() throws SQLException {
+        MhaTblV2 mha = new MhaTblV2();
+        mha.setMhaName("mha");
+        MhaTblV2Dao mhaTblV2Dao = new MhaTblV2Dao();
+        mhaTblV2Dao.insert(mha);
+        MhaTblV2 mha1 = mhaTblV2Dao.queryByMhaName("mha");
+        System.out.println(mha1);
     }
 
     @Test
