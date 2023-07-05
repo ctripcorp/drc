@@ -34,10 +34,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
@@ -237,7 +234,29 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         }
         return MySqlUtils.checkTablesWithFilter(endpoint, nameFilter);
     }
-    
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/build/queryDbs")
+    public List<String> queryDbsWithNameFilter(String mha, String nameFilter) {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("queryDbsWithNameFilter from mha: {},db not exist", mha);
+            return new ArrayList<>();
+        }
+        return MySqlUtils.queryDbsWithFilter(endpoint, nameFilter);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v1/build/queryTables")
+    public List<String> queryTablesWithNameFilter(String mha, String nameFilter) {
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("queryTablesWithNameFilter from mha: {},db not exist", mha);
+            return new ArrayList<>();
+        }
+        return MySqlUtils.queryTablesWithFilter(endpoint, nameFilter);
+    }
+
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/check" ,responseType = TableSchemaListApiResult.class)
     public List<MySqlUtils.TableSchemaName> getMatchTable(String namespace, String name,

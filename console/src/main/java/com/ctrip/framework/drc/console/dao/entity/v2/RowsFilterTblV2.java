@@ -1,24 +1,23 @@
 package com.ctrip.framework.drc.console.dao.entity.v2;
 
-import com.ctrip.platform.dal.dao.DalPojo;
 import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Objects;
 
 /**
- * @author dql邓权亮
- * @date 2023-05-25
+ * Created by dengquanliang
+ * 2023/6/25 16:39
  */
 @Entity
 @Database(name = "fxdrcmetadb_w")
-@Table(name = "mha_replication_tbl")
-public class MhaReplicationTbl implements DalPojo {
-
+@Table(name = "rows_filter_tbl_v2")
+public class RowsFilterTblV2 {
     /**
-     * 主键
+     * pk
      */
     @Id
     @Column(name = "id")
@@ -27,18 +26,18 @@ public class MhaReplicationTbl implements DalPojo {
     private Long id;
 
     /**
-     * 源mha_id
+     * 列过滤配置 模式 0-java_regex 1-trip_udl 2-trip_uid
      */
-    @Column(name = "src_mha_id")
-    @Type(value = Types.BIGINT)
-    private Long srcMhaId;
+    @Column(name = "mode")
+    @Type(value = Types.TINYINT)
+    private Integer mode;
 
     /**
-     * 目标端mha_id
+     * 列
      */
-    @Column(name = "dst_mha_id")
-    @Type(value = Types.BIGINT)
-    private Long dstMhaId;
+    @Column(name = "configs")
+    @Type(value = Types.LONGVARCHAR)
+    private String configs;
 
     /**
      * 是否删除, 0-否; 1-是
@@ -69,20 +68,20 @@ public class MhaReplicationTbl implements DalPojo {
         this.id = id;
     }
 
-    public Long getSrcMhaId() {
-        return srcMhaId;
+    public Integer getMode() {
+        return mode;
     }
 
-    public void setSrcMhaId(Long srcMhaId) {
-        this.srcMhaId = srcMhaId;
+    public void setMode(Integer mode) {
+        this.mode = mode;
     }
 
-    public Long getDstMhaId() {
-        return dstMhaId;
+    public String getConfigs() {
+        return configs;
     }
 
-    public void setDstMhaId(Long dstMhaId) {
-        this.dstMhaId = dstMhaId;
+    public void setConfigs(String configs) {
+        this.configs = configs;
     }
 
     public Integer getDeleted() {
@@ -110,11 +109,28 @@ public class MhaReplicationTbl implements DalPojo {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RowsFilterTblV2 that = (RowsFilterTblV2) o;
+        return Objects.equals(mode, that.mode) && Objects.equals(configs, that.configs);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mode, configs);
+    }
+
+    @Override
     public String toString() {
-        return "MhaReplicationTbl{" +
+        return "RowsFilterTblV2{" +
                 "id=" + id +
-                ", srcMhaId=" + srcMhaId +
-                ", dstMhaId=" + dstMhaId +
+                ", mode=" + mode +
+                ", configs='" + configs + '\'' +
                 ", deleted=" + deleted +
                 ", createTime=" + createTime +
                 ", datachangeLasttime=" + datachangeLasttime +

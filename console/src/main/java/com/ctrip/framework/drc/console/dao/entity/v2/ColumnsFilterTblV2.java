@@ -7,6 +7,7 @@ import com.ctrip.platform.dal.dao.annotation.Type;
 import javax.persistence.*;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Objects;
 
 /**
  * @author dql邓权亮
@@ -109,4 +110,32 @@ public class ColumnsFilterTblV2 implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    @Override
+    public String toString() {
+        return "ColumnsFilterTblV2{" +
+                "id=" + id +
+                ", mode=" + mode +
+                ", columns='" + columns + '\'' +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ColumnsFilterTblV2 that = (ColumnsFilterTblV2) o;
+        return Objects.equals(mode, that.mode) && Objects.equals(columns, that.columns);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mode, columns);
+    }
 }
