@@ -6,4 +6,8 @@ package com.ctrip.framework.drc.console.service.v2;
  */
 public interface DrcDoubleWriteService {
     void buildMha(Long mhaGroupId) throws Exception;
+
+    void buildApplierGroup(Long applierGroupId) throws Exception;
+
+    void buildAppliers(Long applierGroupId) throws Exception;
 }

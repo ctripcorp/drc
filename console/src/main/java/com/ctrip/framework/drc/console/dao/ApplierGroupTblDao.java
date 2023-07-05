@@ -2,12 +2,10 @@ package com.ctrip.framework.drc.console.dao;
 
 
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -67,6 +65,5 @@ public class ApplierGroupTblDao extends AbstractDao<ApplierGroupTbl>{
 			}
 		}
 	}
-	
 	
 }
