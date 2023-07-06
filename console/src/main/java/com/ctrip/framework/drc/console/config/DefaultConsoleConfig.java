@@ -95,6 +95,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
 
+    private static String VPC_MHA = "vpc_mha";
+
     // only for test
     protected DefaultConsoleConfig(Config config) {
         super(config);
@@ -405,6 +407,14 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return mhasIdNameMap;
 
+    }
+
+    public List<String> getVpcMhaNames() {
+        String vpcMhaStr = getProperty(VPC_MHA);
+        if (StringUtils.isBlank(vpcMhaStr)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(vpcMhaStr.split(","));
     }
 
     public String getSwitchCmRegionUrl() {

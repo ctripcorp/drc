@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -14,7 +14,6 @@ import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -114,7 +113,7 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         DataMediaPairTbl dataMediaPair = new DataMediaPairTbl();
         
         dataMediaPair.setId(dto.getId() == 0 ? null : dto.getId());
-        dataMediaPair.setType(DataMediaPairTypeEnum.DB_TO_MQ.getType());
+        dataMediaPair.setType(ReplicationTypeEnum.DB_TO_MQ.getType());
         dataMediaPair.setSrcDataMediaName(dto.getTable());
         dataMediaPair.setDestDataMediaName(dto.getTopic());
         dataMediaPair.setGroupId(dto.getMessengerGroupId());

@@ -21,6 +21,7 @@ import java.util.List;
 public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
 
     private static final String SRC_MHA_DB_MAPPING_ID = "src_mha_db_mapping_id";
+    private static final String DST_MHA_DB_MAPPING_ID = "dst_mha_db_mapping_id";
     private static final String REPLICATION_TYPE = "replication_type";
     private static final String DELETED = "deleted";
 
@@ -35,6 +36,19 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
 
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(SRC_MHA_DB_MAPPING_ID, srcMappingIds, Types.BIGINT)
+                .and().equal(REPLICATION_TYPE, replicationType, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<DbReplicationTbl> queryByMappingIds(List<Long> srcMappingIds, List<Long> dstMappingIds, int replicationType) throws SQLException {
+        if (CollectionUtils.isEmpty(srcMappingIds) || CollectionUtils.isEmpty(dstMappingIds)) {
+            return new ArrayList<>();
+        }
+
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(SRC_MHA_DB_MAPPING_ID, srcMappingIds, Types.BIGINT)
+                .and().equal(DST_MHA_DB_MAPPING_ID, dstMappingIds, Types.BIGINT)
                 .and().equal(REPLICATION_TYPE, replicationType, Types.BIGINT)
                 .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());

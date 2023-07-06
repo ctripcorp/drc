@@ -1,15 +1,18 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
+import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -87,6 +90,10 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Autowired
     private DrcBuildService drcBuildService;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
+    private MetaMigrateService metaMigrateService;
 
     private static final int GROUP_SIZE = 2;
 
@@ -165,6 +172,98 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             }
         }
     }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMhaReplication(Long applierGroupId) throws Exception {
+        logger.info("drc double write buildMhaReplication, applierGroupId: {}", applierGroupId);
+        List<ApplierTbl> applierTbls = applierTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(applierTbls)) {
+            logger.info("applierTbls is empty, applierGroupId: {}", applierGroupId);
+            return;
+        }
+
+        ApplierGroupTbl applierGroupTbl = applierGroupTblDao.queryByPk(applierGroupId);
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByPk(applierGroupTbl.getReplicatorGroupId());
+        MhaTblV2 srcMha = mhaTblV2Dao.queryByPk(replicatorGroupTbl.getMhaId());
+        MhaTblV2 dstMha = mhaTblV2Dao.queryByPk(applierGroupTbl.getMhaId());
+
+        long mhaReplicationId = insertOrUpdateMhaReplication(srcMha.getId(), applierGroupTbl.getMhaId());
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByPk(applierGroupId);
+        applierGroupTblV2.setMhaReplicationId(mhaReplicationId);
+        applierGroupTblV2Dao.update(applierGroupTblV2);
+
+        insertDbReplications(applierGroupTbl, srcMha, dstMha);
+    }
+
+    private Long insertOrUpdateMhaReplication(Long srcMhaId, Long dstMhaId) throws Exception{
+        MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
+        mhaReplicationTbl.setSrcMhaId(srcMhaId);
+        mhaReplicationTbl.setDstMhaId(dstMhaId);
+        mhaReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+        Long mhaReplicationId = null;
+        MhaReplicationTbl existMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId);
+        if (existMhaReplication != null) {
+            mhaReplicationId = existMhaReplication.getId();
+            mhaReplicationTblDao.update(mhaReplicationTbl);
+        } else {
+            mhaReplicationId = mhaReplicationTblDao.insertWithReturnId(mhaReplicationTbl);
+        }
+        return mhaReplicationId;
+    }
+
+    private void insertDbReplications(ApplierGroupTbl applierGroupTbl, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<Long> srcMhaDbMappingIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        List<Long> dstMhaDbMappingIds = dstMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+        //delete before insert
+        List<DbReplicationTbl> existDbReplications = dbReplicationTblDao.queryByMappingIds(srcMhaDbMappingIds, dstMhaDbMappingIds, ReplicationTypeEnum.DB_TO_DB.getType());
+        deleteDbReplications(existDbReplications);
+
+    }
+
+    private void insertMhaDbMapping(ApplierGroupTbl applierGroupTbl, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
+        String nameFilter = applierGroupTbl.getNameFilter();
+        List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
+        if (vpcMhaNames.contains(srcMha.getMhaName()) || vpcMhaNames.contains(dstMha.getMhaName())) {
+            insertVpcMhaDbMappings(srcMha, dstMha, vpcMhaNames, nameFilter);
+        }
+    }
+
+    private void insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
+        String mhaName = vpcMhaNames.contains(srcMha.getMhaName()) ? dstMha.getMhaName() : srcMha.getMhaName();
+        List<String> dbList = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+        MigrateResult migrateResult = metaMigrateService.manualMigrateDbs(dbList);
+        logger.info("drc double write insertVpcMhaDbMappings dbList: {}, migrateResult: {}", dbList, migrateResult);
+
+        //insertMhaDbMappings
+        metaMigrateService.manualMigrateVPCMhaDbMapping(new MhaDbMappingMigrateParam(srcMha.getMhaName(), dbList));
+        metaMigrateService.manualMigrateVPCMhaDbMapping(new MhaDbMappingMigrateParam(dstMha.getMhaName(), dbList));
+    }
+
+
+    private void deleteDbReplications(List<DbReplicationTbl> existDbReplications) throws Exception {
+        if (CollectionUtils.isEmpty(existDbReplications)) {
+            return;
+        }
+        existDbReplications.forEach(e -> {
+            e.setDeleted(BooleanEnum.TRUE.getCode());
+        });
+        dbReplicationTblDao.batchUpdate(existDbReplications);
+
+        List<Long> dbReplicationIds = existDbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        List<DbReplicationFilterMappingTbl> existDbReplicationFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        if (!CollectionUtils.isEmpty(existDbReplicationFilterMappings)) {
+            existDbReplicationFilterMappings.forEach(e -> {
+                e.setDeleted(BooleanEnum.TRUE.getCode());
+            });
+            dbReplicationFilterMappingTblDao.batchUpdate(existDbReplicationFilterMappings);
+        }
+    }
+
 
     private ApplierTblV2 buildApplier(ApplierTbl applierTbl) {
         ApplierTblV2 applierTblV2 = new ApplierTblV2();

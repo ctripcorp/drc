@@ -10,4 +10,6 @@ public interface DrcDoubleWriteService {
     void buildApplierGroup(Long applierGroupId) throws Exception;
 
     void buildAppliers(Long applierGroupId) throws Exception;
+
+    void buildMhaReplication(Long applierGroupId) throws Exception;
 }
