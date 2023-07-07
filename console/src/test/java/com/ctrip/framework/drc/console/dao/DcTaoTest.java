@@ -81,7 +81,7 @@ public class DcTaoTest {
         MhaTblV2Dao mhaTblV2Dao = new MhaTblV2Dao();
         mhaTblV2Dao.insert(mha);
         MhaTblV2 mha1 = mhaTblV2Dao.queryByMhaName("mha");
-        System.out.println(mha1);
+        System.out.println(mha);
     }
 
     @Test

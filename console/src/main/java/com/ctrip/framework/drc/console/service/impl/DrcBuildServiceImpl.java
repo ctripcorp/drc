@@ -460,6 +460,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         drcDoubleWriteService.buildApplierGroup(applierGroupId);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, gtidExecuted);
         drcDoubleWriteService.buildAppliers(applierGroupId);
+        drcDoubleWriteService.buildMhaAndDbReplication(applierGroupId);
         return applierGroupId;
     }
 

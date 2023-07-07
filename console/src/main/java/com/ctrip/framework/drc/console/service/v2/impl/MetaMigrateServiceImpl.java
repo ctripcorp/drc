@@ -1284,6 +1284,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables)) {
             return false;
         }
+        if (oldTables.size() != newTables.size()) {
+            return false;
+        }
         Collections.sort(oldTables);
         Collections.sort(newTables);
         return oldTables.equals(newTables);

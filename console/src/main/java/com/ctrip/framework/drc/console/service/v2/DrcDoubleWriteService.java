@@ -11,5 +11,5 @@ public interface DrcDoubleWriteService {
 
     void buildAppliers(Long applierGroupId) throws Exception;
 
-    void buildMhaReplication(Long applierGroupId) throws Exception;
+    void buildMhaAndDbReplication(Long applierGroupId) throws Exception;
 }
