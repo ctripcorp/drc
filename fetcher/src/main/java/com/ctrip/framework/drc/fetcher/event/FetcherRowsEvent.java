@@ -41,7 +41,8 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
     public void involve(LinkContext linkContext) throws Exception {
         gtid = linkContext.fetchGtid();
         dataIndex = linkContext.increaseDataIndexByOne();
-        TableKey targetTable = linkContext.fetchTableKey();
+        loadPostHeader();
+        TableKey targetTable = linkContext.fetchTableKeyInMap(getRowsEventPostHeader().getTableId());
         columns = linkContext.fetchColumns(targetTable);
         originColumns = linkContext.fetchColumns();
         if (columns == null) {
