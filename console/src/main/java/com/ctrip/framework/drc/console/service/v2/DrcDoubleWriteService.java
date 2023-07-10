@@ -12,4 +12,8 @@ public interface DrcDoubleWriteService {
     void buildAppliers(Long applierGroupId) throws Exception;
 
     void buildMhaAndDbReplication(Long applierGroupId) throws Exception;
+
+    void insertRowsFilter(Long applierGroupId, Long dataMediaId, Long rowsFilterId) throws Exception;
+
+    void deleteRowsFilter(Long rowsFilterMappingId) throws Exception;
 }

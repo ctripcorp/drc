@@ -2,9 +2,11 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
+import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
@@ -13,17 +15,19 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig.Configs;
+import com.ctrip.framework.drc.core.meta.RowsFilterConfig.Parameters;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
-import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig.Parameters;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig.Configs;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
@@ -34,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-
 
 import java.sql.SQLException;
 import java.util.*;
@@ -62,6 +65,12 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
+
+    @Autowired
+    private ApplierGroupTblDao applierGroupTblDao;
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
 
 
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
@@ -135,6 +144,9 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @DalTransactional(logicDbName = DB_NAME)
     public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
+        if (!checkFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaTbl)) {
+            throw ConsoleExceptionUtils.message("nameFilter and rowsFilter not match!");
+        }
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         Long dataMediaId = dataMediaTblDao.insertReturnPk(dataMediaTbl);
         Long rowsFilterId = rowsFilterTblDao.insertReturnPk(rowsFilterTbl);
@@ -143,6 +155,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         mappingTbl.setDataMediaId(dataMediaId);
         mappingTbl.setRowsFilterId(rowsFilterId);
         int insert = rowsFilterMappingTblDao.insert(mappingTbl);
+
+        try {
+            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaId, rowsFilterId);
+        } catch (Exception e) {
+            logger.error("insertRowsFilter fail, {}", e);
+            throw ConsoleExceptionUtils.message("insertRowsFilter fail");
+        }
         return insert == 1 ? "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
@@ -150,9 +169,28 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @DalTransactional(logicDbName = DB_NAME)
     public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
+        if (!checkFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaTbl)) {
+            throw ConsoleExceptionUtils.message("nameFilter and rowsFilter not match!");
+        }
+
+        try {
+            drcDoubleWriteService.deleteRowsFilter(rowsFilterConfigDto.getId());
+        } catch (Exception e) {
+            logger.error("deleteRowsFilter fail, {}", e);
+            throw ConsoleExceptionUtils.message("deleteRowsFilter fail");
+        }
+
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         int update0 = dataMediaTblDao.update(dataMediaTbl);
         int update1 = rowsFilterTblDao.update(rowsFilterTbl);
+
+        try {
+            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), rowsFilterConfigDto.getDataMediaId(), rowsFilterConfigDto.getRowsFilterId());
+        } catch (Exception e) {
+            logger.error("insertRowsFilter fail, {}", e);
+            throw ConsoleExceptionUtils.message("insertRowsFilter fail");
+        }
+
         if (update0 + update1 == 2) {
             return "update rowsFilterConfig success";
         } else if (update0 == 1) {
@@ -178,6 +216,13 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update0 = rowsFilterMappingTblDao.update(mappingTbl);
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
+
+        try {
+            drcDoubleWriteService.deleteRowsFilter(id);
+        } catch (Exception e) {
+            logger.error("deleteRowsFilter fail, {}", e);
+            throw ConsoleExceptionUtils.message("deleteRowsFilter fail");
+        }
 
         return update0 + update1 + update2 == 3 ? "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }
@@ -332,6 +377,15 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         } catch (Exception e) {
             logger.error("[[tag=rowsFilter]] udl.migrate.updateDb fail,id:{}", rowsFilterTbl.getId(), e);
         }
+    }
+
+    private boolean checkFilter(Long applierGroupId, DataMediaTbl dataMediaTbl) throws SQLException {
+        ApplierGroupTbl applierGroupTbl = applierGroupTblDao.queryByPk(applierGroupId);
+        if (StringUtils.isBlank(applierGroupTbl.getNameFilter())) {
+            return false;
+        }
+        List<String> nameFilters = Lists.newArrayList(applierGroupTbl.getNameFilter().split(","));
+        return nameFilters.contains(dataMediaTbl.getFullName());
     }
 
 }

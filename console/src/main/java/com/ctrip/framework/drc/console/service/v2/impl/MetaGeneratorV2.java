@@ -400,6 +400,9 @@ public class MetaGeneratorV2 {
             String dstDbName = dstDbTblMap.getOrDefault(dstDbId, "");
             nameMappingList.add(srcDbName + "." + dbReplicationTbl.getSrcLogicTableName() + "," + dstDbName + "." + dbReplicationTbl.getDstLogicTableName());
         }
+        if (CollectionUtils.isEmpty(nameMappingList)) {
+            return null;
+        }
         return Joiner.on(";").join(nameMappingList);
     }
 

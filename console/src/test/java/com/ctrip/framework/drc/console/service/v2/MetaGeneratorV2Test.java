@@ -113,7 +113,7 @@ public class MetaGeneratorV2Test {
         Dc dc = drc.findDc("dc");
         List<Route> routes = dc.getRoutes();
 
-//        logger.info("drc: \n{}", drc.toString());
+        logger.info("drc: \n{}", drc.toString());
         Assert.assertEquals(routes.size(), 1);
     }
 

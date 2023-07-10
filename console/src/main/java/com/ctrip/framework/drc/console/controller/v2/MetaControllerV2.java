@@ -23,15 +23,15 @@ public class MetaControllerV2 {
     private MetaGeneratorV2 metaGenerator;
 
     @GetMapping
-    public ApiResult<String> getAllMetaData() {
+    public String getAllMetaData() {
         logger.info("[meta] get all");
         try {
             Drc drc = metaGenerator.getDrc();
             logger.info("drc:\n {}", drc.toString());
-            return ApiResult.getSuccessInstance(drc.toString());
+            return drc.toString();
         } catch (Exception e) {
             logger.error("get drc fail: {}", e);
-            return ApiResult.getFailInstance(String.format("get drc fail, %s", e));
+            return String.format("get drc fail, %s", e);
         }
     }
 }
