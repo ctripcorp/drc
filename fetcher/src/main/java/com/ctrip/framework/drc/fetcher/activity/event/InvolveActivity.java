@@ -19,6 +19,14 @@ public class InvolveActivity extends EventActivity<FetcherEvent, TransactionEven
     @InstanceResource
     public LinkContext linkContext;
 
+    @InstanceActivity
+    public LoadEventActivity loadEventActivity;
+
+    @Override
+    protected void doInitialize() throws Exception {
+        linkContext.resetTableKeyMap();
+    }
+
     @Override
     public FetcherEvent doTask(FetcherEvent event) throws InterruptedException {
         if (event instanceof MetaEvent) {
@@ -35,9 +43,6 @@ public class InvolveActivity extends EventActivity<FetcherEvent, TransactionEven
         tryPreload(event);
         return hand((TransactionEvent) event);
     }
-
-    @InstanceActivity
-    public LoadEventActivity loadEventActivity;
 
     protected void tryPreload(FetcherEvent event) {
         if (event instanceof FetcherRowsEvent) {
