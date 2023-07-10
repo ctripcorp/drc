@@ -8,6 +8,7 @@ public enum RowsFilterModeEnum {
     JAVA_REGEX(0, "java_regex"),
     TRIP_UDL(1, "trip_udl"),
     TRIP_UID(2, "trip_uid"),
+    AVIATOR_REGEX(3, "aviator_regex"),
     ;
 
     private Integer code;
