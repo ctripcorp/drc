@@ -43,6 +43,9 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
         dataIndex = linkContext.increaseDataIndexByOne();
         loadPostHeader();
         TableKey targetTable = linkContext.fetchTableKeyInMap(getRowsEventPostHeader().getTableId());
+        if (getRowsEventPostHeader().getFlags() == END_OF_STATEMENT_FLAG) {
+            linkContext.resetTableKeyMap();
+        }
         columns = linkContext.fetchColumns(targetTable);
         originColumns = linkContext.fetchColumns();
         if (columns == null) {
