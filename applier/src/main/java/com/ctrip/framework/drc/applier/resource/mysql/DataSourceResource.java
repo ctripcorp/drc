@@ -95,7 +95,7 @@ public class DataSourceResource extends AbstractResource implements DataSource {
             if(!Thread.currentThread().isInterrupted()) {
                 int active = ((DrcTomcatDataSource) inner).getActive();
                 if (reporter != null) {
-                    reporter.report("jdbc.active", "", active);
+                    reporter.report("jdbc.active", null, active);
                 }
             }
         }, 100, 200, TimeUnit.MILLISECONDS);

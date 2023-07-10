@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MetaInfoService;
-import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -24,9 +23,7 @@ import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.DBInfo;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.InstanceInfo;
-import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
-import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.foundation.Env;
 import com.ctrip.framework.foundation.Foundation;
@@ -564,6 +561,11 @@ MetaInfoServiceImpl implements MetaInfoService {
         return applierGroupTbl == null ? 1 : applierGroupTbl.getApplyMode();
     }
 
+    public String getApplierExecutedGtid(String mha, String remoteMha) throws SQLException {
+        ApplierGroupTbl applierGroupTbl = getApplierGroupTbl(mha, remoteMha);
+        return applierGroupTbl.getGtidExecuted();
+    }
+    
     private ApplierGroupTbl getApplierGroupTbl(MhaTbl mhaTbl, MhaTbl remoteMhaTbl) throws SQLException {
         List<ReplicatorGroupTbl> replicatorGroupTbls = dalUtils.getReplicatorGroupTblDao().queryByMhaIds(Lists.newArrayList(remoteMhaTbl.getId()), BooleanEnum.FALSE.getCode());
         if (replicatorGroupTbls.isEmpty()) {
@@ -744,7 +746,7 @@ MetaInfoServiceImpl implements MetaInfoService {
                     .setTargetIdc(targetIdc)
                     .setTargetRegion(metaService.getDc2regionMap().get(targetIdc))
                     .setTargetMhaName(targetMhaTbl.getMhaName())
-                    .setGtidExecuted(applierTbl.getGtidInit())
+                    .setGtidExecuted(applierGroupTbl.getGtidExecuted())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())
@@ -785,7 +787,7 @@ MetaInfoServiceImpl implements MetaInfoService {
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetIdc)
                     .setTargetMhaName(targetMhaTbl.getMhaName())
-                    .setGtidExecuted(applierTbl.getGtidInit())
+                    .setGtidExecuted(applierGroupTbl.getGtidExecuted())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())

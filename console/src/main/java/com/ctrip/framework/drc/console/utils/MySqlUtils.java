@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
@@ -532,6 +533,10 @@ public class MySqlUtils {
     
     public static String getExecutedGtid(Endpoint endpoint) {
         return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new ShowMasterGtidReader())).call();
+    }
+
+    public static String getPurgedGtid(Endpoint endpoint) {
+        return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new PurgedGtidReader())).call();
     }
     
     public static String getSqlResultString(Endpoint endpoint, String sql,int index) {

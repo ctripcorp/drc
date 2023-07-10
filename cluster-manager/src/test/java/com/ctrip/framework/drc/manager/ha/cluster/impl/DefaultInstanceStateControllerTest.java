@@ -45,7 +45,6 @@ public class DefaultInstanceStateControllerTest extends AbstractDbClusterTest {
         super.setUp();
 
         instanceStateController.initialize();
-        instanceStateController.setExecutors(executorService);
         instanceStateController.start();
 
         when(config.getMigrationBlackIps()).thenReturn(StringUtils.EMPTY);

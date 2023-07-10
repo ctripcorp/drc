@@ -41,6 +41,7 @@ public interface MessengerService {
     // openApi
     List<MessengerInfo> getAllMessengersInfo() throws SQLException;
 
-    
+    String getMessengerGtidExecuted(String localMha) throws SQLException;
+
 //    void addDalClusterMqConfigByDDL(String dc, String mhaName, String schema, String table) throws SQLException;
 }

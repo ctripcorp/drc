@@ -315,4 +315,23 @@ public class MigrateEntityBuilder {
         return Lists.newArrayList(applierGroupTbl);
     }
 
+    public static MhaTblV2 getMhaTblV2() {
+        MhaTblV2 tbl = new MhaTblV2();
+        tbl.setId(200L);
+        tbl.setMhaName("mha");
+        tbl.setDcId(200L);
+        tbl.setBuId(200L);
+        tbl.setClusterName("cluster");
+        tbl.setReadUser("");
+        tbl.setReadPassword("");
+        tbl.setWriteUser("");
+        tbl.setWritePassword("");
+        tbl.setMonitorPassword("");
+        tbl.setMonitorUser("");
+        tbl.setDeleted(0);
+        tbl.setAppId(1L);
+        tbl.setApplyMode(0);
+
+        return tbl;
+    }
 }

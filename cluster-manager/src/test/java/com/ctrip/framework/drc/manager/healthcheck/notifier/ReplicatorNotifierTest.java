@@ -40,7 +40,7 @@ public class ReplicatorNotifierTest extends AbstractNotifierTest {
     public void test_01_notifyPut() {
         int previousRetryInterval = AbstractNotifier.RETRY_INTERVAL;
         AbstractNotifier.RETRY_INTERVAL = 10;
-        replicatorNotifier.notifyAdd(dbCluster);
+        replicatorNotifier.notifyAdd(dbCluster.getId(), dbCluster);
         //first request fail and success after retry
         AllTests.wireMockServer.editStub(put(urlPathMatching("/replicators")).withId(ID_PUT).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(true)))));
         LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));

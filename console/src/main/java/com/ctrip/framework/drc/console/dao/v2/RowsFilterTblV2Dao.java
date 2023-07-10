@@ -38,9 +38,15 @@ public class RowsFilterTblV2Dao extends AbstractDao<RowsFilterTblV2> {
         return client.query(sqlBuilder, new DalHints());
     }
 
-    public RowsFilterTblV2 queryByConfigs(int mode, String configs) throws SQLException {
+    public RowsFilterTblV2 queryOneByConfigs(int mode, String configs) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(MODE, mode, Types.TINYINT).and().equal(CONFIGS, configs, Types.VARCHAR);
         return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    public List<RowsFilterTblV2> queryByConfigs(int mode, String configs) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(MODE, mode, Types.TINYINT).and().equal(CONFIGS, configs, Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
     }
 }

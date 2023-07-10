@@ -19,13 +19,24 @@ public class SrcDstMySQLModule extends AbstractConfigTest implements Destroyable
 
     private int destMySQLPort;
 
-    private String image;
+    private String srcImage;
+    private String destImage;
 
-    public SrcDstMySQLModule(int srcMySQLPort, int destMySQLPort, String image) {
+
+    public SrcDstMySQLModule(int srcMySQLPort, int destMySQLPort,String image) {
         this.srcMySQLPort = srcMySQLPort;
         this.destMySQLPort = destMySQLPort;
-        this.image = image;
+        this.srcImage = image;
+        this.destImage = image;
     }
+    public  SrcDstMySQLModule(int srcMySQLPort, int destMySQLPort, String srcImage,String destImage) {
+        this.srcMySQLPort = srcMySQLPort;
+        this.destMySQLPort = destMySQLPort;
+        this.srcImage = srcImage;
+        this.destImage = destImage;
+    }
+
+
 
     @Override
     protected void doInitialize() throws Exception{
@@ -34,13 +45,13 @@ public class SrcDstMySQLModule extends AbstractConfigTest implements Destroyable
 
     private void startMySQL() throws Exception {
         if (isUsed(srcMySQLPort)) {
-            InstanceConfig srcConfig = new InstanceConfig(srcMySQLPort, "sourcemysqltest", "src/", image);
+            InstanceConfig srcConfig = new InstanceConfig(srcMySQLPort, "sourcemysqltest", "src/", srcImage);
             src = new DockerInstance(srcConfig);
             src.start();
         }
 
         if (isUsed(destMySQLPort)) {
-            InstanceConfig dstConfig = new InstanceConfig(destMySQLPort, "destmysqltest", "dst/", image);
+            InstanceConfig dstConfig = new InstanceConfig(destMySQLPort, "destmysqltest", "dst/", destImage);
             dst = new DockerInstance(dstConfig);
             dst.start();
         }

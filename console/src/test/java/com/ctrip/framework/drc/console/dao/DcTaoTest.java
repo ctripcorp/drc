@@ -4,9 +4,12 @@ import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
+import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.google.common.collect.Lists;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,6 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -29,6 +35,7 @@ public class DcTaoTest {
     private DcTblDao dcTblDao;
 
     private static DB testDb;
+
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -63,6 +70,40 @@ public class DcTaoTest {
         for (DcTbl dcTbl : dcTbls) {
             System.out.println(dcTbl);
         }
+    }
+
+    @Test
+    public void testQuery() throws SQLException {
+        RowsFilterTblV2Dao rowsFilterTblV2Dao = new RowsFilterTblV2Dao();
+        RowsFilterTblV2 tbl = new RowsFilterTblV2();
+        tbl.setDeleted(0);
+        tbl.setConfigs("CONFIG");
+        tbl.setMode(0);
+
+
+        RowsFilterTblV2 tbl2 = new RowsFilterTblV2();
+        tbl2.setDeleted(0);
+        tbl2.setConfigs("CONfig");
+        tbl2.setMode(0);
+
+        RowsFilterTblV2 tbl1 = new RowsFilterTblV2();
+        tbl1.setDeleted(0);
+        tbl1.setConfigs("config");
+        tbl1.setMode(0);
+
+        rowsFilterTblV2Dao.batchInsert(Lists.newArrayList(tbl, tbl1, tbl2));
+        List<RowsFilterTblV2> configs = rowsFilterTblV2Dao.queryByConfigs(0, "config");
+        configs.forEach(System.out::println);
+
+        Map<String, RowsFilterTblV2> configMap = configs.stream().collect(Collectors.toMap(RowsFilterTblV2::getConfigs, Function.identity()));
+        System.out.println(configMap);
+
+        RowsFilterTblV2 config = configs.stream().filter(e -> e.getConfigs().equals("config")).findFirst().get();
+        RowsFilterTblV2 config1 = configs.stream().filter(e -> e.getConfigs().equals("Config")).findFirst().orElse(null);
+
+        System.out.println(config);
+        System.out.println(config1);
+
     }
 
     public static List<DcTbl> getDcTbls() {

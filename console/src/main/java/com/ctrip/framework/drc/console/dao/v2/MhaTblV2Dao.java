@@ -2,9 +2,13 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -13,7 +17,20 @@ import java.sql.SQLException;
 @Repository
 public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
 
+    private static final String MHA_NAME = "mha_name";
     public MhaTblV2Dao() throws SQLException {
         super(MhaTblV2.class);
+    }
+
+    public MhaTblV2 queryByMhaName(String mhaName) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(MHA_NAME, mhaName, Types.VARCHAR);
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    public List<MhaTblV2> queryByMhaNames(List<String> mhaNames) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().in(MHA_NAME, mhaNames, Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
     }
 }

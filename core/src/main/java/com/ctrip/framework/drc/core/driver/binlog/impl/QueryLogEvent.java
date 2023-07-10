@@ -187,6 +187,24 @@ public class QueryLogEvent extends AbstractLogEvent {
                 queryStatus.setMicroseconds(payload.readUnsignedMediumLE());
                 readStatusVarLength.addAndGet(3);
                 break;
+            case q_explicit_defaults_for_timestamp:
+                payload.readBoolean();
+                readStatusVarLength.addAndGet(1);
+                break;
+            case q_ddl_logged_with_xid: 
+                queryStatus.setDdlXid(payload.readLongLE());
+                readStatusVarLength.addAndGet(8);
+                break;
+            case q_default_collation_for_utf8mb4:
+                payload.readUnsignedShortLE(); 
+                readStatusVarLength.addAndGet(2);
+                break;
+            case q_sql_require_primary_key:
+                payload.readUnsignedShortLE();
+                readStatusVarLength.addAndGet(2);
+                break;
+            case q_commit_ts:
+            case q_commit_ts2:
             default:
                 throw new IllegalStateException(String.format("can't match QueryStatusCode when parse QueryLogEvent.QueryStatus, code is %d", code.getCode()));
         }
@@ -224,7 +242,9 @@ public class QueryLogEvent extends AbstractLogEvent {
         private long microseconds = -1;
 
         private String[] updateDbNames;
-
+        
+        private long  ddlXid  = -1;
+        
 
         public long getFlags2() {
             return flags2;
@@ -361,7 +381,18 @@ public class QueryLogEvent extends AbstractLogEvent {
         public void setUpdateDbNames(String[] updateDbNames) {
             this.updateDbNames = updateDbNames;
         }
-    }
+
+        public long getDdlXid() {
+            return ddlXid;
+        }
+
+        public void setDdlXid(long ddlXid) {
+            this.ddlXid = ddlXid;
+        }
+        
+        }
+        
+        
 
     enum QueryStatusCode {
         q_flags2_code(0),
@@ -377,8 +408,14 @@ public class QueryLogEvent extends AbstractLogEvent {
         q_master_data_written_code(10),
         q_invoker(11),
         q_update_db_names(12),
-        q_microseconds(13),;
-
+        q_microseconds(13),
+        q_commit_ts(14),
+        q_commit_ts2(15),
+        q_explicit_defaults_for_timestamp(16),
+        q_ddl_logged_with_xid(17),
+        q_default_collation_for_utf8mb4(18),
+        q_sql_require_primary_key(19);
+        
         static QueryStatusCode getQueryStatusCode(final int code) {
             switch (code) {
                 case 0:
@@ -409,6 +446,18 @@ public class QueryLogEvent extends AbstractLogEvent {
                     return q_update_db_names;
                 case 13:
                     return q_microseconds;
+                case 14:
+                    return q_commit_ts;
+                case 15:
+                    return q_commit_ts2;
+                case 16:
+                    return q_explicit_defaults_for_timestamp;
+                case 17:
+                    return q_ddl_logged_with_xid;
+                case 18:
+                    return q_default_collation_for_utf8mb4;
+                case 19:
+                    return q_sql_require_primary_key;
                 default:
                     throw new IllegalStateException(String.format("can't match QueryStatusCode when parse QueryLogEvent.QueryStatusCode, code is %d", code));
             }

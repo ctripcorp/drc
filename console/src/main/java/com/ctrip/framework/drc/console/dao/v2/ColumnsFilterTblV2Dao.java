@@ -38,10 +38,16 @@ public class ColumnsFilterTblV2Dao extends AbstractDao<ColumnsFilterTblV2> {
         return client.query(sqlBuilder, new DalHints());
     }
 
-    public ColumnsFilterTblV2 queryByColumns(int mode, String columns) throws SQLException {
+    public ColumnsFilterTblV2 queryOneByColumns(int mode, String columns) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(MODE, mode, Types.TINYINT).and().equal(COLUMNS, columns, Types.VARCHAR);
         return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    public List<ColumnsFilterTblV2> queryByColumns(int mode, String columns) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(MODE, mode, Types.TINYINT).and().equal(COLUMNS, columns, Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
     }
 
 }

@@ -45,9 +45,9 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private static final int RETRY_TIME = 10;
 
-    private static final int MERGE_THRESHOLD = 60 * 5;
+    private static final int MERGE_THRESHOLD = 20;
 
-    private static final int PERIOD = 60;
+    private static final int PERIOD = 5;
 
     private static final int SOCKET_TIMEOUT = 2000;
 
@@ -71,7 +71,7 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private final Object gtidSavedInMemoryLock = new Object();
 
-    private long lastTimeGtidMerged;
+    private volatile long lastTimeGtidMerged;
 
     private ExecutorService mergeGtidService = ThreadUtils.newSingleThreadExecutor("Merge-GtidSet");
 

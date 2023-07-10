@@ -8,6 +8,8 @@ import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.response.GtidCheckResVo;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,22 +107,53 @@ public class MhaController {
         }
         return ApiResult.getFailInstance(null);
     }
-
-    @GetMapping("gtid")
-    public ApiResult getRealExecutedGtid(@RequestParam String mha){
+    
+    @GetMapping("gtid/drcExecuted")
+    public ApiResult getDrcExecutedGtid(@RequestParam String mha){
         try {
-            String unionGtid = mySqlService.getRealExecutedGtid(mha);
+            String unionGtid = mySqlService.getDrcExecutedGtid(mha);
             if (StringUtils.isEmpty(unionGtid)) {
-                return ApiResult.getFailInstance(null);
+                return ApiResult.getFailInstance(null,"result is empty");
             } else {
                 return ApiResult.getSuccessInstance(unionGtid);
             }
         } catch (Throwable e) {
-            logger.error("[[tag=gtidQuery]] getRealExecutedGtid from mha: {}",mha,e);
+            logger.error("[[tag=gtidQuery]] getDrcExecutedGtid from mha: {}",mha,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
         }
-        return ApiResult.getFailInstance(null);
     }
+
+    @GetMapping("gtid/executed")
+    public ApiResult getMhaExecutedGtid(@RequestParam String mha){
+        try {
+            String unionGtid = mySqlService.getMhaExecutedGtid(mha);
+            if (StringUtils.isEmpty(unionGtid)) {
+                return ApiResult.getFailInstance(null,"result is empty");
+            } else {
+                return ApiResult.getSuccessInstance(unionGtid);
+            }
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getMhaExecutedGtid from mha: {}",mha,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
+        }
+    }
+
     
+
+
+    @GetMapping("gtid/checkResult")
+    public ApiResult getGtidCheckResult(@RequestParam String mha,@RequestParam String configGtid){
+        try {
+            String purgedGtid = mySqlService.getMhaPurgedGtid(mha);
+            GtidSet purgedGtidSet = new GtidSet(purgedGtid);
+            boolean legal = purgedGtidSet.isContainedWithin(new GtidSet(configGtid));
+            GtidCheckResVo resVo = new GtidCheckResVo(legal, purgedGtid);
+            return ApiResult.getSuccessInstance(resVo);
+        } catch (Throwable e) {
+            logger.error("[[tag=gtidQuery]] getGtidCheckResult from mha: {},configGtid:{}",mha,configGtid,e);
+            return ApiResult.getFailInstance(e,"unexpected exception");
+        }
+    }
 
 
 }

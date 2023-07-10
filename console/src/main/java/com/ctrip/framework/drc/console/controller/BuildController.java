@@ -14,6 +14,7 @@ import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -110,6 +111,35 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
+
+
+    @GetMapping("rowsFilterConfig/ucsMigrate")
+    public ApiResult getRowsFilterIdsShouldMigrate() {
+        logger.info("[[tag=ucsMigrate]] getRowsFilterIdsShouldMigrate");
+        try {
+            List<Long> migrateRowsFilterIds = rowsFilterService.getMigrateRowsFilterIds();
+            return ApiResult.getSuccessInstance(migrateRowsFilterIds);
+        } catch (Exception e) {
+            logger.error("[[tag=ucsMigrate]] getRowsFilterIdsShouldMigrate fail ", e);
+            return ApiResult.getFailInstance(e,"getRowsFilterIdsShouldMigrate fail");
+        }
+    }
+
+    @PostMapping("rowsFilterConfig/ucsMigrate")
+    public ApiResult migrateRowsFilterUcsStrategy(@RequestBody List<Long> rowsFilterIds) {
+        logger.info("[[tag=ucsMigrate]] migrateRowsFilterUcsStrategy" + rowsFilterIds);
+        try {
+            if (CollectionUtils.isEmpty(rowsFilterIds)) {
+                return ApiResult.getFailInstance(null,"empty rowsFilterIds");
+            } else {
+                return ApiResult.getSuccessInstance(rowsFilterService.migrateUdlStrategyId(rowsFilterIds));
+            }
+        } catch (Exception e) {
+            logger.error("[[tag=ucsMigrate]] migrateRowsFilterUcsStrategy fail ", e);
+            return ApiResult.getFailInstance(e,"migrateRowsFilterUcsStrategy fail");
+        }
+    }
+    
     
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable (@RequestParam String namespace,

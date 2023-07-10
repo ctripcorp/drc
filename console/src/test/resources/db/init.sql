@@ -569,7 +569,7 @@ CREATE TABLE `columns_filter_tbl` (
     KEY `ix_datachange_lasttime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='字段过滤配置表';
 
-CREATE TABLE `datamediapair_tbl` (
+CREATE TABLE `dataMediaPair_tbl` (
     `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
     `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '0:db->db，1:db->mq',
     `group_id` bigint(20) NOT NULL DEFAULT '0' COMMENT 'applier/messenger_group_id',

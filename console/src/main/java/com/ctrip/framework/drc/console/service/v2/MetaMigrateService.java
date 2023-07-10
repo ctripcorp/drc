@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
@@ -28,7 +29,7 @@ public interface MetaMigrateService {
 
     MhaDbMappingResult checkMhaDbMapping() throws Exception;
 
-    MigrateResult migrateMhaDbMapping() throws Exception;
+    MigrateResult migrateMhaDbMapping(List<String> dbBlackList) throws Exception;
 
     List<MhaNameFilterVo> checkMhaFilter() throws Exception;
 
@@ -38,7 +39,7 @@ public interface MetaMigrateService {
 
     MigrateResult migrateRowsFilter() throws Exception;
 
-    MigrateResult migrateDbReplicationTbl() throws Exception;
+    MigrateResult migrateDbReplicationTbl(List<String> vpcMhaNames) throws Exception;
 
     List<MhaNameFilterVo> checkNameMapping() throws Exception;
 
@@ -49,5 +50,13 @@ public interface MetaMigrateService {
     MigrateResult migrateMessengerFilter() throws Exception;
 
     MigrateResult migrateDbReplicationFilterMapping() throws Exception;
+
+    MigrateResult manualMigrateDbs(List<String> dbs) throws Exception;
+
+    MigrateResult manualMigrateMhaDbMapping(List<String> mhaNames) throws Exception;
+
+    MigrateResult manualMigrateVPCMhaDbMapping(MhaDbMappingMigrateParam param) throws Exception;
+
+    List<MhaNameFilterVo> checkVPCMha(List<String> mhaNames) throws Exception;
 
 }

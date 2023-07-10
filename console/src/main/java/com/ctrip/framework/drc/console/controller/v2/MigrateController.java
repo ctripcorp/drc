@@ -1,11 +1,14 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
+import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/api/drc/v2/migrate")
 public class MigrateController {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     @Autowired
     private MetaMigrateService metaMigrateService;
 
@@ -28,6 +32,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.checkNameMapping());
         } catch (Exception e) {
+            logger.error("checkNameMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -37,6 +42,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.checkMhaFilter());
         } catch (Exception e) {
+            logger.error("checkMhaFilter fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -46,6 +52,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.splitNameFilter(paramList));
         } catch (Exception e) {
+            logger.error("splitNameFilter fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -55,6 +62,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.splitNameFilterWithNameMapping());
         } catch (Exception e) {
+            logger.error("splitNameFilterWithNameMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -64,6 +72,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.batchInsertRegions(regionNames));
         } catch (Exception e) {
+            logger.error("batchInsertRegions fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -73,6 +82,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.batchUpdateDcRegions(dcRegionMa));
         } catch (Exception e) {
+            logger.error("setDcRegions fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -82,6 +92,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaTbl());
         } catch (Exception e) {
+            logger.error("migrateMhaTbl fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -91,6 +102,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaReplication());
         } catch (Exception e) {
+            logger.error("migrateMhaReplication fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -100,6 +112,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateApplierGroup());
         } catch (Exception e) {
+            logger.error("migrateApplierGroup fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -109,6 +122,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateApplier());
         } catch (Exception e) {
+            logger.error("migrateApplier fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -118,15 +132,17 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.checkMhaDbMapping());
         } catch (Exception e) {
+            logger.error("checkMhaDbMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
     @PostMapping("/mhaDbMapping")
-    public ApiResult<MigrateResult> migrateMhaDbMapping() {
+    public ApiResult<MigrateResult> migrateMhaDbMapping(@RequestBody List<String> dbBlackList) {
         try {
-            return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaDbMapping());
+            return ApiResult.getSuccessInstance(metaMigrateService.migrateMhaDbMapping(dbBlackList));
         } catch (Exception e) {
+            logger.error("migrateMhaDbMapping fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -136,6 +152,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateColumnsFilter());
         } catch (Exception e) {
+            logger.error("migrateColumnsFilter fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -145,15 +162,17 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateRowsFilter());
         } catch (Exception e) {
+            logger.error("migrateRowsFilter fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
     @PostMapping("/dbReplication")
-    public ApiResult<MigrateResult> migrateDbReplicationTbl() {
+    public ApiResult<MigrateResult> migrateDbReplicationTbl(@RequestBody List<String> vpcMhaNames) {
         try {
-            return ApiResult.getSuccessInstance(metaMigrateService.migrateDbReplicationTbl());
+            return ApiResult.getSuccessInstance(metaMigrateService.migrateDbReplicationTbl(vpcMhaNames));
         } catch (Exception e) {
+            logger.error("migrateDbReplicationTbl fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -163,6 +182,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMessengerGroup());
         } catch (Exception e) {
+            logger.error("migrateMessengerGroup fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -172,6 +192,7 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateMessengerFilter());
         } catch (Exception e) {
+            logger.error("migrateMessengerFilter fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }
@@ -181,6 +202,47 @@ public class MigrateController {
         try {
             return ApiResult.getSuccessInstance(metaMigrateService.migrateDbReplicationFilterMapping());
         } catch (Exception e) {
+            logger.error("migrateDbReplicationFilterMapping fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual/mhaDbMapping")
+    public ApiResult<MigrateResult> manualMigrateMhaDbMapping(@RequestBody List<String> mhaNames) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateMhaDbMapping(mhaNames));
+        } catch (Exception e) {
+            logger.error("manualMigrateMhaDbMapping fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual/db")
+    public ApiResult<MigrateResult> manualMigrateDbs(@RequestBody List<String> dbs) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateDbs(dbs));
+        } catch (Exception e) {
+            logger.error("manualMigrateDbs fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @PostMapping("/manual/vpc/mhaDbMapping")
+    public ApiResult<MigrateResult> manualMigrateVPCMhaDbMapping(@RequestBody MhaDbMappingMigrateParam param) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.manualMigrateVPCMhaDbMapping(param));
+        } catch (Exception e) {
+            logger.error("manualMigrateVPCMhaDbMapping fail: {}", e);
+            return ApiResult.getFailInstance(e.getMessage());
+        }
+    }
+
+    @GetMapping ("/vpc/mha")
+    public ApiResult<List<MhaNameFilterVo>> checkVPCMha(@RequestBody List<String> mhaNames) {
+        try {
+            return ApiResult.getSuccessInstance(metaMigrateService.checkVPCMha(mhaNames));
+        } catch (Exception e) {
+            logger.error("checkVPCMha fail: {}", e);
             return ApiResult.getFailInstance(e.getMessage());
         }
     }

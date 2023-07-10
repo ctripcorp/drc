@@ -286,7 +286,7 @@ public class MetaGenerator {
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetDcTbl.getDcName())
                     .setTargetMhaName(targetMhaTbl.getMhaName())
-                    .setGtidExecuted(applierTbl.getGtidInit())
+                    .setGtidExecuted(applierGroupTbl.getGtidExecuted())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())

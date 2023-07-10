@@ -33,7 +33,7 @@
         <framework.bom.version>5.42.0</framework.bom.version>
         <foundation-service.version>3.1.2</foundation-service.version>
         <plexus-container-default.version>3.1.2</plexus-container-default.version>
-        <dal.version>2.4.5</dal.version>
+        <dal.version>2.4.35</dal.version>
         <vi.version>0.11.47</vi.version>
         <ucs.version>0.5.0</ucs.version>
         <xpipe.version>1.2.4</xpipe.version>
@@ -62,6 +62,8 @@
         <aviator.version>5.2.7</aviator.version>
         <oro.version>2.0.8</oro.version>
         <hickwall.version>0.1.13</hickwall.version>
+        <!-- mysql connector -->
+        <mysql-connector.version>5.1.48</mysql-connector.version>
     </properties>
 
     <dependencyManagement>
@@ -70,8 +72,19 @@
                 <groupId>com.ctrip.framework</groupId>
                 <artifactId>framework-bom</artifactId>
                 <version>${framework.bom.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>mysql</groupId>
+                        <artifactId>mysql-connector-java</artifactId>
+                    </exclusion>
+                </exclusions>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql-connector.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>

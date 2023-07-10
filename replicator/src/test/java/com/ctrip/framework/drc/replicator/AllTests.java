@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.server.config.SystemConfig;
 import com.ctrip.framework.drc.replicator.container.ReplicatorServerContainerTest;
 import com.ctrip.framework.drc.replicator.container.config.HeartBeatConfigurationTest;
 import com.ctrip.framework.drc.replicator.container.config.TableFilterConfigurationTest;
+import com.ctrip.framework.drc.replicator.container.controller.ReplicatorContainerControllerTest;
 import com.ctrip.framework.drc.replicator.container.zookeeper.DefaultUuidOperatorTest;
 import com.ctrip.framework.drc.replicator.impl.DefaultReplicatorServerTest;
 import com.ctrip.framework.drc.replicator.impl.inbound.converter.ReplicatorByteBufConverterTest;
@@ -121,7 +122,10 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         HeartBeatCommandHandlerTest.class,
         ChannelAttributeKeyTest.class,
         CommandHandlerManagerTest.class,
-        TransactionFlagsTest.class
+        TransactionFlagsTest.class,
+
+        //controller
+        ReplicatorContainerControllerTest.class
 
 })
 public class AllTests {

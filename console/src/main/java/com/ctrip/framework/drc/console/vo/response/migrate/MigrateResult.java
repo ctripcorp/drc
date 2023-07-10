@@ -9,12 +9,21 @@ public class MigrateResult {
     private int updateSize;
     private int deleteSize;
     private int expectedSize;
+    private String msg;
 
     public MigrateResult(int insertSize, int updateSize, int deleteSize, int expectedSize) {
         this.insertSize = insertSize;
         this.updateSize = updateSize;
         this.deleteSize = deleteSize;
         this.expectedSize = expectedSize;
+    }
+
+    public MigrateResult(int insertSize, int updateSize, int deleteSize, int expectedSize, String msg) {
+        this.insertSize = insertSize;
+        this.updateSize = updateSize;
+        this.deleteSize = deleteSize;
+        this.expectedSize = expectedSize;
+        this.msg = msg;
     }
 
     public int getInsertSize() {
@@ -47,5 +56,13 @@ public class MigrateResult {
 
     public void setExpectedSize(int expectedSize) {
         this.expectedSize = expectedSize;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
     }
 }

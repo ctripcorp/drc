@@ -13,5 +13,11 @@ public interface MySqlService {
     Integer getAutoIncrement(String mha,String sql,int index,Endpoint endpoint);
     
     // forward by mha
-    String getRealExecutedGtid(String mha);
+    String getDrcExecutedGtid(String mha);
+
+    // forward by mha
+    String getMhaExecutedGtid(String mha);
+
+    // forward by mha
+    String getMhaPurgedGtid(String mha);
 }

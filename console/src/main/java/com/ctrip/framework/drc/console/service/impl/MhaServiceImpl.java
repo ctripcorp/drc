@@ -33,7 +33,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.enums.BooleanEnum.FALSE;
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
@@ -261,7 +260,7 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
             Long dcId = dalUtils.updateOrCreateDc(mhaDto.getDc());
             Long buId = dalUtils.updateOrCreateBu(mhaDto.getBuName());
             Long clusterId = dalUtils.updateOrCreateCluster(mhaDto.getDalClusterName(), mhaDto.getAppid(), buId);
-            Long mhaId = dalUtils.updateOrCreateMha(mhaDto.getMhaName(), dcId);
+            Long mhaId = dalUtils.recoverOrCreateMha(mhaDto.getMhaName(), dcId);
             dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
             return ApiResult.getSuccessInstance(null);
             
