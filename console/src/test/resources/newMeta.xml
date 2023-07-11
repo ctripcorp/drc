@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<drc>
+  <dc id="ntgxh" region="ntgxh">
+    <routes>
+      <route id="23" org-id="0" tag="console" src-dc="ntgxh" src-region="ntgxh" dst-dc="sinaws" dst-region="sin" routeInfo="PROXY://ip1:80 PROXYTLS://ip2:443"/>
+      <route id="24" org-id="0" tag="meta" src-dc="ntgxh" src-region="ntgxh" dst-dc="sinaws" dst-region="sin" routeInfo="PROXY://ip2 PROXYTLS://ip3:443"/>
+    </routes>
+    <clusterManager ip="testip" port="8080" master="true"/>
+    <zkServer address="testaddress"/>
+    <dbClusters>
+      <dbCluster id="mha1_dalcluster.mha1" name="mha1_dalcluster" mhaName="mha1" buName="BBZ" org-id="3" appId="1" applyMode="1">
+        <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+          <db ip="testip" port="55111" master="true" uuid="uuid1"/>
+          <db ip="testip" port="55111" master="false" uuid="uuid2"/>
+        </dbs>
+        <replicator ip="testip" port="8080" applierPort="8386" gtidSkip="uuid1:1-10,uuid2:1-10" master="false" excludedTables="db1.t1"/>
+        <messenger ip="testip" port="8080" gtidExecuted="uuid1:1-10,uuid2:1-10" master="false" nameFilter="db1\.t2,db2\.t2" properties="{&quot;nameFilter&quot;:&quot;db1\\.t2,db2\\.t2&quot;,&quot;dataMediaConfig&quot;:{&quot;rowsFilters&quot;:[],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}},&quot;mqConfigs&quot;:[{&quot;table&quot;:&quot;db1\\.t2&quot;,&quot;topic&quot;:&quot;fx.drc.test.config&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0},{&quot;table&quot;:&quot;db2\\.t2&quot;,&quot;topic&quot;:&quot;fx.drc.test.config&quot;,&quot;mqType&quot;:&quot;qmq&quot;,&quot;serialization&quot;:&quot;json&quot;,&quot;persistent&quot;:false,&quot;order&quot;:false,&quot;delayTime&quot;:0}],&quot;regex2Configs&quot;:{},&quot;regex2Filter&quot;:{},&quot;regex2Producers&quot;:{},&quot;tableName2Producers&quot;:{}}"/>
+      </dbCluster>
+      <dbCluster id="mha2_dalcluster.mha2" name="mha2_dalcluster" mhaName="mha2" buName="BBZ" org-id="3" appId="100006837" applyMode="1">
+        <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+          <db ip="testip" port="55111" master="true" uuid="uuid3"/>
+          <db ip="testip" port="55111" master="false" uuid="uuid4"/>
+        </dbs>
+        <replicator ip="testip" port="8080" applierPort="8384" gtidSkip="uuid3:1-10,uuid4:1-10" master="false" excludedTables=""/>
+        <applier ip="testip" port="8080" targetRegion="ntgxy" targetIdc="ntgxy" targetMhaName="mha3" targetName="mha3_dalcluster" master="false" applyMode="1" nameFilter="nameMappingshard01db\.t[1-8],nameMappingshard02db\.t[1-8]" nameMapping="nameMappingshard01db.t[1-8],nameMappingshard01db.s[1-8];nameMappingshard02db.t[1-8],nameMappingshard02db.s[1-8]"/>
+      </dbCluster>
+    </dbClusters>
+  </dc>
+  <dc id="ntgxy" region="ntgxy">
+    <clusterManager ip="testip" port="8080" master="true"/>
+    <zkServer address="testaddress"/>
+    <dbClusters>
+      <dbCluster id="mha3_dalcluster.mha3" name="mha3_dalcluster" mhaName="mha3" buName="BBZ" org-id="3" appId="1" applyMode="1">
+        <dbs readUser="root" readPassword="root" writeUser="root" writePassword="root" monitorUser="root" monitorPassword="root">
+          <db ip="testip" port="55111" master="true" uuid="uuid5"/>
+          <db ip="testip" port="55111" master="false" uuid="uuid6"/>
+        </dbs>
+        <replicator ip="testip" port="8080" applierPort="8384" gtidSkip="uuid5:1-10,uuid6:1-10" master="false" excludedTables=""/>
+        <applier ip="testip" port="8080" targetRegion="ntgxh" targetIdc="ntgxh" targetMhaName="mha2" targetName="mha2_dalcluster" master="false" applyMode="1" nameFilter="nameMappingshard01db\.s[1-8],nameMappingshard02db\.s[1-8],rowsFiltersharddb1\.s[1-8],rowsFiltersharddb2\.s[1-8],columnsFiltershardb1\..*,columnsFiltershardb2\..*" nameMapping="nameMappingshard01db.s[1-8],nameMappingshard01db.t[1-8];nameMappingshard02db.s[1-8],nameMappingshard02db.t[1-8]" properties="{&quot;rowsFilters&quot;:[{&quot;mode&quot;:&quot;java_regex&quot;,&quot;tables&quot;:&quot;rowsFiltersharddb1\\.s[1-8]&quot;,&quot;configs&quot;:{&quot;parameterList&quot;:[{&quot;columns&quot;:[&quot;one&quot;],&quot;illegalArgument&quot;:false,&quot;context&quot;:&quot;trip.*&quot;,&quot;fetchMode&quot;:0,&quot;userFilterMode&quot;:&quot;uid&quot;}]}},{&quot;mode&quot;:&quot;java_regex&quot;,&quot;tables&quot;:&quot;rowsFiltersharddb2\\.s[1-8]&quot;,&quot;configs&quot;:{&quot;parameterList&quot;:[{&quot;columns&quot;:[&quot;one&quot;],&quot;illegalArgument&quot;:false,&quot;context&quot;:&quot;trip.*&quot;,&quot;fetchMode&quot;:0,&quot;userFilterMode&quot;:&quot;uid&quot;}]}}],&quot;columnsFilters&quot;:[{&quot;mode&quot;:&quot;exclude&quot;,&quot;tables&quot;:&quot;columnsFiltershardb1\\..*&quot;,&quot;columns&quot;:[&quot;opuserid&quot;]},{&quot;mode&quot;:&quot;exclude&quot;,&quot;tables&quot;:&quot;columnsFiltershardb2\\..*&quot;,&quot;columns&quot;:[&quot;opuserid&quot;]}],&quot;ruleFactory&quot;:{},&quot;table2Config&quot;:{},&quot;table2ColumnConfig&quot;:{},&quot;table2Filter&quot;:{},&quot;table2ColumnFilter&quot;:{},&quot;table2Rule&quot;:{},&quot;table2ColumnRule&quot;:{},&quot;matchResult&quot;:{&quot;isolateCache&quot;:{}},&quot;matchColumnsResult&quot;:{&quot;isolateCache&quot;:{}}}"/>
+      </dbCluster>
+    </dbClusters>
+  </dc>
+  <dc id="shali" region="sha">
+    <zkServer address="testaddress"/>
+  </dc>
+  <dc id="shaxy" region="sha">
+    <zkServer address="testaddress"/>
+  </dc>
+</drc>
