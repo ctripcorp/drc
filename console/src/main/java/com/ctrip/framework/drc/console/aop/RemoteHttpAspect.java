@@ -152,6 +152,7 @@ public class RemoteHttpAspect {
     private String getRegionByArgs(Map<String, Object> arguments) {
         String dcNameByArgs = getDcNameByArgs(arguments);
         if (StringUtils.isEmpty(dcNameByArgs)) {
+            logger.warn("[[tag=remoteHttpAop]] no region find by arguments");
             return null;
         }  else {
             return consoleConfig.getRegionForDc(dcNameByArgs);
