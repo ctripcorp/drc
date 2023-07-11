@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.context.BaseTransactionContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -39,6 +40,7 @@ public class MonitoredTableMapEventTest extends MockTest {
         when(testEvent.getTableName()).thenReturn("hello");
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.involve(mock(LinkContextResource.class));
+        testEvent.transformer(mock(TransformerContext.class));
         testEvent.apply(transactionContext);
         verify(transactionContext, times(1)).updateTableKeyMap(0L, TableKey.from("prod", "hello"));
     }
@@ -48,6 +50,7 @@ public class MonitoredTableMapEventTest extends MockTest {
         MockTableMapEvent testEvent = new MockTableMapEvent(
                 "prod", "hello");
         LinkContext context = spy(new LinkContextResource());
+        context.resetTableKeyMap();
         doReturn(1).when(context).fetchDataIndex();
         doReturn("unset").when(context).fetchGtid();
         LogEventHeader logEventHeader = spy(new LogEventHeader());
