@@ -10,7 +10,6 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.event.FetcherRowsEvent;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.apache.tomcat.util.buf.HexUtils;
@@ -20,7 +19,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -72,7 +70,7 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         when(linkContext.fetchTableKeyInMap(0L)).thenReturn(tableKey);
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(initTableMapByteBuf());
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
-        when(linkContext.fetchColumns()).thenReturn(Columns.from(columnList));
+        when(linkContext.fetchColumns(tableKey)).thenReturn(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
         writeRowsEvent.tryLoad();
         Assert.assertTrue(writeRowsEvent.isLoaded());
@@ -83,11 +81,14 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         ByteBuf byteBuf = initEnumRowsByteBuf();
         TestEvent writeRowsEvent = (TestEvent) new TestEvent().read(byteBuf);
         LinkContext linkContext = mock(LinkContext.class);
-        when(linkContext.fetchTableKey()).thenReturn(TableKey.from("prod", "hello"));
+        TableKey tableKey = TableKey.from("prod", "hello");
+
+        when(linkContext.fetchTableKey()).thenReturn(tableKey);
         when(linkContext.fetchColumns(any())).thenReturn(mockEnumOriginColumns());
+        when(linkContext.fetchTableKeyInMap(155L)).thenReturn(tableKey);
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(initEnumTableMapByteBuf());
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
-        when(linkContext.fetchColumns()).thenReturn(Columns.from(columnList));
+        tableKey.setColumns(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
         writeRowsEvent.tryLoad();
         List<List<Object>> values = writeRowsEvent.getBeforePresentRowsValues();

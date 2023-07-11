@@ -56,6 +56,6 @@ public class MonitoredTableMapEventTest extends MockTest {
         LogEventHeader logEventHeader = spy(new LogEventHeader());
         testEvent.setLogEventHeader(logEventHeader);
         testEvent.involve(context);
-        assertEquals(TableKey.from("prod", "hello"), context.fetchTableKey());
+        assertEquals(TableKey.from("prod", "hello"), context.fetchTableKeyInMap(0L));
     }
 }
