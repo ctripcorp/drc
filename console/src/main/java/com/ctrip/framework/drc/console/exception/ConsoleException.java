@@ -1,12 +1,10 @@
 package com.ctrip.framework.drc.console.exception;
 
-import java.sql.SQLException;
-
 /**
  * Created by dengquanliang
  * 2023/7/5 14:36
  */
-public class ConsoleException extends SQLException {
+public class ConsoleException extends RuntimeException {
     public ConsoleException() {}
 
     public ConsoleException(String message) {

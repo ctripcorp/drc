@@ -142,7 +142,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     @Override
     @DalTransactional(logicDbName = DB_NAME)
-    public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
+    public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws Exception {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
         if (!checkFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaTbl)) {
             throw ConsoleExceptionUtils.message("nameFilter and rowsFilter not match!");
@@ -156,40 +156,25 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         mappingTbl.setRowsFilterId(rowsFilterId);
         int insert = rowsFilterMappingTblDao.insert(mappingTbl);
 
-        try {
-            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaId, rowsFilterId);
-        } catch (Exception e) {
-            logger.error("insertRowsFilter fail, {}", e);
-            throw ConsoleExceptionUtils.message("insertRowsFilter fail");
-        }
+        drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaId, rowsFilterId);
         return insert == 1 ? "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
     @Override
     @DalTransactional(logicDbName = DB_NAME)
-    public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
+    public String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws Exception {
         DataMediaTbl dataMediaTbl = rowsFilterConfigDto.extractDataMediaTbl();
         if (!checkFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaTbl)) {
             throw ConsoleExceptionUtils.message("nameFilter and rowsFilter not match!");
         }
 
-        try {
-            drcDoubleWriteService.deleteRowsFilter(rowsFilterConfigDto.getId());
-        } catch (Exception e) {
-            logger.error("deleteRowsFilter fail, {}", e);
-            throw ConsoleExceptionUtils.message("deleteRowsFilter fail");
-        }
+        drcDoubleWriteService.deleteRowsFilter(rowsFilterConfigDto.getId());
 
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         int update0 = dataMediaTblDao.update(dataMediaTbl);
         int update1 = rowsFilterTblDao.update(rowsFilterTbl);
 
-        try {
-            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), rowsFilterConfigDto.getDataMediaId(), rowsFilterConfigDto.getRowsFilterId());
-        } catch (Exception e) {
-            logger.error("insertRowsFilter fail, {}", e);
-            throw ConsoleExceptionUtils.message("insertRowsFilter fail");
-        }
+        drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), rowsFilterConfigDto.getDataMediaId(), rowsFilterConfigDto.getRowsFilterId());
 
         if (update0 + update1 == 2) {
             return "update rowsFilterConfig success";
@@ -204,7 +189,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     @Override
     @DalTransactional(logicDbName = DB_NAME)
-    public String deleteRowsFilterConfig(Long id) throws SQLException {
+    public String deleteRowsFilterConfig(Long id) throws Exception {
         RowsFilterMappingTbl mappingTbl = rowsFilterMappingTblDao.queryByPk(id);
         mappingTbl.setDeleted(BooleanEnum.TRUE.getCode());
         RowsFilterTbl rowsFilterTbl = new RowsFilterTbl();
@@ -217,12 +202,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
 
-        try {
-            drcDoubleWriteService.deleteRowsFilter(id);
-        } catch (Exception e) {
-            logger.error("deleteRowsFilter fail, {}", e);
-            throw ConsoleExceptionUtils.message("deleteRowsFilter fail");
-        }
+        drcDoubleWriteService.deleteRowsFilter(id);
 
         return update0 + update1 + update2 == 3 ? "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }

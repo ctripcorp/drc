@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import com.ctrip.framework.drc.console.dao.entity.ColumnsFilterTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
@@ -82,6 +83,24 @@ public class DcTaoTest {
         mhaTblV2Dao.insert(mha);
         MhaTblV2 mha1 = mhaTblV2Dao.queryByMhaName("mha");
         System.out.println(mha);
+    }
+
+    @Test
+    public void testDelete() throws SQLException {
+        ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
+        columnsFilterTbl.setDataMediaId(1L);
+        columnsFilterTbl.setColumns("");
+        columnsFilterTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        ColumnsFilterTblDao columnFilterTblDao = new ColumnsFilterTblDao();
+        columnFilterTblDao.insert(columnsFilterTbl);
+
+        List<ColumnsFilterTbl> tbls1 = columnFilterTblDao.queryAll();
+        columnsFilterTbl.setDataMediaId(1L);
+        columnsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        columnFilterTblDao.update(columnsFilterTbl);
+        List<ColumnsFilterTbl> tbls2 = columnFilterTblDao.queryAll();
+        System.out.println(tbls1);
+        System.out.println(tbls2);
     }
 
     @Test

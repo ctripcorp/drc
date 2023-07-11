@@ -95,9 +95,9 @@ public class BuildController {
             } else {
                 return ApiResult.getSuccessInstance(rowsFilterService.addRowsFilterConfig(rowsFilterConfigDto));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=rowsFilterConfig]] load rowsFilterConfig fail with {} ", rowsFilterConfigDto, e);
-            return ApiResult.getFailInstance("sql error in add or update rowsFilterConfig");
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
@@ -106,7 +106,7 @@ public class BuildController {
         logger.info("[[meta=rowsFilterConfig]] delete rowsFilterConfig id: {}", rowsFilterMappingId);
         try {
             return ApiResult.getSuccessInstance(rowsFilterService.deleteRowsFilterConfig(rowsFilterMappingId));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=rowsFilterConfig]] delete rowsFilterConfig fail with {} ", rowsFilterMappingId, e);
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }

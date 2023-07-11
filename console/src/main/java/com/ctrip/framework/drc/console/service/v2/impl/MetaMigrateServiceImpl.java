@@ -637,13 +637,15 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
                 .collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
         Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
 
         List<Long> errorApplierGroupIds = new ArrayList<>();
         List<MhaNameFilterVo> nameFilterVos = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             String nameMappings = applierGroupTbl.getNameMapping();
-            String mhaName = mhaMap.get(applierGroupTbl.getMhaId());
+            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getReplicatorGroupId()));
             if (!checkNameMapping(nameMappings)) {
                 errorApplierGroupIds.add(applierGroupTbl.getId());
                 continue;

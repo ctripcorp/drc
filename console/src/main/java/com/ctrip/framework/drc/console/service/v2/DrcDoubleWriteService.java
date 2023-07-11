@@ -16,4 +16,9 @@ public interface DrcDoubleWriteService {
     void insertRowsFilter(Long applierGroupId, Long dataMediaId, Long rowsFilterId) throws Exception;
 
     void deleteRowsFilter(Long rowsFilterMappingId) throws Exception;
+
+    void insertOrUpdateColumnsFilter(Long dataMediaId) throws Exception;
+
+    void deleteColumnsFilter(Long dataMediaId) throws Exception;
+
 }
