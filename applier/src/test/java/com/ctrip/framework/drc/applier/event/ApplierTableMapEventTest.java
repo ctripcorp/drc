@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.resource.condition.DirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContext;
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContext;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -27,6 +28,7 @@ public class ApplierTableMapEventTest {
         DecryptedTransactionContextResource context = mock(DecryptedTransactionContextResource.class);
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.involve(mock(LinkContextResource.class));
+        testEvent.transformer(mock(TransformerContext.class));
         testEvent.apply(context);
         verify(context, times(1)).updateTableKeyMap(0L, TableKey.from("prod", "hello"));
     }
@@ -36,11 +38,12 @@ public class ApplierTableMapEventTest {
         MockTableMapEvent testEvent = new MockTableMapEvent(
                 "prod", "hello");
         LinkContext context = spy(new LinkContextResource());
+        context.resetTableKeyMap();
         doReturn(1).when(context).fetchDataIndex();
         doReturn("unset").when(context).fetchGtid();
         LogEventHeader logEventHeader = spy(new LogEventHeader());
         testEvent.setLogEventHeader(logEventHeader);
         testEvent.involve(context);
-        assertEquals(TableKey.from("prod", "hello"), context.fetchTableKey());
+        assertEquals(TableKey.from("prod", "hello"), context.fetchTableKeyInMap(0L));
     }
 }
