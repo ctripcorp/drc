@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl.migrate;
 
 import static com.ctrip.framework.drc.core.service.utils.Constants.COMMA;
-import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_DOT_REGEX;
-import static com.ctrip.framework.drc.core.service.utils.Constants.SEMICOLON;
 
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.core.entity.Applier;
@@ -13,6 +11,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
+import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerHelper;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -187,8 +186,10 @@ public class DbClusterComparator implements Callable<String> {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{} match table is empty",srcMha, newNameFilter);
             newTables = drcBuildService.queryTablesWithNameFilter(destMha, newNameFilter);
         }
-
+        
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables) || oldTables.size() != newTables.size()) {
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,oldTables.size());
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,newTables.size());
             return false;
         }
 
@@ -387,76 +388,81 @@ public class DbClusterComparator implements Callable<String> {
             recorder.append("\nnameMapping is not equal, one side is empty!");
             return false;
         }
-
-        List<String> oldNameMappings = Lists.newArrayList(oldNameMapping.split(SEMICOLON));
-        List<String> newNameMappings = Lists.newArrayList(newNameMapping.split(SEMICOLON));
-
-        List<String> oldNameMappingInfo = Lists.newArrayList();
-        List<String> newNameMappingInfo = Lists.newArrayList();
-        for (String  nameMapping : oldNameMappings) {
-            String[] mapping = nameMapping.split(COMMA); //bbzmembersaccountshard[01-16]db.uid_accounts[1-8],bbzmembersaccountshard[01-16]db.sjp_uid_accounts[1-8]
-            String srcInfo = mapping[0]; // bbzmembersaccountshard[01-16]db.uid_accounts[1-8]
-            String destInfo = mapping[1]; // bbzmembersaccountshard[01-16]db.sjp_uid_accounts[1-8]
-            ShardInfo srcShardInfo = parseLogicalDbShardInfo(srcInfo);
-            ShardInfo destShardInfo = parseLogicalDbShardInfo(destInfo);
-            oldNameMappingInfo.add(
-                    srcShardInfo.dbShard + srcShardInfo.table + destShardInfo.dbShard + destShardInfo.table
-                            + (srcShardInfo.shardCount + destShardInfo.shardCount));
+        
+        Map<String, String> oldNameMappingInfo = parseNameMapping(oldNameMapping);
+        Map<String, String> newNameMappingInfo = parseNameMapping(newNameMapping);
+        if (oldNameMappingInfo.size() != newNameMappingInfo.size()) {
+            recorder.append("\nnameMapping is not equal, mapping size not equal!");
+            return false;
         }
 
-        Map<String,Integer> nameMappingInfoCountMap = Maps.newHashMap();
-        for (String  nameMapping : newNameMappings) {
-            String[] mapping = nameMapping.split(COMMA); //bbzmembersaccountshard01db.uid_accounts[1-8],bbzmembersaccountshard01db.sjp_uid_accounts[1-8]
-            String srcInfo = mapping[0]; // bbzmembersaccountshard01db.uid_accounts[1-8]
-            String destInfo = mapping[1]; // bbzmembersaccountshard01db.sjp_uid_accounts[1-8]
-            ShardInfo srcShardInfo = parsePhysicalDbShardInfo(srcInfo);
-            ShardInfo destShardInfo = parsePhysicalDbShardInfo(destInfo);
-            String nameMappingInfo = srcShardInfo.dbShard + srcShardInfo.table + destShardInfo.dbShard + destShardInfo.table;
-            Integer count = nameMappingInfoCountMap.getOrDefault(nameMappingInfo, 0);
-            nameMappingInfoCountMap.put(nameMappingInfo ,count+2);
+        for (Entry<String, String> entry : oldNameMappingInfo.entrySet()) {
+            String srcName = entry.getKey();
+            String oldDestName = entry.getValue();
+            String newDestName = newNameMappingInfo.getOrDefault(srcName, null);
+            if (null == newDestName || !newDestName.equals(oldDestName)) {
+                recorder.append("\nnameMapping is not equal").append("srcTableName:").append(srcName);
+                return false;
+            }
         }
-
-        for (Entry<String, Integer> entry : nameMappingInfoCountMap.entrySet()) {
-            String info = entry.getKey();
-            Integer count = entry.getValue();
-            newNameMappingInfo.add(info + count);
+        return true;
+        
+    }
+    
+    private Map<String, String> parseNameMapping(String nameMapping) {
+        Map<String, String> nameMap = Maps.newLinkedHashMap();
+        if (StringUtils.isBlank(nameMapping)) {
+            return nameMap;
         }
-        Collections.sort(oldNameMappingInfo);
-        Collections.sort(newNameMappingInfo);
-        return oldNameMappingInfo.equals(newNameMappingInfo);
+        String[] names = StringUtils.split(nameMapping, ';');
 
+        for (String name : names) {
+            String[] namePair = StringUtils.split(name, ',');
+            String sourceName = namePair[0];
+            String targetName = namePair[1];
+
+            if (sourceName.contains("[")) {
+                List<String> sourceNames = parseNameMode(sourceName);
+                List<String> targetNames = parseNameMode(targetName);
+                if (sourceNames.size() != targetNames.size()) {
+                    logger.error("source name: {} and target name: {} size are not same", sourceNames, targetNames);
+                    throw new RuntimeException("source and target name size are not same");
+                }
+                for (int i = 0; i < sourceNames.size(); i++) {
+                    nameMap.put(sourceNames.get(i), targetNames.get(i));
+                }
+            } else {
+                nameMap.put(parseSingleName(sourceName), parseSingleName(targetName));
+            }
+        }
+        logger.info("init name mapping success, size is: {}, content is: {}", nameMap.size(), nameMap);
+        return nameMap;
     }
 
-    private ShardInfo parseLogicalDbShardInfo(String shardString) {
-        String[] dbAndTable = shardString.split(ESCAPE_DOT_REGEX); // bbzmembersaccountshard[01-16]db.uid_accounts[1-8]
-        String logicalDb = dbAndTable[0]; // bbzmembersaccountshard[01-16]db
-        String logicalTable = dbAndTable[1]; // uid_accounts[1-8]
-        String dbShardName = logicalDb.substring(0, logicalDb.indexOf('[')); //bbzmembersaccountshard
-        int start = logicalDb.indexOf('['); 
-        int end = logicalDb.indexOf(']');
-        String shard = logicalDb.substring(start+1,end); //01-16
-        String[] shardInfo = shard.split("-");
-        String startShard = shardInfo[0];
-        String endShard = shardInfo[1];
-        if (startShard.startsWith("0")) {
-            startShard = startShard.replaceFirst("0","");
+    private List<String> parseNameMode(String name) {
+        String[] names = StringUtils.split(name, '.');
+        String schemaMode = names[0];
+        String tableMode = names[1];
+
+        List<String> schemas = TransformerHelper.parseMode(schemaMode);
+        List<String> tables = TransformerHelper.parseMode(tableMode);
+
+        List<String> schemaDotTables = Lists.newArrayList();
+        for (String schema : schemas) {
+            for (String table : tables) {
+                schemaDotTables.add("`" + schema + "`.`" + table + "`");
+            }
         }
-        if (endShard.startsWith("0")) {
-            endShard = endShard.replaceFirst("0","");
-        }
-        int shardCount = Integer.parseInt(endShard) - Integer.parseInt(startShard) + 1;
-        return new ShardInfo(dbShardName,logicalTable,shardCount);
+        return schemaDotTables;
     }
 
-    private ShardInfo parsePhysicalDbShardInfo(String shardString) {
-        String[] dbAndTable = shardString.split(ESCAPE_DOT_REGEX); // bbzmembersaccountshard01db.sjp_uid_accounts[1-8]
-        String db = dbAndTable[0]; // bbzmembersaccountshard01db
-        String logicalTable = dbAndTable[1]; // sjp_uid_accounts[1-8]
-        db = db.replaceFirst("\\d","[");
-        String dbShardName = db.substring(0, db.indexOf("["));
-        return new ShardInfo(dbShardName,logicalTable,1);
+    private String parseSingleName(String name) {
+        String[] names = StringUtils.split(name, '.');
+        String schema = names[0];
+        String table = names[1];
+        return "`" + schema + "`.`" + table + "`";
     }
-
+    
 
     private boolean equalsExcludeConfig(Applier a1, Applier a2) {
         return a1.getIp().equals(a2.getIp())
@@ -477,16 +483,5 @@ public class DbClusterComparator implements Callable<String> {
                 && StringUtils.equals(m1.getGtidExecuted(),m2.getGtidExecuted());
     }
 
-
-    private static class ShardInfo {
-        public String dbShard;
-        public String table;
-        public int shardCount;
-
-        public ShardInfo(String dbShard, String table, int shardCount) {
-            this.dbShard = dbShard;
-            this.table = table;
-            this.shardCount = shardCount;
-        }
-    }
+    
 }
