@@ -1,5 +1,9 @@
 package com.ctrip.framework.drc.core.driver.schema.data;
 
+import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
+
+import java.util.List;
+
 /**
  * @Author Slight
  * Oct 12, 2019
@@ -9,6 +13,8 @@ public class TableKey extends Key {
     public final String databaseName;
 
     public final String tableName;
+
+    public List<TableMapLogEvent.Column> columns;
 
     public TableKey(String databaseName, String tableName) {
         this.databaseName = databaseName;
@@ -32,6 +38,14 @@ public class TableKey extends Key {
 
     public String getTableName() {
         return tableName;
+    }
+
+    public List<TableMapLogEvent.Column> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<TableMapLogEvent.Column> columns) {
+        this.columns = columns;
     }
 
     @Override

@@ -52,8 +52,8 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
         gtid = linkContext.fetchGtid();
         dataIndex = linkContext.increaseDataIndexByOne();
         tableKey = TableKey.from(getSchemaName(), getTableName());
+        tableKey.setColumns(getColumns());
         linkContext.updateTableKeyMap(getTableId(), tableKey);
-        linkContext.updateColumns(getColumns());
         logEvent();
     }
 
