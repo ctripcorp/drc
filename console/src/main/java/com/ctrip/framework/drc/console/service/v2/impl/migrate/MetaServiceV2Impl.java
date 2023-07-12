@@ -42,7 +42,7 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
     
     private StringBuilder recorder;
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
-
+    
     @Override
     public synchronized String compareDrcMeta()  {
         try {
@@ -108,7 +108,7 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
                     
                 }
                 recorderFutures.add(comparators.submit(
-                        new DbClusterComparator(oldDbCluster, newDbCluster, drcBuildService)));
+                        new DbClusterComparator(oldDbCluster, newDbCluster, drcBuildService,consoleConfig.getCostTimeTraceSwitch())));
             }
             
             // rest

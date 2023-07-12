@@ -41,15 +41,20 @@ public class DbClusterComparator implements Callable<String> {
     
     private final StringBuilder recorder;
     
+    private final boolean costTimeTrace;
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public DbClusterComparator( DbCluster oldDbCluster,
-            DbCluster newDbCluster, DrcBuildService drcBuildService) {
+    public DbClusterComparator(DbCluster oldDbCluster, DbCluster newDbCluster,
+            DrcBuildService drcBuildService,  boolean costTimeTrace) {
+
         this.oldDbCluster = oldDbCluster;
         this.newDbCluster = newDbCluster;
         this.drcBuildService = drcBuildService;
         this.recorder = new StringBuilder();
+        this.costTimeTrace = costTimeTrace;
     }
+    
     
     
     @Override
@@ -59,7 +64,6 @@ public class DbClusterComparator implements Callable<String> {
             recorder.append("\n[CompareDbCluster]:").append(oldDbCluster.getId());
             if (null == newDbCluster) {
                 return recorder.append("\nnewDbCluster is empty").toString();
-                
             }
             
             boolean dbsEquals = oldDbCluster.getDbs().equals(newDbCluster.getDbs());
@@ -102,7 +106,9 @@ public class DbClusterComparator implements Callable<String> {
                 }
                 
                 long compareNameFilter = System.currentTimeMillis();
-                recorder.append("\ncompareNameFilter end").append("cost ms:").append(compareNameFilter-applierStart);
+                if (costTimeTrace) {
+                    recorder.append("\ncompareNameFilter end").append("cost ms:").append(compareNameFilter - applierStart);
+                }
                 
                 String oldNameMapping = oldApplier.getNameMapping();
                 String newNameMapping = newApplier.getNameMapping();
@@ -111,7 +117,9 @@ public class DbClusterComparator implements Callable<String> {
                 }
                 
                 long compareNameMapping = System.currentTimeMillis();
-                recorder.append("\ncompareNameMapping end").append("cost ms:").append(compareNameMapping-compareNameFilter);
+                if (costTimeTrace) {
+                    recorder.append("\ncompareNameMapping end").append("cost ms:").append(compareNameMapping-compareNameFilter);
+                }
 
                 String oldProperties = oldApplier.getProperties();
                 String newProperties = newApplier.getProperties();
@@ -120,7 +128,9 @@ public class DbClusterComparator implements Callable<String> {
                 }
 
                 long compareProperties = System.currentTimeMillis();
-                recorder.append("\ncompareProperties end").append("cost ms:").append(compareProperties-compareNameMapping);
+                if (costTimeTrace) {
+                    recorder.append("\ncompareProperties end").append("cost ms:").append(compareProperties - compareNameMapping);
+                }
             }
 
             // compare Messenger
@@ -151,7 +161,10 @@ public class DbClusterComparator implements Callable<String> {
                 }
                 
                 long compareNameFilter = System.currentTimeMillis();
-                recorder.append("\ncompareNameFilter end").append("cost ms:").append(compareNameFilter-messengerStart);
+                
+                if (costTimeTrace) {
+                    recorder.append("\ncompareNameFilter end").append("cost ms:").append(compareNameFilter - messengerStart);
+                }
 
                 String oldProperties = oldMessenger.getProperties();
                 String newProperties = newMessenger.getProperties();
@@ -160,7 +173,9 @@ public class DbClusterComparator implements Callable<String> {
                 }
 
                 long compareProperties = System.currentTimeMillis();
-                recorder.append("\ncompareMessengerConfigs end").append("cost ms:").append(compareProperties-compareNameFilter);
+                if (costTimeTrace) {
+                    recorder.append("\ncompareMessengerConfigs end").append("cost ms:").append(compareProperties - compareNameFilter);
+                }
             }
             
             long end = System.currentTimeMillis();
@@ -188,8 +203,10 @@ public class DbClusterComparator implements Callable<String> {
         }
         
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables) || oldTables.size() != newTables.size()) {
-            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,oldTables.size());
-            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,newTables.size());
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,
+                    CollectionUtils.isEmpty(oldTables) ? 0 :oldTables.size());
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,
+                    CollectionUtils.isEmpty(newTables) ? 0 :newTables.size());
             return false;
         }
 
