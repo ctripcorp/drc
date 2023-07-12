@@ -262,6 +262,14 @@ public class MigrateEntityBuilder {
         return tbl;
     }
 
+    public static MessengerTbl getMessenger() {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setId(200L);
+        messengerTbl.setMessengerGroupId(200L);
+        messengerTbl.setDeleted(0);
+        return messengerTbl;
+    }
+
     public static DataMediaPairTbl getDataMediaPairTbl() {
         DataMediaPairTbl tbl = new DataMediaPairTbl();
         tbl.setDeleted(0);
