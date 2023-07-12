@@ -1138,6 +1138,10 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
         String srcMhaName = mhaTblMap.get(mhaReplication.getSrcMhaId());
         String dstMhaName = mhaTblMap.get(mhaReplication.getDstMhaId());
+        if (vpcMhaNames.contains(srcMhaName) && vpcMhaNames.contains(dstMhaName)) {
+            return Pair.of(new ArrayList<>(), Pair.of(mhaReplication, new HashSet<>()));
+        }
+
         String mhaName = srcMhaName;
         if (vpcMhaNames.contains(mhaName)) {
             mhaName = dstMhaName;
@@ -1160,6 +1164,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         String nameFilter = applierGroupTbl.getNameFilter();
         if (StringUtils.isBlank(nameFilter)) {
             List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+            if (CollectionUtils.isEmpty(dbNames)) {
+                logger.warn("mhaName: {} query db is empty", mhaName);
+            }
             for (String dbName : dbNames) {
                 Long dbId = dbTblMap.get(dbName);
                 try {
