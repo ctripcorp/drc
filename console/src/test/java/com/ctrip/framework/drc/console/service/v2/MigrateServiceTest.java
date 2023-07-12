@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
@@ -95,9 +96,9 @@ public class MigrateServiceTest {
     @Mock
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
     @Mock
-    private DalServiceImpl dalService;
-    @Mock
     private DrcBuildService drcBuildService;
+    @Mock
+    private MessengerTblDao messengerTblDao;
 
     @Before
     public void setUp() throws Exception {
@@ -300,6 +301,7 @@ public class MigrateServiceTest {
         Mockito.when(dbTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getDbTbls());
         Mockito.when(dataMediaPairTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getDataMediaPairTbl()));
         Mockito.when(mhaDbMappingTblDao.queryAll()).thenReturn(MigrateEntityBuilder.getMhaDbMappingTbls());
+        Mockito.when(messengerTblDao.queryAll()).thenReturn(Lists.newArrayList(MigrateEntityBuilder.getMessenger()));
 
         MigrateResult result = migrationService.migrateMessengerGroup();
         Mockito.verify(dbReplicationTblDao, Mockito.never()).batchDelete(Mockito.anyList());
@@ -356,12 +358,7 @@ public class MigrateServiceTest {
         List<MhaTbl> mhaTblList = MigrateEntityBuilder.getMhaTbls().stream().filter(e -> e.getId().equals(200L)).collect(Collectors.toList());
         Mockito.when(mhaTblDao.queryAll()).thenReturn(mhaTblList);
         Mockito.when(dbTblDao.queryAll()).thenReturn(getDbTbls());
-
-        Map<String, Map<String, List<String>>> dbNameMap = new HashMap<>();
-        Map<String, List<String>> dbMap = new HashMap<>();
-        dbMap.put("mha200", Lists.newArrayList("db"));
-        dbNameMap.put("mha200", dbMap);
-        Mockito.when(dalService.getDbNames(Mockito.anyList(), Mockito.any(Env.class))).thenReturn(dbNameMap);
+        Mockito.when(drcBuildService.queryDbsWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("db"));
     }
 
     private DataMediaTbl getDataMediaTbl() {
