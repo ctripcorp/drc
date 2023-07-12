@@ -289,6 +289,18 @@ public class MigrateServiceTest {
         Assert.assertEquals(result.getInsertSize(), 1);
         Assert.assertEquals(result.getUpdateSize(), 0);
         Assert.assertEquals(result.getDeleteSize(), 0);
+
+        MigrateResult result1 = migrationService.migrateDbReplicationTbl(Lists.newArrayList("mha200", "mha201"));
+        Assert.assertEquals(result1.getInsertSize(), 0);
+        Assert.assertEquals(result1.getUpdateSize(), 0);
+        Assert.assertEquals(result1.getDeleteSize(), 0);
+
+        Mockito.when(drcBuildService.queryDbsWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(new ArrayList<>());
+
+        MigrateResult result2 = migrationService.migrateDbReplicationTbl(new ArrayList<>());
+        Assert.assertEquals(result2.getInsertSize(), 0);
+        Assert.assertEquals(result2.getUpdateSize(), 0);
+        Assert.assertEquals(result2.getDeleteSize(), 0);
     }
 
     @Test
