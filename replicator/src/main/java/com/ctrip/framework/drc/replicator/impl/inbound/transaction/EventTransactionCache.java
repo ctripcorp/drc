@@ -18,6 +18,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.TRANSACTION_BUFFER_SIZE;
+
 /**
  * @Author limingdong
  * @create 2020/4/22
@@ -26,7 +28,7 @@ public class EventTransactionCache extends AbstractLifecycle implements Transact
 
     private static final long INIT_SEQUENCE = -1;
 
-    public static int bufferSize = 1024 * 8;
+    public static int bufferSize = TRANSACTION_BUFFER_SIZE;
 
     private int indexMask;
 

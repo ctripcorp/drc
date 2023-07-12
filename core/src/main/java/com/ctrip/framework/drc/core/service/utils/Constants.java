@@ -32,5 +32,8 @@ public class Constants {
     public static final String MHA_INSTANCES_GROUP_LIST = "instanceGroups?operator=DRCConsole";
     
     public static final String ESCAPE_CHARACTER_DOT_REGEX = "\\\\\\.";
+    public static final String ESCAPE_DOT_REGEX = "\\.";
+    public static final String COMMA = ",";
+    public static final String SEMICOLON = ";";
 
 }

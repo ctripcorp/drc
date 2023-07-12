@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.EVENT_LOGGER;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.TRANSACTION_BUFFER_SIZE;
 
 /**
  * @Author limingdong
@@ -22,7 +23,7 @@ public class TransactionEvent extends AbstractLogEvent implements ITransactionEv
 
     private List<LogEvent> logEvents = Lists.newArrayList();
 
-    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+    private CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer(TRANSACTION_BUFFER_SIZE * 2);
 
     private List<ByteBuf> eventByteBufs = new ArrayList<>();
 

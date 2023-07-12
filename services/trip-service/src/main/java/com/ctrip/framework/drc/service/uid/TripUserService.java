@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.service.uid;
 
-import com.ctrip.basebiz.tripaccount.region.route.sdk.AccountUidRoute;
 import com.ctrip.basebiz.tripaccount.region.route.sdk.udlwrite.UdlRoute;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
@@ -110,14 +109,9 @@ public class TripUserService implements UserService {
 
         @Override
         protected Region regionFor(String attr) {
-            com.ctrip.soa.platform.accountregionroute.v1.Region region =  AccountUidRoute.regionForUid(attr);
-            String regionName = region.name().toUpperCase();
-            UID_LOGGER.info("{}:{}", attr, regionName);
-            return Region.nameFor(regionName);
-
-//            String udl = UdlRoute.udlForUid(attr);
-//            UID_LOGGER.info("{}:{}", attr, udl);
-//            return regionForUdl(DRC_UCS_STRATEGY_ID, udl);
+            String udl = UdlRoute.udlForUid(attr);
+            UID_LOGGER.info("{}:{}", attr, udl);
+            return regionForUdl(DRC_UCS_STRATEGY_ID, udl);
         }
     }
 
