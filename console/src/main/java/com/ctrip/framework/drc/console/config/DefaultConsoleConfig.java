@@ -97,7 +97,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
-
     private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
 
     // only for test
@@ -435,4 +434,5 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public boolean getCostTimeTraceSwitch() {
         return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
     }
+
 }
