@@ -193,17 +193,17 @@ public class DbClusterComparator implements Callable<String> {
         List<String> oldTables = drcBuildService.queryTablesWithNameFilter(srcMha, oldNameFilter);
         List<String> newTables = drcBuildService.queryTablesWithNameFilter(srcMha, newNameFilter);
 
-        if (CollectionUtils.isEmpty(oldTables)) {
+        if (CollectionUtils.isEmpty(oldTables) && destMha != null) {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{} match table is empty",srcMha, oldNameFilter);
             oldTables = drcBuildService.queryTablesWithNameFilter(destMha, oldNameFilter);
         }
-        if (CollectionUtils.isEmpty(newTables)) {
+        if (CollectionUtils.isEmpty(newTables) && destMha != null) {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{} match table is empty",srcMha, newNameFilter);
             newTables = drcBuildService.queryTablesWithNameFilter(destMha, newNameFilter);
         }
         
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables) || oldTables.size() != newTables.size()) {
-            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, oldNameFilter,
                     CollectionUtils.isEmpty(oldTables) ? 0 :oldTables.size());
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, newNameFilter,
                     CollectionUtils.isEmpty(newTables) ? 0 :newTables.size());
