@@ -108,7 +108,7 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
                     
                 }
                 recorderFutures.add(comparators.submit(
-                        new DbClusterComparator(oldDbCluster, newDbCluster, drcBuildService)));
+                        new DbClusterComparator(oldDbCluster, newDbCluster, drcBuildService,consoleConfig.getCostTimeTraceSwitch())));
             }
             
             // rest
