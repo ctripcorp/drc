@@ -102,7 +102,7 @@ public class DbClusterComparator implements Callable<String> {
                 }
                 
                 // vpc2vpc
-                if (vpcDcs.contains(destDc) && vpcDcs.contains(newApplier.getTargetMhaName())) {
+                if (vpcDcs.contains(destDc) && vpcDcs.contains(newApplier.getTargetIdc())) {
                     recorder.append("compare Applier vpc2vpc,ignore");
                     continue;
                 }
