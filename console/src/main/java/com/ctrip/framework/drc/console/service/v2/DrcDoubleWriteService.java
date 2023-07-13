@@ -21,4 +21,7 @@ public interface DrcDoubleWriteService {
 
     void deleteColumnsFilter(Long dataMediaId) throws Exception;
 
+    void buildMhaForMq(Long mhaId) throws Exception;
+
+    void buildDbReplicationForMq(Long dataMediaPairId) throws Exception;
 }

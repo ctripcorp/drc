@@ -24,7 +24,7 @@
       </FormItem>
       <FormItem>
         <Button @click="handleReset('mhaInfo')">重置</Button>
-        <Button type="primary" @click="changeModal('mhaInfo')" style="margin-left: 150px">录入Mha信息</Button>
+        <Button type="primary" @click="changeModal('mhaInfo')" style="margin-left: 150px">Exception</Button>
         <Modal
           v-model="mhaInfo.modal"
           title="录入mha相关信息"

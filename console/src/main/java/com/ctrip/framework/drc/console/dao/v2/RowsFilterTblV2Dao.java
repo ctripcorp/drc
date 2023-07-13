@@ -51,6 +51,12 @@ public class RowsFilterTblV2Dao extends AbstractDao<RowsFilterTblV2> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<RowsFilterTblV2> queryByMode(int mode) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(MODE, mode, Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public Long insertReturnId(RowsFilterTblV2 rowsFilterTblV2) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insert(new DalHints(), keyHolder, rowsFilterTblV2);

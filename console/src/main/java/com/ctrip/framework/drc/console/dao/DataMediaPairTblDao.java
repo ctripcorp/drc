@@ -1,10 +1,10 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -30,6 +30,12 @@ public class DataMediaPairTblDao extends AbstractDao<DataMediaPairTbl> {
         sample.setGroupId(messengerGroupId);
         sample.setDeleted(BooleanEnum.FALSE.getCode());
         return queryBy(sample);
+    }
+
+    public Long insertReturnKey(DataMediaPairTbl dataMediaPairTbl) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, dataMediaPairTbl);
+        return (Long) keyHolder.getKey();
     }
 }
 

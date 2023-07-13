@@ -30,6 +30,39 @@ public class AbstractDao<T> {
     }
 
     /**
+     * Insert T with return ID
+     */
+    public Long insertWithReturnId(T daoPojo) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, daoPojo);
+        return (Long) keyHolder.getKey();
+    }
+
+    /**
+     * Query by ID
+     * Deleted default false
+     */
+    public T queryById(Long id) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal("id", id, Types.BIGINT);
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    /**
+     * Query one
+     */
+    public T queryOne(SelectSqlBuilder sqlBuilder) throws SQLException {
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    /**
+     * Query list
+     */
+    public List<T> queryList(SelectSqlBuilder sqlBuilder) throws SQLException {
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    /**
      * Query T by the specified ID
      * The ID must be a number
      */

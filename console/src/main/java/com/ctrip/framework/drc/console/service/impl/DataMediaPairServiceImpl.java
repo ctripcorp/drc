@@ -70,8 +70,8 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     @Override
     public String addMqConfig(MqConfigDto dto) throws SQLException {
         DataMediaPairTbl dataMediaPairTbl = transfer(dto);
-        int affectRows = dataMediaPairTblDao.insert(dataMediaPairTbl);
-        return affectRows == 1 ?  "addMqConfig success" : "addMqConfig fail";
+        Long dataMediaPairId = dataMediaPairTblDao.insertReturnKey(dataMediaPairTbl);
+        return dataMediaPairId != null && dataMediaPairId > 0L ?  "addMqConfig success" : "addMqConfig fail";
     }
 
     @Override

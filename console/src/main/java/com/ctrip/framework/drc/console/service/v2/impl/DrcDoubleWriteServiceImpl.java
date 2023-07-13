@@ -82,6 +82,8 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
+    private MessengerTblDao messengerTblDao;
+    @Autowired
     private MessengerFilterTblDao messengerFilterTblDao;
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
@@ -213,8 +215,8 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         applierGroupTblV2.setMhaReplicationId(mhaReplicationId);
         applierGroupTblV2Dao.update(applierGroupTblV2);
 
-        insertDbReplications(applierGroupTbl, srcMhaDbMappings, dstMhaDbMappings, dbList);
-        insertDbReplicationFilterMapping(applierGroupTbl, srcMhaDbMappings, dstMhaDbMappings, dbList);
+        List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(applierGroupTbl, srcMhaDbMappings, dstMhaDbMappings, dbList);
+        insertDbReplicationFilterMapping(dbReplicationTbls, applierGroupTbl, srcMhaDbMappings, dbList);
     }
 
     @Override
@@ -252,6 +254,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void insertOrUpdateColumnsFilter(Long dataMediaId) throws Exception {
         logger.info("drc double write insertOrUpdateColumnsFilter, dataMediaId: {}", dataMediaId);
         DataMediaTbl dataMediaTbl = dataMediaTblDao.queryById(dataMediaId);
@@ -282,6 +285,124 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
 
         existFilterMappings.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
+    }
+
+    @Override
+    public void buildMhaForMq(Long mhaId) throws Exception {
+        MhaTbl mhaTbl = mhaTblDao.queryById(mhaId);
+        if (mhaTbl == null) {
+            logger.error("mha not exist, mhaId: {}", mhaId);
+            throw ConsoleExceptionUtils.message("mha not exist");
+        }
+
+        List<ClusterMhaMapTbl> clusterMhaMapTbls = clusterMhaMapTblDao.queryByMhaIds(Lists.newArrayList(mhaId), BooleanEnum.FALSE.getCode());
+        List<GroupMappingTbl> groupMappingTbls = groupMappingTblDao.queryByMhaIds(Lists.newArrayList(mhaId), BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(clusterMhaMapTbls) || CollectionUtils.isEmpty(groupMappingTbls)) {
+            logger.error("clusterMhaMapTbls or groupMappingTbls is empty, mhaId: {}", mhaId);
+            throw ConsoleExceptionUtils.message("clusterMhaMap or groupMapping is empty");
+        }
+
+        ClusterTbl clusterTbl = clusterTblDao.queryByPk(clusterMhaMapTbls.get(0).getClusterId());
+        MhaGroupTbl mhaGroupTbl = mhaGroupTblDao.queryByPk(groupMappingTbls.get(0).getMhaGroupId());
+        MhaTblV2 mhaTblV2 = buildMhaTblV2(mhaTbl, mhaGroupTbl, clusterTbl);
+        insertOrUpdateMha(mhaTblV2);
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildDbReplicationForMq(Long dataMediaPairId) throws Exception {
+        DataMediaPairTbl dataMediaPairTbl = dataMediaPairTblDao.queryByPk(dataMediaPairId);
+        if (dataMediaPairTbl == null) {
+            logger.error("dataMediaPairTbl not exist, dataMediaPairId: {}", dataMediaPairId);
+            throw ConsoleExceptionUtils.message("dataMediaPairTbl not exist");
+        }
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByPk(dataMediaPairTbl.getGroupId());
+        if (messengerGroupTbl == null) {
+            logger.error("messengerGroupTbl not exist, dataMediaPairId: {}, messengerGroupId: {}", dataMediaPairId, dataMediaPairTbl.getGroupId());
+            throw ConsoleExceptionUtils.message("messengerGroupTbl not exist");
+        }
+
+        Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl, messengerGroupTbl);
+    }
+
+    private List<Long> insertMessengerDbReplications(MessengerGroupTbl messengerGroupTbl, DataMediaPairTbl dataMediaPairTbl) throws Exception{
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(messengerGroupTbl.getMhaId());
+        List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
+
+        List<String> dbNameFilters = Lists.newArrayList(dataMediaPairTbl.getSrcDataMediaName().split(","));
+        for (String dbNameFilter : dbNameFilters) {
+            String[] dbTables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+            String srcLogicTable = dbTables[1];
+
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(dbTables[0]);
+            List<Long> srcDbIds = dbTbls.stream().filter(e -> aviatorRegexFilter.filter(e.getDbName())).map(DbTbl::getId).collect(Collectors.toList());
+            List<Long> srcMhaDbMappingIds = mhaDbMappingTbls.stream().filter(e -> srcDbIds.contains(e.getDbId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+
+        }
+    }
+
+    private Long insertMessengerFilter(DataMediaPairTbl dataMediaPairTbl, MessengerGroupTbl messengerGroupTbl) throws Exception {
+        List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        Long messengerFilterId = null;
+        for (MessengerFilterTbl messengerFilterTbl : messengerFilterTbls) {
+            if (messengerFilterTbl.getProperties().equals(dataMediaPairTbl.getProperties())) {
+                messengerFilterId = messengerFilterTbl.getId();
+                break;
+            }
+        }
+        if (messengerFilterId == null) {
+            MessengerFilterTbl messengerFilterTbl = new MessengerFilterTbl();
+            messengerFilterTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            messengerFilterTbl.setProperties(dataMediaPairTbl.getProperties());
+            messengerFilterId = messengerFilterTblDao.insertWithReturnId(messengerFilterTbl);
+        }
+
+        return messengerFilterId;
+    }
+
+    private void insertMessengerFilterMappings(Long messengerFilterId, MessengerGroupTbl messengerGroupTbl, DataMediaPairTbl dataMediaPairTbl) throws Exception {
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            logger.info("insertMessengerFilterMapping messengerTbls is empty, messengerGroupId: {}", messengerGroupTbl.getId());
+            return;
+        }
+
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(messengerGroupTbl.getMhaId());
+        List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
+
+        List<String> dbNameFilters = Lists.newArrayList(dataMediaPairTbl.getSrcDataMediaName().split(","));
+        for (String dbNameFilter : dbNameFilters) {
+            String[] dbTables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+            String srcLogicTable = dbTables[1];
+
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(dbTables[0]);
+            List<Long> srcDbIds = dbTbls.stream().filter(e -> aviatorRegexFilter.filter(e.getDbName())).map(DbTbl::getId).collect(Collectors.toList());
+            List<Long> srcMhaDbMappingIds = mhaDbMappingTbls.stream().filter(e -> srcDbIds.contains(e.getDbId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+            List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryBy(srcMhaDbMappingIds, srcLogicTable, dataMediaPairTbl.getDestDataMediaName(), ReplicationTypeEnum.DB_TO_MQ.getType());
+            if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+                logger.error("insertMessengerFilterMapping fail, dbReplicationTbls is empty, messengerGroupTbl: {}, dataMediaPairTbl: {}");
+                throw ConsoleExceptionUtils.message("insertMessengerFilterMapping fail");
+            }
+            List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+            List<DbReplicationFilterMappingTbl> filterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+            if (CollectionUtils.isEmpty(filterMappingTbls)) {
+                List<DbReplicationFilterMappingTbl> insertFilterMappingTbls = new ArrayList<>();
+                for (long dbReplicationId : dbReplicationIds) {
+                    insertFilterMappingTbls.add(buildDbReplicationFilterMappingTbl(dbReplicationId, -1L, -1L, messengerFilterId));
+                }
+                dbReplicationFilterMappingTblDao.batchInsert(insertFilterMappingTbls);
+            } else {
+
+            }
+        }
+
+
+        List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
     }
 
     private void insertDbReplicationFilterMappings(Long applierGroupId, Long dataMediaId, Long filterId, int filterType) throws Exception {
@@ -369,7 +490,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     private Long insertRowsFilter(RowsFilterTbl sourceRowsFilter) throws Exception {
         Long rowsFilterId = null;
 
-        List<RowsFilterTblV2> existRowsFilters = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(sourceRowsFilter.getMode()), sourceRowsFilter.getConfigs());
+        List<RowsFilterTblV2> existRowsFilters = rowsFilterTblV2Dao.queryByMode(RowsFilterModeEnum.getCodeByName(sourceRowsFilter.getMode()));
         for (RowsFilterTblV2 rowsFilterTblV2 : existRowsFilters) {
             if (sourceRowsFilter.getConfigs().equals(rowsFilterTblV2.getConfigs())) {
                 rowsFilterId = rowsFilterTblV2.getId();
@@ -389,7 +510,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
 
     private Long insertColumnsFilter(ColumnsFilterTbl sourceColumnsFilter) throws Exception {
         Long columnsFilterId = null;
-        List<ColumnsFilterTblV2> existColumnsFilters = columnFilterTblV2Dao.queryByColumns(ColumnsFilterModeEnum.getCodeByName(sourceColumnsFilter.getMode()), sourceColumnsFilter.getColumns());
+        List<ColumnsFilterTblV2> existColumnsFilters = columnFilterTblV2Dao.queryByMode(ColumnsFilterModeEnum.getCodeByName(sourceColumnsFilter.getMode()));
         for (ColumnsFilterTblV2 columnsFilter : existColumnsFilters) {
             if (columnsFilter.getColumns().equals(sourceColumnsFilter.getColumns())) {
                 columnsFilterId = columnsFilter.getId();
@@ -419,8 +540,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         deleteDbReplications(existDbReplications);
     }
 
-    private void insertDbReplicationFilterMapping(ApplierGroupTbl applierGroupTbl, List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings, List<String> dbList) throws Exception {
-        List<DbReplicationTbl> dbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
+    private void insertDbReplicationFilterMapping(List<DbReplicationTbl> dbReplications, ApplierGroupTbl applierGroupTbl, List<MhaDbMappingTbl> srcMhaDbMappings, List<String> dbList) throws Exception {
         List<DataMediaTbl> dataMediaTbls = dataMediaTblDao.queryByAGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
         List<RowsFilterMappingTbl> rowsFilterMappings = rowsFilterMappingTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupTbl.getId()), BooleanEnum.FALSE.getCode());
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbList);
@@ -443,7 +563,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
                     .orElse(null);
             if (columnsDataMediaTbl != null) {
                 ColumnsFilterTbl columnsFilter = columnsFilterTblDao.queryByDataMediaId(columnsDataMediaTbl.getId(), BooleanEnum.FALSE.getCode());
-                List<ColumnsFilterTblV2> newColumnsFilters = columnFilterTblV2Dao.queryByColumns(ColumnsFilterModeEnum.getCodeByName(columnsFilter.getMode()), columnsFilter.getColumns());
+                List<ColumnsFilterTblV2> newColumnsFilters = columnFilterTblV2Dao.queryByMode(ColumnsFilterModeEnum.getCodeByName(columnsFilter.getMode()));
                 columnsFilterId = newColumnsFilters.stream().filter(e -> e.getColumns().equals(columnsFilter.getColumns())).findFirst().get().getId();
             }
 
@@ -452,7 +572,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
                 DataMediaTbl rowsDataMediaTbl = dataMediaTblDao.queryById(mapping.getDataMediaId());
                 if (filterMatch(rowsDataMediaTbl, srcDbName, srcTableName)) {
                     RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
-                    List<RowsFilterTblV2> newRowsFilters = rowsFilterTblV2Dao.queryByConfigs(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()), rowsFilterTbl.getConfigs());
+                    List<RowsFilterTblV2> newRowsFilters = rowsFilterTblV2Dao.queryByMode(RowsFilterModeEnum.getCodeByName(rowsFilterTbl.getMode()));
                     rowsFilterId = newRowsFilters.stream().filter(e -> e.getConfigs().equals(rowsFilterTbl.getConfigs())).findFirst().get().getId();
                     break;
                 }
@@ -501,13 +621,12 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         return mhaReplicationId;
     }
 
-    private void insertDbReplications(ApplierGroupTbl applierGroupTbl, List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings, List<String> dbList) throws Exception {
+    private List<DbReplicationTbl> insertDbReplications(ApplierGroupTbl applierGroupTbl, List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings, List<String> dbList) throws Exception {
         Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappings.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, MhaDbMappingTbl::getId));
         Map<Long, Long> dstMhaDbMappingMap = dstMhaDbMappings.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, MhaDbMappingTbl::getId));
 
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbList);
         Map<String, Long> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
-
 
         Map<String, String> tableNameMappingMap = new HashMap<>();
         String nameMappings = applierGroupTbl.getNameMapping();
@@ -536,7 +655,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             }
         }
 
-        dbReplicationTblDao.batchInsert(dbReplicationTbls);
+        dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
     }
 
     private List<DbReplicationTbl> getExistDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {

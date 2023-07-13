@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dto.DalClusterShard;
 import com.ctrip.framework.drc.console.dto.DalMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
@@ -26,7 +27,10 @@ import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -69,6 +73,9 @@ public class MhaServiceImplTest {
     @Mock private DcTblDao dcTblDao;
 
     @Mock private DalUtils dalUtils;
+
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
 
 
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -277,7 +284,8 @@ public class MhaServiceImplTest {
 
 
     @Test
-    public void testRecordMha() throws SQLException {
+    public void testRecordMha() throws Exception {
+        Mockito.doNothing().when(drcDoubleWriteService).buildMhaForMq(Mockito.anyLong());
         MhaDto mockDto = new MhaDto();
         mockDto.setMhaName("mha1");
         mockDto.setDc("dc1");
