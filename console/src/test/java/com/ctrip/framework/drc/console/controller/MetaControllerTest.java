@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -74,6 +75,8 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Mock
     private DbClusterSourceProvider sourceProvider;
+    
+    @Mock private MetaServiceV2 metaServiceV2;
     
     
     @Mock
@@ -301,7 +304,7 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetAllMetaData() throws Exception {
-        Mockito.doReturn(DRC_XML).when(sourceProvider).getDrcString();
+        Mockito.doReturn(DRC_XML).when(metaServiceV2).getDrcInGrayMode();
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
