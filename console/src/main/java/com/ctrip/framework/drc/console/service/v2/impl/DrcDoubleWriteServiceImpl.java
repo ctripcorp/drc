@@ -289,6 +289,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
 
     @Override
     public void buildMhaForMq(Long mhaId) throws Exception {
+        logger.info("drc double write buildMhaForMq, mhaId: {}", mhaId);
         MhaTbl mhaTbl = mhaTblDao.queryById(mhaId);
         if (mhaTbl == null) {
             logger.error("mha not exist, mhaId: {}", mhaId);
@@ -311,6 +312,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildDbReplicationForMq(Long dataMediaPairId) throws Exception {
+        logger.info("drc double write buildDbReplicationForMq, dataMediaPairId: {}", dataMediaPairId);
         DataMediaPairTbl dataMediaPairTbl = dataMediaPairTblDao.queryByPk(dataMediaPairId);
         if (dataMediaPairTbl == null) {
             logger.error("dataMediaPairTbl not exist, dataMediaPairId: {}", dataMediaPairId);
@@ -322,7 +324,28 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             throw ConsoleExceptionUtils.message("messengerGroupTbl not exist");
         }
 
-        Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl, messengerGroupTbl);
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(messengerGroupTbl.getMhaId());
+        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
+            logger.info("buildDbReplicationForMq ignore vpcMha: {}", mhaTblV2.getMhaName());
+            return;
+        }
+
+        insertMhaDbMappings(mhaTblV2.getMhaName(), dataMediaPairTbl.getSrcDataMediaName());
+        Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl);
+        List<Long> dbReplicationIds = insertMessengerDbReplications(messengerGroupTbl, dataMediaPairTbl);
+
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationIds.stream()
+                .map(dbReplicationId -> buildDbReplicationFilterMappingTbl(dbReplicationId, -1L, -1L, messengerFilterId))
+                .collect(Collectors.toList());
+
+        logger.info("batchInsert dbReplicationFilterMappings: {}", dbReplicationFilterMappings);
+        dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappings);
+    }
+
+    private void insertMhaDbMappings(String mhaName, String nameFilter) throws Exception {
+        List<String> dbList = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+        metaMigrateService.manualMigrateDbs(dbList);
+        metaMigrateService.manualMigrateVPCMhaDbMapping(new MhaDbMappingMigrateParam(mhaName, dbList));
     }
 
     private List<Long> insertMessengerDbReplications(MessengerGroupTbl messengerGroupTbl, DataMediaPairTbl dataMediaPairTbl) throws Exception{
@@ -331,6 +354,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
 
         List<String> dbNameFilters = Lists.newArrayList(dataMediaPairTbl.getSrcDataMediaName().split(","));
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
         for (String dbNameFilter : dbNameFilters) {
             String[] dbTables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             String srcLogicTable = dbTables[1];
@@ -338,12 +362,19 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(dbTables[0]);
             List<Long> srcDbIds = dbTbls.stream().filter(e -> aviatorRegexFilter.filter(e.getDbName())).map(DbTbl::getId).collect(Collectors.toList());
             List<Long> srcMhaDbMappingIds = mhaDbMappingTbls.stream().filter(e -> srcDbIds.contains(e.getDbId())).map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-
-
+            List<DbReplicationTbl> dbReplicationTblList = srcMhaDbMappingIds.stream()
+                    .map(srcMhaDbMappingId -> buildDbReplicationTbl(srcLogicTable, dataMediaPairTbl.getDestDataMediaName(), srcMhaDbMappingId, -1L, ReplicationTypeEnum.DB_TO_MQ.getType()))
+                    .collect(Collectors.toList());
+            dbReplicationTbls.addAll(dbReplicationTblList);
         }
+
+        dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        logger.info("insertMessengerDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
+        List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        return dbReplicationIds;
     }
 
-    private Long insertMessengerFilter(DataMediaPairTbl dataMediaPairTbl, MessengerGroupTbl messengerGroupTbl) throws Exception {
+    private Long insertMessengerFilter(DataMediaPairTbl dataMediaPairTbl) throws Exception {
         List<MessengerFilterTbl> messengerFilterTbls = messengerFilterTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         Long messengerFilterId = null;
         for (MessengerFilterTbl messengerFilterTbl : messengerFilterTbls) {
@@ -356,6 +387,8 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             MessengerFilterTbl messengerFilterTbl = new MessengerFilterTbl();
             messengerFilterTbl.setDeleted(BooleanEnum.FALSE.getCode());
             messengerFilterTbl.setProperties(dataMediaPairTbl.getProperties());
+
+            logger.info("insertMessengerFilter: {}", messengerFilterTbl);
             messengerFilterId = messengerFilterTblDao.insertWithReturnId(messengerFilterTbl);
         }
 
@@ -656,6 +689,8 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         }
 
         dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
+        return dbReplicationTbls;
     }
 
     private List<DbReplicationTbl> getExistDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
