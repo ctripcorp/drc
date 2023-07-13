@@ -18,6 +18,23 @@ public class MhaGrayConfig extends AbstractConfigBean{
     private static final String MHA_GRAY_SWITCH = "mha.gray.switch";
     private static final String MHA_MIGRATE_GRAY = "mha.migrate.gray";
 
+    private static final String DBCLUSTER_GRAY_SWITCH = "dbCluster.gray.switch";
+    private static final String DBCLUSTER_MIGRATE_GRAY = "dbCluster.migrate.gray";
+
+    public Set<String> getGrayDbClusterSet() {
+        String dbClusterSetString = getProperty(DBCLUSTER_MIGRATE_GRAY, null);
+        if (dbClusterSetString == null) {
+            return Sets.newHashSet();
+        } else {
+            return Sets.newHashSet(dbClusterSetString.split(","));
+        }
+    }
+
+    public boolean getDbClusterGraySwitch() {
+        return getBooleanProperty(DBCLUSTER_GRAY_SWITCH,false);
+    }
+    
+    
     public boolean gray(String mhaName) {
         if (!getMhaMigrateSwitch()) {
             return false;

@@ -57,8 +57,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     @Mock
     private DefaultConsoleConfig consoleConfig;
     
-    @Mock
-    private MhaGrayConfig mhaGrayConfig;
 
     private static final String DC1= "dc1";
 
@@ -425,7 +423,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
             add("dc1");
             add("dc2");
         }});
-        Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
 
         Map<String, List<ReplicatorWrapper>> allReplicators = 
                 dbClusterSourceProvider.getAllReplicatorsInLocalRegion();

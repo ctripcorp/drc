@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
@@ -55,6 +56,8 @@ public class MetaController {
     @Autowired
     private RowsFilterService rowsFilterService;
     
+    @Autowired
+    private MetaServiceV2 metaServiceV2;
     
     
     @GetMapping("orderedGroups/all")
@@ -174,7 +177,13 @@ public class MetaController {
     @GetMapping
     public String getAllMetaData() {
         logger.info("[meta] get all");
-        return sourceProvider.getDrcString();
+        return metaServiceV2.getDrcInGrayMode();
+    }
+
+    @GetMapping("old")
+    public String getOldMeta() {
+        logger.info("[meta] get all old meat");
+        return sourceProvider.getDrc().toString();
     }
 
     /**

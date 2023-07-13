@@ -2,13 +2,18 @@ package com.ctrip.framework.drc.console.service.v2.impl.migrate;
 
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.utils.FileUtils;
+import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
+import javax.validation.groups.Default;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.xml.sax.SAXException;
 
 public class MetaServiceV2ImplTest {
 
@@ -30,14 +36,19 @@ public class MetaServiceV2ImplTest {
 
     @Mock private DefaultConsoleConfig consoleConfig;
     
+    @Mock private MhaGrayConfig mhaGrayConfig;
+
+    private Drc oldDrc;
+    private Drc newDrc;
+    
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
         InputStream ins = FileUtils.getFileInputStream("oldMeta.xml");
-        Drc oldDrc = DefaultSaxParser.parse(ins);
+        oldDrc = DefaultSaxParser.parse(ins);
 
         ins = FileUtils.getFileInputStream("newMeta.xml");
-        Drc newDrc = DefaultSaxParser.parse(ins);
+        newDrc = DefaultSaxParser.parse(ins);
 
         
         Mockito.when(metaProviderV1.getDrc()).thenReturn(oldDrc);
@@ -72,12 +83,37 @@ public class MetaServiceV2ImplTest {
         Mockito.when(consoleConfig.getMetaCompareParallel()).thenReturn(5);
     }
 
-    
+  
 
     @Test
     public void testCompareLogically() {
         String compareRecorder = metaService.compareDrcMeta();
         boolean equals = !(compareRecorder.contains("not equal") || compareRecorder.contains("empty"));
         Assert.assertTrue(equals);
+    }
+
+    @Test
+    public void testCompareDbCluster() {
+        Mockito.when(metaProviderV1.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(oldDrc.findDc("ntgxy"));
+        Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
+        
+        DbClusterCompareRes dbClusterCompareRes = metaService.compareDbCluster("mha3_dalcluster.mha3");
+        String compareRes = dbClusterCompareRes.getCompareRes();
+        Assert.assertTrue((!compareRes.contains("not equal")) && (!compareRes.contains("empty")) && (!compareRes.contains("fail")));
+    }
+
+    @Test
+    public void testGetDrcInGrayMode() throws IOException, SAXException {
+        Mockito.when(mhaGrayConfig.getDbClusterGraySwitch()).thenReturn(true);
+        Mockito.when(mhaGrayConfig.getGrayDbClusterSet()).thenReturn(Sets.newHashSet("mha3_dalcluster.mha3"));
+        Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
+        
+        String drcGrayString = metaService.getDrcInGrayMode();
+        
+        Drc drcGray = DefaultSaxParser.parse(drcGrayString);
+        Drc oldDrc = metaProviderV1.getDrc();
+        Assert.assertEquals(oldDrc.findDc("ntgxh"),drcGray.findDc("ntgxh"));
+        Assert.assertEquals(newDrc.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString(),
+                drcGray.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString());
     }
 }
