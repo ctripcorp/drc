@@ -41,7 +41,7 @@ public class DbClusterComparator implements Callable<String> {
     
     private final DrcBuildService drcBuildService;
     
-    private final StringBuffer recorder;
+    private final StringBuilder recorder;
     
     private final boolean costTimeTrace;
 
@@ -54,7 +54,7 @@ public class DbClusterComparator implements Callable<String> {
         this.oldDbCluster = oldDbCluster;
         this.newDbCluster = newDbCluster;
         this.drcBuildService = drcBuildService;
-        this.recorder = new StringBuffer();
+        this.recorder = new StringBuilder();
         this.costTimeTrace = costTimeTrace;
         this.vpcDcs = vpcDcs;
     }

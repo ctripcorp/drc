@@ -47,7 +47,7 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
     
     @Autowired private MhaGrayConfig mhaGrayConfig;
     
-    private StringBuffer recorder;
+    private StringBuilder recorder;
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
     
     @Override
@@ -75,7 +75,7 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
         try {
             Drc newDrc = metaProviderV2.getDrc();
             Drc oldDrc = metaProviderV1.getDrc();
-            recorder = new StringBuffer();
+            recorder = new StringBuilder();
             compareLogically(oldDrc, newDrc);
         } finally {
             logger.warn("[[tag=metaCompare]] res:{}",recorder.toString());
