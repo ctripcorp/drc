@@ -51,6 +51,8 @@ public class SystemConfig {
 
     public static final int SOCKET_TIMEOUT = 10000;
 
+    public static int TRANSACTION_BUFFER_SIZE = 1024 * 8;
+
     public static final String JDBC_URL_FORMAT = JDBC_PREFIX + "%d" + SystemConfig.JDBC_URL_PARAM;
 
     public static final int MASTER_HEARTBEAT_PERIOD_SECONDS = 10;

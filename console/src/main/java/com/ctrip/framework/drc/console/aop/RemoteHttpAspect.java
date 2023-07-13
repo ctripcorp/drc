@@ -49,6 +49,7 @@ public class RemoteHttpAspect {
         try {
             String localRegion = consoleConfig.getRegion();
             Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+            Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
             Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
             
             Map<String, Object> argsNotExcluded = getArgsNotExcluded(point,possibleRemote.excludeArguments());
@@ -68,6 +69,8 @@ public class RemoteHttpAspect {
                         if (publicCloudRegion.contains(regionByArgs)) {
                             StringBuilder url = new StringBuilder(consoleRegionUrls.get(regionByArgs));
                             return forwardByHttp(url,possibleRemote,argsNotExcluded);
+                        } else if (localConfigCloudDc.contains(regionByArgs)) {
+                            return null;
                         } else {
                             return invokeOriginalMethod(point);
                         }
@@ -152,6 +155,7 @@ public class RemoteHttpAspect {
     private String getRegionByArgs(Map<String, Object> arguments) {
         String dcNameByArgs = getDcNameByArgs(arguments);
         if (StringUtils.isEmpty(dcNameByArgs)) {
+            logger.warn("[[tag=remoteHttpAop]] no region find by arguments");
             return null;
         }  else {
             return consoleConfig.getRegionForDc(dcNameByArgs);

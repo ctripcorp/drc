@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -20,18 +21,37 @@ public class MetaControllerV2 {
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private MetaGeneratorV2 metaGenerator;
+    private MetaProviderV2 metaProviderV2;
+
+    @Autowired
+    private MetaServiceV2 metaServiceV2;
 
     @GetMapping
     public String getAllMetaData() {
         logger.info("[meta] get all");
         try {
-            Drc drc = metaGenerator.getDrc();
+            Drc drc = metaProviderV2.getDrc();
             logger.info("drc:\n {}", drc.toString());
             return drc.toString();
         } catch (Exception e) {
             logger.error("get drc fail: {}", e);
-            return String.format("get drc fail, %s", e);
+            return "get drc fail";
+        }
+    }
+
+    @GetMapping("compareRes")
+    public ApiResult<String> compareOldNewMeta() {
+        logger.info("[[tag=metaCompare]] start compareOldNewMeta");
+        try {
+            String compareRecorder = metaServiceV2.compareDrcMeta();
+            if (compareRecorder.contains("not equal") || compareRecorder.contains("empty") || compareRecorder.contains("fail")) {
+                return ApiResult.getSuccessInstance(compareRecorder,"not equal");
+            } else {
+                return ApiResult.getSuccessInstance(compareRecorder,"equal");
+            }
+        } catch (Throwable e) {
+            logger.error("[[tag=metaCompare]] compareOldNewMeta error");
+            return ApiResult.getFailInstance(e,"compareOldNewMeta error");
         }
     }
 }
