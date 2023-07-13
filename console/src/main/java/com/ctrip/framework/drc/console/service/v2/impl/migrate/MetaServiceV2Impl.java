@@ -12,9 +12,11 @@ import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Lists;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import org.slf4j.Logger;
@@ -142,31 +144,34 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
             }
             
             List<Future<String>> recorderFutures = Lists.newArrayList();
+            
             for (Entry<String, DbCluster> dbClusterEntry : oldDbClusters.entrySet()) {
                 String dbClusterId = dbClusterEntry.getKey();
                 
                 DbCluster oldDbCluster = dbClusterEntry.getValue();
                 DbCluster newDbCluster = newDbClusters.getOrDefault(dbClusterId, null);
 
-                if (recorderFutures.size() >= consoleConfig.getMetaCompareParallel()) {
-                    for (Future<String> recorderFuture : recorderFutures) {
-                        try {
-                            recorder.append(recorderFuture.get());
-                        } catch (Exception e) {
-                            logger.error("[[tag=xmlCompare]] compare DbCluster fail in parallel", e);
-                            recorder.append("compare DbCluster fail in parallel before:").append(oldDbCluster.getId());
-                        }
-                    }
-                    
-                }
                 recorderFutures.add(comparators.submit(
                         new DbClusterComparator(
-                                oldDbCluster, 
-                                newDbCluster,
-                                drcBuildService,
-                                consoleConfig.getCostTimeTraceSwitch(),
+                                oldDbCluster, newDbCluster, drcBuildService, consoleConfig.getCostTimeTraceSwitch(),
                                 consoleConfig.getLocalConfigCloudDc()
                         )));
+                
+                if (recorderFutures.size() >= consoleConfig.getMetaCompareParallel()) {
+                    Iterator<Future<String>> iterator = recorderFutures.iterator();
+                    while (iterator.hasNext()) {
+                        Future<String> dbClusterRes = iterator.next();
+                        try {
+                            recorder.append(dbClusterRes.get());
+                            iterator.remove();
+                        } catch (InterruptedException | ExecutionException e) {
+                            logger.error("[[tag=xmlCompare]] compare DbCluster fail in parallel", e);
+                            recorder.append("compare DbCluster fail in parallel before:").append(oldDbCluster.getId());
+                        } 
+                        
+                    }
+                }
+                
             }
             
             // rest
