@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -57,13 +58,19 @@ public class MetaControllerV2 {
         }
     }
 
-    @GetMapping("compareRes/{dbclusterId}")
-    public ApiResult<DbClusterCompareRes> compareOldNewMeta(@PathVariable String dbclusterId) {
+    @GetMapping("compareRes/dbcluster")
+    public ApiResult<DbClusterCompareRes> compareOldNewMeta(@RequestParam String dbclusterId) {
         logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}",dbclusterId);
         try {
-            return ApiResult.getSuccessInstance(metaServiceV2.compareDbCluster(dbclusterId));
+            DbClusterCompareRes res = metaServiceV2.compareDbCluster(dbclusterId);
+            String compareRes = res.getCompareRes();
+            if (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail")) {
+                return ApiResult.getSuccessInstance(res,"not equal");
+            } else {
+                return ApiResult.getSuccessInstance(res,"equal");
+            }
         } catch (Throwable e) {
-            logger.error("[[tag=metaCompare]] compareOldNewMeta error",e);
+            logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}",dbclusterId,e);
             return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }
