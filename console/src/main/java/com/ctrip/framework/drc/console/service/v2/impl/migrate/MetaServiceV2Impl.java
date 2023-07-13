@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl.migrate;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
@@ -9,6 +10,7 @@ import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -40,21 +43,70 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
 
     @Autowired private DefaultConsoleConfig consoleConfig;
     
-    private StringBuilder recorder;
+    @Autowired private MhaGrayConfig mhaGrayConfig;
+    
+    private StringBuffer recorder;
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
-
+    
+    @Override
+    public DbClusterCompareRes compareDbCluster(String dbClusterId) {
+        DbClusterCompareRes res = new DbClusterCompareRes();
+        try {
+            DbCluster oldDbCluster =  metaProviderV1.getDcBy(dbClusterId).findDbCluster(dbClusterId);
+            DbCluster newDbCluster =  metaProviderV2.getDcBy(dbClusterId).findDbCluster(dbClusterId);
+            res.setOldDbCluster(oldDbCluster);
+            res.setNewDbCluster(newDbCluster);
+            String compareRes = new DbClusterComparator(
+                    oldDbCluster, newDbCluster, drcBuildService,
+                    consoleConfig.getCostTimeTraceSwitch(),consoleConfig.getLocalConfigCloudDc()).call();
+            
+            res.setCompareRes(compareRes);
+        } catch (Exception e) {
+            logger.error("[[tag=metaCompare]] compare dbCluster fail:{}",dbClusterId,e);
+            res.setCompareRes("compare fail");
+        }
+        return res;
+    }
+    
     @Override
     public synchronized String compareDrcMeta()  {
         try {
             Drc newDrc = metaProviderV2.getDrc();
             Drc oldDrc = metaProviderV1.getDrc();
-            recorder = new StringBuilder();
+            recorder = new StringBuffer();
             compareLogically(oldDrc, newDrc);
         } finally {
             logger.warn("[[tag=metaCompare]] res:{}",recorder.toString());
         }
         return recorder.toString();
     }
+
+    @Override
+    public synchronized String getDrcInGrayMode()  {
+        Drc oldDrc = metaProviderV1.getDrc();
+        try {
+            if (mhaGrayConfig.getDbClusterGraySwitch()) {
+                Drc drcCopy = DefaultSaxParser.parse(oldDrc.toString());
+                int memoryAddress1 = System.identityHashCode(oldDrc);
+                int memoryAddress2 = System.identityHashCode(drcCopy);
+                boolean anotherObject = !(drcCopy == oldDrc) && !(memoryAddress1 == memoryAddress2);
+                logger.info("[[tag=metaGray]] drc deep copy res:{}",anotherObject);
+                for (String dbClusterId : mhaGrayConfig.getGrayDbClusterSet()) {
+                    Dc newDc = metaProviderV2.getDcBy(dbClusterId);
+                    DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
+                    
+                    Dc oldDc = drcCopy.findDc(newDc.getId());
+                    oldDc.removeDbCluster(dbClusterId);
+                    oldDc.addDbCluster(newDcDbCluster);
+                }
+                return drcCopy.toString();
+            }
+        } catch (Throwable e) {
+            logger.error("[[tag=metaGray]] gray new meta fail,use old meta", e);
+        }
+        return oldDrc.toString();
+    }
+    
 
     protected void compareLogically(Drc oldDrc,Drc newDrc) {
         Map<String, Dc> oldDcs = oldDrc.getDcs();
@@ -108,7 +160,13 @@ public class MetaServiceV2Impl implements MetaServiceV2 {
                     
                 }
                 recorderFutures.add(comparators.submit(
-                        new DbClusterComparator(oldDbCluster, newDbCluster, drcBuildService,consoleConfig.getCostTimeTraceSwitch())));
+                        new DbClusterComparator(
+                                oldDbCluster, 
+                                newDbCluster,
+                                drcBuildService,
+                                consoleConfig.getCostTimeTraceSwitch(),
+                                consoleConfig.getLocalConfigCloudDc()
+                        )));
             }
             
             // rest
