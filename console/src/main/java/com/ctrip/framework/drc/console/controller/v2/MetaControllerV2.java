@@ -2,12 +2,14 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,6 +54,17 @@ public class MetaControllerV2 {
         } catch (Throwable e) {
             logger.error("[[tag=metaCompare]] compareOldNewMeta error");
             return ApiResult.getFailInstance(e,"compareOldNewMeta error");
+        }
+    }
+
+    @GetMapping("compareRes/{dbclusterId}")
+    public ApiResult<DbClusterCompareRes> compareOldNewMeta(@PathVariable String dbclusterId) {
+        logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}",dbclusterId);
+        try {
+            return ApiResult.getSuccessInstance(metaServiceV2.compareDbCluster(dbclusterId));
+        } catch (Throwable e) {
+            logger.error("[[tag=metaCompare]] compareOldNewMeta error",e);
+            return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }
 }
