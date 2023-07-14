@@ -12,11 +12,11 @@ public interface DataMediaPairService {
     // db -> mq
     MessengerProperties generateMessengerProperties(Long messengerGroupId) throws SQLException;
     
-    String addMqConfig(MqConfigDto dto) throws SQLException;
+    String addMqConfig(MqConfigDto dto) throws Exception;
 
-    String updateMqConfig(MqConfigDto dto) throws SQLException;
+    String updateMqConfig(MqConfigDto dto) throws Exception;
 
-    String deleteMqConfig(Long dataMediaPairId) throws SQLException;
+    String deleteMqConfig(Long dataMediaPairId) throws Exception;
 
     List<DataMediaPairTbl> getPairsByTopic(Long dataMediaPairId) throws SQLException;
     List<DataMediaPairTbl> getPairsByTopic(String topic) throws SQLException;

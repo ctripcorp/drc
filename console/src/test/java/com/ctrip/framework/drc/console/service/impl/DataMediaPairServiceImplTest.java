@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
@@ -24,9 +25,14 @@ public class DataMediaPairServiceImplTest {
     @InjectMocks
     private DataMediaPairServiceImpl dataMediaPairService;
 
-    @Mock private DataMediaPairTblDao dataMediaPairTblDao;
+    @Mock
+    private DataMediaPairTblDao dataMediaPairTblDao;
     
-    @Mock private RowsFilterService rowsFilterService;
+    @Mock
+    private RowsFilterService rowsFilterService;
+
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
 
     @Before
     public void setUp() throws Exception {
@@ -60,22 +66,26 @@ public class DataMediaPairServiceImplTest {
     }
     
     @Test
-    public void testAddMqConfig() throws SQLException {
-        Mockito.when(dataMediaPairTblDao.insert(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
+    public void testAddMqConfig() throws Exception {
+        Mockito.when(dataMediaPairTblDao.insertWithReturnId(Mockito.any(DataMediaPairTbl.class))).thenReturn(1L);
         MqConfigDto mqConfigDto = generateDto();
+        Mockito.doNothing().when(drcDoubleWriteService).insertDbReplicationForMq(Mockito.anyLong());
         Assert.assertEquals("addMqConfig success",dataMediaPairService.addMqConfig(mqConfigDto));
     }
 
     @Test
-    public void testUpdateMqConfig() throws SQLException  {
+    public void testUpdateMqConfig() throws Exception {
         Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
         MqConfigDto mqConfigDto = generateDto();
+        Mockito.doNothing().when(drcDoubleWriteService).deleteDbReplicationForMq(Mockito.anyLong());
+        Mockito.doNothing().when(drcDoubleWriteService).insertDbReplicationForMq(Mockito.anyLong());
         Assert.assertEquals("updateMqConfig success",dataMediaPairService.updateMqConfig(mqConfigDto));
     }
 
     @Test
-    public void testDeleteMqConfig() throws SQLException {
+    public void testDeleteMqConfig() throws Exception {
         Mockito.when(dataMediaPairTblDao.update(Mockito.any(DataMediaPairTbl.class))).thenReturn(1);
+        Mockito.doNothing().when(drcDoubleWriteService).deleteDbReplicationForMq(Mockito.anyLong());
         Assert.assertEquals("deleteMqConfig success",dataMediaPairService.deleteMqConfig(1L));
     }
 

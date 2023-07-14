@@ -153,6 +153,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
 
+        drcDoubleWriteService.buildDbReplicationForMq(mhaTbl.getId());
         return metaInfoService.getXmlConfiguration(mhaTbl);
     }
 

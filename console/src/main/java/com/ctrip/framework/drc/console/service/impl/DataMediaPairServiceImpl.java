@@ -7,11 +7,13 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.DataMediaPairService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
@@ -31,10 +33,14 @@ import java.util.Set;
 @Service
 public class DataMediaPairServiceImpl implements DataMediaPairService {
 
-    @Autowired private DataMediaPairTblDao dataMediaPairTblDao;
+    @Autowired
+    private DataMediaPairTblDao dataMediaPairTblDao;
 
-    @Autowired private RowsFilterService rowsFilterService;
-    
+    @Autowired
+    private RowsFilterService rowsFilterService;
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
     
     @Override
     public MessengerProperties generateMessengerProperties(Long messengerGroupId) throws SQLException {
@@ -68,25 +74,31 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     }
 
     @Override
-    public String addMqConfig(MqConfigDto dto) throws SQLException {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public String addMqConfig(MqConfigDto dto) throws Exception {
         DataMediaPairTbl dataMediaPairTbl = transfer(dto);
-        Long dataMediaPairId = dataMediaPairTblDao.insertReturnKey(dataMediaPairTbl);
+        Long dataMediaPairId = dataMediaPairTblDao.insertWithReturnId(dataMediaPairTbl);
+        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairId);
         return dataMediaPairId != null && dataMediaPairId > 0L ?  "addMqConfig success" : "addMqConfig fail";
     }
 
     @Override
-    public String updateMqConfig(MqConfigDto dto) throws SQLException {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public String updateMqConfig(MqConfigDto dto) throws Exception {
         DataMediaPairTbl dataMediaPairTbl = transfer(dto);
+        drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairTbl.getId());
         int affectRows = dataMediaPairTblDao.update(dataMediaPairTbl);
+        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairTbl.getId());
         return affectRows == 1 ?  "updateMqConfig success" : "updateMqConfig fail";
     }
 
     @Override
-    public String deleteMqConfig(Long dataMediaPairId) throws SQLException {
+    public String deleteMqConfig(Long dataMediaPairId) throws Exception {
         DataMediaPairTbl sample = new DataMediaPairTbl();
         sample.setId(dataMediaPairId);
         sample.setDeleted(BooleanEnum.TRUE.getCode());
         int affectRows = dataMediaPairTblDao.update(sample);
+        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairId);
         return affectRows == 1 ?  "deleteMqConfig success" : "deleteMqConfig fail";
     }
 
