@@ -266,6 +266,7 @@ public class MetaGenerator {
 
     private void generateApplierInstances(DbCluster dbCluster, MhaTbl mhaTbl, ApplierGroupTbl applierGroupTbl) throws SQLException {
         // simple implementation, duo repl only
+        
         ReplicatorGroupTbl targetReplicatorGroupTbl = replicatorGroupTbls.stream().filter(predicate -> predicate.getId().equals(applierGroupTbl.getReplicatorGroupId())).findFirst().get();
         MhaTbl targetMhaTbl = mhaTbls.stream().filter(predicate -> predicate.getId().equals(targetReplicatorGroupTbl.getMhaId())).findFirst().get();
         DcTbl targetDcTbl = dcTbls.stream().filter(predicte -> predicte.getId().equals(targetMhaTbl.getDcId())).findFirst().get();
@@ -286,7 +287,7 @@ public class MetaGenerator {
                     .setPort(applierTbl.getPort())
                     .setTargetIdc(targetDcTbl.getDcName())
                     .setTargetMhaName(targetMhaTbl.getMhaName())
-                    .setGtidExecuted(applierTbl.getGtidInit())
+                    .setGtidExecuted(applierGroupTbl.getGtidExecuted())
                     .setIncludedDbs(applierGroupTbl.getIncludedDbs())
                     .setNameFilter(applierGroupTbl.getNameFilter())
                     .setNameMapping(applierGroupTbl.getNameMapping())

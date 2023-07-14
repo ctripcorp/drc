@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingl
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
@@ -40,6 +41,8 @@ public class MySqlUtils {
     private static Map<Endpoint, WriteSqlOperatorWrapper> sqlOperatorMapper = new HashMap<>();
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
+
+    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%';";
 
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
     
@@ -531,6 +534,10 @@ public class MySqlUtils {
     public static String getExecutedGtid(Endpoint endpoint) {
         return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new ShowMasterGtidReader())).call();
     }
+
+    public static String getPurgedGtid(Endpoint endpoint) {
+        return new ExecutedGtidQueryTask(endpoint,Lists.newArrayList(new PurgedGtidReader())).call();
+    }
     
     public static String getSqlResultString(Endpoint endpoint, String sql,int index) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
@@ -623,7 +630,19 @@ public class MySqlUtils {
         logger.info("[[tag=preCheck,endpoint={}]] check btdhs", endpoint.getSocketAddress());
         return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
-    
+
+    public static List<String> queryDbsWithFilter(Endpoint endpoint, String nameFilter) {
+        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+        List<String> dbNames = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.toList());
+        return dbNames;
+    }
+
+    public static List<String> queryTablesWithFilter(Endpoint endpoint, String nameFilter) {
+        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
+        List<String> allTables = tables.stream().map(TableSchemaName::getDirectSchemaTableName).distinct().collect(Collectors.toList());
+        return allTables;
+    }
+
     public static List<TableCheckVo> checkTablesWithFilter(Endpoint endpoint,String nameFilter) {
         List<TableCheckVo> checkTableVos = Lists.newLinkedList();
         
@@ -705,6 +724,10 @@ public class MySqlUtils {
     public static final class TableSchemaName {
         private String schema;
         private String name;
+
+        public TableSchemaName() {
+        }
+
         public TableSchemaName(String schema, String name) {
             this.schema = schema;
             this.name = name;

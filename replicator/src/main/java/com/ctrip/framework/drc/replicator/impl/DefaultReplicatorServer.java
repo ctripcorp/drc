@@ -83,7 +83,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint())
                                                  : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
 
-        replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);
+        replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);// mysql  binlog dump Server
 
         DefaultMonitorManager delayMonitor = new DefaultMonitorManager(clusterName);
         int applyMode = mySQLSlaveConfig.getApplyMode();

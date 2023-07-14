@@ -18,12 +18,14 @@ public class TaskQueueActivityTest {
 
     public static ExecutorResource executor;
     public static ArrayBlockingQueue<Integer> queue;
+    private AtomicInteger statics;
 
     @Before
     public void setUp() throws Exception {
         executor = new ExecutorResource();
         executor.initialize();
         queue = new ArrayBlockingQueue<>(1);
+        statics = new AtomicInteger(0);
     }
 
     class A extends TaskQueueActivity<Integer, Integer> {
@@ -135,4 +137,30 @@ public class TaskQueueActivityTest {
         assertTrue(now - start >= 350);
     }
 
+    @Test
+    public void finishTaskWhenDisposeWithThrowable() throws Exception {
+        ExceptionActivity activity = new ExceptionActivity();
+        activity.initialize();
+        activity.start();
+        activity.waitSubmit(new AtomicInteger(1));
+        Thread.sleep(100);
+        activity.stop();
+        activity.dispose();
+        Thread.sleep(1000 * 4 + 100);
+        assertEquals(2, statics.get());
+    }
+
+    class ExceptionActivity extends TaskQueueActivity<AtomicInteger, Integer> {
+
+        public ExceptionActivity() {
+            this.executor = TaskQueueActivityTest.executor;
+        }
+
+        @Override
+        public AtomicInteger doTask(AtomicInteger number) throws InterruptedException {
+            statics.addAndGet(1);
+            System.out.println("test:" + statics.get());
+            throw new NullPointerException();
+        }
+    }
 }

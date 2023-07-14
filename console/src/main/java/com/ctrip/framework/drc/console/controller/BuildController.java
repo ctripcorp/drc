@@ -14,6 +14,7 @@ import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
@@ -110,6 +111,35 @@ public class BuildController {
             return ApiResult.getFailInstance("sql error in delete rowsFilterConfig");
         }
     }
+
+
+    @GetMapping("rowsFilterConfig/ucsMigrate")
+    public ApiResult getRowsFilterIdsShouldMigrate() {
+        logger.info("[[tag=ucsMigrate]] getRowsFilterIdsShouldMigrate");
+        try {
+            List<Long> migrateRowsFilterIds = rowsFilterService.getMigrateRowsFilterIds();
+            return ApiResult.getSuccessInstance(migrateRowsFilterIds);
+        } catch (Exception e) {
+            logger.error("[[tag=ucsMigrate]] getRowsFilterIdsShouldMigrate fail ", e);
+            return ApiResult.getFailInstance(e,"getRowsFilterIdsShouldMigrate fail");
+        }
+    }
+
+    @PostMapping("rowsFilterConfig/ucsMigrate")
+    public ApiResult migrateRowsFilterUcsStrategy(@RequestBody List<Long> rowsFilterIds) {
+        logger.info("[[tag=ucsMigrate]] migrateRowsFilterUcsStrategy" + rowsFilterIds);
+        try {
+            if (CollectionUtils.isEmpty(rowsFilterIds)) {
+                return ApiResult.getFailInstance(null,"empty rowsFilterIds");
+            } else {
+                return ApiResult.getSuccessInstance(rowsFilterService.migrateUdlStrategyId(rowsFilterIds));
+            }
+        } catch (Exception e) {
+            logger.error("[[tag=ucsMigrate]] migrateRowsFilterUcsStrategy fail ", e);
+            return ApiResult.getFailInstance(e,"migrateRowsFilterUcsStrategy fail");
+        }
+    }
+    
     
     @GetMapping("dataMedia/check")
     public ApiResult getMatchTable (@RequestParam String namespace,
@@ -236,6 +266,30 @@ public class BuildController {
             return ApiResult.getSuccessInstance(checkVos);
         } catch (Exception e) {
             logger.warn("[[tag=preCheck,mha={}]]  in preCheckMySqlTables",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("queryDbs")
+    public ApiResult<List<String>> queryDbsWithNameFilter(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=queryDbs,mha={}]] queryDbsWithNameFilter with nameFilter:{}",mha,nameFilter);
+            List<String> dbs = drcBuildService.queryDbsWithNameFilter(mha, nameFilter);
+            return ApiResult.getSuccessInstance(dbs);
+        } catch (Exception e) {
+            logger.warn("[[tag=queryDbs,mha={}]]  in queryDbsWithNameFilter",mha,e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("queryTables")
+    public ApiResult<List<String>> queryTablesWithNameFilter(@RequestParam String mha,@RequestParam String nameFilter) {
+        try {
+            logger.info("[[tag=queryTables,mha={}]] queryTablesWithNameFilter with nameFilter:{}",mha,nameFilter);
+            List<String> dbs = drcBuildService.queryTablesWithNameFilter(mha, nameFilter);
+            return ApiResult.getSuccessInstance(dbs);
+        } catch (Exception e) {
+            logger.warn("[[tag=queryTables,mha={}]]  in queryTablesWithNameFilter",mha,e);
             return ApiResult.getFailInstance(null);
         }
     }

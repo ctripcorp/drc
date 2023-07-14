@@ -444,6 +444,9 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
                 rWrappers.removeIf(current -> current.getIp().equalsIgnoreCase(activeReplicator.getIp()) &&
                         current.getPort() == activeReplicator.getApplierPort());
                 updateMasterReplicatorIfChange(rWrapper.mhaName, activeReplicator.getIp());
+            } else {
+                logger.info("no master R find when request CM for {} in {},", dbClusterId, dcName);
+                rWrappers.removeIf(current -> current.getReplicator().isMaster());
             }
         }
         

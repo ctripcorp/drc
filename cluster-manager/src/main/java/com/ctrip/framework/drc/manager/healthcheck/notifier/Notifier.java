@@ -13,13 +13,13 @@ public interface Notifier {
      * invoke post when mysql switch
      * @param dbCluster
      */
-    void notify(DbCluster dbCluster);
+    void notify(String clusterId, DbCluster dbCluster);
 
     /**
      * invoke put when init or instance restart
      * @param dbCluster
      */
-    void notifyAdd(DbCluster dbCluster);
+    void notifyAdd(String clusterId, DbCluster dbCluster);
 
     /**
      * invoke put when init or instance restart
@@ -31,5 +31,5 @@ public interface Notifier {
      * invoke put when init or instance restart
      * @param dbCluster
      */
-    void notifyRegister(DbCluster dbCluster);
+    void notifyRegister(String clusterId, DbCluster dbCluster);
 }

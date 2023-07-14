@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.applier.container.ApplierServerContainer;
 import com.ctrip.framework.drc.applier.server.ApplierServer;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
@@ -65,9 +66,9 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
         try {
             long currentLWM = server.getLWM();
             long currentProgress = server.getProgress();
-            long bearingTimeMillis = 60 * 1000; //1 minutes
+            long bearingTimeMillis = ApplierDynamicConfig.getInstance().getLwmToleranceTime();
             if (currentLWM == 0)
-                bearingTimeMillis = 10 * 60 * 1000; //10 minutes
+                bearingTimeMillis = ApplierDynamicConfig.getInstance().getFirstLwmToleranceTime();
             long currentTimeMillis = System.currentTimeMillis();
             LastLWM lastLWM = lastLWMHashMap.computeIfAbsent(key, k -> new LastLWM(currentLWM, currentProgress, currentTimeMillis));
             if (lastLWM.lwm == currentLWM && lastLWM.progress == currentProgress) {

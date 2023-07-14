@@ -75,7 +75,9 @@
                   </Select>
                 </FormItem>
                 <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">
-                  <Input v-model="rowsFilterConfig.drcStrategyId" style="width:200px" placeholder="Integer类型"/>
+                  <Select   v-model="rowsFilterConfig.drcStrategyId"  filterable allow-create @on-create="handleCreateDrcStrategyId"  style="width: 200px" placeholder="请选择ucs策略id">
+                    <Option v-for="item in drcStrategyIdsForChose" :value="item" :key="item">{{ item }}</Option>
+                  </Select>
                 </FormItem>
 <!--                <FormItem label="路由 UDL策略id" v-if="rowsFilterConfig.mode === 'trip_udl' && rowsFilterConfig.udlColumns.length !== 0">-->
 <!--                  <Input v-model="rowsFilterConfig.routeStrategyId" style="width:200px" placeholder="Integer类型"/>-->
@@ -274,7 +276,12 @@ export default {
       columnsForChose: [],
       regionsForChose: [
         'SIN',
-        'SH'
+        'SH',
+        'FRA'
+      ],
+      drcStrategyIdsForChose: [
+        2000000002,
+        20001
       ],
       fetchModeForChose: [
         {
@@ -589,6 +596,13 @@ export default {
     },
     handleChangeSize (val) {
       this.size = val
+    },
+    handleCreateDrcStrategyId (val) {
+      if (val == null || this.contains(this.drcStrategyIdForChose, val)) {
+        alert('已有项禁止创建')
+      } else {
+        this.drcStrategyIdForChose.push(val)
+      }
     },
     handleCreateUDLColumn (val) {
       if (val === '无UDL' || this.contains(this.columnsForChose, val)) {

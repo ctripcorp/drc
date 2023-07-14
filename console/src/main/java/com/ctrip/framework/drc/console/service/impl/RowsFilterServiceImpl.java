@@ -13,8 +13,10 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.DataMediaTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.RowsFilterType;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
@@ -51,29 +53,30 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
-    
+
     @Autowired
     private RowsFilterMappingTblDao rowsFilterMappingTblDao;
-    
+
     @Autowired
     private RowsFilterTblDao rowsFilterTblDao;
-    
+
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
-    
-    
+
+
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
-    
+    private final int OLD_UCS_ID = 20001;
+    private final int NEW_UCS_ID = 2000000002;
+
     @Override
-    public List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException {
+    public List<RowsFilterConfig> generateRowsFiltersConfig(Long applierGroupId, int applierType) throws SQLException {
         List<RowsFilterConfig> rowsFilterConfigs = Lists.newArrayList();
-        List<RowsFilterMappingTbl> rowsFilterMappingTbls = 
-                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
-        
-        for (RowsFilterMappingTbl mapping :  rowsFilterMappingTbls) {
+        List<RowsFilterMappingTbl> rowsFilterMappingTbls =
+                rowsFilterMappingTblDao.queryBy(applierGroupId, applierType, BooleanEnum.FALSE.getCode());
+
+        for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             RowsFilterConfig rowsFilterConfig = new RowsFilterConfig();
-            
             DataMediaTbl dataMediaTbl = dataMediaTblDao.queryByIdsAndType(
                     Lists.newArrayList(mapping.getDataMediaId()), DataMediaTypeEnum.ROWS_FILTER.getType(), BooleanEnum.FALSE.getCode()
             ).get(0);
@@ -81,38 +84,37 @@ public class RowsFilterServiceImpl implements RowsFilterService {
 
             RowsFilterTbl rowsFilterTbl = rowsFilterTblDao.queryById(mapping.getRowsFilterId(), BooleanEnum.FALSE.getCode());
             String originalMode = rowsFilterTbl.getMode();
-            // new rowsFilterConfig  trip_udl & configs & updateDb
-            logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config",applierGroupId);
             rowsFilterConfig.setMode(
                     TRIP_UID.equalsIgnoreCase(originalMode) ? TRIP_UDL : originalMode
             );
             String configsJson = rowsFilterTbl.getConfigs();
             if (StringUtils.isBlank(configsJson)) {
+                // new rowsFilterConfig  trip_udl & configs & updateDb
+                logger.info("[[tag=rowsFilter]] applierGroupId:{} migrate to new config", applierGroupId);
                 Parameters parameters = JsonUtils.fromJson(rowsFilterTbl.getParameters(), Parameters.class);
                 Configs configs = new Configs();
                 configs.setParameterList(Lists.newArrayList(parameters));
                 rowsFilterConfig.setConfigs(configs);
-                
-                migrateUdlConfigs(rowsFilterConfig,rowsFilterTbl);
+
+                migrateUdlConfigs(rowsFilterConfig, rowsFilterTbl);
             } else {
-                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson,Configs.class));
+                rowsFilterConfig.setConfigs(JsonUtils.fromJson(configsJson, Configs.class));
             }
             rowsFilterConfigs.add(rowsFilterConfig);
         }
 
         return rowsFilterConfigs;
     }
-    
-    
+
 
     @Override
-    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException {
+    public List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId, int applierType) throws SQLException {
         List<RowsFilterMappingVo> mappingVos = Lists.newArrayList();
         if (applierGroupId == null) {
             return mappingVos;
         }
         List<RowsFilterMappingTbl> rowsFilterMappingTbls =
-                rowsFilterMappingTblDao.queryBy(applierGroupId,applierType,BooleanEnum.FALSE.getCode());
+                rowsFilterMappingTblDao.queryBy(applierGroupId, applierType, BooleanEnum.FALSE.getCode());
         for (RowsFilterMappingTbl mapping : rowsFilterMappingTbls) {
             List<DataMediaTbl> dataMediaTbls =
                     dataMediaTblDao.queryByIdsAndType(
@@ -128,7 +130,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         }
         return mappingVos;
     }
-    
+
     @Override
     @DalTransactional(logicDbName = DB_NAME)
     public String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException {
@@ -141,7 +143,7 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         mappingTbl.setDataMediaId(dataMediaId);
         mappingTbl.setRowsFilterId(rowsFilterId);
         int insert = rowsFilterMappingTblDao.insert(mappingTbl);
-        return insert == 1 ?  "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
+        return insert == 1 ? "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
     @Override
@@ -176,16 +178,16 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update0 = rowsFilterMappingTblDao.update(mappingTbl);
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
-        
-        return update0+update1+update2 == 3 ?  "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
+
+        return update0 + update1 + update2 == 3 ? "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }
-    
+
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/columnCheck")
-    public List<String> getTablesWithoutColumn(String column,String namespace,String name,String mhaName) {
+    public List<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName) {
         List<String> tables = Lists.newArrayList();
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
-        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = 
+        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter =
                 MySqlUtils.getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(namespace + "\\." + name));
         Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(endpoint, tablesAfterRegexFilter, true);
         for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
@@ -197,16 +199,16 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         return tables;
     }
 
-    
+
     @Override
     public List<String> getLogicalTables(
-            Long applierGroupId, 
+            Long applierGroupId,
             int applierType,
-            Long dataMediaId, 
-            String namespace, 
+            Long dataMediaId,
+            String namespace,
             String name,
             String mhaName) throws SQLException {
-        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId,applierType);
+        List<RowsFilterMappingVo> rowsFilterMappingVos = getRowsFilterMappingVos(applierGroupId, applierType);
         List<String> logicalTables = Lists.newArrayList();
         if (dataMediaId == 0) { // add
             logicalTables = rowsFilterMappingVos.stream().
@@ -219,10 +221,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         logicalTables.add(namespace + "\\." + name);
         return logicalTables;
     }
-    
+
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/dataMedia/conflictCheck/remote")
-    public List<String> getConflictTables(String mhaName, String logicalTables)  {
+    public List<String> getConflictTables(String mhaName, String logicalTables) {
         String[] tables = logicalTables.split(",");
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         HashSet<String> allTable = Sets.newHashSet();
@@ -230,10 +232,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         for (String logicalTable : tables) {
             AviatorRegexFilter filter = new AviatorRegexFilter(logicalTable);
             List<String> tablesAfterFilter = MySqlUtils.getTablesAfterRegexFilter(endpoint, filter).stream().
-                    map(MySqlUtils.TableSchemaName ::getDirectSchemaTableName).collect(Collectors.toList());
+                    map(MySqlUtils.TableSchemaName::getDirectSchemaTableName).collect(Collectors.toList());
             for (String table : tablesAfterFilter) {
                 if (allTable.contains(table)) {
-                    logger.warn("[[tag=checkTable]] contain common table: {}",table);
+                    logger.warn("[[tag=checkTable]] contain common table: {}", table);
                     conflictTables.add(table);
                 } else {
                     allTable.add(table);
@@ -243,7 +245,74 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         return conflictTables;
     }
 
-    private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig,RowsFilterTbl rowsFilterTbl) {
+    @Override
+    public List<Long> getMigrateRowsFilterIds() throws SQLException {
+        List<Long> res = Lists.newArrayList();
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryAllByDeleted(BooleanEnum.FALSE.getCode());
+        for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
+            if (rowsFilterTbl.getMode().equalsIgnoreCase(TRIP_UDL)) {
+                String configsJson = rowsFilterTbl.getConfigs();
+                if (StringUtils.isBlank(configsJson)) {
+                    throw new IllegalArgumentException("udl rowsFilter has empty configs,id:" + rowsFilterTbl.getId());
+                } else {
+                    Configs configs = JsonUtils.fromJson(configsJson, Configs.class);
+                    List<Parameters> parameterList = configs.getParameterList();
+                    for (Parameters parameters : parameterList) {
+                        if (parameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                            int currentStrategyId = configs.getDrcStrategyId();
+                            if (currentStrategyId ==  OLD_UCS_ID) {
+                                res.add(rowsFilterTbl.getId());
+                            } else if (currentStrategyId ==  NEW_UCS_ID) {
+                                logger.info("udl rowsFilter StrategyId already migrate,id:{}",rowsFilterTbl.getId());
+                            } else {
+                                throw new IllegalArgumentException("unexpected strategy,rowsFilter id:"  + rowsFilterTbl.getId());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return res;
+
+    }
+
+    @Override
+    @DalTransactional(logicDbName = DB_NAME)
+    public MigrateResult migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException {
+        List<RowsFilterTbl> rowsFilterTbls = rowsFilterTblDao.queryByIds(rowsFilterIds, BooleanEnum.FALSE.getCode());
+        List<RowsFilterTbl> rowsFilterTblsToBeUpdated = Lists.newArrayList();
+        for (RowsFilterTbl rowsFilterTbl : rowsFilterTbls) {
+            if (rowsFilterTbl.getMode().equalsIgnoreCase(TRIP_UDL)) {
+                String configsJson = rowsFilterTbl.getConfigs();
+                if (StringUtils.isBlank(configsJson)) {
+                    throw new IllegalArgumentException("udl rowsFilter has empty configs,id:" + rowsFilterTbl.getId());
+                } else {
+                    Configs configs = JsonUtils.fromJson(configsJson, Configs.class);
+                    List<Parameters> parameterList = configs.getParameterList();
+                    for (Parameters parameters : parameterList) {
+                        if (parameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                            int currentStrategyId = configs.getDrcStrategyId();
+                            if (currentStrategyId ==  OLD_UCS_ID) {
+                                configs.setDrcStrategyId(NEW_UCS_ID);
+                                rowsFilterTbl.setConfigs(JsonUtils.toJson(configs));
+                                rowsFilterTblsToBeUpdated.add(rowsFilterTbl);
+                            } else if (currentStrategyId == NEW_UCS_ID) {
+                                logger.info("udl rowsFilter StrategyId already migrate,id:{}",rowsFilterTbl.getId());
+                            } else {
+                                throw new IllegalArgumentException("unexpected strategy,rowsFilter id:" + rowsFilterTbl.getId());
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        int[] updateRes = rowsFilterTblDao.batchUpdate(rowsFilterTblsToBeUpdated);
+        return new MigrateResult(0, Arrays.stream(updateRes).sum(),0,rowsFilterTblsToBeUpdated.size());
+    }
+    
+
+    private void migrateUdlConfigs(RowsFilterConfig rowsFilterConfig, RowsFilterTbl rowsFilterTbl) {
         try {
             DefaultTransactionMonitorHolder.getInstance().logTransaction(
                     "console.meta",
@@ -261,8 +330,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
                     }
             );
         } catch (Exception e) {
-            logger.error("[[tag=rowsFilter]] udl.migrate.updateDb fail,id:{}",rowsFilterTbl.getId(),e);
+            logger.error("[[tag=rowsFilter]] udl.migrate.updateDb fail,id:{}", rowsFilterTbl.getId(), e);
         }
     }
-    
+
 }
