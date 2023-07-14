@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
-import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPairVo;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
@@ -76,7 +76,7 @@ public class MetaControllerTest extends AbstractControllerTest {
     @Mock
     private DbClusterSourceProvider sourceProvider;
     
-    @Mock private MetaServiceV2 metaServiceV2;
+    @Mock private MetaGrayService metaGrayService;
     
     
     @Mock
@@ -106,6 +106,7 @@ public class MetaControllerTest extends AbstractControllerTest {
         drcInDc1 = new Drc();
         drcInDc1.addDc(drc.findDc("dc1"));
         Mockito.doReturn(drcInDc1).when(sourceProvider).getDrc("dc1");
+        Mockito.doReturn(drcInDc1).when(metaGrayService).getDrc("dc1");
         Mockito.doReturn(drc).when(metaService).getDrc();
 
         List<String> rResources = new ArrayList<>() {{
@@ -304,7 +305,8 @@ public class MetaControllerTest extends AbstractControllerTest {
 
     @Test
     public void testGetAllMetaData() throws Exception {
-        Mockito.doReturn(DRC_XML).when(metaServiceV2).getDrcInGrayMode();
+        Drc metaDrc = DefaultSaxParser.parse(DRC_XML);
+        Mockito.doReturn(metaDrc).when(metaGrayService).getDrc();
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v1/meta/"))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();

@@ -1,15 +1,16 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
-import com.ctrip.framework.drc.console.service.v2.MetaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,13 +28,21 @@ public class MetaControllerV2 {
     private MetaProviderV2 metaProviderV2;
     
     @Autowired
-    private MetaServiceV2 metaServiceV2;
+    private MetaGrayService metaServiceV2;
+    
+    @Autowired
+    private MetaGeneratorV2 metaGeneratorV2;
 
     @GetMapping
-    public String getAllMetaData() {
+    public String getAllMetaData(@RequestParam(value = "refresh" , required = false, defaultValue = "false") String refresh) {
         logger.info("[meta] get all");
         try {
-            Drc drc = metaProviderV2.getDrc();
+            Drc drc;
+            if (StringUtils.equals("true",refresh)) {
+                 drc = metaGeneratorV2.getDrc();
+            } else {
+                drc = metaProviderV2.getDrc();
+            }
             logger.info("drc:\n {}", drc.toString());
             return drc.toString();
         } catch (Exception e) {
