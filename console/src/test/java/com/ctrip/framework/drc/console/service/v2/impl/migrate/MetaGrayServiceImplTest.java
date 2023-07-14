@@ -12,8 +12,6 @@ import com.ctrip.xpipe.utils.FileUtils;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
-import javax.validation.groups.Default;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -24,9 +22,9 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.xml.sax.SAXException;
 
-public class MetaServiceV2ImplTest {
+public class MetaGrayServiceImplTest {
 
-    @InjectMocks private MetaServiceV2Impl metaService;
+    @InjectMocks private MetaGrayServiceImpl metaGrayService;
     
     @Mock private MetaProviderV2 metaProviderV2;
 
@@ -87,7 +85,7 @@ public class MetaServiceV2ImplTest {
 
     @Test
     public void testCompareLogically() {
-        String compareRecorder = metaService.compareDrcMeta();
+        String compareRecorder = metaGrayService.compareDrcMeta();
         boolean equals = !(compareRecorder.contains("not equal") || compareRecorder.contains("empty"));
         Assert.assertTrue(equals);
     }
@@ -97,7 +95,7 @@ public class MetaServiceV2ImplTest {
         Mockito.when(metaProviderV1.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(oldDrc.findDc("ntgxy"));
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
         
-        DbClusterCompareRes dbClusterCompareRes = metaService.compareDbCluster("mha3_dalcluster.mha3");
+        DbClusterCompareRes dbClusterCompareRes = metaGrayService.compareDbCluster("mha3_dalcluster.mha3");
         String compareRes = dbClusterCompareRes.getCompareRes();
         Assert.assertTrue((!compareRes.contains("not equal")) && (!compareRes.contains("empty")) && (!compareRes.contains("fail")));
     }
@@ -108,7 +106,7 @@ public class MetaServiceV2ImplTest {
         Mockito.when(mhaGrayConfig.getGrayDbClusterSet()).thenReturn(Sets.newHashSet("mha3_dalcluster.mha3"));
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
         
-        String drcGrayString = metaService.getDrcInGrayMode();
+        String drcGrayString = metaGrayService.getDrc().toString();
         
         Drc drcGray = DefaultSaxParser.parse(drcGrayString);
         Drc oldDrc = metaProviderV1.getDrc();
