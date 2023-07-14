@@ -132,6 +132,17 @@ public class MessengerController {
             return ApiResult.getFailInstance(null,"error in getBusFromQmq");
         }
     }
+
+    @GetMapping("executedGtid")
+    public ApiResult getMessengerExecutedGtid(@RequestParam(value = "localMha") String localMha) {
+        logger.info("[[tag=messenger]] getMessengerExecutedGtid for mha: {} ", localMha);
+        try {
+            return ApiResult.getSuccessInstance(messengerService.getMessengerGtidExecuted(localMha));
+        } catch (Exception e) {
+            logger.error("[[tag=messenger]] fail in getMessengerExecutedGtid for mha: {} ", localMha,e);
+            return ApiResult.getSuccessInstance(null);
+        }
+    }
    
     
 }

@@ -126,6 +126,7 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                         }
 
                         //handle offline dbs
+                        List<String> dbWhiteList = monitorTableSourceProvider.getSyncDbWhitelist();
                         List<String> remoteDbNameList = new ArrayList<>();
                         for (JsonElement jsonElement : dbArray) {
                             JsonObject jsonObject = jsonElement.getAsJsonObject();
@@ -133,9 +134,10 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                             remoteDbNameList.add(name);
                         }
 
+
                         List<DbTbl> dbInfosInDb = dbTblDao.queryAll();
                         final List<DbTbl> excessDbInfos = dbInfosInDb.stream().filter(
-                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
+                                dbInfoInDb -> !remoteDbNameList.contains(dbInfoInDb.getDbName()) && !dbWhiteList.contains(dbInfoInDb.getDbName())).collect(Collectors.toList());
 
                         // update
                         int size = 100;
@@ -186,10 +188,11 @@ public class SyncDbInfoTask extends AbstractLeaderAwareMonitor implements NamedC
                                 logger.info("[[task=SyncDbInfoTask,batch={}]] this batch cost time:{}", i, end - start);
                             }
                         }
-                        if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
-                            dbTblDao.batchDelete(excessDbInfos);
-                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch:{}", excessDbInfos.size());
-                        }
+//                        if (SWITCH_STATUS_ON.equalsIgnoreCase(monitorTableSourceProvider.getUpdateDbInfoSwitch())) {
+//                            dbTblDao.batchDelete(excessDbInfos);
+//                            logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
+//                        }
+                        logger.info("[[task=SyncDbInfoTask]] delete all offline DbInfo done,delete_batch size:{}, excessDbInfos: {}", excessDbInfos.size(), excessDbInfos);
                     });
         } catch (Exception e) {
             logger.error("[[task=SyncDbInfoTask]] sync all DbInfo error", e);

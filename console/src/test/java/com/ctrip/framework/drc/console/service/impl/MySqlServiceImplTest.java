@@ -57,11 +57,11 @@ public class MySqlServiceImplTest extends AbstractTest {
             theMock.when(() -> {
                 MySqlUtils.getUnionExecutedGtid(Mockito.any(Endpoint.class));
             }).thenReturn("gtid");
-            String gtid = mySqlService.getRealExecutedGtid("mha1");
+            String gtid = mySqlService.getDrcExecutedGtid("mha1");
             Assert.assertEquals(gtid,"gtid");
             Mockito.when(dbClusterSourceProvider.getMasterEndpoint("mha1")).
                     thenReturn(null);
-            gtid = mySqlService.getRealExecutedGtid("mha1");
+            gtid = mySqlService.getDrcExecutedGtid("mha1");
             Assert.assertNull(gtid);
             
         }

@@ -6,6 +6,7 @@ import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
  * @author shb沈海波
  * @date 2021-05-28
  */
+@Repository
 public class GroupMappingTblDao extends AbstractDao<GroupMappingTbl> {
 	public static final Logger logger = LoggerFactory.getLogger(GroupMappingTblDao.class);
 	

@@ -12,18 +12,6 @@
     <artifactId>integration-test</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>com.ctrip.framework</groupId>
-            <artifactId>vi-server</artifactId>
-            <version>0.2.5</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>javax.servlet-api</artifactId>
-                    <groupId>javax.servlet</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
 <!--        <dependency>-->
 <!--            <groupId>com.ctrip.framework.drc</groupId>-->
 <!--            <artifactId>trip-service</artifactId>-->

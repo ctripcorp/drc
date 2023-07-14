@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
@@ -38,6 +39,7 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.Gate;
 import com.ctrip.xpipe.utils.OffsetNotifier;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -50,10 +52,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.channels.FileChannel;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
@@ -93,12 +92,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
     private String replicatorRegion;
 
+    private String replicatorName;
+
     private ConcurrentMap<ApplierKey, NettyClient> applierKeys = Maps.newConcurrentMap();
 
     public ApplierRegisterCommandHandler(GtidManager gtidManager, FileManager fileManager, OutboundMonitorReport outboundMonitorReport, ReplicatorConfig replicatorConfig) {
         this.gtidManager = gtidManager;
         this.fileManager = fileManager;
         this.outboundMonitorReport = outboundMonitorReport;
+        this.replicatorName = replicatorConfig.getRegistryKey();
         this.dumpExecutorService = ThreadUtils.newCachedThreadPool(ThreadUtils.getThreadName("ARCH", replicatorConfig.getRegistryKey()));
         this.setGitdMode = replicatorConfig.getApplyMode() == ApplyMode.set_gtid.getType();
         this.replicatorRegion = RegionConfig.getInstance().getRegion();
@@ -189,6 +191,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private ConsumeType consumeType;
 
+        private String consumeName;
+
         private boolean skipDrcGtidLogEvent;
 
         private ChannelAttributeKey channelAttributeKey;
@@ -202,6 +206,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             this.dumpCommandPacket = dumpCommandPacket;
             this.applierName = dumpCommandPacket.getApplierName();
             this.consumeType = ConsumeType.getType(dumpCommandPacket.getConsumeType());
+            this.consumeName = ConsumeType.Replicator == consumeType ? (replicatorName + "-slave") : applierName;
             this.skipDrcGtidLogEvent = setGitdMode && !consumeType.requestAllBinlog();
             String properties = dumpCommandPacket.getProperties();
             DataMediaConfig dataMediaConfig = DataMediaConfig.from(applierName, properties);
@@ -233,13 +238,47 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         }
 
         private boolean check(GtidSet excludedSet) {
+            //1. check the gtid set associated with the uuid of mysql master node
             GtidSet executedGtids = gtidManager.getExecutedGtids();
-            GtidSet purgedGtids = gtidManager.getPurgedGtids();
-            logger.info("[GtidSet] check : filteredExcludedSet {}, executedGtids {}, purgedGtids {}", excludedSet, executedGtids, purgedGtids);
-            if (excludedSet != null && excludedSet.isContainedWithin(executedGtids)) {
+            String currentUuid = gtidManager.getCurrentUuid();
+            GtidSet masterGtidSet = excludedSet.filterGtid(Sets.newHashSet(currentUuid));
+            boolean masterGtidSetCheck = masterGtidSet.isContainedWithin(executedGtids);
+            logger.info("[GtidSet][{}][{}] check master gtidset result: {}, master gtidset: {}, executed gtidset: {}",
+                    consumeName, consumeType, masterGtidSetCheck, masterGtidSet, executedGtids);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.master.uuid", 
+                    consumeName + "-" + consumeType + ":" + masterGtidSetCheck);
+            if (!masterGtidSetCheck) {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", 
+                        consumeName + "-" + consumeType + ":" + false);
+                return false;
+            }
+
+            //2. check gtid set associated with the uuids of mysql slave nodes, the result just for logging
+            Set<String> slaveUuids = Sets.newHashSet(gtidManager.getUuids());
+            slaveUuids.remove(currentUuid);
+            GtidSet slaveGtidSet = excludedSet.filterGtid(slaveUuids);
+            boolean slaveGtidSetCheck = slaveGtidSet.isContainedWithin(executedGtids);
+            logger.info("[GtidSet][{}][{}] check slave gtidset result: {}, slave gtidset: {}, executed gtidset: {}",
+                    consumeName, consumeType, slaveGtidSetCheck, slaveGtidSet, executedGtids);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.slave.uuid", 
+                    consumeName + "-" + consumeType + ":" + slaveGtidSetCheck);
+
+            //3. check purged gtid set
+            GtidSet purgedGtidSet = gtidManager.getPurgedGtids();
+            boolean purgedGtidSetCheck = purgedGtidSet.isContainedWithin(excludedSet);
+            logger.info("[GtidSet][{}][{}] check purged gtidset result: {}, purged gtidset: {}, excluded gtidset: {}", 
+                    consumeName, consumeType, purgedGtidSetCheck, purgedGtidSet, excludedSet);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.purged",
+                    consumeName + "-" + consumeType + ":" + purgedGtidSetCheck);
+
+            if (DynamicConfig.getInstance().getPurgedGtidSetCheckSwitch()) {
+                logger.info("[GtidSet][{}][{}] check purged gtidset switch on, result: {}", consumeName, consumeType, purgedGtidSetCheck);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", consumeName + "-" + consumeType + ":" + purgedGtidSetCheck);
+                return purgedGtidSetCheck;
+            } else {
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.gtidset.check.result", consumeName + "-" + consumeType + ":" + true);
                 return true;
             }
-            return false;
         }
 
         private File getFirstFile(GtidSet excludedSet, boolean onlyLocalUuids) {
@@ -297,7 +336,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
             logger.info("[GtidSet] filter : excludedSet {}, filteredExcludedSet {}", excludedSet, filteredExcludedSet);
 
             // 2、check gtid
-            if (!check(filteredExcludedSet)) {
+            if (!check(clonedExcludedSet)) {
                 logger.warn("[GTID SET] {} not valid for {}", dumpCommandPacket.getGtidSet(), applierName);
                 resultCode = ResultCode.APPLIER_GTID_ERROR;
                 return null;

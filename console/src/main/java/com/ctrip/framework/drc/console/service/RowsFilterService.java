@@ -3,14 +3,14 @@ package com.ctrip.framework.drc.console.service;
 
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDto;
 import com.ctrip.framework.drc.console.vo.display.RowsFilterMappingVo;
+import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 
 import java.sql.SQLException;
 import java.util.List;
 
 public interface RowsFilterService {
-    
-   
+
     List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException;
     
     String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;
@@ -35,4 +35,8 @@ public interface RowsFilterService {
 
     // forward by mhaName
     List<String> getConflictTables(String mhaName, String logicalTables);
+    
+    List<Long> getMigrateRowsFilterIds() throws SQLException;
+
+    MigrateResult migrateUdlStrategyId(List<Long> rowsFilterIds) throws SQLException; 
 }

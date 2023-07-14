@@ -25,7 +25,7 @@ public class ConsoleNotifierTest extends AbstractNotifierTest {
 
     @Test
     public void notifyHttp() throws InterruptedException {
-        consoleNotifier.notify(dbCluster);
+        consoleNotifier.notify(dbCluster.getId(), dbCluster);
         Thread.sleep(500);
     }
 }

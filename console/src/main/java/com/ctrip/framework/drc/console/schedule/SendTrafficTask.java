@@ -45,7 +45,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
     private static final String ALI = "ali";
 
     private static final String FRA_AWS = "FRA-AWS";
-    private static final String SHAXY = "SHAXY";
+    private static final String SHA_REGION = "SHA";
     private static final String SIN_AWS = "SIN-AWS";
     private static final String SHA_ALI = "SHA-ALI";
 
@@ -165,7 +165,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
             sendRelationCostToKafka(key, value, AWS_PROVIDER_CONTEXT, SIN_AWS);
             sendRelationCostToKafka(key, value, AWS_PROVIDER_CONTEXT, FRA_AWS);
             sendRelationCostToKafka(key, value, ALIYUN_PROVIDER_CONTEXT, SHA_ALI);
-            sendRelationCostToKafka(key, value, TRIP_PROVIDER_CONTEXT, SHAXY);
+            sendRelationCostToKafka(key, value, TRIP_PROVIDER_CONTEXT, SHA_REGION);
         }
     }
 
@@ -206,7 +206,7 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         sendToKafKa(sinToSha, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeStorage, CostType.storage, 1);
         sendToKafKa(sinToSha, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeFlow, CostType.flow, 9);
         sendToCat(sinToSha);
-        sendToKafKa(sinToSha, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(sinToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // fra->sha
         HickWallTrafficContext fraToShaContext = getHickWallTrafficContext(FRA, SHA);
@@ -214,41 +214,41 @@ public class SendTrafficTask extends AbstractLeaderAwareMonitor {
         sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
         sendToKafKa(fraToSha, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeFlow, CostType.flow, 9);
         sendToCat(fraToSha);
-        sendToKafKa(fraToSha, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(fraToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // ali->sha
         HickWallTrafficContext aliToShaContext = getHickWallTrafficContext(ALI, SHA);
         List<HickWallTrafficEntity> aliToSha = opsApiService.getTrafficFromHickWall(aliToShaContext);
         sendToKafKa(aliToSha, ALIYUN_PROVIDER_CONTEXT, SHA_ALI, serviceTypeStorage, CostType.storage, 1);
         sendToCat(aliToSha);
-        sendToKafKa(aliToSha, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(aliToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // sha->sha
         HickWallTrafficContext shaToShaContext = getHickWallTrafficContext(SHA, SHA);
         List<HickWallTrafficEntity> shaToSha = opsApiService.getTrafficFromHickWall(shaToShaContext);
         sendToCat(shaToSha);
-        sendToKafKa(shaToSha, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(shaToSha, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // sha->sin
         HickWallTrafficContext shaToSinContext = getHickWallTrafficContext(SHA, SIN);
         List<HickWallTrafficEntity> shaToSin = opsApiService.getTrafficFromHickWall(shaToSinContext);
         sendToKafKa(shaToSin, AWS_PROVIDER_CONTEXT, SIN_AWS, serviceTypeStorage, CostType.storage, 1);
         sendToCat(shaToSin);
-        sendToKafKa(shaToSin, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(shaToSin, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // sha->fra
         HickWallTrafficContext shaToFraContext = getHickWallTrafficContext(SHA, FRA);
         List<HickWallTrafficEntity> shaToFra = opsApiService.getTrafficFromHickWall(shaToFraContext);
         sendToKafKa(shaToFra, AWS_PROVIDER_CONTEXT, FRA_AWS, serviceTypeStorage, CostType.storage, 1);
         sendToCat(shaToFra);
-        sendToKafKa(shaToFra, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(shaToFra, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
 
         // sha->ali
         HickWallTrafficContext shaToAliContext = getHickWallTrafficContext(SHA, ALI);
         List<HickWallTrafficEntity> shaToAli = opsApiService.getTrafficFromHickWall(shaToAliContext);
         sendToKafKa(shaToAli, ALIYUN_PROVIDER_CONTEXT, SHA_ALI, serviceTypeStorage, CostType.storage, 1);
         sendToCat(shaToAli);
-        sendToKafKa(shaToAli, TRIP_PROVIDER_CONTEXT, SHAXY, serviceTypeStorage, CostType.storage, 1);
+        sendToKafKa(shaToAli, TRIP_PROVIDER_CONTEXT, SHA_REGION, serviceTypeStorage, CostType.storage, 1);
     }
 
     private HickWallTrafficContext getHickWallTrafficContext(String srcRegion, String dstRegion) {

@@ -64,7 +64,10 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
 
                 boolean shouldRewrite = extractContext.extracted();
                 value.setNoRewrite(!shouldRewrite);
-                if (shouldRewrite) {
+
+                if (extractContext.getRowsEvent().getRows().isEmpty()) {
+                    value.setSkipEvent(true);
+                } else if (shouldRewrite) {
                     AbstractRowsEvent afterRowsEvent;
                     try {
                         Columns extractedColumns = getExtractedColumns(columns, extractedColumnsIndex);

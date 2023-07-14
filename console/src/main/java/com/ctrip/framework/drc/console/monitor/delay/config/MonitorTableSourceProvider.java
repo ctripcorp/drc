@@ -4,12 +4,15 @@ import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,7 +53,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String GTID_MONITOR_SWITCH = "gtid.monitor.switch";
     private static final String GTID_MONITOR_PERIOD = "gtid.monitor.period";
 
-    private static final int DEFAULT_GTID_MONITOR_PERIOD = 60 * 8;
+    private static final int DEFAULT_GTID_MONITOR_PERIOD = 60 * 2;
 
     public static final String DRC_DELAY_MESUREMENT = "fx.drc.delay";
 
@@ -182,6 +185,7 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
     private static final String DRC_META_XML_UPDATE_SWITCH = "drc.meta.xml.update.switch";
 
     private static final String SYNC_DB_INFO_SWITCH = "sync.db.info.switch";
+    private static final String SYNC_DB_WHITELIST = "sync.db.whitelist";
     // allow update and delete the change
     private static final String UPDATE_DB_INFO_SWITCH = "update.db.info.switch";
 
@@ -512,6 +516,14 @@ public class MonitorTableSourceProvider extends AbstractConfigBean {
 
     public String getSyncDbInfoSwitch() {
         return getProperty(SYNC_DB_INFO_SWITCH, SWITCH_STATUS_OFF);
+    }
+
+    public List<String> getSyncDbWhitelist() {
+        String dbWhitelistString = getProperty(SYNC_DB_WHITELIST, EMPTY_STRING);
+        if (StringUtils.isBlank(dbWhitelistString)) {
+            return new ArrayList<>();
+        }
+        return Lists.newArrayList(dbWhitelistString.split(DELIMITER));
     }
 
     public String getUpdateDbInfoSwitch() {
