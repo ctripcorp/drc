@@ -114,6 +114,12 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     }
 
     @Test
+    public void testGetDcBy() {
+        Dc dc = dbClusterSourceProvider.getDcBy("dbcluster1.mha1dc1");
+        Assert.assertNotNull(dc);
+    }
+
+    @Test
     public void testGetDrc2() {
         Drc actual = dbClusterSourceProvider.getDrc(DC1);
         Drc expect = new Drc().addDc(expectedDrc.findDc(DC1));
@@ -435,4 +441,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         Set<String> mhas = dbClusterSourceProvider.getAllMhaWithMessengerInLocalRegion();
         Assert.assertEquals(0,mhas.size());
     }
+
+    
 }
