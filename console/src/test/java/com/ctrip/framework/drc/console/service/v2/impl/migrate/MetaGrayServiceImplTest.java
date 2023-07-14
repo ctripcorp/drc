@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
+import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.ctrip.xpipe.utils.FileUtils;
@@ -78,7 +79,7 @@ public class MetaGrayServiceImplTest {
                 .thenReturn(Lists.newArrayList("columnsFiltershardb1.s1","columnsFiltershardb2.s1"));
         
         
-        Mockito.when(consoleConfig.getMetaCompareParallel()).thenReturn(5);
+        Mockito.when(consoleConfig.getMetaCompareParallel()).thenReturn(1);
     }
 
   
@@ -113,8 +114,10 @@ public class MetaGrayServiceImplTest {
         Assert.assertEquals(oldDrc.findDc("ntgxh"),drcGray.findDc("ntgxh"));
         Assert.assertEquals(newDrc.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString(),
                 drcGray.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString());
-        
-        
+
+        Drc ntgxh = metaGrayService.getDrc("ntgxh");
+        Assert.assertEquals(drcGray.findDc("ntgxh").toString(),ntgxh.findDc("ntgxh").toString());
+
         Mockito.when(consoleConfig.getRegion()).thenReturn("sin");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
         drcGray = metaGrayService.getDrc();
@@ -122,4 +125,5 @@ public class MetaGrayServiceImplTest {
         
         
     }
+    
 }
