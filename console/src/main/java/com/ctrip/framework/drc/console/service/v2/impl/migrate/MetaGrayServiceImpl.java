@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -61,6 +62,12 @@ public class MetaGrayServiceImpl implements MetaGrayService {
     @Override
     public synchronized Drc getDrc()  {
         Drc oldDrc = metaProviderV1.getDrc();
+        Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
+        String localRegion = consoleConfig.getRegion();
+        if (publicCloudRegion.contains(localRegion)) { //cloud region use remoteConfig,which already recombination
+            return oldDrc;
+        }
+        
         try {
             if (mhaGrayConfig.getDbClusterGraySwitch()) {
                 Drc drcCopy = DefaultSaxParser.parse(oldDrc.toString());

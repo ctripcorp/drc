@@ -105,13 +105,21 @@ public class MetaGrayServiceImplTest {
         Mockito.when(mhaGrayConfig.getDbClusterGraySwitch()).thenReturn(true);
         Mockito.when(mhaGrayConfig.getGrayDbClusterSet()).thenReturn(Sets.newHashSet("mha3_dalcluster.mha3"));
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
-        
-        String drcGrayString = metaGrayService.getDrc().toString();
-        
-        Drc drcGray = DefaultSaxParser.parse(drcGrayString);
+        Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
+        Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
+
+        Drc drcGray = metaGrayService.getDrc();
         Drc oldDrc = metaProviderV1.getDrc();
         Assert.assertEquals(oldDrc.findDc("ntgxh"),drcGray.findDc("ntgxh"));
         Assert.assertEquals(newDrc.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString(),
                 drcGray.findDc("ntgxy").findDbCluster("mha3_dalcluster.mha3").toString());
+        
+        
+        Mockito.when(consoleConfig.getRegion()).thenReturn("sin");
+        Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
+        drcGray = metaGrayService.getDrc();
+        Assert.assertEquals(oldDrc.toString(),drcGray.toString());
+        
+        
     }
 }
