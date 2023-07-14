@@ -426,6 +426,14 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         }
     }
 
+    @Override
+    public void switchMonitor(Long mhaId) throws Exception {
+        MhaTbl mhaTbl = mhaTblDao.queryById(mhaId);
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+        mhaTblV2.setMonitorSwitch(mhaTbl.getMonitorSwitch());
+        mhaTblV2Dao.update(mhaTblV2);
+    }
+
     private void deleteDbReplications(Long mhaId) throws Exception {
         List<Long> srcMhaDbMappingIds = mhaDbMappingTblDao.queryByMhaId(mhaId).stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryBySrcMappingIds(srcMhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());

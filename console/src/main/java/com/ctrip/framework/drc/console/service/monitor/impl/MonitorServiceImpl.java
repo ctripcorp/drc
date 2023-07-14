@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -35,13 +36,20 @@ public class MonitorServiceImpl implements MonitorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired private DbClusterSourceProvider sourceProvider;
+    @Autowired
+    private DbClusterSourceProvider sourceProvider;
 
-    @Autowired private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
-    @Autowired private OpenService openService;
+    @Autowired
+    private OpenService openService;
     
-    @Autowired private MhaTblDao mhaTblDao;
+    @Autowired
+    private MhaTblDao mhaTblDao;
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -62,11 +70,12 @@ public class MonitorServiceImpl implements MonitorService {
     }
 
     @Override
-    public void switchMonitors(String mhaName, String status) throws SQLException {
+    public void switchMonitors(String mhaName, String status) throws Exception {
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
         mhaTbl.setMonitorSwitch(monitorSwitch);
         mhaTblDao.update(mhaTbl);
+        drcDoubleWriteService.switchMonitor(mhaTbl.getId());
     }
 
     @Override

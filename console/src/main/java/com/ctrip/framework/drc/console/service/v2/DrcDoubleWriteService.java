@@ -28,4 +28,8 @@ public interface DrcDoubleWriteService {
     void deleteDbReplicationForMq(Long dataMediaPairId) throws Exception;
 
     void buildDbReplicationForMq(Long mhaId) throws Exception;
+
+    void deleteMqConfigure(Long mhaId) throws Exception;
+
+    void switchMonitor(Long mhaId) throws Exception;
 }
