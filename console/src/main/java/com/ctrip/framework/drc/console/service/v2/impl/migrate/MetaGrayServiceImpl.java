@@ -78,10 +78,16 @@ public class MetaGrayServiceImpl implements MetaGrayService {
                 for (String dbClusterId : mhaGrayConfig.getGrayDbClusterSet()) {
                     Dc newDc = metaProviderV2.getDcBy(dbClusterId);
                     DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
-
-                    Dc oldDc = drcCopy.findDc(newDc.getId());
-                    oldDc.removeDbCluster(dbClusterId);
-                    oldDc.addDbCluster(newDcDbCluster);
+                    
+                    if(metaConsistent(dbClusterId)) {
+                        Dc dcCopy = drcCopy.findDc(newDc.getId());
+                        logger.info("[[tag=metaGray]] gray dbClusterId:{},oldDbCluster:{},newDbCluster:{}",dbClusterId,
+                                dcCopy.findDbCluster(dbClusterId),newDcDbCluster);
+                        dcCopy.removeDbCluster(dbClusterId);
+                        dcCopy.addDbCluster(newDcDbCluster);
+                    } else {
+                        logger.error("[[tag=metaGray]] dbClusterId:{} xml not equals ,do nothing",dbClusterId);
+                    }
                 }
                 return drcCopy;
             }
@@ -110,6 +116,12 @@ public class MetaGrayServiceImpl implements MetaGrayService {
             res.setCompareRes("compare fail");
         }
         return res;
+    }
+    
+    private boolean metaConsistent(String dbClusterId) {
+        DbClusterCompareRes res = compareDbCluster(dbClusterId);
+        String compareRes = res.getCompareRes();
+        return (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail"));
     }
 
     @Override
