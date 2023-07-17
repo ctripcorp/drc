@@ -338,15 +338,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         }
 
         insertMhaDbMappings(mhaTblV2.getMhaName(), dataMediaPairTbl.getSrcDataMediaName());
-        Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl);
-        List<Long> dbReplicationIds = insertMessengerDbReplications(messengerGroupTbl, dataMediaPairTbl);
-
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationIds.stream()
-                .map(dbReplicationId -> buildDbReplicationFilterMappingTbl(dbReplicationId, -1L, -1L, messengerFilterId))
-                .collect(Collectors.toList());
-
-        logger.info("batchInsert dbReplicationFilterMappings: {}", dbReplicationFilterMappings);
-        dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappings);
+        insertDbReplicationAndFilterMapping(messengerGroupTbl, dataMediaPairTbl);
     }
 
     @Override
@@ -387,8 +379,11 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildDbReplicationForMq(Long mhaId) throws Exception {
         logger.info("drc double write buildDbReplicationForMq, mhaId: {}", mhaId);
-//        deleteDbReplications(mhaId);
-
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
+            logger.info("buildDbReplicationForMq ignore vpcMha: {}", mhaTblV2.getMhaName());
+            return;
+        }
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
         List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
         if (CollectionUtils.isEmpty(messengerTbls)) {
@@ -408,36 +403,23 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             logger.info("dbReplicationTbls has already configured, mhaId: {}", mhaId);
             return;
         }
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
         List<String> dbNameFilters = dataMediaPairTbls.stream().map(DataMediaPairTbl::getSrcDataMediaName).collect(Collectors.toList());
         String dbNameFilter = Joiner.on(",").join(dbNameFilters);
         insertMhaDbMappings(mhaTblV2.getMhaName(), dbNameFilter);
 
         for (DataMediaPairTbl dataMediaPairTbl : dataMediaPairTbls) {
-            Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl);
-            List<Long> dbReplicationIds = insertMessengerDbReplications(messengerGroupTbl, dataMediaPairTbl);
-
-            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationIds.stream()
-                    .map(dbReplicationId -> buildDbReplicationFilterMappingTbl(dbReplicationId, -1L, -1L, messengerFilterId))
-                    .collect(Collectors.toList());
-
-            logger.info("batchInsert dbReplicationFilterMappings: {}", dbReplicationFilterMappings);
-            dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappings);
+            insertDbReplicationAndFilterMapping(messengerGroupTbl, dataMediaPairTbl);
         }
     }
 
     @Override
-    public void switchMonitor(Long mhaId) throws Exception {
-        MhaTbl mhaTbl = mhaTblDao.queryById(mhaId);
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
-        mhaTblV2.setMonitorSwitch(mhaTbl.getMonitorSwitch());
-        mhaTblV2Dao.update(mhaTblV2);
-    }
-
-    private void deleteDbReplications(Long mhaId) throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteMqConfigure(Long mhaId) throws Exception {
+        logger.info("drc double write deleteMqConfigure, mhaId: {}", mhaId);
         List<Long> srcMhaDbMappingIds = mhaDbMappingTblDao.queryByMhaId(mhaId).stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryBySrcMappingIds(srcMhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());
         if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+            logger.info("dbReplicationTbls is empty, mhaId: {}", mhaId);
             return;
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
@@ -449,6 +431,26 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         logger.info("deleteDbReplicationFilterMappings size: {}, filterMappings: {}", dbReplicationFilterMappingTbls.size(), dbReplicationFilterMappingTbls);
         dbReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
+    }
+
+    @Override
+    public void switchMonitor(Long mhaId) throws Exception {
+        MhaTbl mhaTbl = mhaTblDao.queryById(mhaId);
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+        mhaTblV2.setMonitorSwitch(mhaTbl.getMonitorSwitch());
+        mhaTblV2Dao.update(mhaTblV2);
+    }
+
+    private void insertDbReplicationAndFilterMapping(MessengerGroupTbl messengerGroupTbl, DataMediaPairTbl dataMediaPairTbl) throws Exception {
+        Long messengerFilterId = insertMessengerFilter(dataMediaPairTbl);
+        List<Long> dbReplicationIds = insertMessengerDbReplications(messengerGroupTbl, dataMediaPairTbl);
+
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationIds.stream()
+                .map(dbReplicationId -> buildDbReplicationFilterMappingTbl(dbReplicationId, -1L, -1L, messengerFilterId))
+                .collect(Collectors.toList());
+
+        logger.info("batchInsert dbReplicationFilterMappings: {}", dbReplicationFilterMappings);
+        dbReplicationFilterMappingTblDao.batchInsert(dbReplicationFilterMappings);
     }
 
     public List<Long> deleteMessengerDbReplications(MessengerGroupTbl messengerGroupTbl, DataMediaPairTbl dataMediaPairTbl) throws Exception {

@@ -22,7 +22,7 @@ public interface MessengerService {
 
     List<String> getMessengerIps (Long mhaId) throws SQLException;
     
-    String removeMessengerGroup(String mhaName) throws SQLException;
+    String removeMessengerGroup(String mhaName) throws Exception;
     
     
     // mqConfig
