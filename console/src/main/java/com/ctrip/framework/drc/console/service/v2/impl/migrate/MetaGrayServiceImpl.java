@@ -121,7 +121,7 @@ public class MetaGrayServiceImpl implements MetaGrayService {
     private boolean metaConsistent(String dbClusterId) {
         DbClusterCompareRes res = compareDbCluster(dbClusterId);
         String compareRes = res.getCompareRes();
-        return (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail"));
+        return !(compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail"));
     }
 
     @Override
