@@ -104,10 +104,13 @@ public class MetaGrayServiceImplTest {
     @Test
     public void testGetDrcInGrayMode() throws IOException, SAXException {
         Mockito.when(mhaGrayConfig.getDbClusterGraySwitch()).thenReturn(true);
+        Mockito.when(mhaGrayConfig.getDbClusterGrayCompareSwitch()).thenReturn(true);
         Mockito.when(mhaGrayConfig.getGrayDbClusterSet()).thenReturn(Sets.newHashSet("mha3_dalcluster.mha3"));
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
         Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
+        Mockito.when(metaProviderV1.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(oldDrc.findDc("ntgxy"));
+        Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
 
         Drc drcGray = metaGrayService.getDrc();
         Drc oldDrc = metaProviderV1.getDrc();
