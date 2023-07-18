@@ -119,7 +119,7 @@ public class MetaGrayServiceImpl extends AbstractMonitor implements MetaGrayServ
     }
 
     @Override
-    public synchronized Drc getDrc()  {
+    public Drc getDrc()  {
         if (null == grayDrc) {
             grayDrc = refreshDrc();
         }
