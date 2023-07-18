@@ -79,14 +79,14 @@ public class MetaGrayServiceImpl implements MetaGrayService {
                     Dc newDc = metaProviderV2.getDcBy(dbClusterId);
                     DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
                     
-                    if(metaConsistent(dbClusterId)) {
+                    if(!mhaGrayConfig.getDbClusterGrayCompareSwitch()  || metaConsistent(dbClusterId)) {
                         Dc dcCopy = drcCopy.findDc(newDc.getId());
                         logger.info("[[tag=metaGray]] gray dbClusterId:{},oldDbCluster:{},newDbCluster:{}",dbClusterId,
                                 dcCopy.findDbCluster(dbClusterId),newDcDbCluster);
                         dcCopy.removeDbCluster(dbClusterId);
                         dcCopy.addDbCluster(newDcDbCluster);
                     } else {
-                        logger.error("[[tag=metaGray]] dbClusterId:{} xml not equals ,do nothing",dbClusterId);
+                        logger.error("[[tag=metaGray]] dbClusterId:{} xml not equals ,do nothing", dbClusterId);
                     }
                 }
                 return drcCopy;
