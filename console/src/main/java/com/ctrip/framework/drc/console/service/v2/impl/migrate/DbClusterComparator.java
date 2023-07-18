@@ -5,6 +5,7 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.COMMA;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,17 +44,19 @@ public class DbClusterComparator implements Callable<String> {
     private final StringBuilder recorder;
     
     private final boolean costTimeTrace;
+
+    private final Set<String> vpcDcs;
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public DbClusterComparator(DbCluster oldDbCluster, DbCluster newDbCluster,
-            DrcBuildService drcBuildService,  boolean costTimeTrace) {
-
+            DrcBuildService drcBuildService,  boolean costTimeTrace,Set<String> vpcDcs) {
         this.oldDbCluster = oldDbCluster;
         this.newDbCluster = newDbCluster;
         this.drcBuildService = drcBuildService;
         this.recorder = new StringBuilder();
         this.costTimeTrace = costTimeTrace;
+        this.vpcDcs = vpcDcs;
     }
     
     
@@ -60,6 +64,9 @@ public class DbClusterComparator implements Callable<String> {
     @Override
     public String call() throws Exception {
         try {
+            Dc oldDc = oldDbCluster.parent();
+            String destDc = oldDc.getId();
+            
             long start = System.currentTimeMillis();
             recorder.append("\n[CompareDbCluster]:").append(oldDbCluster.getId());
             if (null == newDbCluster) {
@@ -93,6 +100,13 @@ public class DbClusterComparator implements Callable<String> {
                     recorder.append("\n newApplier is empty!");
                     continue;
                 }
+                
+                // vpc2vpc
+                if (vpcDcs.contains(destDc) && vpcDcs.contains(newApplier.getTargetIdc())) {
+                    recorder.append("compare Applier vpc2vpc,ignore");
+                    continue;
+                }
+                
                 if (!equalsExcludeConfig(oldApplier, newApplier)) {
                     recorder.append("\n ApplierExcludeConfig is not equals!");
                 }
@@ -147,7 +161,7 @@ public class DbClusterComparator implements Callable<String> {
                     recorder.append("\n newMessenger is empty!");
                     continue;
                 }
-
+                
                 if (!equalsExcludeConfig(oldMessenger, newMessenger)) {
                     recorder.append("\n MessengerExcludeConfig is not equals!");
                 }
@@ -489,8 +503,7 @@ public class DbClusterComparator implements Callable<String> {
                 && a1.getTargetMhaName().equals(a2.getTargetMhaName())
                 && a1.getTargetName().equals(a2.getTargetName())
                 && a1.getMaster()== (a2.getMaster())
-                && a1.getApplyMode().equals(a2.getApplyMode())
-                && StringUtils.equals(a1.getIncludedDbs(),a2.getIncludedDbs()); // could be null
+                && a1.getApplyMode().equals(a2.getApplyMode());
     }
 
     private boolean equalsExcludeConfig(Messenger m1, Messenger m2) {
