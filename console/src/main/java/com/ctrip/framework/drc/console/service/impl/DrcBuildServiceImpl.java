@@ -143,6 +143,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String submitConfig(MessengerMetaDto dto) throws Exception {
         // 0. check 
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
@@ -458,10 +459,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs,
                                   int applyMode, String gtidExecuted, String nameFilter, String nameMapping, String targetName) throws Exception {
         Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtidExecuted);
-        drcDoubleWriteService.buildApplierGroup(applierGroupId);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, gtidExecuted);
-        drcDoubleWriteService.buildAppliers(applierGroupId);
-        drcDoubleWriteService.buildMhaAndDbReplication(applierGroupId);
+        drcDoubleWriteService.configureMhaReplication(applierGroupId);
         return applierGroupId;
     }
 

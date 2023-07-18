@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -22,7 +23,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -52,6 +52,9 @@ public class TransferServiceImplTest extends AbstractTest {
     @Mock private MonitorTableSourceProvider monitorConfigProvider;
 
     @Mock private DataMediaService dataMediaService;
+
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
 
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
@@ -89,6 +92,7 @@ public class TransferServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW1")).thenReturn(4L);
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW2")).thenReturn(5L);
         Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
+        Mockito.doNothing().when(drcDoubleWriteService).deleteMhaReplicationConfig(Mockito.anyLong(), Mockito.anyLong());
 
     }
 

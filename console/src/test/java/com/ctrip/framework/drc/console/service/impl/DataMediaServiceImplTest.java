@@ -123,7 +123,7 @@ public class DataMediaServiceImplTest {
     public void testProcessAddColumnsFilterConfig() throws Exception {
         Mockito.when(columnsFilterService.addColumnsFilterConfig(Mockito.any(ColumnsFilterConfigDto.class))).
                 thenReturn("add ColumnsFilterConfig success");
-        Mockito.doNothing().when(drcDoubleWriteService).insertOrUpdateColumnsFilter(Mockito.anyLong());
+        Mockito.doNothing().when(drcDoubleWriteService).insertColumnsFilter(Mockito.anyLong());
         dataMediaService.processAddColumnsFilterConfig(new ColumnsFilterConfigDto());
     }
 
@@ -131,7 +131,8 @@ public class DataMediaServiceImplTest {
     public void testProcessUpdateColumnsFilterConfig() throws Exception {
         Mockito.when(columnsFilterService.updateColumnsFilterConfig(Mockito.any(ColumnsFilterConfigDto.class))).
                 thenReturn("update ColumnsFilterConfig success");
-        Mockito.doNothing().when(drcDoubleWriteService).insertOrUpdateColumnsFilter(Mockito.anyLong());
+        Mockito.doNothing().when(drcDoubleWriteService).insertColumnsFilter(Mockito.anyLong());
+        Mockito.doNothing().when(drcDoubleWriteService).deleteColumnsFilter(Mockito.anyLong());
         dataMediaService.processUpdateColumnsFilterConfig(new ColumnsFilterConfigDto());
     }
 

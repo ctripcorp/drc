@@ -139,23 +139,19 @@ public class DataMediaServiceImpl implements DataMediaService {
 
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String processAddColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception {
-        DataMediaTbl dataMediaTbl = dataMediaTblDao.queryById(columnsFilterConfigDto.getDataMediaId());
-        String result;
-        if (dataMediaTbl != null && dataMediaTbl.getApplierGroupId() > 0L) {
-            result =  columnsFilterService.updateColumnsFilterConfig(columnsFilterConfigDto);
-        } else {
-            result = columnsFilterService.addColumnsFilterConfig(columnsFilterConfigDto);
-        }
-
-        drcDoubleWriteService.insertOrUpdateColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        String result = columnsFilterService.addColumnsFilterConfig(columnsFilterConfigDto);
+        drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
         return result;
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String processUpdateColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception {
+        drcDoubleWriteService.deleteColumnsFilter(columnsFilterConfigDto.getDataMediaId());
         String result =  columnsFilterService.updateColumnsFilterConfig(columnsFilterConfigDto);
-        drcDoubleWriteService.insertOrUpdateColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
         return result;
     }
 

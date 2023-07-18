@@ -19,6 +19,7 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
 
     private static final String SRC_MHA_ID = "src_mha_id";
     private static final String DST_MHA_ID = "dst_mha_id";
+    private static final String DELETED = "deleted";
 
     public MhaReplicationTblDao() throws SQLException {
         super(MhaReplicationTbl.class);
@@ -27,6 +28,14 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
     public MhaReplicationTbl queryByMhaId(Long srcMhaId, Long dstMhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(SRC_MHA_ID, srcMhaId, Types.BIGINT).and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT);
+        return client.queryFirst(sqlBuilder, new DalHints());
+    }
+
+    public MhaReplicationTbl queryByMhaId(Long srcMhaId, Long dstMhaId, Integer deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(SRC_MHA_ID, srcMhaId, Types.BIGINT)
+                .and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT)
+                .and().equal(DELETED, deleted, Types.TINYINT);
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 

@@ -363,6 +363,8 @@ public class MetaController {
             }
         } catch (Exception e) {
             logger.error("[meta] remove meta config for {}", mhas, e);
+            return ApiResult.getFailInstance(e.getMessage());
+
         }
         return ApiResult.getFailInstance(false);
     }

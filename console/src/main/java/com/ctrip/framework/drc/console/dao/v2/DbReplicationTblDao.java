@@ -51,7 +51,7 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
 
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(SRC_MHA_DB_MAPPING_ID, srcMappingIds, Types.BIGINT)
-                .and().equal(DST_MHA_DB_MAPPING_ID, dstMappingIds, Types.BIGINT)
+                .and().in(DST_MHA_DB_MAPPING_ID, dstMappingIds, Types.BIGINT)
                 .and().equal(REPLICATION_TYPE, replicationType, Types.BIGINT)
                 .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());

@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.service.TransferService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -34,6 +35,8 @@ public class TransferServiceImpl implements TransferService {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
 
     private DalUtils dalUtils = DalUtils.getInstance();
 
@@ -245,6 +248,7 @@ public class TransferServiceImpl implements TransferService {
                     .collect(Collectors.toList());
             srcMha.addAll(destMha);
             doRemove(mhaGroupTbl, srcMha);
+            drcDoubleWriteService.deleteMhaReplicationConfig(srcMha.get(0).getId(), srcMha.get(1).getId());
         } else {
             throw new Exception("no such mha: " + mhaName);
         }

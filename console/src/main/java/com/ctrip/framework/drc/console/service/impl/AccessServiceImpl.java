@@ -21,6 +21,7 @@ import com.ctrip.framework.drc.core.service.enums.EnvEnum;
 import com.ctrip.framework.drc.core.service.exceptions.UnexpectedEnumValueException;
 import com.ctrip.framework.drc.core.service.mysql.MySQLToolsApiService;
 import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,12 +57,12 @@ public class AccessServiceImpl implements AccessService {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     private DalUtils dalUtils = DalUtils.getInstance();
 
     @Autowired
     private MhaServiceImpl mhaService;
-    
+
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
 
@@ -73,13 +74,13 @@ public class AccessServiceImpl implements AccessService {
 
     @Autowired
     private DrcMaintenanceServiceImpl drcMaintenanceService;
-    
-    @Autowired 
+
+    @Autowired
     private DomainConfig domainConfig;
 
     @Autowired
     private DrcDoubleWriteService drcDoubleWriteService;
-    
+
     private MySQLToolsApiService mySQLToolsApiServiceImpl = ApiContainer.getMySQLToolsApiServiceImpl();
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
 
@@ -92,7 +93,7 @@ public class AccessServiceImpl implements AccessService {
     public static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 
     protected Map<String, ScheduledFuture> checkNewMhaBuiltMap = Maps.newConcurrentMap();
-    
+
 
     private static final String COMPLETED = "T";
 
@@ -380,6 +381,7 @@ public class AccessServiceImpl implements AccessService {
         }
     }
 
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public ApiResult initMhaGroup(BuildMhaDto dto) {
         try {
             Long mhaGroupId = metaInfoService.getMhaGroupId(dto.getOriginalMha(), dto.getNewBuiltMha(), BooleanEnum.TRUE);
@@ -394,16 +396,16 @@ public class AccessServiceImpl implements AccessService {
                 return ApiResult.getInstance(false, ResultCode.HANDLE_FAIL.getCode(),
                         "already exist mhaGroup");
             }
-            initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
-            drcDoubleWriteService.buildMha(mhaGroupId);
+            Long newMhaGroupId = initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
+            drcDoubleWriteService.buildMha(newMhaGroupId);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("Fail init mha group: {}, ", dto, e);
-            return ApiResult.getFailInstance(false);
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
-    private void initMhaGroup(String buName, String dalClusterName, Long appid, String originalMha, String originalMhaDc, String newBuiltMha, String newBuiltMhaDc, Map<String, String> usersAndPasswords) throws Exception {
+    private Long initMhaGroup(String buName, String dalClusterName, Long appid, String originalMha, String originalMhaDc, String newBuiltMha, String newBuiltMhaDc, Map<String, String> usersAndPasswords) throws Exception {
         Long buId = dalUtils.updateOrCreateBu(buName);
 
         Long clusterId = dalUtils.updateOrCreateCluster(dalClusterName, appid, buId);
@@ -414,12 +416,12 @@ public class AccessServiceImpl implements AccessService {
             // Based on new Model, many-to-many mapping for mha group and mha, it will create a new mha group nevertheless mha has a group before
         Long mhaGroupId = dalUtils.insertMhaGroup(
                 BooleanEnum.FALSE,
-                EstablishStatusEnum.BUILT_NEW_MHA, 
-                usersAndPasswords.get(READ_USER_KEY), 
-                usersAndPasswords.get(READ_PASSWORD_KEY), 
-                usersAndPasswords.get(WRITE_USER_KEY), 
-                usersAndPasswords.get(WRITE_PASSWORD_KEY), 
-                usersAndPasswords.get(MONITOR_USER_KEY), 
+                EstablishStatusEnum.BUILT_NEW_MHA,
+                usersAndPasswords.get(READ_USER_KEY),
+                usersAndPasswords.get(READ_PASSWORD_KEY),
+                usersAndPasswords.get(WRITE_USER_KEY),
+                usersAndPasswords.get(WRITE_PASSWORD_KEY),
+                usersAndPasswords.get(MONITOR_USER_KEY),
                 usersAndPasswords.get(MONITOR_PASSWORD_KEY));
         Long originalMhaId = dalUtils.recoverOrCreateMha(originalMha, originalDcId);
         Long newBuiltMhaId = dalUtils.recoverOrCreateMha(newBuiltMha, newBuiltDcId);
@@ -429,6 +431,7 @@ public class AccessServiceImpl implements AccessService {
 
         dalUtils.updateOrCreateClusterMhaMap(clusterId, originalMhaId);
         dalUtils.updateOrCreateClusterMhaMap(clusterId, newBuiltMhaId);
+        return mhaGroupId;
     }
 
     protected Map<String, Object> doPreCheck(String mha) {

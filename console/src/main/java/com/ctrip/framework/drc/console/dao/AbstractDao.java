@@ -29,6 +29,18 @@ public class AbstractDao<T> {
         return sqlBuilder;
     }
 
+    public List<T> queryByPk(List<Long> ids) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in("id", ids, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
+    public List<T> queryByIds(List<Long> ids) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectAll().in("id", ids, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
     /**
      * Insert T with return ID
      */

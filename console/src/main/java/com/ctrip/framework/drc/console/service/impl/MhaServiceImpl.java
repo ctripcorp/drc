@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -258,6 +259,7 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public ApiResult recordMha(MhaDto mhaDto) {
         try {
             MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaDto.getMhaName(), FALSE.getCode());

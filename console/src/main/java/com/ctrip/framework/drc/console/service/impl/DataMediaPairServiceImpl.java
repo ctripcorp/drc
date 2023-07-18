@@ -98,7 +98,7 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         sample.setId(dataMediaPairId);
         sample.setDeleted(BooleanEnum.TRUE.getCode());
         int affectRows = dataMediaPairTblDao.update(sample);
-        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairId);
+        drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairId);
         return affectRows == 1 ?  "deleteMqConfig success" : "deleteMqConfig fail";
     }
 

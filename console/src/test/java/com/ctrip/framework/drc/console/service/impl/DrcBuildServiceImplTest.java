@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -50,6 +51,8 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     
     @Mock private MessengerService messengerService;
     @Mock private DbClusterSourceProvider dbClusterSourceProvider;
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
 
     @InjectMocks private MetaGenerator metaService = new MetaGenerator();
 
@@ -82,6 +85,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     @Test
     public void testSubmitConfig() throws Exception {
 
+        Mockito.doNothing().when(drcDoubleWriteService).configureMhaReplication(Mockito.anyLong());
         MetaProposalDto metaProposalDto = new MetaProposalDto();
         metaProposalDto.setSrcApplierIncludedDbs("drcmonitordb");
         metaProposalDto.setSrcMha(MHA1OY);
