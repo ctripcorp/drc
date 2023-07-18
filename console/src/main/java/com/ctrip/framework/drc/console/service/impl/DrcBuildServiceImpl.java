@@ -310,12 +310,16 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     public ApiResult getOrBuildSimplexDrc(String srcMha, String destMha) throws SQLException {
         if (StringUtils.isNotBlank(destMha)) {
             // if not exist add replicatorGroup[srcMha] and applierGroup[srcMha->destMha]
-            Long srcMhaId = dalUtils.getId(TableEnum.MHA_TABLE, srcMha);
-            Long destMhaId = dalUtils.getId(TableEnum.MHA_TABLE, destMha);
+            Long mhaGroupId = metaInfoService.getMhaGroupId(srcMha, destMha);
+            if (null == mhaGroupId) {
+                return ApiResult.getFailInstance(null,"not replication between" + srcMha + "-" + destMha);
+            }
+            MhaTbl srcMhaTbl = mhaTblDao.queryByMhaName(srcMha, BooleanEnum.FALSE.getCode());
+            MhaTbl destMhaTb = mhaTblDao.queryByMhaName(destMha, BooleanEnum.FALSE.getCode());
             String srcDc = metaInfoService.getDc(srcMha);
             String destDc = metaInfoService.getDc(destMha);
-            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaId);
-            Long destApplierGroupId = applierGroupTblDao.upsertIfNotExist(srcReplicatorGroupId, destMhaId);
+            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
+            Long destApplierGroupId = applierGroupTblDao.upsertIfNotExist(srcReplicatorGroupId, destMhaTb.getId());
             SimplexDrcBuildVo simplexDrcBuildVo = new SimplexDrcBuildVo(
                     srcMha,
                     destMha,
@@ -323,13 +327,13 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     destDc,
                     destApplierGroupId,
                     srcReplicatorGroupId,
-                    srcMhaId
+                    destMhaTb.getId()
             );
             return ApiResult.getSuccessInstance(simplexDrcBuildVo);
         } else {
-            Long srcMhaId = dalUtils.getId(TableEnum.MHA_TABLE, srcMha);
-            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaId);
-            Long messengerGroupId = messengerGroupTblDao.upsertIfNotExist(srcMhaId,srcReplicatorGroupId,"");
+            MhaTbl srcMhaTbl = mhaTblDao.queryByMhaName(srcMha, BooleanEnum.FALSE.getCode());
+            Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());
+            Long messengerGroupId = messengerGroupTblDao.upsertIfNotExist(srcMhaTbl.getId(),srcReplicatorGroupId,"");
             return ApiResult.getSuccessInstance(messengerGroupId);
         }
     }

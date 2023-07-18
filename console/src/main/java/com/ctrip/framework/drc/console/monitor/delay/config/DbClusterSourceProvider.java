@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.pojo.ReplicatorMonitorWrapper;
@@ -40,10 +39,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-
-    @Autowired
-    private MhaGrayConfig mhaGrayConfig;
-
+    
     private static final String DRC_DB_CLUSTER = "drc.dbclusters";
 
     protected volatile String drcString;
@@ -79,6 +75,19 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                 logger.error("[Parser] config {} error", drcString);
             }
         }
+    }
+
+    public Dc getDcBy(String dbClusterId) {
+        Drc drc = getDrc();
+        Map<String, Dc> dcs = drc.getDcs();
+        for (Entry<String, Dc> dcEntry : dcs.entrySet()) {
+            Dc dc = dcEntry.getValue();
+            DbCluster dbCluster = dc.findDbCluster(dbClusterId);
+            if (dbCluster != null) {
+                return dc;
+            }
+        }
+        throw new IllegalArgumentException("dbCluster not find!");
     }
 
     public String getLocalDcName() {
@@ -275,8 +284,6 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         String dcName = dc.getId();
         for (DbCluster dbCluster : dc.getDbClusters().values()) {
             String mhaName = dbCluster.getMhaName();
-            if (mhaGrayConfig.gray(mhaName)) {
-                logger.info("[[monitor=ReplicatorSlave]] mha:{} , gray open",mhaName);
                 List<ReplicatorWrapper> rWrappers = Lists.newArrayList();
                 for (Replicator replicator: dbCluster.getReplicators()) {
                     ReplicatorWrapper rWrapper = new ReplicatorWrapper(
@@ -292,7 +299,6 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
                 if (!CollectionUtils.isEmpty(rWrappers)) {
                     replicators.put(dbCluster.getId(), rWrappers);
                 }
-            }
         }
         return replicators;
     }
@@ -525,6 +531,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     public int getOrder() {
         return HIGHEST_PRECEDENCE;
     }
+    
 
     public static final class Mha {
 
