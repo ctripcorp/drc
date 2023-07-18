@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.impl.migrate;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.MhaGrayConfig;
+import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
@@ -20,6 +21,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +36,10 @@ import org.springframework.util.CollectionUtils;
  * @Version: $
  */
 @Service
-public class MetaGrayServiceImpl implements MetaGrayService {
-    
+public class MetaGrayServiceImpl extends AbstractMonitor implements MetaGrayService {
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     @Autowired private MetaProviderV2 metaProviderV2;
 
     @Autowired private DbClusterSourceProvider metaProviderV1;
@@ -44,30 +47,51 @@ public class MetaGrayServiceImpl implements MetaGrayService {
     @Autowired private DrcBuildService drcBuildService;
 
     @Autowired private DefaultConsoleConfig consoleConfig;
-    
+
     @Autowired private MhaGrayConfig mhaGrayConfig;
-    
+
     private StringBuilder recorder;
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
-    
+    private final ReentrantLock lock = new ReentrantLock();
+
+    private volatile Drc grayDrc;
+
 
     @Override
-    public synchronized Drc getDrc(String dcId)  {
+    public Drc getDrc(String dcId)  {
         Dc dc = getDrc().findDc(dcId);
         Drc drcWithOneDc = new Drc();
         drcWithOneDc.addDc(dc);
         return drcWithOneDc;
     }
-    
+
     @Override
-    public synchronized Drc getDrc()  {
+    public void initialize() {
+        setInitialDelay(30);
+        setPeriod(30);
+        setTimeUnit(TimeUnit.SECONDS);
+        super.initialize();
+    }
+
+    @Override
+    public synchronized void scheduledTask() {
+        try {
+            long start = System.currentTimeMillis();
+            logger.info("[[tag=metaGray]] refreshDrc start");
+            grayDrc = refreshDrc();
+            logger.info("[[tag=metaGray]] refreshDrc end,cost:{}",System.currentTimeMillis() - start);
+        } catch (Throwable t) {
+            logger.error("[[tag=metaGray]] refresh gray drc fail", t);
+        }
+    }
+
+    public synchronized Drc refreshDrc()  {
         Drc oldDrc = metaProviderV1.getDrc();
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         String localRegion = consoleConfig.getRegion();
         if (publicCloudRegion.contains(localRegion)) { //cloud region use remoteConfig,which already recombination
             return oldDrc;
         }
-        
         try {
             if (mhaGrayConfig.getDbClusterGraySwitch()) {
                 Drc drcCopy = DefaultSaxParser.parse(oldDrc.toString());
@@ -78,7 +102,7 @@ public class MetaGrayServiceImpl implements MetaGrayService {
                 for (String dbClusterId : mhaGrayConfig.getGrayDbClusterSet()) {
                     Dc newDc = metaProviderV2.getDcBy(dbClusterId);
                     DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
-                    
+
                     if(!mhaGrayConfig.getDbClusterGrayCompareSwitch()  || metaConsistent(dbClusterId)) {
                         Dc dcCopy = drcCopy.findDc(newDc.getId());
                         logger.info("[[tag=metaGray]] gray dbClusterId:{},oldDbCluster:{},newDbCluster:{}",dbClusterId,
@@ -96,7 +120,15 @@ public class MetaGrayServiceImpl implements MetaGrayService {
         }
         return oldDrc;
     }
-    
+
+    @Override
+    public Drc getDrc()  {
+        if (null == grayDrc) {
+            grayDrc = refreshDrc();
+        }
+        return grayDrc;
+    }
+
 
     @Override
     public DbClusterCompareRes compareDbCluster(String dbClusterId) {
@@ -117,7 +149,7 @@ public class MetaGrayServiceImpl implements MetaGrayService {
         }
         return res;
     }
-    
+
     private boolean metaConsistent(String dbClusterId) {
         DbClusterCompareRes res = compareDbCluster(dbClusterId);
         String compareRes = res.getCompareRes();
@@ -125,18 +157,20 @@ public class MetaGrayServiceImpl implements MetaGrayService {
     }
 
     @Override
-    public synchronized String compareDrcMeta()  {
+    public String compareDrcMeta()  {
         try {
+            lock.lock();
             Drc newDrc = metaProviderV2.getDrc();
             Drc oldDrc = metaProviderV1.getDrc();
             recorder = new StringBuilder();
             compareLogically(oldDrc, newDrc);
         } finally {
+            lock.unlock();
             logger.warn("[[tag=metaCompare]] res:{}",recorder.toString());
         }
         return recorder.toString();
     }
-    
+
 
     protected void compareLogically(Drc oldDrc,Drc newDrc) {
         Map<String, Dc> oldDcs = oldDrc.getDcs();
@@ -147,14 +181,14 @@ public class MetaGrayServiceImpl implements MetaGrayService {
         for (Entry<String, Dc> dcEntry : oldDcs.entrySet()) {
             String dcId = dcEntry.getKey();
             recorder.append("\n[CompareDc]:").append(dcId);
-            
+
             Dc oldDc = dcEntry.getValue();
             Dc newDc = newDcs.getOrDefault(dcId, null);
             if (null == newDc) {
                 recorder.append("\nnewMetaDc is empty!");
-                continue; 
+                continue;
             }
-            
+
             if (!oldDc.getRoutes().equals(newDc.getRoutes())) {
                 recorder.append("\nRoute is not equal!");
             }
@@ -164,18 +198,18 @@ public class MetaGrayServiceImpl implements MetaGrayService {
             if (!oldDc.getZkServer().equals(newDc.getZkServer())) {
                 recorder.append("\nZkServer is not equal!");
             }
-            
+
             Map<String, DbCluster> oldDbClusters = oldDc.getDbClusters();
             Map<String, DbCluster> newDbClusters = newDc.getDbClusters();
             if (oldDbClusters.size() != newDbClusters.size()) {
                 recorder.append("\nDbCluster size is not equal!");
             }
-            
+
             List<Future<String>> recorderFutures = Lists.newArrayList();
-            
+
             for (Entry<String, DbCluster> dbClusterEntry : oldDbClusters.entrySet()) {
                 String dbClusterId = dbClusterEntry.getKey();
-                
+
                 DbCluster oldDbCluster = dbClusterEntry.getValue();
                 DbCluster newDbCluster = newDbClusters.getOrDefault(dbClusterId, null);
 
@@ -184,7 +218,7 @@ public class MetaGrayServiceImpl implements MetaGrayService {
                                 oldDbCluster, newDbCluster, drcBuildService, consoleConfig.getCostTimeTraceSwitch(),
                                 consoleConfig.getLocalConfigCloudDc()
                         )));
-                
+
                 if (recorderFutures.size() >= consoleConfig.getMetaCompareParallel()) {
                     Iterator<Future<String>> iterator = recorderFutures.iterator();
                     while (iterator.hasNext()) {
@@ -195,13 +229,13 @@ public class MetaGrayServiceImpl implements MetaGrayService {
                         } catch (InterruptedException | ExecutionException e) {
                             logger.error("[[tag=xmlCompare]] compare DbCluster fail in parallel", e);
                             recorder.append("compare DbCluster fail in parallel before:").append(oldDbCluster.getId());
-                        } 
-                        
+                        }
+
                     }
                 }
-                
+
             }
-            
+
             // rest
             if (!CollectionUtils.isEmpty(recorderFutures)) {
                 for (Future<String> recorderFuture : recorderFutures) {
@@ -215,6 +249,6 @@ public class MetaGrayServiceImpl implements MetaGrayService {
             }
         }
     }
-    
-    
+
+
 }

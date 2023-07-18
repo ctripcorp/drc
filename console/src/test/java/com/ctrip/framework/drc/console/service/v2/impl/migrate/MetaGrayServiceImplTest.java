@@ -123,6 +123,7 @@ public class MetaGrayServiceImplTest {
 
         Mockito.when(consoleConfig.getRegion()).thenReturn("sin");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
+        metaGrayService.scheduledTask();
         drcGray = metaGrayService.getDrc();
         Assert.assertEquals(oldDrc.toString(),drcGray.toString());
         
