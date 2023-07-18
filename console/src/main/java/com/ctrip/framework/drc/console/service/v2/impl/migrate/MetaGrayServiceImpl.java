@@ -76,9 +76,10 @@ public class MetaGrayServiceImpl extends AbstractMonitor implements MetaGrayServ
     @Override
     public synchronized void scheduledTask() {
         try {
+            long start = System.currentTimeMillis();
             logger.info("[[tag=metaGray]] refreshDrc start");
             grayDrc = refreshDrc();
-            logger.info("[[tag=metaGray]] refreshDrc end");
+            logger.info("[[tag=metaGray]] refreshDrc end,cost:{}",System.currentTimeMillis() - start);
         } catch (Throwable t) {
             logger.error("[[tag=metaGray]] refresh gray drc fail", t);
         }
