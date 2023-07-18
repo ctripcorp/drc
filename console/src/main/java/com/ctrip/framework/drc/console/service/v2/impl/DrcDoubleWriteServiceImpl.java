@@ -388,8 +388,17 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     private void deleteMhaReplication(Long srcMhaId, Long dstMhaId) throws Exception {
         logger.info("deleteMhaReplication srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(srcMhaId);
+        if (replicatorGroupTbl == null) {
+            logger.info("replicatorGroupTbl is null, srcMhaId: {}", srcMhaId);
+            return;
+        }
         ApplierGroupTbl applierGroupTbl = applierGroupTblDao.queryByMhaIdAndReplicatorGroupId(dstMhaId, replicatorGroupTbl.getId());
-        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryById(applierGroupTbl.getId());
+        if (applierGroupTbl == null) {
+            logger.info("applierGroupTbl is null, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+            return;
+        }
+
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByPk(applierGroupTbl.getId());
         applierGroupTblV2.setDeleted(BooleanEnum.TRUE.getCode());
         applierGroupTblV2Dao.update(applierGroupTblV2);
 
