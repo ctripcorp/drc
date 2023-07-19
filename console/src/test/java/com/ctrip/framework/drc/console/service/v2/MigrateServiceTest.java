@@ -3,17 +3,14 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
-import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaMigrateServiceImpl;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MhaDbMappingResult;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;
-import com.ctrip.framework.foundation.Env;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
@@ -26,9 +23,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;

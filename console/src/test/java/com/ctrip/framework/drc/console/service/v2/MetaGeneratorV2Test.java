@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
+import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.entity.Messenger;

@@ -320,7 +320,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void buildDbReplicationForMq(Long mhaId) throws Exception {
+    public void configureDbReplicationForMq(Long mhaId) throws Exception {
         logger.info("drc double write buildDbReplicationForMq, mhaId: {}", mhaId);
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
         if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
@@ -341,12 +341,6 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             return;
         }
 
-        List<Long> srcMhaDbMappingIds = mhaDbMappingTblDao.queryByMhaId(mhaId).stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryBySrcMappingIds(srcMhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());
-        if (!CollectionUtils.isEmpty(dbReplicationTbls)) {
-            logger.info("dbReplicationTbls has already configured, mhaId: {}", mhaId);
-            return;
-        }
         List<String> dbNameFilters = dataMediaPairTbls.stream().map(DataMediaPairTbl::getSrcDataMediaName).collect(Collectors.toList());
         String dbNameFilter = Joiner.on(",").join(dbNameFilters);
         insertMhaDbMappings(mhaTblV2, dbNameFilter);
@@ -453,8 +447,6 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         List<String> dbList = insertMhaDbMappings(applierGroupTbl, srcMha, dstMha);
         List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
         List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
-
-        deleteMhaReplication(srcMha.getId(), dstMha.getId(), srcMhaDbMappings, dstMhaDbMappings);
 
         if (CollectionUtils.isEmpty(applierTbls)) {
             logger.info("applierTbls is empty, applierGroupId: {}", applierGroupId);
@@ -877,6 +869,10 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     }
 
     private void insertDbs(List<String> dbList) throws Exception {
+        if (CollectionUtils.isEmpty(dbList)) {
+            logger.warn("dbList is empty");
+            return;
+        }
         List<String> existDbList = dbTblDao.queryByDbNames(dbList).stream().map(DbTbl::getDbName).collect(Collectors.toList());
         List<String> insertDbList = dbList.stream().filter(e -> !existDbList.contains(e)).collect(Collectors.toList());
         if (CollectionUtils.isEmpty(insertDbList)) {
@@ -899,6 +895,10 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     }
 
     private void insertMhaDbMappings(long mhaId, List<String> dbList) throws Exception {
+        if (CollectionUtils.isEmpty(dbList)) {
+            logger.warn("dbList is empty, mhaId: {}", mhaId);
+            return;
+        }
         List<DbTbl> dbTblList = dbTblDao.queryByDbNames(dbList).stream().collect(Collectors.toList());
         Map<String, Long> dbMap = dbTblList.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
         List<Long> existDbIds = mhaDbMappingTblDao.queryByMhaId(mhaId).stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());

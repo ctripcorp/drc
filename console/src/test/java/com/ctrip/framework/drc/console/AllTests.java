@@ -48,6 +48,8 @@ import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTe
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MigrateServiceIntegrationTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
