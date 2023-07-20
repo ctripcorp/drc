@@ -95,6 +95,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
 
+    private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
+    private static int DEFAULT_META_COMPARE_PARALLEL = 10;
+    private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
+
     // only for test
     protected DefaultConsoleConfig(Config config) {
         super(config);
@@ -422,4 +426,13 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public int getAvailablePortSize() {
         return getIntProperty(AVAILABLE_PORT_SIZE,DEFAULT_AVAILABLE_PORT_SIZE);
     }
+
+    public int getMetaCompareParallel() {
+        return getIntProperty(META_COMPARE_PARALLEL,DEFAULT_META_COMPARE_PARALLEL);
+    }
+
+    public boolean getCostTimeTraceSwitch() {
+        return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
+    }
+
 }
