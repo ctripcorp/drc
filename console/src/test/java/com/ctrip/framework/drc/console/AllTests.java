@@ -47,7 +47,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
-import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaServiceV2ImplTest;
+import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
@@ -143,7 +143,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterServiceV2Test.class,
         MetaGeneratorV2IntegrationTest.class,
         MigrateServiceTest.class,
-        MetaServiceV2ImplTest.class,
+        MetaGrayServiceImplTest.class,
         
         // controller
         AccessControllerTest.class,
