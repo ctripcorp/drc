@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
@@ -46,6 +47,9 @@ public class DataMediaServiceImplTest {
     @Mock
     private DrcDoubleWriteService drcDoubleWriteService;
 
+    @Mock
+    private DefaultConsoleConfig defaultConsoleConfig;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -70,6 +74,8 @@ public class DataMediaServiceImplTest {
         rowsFilterConfig.setTables("db1.table1");
         Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(), Mockito.anyInt())).
                 thenReturn(Lists.newArrayList(rowsFilterConfig));
+
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
 
     }
 

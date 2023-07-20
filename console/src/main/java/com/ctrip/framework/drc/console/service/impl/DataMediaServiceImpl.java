@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
@@ -23,6 +24,8 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -39,6 +42,8 @@ import java.util.List;
 @Service
 public class DataMediaServiceImpl implements DataMediaService {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     @Autowired
     private DataMediaTblDao dataMediaTblDao;
 
@@ -53,6 +58,9 @@ public class DataMediaServiceImpl implements DataMediaService {
 
     @Autowired
     private DrcDoubleWriteService drcDoubleWriteService;
+
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
 
     @Override
@@ -122,7 +130,11 @@ public class DataMediaServiceImpl implements DataMediaService {
         columnsFilterService.deleteColumnsFilter(dataMediaId);
         // todo migrate other config , eg: rowsFilter
 
-        drcDoubleWriteService.deleteColumnsFilter(dataMediaId);
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteColumnsFilter");
+            drcDoubleWriteService.deleteColumnsFilter(dataMediaId);
+        }
+
         return update == 1 ? dataMediaTbl.getId() : 0L;
     }
 
@@ -142,16 +154,29 @@ public class DataMediaServiceImpl implements DataMediaService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String processAddColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception {
         String result = columnsFilterService.addColumnsFilterConfig(columnsFilterConfigDto);
-        drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertColumnsFilter");
+            drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        }
+
         return result;
     }
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String processUpdateColumnsFilterConfig(ColumnsFilterConfigDto columnsFilterConfigDto) throws Exception {
-        drcDoubleWriteService.deleteColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteColumnsFilter");
+            drcDoubleWriteService.deleteColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        }
+
         String result =  columnsFilterService.updateColumnsFilterConfig(columnsFilterConfigDto);
-        drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertColumnsFilter");
+            drcDoubleWriteService.insertColumnsFilter(columnsFilterConfigDto.getDataMediaId());
+        }
+
         return result;
     }
 

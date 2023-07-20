@@ -94,6 +94,7 @@ public class MonitorServiceImplTest extends AbstractTest {
         MhaTbl mhaTbl = new MhaTbl();
         mhaTbl.setMhaName("mha1");
         Mockito.when(mhaTblDao.queryBy(Mockito.any(MhaTbl.class))).thenReturn(Lists.newArrayList(mhaTbl));
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
 
         List<String> names = monitorService.queryMhaNamesToBeMonitored();
         Assert.assertEquals(1, names.size());

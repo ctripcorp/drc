@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 
 import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.ApplierGroupTblDao;
 import com.ctrip.framework.drc.console.dao.DataMediaTblDao;
 import com.ctrip.framework.drc.console.dao.RowsFilterMappingTblDao;
@@ -72,6 +73,8 @@ public class RowsFilterServiceImpl implements RowsFilterService {
     @Autowired
     private DrcDoubleWriteService drcDoubleWriteService;
 
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     private final String TRIP_UID = RowsFilterType.TripUid.getName();
     private final String TRIP_UDL = RowsFilterType.TripUdl.getName();
@@ -156,7 +159,11 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         mappingTbl.setRowsFilterId(rowsFilterId);
         int insert = rowsFilterMappingTblDao.insert(mappingTbl);
 
-        drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaId, rowsFilterId);
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertRowsFilter");
+            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), dataMediaId, rowsFilterId);
+        }
+
         return insert == 1 ? "insert rowsFilterConfig success" : "insert rowsFilterConfig fail";
     }
 
@@ -168,13 +175,19 @@ public class RowsFilterServiceImpl implements RowsFilterService {
             throw ConsoleExceptionUtils.message("nameFilter and rowsFilter not match!");
         }
 
-        drcDoubleWriteService.deleteRowsFilter(rowsFilterConfigDto.getId());
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteRowsFilter");
+            drcDoubleWriteService.deleteRowsFilter(rowsFilterConfigDto.getId());
+        }
 
         RowsFilterTbl rowsFilterTbl = rowsFilterConfigDto.extractRowsFilterTbl();
         int update0 = dataMediaTblDao.update(dataMediaTbl);
         int update1 = rowsFilterTblDao.update(rowsFilterTbl);
 
-        drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), rowsFilterConfigDto.getDataMediaId(), rowsFilterConfigDto.getRowsFilterId());
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertRowsFilter");
+            drcDoubleWriteService.insertRowsFilter(rowsFilterConfigDto.getApplierGroupId(), rowsFilterConfigDto.getDataMediaId(), rowsFilterConfigDto.getRowsFilterId());
+        }
 
         if (update0 + update1 == 2) {
             return "update rowsFilterConfig success";
@@ -202,7 +215,10 @@ public class RowsFilterServiceImpl implements RowsFilterService {
         int update1 = dataMediaTblDao.update(dataMediaTbl);
         int update2 = rowsFilterTblDao.update(rowsFilterTbl);
 
-        drcDoubleWriteService.deleteRowsFilter(id);
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteRowsFilter");
+            drcDoubleWriteService.deleteRowsFilter(id);
+        }
 
         return update0 + update1 + update2 == 3 ? "delete rowsFilterConfig success" : "update rowsFilterConfig fail";
     }

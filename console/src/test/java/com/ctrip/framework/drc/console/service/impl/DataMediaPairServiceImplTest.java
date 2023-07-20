@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
@@ -34,9 +35,13 @@ public class DataMediaPairServiceImplTest {
     @Mock
     private DrcDoubleWriteService drcDoubleWriteService;
 
+    @Mock
+    private DefaultConsoleConfig defaultConsoleConfig;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
 
         List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
         Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(dataMediaPairTbls);

@@ -275,7 +275,12 @@ public class MessengerServiceImpl implements MessengerService {
         }
         messengerGroupTblDao.update(mGroup);
         messengerTblDao.batchUpdate(messengers);
-        drcDoubleWriteService.deleteMqConfig(mhaTbl.getId());
+
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteMqConfig");
+            drcDoubleWriteService.deleteMqConfig(mhaTbl.getId());
+        }
+
         return "remove success";
     }
 

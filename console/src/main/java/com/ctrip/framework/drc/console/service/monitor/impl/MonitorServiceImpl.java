@@ -77,7 +77,12 @@ public class MonitorServiceImpl implements MonitorService {
         int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
         mhaTbl.setMonitorSwitch(monitorSwitch);
         mhaTblDao.update(mhaTbl);
-        drcDoubleWriteService.switchMonitor(mhaTbl.getId());
+
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite switchMonitor");
+            drcDoubleWriteService.switchMonitor(mhaTbl.getId());
+        }
+
     }
 
     @Override

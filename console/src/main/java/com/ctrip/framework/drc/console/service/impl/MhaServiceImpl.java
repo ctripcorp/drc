@@ -272,7 +272,10 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
             Long mhaId = dalUtils.recoverOrCreateMha(mhaDto.getMhaName(), dcId);
             dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
 
-            drcDoubleWriteService.buildMhaForMq(mhaId);
+            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+                logger.info("drcDoubleWrite buildMhaForMq");
+                drcDoubleWriteService.buildMhaForMq(mhaId);
+            }
             return ApiResult.getSuccessInstance(null);
 
         } catch (Exception e) {

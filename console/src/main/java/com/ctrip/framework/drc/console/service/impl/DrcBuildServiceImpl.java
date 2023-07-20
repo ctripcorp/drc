@@ -154,7 +154,11 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
 
-        drcDoubleWriteService.configureDbReplicationForMq(mhaTbl.getId());
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite configureDbReplicationForMq");
+            drcDoubleWriteService.configureDbReplicationForMq(mhaTbl.getId());
+        }
+
         return metaInfoService.getXmlConfiguration(mhaTbl);
     }
 
@@ -464,7 +468,11 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                                   int applyMode, String gtidExecuted, String nameFilter, String nameMapping, String targetName) throws Exception {
         Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtidExecuted);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, gtidExecuted);
-        drcDoubleWriteService.configureMhaReplication(applierGroupId);
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite configureMhaReplication");
+            drcDoubleWriteService.configureMhaReplication(applierGroupId);
+        }
+
         return applierGroupId;
     }
 

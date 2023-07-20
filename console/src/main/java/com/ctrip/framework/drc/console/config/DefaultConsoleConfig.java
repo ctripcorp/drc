@@ -99,6 +99,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
     private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
+    private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -442,6 +443,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public boolean getCostTimeTraceSwitch() {
         return getBooleanProperty(COST_TIME_TRACE_SWITCH,false);
+    }
+
+    public String getDrcDoubleWriteSwitch() {
+        return getProperty(DRC_DOUBLE_WRITE_SWITCH, SWITCH_OFF);
     }
 
 }

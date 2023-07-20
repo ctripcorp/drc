@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dto.BuildMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
@@ -80,6 +81,9 @@ public class AccessServiceImpl implements AccessService {
 
     @Autowired
     private DrcDoubleWriteService drcDoubleWriteService;
+
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     private MySQLToolsApiService mySQLToolsApiServiceImpl = ApiContainer.getMySQLToolsApiServiceImpl();
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
@@ -397,7 +401,11 @@ public class AccessServiceImpl implements AccessService {
                         "already exist mhaGroup");
             }
             Long newMhaGroupId = initMhaGroup(dto.getBuName(), dto.getDalClusterName(), dto.getAppid(), dto.getOriginalMha(), dto.getOriginalMhaDc(), dto.getNewBuiltMha(), dto.getNewBuiltMhaDc(), getUsersAndPasswords(null));
-            drcDoubleWriteService.buildMha(newMhaGroupId);
+            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+                logger.info("drcDoubleWrite buildMha");
+                drcDoubleWriteService.buildMha(newMhaGroupId);
+            }
+
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             logger.error("Fail init mha group: {}, ", dto, e);

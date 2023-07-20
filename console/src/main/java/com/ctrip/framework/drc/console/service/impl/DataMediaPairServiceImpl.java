@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DataMediaPairTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dto.MqConfigDto;
@@ -17,6 +18,8 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +36,8 @@ import java.util.Set;
 @Service
 public class DataMediaPairServiceImpl implements DataMediaPairService {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     @Autowired
     private DataMediaPairTblDao dataMediaPairTblDao;
 
@@ -41,6 +46,9 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
 
     @Autowired
     private DrcDoubleWriteService drcDoubleWriteService;
+
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
     
     @Override
     public MessengerProperties generateMessengerProperties(Long messengerGroupId) throws SQLException {
@@ -78,7 +86,11 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     public String addMqConfig(MqConfigDto dto) throws Exception {
         DataMediaPairTbl dataMediaPairTbl = transfer(dto);
         Long dataMediaPairId = dataMediaPairTblDao.insertWithReturnId(dataMediaPairTbl);
-        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairId);
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertDbReplicationForMq");
+            drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairId);
+        }
+
         return dataMediaPairId != null && dataMediaPairId > 0L ?  "addMqConfig success" : "addMqConfig fail";
     }
 
@@ -86,9 +98,18 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String updateMqConfig(MqConfigDto dto) throws Exception {
         DataMediaPairTbl dataMediaPairTbl = transfer(dto);
-        drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairTbl.getId());
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteDbReplicationForMq");
+            drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairTbl.getId());
+        }
+
         int affectRows = dataMediaPairTblDao.update(dataMediaPairTbl);
-        drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairTbl.getId());
+
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite insertDbReplicationForMq");
+            drcDoubleWriteService.insertDbReplicationForMq(dataMediaPairTbl.getId());
+        }
+
         return affectRows == 1 ?  "updateMqConfig success" : "updateMqConfig fail";
     }
 
@@ -98,7 +119,12 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         sample.setId(dataMediaPairId);
         sample.setDeleted(BooleanEnum.TRUE.getCode());
         int affectRows = dataMediaPairTblDao.update(sample);
-        drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairId);
+
+        if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteDbReplicationForMq");
+            drcDoubleWriteService.deleteDbReplicationForMq(dataMediaPairId);
+        }
+
         return affectRows == 1 ?  "deleteMqConfig success" : "deleteMqConfig fail";
     }
 
