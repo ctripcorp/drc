@@ -52,12 +52,12 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
     @Override
     public void initialize() {
         setInitialDelay(300);
-        setPeriod(300);
+        setPeriod(600);
         setTimeUnit(TimeUnit.SECONDS);
         super.initialize();
     }
     
-    @Override
+    @Override // refresh when new config submit
     public synchronized void scheduledTask() {
         try {
             String region = consoleConfig.getRegion();

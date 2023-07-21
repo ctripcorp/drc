@@ -63,7 +63,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         setInitialDelay(0);
     }
 
-    @Override
+    @Override // refresh when new config submit
     public synchronized void scheduledTask() {
         compositeConfig.updateConfig();
         String newDrcString = compositeConfig.getConfig();
