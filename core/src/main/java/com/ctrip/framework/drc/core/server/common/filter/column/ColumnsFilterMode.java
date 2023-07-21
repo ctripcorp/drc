@@ -9,7 +9,10 @@ public enum ColumnsFilterMode {
 
     EXCLUDE("exclude"),
 
-    INCLUDE("include");
+    INCLUDE("include"),
+
+    REGEX("regex"),
+    ;
 
     private String name;
 

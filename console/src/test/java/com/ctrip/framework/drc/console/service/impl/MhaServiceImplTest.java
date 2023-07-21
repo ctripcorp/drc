@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dto.DalClusterShard;
 import com.ctrip.framework.drc.console.dto.DalMhaDto;
 import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
@@ -26,7 +27,10 @@ import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -70,6 +74,9 @@ public class MhaServiceImplTest {
 
     @Mock private DalUtils dalUtils;
 
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
+
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -91,6 +98,7 @@ public class MhaServiceImplTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
         doReturn("off").when(monitorTableSourceProvider).getCacheAllClusterNamesSwitch();
         doReturn(getDbaDcInfoMapping("{\"上海欧阳IDC(电信)\":\"shaoy\", \"上海日阪IDC(联通)\":\"sharb\", \"上海金钟路B栋\":\"shajz\", \"上海金桥IDC(联通)\":\"shajq\", \"上海福泉路\":\"shafq\", \"南通星湖大道\":\"ntgxh\", \"上海SOHO大楼\":\"shash\"}")).when(defaultConsoleConfig).getDbaDcInfos();
         try {
@@ -277,7 +285,8 @@ public class MhaServiceImplTest {
 
 
     @Test
-    public void testRecordMha() throws SQLException {
+    public void testRecordMha() throws Exception {
+        Mockito.doNothing().when(drcDoubleWriteService).buildMhaForMq(Mockito.anyLong());
         MhaDto mockDto = new MhaDto();
         mockDto.setMhaName("mha1");
         mockDto.setDc("dc1");

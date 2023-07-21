@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -50,5 +49,11 @@ public class MhaTblDao extends AbstractDao<MhaTbl>{
 			builder.equal("dc_id", dcId, Types.BIGINT, false);
 		}
 		return client.query(builder, new DalHints());
+	}
+
+	public MhaTbl queryById(Long id) throws SQLException {
+		SelectSqlBuilder sqlBuilder = initSqlBuilder();
+		sqlBuilder.and().equal("id", id, Types.BIGINT);
+		return client.queryFirst(sqlBuilder, new DalHints());
 	}
 }

@@ -11,14 +11,16 @@ import com.ctrip.framework.drc.console.dto.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.service.MhaService;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
+import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
-import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.core.service.ops.OPSApiService;
-import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,7 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,21 +53,24 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
     @Autowired private DefaultConsoleConfig defaultConsoleConfig;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
-    
+
     @Autowired private DomainConfig domainConfig;
-    
+
     @Autowired private MhaTblDao mhaTblDao;
-    
+
     @Autowired private ClusterMhaMapTblDao clusterMhaMapTblDao;
-    
+
     @Autowired private ClusterTblDao clusterTblDao;
-    
+
     @Autowired private BuTblDao buTblDao;
-    
+
     @Autowired private DcTblDao dcTblDao;
-    
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
+
     private DalUtils dalUtils = DalUtils.getInstance();
-    
+
     private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
     private DbClusterApiService dbClusterApiServiceImpl = ApiContainer.getDbClusterApiServiceImpl();
 
@@ -226,7 +234,7 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
         }
         return res;
     }
-    
+
 
     @Override
     public List<Map<String, Object>> getAllDbsAndDals(String clusterName, String env){
@@ -251,6 +259,7 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public ApiResult recordMha(MhaDto mhaDto) {
         try {
             MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaDto.getMhaName(), FALSE.getCode());
@@ -262,11 +271,16 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
             Long clusterId = dalUtils.updateOrCreateCluster(mhaDto.getDalClusterName(), mhaDto.getAppid(), buId);
             Long mhaId = dalUtils.recoverOrCreateMha(mhaDto.getMhaName(), dcId);
             dalUtils.updateOrCreateClusterMhaMap(clusterId, mhaId);
+
+            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+                logger.info("drcDoubleWrite buildMhaForMq");
+                drcDoubleWriteService.buildMhaForMq(mhaId);
+            }
             return ApiResult.getSuccessInstance(null);
-            
-        } catch (SQLException e) {
+
+        } catch (Exception e) {
             logger.error("recordMha error,mhaDto:{}",mhaDto,e);
-            return  ApiResult.getFailInstance(null,"sql exception");
+            return  ApiResult.getFailInstance(null,e.getMessage());
         }
     }
 
@@ -276,7 +290,7 @@ public class MhaServiceImpl extends AbstractMonitor implements MhaService {
         MhaTbl mhaTbl = mhaTblDao.queryByPk(mhaId);
         mhaDto.setMhaName(mhaTbl.getMhaName());
         mhaDto.setMonitorSwitch(mhaTbl.getMonitorSwitch());
-        
+
         List<ClusterMhaMapTbl> clusterMhaMapTbls = clusterMhaMapTblDao.queryByMhaIds(
                 Lists.newArrayList(mhaId), BooleanEnum.FALSE.getCode());
         ClusterTbl clusterTbl = clusterTblDao.queryByPk(clusterMhaMapTbls.get(0).getClusterId());

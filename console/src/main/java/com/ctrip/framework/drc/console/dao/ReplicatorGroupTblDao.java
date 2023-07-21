@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.dao;
 
-import com.ctrip.framework.drc.console.dao.entity.ApplierTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -35,6 +34,12 @@ public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 		builder.selectAll().equal("deleted", deleted, Types.TINYINT, false).
 				and().in("mha_id", mhaIds, Types.BIGINT, false);
 		return client.query(builder, new DalHints());
+	}
+
+	public ReplicatorGroupTbl queryByMhaId(Long mhaId) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT);
+		return queryOne(builder);
 	}
 
 	//mhaId which replicator fetch binlog

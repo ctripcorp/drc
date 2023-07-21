@@ -9,6 +9,7 @@ public enum RowsFilterModeEnum {
     TRIP_UDL(1, "trip_udl"),
     TRIP_UID(2, "trip_uid"),
     AVIATOR_REGEX(3, "aviator_regex"),
+    CUSTOM(4, "custom"),
     ;
 
     private Integer code;

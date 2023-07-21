@@ -1,10 +1,11 @@
-package com.ctrip.framework.drc.console.service.v2;
+package com.ctrip.framework.drc.console.service.v2.integration;
 
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.platform.dal.dao.DalHints;

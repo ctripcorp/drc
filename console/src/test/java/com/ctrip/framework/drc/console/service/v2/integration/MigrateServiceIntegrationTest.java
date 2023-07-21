@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.service.v2;
+package com.ctrip.framework.drc.console.service.v2.integration;
 
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.dao.*;
@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
+import com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaMigrateServiceImpl;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
 import com.ctrip.framework.drc.console.vo.response.migrate.MigrateResult;

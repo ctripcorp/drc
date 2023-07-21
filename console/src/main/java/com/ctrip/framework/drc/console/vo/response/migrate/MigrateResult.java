@@ -65,4 +65,15 @@ public class MigrateResult {
     public void setMsg(String msg) {
         this.msg = msg;
     }
+
+    @Override
+    public String toString() {
+        return "MigrateResult{" +
+                "insertSize=" + insertSize +
+                ", updateSize=" + updateSize +
+                ", deleteSize=" + deleteSize +
+                ", expectedSize=" + expectedSize +
+                ", msg='" + msg + '\'' +
+                '}';
+    }
 }

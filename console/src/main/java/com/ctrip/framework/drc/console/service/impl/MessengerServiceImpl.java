@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
-import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
-
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
@@ -18,12 +16,13 @@ import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.MhaService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
+import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.check.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.MqConfigVo;
-import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -34,10 +33,10 @@ import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,10 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
 
 /**
  * @ClassName MessengerServiceImpl
@@ -82,6 +84,9 @@ public class MessengerServiceImpl implements MessengerService {
     @Autowired private ResourceTblDao resourceTblDao;
     
     @Autowired private MhaTblDao mhaTblDao;
+
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
     
 
     
@@ -259,7 +264,8 @@ public class MessengerServiceImpl implements MessengerService {
     }
 
     @Override
-    public String removeMessengerGroup(String mhaName) throws SQLException {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public String removeMessengerGroup(String mhaName) throws Exception {
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
         mGroup.setDeleted(BooleanEnum.TRUE.getCode());
@@ -269,6 +275,12 @@ public class MessengerServiceImpl implements MessengerService {
         }
         messengerGroupTblDao.update(mGroup);
         messengerTblDao.batchUpdate(messengers);
+
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite deleteMqConfig");
+            drcDoubleWriteService.deleteMqConfig(mhaTbl.getId());
+        }
+
         return "remove success";
     }
 
