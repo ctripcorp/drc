@@ -216,6 +216,14 @@ public class DbClusterComparator implements Callable<String> {
             newTables = drcBuildService.queryTablesWithNameFilter(destMha, newNameFilter);
         }
         
+        if (CollectionUtils.isEmpty(oldTables) && CollectionUtils.isEmpty(newTables)) {
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{} no table match table",srcMha, oldNameFilter);
+            logger.warn("[[tag=xmlCompare]] queryMha:{}-{} no table match table",destMha, newNameFilter);
+            recorder.append("\nqueryMha no table match table: ").append(srcMha).append("-").append(oldNameFilter);
+            recorder.append("\nqueryMha no table match table: ").append(destMha).append("-").append(newNameFilter);
+            return true;
+        }
+        
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables) || oldTables.size() != newTables.size()) {
             logger.warn("[[tag=xmlCompare]] queryMha:{}-{}-{} match table size is {}",srcMha, destMha, oldNameFilter,
                     CollectionUtils.isEmpty(oldTables) ? 0 :oldTables.size());
