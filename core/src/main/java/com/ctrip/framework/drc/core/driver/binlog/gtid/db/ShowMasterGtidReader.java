@@ -23,7 +23,7 @@ public class ShowMasterGtidReader implements GtidReader {
     private static final int EXECUTED_GTID_INDEX = 2;
 
     @Override
-    public String getExecutedGtids(Connection connection) throws SQLException {
+    public String getExecutedGtids(Connection connection) throws Exception {
         return select(connection, EXECUTED_GTID, EXECUTED_GTID_INDEX);
     }
 

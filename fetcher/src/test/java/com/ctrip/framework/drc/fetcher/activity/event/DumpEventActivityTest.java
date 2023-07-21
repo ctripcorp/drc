@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.fetcher.resource.condition.Capacity;
 import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemory;
 import com.ctrip.framework.drc.fetcher.resource.context.NetworkContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractSystem;
+import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 import com.ctrip.framework.drc.fetcher.system.TaskActivity;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.LifecycleState;
@@ -107,7 +108,7 @@ public class DumpEventActivityTest extends MockTest {
         dumpEventActivity.getLogEventHandler().onLogEvent(null, null, dumpGtidException);
         verify(abstractSystem, times(0)).stop();
         dumpEventActivity.getLogEventHandler().onLogEvent(null, null, eventConvertException);
-        verify(abstractSystem, times(1)).stop();
+        verify(abstractSystem, times(1)).setStatus(SystemStatus.STOPPED);
 
         //test capacity return false
         when(gtidLogEvent.getLogEventHeader()).thenReturn(logEventHeader);

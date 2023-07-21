@@ -33,14 +33,14 @@ public class TransactionTableGtidReader implements GtidReader {
     }
 
     @Override
-    public String getExecutedGtids(Connection connection) throws SQLException{
+    public String getExecutedGtids(Connection connection) throws Exception{
         GtidSet mergedGtidSet = selectMergedGtidSet(connection);
         return mergedGtidSet.toString();
     }
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private GtidSet selectMergedGtidSet(Connection connection) throws SQLException {
-        return DefaultTransactionMonitorHolder.getInstance().logTransactionSwallowException("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
+    private GtidSet selectMergedGtidSet(Connection connection) throws Exception {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.transaction.table.gtidset.reader.merged", endpoint.getHost() + ":" + endpoint.getPort(), () ->
         {
             GtidSet executedGtidSet = new GtidSet("");
             try (Statement statement = connection.createStatement()) {
