@@ -64,17 +64,19 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
             if (!isRegionLeader) {
                 logger.info("[[task=MetaCompare]]not a leader start compare");
                 if (consoleConfig.getPublicCloudRegion().contains(consoleConfig.getRegion())) {
+                    consistent = true;
                     logger.info("[[task=MetaCompare]]public cloud console, do nothing");
                 } else {
                     String res = compareDrcMeta();
                     consistent = !(res.contains("not equal") || res.contains("empty") || res.contains("fail"));
                 }
             } else {
+                consistent = true;
                 logger.info("[[task=MetaCompare]]is leader do nothing");
             }
         } catch (Throwable t) {
             consistent = false;
-            logger.error("[[task=MetaCompare]] error,set consistent to false", t);
+            logger.error("[[task=MetaCompare]] scheduledTask error,set consistent to false", t);
         }
     }
     

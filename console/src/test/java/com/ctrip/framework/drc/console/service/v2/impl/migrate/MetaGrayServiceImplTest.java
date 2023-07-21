@@ -59,6 +59,7 @@ public class MetaGrayServiceImplTest {
     public void testGetDrcInGrayMode() throws IOException, SAXException {
         Mockito.when(mhaGrayConfig.getDbClusterGraySwitch()).thenReturn(true);
         Mockito.when(mhaGrayConfig.getDbClusterGrayCompareSwitch()).thenReturn(true);
+        Mockito.when(mhaGrayConfig.grayAllDbCluster()).thenReturn(false);
         Mockito.when(mhaGrayConfig.getGrayDbClusterSet()).thenReturn(Sets.newHashSet("mha3_dalcluster.mha3"));
         Mockito.when(metaProviderV2.getDcBy(Mockito.eq("mha3_dalcluster.mha3"))).thenReturn(newDrc.findDc("ntgxy"));
         Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
@@ -75,13 +76,22 @@ public class MetaGrayServiceImplTest {
         Drc ntgxh = metaGrayService.getDrc("ntgxh");
         Assert.assertEquals(drcGray.findDc("ntgxh").toString(),ntgxh.findDc("ntgxh").toString());
 
+        
+        Mockito.when(mhaGrayConfig.grayAllDbCluster()).thenReturn(true);
+        metaGrayService.scheduledTask();
+        drcGray = metaGrayService.getDrc();
+        Assert.assertEquals(newDrc.toString(),drcGray.toString());
+        
         Mockito.when(consoleConfig.getRegion()).thenReturn("sin");
         Mockito.when(consoleConfig.getPublicCloudRegion()).thenReturn(Sets.newHashSet("sin"));
         metaGrayService.scheduledTask();
         drcGray = metaGrayService.getDrc();
         Assert.assertEquals(oldDrc.toString(),drcGray.toString());
-        
-        
+
+
+       
+
+
     }
     
 }

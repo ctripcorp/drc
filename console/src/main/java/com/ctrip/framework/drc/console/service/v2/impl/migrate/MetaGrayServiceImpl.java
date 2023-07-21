@@ -97,22 +97,27 @@ public class MetaGrayServiceImpl extends AbstractMonitor implements MetaGrayServ
         }
         try {
             if (mhaGrayConfig.getDbClusterGraySwitch()  && metaCompareService.isConsistent()) {
-                Drc drcCopy = DefaultSaxParser.parse(oldDrc.toString());
-                int memoryAddress1 = System.identityHashCode(oldDrc);
-                int memoryAddress2 = System.identityHashCode(drcCopy);
-                boolean anotherObject = !(drcCopy == oldDrc) && !(memoryAddress1 == memoryAddress2);
-                logger.info("[[tag=metaGray]] drc deep copy res:{}",anotherObject);
-                for (String dbClusterId : mhaGrayConfig.getGrayDbClusterSet()) {
-                    Dc newDc = metaProviderV2.getDcBy(dbClusterId);
-                    DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
-                    
-                    Dc dcCopy = drcCopy.findDc(newDc.getId());
-                    logger.info("[[tag=metaGray]] gray dbClusterId:{},oldDbCluster:{},newDbCluster:{}",dbClusterId,
-                            dcCopy.findDbCluster(dbClusterId),newDcDbCluster);
-                    dcCopy.removeDbCluster(dbClusterId);
-                    dcCopy.addDbCluster(newDcDbCluster);
+                if (mhaGrayConfig.grayAllDbCluster()) {
+                    logger.info("[[tag=metaGray]] gray All dbcluster");
+                    return metaProviderV2.getDrc();
+                } else {
+                    Drc drcCopy = DefaultSaxParser.parse(oldDrc.toString());
+                    int memoryAddress1 = System.identityHashCode(oldDrc);
+                    int memoryAddress2 = System.identityHashCode(drcCopy);
+                    boolean anotherObject = !(drcCopy == oldDrc) && !(memoryAddress1 == memoryAddress2);
+                    logger.info("[[tag=metaGray]] drc deep copy res:{}",anotherObject);
+                    for (String dbClusterId : mhaGrayConfig.getGrayDbClusterSet()) {
+                        Dc newDc = metaProviderV2.getDcBy(dbClusterId);
+                        DbCluster newDcDbCluster = newDc.findDbCluster(dbClusterId);
+
+                        Dc dcCopy = drcCopy.findDc(newDc.getId());
+                        logger.info("[[tag=metaGray]] gray dbClusterId:{},oldDbCluster:{},newDbCluster:{}",dbClusterId,
+                                dcCopy.findDbCluster(dbClusterId),newDcDbCluster);
+                        dcCopy.removeDbCluster(dbClusterId);
+                        dcCopy.addDbCluster(newDcDbCluster);
+                    }
+                    return drcCopy;
                 }
-                return drcCopy;
             } else {
                 logger.info("[[tag=metaGray]] use old meta");
             }
