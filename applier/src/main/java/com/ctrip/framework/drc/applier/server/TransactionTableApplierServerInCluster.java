@@ -15,7 +15,6 @@ import com.ctrip.framework.drc.fetcher.resource.condition.ListenableDirectMemory
 import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
-import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 
 /**
  * Created by jixinwang on 2021/9/14
@@ -47,9 +46,5 @@ public class TransactionTableApplierServerInCluster extends ApplierServerInClust
                 .link(TransactionTableApplyActivity.class, 100)
                 .link(CommitActivity.class);
         check();
-    }
-
-    public SystemStatus getTransactionTableStatus() {
-        return ((TransactionTableResource) resources.get("TransactionTable")).getStatus();
     }
 }

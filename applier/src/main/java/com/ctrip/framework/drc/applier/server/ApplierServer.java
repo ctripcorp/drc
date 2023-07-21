@@ -67,20 +67,4 @@ public class ApplierServer extends AbstractLink {
     public MqPositionResource getMqPositionResource() {
         return ((MqPositionResource) resources.get("MqPosition"));
     }
-
-    public SystemStatus getTransactionTableStatus() {
-        return SystemStatus.RUNNABLE;
-    }
-
-    public SystemStatus getApplyActivityStatus() {
-        for (Map.Entry<String, Activity> activity : activities.entrySet()) {
-            if (activity.getKey().contains("ApplyActivity")) {
-                ApplyActivity applyActivity = (ApplyActivity) activity.getValue();
-                if (SystemStatus.STOPPED == applyActivity.getStatus()) {
-                    return SystemStatus.STOPPED;
-                }
-            }
-        }
-        return SystemStatus.RUNNABLE;
-    }
 }

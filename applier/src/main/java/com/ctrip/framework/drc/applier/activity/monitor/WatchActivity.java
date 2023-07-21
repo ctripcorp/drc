@@ -81,15 +81,12 @@ public class WatchActivity extends AbstractLoopActivity implements TaskSource<Bo
                 lastLWMHashMap.put(key, new LastLWM(currentLWM, currentProgress, currentTimeMillis));
                 loggerP.info("go ahead ({}): lwm {} progress {}", key, currentLWM, currentProgress);
             }
-            if (server.getTransactionTableStatus() == SystemStatus.STOPPED) {
-                logger.info("transaction table status is stopped, going to remove server ({})", key);
-                removeServer(key);
-            }
-            if (server.getApplyActivityStatus() == SystemStatus.STOPPED) {
-                logger.info("apply activity status is stopped, going to remove server ({})", key);
+            if (server.getStatus() == SystemStatus.STOPPED) {
+                logger.info("server status is stopped, going to remove server ({})", key);
                 removeServer(key);
             }
         } catch (Throwable t) {
+            logger.error("patrol water mark error for: {}", key, t);
         }
     }
 

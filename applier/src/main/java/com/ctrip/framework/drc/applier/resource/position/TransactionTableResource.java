@@ -77,8 +77,6 @@ public class TransactionTableResource extends AbstractResource implements Transa
 
     private ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("Merge-GtidSet-Schedule");
 
-    private SystemStatus status = SystemStatus.RUNNABLE;
-
     private DataSource dataSource;
 
     private Endpoint endpoint;
@@ -120,7 +118,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
         GtidSet gtidSet = new RetryTask<>(new GtidQueryTask(uuid, dataSource, registryKey), RETRY_TIME).call();
         if (gtidSet == null) {
             loggerTT.error("[TT][{}] query gtid set error, shutdown server", registryKey);
-            setStatus(SystemStatus.STOPPED);
+            logger.info("transaction table status is stopped for {}", registryKey);
+            getSystem().setStatus(SystemStatus.STOPPED);
         } else {
             if (StringUtils.isNotBlank(gtidSet.toString())) {
                 doMergeGtid(gtidSet, needRetry);
@@ -171,7 +170,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
             Boolean res = new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), RETRY_TIME).call();
             if (res == null) {
                 loggerTT.error("[TT][{}] merge gtid set error, shutdown server", registryKey);
-                setStatus(SystemStatus.STOPPED);
+                logger.info("transaction table status is stopped for {}", registryKey);
+                getSystem().setStatus(SystemStatus.STOPPED);
             }
         } else {
             new RetryTask<>(new GtidMergeTask(gtidSet, dataSource, registryKey), 0).call();
@@ -236,7 +236,8 @@ public class TransactionTableResource extends AbstractResource implements Transa
                 throw e;
             } else {
                 loggerTT.error("[TT][{}] UNLIKELY exception when record transaction table, shutdown server", registryKey, e);
-                setStatus(SystemStatus.STOPPED);
+                logger.info("transaction table status is stopped for {}", registryKey);
+                getSystem().setStatus(SystemStatus.STOPPED);
             }
         }
     }
@@ -367,13 +368,5 @@ public class TransactionTableResource extends AbstractResource implements Transa
     @VisibleForTesting
     public DataSource getDataSource() {
         return dataSource;
-    }
-
-    public SystemStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(SystemStatus status) {
-        this.status = status;
     }
 }
