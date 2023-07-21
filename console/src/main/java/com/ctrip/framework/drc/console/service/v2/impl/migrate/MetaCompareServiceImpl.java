@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaCompareService;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.collect.Lists;
@@ -69,6 +70,8 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
                 } else {
                     String res = compareDrcMeta();
                     consistent = !(res.contains("not equal") || res.contains("empty") || res.contains("fail"));
+                    logger.info("[[task=MetaCompare]] compare consistent :{}",consistent);
+                    DefaultEventMonitorHolder.getInstance().logEvent("console.metaCompare",String.valueOf(consistent));
                 }
             } else {
                 consistent = true;

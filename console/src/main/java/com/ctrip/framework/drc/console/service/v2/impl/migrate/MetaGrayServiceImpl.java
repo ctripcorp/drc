@@ -96,7 +96,7 @@ public class MetaGrayServiceImpl extends AbstractMonitor implements MetaGrayServ
             return oldDrc;
         }
         try {
-            if (mhaGrayConfig.getDbClusterGraySwitch()  && metaCompareService.isConsistent()) {
+            if (mhaGrayConfig.getDbClusterGraySwitch()  && (mhaGrayConfig.getCompareResIgnoreSwitch() || metaCompareService.isConsistent())) {
                 if (mhaGrayConfig.grayAllDbCluster()) {
                     logger.info("[[tag=metaGray]] gray All dbcluster");
                     return metaProviderV2.getDrc();

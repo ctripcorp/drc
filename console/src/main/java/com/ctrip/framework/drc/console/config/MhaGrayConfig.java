@@ -20,7 +20,7 @@ public class MhaGrayConfig extends AbstractConfigBean{
 
     private static final String DBCLUSTER_GRAY_SWITCH = "dbCluster.gray.switch";
     private static final String DBCLUSTER_MIGRATE_GRAY = "dbCluster.migrate.gray";
-    private static final String DBCLUSTER_GRAY_COMPARE_SWITCH = "dbCluster.gray.compare.switch";
+    private static final String COMPARE_RES_IGNORE_SWITCH = "compare.res.ignore.switch";
     private static final String DBCLUSTER_MIGRATE_GRAY_ALL = "*";
 
     public Set<String> getGrayDbClusterSet() {
@@ -41,9 +41,10 @@ public class MhaGrayConfig extends AbstractConfigBean{
     public boolean getDbClusterGraySwitch() {
         return getBooleanProperty(DBCLUSTER_GRAY_SWITCH,false);
     }
-    public boolean getDbClusterGrayCompareSwitch() {
-        return getBooleanProperty(DBCLUSTER_GRAY_COMPARE_SWITCH,true);
+    public boolean getCompareResIgnoreSwitch() {
+        return getBooleanProperty(COMPARE_RES_IGNORE_SWITCH,false);
     }
+    
     
     
     public boolean gray(String mhaName) {
