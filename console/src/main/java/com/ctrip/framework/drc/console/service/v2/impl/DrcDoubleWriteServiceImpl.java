@@ -427,10 +427,15 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     private void buildAppliers(Long applierGroupId) throws Exception {
         logger.info("drc double write buildAppliers, applierGroupId: {}", applierGroupId);
         List<ApplierTbl> applierTbls = applierTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
+        List<Long> existApplierIds = applierTblV2Dao.queryByApplierGroupId(applierGroupId).stream().map(ApplierTblV2::getId).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(applierTbls)) {
             for (ApplierTbl applierTbl : applierTbls) {
                 ApplierTblV2 applierTblV2 = buildApplier(applierTbl);
-                applierTblV2Dao.insert(new DalHints().enableIdentityInsert(), applierTblV2);
+                if (existApplierIds.contains(applierTblV2.getId())) {
+                    applierTblV2Dao.update(applierTblV2);
+                } else {
+                    applierTblV2Dao.insert(new DalHints().enableIdentityInsert(), applierTblV2);
+                }
             }
         }
     }
