@@ -66,6 +66,7 @@ public class TransferServiceImplTest extends AbstractTest {
     public void setUp() throws Exception {
         super.setUp();
         MockitoAnnotations.openMocks(this);
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
         Mockito.doReturn(IDC).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
         Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0));

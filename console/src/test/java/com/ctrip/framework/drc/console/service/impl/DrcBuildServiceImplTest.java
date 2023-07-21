@@ -80,6 +80,7 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(messengerService.generateMessengers(Mockito.anyLong())).thenReturn(Lists.newArrayList());
         Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
         Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
     }
 
     @Test
