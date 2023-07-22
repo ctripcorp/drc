@@ -24,6 +24,7 @@ import com.ctrip.xpipe.tuple.Pair;
 import com.ctrip.xpipe.utils.MapUtils;
 import com.google.common.collect.Maps;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 
@@ -71,6 +72,7 @@ public class BinlogDumpGtidClientCommandHandler extends AbstractClientCommandHan
                 logEvents = converter.convert(byteBuf);
             } catch (Throwable t) {
                 setHalfEvent(observable, false);
+                logger.info("convert error, with hex buf: " + ByteBufUtil.hexDump(byteBuf));
                 handler.onLogEvent(null, null, new EventConvertException("converter.convert() - UNLIKELY", t));
             }
             if (null != logEvents && !logEvents.isEmpty()) {
