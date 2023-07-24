@@ -86,7 +86,6 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     @Test
     public void testSubmitConfig() throws Exception {
 
-        Mockito.doNothing().when(drcDoubleWriteService).configureMhaReplication(Mockito.anyLong());
         MetaProposalDto metaProposalDto = new MetaProposalDto();
         metaProposalDto.setSrcApplierIncludedDbs("drcmonitordb");
         metaProposalDto.setSrcMha(MHA1OY);
