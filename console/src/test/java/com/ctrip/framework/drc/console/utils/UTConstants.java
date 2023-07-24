@@ -15,7 +15,7 @@ public class UTConstants {
     public static final String XML_FILE_META1 = "meta1.xml";
     public static final String XML_FILE_META2 = "meta2.xml";
     public static final String XML_FILE_META2OLD = "meta2old.xml";
-    public static final String XML_FILE_META2_1 = "Mock";
+    public static final String XML_FILE_META2_1 = "meta2_1.xml";
     public static final String XML_FILE_META2_2 = "meta2_2.xml";
     public static final String XML_COMPLICATED = "meta_complicated.xml";
     public static final String XML_OLD_ROUTE_DRC = "old_route_drc.xml";
