@@ -260,10 +260,10 @@ public class TransferServiceImpl implements TransferService {
                     .collect(Collectors.toList());
             srcMha.addAll(destMha);
             doRemove(mhaGroupTbl, srcMha);
-            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
-                logger.info("drcDoubleWrite deleteMhaReplicationConfig");
-                drcDoubleWriteService.deleteMhaReplicationConfig(srcMha.get(0).getId(), srcMha.get(1).getId());
-            }
+//            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+//                logger.info("drcDoubleWrite deleteMhaReplicationConfig");
+//                drcDoubleWriteService.deleteMhaReplicationConfig(srcMha.get(0).getId(), srcMha.get(1).getId());
+//            }
 
 //            try {
 //                executorService.submit(() -> metaProviderV1.scheduledTask());
