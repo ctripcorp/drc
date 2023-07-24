@@ -58,9 +58,9 @@ public class DataMediaController {
             } else {
                 return ApiResult.getSuccessInstance(dataMediaService.processAddDataMedia(dataMediaDto));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=dataMediaConfig]] load dataMediaConfig fail with {} ", dataMediaDto, e);
-            return ApiResult.getFailInstance("sql error in add or update dataMediaConfig");
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
