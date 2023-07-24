@@ -148,12 +148,12 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
         mhaGroupTblDao.update(mhaGroupTbl);
 
-        try {
-            executorService.submit(() -> metaProviderV1.scheduledTask());
-            executorService.submit(() -> metaProviderV2.scheduledTask());
-        } catch (Exception e) {
-            logger.error("metaProvider scheduledTask error, {}", e);
-        }
+//        try {
+//            executorService.submit(() -> metaProviderV1.scheduledTask());
+//            executorService.submit(() -> metaProviderV2.scheduledTask());
+//        } catch (Exception e) {
+//            logger.error("metaProvider scheduledTask error, {}", e);
+//        }
 
         return metaInfoService.getXmlConfiguration(mhaGroupId);
     }
