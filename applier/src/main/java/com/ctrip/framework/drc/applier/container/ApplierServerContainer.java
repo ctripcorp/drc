@@ -94,7 +94,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
     }
 
     private void doRemoveServer(ApplierServer server) throws Exception {
-        if (server != null) {
+        if (server != null && !server.isDisposed()) {
             server.stop();
             server.dispose();
         }
@@ -102,7 +102,11 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
 
     public void removeServer(String registryKey, boolean deleted) throws Exception {
         ApplierServer server = servers.remove(registryKey);
-        doRemoveServer(server);
+        try {
+            doRemoveServer(server);
+        } catch (Exception e) {
+            logger.error("remove server:{} for registryKey:{} error", server, registryKey);
+        }
         if (deleted) {
             clearResource(registryKey);
         }

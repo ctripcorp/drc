@@ -4,9 +4,9 @@ import com.ctrip.framework.drc.applier.event.transaction.Transaction;
 import com.ctrip.framework.drc.applier.resource.context.AccurateTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.context.BatchTransactionContextResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
+import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.fetcher.system.InstanceResource;
-import com.ctrip.framework.drc.fetcher.activity.event.EventActivity;
 import com.ctrip.framework.drc.fetcher.system.SystemStatus;
 
 import java.util.concurrent.TimeUnit;
@@ -25,8 +25,6 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
 
     public BatchTransactionContextResource batch;
     public AccurateTransactionContextResource accurate;
-
-    private SystemStatus status = SystemStatus.RUNNABLE;
 
     @Override
     protected void doInitialize() throws Exception {
@@ -73,7 +71,9 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
     }
 
     protected Transaction onFailure(Transaction transaction) throws InterruptedException {
-        setStatus(SystemStatus.STOPPED);
+        logger.error("apply failed: {}, shutdown server", registryKey);
+        logger.info("apply activity status is stopped for {}", registryKey);
+        getSystem().setStatus(SystemStatus.STOPPED);
         return finish(transaction);
     }
 
@@ -82,13 +82,5 @@ public class ApplyActivity extends EventActivity<Transaction, Transaction> {
             logger.error("- UNLIKELY - task ({}) retries exceeds limit.", transaction.identifier());
             return onFailure(trx);
         });
-    }
-
-    public SystemStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(SystemStatus status) {
-        this.status = status;
     }
 }

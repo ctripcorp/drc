@@ -23,7 +23,9 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
 
     protected static final Logger logger = LoggerFactory.getLogger(MonitoredTableMapEvent.class);
 
-    protected TableKey tableKey;
+    private TableKey tableKey;
+
+    private TableKey transformerTableKey;
 
     private String gtid;
 
@@ -45,17 +47,13 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
         }
     }
 
-    public void setTableKey(TableKey tableKey) {
-        this.tableKey = tableKey;
-    }
-
     @Override
     public void involve(LinkContext linkContext) {
         gtid = linkContext.fetchGtid();
         dataIndex = linkContext.increaseDataIndexByOne();
-        setTableKey(TableKey.from(getSchemaName(), getTableName()));
-        linkContext.updateTableKey(tableKey);
-        linkContext.updateColumns(getColumns());
+        tableKey = TableKey.from(getSchemaName(), getTableName());
+        tableKey.setColumns(getColumns());
+        linkContext.updateTableKeyMap(getTableId(), tableKey);
         logEvent();
     }
 
@@ -79,15 +77,17 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
     @Override
     public void transformer(TransformerContext transformerContext) {
         String transformerName = transformerContext.getNameMap().get(tableKey.toString());
-        if (transformerName != null) {
-            setTableKey(TableKey.from(transformerName));
+        if (transformerName == null) {
+            transformerTableKey = tableKey;
+        } else {
+            transformerTableKey = TableKey.from(transformerName);
         }
     }
 
     @Override
     public ApplyResult apply(T context) {
         release();
-        context.updateTableKeyMap(getTableId(), tableKey);
+        context.updateTableKeyMap(getTableId(), transformerTableKey);
         return ApplyResult.SUCCESS;
     }
 

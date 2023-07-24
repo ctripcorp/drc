@@ -13,6 +13,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class AbstractSystem extends DrcLifecycle implements Lifecycle, ConfigLoader {
 
+    private String name;
+    private Object config;
+    private Class configType;
+    private volatile SystemStatus status = SystemStatus.RUNNABLE;
+
+    protected Map<String, Activity> activities = new LinkedHashMap<String, Activity>();
+    protected Map<String, Resource> resources = new LinkedHashMap<String, Resource>();
+
     public String getName() {
         return name;
     }
@@ -20,8 +28,6 @@ public class AbstractSystem extends DrcLifecycle implements Lifecycle, ConfigLoa
     public void setName(String name) {
         this.name = name;
     }
-
-    private String name;
 
     public Object getConfig() {
         return config;
@@ -36,11 +42,13 @@ public class AbstractSystem extends DrcLifecycle implements Lifecycle, ConfigLoa
         this.configType = configType;
     }
 
-    private Object config;
-    private Class configType;
+    public SystemStatus getStatus() {
+        return status;
+    }
 
-    protected Map<String, Activity> activities = new LinkedHashMap<String, Activity>();
-    protected Map<String, Resource> resources = new LinkedHashMap<String, Resource>();
+    public void setStatus(SystemStatus status) {
+        this.status = status;
+    }
 
     @Override
     public void doInitialize() throws Exception {
