@@ -30,6 +30,16 @@ public class DrcDoubleWriteServiceTest {
     @Mock
     private MhaTblV2Dao mhaTblV2Dao;
     @Mock
+    private MhaTblDao mhaTblDao;
+    @Mock
+    private MhaGroupTblDao mhaGroupTblDao;
+    @Mock
+    private GroupMappingTblDao groupMappingTblDao;
+    @Mock
+    private ClusterTblDao clusterTblDao;
+    @Mock
+    private ClusterMhaMapTblDao clusterMhaMapTblDao;
+    @Mock
     private MhaReplicationTblDao mhaReplicationTblDao;
     @Mock
     private ApplierGroupTblV2Dao applierGroupTblV2Dao;
@@ -49,6 +59,22 @@ public class DrcDoubleWriteServiceTest {
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Mock
     private DrcBuildService drcBuildService;
+    @Mock
+    private DataMediaTblDao dataMediaTblDao;
+    @Mock
+    private ColumnsFilterTblDao columnsFilterTblDao;
+    @Mock
+    private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
+    @Mock
+    private RowsFilterTblDao rowsFilterTblDao;
+    @Mock
+    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
+    @Mock
+    private RowsFilterMappingTblDao rowsFilterMappingTblDao;
+    @Mock
+    private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
+    @Mock
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     @Before
     public void setUp() {
