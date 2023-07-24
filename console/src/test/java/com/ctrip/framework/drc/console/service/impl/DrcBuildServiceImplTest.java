@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
@@ -53,6 +54,10 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     @Mock private DbClusterSourceProvider dbClusterSourceProvider;
     @Mock
     private DrcDoubleWriteService drcDoubleWriteService;
+    @Mock
+    private MetaProviderV2 metaProviderV2;
+    @Mock
+    private DbClusterSourceProvider metaProviderV1;
 
     @InjectMocks private MetaGenerator metaService = new MetaGenerator();
 
@@ -81,6 +86,9 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
         Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
         Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
+        Mockito.doNothing().when(metaProviderV1).scheduledTask();
+        Mockito.doNothing().when(metaProviderV2).scheduledTask();
+
     }
 
     @Test
