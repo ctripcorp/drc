@@ -94,7 +94,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     
     private static String AVAILABLE_PORT_SIZE ="available.port.size";
     private static int DEFAULT_AVAILABLE_PORT_SIZE = 50;
-    private static String VPC_MHA = "vpc_mha";
+    private static String VPC_MHA = "vpc.mha";
 
     private static String META_COMPARE_PARALLEL ="meta.compare.parallel";
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
