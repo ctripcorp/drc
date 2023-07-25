@@ -4,18 +4,12 @@ import com.ctrip.framework.drc.console.dto.ColumnsFilterConfigDto;
 import com.ctrip.framework.drc.console.dto.DataMediaDto;
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.SQLException;
 
 /**
  * @ClassName DataMediaController
@@ -64,9 +58,9 @@ public class DataMediaController {
             } else {
                 return ApiResult.getSuccessInstance(dataMediaService.processAddDataMedia(dataMediaDto));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=dataMediaConfig]] load dataMediaConfig fail with {} ", dataMediaDto, e);
-            return ApiResult.getFailInstance("sql error in add or update dataMediaConfig");
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
@@ -75,9 +69,9 @@ public class DataMediaController {
         logger.info("[[meta=dataMediaConfig]] delete dataMediaConfig id: {}", dataMediaId);
         try {
             return ApiResult.getSuccessInstance(dataMediaService.processDeleteDataMedia(dataMediaId));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=dataMediaConfig]] delete dataMediaConfig fail with {} ", dataMediaId, e);
-            return ApiResult.getFailInstance("sql error in delete dataMediaConfig");
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
     
@@ -110,20 +104,21 @@ public class DataMediaController {
             } else {
                 return ApiResult.getSuccessInstance(dataMediaService.processAddColumnsFilterConfig(columnsFilterConfigDto));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[meta=columnsFilterConfig]] load columnsFilterConfig fail with {} ", columnsFilterConfigDto, e);
-            return ApiResult.getFailInstance("sql error in add or update columnsFilterConfig");
+            return ApiResult.getFailInstance(e.getMessage());
         }
     }
 
     @DeleteMapping("columnsFilterConfig/{columnsFilterId}")
     public ApiResult deleteColumnsFilterConfig(@PathVariable Long columnsFilterId) {
         logger.info("[[meta=columnsFilterConfig]] delete columnsFilterConfig id: {}", columnsFilterId);
-        try {
-            return ApiResult.getSuccessInstance(dataMediaService.processDeleteColumnsFilterConfig(columnsFilterId));
-        } catch (SQLException e) {
-            logger.error("[[meta=columnsFilterConfig]] delete columnsFilterConfig fail with {} ", columnsFilterId, e);
-            return ApiResult.getFailInstance("sql error in delete columnsFilterConfig");
-        }
+        return ApiResult.getSuccessInstance("interface is offline");
+//        try {
+//            return ApiResult.getSuccessInstance(dataMediaService.processDeleteColumnsFilterConfig(columnsFilterId));
+//        } catch (SQLException e) {
+//            logger.error("[[meta=columnsFilterConfig]] delete columnsFilterConfig fail with {} ", columnsFilterId, e);
+//            return ApiResult.getFailInstance("sql error in delete columnsFilterConfig");
+//        }
     }
 }

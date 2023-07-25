@@ -45,9 +45,9 @@ public class MessengerController {
         try {
             logger.info("[[tag=messenger]] removeMessengerGroup in mha:{}",mhaName);
             return ApiResult.getSuccessInstance(null,messengerService.removeMessengerGroup(mhaName));
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.error("[[tag=messenger]] sql error in removeMessengerGroup in mha:{}",mhaName,e);
-            return ApiResult.getFailInstance(null,"query error");
+            return ApiResult.getFailInstance(e.getMessage());
         }
 
     }

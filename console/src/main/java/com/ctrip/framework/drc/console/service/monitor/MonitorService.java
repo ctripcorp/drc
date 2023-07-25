@@ -10,7 +10,7 @@ public interface MonitorService {
 
     @Deprecated void switchMonitors(List<Long> mhaGroupIds, String status) throws SQLException;
     
-    void switchMonitors(String mhaName, String status) throws SQLException;
+    void switchMonitors(String mhaName, String status) throws Exception;
 
     List<String> queryMhaNamesToBeMonitored() throws SQLException;
 

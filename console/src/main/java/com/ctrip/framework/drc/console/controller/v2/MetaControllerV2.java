@@ -26,7 +26,7 @@ public class MetaControllerV2 {
 
     @Autowired
     private MetaProviderV2 metaProviderV2;
-    
+
     @Autowired
     private MetaGrayService metaServiceV2;
     
@@ -39,7 +39,8 @@ public class MetaControllerV2 {
         try {
             Drc drc;
             if (StringUtils.equals("true",refresh)) {
-                 drc = metaGeneratorV2.getDrc();
+                metaProviderV2.scheduledTask();
+                drc = metaProviderV2.getDrc();
             } else {
                 drc = metaProviderV2.getDrc();
             }
@@ -50,7 +51,7 @@ public class MetaControllerV2 {
             return "get drc fail";
         }
     }
-    
+
     @GetMapping("compareRes")
     public ApiResult<String> compareOldNewMeta() {
         logger.info("[[tag=metaCompare]] start compareOldNewMeta");

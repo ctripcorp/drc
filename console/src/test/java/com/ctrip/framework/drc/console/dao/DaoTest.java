@@ -3,8 +3,13 @@ package com.ctrip.framework.drc.console.dao;
 import ch.vorburger.exec.ManagedProcessException;
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import com.ctrip.framework.drc.console.dao.entity.ColumnsFilterTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.utils.DalUtils;
@@ -28,8 +33,8 @@ import java.util.stream.Collectors;
  * Created by dengquanliang
  * 2023/6/5 17:07
  */
-public class DcTaoTest {
-    private static Logger logger = LoggerFactory.getLogger(DcTaoTest.class);
+public class DaoTest {
+    private static Logger logger = LoggerFactory.getLogger(DaoTest.class);
 
     @Autowired
     private DcTblDao dcTblDao;
@@ -70,6 +75,50 @@ public class DcTaoTest {
         for (DcTbl dcTbl : dcTbls) {
             System.out.println(dcTbl);
         }
+    }
+
+    @Test
+    public void testBatchInsertWithReturnId() throws SQLException {
+        DbReplicationTblDao dbReplicationTblDao = new DbReplicationTblDao();
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
+            dbReplicationTbl.setSrcMhaDbMappingId(Long.valueOf(i));
+            dbReplicationTbls.add(dbReplicationTbl);
+        }
+        dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        System.out.println("before");
+        dbReplicationTbls.forEach(System.out::println);
+        System.out.println("after");
+        dbReplicationTblDao.queryAll().forEach(System.out::println);
+    }
+
+    @Test
+    public void testInsert() throws SQLException {
+        MhaTblV2 mha = new MhaTblV2();
+        mha.setMhaName("mha");
+        MhaTblV2Dao mhaTblV2Dao = new MhaTblV2Dao();
+        mhaTblV2Dao.insert(mha);
+        MhaTblV2 mha1 = mhaTblV2Dao.queryByMhaName("mha");
+        System.out.println(mha);
+    }
+
+    @Test
+    public void testDelete() throws SQLException {
+        ColumnsFilterTbl columnsFilterTbl = new ColumnsFilterTbl();
+        columnsFilterTbl.setDataMediaId(1L);
+        columnsFilterTbl.setColumns("");
+        columnsFilterTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        ColumnsFilterTblDao columnFilterTblDao = new ColumnsFilterTblDao();
+        columnFilterTblDao.insert(columnsFilterTbl);
+
+        List<ColumnsFilterTbl> tbls1 = columnFilterTblDao.queryAll();
+        columnsFilterTbl.setDataMediaId(1L);
+        columnsFilterTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        columnFilterTblDao.update(columnsFilterTbl);
+        List<ColumnsFilterTbl> tbls2 = columnFilterTblDao.queryAll();
+        System.out.println(tbls1);
+        System.out.println(tbls2);
     }
 
     @Test

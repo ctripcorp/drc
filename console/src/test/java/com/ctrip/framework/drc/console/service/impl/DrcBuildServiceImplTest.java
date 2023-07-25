@@ -3,14 +3,18 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.RouteTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -50,6 +54,14 @@ public class DrcBuildServiceImplTest extends AbstractTest {
     
     @Mock private MessengerService messengerService;
     @Mock private DbClusterSourceProvider dbClusterSourceProvider;
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
+    @Mock
+    private MetaProviderV2 metaProviderV2;
+    @Mock
+    private DbClusterSourceProvider metaProviderV1;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
 
     @InjectMocks private MetaGenerator metaService = new MetaGenerator();
 
@@ -77,6 +89,12 @@ public class DrcBuildServiceImplTest extends AbstractTest {
         Mockito.when(messengerService.generateMessengers(Mockito.anyLong())).thenReturn(Lists.newArrayList());
         Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
         Mockito.when(dbClusterSourceProvider.getMasterEndpoint(Mockito.anyString())).thenReturn(null);
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
+        Mockito.doNothing().when(metaProviderV1).scheduledTask();
+        Mockito.doNothing().when(metaProviderV2).scheduledTask();
+        Mockito.when(mhaTblV2Dao.queryByPk(Mockito.anyLong())).thenReturn(new MhaTblV2());
+        Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(0);
+
     }
 
     @Test

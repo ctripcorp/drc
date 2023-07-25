@@ -412,11 +412,13 @@ public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
     private void beforeInsert(List<MachineTbl> insertMachines,MhaTbl mhaTbl) throws Exception{
         String mhaName = mhaTbl.getMhaName();
         MhaGroupTbl mhaGroupTbl = metaInfoService.getMhaGroupForMha(mhaTbl.getMhaName());
+        String user = (mhaGroupTbl == null ? monitorTableSourceProvider.getMonitorUserVal() : mhaGroupTbl.getMonitorUser());
+        String psw = (mhaGroupTbl == null ? monitorTableSourceProvider.getMonitorPasswordVal() : mhaGroupTbl.getMonitorPassword());
         for(MachineTbl machine : insertMachines) {
             String ip = machine.getIp();
             Integer port = machine.getPort();
             Integer master = machine.getMaster();
-            String uuid = MySqlUtils.getUuid(ip, port, mhaGroupTbl.getMonitorUser(), mhaGroupTbl.getMonitorPassword(), BooleanEnum.TRUE.getCode().equals(master));
+            String uuid = MySqlUtils.getUuid(ip, port, user, psw, BooleanEnum.TRUE.getCode().equals(master));
             if (null == uuid) {
                 logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);
                 DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.insert.fail." + mhaName, ip);

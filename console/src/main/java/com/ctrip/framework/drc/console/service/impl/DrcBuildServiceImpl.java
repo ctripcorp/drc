@@ -5,6 +5,8 @@ import com.ctrip.framework.drc.console.aop.reponse.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MetaProposalDto;
 import com.ctrip.framework.drc.console.dto.RouteDto;
@@ -12,7 +14,9 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
@@ -23,6 +27,8 @@ import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +41,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.config.ConsoleConfig.*;
@@ -48,18 +55,30 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     private MhaGroupTblDao mhaGroupTblDao = dalUtils.getMhaGroupTblDao();
     private ReplicatorGroupTblDao replicatorGroupTblDao = dalUtils.getReplicatorGroupTblDao();
     private ApplierGroupTblDao applierGroupTblDao = dalUtils.getApplierGroupTblDao();
-    
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(2, "metaRefresh");
 
-    @Autowired private MetaInfoServiceImpl metaInfoService;
 
-    @Autowired private DefaultConsoleConfig consoleConfig;
-    
-    @Autowired private DbClusterSourceProvider dbClusterSourceProvider;
-
-    @Autowired  private MessengerGroupTblDao messengerGroupTblDao;
-    @Autowired  private MessengerTblDao messengerTblDao;
+    @Autowired
+    private MetaInfoServiceImpl metaInfoService;
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DbClusterSourceProvider dbClusterSourceProvider;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private DbClusterSourceProvider metaProviderV1;
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
         // 0. check if two mha are same
         if(metaProposalDto.getSrcMha().equalsIgnoreCase(metaProposalDto.getDestMha())) {
@@ -79,12 +98,20 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         if (!srcMhaTbl.getApplyMode().equals(metaProposalDto.getSrcApplierApplyMode())) {
             srcMhaTbl.setApplyMode(metaProposalDto.getSrcApplierApplyMode());
             mhaTblDao.update(srcMhaTbl);
-        } 
+
+            MhaTblV2 srcMhaTblV2 = mhaTblV2Dao.queryByPk(srcMhaTbl.getId());
+            srcMhaTblV2.setApplyMode(srcMhaTbl.getApplyMode());
+            mhaTblV2Dao.update(srcMhaTblV2);
+        }
         if (!destMhaTbl.getApplyMode().equals(metaProposalDto.getDestApplierApplyMode())) {
             destMhaTbl.setApplyMode(metaProposalDto.getDestApplierApplyMode());
             mhaTblDao.update(destMhaTbl);
+
+            MhaTblV2 destMhaTblV2 = mhaTblV2Dao.queryByPk(destMhaTbl.getId());
+            destMhaTblV2.setApplyMode(destMhaTbl.getApplyMode());
+            mhaTblV2Dao.update(destMhaTblV2);
         }
-        
+
         // get opposite clusterName as default value
         if (StringUtils.isBlank(metaProposalDto.getSrcClusterName())) {
             metaProposalDto.setSrcClusterName(getClusterName(destMhaTbl));
@@ -120,10 +147,19 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         MhaGroupTbl mhaGroupTbl = mhaGroupTblDao.queryByPk(mhaGroupId);
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
         mhaGroupTblDao.update(mhaGroupTbl);
+
+        try {
+            executorService.submit(() -> metaProviderV1.scheduledTask());
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProvider scheduledTask error, {}", e);
+        }
+
         return metaInfoService.getXmlConfiguration(mhaGroupId);
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String submitConfig(MessengerMetaDto dto) throws Exception {
         // 0. check 
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
@@ -133,7 +169,19 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         // 3. configure and persistent in database
         long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
-        
+
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite configureDbReplicationForMq");
+            drcDoubleWriteService.configureDbReplicationForMq(mhaTbl.getId());
+        }
+
+        try {
+            executorService.submit(() -> metaProviderV1.scheduledTask());
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProvider scheduledTask error, {}", e);
+        }
+
         return metaInfoService.getXmlConfiguration(mhaTbl);
     }
 
@@ -169,7 +217,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             }
         }
         return new DrcBuildPreCheckVo(null, null, DrcBuildPreCheckVo.NO_CONFLICT);
-        
+
     }
 
     @Override
@@ -191,7 +239,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             }
         }
         return new DrcBuildPreCheckVo(null, null, DrcBuildPreCheckVo.NO_CONFLICT);
-        
+
     }
 
     @Override
@@ -282,7 +330,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         } else {
             throw new IllegalArgumentException("no machine find for" + mhaName);
         }
-        
+
     }
 
     @Override
@@ -439,16 +487,22 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         return replicatorInstancesRemoved;
     }
 
-    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs, int applyMode, String gtidExecuted, String nameFilter, String nameMapping, String targetName) throws SQLException {
+    public Long configureAppliers(MhaTbl mhaTbl, List<String> applierIps, long replicatorGroupId, String includedDbs,
+                                  int applyMode, String gtidExecuted, String nameFilter, String nameMapping, String targetName) throws Exception {
         Long applierGroupId = configureApplierGroup(mhaTbl, replicatorGroupId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtidExecuted);
         configureApplierInstances(mhaTbl, applierIps, applierGroupId, gtidExecuted);
+        if (consoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+            logger.info("drcDoubleWrite configureMhaReplication");
+            drcDoubleWriteService.configureMhaReplication(applierGroupId);
+        }
+
         return applierGroupId;
     }
 
     protected Long configureApplierGroup(MhaTbl mhaTbl, Long replicatorGroupId, String includedDbs, int applyMode, String nameFilter, String nameMapping, String targetName,String gtidExecuted) throws SQLException {
         String mhaName = mhaTbl.getMhaName();
         Long mhaId = mhaTbl.getId();
-        logger.info("[[mha={}, mhaId={}, includedDbs={}, applyMode={}, nameFilter={}, nameMapping={}, targetName={}, replicatorGroupId={}]]" 
+        logger.info("[[mha={}, mhaId={}, includedDbs={}, applyMode={}, nameFilter={}, nameMapping={}, targetName={}, replicatorGroupId={}]]"
                         + "configure or update applier group,gtid:{}",
                 mhaName, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName, replicatorGroupId,gtidExecuted);
         return dalUtils.updateOrCreateAGroup(replicatorGroupId, mhaId, includedDbs, applyMode, nameFilter, nameMapping, targetName,gtidExecuted);
@@ -528,7 +582,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         return applierInstancesRemoved;
     }
 
-    public Long configureMessengers(MhaTbl mhaTbl, 
+    public Long configureMessengers(MhaTbl mhaTbl,
                                     Long replicatorGroupId,
                                     List<String> messengerIps,
                                     String gtidExecuted) throws SQLException {
@@ -555,7 +609,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             resourceTbls.stream().filter(p -> p.getId().equals(m.getResourceId())).findFirst()
                         .ifPresent(resourceTbl -> messengersInuse.add(resourceTbl.getIp()));
         }
-        
+
         List<List<String>> addRemoveMessengerIpsPair = getRemoveAndAddInstanceIps(messengersInuse, messengerIps);
         if(ADD_REMOVE_PAIR_SIZE != addRemoveMessengerIpsPair.size()) {
             logger.info("[[mha={}]] wrong add remove messenger pair size {}!={}",
@@ -597,7 +651,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     protected List<String> removeMessengerInstances(
             List<String> messengerIpsToBeRemoved,
             String mhaName, Long messengerGroupId,
-            List<ResourceTbl> resourceTbls, 
+            List<ResourceTbl> resourceTbls,
             List<MessengerTbl> messengerTbls) {
         logger.info("[[mha={}]] try remove messengers {}", mhaName, messengerIpsToBeRemoved);
         List<String> messengerInstancesRemoved = Lists.newArrayList();
@@ -610,7 +664,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
                     continue;
                 }
                 MessengerTbl messengerTbl = messengerTbls.stream()
-                        .filter(p -> (messengerGroupId.equals(p.getMessengerGroupId())) 
+                        .filter(p -> (messengerGroupId.equals(p.getMessengerGroupId()))
                                 && resourceTbl.getId().equals(p.getResourceId()))
                         .findFirst().orElse(null);
                 try {
@@ -654,7 +708,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaTbl.getMhaName());
         return MySqlUtils.getUnionExecutedGtid(endpoint);
     }
-    
+
     public String getNativeGtid(String mhaName) {
         Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);

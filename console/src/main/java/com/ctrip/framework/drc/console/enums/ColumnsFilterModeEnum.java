@@ -7,6 +7,7 @@ package com.ctrip.framework.drc.console.enums;
 public enum ColumnsFilterModeEnum {
     EXCLUDE(0, "exclude"),
     INCLUDE(1, "include"),
+    REGEX(2, "regex"),
     ;
 
     private Integer code;

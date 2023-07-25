@@ -13,11 +13,11 @@ public interface RowsFilterService {
 
     List<RowsFilterConfig> generateRowsFiltersConfig (Long applierGroupId,int applierType) throws SQLException;
     
-    String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;
+    String addRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws Exception;
     
-    String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws SQLException;
+    String updateRowsFilterConfig(RowsFilterConfigDto rowsFilterConfigDto) throws Exception;
     
-    String deleteRowsFilterConfig(Long id) throws SQLException;
+    String deleteRowsFilterConfig(Long id) throws Exception;
   
     List<RowsFilterMappingVo> getRowsFilterMappingVos(Long applierGroupId,int applierType) throws SQLException;
 

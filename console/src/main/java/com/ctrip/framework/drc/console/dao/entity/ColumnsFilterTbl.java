@@ -122,4 +122,17 @@ public class ColumnsFilterTbl implements DalPojo {
     public void setDatachangeLasttime(Timestamp datachangeLasttime) {
         this.datachangeLasttime = datachangeLasttime;
     }
+
+    @Override
+    public String toString() {
+        return "ColumnsFilterTbl{" +
+                "id=" + id +
+                ", dataMediaId=" + dataMediaId +
+                ", mode='" + mode + '\'' +
+                ", columns='" + columns + '\'' +
+                ", deleted=" + deleted +
+                ", createTime=" + createTime +
+                ", datachangeLasttime=" + datachangeLasttime +
+                '}';
+    }
 }

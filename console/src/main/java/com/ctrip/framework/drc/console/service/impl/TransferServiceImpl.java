@@ -1,12 +1,17 @@
 package com.ctrip.framework.drc.console.service.impl;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.TransferService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -20,6 +25,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 
@@ -34,7 +40,16 @@ public class TransferServiceImpl implements TransferService {
 
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+    @Autowired
+    private DrcDoubleWriteService drcDoubleWriteService;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private DbClusterSourceProvider metaProviderV1;
 
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(2, "metaRefresh");
     private DalUtils dalUtils = DalUtils.getInstance();
 
     @Override
@@ -245,6 +260,18 @@ public class TransferServiceImpl implements TransferService {
                     .collect(Collectors.toList());
             srcMha.addAll(destMha);
             doRemove(mhaGroupTbl, srcMha);
+            if (defaultConsoleConfig.getDrcDoubleWriteSwitch().equals(DefaultConsoleConfig.SWITCH_ON)) {
+                logger.info("drcDoubleWrite deleteMhaReplicationConfig");
+                drcDoubleWriteService.deleteMhaReplicationConfig(srcMha.get(0).getId(), srcMha.get(1).getId());
+            }
+
+            try {
+                executorService.submit(() -> metaProviderV1.scheduledTask());
+                executorService.submit(() -> metaProviderV2.scheduledTask());
+            } catch (Exception e) {
+                logger.error("metaProvider scheduledTask error, {}", e);
+            }
+
         } else {
             throw new Exception("no such mha: " + mhaName);
         }
