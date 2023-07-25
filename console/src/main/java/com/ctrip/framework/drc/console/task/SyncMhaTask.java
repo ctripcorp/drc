@@ -104,13 +104,22 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
         List<DalPojo> allPojos = TableEnum.MHA_TABLE.getAllPojos();
+        boolean updateFail = false;
         for (DalPojo pojo : allPojos) {
             MhaTbl mhaTbl = (MhaTbl) pojo;
             MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTbl.getMhaName());
-            if (null != mhaInstanceGroupDto) {
-                logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
-                drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto, mhaTbl);
+            try {
+                if (null != mhaInstanceGroupDto) {
+                    logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
+                    drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto, mhaTbl);
+                }
+            } catch (Exception e) {
+                logger.error("[[task=syncMhaTask]] update mha {} instance fail",mhaTbl.getMhaName(),e);
+                updateFail = true;
             }
+        }
+        if (updateFail) {
+            throw new IllegalArgumentException("syncMhaTask fail");
         }
     }
 
