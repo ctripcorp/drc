@@ -54,6 +54,7 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
         tableKey = TableKey.from(getSchemaName(), getTableName());
         tableKey.setColumns(getColumns());
         linkContext.updateTableKeyMap(getTableId(), tableKey);
+        transformerTableKey = tableKey;
         logEvent();
     }
 
@@ -77,9 +78,7 @@ public class MonitoredTableMapEvent<T extends BaseTransactionContext> extends Ta
     @Override
     public void transformer(TransformerContext transformerContext) {
         String transformerName = transformerContext.getNameMap().get(tableKey.toString());
-        if (transformerName == null) {
-            transformerTableKey = tableKey;
-        } else {
+        if (transformerName != null) {
             transformerTableKey = TableKey.from(transformerName);
         }
     }
