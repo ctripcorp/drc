@@ -7,6 +7,7 @@ package com.ctrip.framework.drc.fetcher.resource.context;
 public interface LinkContext extends
         TimeContext,
         TableKeyContext,
+        TableKeyMapContext,
         SchemaContext,
         SchemasHistoryContext,
         EventGroupContext {
