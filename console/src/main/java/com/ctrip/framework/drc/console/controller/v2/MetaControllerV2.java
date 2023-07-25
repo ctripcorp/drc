@@ -39,7 +39,8 @@ public class MetaControllerV2 {
         try {
             Drc drc;
             if (StringUtils.equals("true",refresh)) {
-                 drc = metaGeneratorV2.getDrc();
+                metaProviderV2.scheduledTask();
+                drc = metaProviderV2.getDrc();
             } else {
                 drc = metaProviderV2.getDrc();
             }

@@ -60,12 +60,15 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
     @Override // refresh when new config submit
     public synchronized void scheduledTask() {
         try {
+            logger.info("[[meta=v2]] MetaProviderV2 start refresh drc");
+            long start = System.currentTimeMillis();
             String region = consoleConfig.getRegion();
             Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
             if (publicCloudRegion.contains(region)) {
                 return;
             }
             drc = metaGeneratorV2.getDrc();
+            logger.info("[[meta=v2]] MetaProviderV2 refresh drc end cost:{}",System.currentTimeMillis() - start);
         } catch (Throwable t) {
             logger.error("[[meta=v2]] MetaProviderV2 get drc fail", t);
         }
