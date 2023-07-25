@@ -113,7 +113,7 @@ public class DataMediaController {
     @DeleteMapping("columnsFilterConfig/{columnsFilterId}")
     public ApiResult deleteColumnsFilterConfig(@PathVariable Long columnsFilterId) {
         logger.info("[[meta=columnsFilterConfig]] delete columnsFilterConfig id: {}", columnsFilterId);
-        return ApiResult.getSuccessInstance("接口已下线");
+        return ApiResult.getSuccessInstance("interface is offline");
 //        try {
 //            return ApiResult.getSuccessInstance(dataMediaService.processDeleteColumnsFilterConfig(columnsFilterId));
 //        } catch (SQLException e) {

@@ -182,8 +182,8 @@ public class DataMediaServiceImpl implements DataMediaService {
 
     @Override
     public String processDeleteColumnsFilterConfig(Long columnsFilterId) throws SQLException {
-        //该接口不支持双写,暂时下线
-        return "接口已下线";
+        //This interface does not support double write and is temporarily offline
+        return "interface is offline";
 //        return columnsFilterService.deleteColumnsFilterConfig(columnsFilterId);
     }
 
