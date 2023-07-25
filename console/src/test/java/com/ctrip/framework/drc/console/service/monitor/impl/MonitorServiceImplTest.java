@@ -51,7 +51,7 @@ public class MonitorServiceImplTest extends AbstractTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
     }
 
     @Test

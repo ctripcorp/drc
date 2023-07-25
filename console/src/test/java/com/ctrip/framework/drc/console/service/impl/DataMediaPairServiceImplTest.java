@@ -41,7 +41,7 @@ public class DataMediaPairServiceImplTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
 
         List<DataMediaPairTbl> dataMediaPairTbls = mockDataMediaPairTbls();
         Mockito.when(dataMediaPairTblDao.queryByGroupId(Mockito.eq(1L))).thenReturn(dataMediaPairTbls);

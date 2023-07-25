@@ -98,7 +98,7 @@ public class MhaServiceImplTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
         doReturn("off").when(monitorTableSourceProvider).getCacheAllClusterNamesSwitch();
         doReturn(getDbaDcInfoMapping("{\"上海欧阳IDC(电信)\":\"shaoy\", \"上海日阪IDC(联通)\":\"sharb\", \"上海金钟路B栋\":\"shajz\", \"上海金桥IDC(联通)\":\"shajq\", \"上海福泉路\":\"shafq\", \"南通星湖大道\":\"ntgxh\", \"上海SOHO大楼\":\"shash\"}")).when(defaultConsoleConfig).getDbaDcInfos();
         try {

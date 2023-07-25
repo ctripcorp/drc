@@ -75,7 +75,7 @@ public class DataMediaServiceImplTest {
         Mockito.when(rowsFilterService.generateRowsFiltersConfig(Mockito.anyLong(), Mockito.anyInt())).
                 thenReturn(Lists.newArrayList(rowsFilterConfig));
 
-        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("false");
+        Mockito.when(defaultConsoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
 
     }
 
