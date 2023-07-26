@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.console.monitor.consistency.sql.operator;
 
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
-import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.monitor.operator.DefaultReadResource;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
@@ -17,9 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
-import java.util.List;
 
-import static com.ctrip.framework.drc.console.AllTests.ciEndpoint;
 import static com.ctrip.framework.drc.console.AllTests.ciWriteSqlOperatorWrapper;
 import static com.ctrip.framework.drc.console.monitor.consistency.utils.Constant.DEFAULT_FETCH_SIZE;
 import static com.ctrip.framework.drc.console.monitor.consistency.utils.Constant.QUERY_TIMEOUT_INSECOND;
@@ -55,11 +52,6 @@ public class SqlOperatorTest {
     @After
     public void tearDown() {
 
-    }
-
-    @Test
-    public void queryDbs() {
-        List<String> dbs = MySqlUtils.queryDbsWithFilter(ciEndpoint, "");
     }
 
     @Test
