@@ -81,7 +81,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
         Pair<String, Long> resultPair = submit(metaProposalDto);
-        if (StringUtils.isNotBlank(resultPair.getLeft())) {
+        if (StringUtils.isNotEmpty(resultPair.getLeft())) {
             return resultPair.getLeft();
         }
 
@@ -101,6 +101,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         if(metaProposalDto.getSrcMha().equalsIgnoreCase(metaProposalDto.getDestMha())) {
             logger.info("{} {} same mha", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
             msg = metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are same mha, which is not allowed.";
+            return Pair.of(msg, null);
         }
 
         MhaTbl srcMhaTbl = mhaTblDao.queryByMhaName(metaProposalDto.getSrcMha(), BooleanEnum.FALSE.getCode());
@@ -110,6 +111,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         if(mhaGroupId == null) {
             logger.info("{} {} not same group", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
             msg = metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
+            return Pair.of(msg, null);
         }
         // 2. update Mha applyMode
         if (!srcMhaTbl.getApplyMode().equals(metaProposalDto.getSrcApplierApplyMode())) {
@@ -165,7 +167,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
         mhaGroupTblDao.update(mhaGroupTbl);
 
-        return Pair.of(msg, mhaGroupId);
+        return Pair.of(null, mhaGroupId);
     }
 
     @Override
@@ -192,6 +194,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             msg = "mha not record";
+            return Pair.of(msg, null);
         }
         // 3. configure and persistent in database
         long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
@@ -201,7 +204,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             logger.info("drcDoubleWrite configureDbReplicationForMq");
             drcDoubleWriteService.configureDbReplicationForMq(mhaTbl.getId());
         }
-        return Pair.of(msg, mhaTbl);
+        return Pair.of(null, mhaTbl);
     }
 
     @Override
