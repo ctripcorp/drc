@@ -21,8 +21,8 @@ import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
-import com.ctrip.framework.drc.console.vo.display.SimplexDrcBuildVo;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
+import com.ctrip.framework.drc.console.vo.display.SimplexDrcBuildVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -32,6 +32,7 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,12 +79,29 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     private DbClusterSourceProvider metaProviderV1;
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
-        // 0. check if two mha are same
+        Pair<String, Long> resultPair = submit(metaProposalDto);
+        if (StringUtils.isNotEmpty(resultPair.getLeft())) {
+            return resultPair.getLeft();
+        }
+
+        try {
+            executorService.submit(() -> metaProviderV1.scheduledTask());
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProvider scheduledTask error, {}", e);
+        }
+
+        return metaInfoService.getXmlConfiguration(resultPair.getRight());
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public Pair<String, Long> submit(MetaProposalDto metaProposalDto) throws Exception {
+        String msg = null;
         if(metaProposalDto.getSrcMha().equalsIgnoreCase(metaProposalDto.getDestMha())) {
             logger.info("{} {} same mha", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
-            return metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are same mha, which is not allowed.";
+            msg = metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are same mha, which is not allowed.";
+            return Pair.of(msg, null);
         }
 
         MhaTbl srcMhaTbl = mhaTblDao.queryByMhaName(metaProposalDto.getSrcMha(), BooleanEnum.FALSE.getCode());
@@ -92,7 +110,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         Long mhaGroupId = metaInfoService.getMhaGroupId(metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
         if(mhaGroupId == null) {
             logger.info("{} {} not same group", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
-            return metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
+            msg = metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
+            return Pair.of(msg, null);
         }
         // 2. update Mha applyMode
         if (!srcMhaTbl.getApplyMode().equals(metaProposalDto.getSrcApplierApplyMode())) {
@@ -148,6 +167,16 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         mhaGroupTbl.setDrcEstablishStatus(EstablishStatusEnum.ESTABLISHED.getCode());
         mhaGroupTblDao.update(mhaGroupTbl);
 
+        return Pair.of(null, mhaGroupId);
+    }
+
+    @Override
+    public String submitConfig(MessengerMetaDto dto) throws Exception {
+        Pair<String, MhaTbl> resultPair = submit(dto);
+        if (StringUtils.isNotEmpty(resultPair.getLeft())) {
+            return resultPair.getLeft();
+        }
+
         try {
             executorService.submit(() -> metaProviderV1.scheduledTask());
             executorService.submit(() -> metaProviderV2.scheduledTask());
@@ -155,16 +184,17 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             logger.error("metaProvider scheduledTask error, {}", e);
         }
 
-        return metaInfoService.getXmlConfiguration(mhaGroupId);
+        return metaInfoService.getXmlConfiguration(resultPair.getRight());
     }
 
-    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public String submitConfig(MessengerMetaDto dto) throws Exception {
-        // 0. check 
+    public Pair<String, MhaTbl> submit(MessengerMetaDto dto) throws Exception {
+        // 0. check
+        String msg = null;
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
-            return "mha not record";
+            msg = "mha not record";
+            return Pair.of(msg, null);
         }
         // 3. configure and persistent in database
         long replicatorGroupId = configureReplicators(mhaTbl, null, dto.getReplicatorIps(), dto.getrGtidExecuted());
@@ -174,15 +204,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             logger.info("drcDoubleWrite configureDbReplicationForMq");
             drcDoubleWriteService.configureDbReplicationForMq(mhaTbl.getId());
         }
-
-        try {
-            executorService.submit(() -> metaProviderV1.scheduledTask());
-            executorService.submit(() -> metaProviderV2.scheduledTask());
-        } catch (Exception e) {
-            logger.error("metaProvider scheduledTask error, {}", e);
-        }
-
-        return metaInfoService.getXmlConfiguration(mhaTbl);
+        return Pair.of(null, mhaTbl);
     }
 
     @Override
