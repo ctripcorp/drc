@@ -660,6 +660,9 @@ public class MySqlUtils {
         return getSqlResultInteger(endpoint,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE,BINLOG_TRANSACTION_DEPENDENCY_HISTORY_SIZE_INDEX);
     }
 
+    /**
+     * nameFilter only Contains db
+     */
     public static List<String> queryDbsWithFilter(Endpoint endpoint, String nameFilter) {
         List<String> dbs = getDefaultDbs(endpoint);
         AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(nameFilter);

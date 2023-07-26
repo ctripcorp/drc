@@ -491,7 +491,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     }
 
     private void insertMhaDbMappings(MhaTblV2 mhaTblV2, String nameFilter) throws Exception {
-        List<String> dbList = drcBuildService.queryDbsWithNameFilter(mhaTblV2.getMhaName(), nameFilter);
+        List<String> dbList = queryDbs(mhaTblV2.getMhaName(), nameFilter);
         insertDbs(dbList);
         insertMhaDbMappings(mhaTblV2.getId(), dbList);
     }
@@ -833,8 +833,8 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
     }
 
     private List<String> insertMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
-        List<String> srcDbList = drcBuildService.queryDbsWithNameFilter(srcMha.getMhaName(), nameFilter);
-        List<String> dstDbList = drcBuildService.queryDbsWithNameFilter(dstMha.getMhaName(), nameFilter);
+        List<String> srcDbList = queryDbs(srcMha.getMhaName(), nameFilter);
+        List<String> dstDbList = queryDbs(dstMha.getMhaName(), nameFilter);
         if (!checkDbIsSame(srcDbList, dstDbList)) {
             logger.error("drc double write insertMhaDbMappings srcDb dstDb is not same, srcDbList: {}, dstDbList: {}", srcDbList, dstDbList);
             throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
@@ -846,6 +846,20 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         insertMhaDbMappings(dstMha.getId(), dstDbList);
 
         return srcDbList;
+    }
+
+    private List<String> queryDbs(String mhaName, String nameFilter) {
+        List<String> tableList = drcBuildService.queryTablesWithNameFilter(mhaName, nameFilter);
+        List<String> dbList = new ArrayList<>();
+        if (CollectionUtils.isEmpty(tableList)) {
+            logger.info("mha: {} query db empty, nameFilter: {}", mhaName, nameFilter);
+            return dbList;
+        }
+        for (String table : tableList) {
+            String[] tables = table.split("\\.");
+            dbList.add(tables[0]);
+        }
+        return dbList;
     }
 
     private boolean checkDbIsSame(List<String> srcDbList, List<String> dstDbList) {
@@ -863,7 +877,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
 
     private List<String> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
         String mhaName = vpcMhaNames.contains(srcMha.getMhaName()) ? dstMha.getMhaName() : srcMha.getMhaName();
-        List<String> dbList = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+        List<String> dbList = queryDbs(mhaName, nameFilter);
         insertDbs(dbList);
 
         //insertMhaDbMappings
