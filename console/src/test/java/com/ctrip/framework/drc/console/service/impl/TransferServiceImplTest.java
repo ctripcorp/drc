@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.mock.helpers.DcComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
@@ -62,6 +64,8 @@ public class TransferServiceImplTest extends AbstractTest {
     private MetaProviderV2 metaProviderV2;
     @Mock
     private DbClusterSourceProvider metaProviderV1;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
 
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
@@ -103,7 +107,8 @@ public class TransferServiceImplTest extends AbstractTest {
         Mockito.doNothing().when(drcDoubleWriteService).deleteMhaReplicationConfig(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doNothing().when(metaProviderV1).scheduledTask();
         Mockito.doNothing().when(metaProviderV2).scheduledTask();
-
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(new MhaTblV2());
+        Mockito.when(mhaTblV2Dao.batchUpdate(Mockito.anyList())).thenReturn(new int[]{0});
     }
 
     @After
