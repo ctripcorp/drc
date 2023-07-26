@@ -114,7 +114,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private static final int MHA_GROUP_SIZE = 2;
     private static final int BATCH_SIZE = 2000;
     private static final int TIME_OUT = 60;
-    private static final int QUERY_MYSQL_TIMEOUT = 10;
+    private static final int QUERY_MYSQL_TIMEOUT = 60;
     private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
     private static final String TEST_BU_NAME = "TEST";
 

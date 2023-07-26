@@ -42,7 +42,7 @@ public class MySqlUtils {
 
     public static final String GET_DEFAULT_TABLES = "SELECT DISTINCT table_schema, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
-    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%';";
+    public static final String GET_DEFAULT_DBS = "SELECT DISTINCT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'mysql', 'sys', 'performance_schema', 'configdb')  AND table_type not in ('view') AND table_schema NOT LIKE '\\_%' AND table_name NOT LIKE '\\_%';";
 
     public static final String GET_APPROVED_TRUNCATE_TABLES = "select db_name, table_name from configdb.approved_truncatelist;";
     
@@ -101,6 +101,35 @@ public class MySqlUtils {
     
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
+    }
+
+    public static List<String> getDefaultDbs(Endpoint endpoint) {
+        return getDbs(endpoint, GET_DEFAULT_DBS, false);
+    }
+
+    public static List<String> getDbs (Endpoint endpoint, String sql, Boolean removeSqlOperator) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        List<String> dbs = Lists.newArrayList();
+        ReadResource readResource = null;
+        try {
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while(rs.next()) {
+                dbs.add(rs.getString(1));
+            }
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+            if(removeSqlOperator) {
+                removeSqlOperator(endpoint);
+            }
+        }
+        return dbs;
     }
 
     public static List<TableSchemaName> getTables(Endpoint endpoint, String sql, Boolean removeSqlOperator) {
@@ -632,8 +661,9 @@ public class MySqlUtils {
     }
 
     public static List<String> queryDbsWithFilter(Endpoint endpoint, String nameFilter) {
-        List<TableSchemaName> tables = getTablesAfterRegexFilter(endpoint, new AviatorRegexFilter(nameFilter));
-        List<String> dbNames = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.toList());
+        List<String> dbs = getDefaultDbs(endpoint);
+        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(nameFilter);
+        List<String> dbNames = dbs.stream().filter(db -> aviatorRegexFilter.filter(db) && !db.equals(DRC_MONITOR_DB)).collect(Collectors.toList());
         return dbNames;
     }
 
