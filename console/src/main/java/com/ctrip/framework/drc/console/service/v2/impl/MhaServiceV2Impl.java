@@ -26,9 +26,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private MhaReplicationTblDao mhaReplicationTblDao;
-
-    @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
 
     @Override
@@ -38,8 +35,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(mhaNames);
             return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, Function.identity(), (e1, e2) -> e1));
         } catch (SQLException e) {
-            logger.error("queryByMhaNames exception",e);
-            throw  ConsoleExceptionUtils.message("查询 mhaTbl 失败，请重试或联系开发。错误信息：" + e.getMessage());
+            logger.error("queryByMhaNames exception", e);
+            throw ConsoleExceptionUtils.message("查询 mhaTbl 失败，请重试或联系开发。错误信息：" + e.getMessage());
         }
     }
 

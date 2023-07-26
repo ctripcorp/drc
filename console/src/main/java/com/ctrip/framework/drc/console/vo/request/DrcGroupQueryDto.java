@@ -2,9 +2,7 @@ package com.ctrip.framework.drc.console.vo.request;
 
 import com.ctrip.framework.drc.core.http.PageReq;
 
-/**
- * todo by zyn: pagerequest
- */
+
 public class DrcGroupQueryDto extends PageReq {
     /**
      * mha name(source)
