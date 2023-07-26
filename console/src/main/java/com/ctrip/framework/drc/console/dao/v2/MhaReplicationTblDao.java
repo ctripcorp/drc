@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -24,6 +26,26 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
     public MhaReplicationTblDao() throws SQLException {
         super(MhaReplicationTbl.class);
     }
+
+    public List<MhaReplicationTbl> queryByPage(MhaReplicationQuery query) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll()
+                .atPage(query.getPageIndex(), query.getPageSize())
+                .orderBy("src_mha_id", false)
+                .in(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
+                .in(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public int count(MhaReplicationQuery query) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectCount()
+                .atPage(query.getPageIndex(), query.getPageSize())
+                .in(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
+                .in(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+        return client.count(sqlBuilder, new DalHints()).intValue();
+    }
+
 
     public MhaReplicationTbl queryByMhaId(Long srcMhaId, Long dstMhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
