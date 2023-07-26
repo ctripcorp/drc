@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -9,16 +8,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Created by dengquanliang
- * 2023/5/25 14:09
+ * Created by yongnian
+ * 2023/7/26 14:09
  */
 @Service
 public class MhaServiceV2Impl implements MhaServiceV2 {
@@ -30,7 +31,9 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     @Override
     public Map<String, MhaTblV2> queryMhaByNames(List<String> mhaNames) {
-
+        if (CollectionUtils.isEmpty(mhaNames)) {
+            return Collections.emptyMap();
+        }
         try {
             List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(mhaNames);
             return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, Function.identity(), (e1, e2) -> e1));
@@ -42,6 +45,9 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     @Override
     public Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaIds) {
+        if (CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyMap();
+        }
         try {
             List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByIds(mhaIds);
             return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity(), (e1, e2) -> e1));

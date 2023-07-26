@@ -31,6 +31,6 @@ public class DrcGroupQueryDto extends PageReq {
         return "DrcGroupQueryDto{" +
                 "srcMha='" + srcMha + '\'' +
                 ", destMha='" + destMha + '\'' +
-                '}';
+                "} " + super.toString();
     }
 }

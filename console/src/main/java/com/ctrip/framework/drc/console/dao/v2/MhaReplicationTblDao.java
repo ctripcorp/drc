@@ -32,17 +32,16 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         sqlBuilder.selectAll()
                 .atPage(query.getPageIndex(), query.getPageSize())
                 .orderBy("src_mha_id", false)
-                .in(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .in(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+                .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
+                .inNullable(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }
 
     public int count(MhaReplicationQuery query) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectCount()
-                .atPage(query.getPageIndex(), query.getPageSize())
-                .in(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .in(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+                .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
+                .inNullable(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
 

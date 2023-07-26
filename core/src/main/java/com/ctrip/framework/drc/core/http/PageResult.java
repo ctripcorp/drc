@@ -8,11 +8,11 @@ import java.util.List;
  */
 public class PageResult<T> {
     private List<T> data;
-    private Integer pageIndex;
-    private Integer pageSize;
-    private Integer totalCount;
+    private int pageIndex;
+    private int pageSize;
+    private int totalCount;
 
-    public static <T> PageResult<T> newInstance(List<T> data, Integer pageIndex, Integer pageSize, Integer totalCount) {
+    public static <T> PageResult<T> newInstance(List<T> data, int pageIndex, int pageSize, int totalCount) {
         PageResult<T> result = new PageResult<>();
         result.data = data;
         result.pageIndex = pageIndex;
@@ -25,15 +25,15 @@ public class PageResult<T> {
         return data;
     }
 
-    public Integer getPageIndex() {
+    public int getPageIndex() {
         return pageIndex;
     }
 
-    public Integer getPageSize() {
+    public int getPageSize() {
         return pageSize;
     }
 
-    public Integer getTotalCount() {
+    public int getTotalCount() {
         return totalCount;
     }
 }
