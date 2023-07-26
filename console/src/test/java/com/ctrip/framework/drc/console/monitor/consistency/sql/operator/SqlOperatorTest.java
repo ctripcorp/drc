@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.monitor.consistency.sql.operator;
 
-import ch.vorburger.exec.ManagedProcessException;
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -59,9 +58,8 @@ public class SqlOperatorTest {
     }
 
     @Test
-    public void queryDbs() throws ManagedProcessException {
+    public void queryDbs() {
         List<String> dbs = MySqlUtils.queryDbsWithFilter(ciEndpoint, "");
-        System.out.println(dbs);
     }
 
     @Test
