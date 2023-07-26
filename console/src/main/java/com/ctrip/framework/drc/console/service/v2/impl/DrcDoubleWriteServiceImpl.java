@@ -859,7 +859,7 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
             String[] tables = table.split("\\.");
             dbList.add(tables[0]);
         }
-        return dbList;
+        return dbList.stream().distinct().collect(Collectors.toList());
     }
 
     private boolean checkDbIsSame(List<String> srcDbList, List<String> dstDbList) {
