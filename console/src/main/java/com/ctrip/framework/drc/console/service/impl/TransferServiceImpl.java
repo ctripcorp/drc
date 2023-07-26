@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.console.service.impl;
+
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -20,8 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +53,8 @@ public class TransferServiceImpl implements TransferService {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private DbClusterSourceProvider metaProviderV1;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(2, "metaRefresh");
     private DalUtils dalUtils = DalUtils.getInstance();
@@ -337,8 +344,13 @@ public class TransferServiceImpl implements TransferService {
             mhaTblsToBeDeleted.addAll(mhaTbls);
         }
 
+        List<MhaTblV2> deletedMhaTbls = new ArrayList<>();
         for(MhaTbl mhaTbl : mhaTblsToBeDeleted) {
             Long mhaId = mhaTbl.getId();
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+            mhaTblV2.setDeleted(BooleanEnum.TRUE.getCode());
+            deletedMhaTbls.add(mhaTblV2);
+
             logger.info("do mark mha {} as deleted", mhaTbl.getMhaName());
             mhaTbl.setDeleted(BooleanEnum.TRUE.getCode());
             machineTbls.stream().filter(p -> p.getMhaId().equals(mhaId) && p.getDeleted().equals(BooleanEnum.FALSE.getCode())).forEach(machineTbl -> {
@@ -367,6 +379,11 @@ public class TransferServiceImpl implements TransferService {
         dalUtils.getApplierGroupTblDao().update(applierGroupTblsToBeDeleted);
         dalUtils.getReplicatorTblDao().update(replicatorTblsToBeDeleted);
         dalUtils.getApplierTblDao().update(applierTblsToBeDeleted);
+
+        if (CollectionUtils.isEmpty(deletedMhaTbls)) {
+            logger.info("delete mhaTblV2: {}", deletedMhaTbls);
+            mhaTblV2Dao.batchUpdate(deletedMhaTbls);
+        }
     }
 
 
