@@ -52,6 +52,9 @@ public class NetworkContextResource extends AbstractContext implements EventGrou
     public void doInitialize() throws Exception {
         super.doInitialize();
         GtidSet executedGtidSet = unionGtidSet(initialGtidExecuted);
+        if (isIntegrityTest()) {
+            executedGtidSet = new GtidSet(StringUtils.EMPTY);
+        }
         updateGtidSet(executedGtidSet);
         updateGtid("");
     }

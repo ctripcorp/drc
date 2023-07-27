@@ -7,7 +7,7 @@
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
       <template>
         <Steps :current="current" style="width: 90%; margin-left: 50px; margin-bottom: 15px; margin-top: 50px">
-          <Step title="录入Mha" content="新建MQ同步" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="录入Mha" content="" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
           <Step title="mha配置" content="mha录入db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
           <Step title="预检测" content="检测mha配置" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
           <Step title="建立同步" content="配置Replicator和Messenger实例" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>

@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.param.NameFilterSplitParam;
 import com.ctrip.framework.drc.console.param.v2.MhaDbMappingMigrateParam;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
-import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MetaMigrateService;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.api.MhaNameFilterVo;
@@ -115,7 +114,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private static final int MHA_GROUP_SIZE = 2;
     private static final int BATCH_SIZE = 2000;
     private static final int TIME_OUT = 60;
-    private static final int QUERY_MYSQL_TIMEOUT = 10;
+    private static final int QUERY_MYSQL_TIMEOUT = 60;
     private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
     private static final String TEST_BU_NAME = "TEST";
 
@@ -612,7 +611,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && e.getMhaReplicationId() > 0L)
                 .collect(Collectors.toList());
         List<DbReplicationTbl> existDbReplicationTbls = dbReplicationTblDao.queryAll().stream()
-                .filter(e -> e.getReplicationType().equals(DataMediaPairTypeEnum.DB_TO_DB.getType()))
+                .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_DB.getType()))
                 .collect(Collectors.toList());
 
         Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
@@ -638,13 +637,15 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                 .filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode()) && StringUtils.isNotBlank(e.getNameMapping()))
                 .collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getId, ReplicatorGroupTbl::getMhaId));
         Map<Long, String> mhaMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, MhaTbl::getMhaName));
 
         List<Long> errorApplierGroupIds = new ArrayList<>();
         List<MhaNameFilterVo> nameFilterVos = new ArrayList<>();
         for (ApplierGroupTbl applierGroupTbl : applierGroupTbls) {
             String nameMappings = applierGroupTbl.getNameMapping();
-            String mhaName = mhaMap.get(applierGroupTbl.getMhaId());
+            String mhaName = mhaMap.get(replicatorGroupMap.get(applierGroupTbl.getReplicatorGroupId()));
             if (!checkNameMapping(nameMappings)) {
                 errorApplierGroupIds.add(applierGroupTbl.getId());
                 continue;
@@ -707,7 +708,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<DbTbl> dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
         List<DbReplicationTbl> existDbReplicationTbls = dbReplicationTblDao.queryAll().stream()
-                .filter(e -> e.getReplicationType().equals(DataMediaPairTypeEnum.DB_TO_MQ.getType()))
+                .filter(e -> e.getReplicationType().equals(ReplicationTypeEnum.DB_TO_MQ.getType()))
                 .collect(Collectors.toList());
 
         Map<Long, List<DataMediaPairTbl>> dataMediaPairTblMap = dataMediaPairTbls.stream().collect(Collectors.groupingBy(DataMediaPairTbl::getGroupId));
@@ -818,7 +819,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
             long columnsFilterId = -1L;
             long rowsFilterId = -1L;
             long messengerFilterId = -1L;
-            switch (DataMediaPairTypeEnum.getByType(dbReplicationTbl.getReplicationType())) {
+            switch (ReplicationTypeEnum.getByType(dbReplicationTbl.getReplicationType())) {
                 case DB_TO_DB:
                     MhaDbMappingTbl dstMhaDbMapping = mhaDbMappingMap.get(dbReplicationTbl.getDstMhaDbMappingId());
                     long mhaReplicationId = mhaReplicationTbls.stream()
@@ -1163,7 +1164,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         String nameFilter = applierGroupTbl.getNameFilter();
         if (StringUtils.isBlank(nameFilter)) {
-            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, "");
             if (CollectionUtils.isEmpty(dbNames)) {
                 logger.warn("mhaName: {} query db is empty", mhaName);
             }
@@ -1182,8 +1183,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                     continue;
                 }
 
-                List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, dbFilter);
                 String[] db = dbFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+                List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, db[0]);
+
                 for (String dbName : dbNames) {
                     String srcTableName = "";
                     try {
@@ -1231,19 +1233,19 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> dbNameFilters = Lists.newArrayList(srcDataMediaName.split(","));
         Set<String> errorDbs = new HashSet<>();
         for (String dbNameFilter : dbNameFilters) {
+            String[] tables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             List<String> dbNames = new ArrayList<>();
             try {
-                dbNames = drcBuildService.queryDbsWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
+                dbNames = drcBuildService.queryDbsWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), tables[0]);
             } catch (Exception e) {
                 throw new RuntimeException(String.format("errorMha: %s", mhaTblMap.get(messengerGroupTbl.getMhaId())));
             }
 
-            String[] tables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             for (String dbName : dbNames) {
                 try {
                     long dbId = dbTblMap.get(dbName);
                     long srcMhaDbMappingId = mhaDbMappingMap.get(messengerGroupTbl.getMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
-                    dbReplicationTbls.add(buildDbReplicationTbl(tables[1], dataMediaPairTbl.getDestDataMediaName(), srcMhaDbMappingId, -1, DataMediaPairTypeEnum.DB_TO_MQ.getType()));
+                    dbReplicationTbls.add(buildDbReplicationTbl(tables[1], dataMediaPairTbl.getDestDataMediaName(), srcMhaDbMappingId, -1, ReplicationTypeEnum.DB_TO_MQ.getType()));
                 } catch (Exception e) {
                     logger.error("buildDbReplicationTbl fail, dbName: {}, messengerGroupId: {}", dbName, messengerGroupTbl.getId());
                     errorDbs.add(dbName);
@@ -1260,7 +1262,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                                                    MhaReplicationTbl mhaReplication) {
         long srcMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getSrcMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
         long dstMhaDbMappingId = mhaDbMappingMap.get(mhaReplication.getDstMhaId()).stream().filter(e -> e.getDbId().equals(dbId)).findFirst().map(MhaDbMappingTbl::getId).get();
-        return buildDbReplicationTbl(srcTableName, dstTableName, srcMhaDbMappingId, dstMhaDbMappingId, DataMediaPairTypeEnum.DB_TO_DB.getType());
+        return buildDbReplicationTbl(srcTableName, dstTableName, srcMhaDbMappingId, dstMhaDbMappingId, ReplicationTypeEnum.DB_TO_DB.getType());
     }
 
     private DbReplicationTbl buildDbReplicationTbl(String srcTableName, String dstTableName, long srcMhaDbMappingId, long dstMhaDbMappingId, int replicationType) {
@@ -1312,6 +1314,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         logger.info("mha: {} query tables, oldTables: {}, \n, newTables: {}", mhaName, oldTables, newTables);
         if (CollectionUtils.isEmpty(oldTables) || CollectionUtils.isEmpty(newTables)) {
+            return false;
+        }
+        if (oldTables.size() != newTables.size()) {
             return false;
         }
         Collections.sort(oldTables);

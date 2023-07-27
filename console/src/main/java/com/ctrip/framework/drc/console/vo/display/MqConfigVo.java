@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 
-import static com.ctrip.framework.drc.console.enums.DataMediaPairTypeEnum.DB_TO_MQ;
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
 
 /**
  * @ClassName MqConfigConflictTable

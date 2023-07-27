@@ -24,7 +24,7 @@ public class MessengerFilterTblDao extends AbstractDao<MessengerFilterTbl> {
         super(MessengerFilterTbl.class);
     }
 
-    public MessengerFilterTbl queryById(long id) throws SQLException {
+    public MessengerFilterTbl queryById(Long id) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(ID, id, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.queryFirst(sqlBuilder, new DalHints());

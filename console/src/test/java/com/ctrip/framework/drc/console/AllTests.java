@@ -47,7 +47,11 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.integration.DrcDoubleWriteServiceIntegrationTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MetaGeneratorV2IntegrationTest;
+import com.ctrip.framework.drc.console.service.v2.integration.MigrateServiceIntegrationTest;
 import com.ctrip.framework.drc.console.task.PeriodicalRegisterBeaconTaskTest;
 import com.ctrip.framework.drc.console.task.SyncMhaTaskTest;
 import com.ctrip.framework.drc.console.task.SyncTableConfigTaskTest;
@@ -144,7 +148,9 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGeneratorV2IntegrationTest.class,
         MigrateServiceTest.class,
         MetaGrayServiceImplTest.class,
-        
+        MetaCompareServiceImplTest.class,
+        DrcDoubleWriteServiceTest.class,
+//
         // controller
         AccessControllerTest.class,
         BuildControllerTest.class,
@@ -225,7 +231,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         SimplexDrcBuildVoTest.class,
 
         //integrationTest
-        MigrateServiceIntegrationTest.class
+        MigrateServiceIntegrationTest.class,
+        DrcDoubleWriteServiceIntegrationTest.class
         
 })
 public class AllTests {

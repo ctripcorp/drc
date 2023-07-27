@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
@@ -48,6 +49,18 @@ public class ColumnsFilterTblV2Dao extends AbstractDao<ColumnsFilterTblV2> {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equal(MODE, mode, Types.TINYINT).and().equal(COLUMNS, columns, Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<ColumnsFilterTblV2> queryByMode(int mode) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(MODE, mode, Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public Long insertReturnId(ColumnsFilterTblV2 columnsFilterTbl) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insert(new DalHints(), keyHolder, columnsFilterTbl);
+        return (Long) keyHolder.getKey();
     }
 
 }

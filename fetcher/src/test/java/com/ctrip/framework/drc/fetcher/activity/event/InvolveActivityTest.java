@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.fetcher.activity.event;
 
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.fetcher.MockTest;
@@ -44,6 +45,22 @@ public class InvolveActivityTest extends MockTest {
         protected void doApply(BaseTransactionContext context) {
 
         }
+
+        @Override
+        public RowsEventPostHeader getRowsEventPostHeader() {
+            RowsEventPostHeader rowsEventPostHeader = new RowsEventPostHeader() {
+                @Override
+                public long getTableId() {
+                    return 0L;
+                }
+
+                @Override
+                public int getFlags() {
+                    return 0;
+                }
+            };
+            return rowsEventPostHeader;
+        }
     };
 
     @Before
@@ -68,6 +85,7 @@ public class InvolveActivityTest extends MockTest {
         when(linkContext.fetchTableKey()).thenReturn(tableKey);
         when(linkContext.fetchColumns(tableKey)).thenReturn(columns);
         when(linkContext.fetchColumns()).thenReturn(columns);
+        when(linkContext.fetchTableKeyInMap(0L)).thenReturn(tableKey);
         involveActivity.doTask(rowsEvent);
         verify(loadEventActivity, times(1)).trySubmit(rowsEvent);
     }

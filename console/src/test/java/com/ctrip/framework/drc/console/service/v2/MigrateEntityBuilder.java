@@ -91,6 +91,10 @@ public class MigrateEntityBuilder {
         return replicatorGroupTbls;
     }
 
+    public static ReplicatorGroupTbl getReplicatorGroupTbl() {
+        return getReplicatorGroupTbls().stream().filter(e -> e.getId() == 200L).findFirst().get();
+    }
+
     public static List<ApplierGroupTbl> getApplierGroupTbls() {
         List<ApplierGroupTbl> applierGroupTbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -109,6 +113,10 @@ public class MigrateEntityBuilder {
         return applierGroupTbls;
     }
 
+    public static ApplierGroupTbl getApplierGroupTbl() {
+        return getApplierGroupTbls().stream().filter(e -> e.getId() == 200L).findFirst().get();
+    }
+
     public static List<ApplierTbl> getApplierTbls() {
         List<ApplierTbl> applierTbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -118,6 +126,22 @@ public class MigrateEntityBuilder {
             applierTbl.setId(Long.valueOf(i));
             applierTbl.setMaster(1);
             applierTbl.setGtidInit("gtid");
+            applierTbls.add(applierTbl);
+            applierTbl.setMaster(1);
+            applierTbl.setPort(80);
+            applierTbl.setResourceId(200L);
+        }
+        return applierTbls;
+    }
+
+    public static List<ApplierTblV2> getApplierTblV2s() {
+        List<ApplierTblV2> applierTbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            ApplierTblV2 applierTbl = new ApplierTblV2();
+            applierTbl.setApplierGroupId(200L);
+            applierTbl.setDeleted(0);
+            applierTbl.setId(Long.valueOf(i));
+            applierTbl.setMaster(1);
             applierTbls.add(applierTbl);
             applierTbl.setMaster(1);
             applierTbl.setPort(80);
@@ -341,5 +365,30 @@ public class MigrateEntityBuilder {
         tbl.setApplyMode(0);
 
         return tbl;
+    }
+
+    public static List<MhaTblV2> getMhaTblV2s() {
+        List<MhaTblV2> tbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            MhaTblV2 tbl = new MhaTblV2();
+            tbl.setId(Long.valueOf(i));
+            tbl.setMhaName("mha" + i);
+            tbl.setDcId(200L);
+            tbl.setBuId(200L);
+            tbl.setClusterName("cluster");
+            tbl.setReadUser("");
+            tbl.setReadPassword("");
+            tbl.setWriteUser("");
+            tbl.setWritePassword("");
+            tbl.setMonitorPassword("");
+            tbl.setMonitorUser("");
+            tbl.setDeleted(0);
+            tbl.setAppId(1L);
+            tbl.setApplyMode(0);
+
+            tbls.add(tbl);
+        }
+
+        return tbls;
     }
 }

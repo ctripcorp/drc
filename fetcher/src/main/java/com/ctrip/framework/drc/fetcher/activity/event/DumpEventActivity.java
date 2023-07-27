@@ -135,8 +135,8 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
             if (exception instanceof EventConvertException) {
                 logger.error("convert error when dumping event, going to stop & dispose applier server(instance): ", exception);
                 try {
-                    system.stop();
-                    system.dispose();
+                    logger.info("dump activity status is stopped for {}", registryKey);
+                    getSystem().setStatus(SystemStatus.STOPPED);
                 } catch (Exception e) {
                     logger.error("fail to stop & dispose applier server(instance) - UNLIKELY");
                 }

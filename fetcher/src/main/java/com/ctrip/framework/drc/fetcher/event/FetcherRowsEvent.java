@@ -41,9 +41,13 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
     public void involve(LinkContext linkContext) throws Exception {
         gtid = linkContext.fetchGtid();
         dataIndex = linkContext.increaseDataIndexByOne();
-        TableKey targetTable = linkContext.fetchTableKey();
+        loadPostHeaderLocked();
+        TableKey targetTable = linkContext.fetchTableKeyInMap(getRowsEventPostHeader().getTableId());
+        if (getRowsEventPostHeader().getFlags() == END_OF_STATEMENT_FLAG) {
+            linkContext.resetTableKeyMap();
+        }
         columns = linkContext.fetchColumns(targetTable);
-        originColumns = linkContext.fetchColumns();
+        originColumns = Columns.from(targetTable.getColumns());
         if (columns == null) {
             throw new Exception("columns not found, TableKey: " + targetTable.toString() + " - UNLIKELY");
         }
@@ -52,6 +56,17 @@ public abstract class FetcherRowsEvent<T extends BaseTransactionContext> extends
 
     private Lock lock = new ReentrantLock();
     private boolean isLoaded = false;
+
+    private void loadPostHeaderLocked() {
+        lock.lock();
+        try {
+            loadPostHeader();
+        } catch (Throwable t) {
+            logger.error("{}.loadPostHeaderLocked() - UNLIKELY for {}, {}", getClass(), gtid, t);
+        } finally {
+            lock.unlock();
+        }
+    }
 
     public void tryLoad() {
         if (lock.tryLock()) {

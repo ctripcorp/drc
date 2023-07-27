@@ -3,13 +3,18 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.AbstractTest;
 import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.mock.helpers.DcComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
+import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DataMediaService;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
+import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
@@ -22,7 +27,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -53,6 +57,16 @@ public class TransferServiceImplTest extends AbstractTest {
 
     @Mock private DataMediaService dataMediaService;
 
+    @Mock
+    private DrcDoubleWriteService drcDoubleWriteService;
+
+    @Mock
+    private MetaProviderV2 metaProviderV2;
+    @Mock
+    private DbClusterSourceProvider metaProviderV1;
+    @Mock
+    private MhaTblV2Dao mhaTblV2Dao;
+
     @InjectMocks
     private MetaGenerator metaGenerator = new MetaGenerator();
 
@@ -63,6 +77,7 @@ public class TransferServiceImplTest extends AbstractTest {
     public void setUp() throws Exception {
         super.setUp();
         MockitoAnnotations.openMocks(this);
+        Mockito.when(consoleConfig.getDrcDoubleWriteSwitch()).thenReturn("off");
         Mockito.doReturn(IDC).when(dataCenterService).getDc();
         Mockito.doReturn(new HashSet<>()).when(consoleConfig).getPublicCloudDc();
         Mockito.doReturn(null).when(rowsFilterService).generateRowsFiltersConfig(Mockito.anyLong(),Mockito.eq(0));
@@ -89,7 +104,11 @@ public class TransferServiceImplTest extends AbstractTest {
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW1")).thenReturn(4L);
         Mockito.when(metaInfoService.getReplicatorGroupId("drcTestW2")).thenReturn(5L);
         Mockito.when(dataMediaService.generateConfig(Mockito.anyLong())).thenReturn(new DataMediaConfig());
-
+        Mockito.doNothing().when(drcDoubleWriteService).deleteMhaReplicationConfig(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doNothing().when(metaProviderV1).scheduledTask();
+        Mockito.doNothing().when(metaProviderV2).scheduledTask();
+        Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(new MhaTblV2());
+        Mockito.when(mhaTblV2Dao.batchUpdate(Mockito.anyList())).thenReturn(new int[]{0});
     }
 
     @After
