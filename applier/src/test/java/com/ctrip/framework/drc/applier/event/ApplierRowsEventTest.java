@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.event;
 
 import com.ctrip.framework.drc.applier.resource.context.DecryptedLinkContextResource;
+import com.ctrip.framework.drc.core.driver.binlog.header.RowsEventPostHeader;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.core.driver.binlog.header.LogEventHeader;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
@@ -30,11 +31,19 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
 
     @Test
     public void simpleUse() throws Exception {
-        TestEvent testEvent = new TestEvent();
+        TestEvent testEvent = new TestEvent() {
+            @Override
+            public RowsEventPostHeader getRowsEventPostHeader() {
+                return new RowsEventPostHeader();
+            }
+        };
         DecryptedLinkContextResource linkContext = mock(DecryptedLinkContextResource.class);
-        when(linkContext.fetchTableKey()).thenReturn(TableKey.from("prod", "hello"));
+        TableKey tableKey = TableKey.from("prod", "hello");
+        tableKey.setColumns(columns1());
+        when(linkContext.fetchTableKey()).thenReturn(tableKey);
         when(linkContext.fetchColumns(any())).thenReturn(columns1());
         when(linkContext.fetchColumns()).thenReturn(columns1());
+        when(linkContext.fetchTableKeyInMap(0L)).thenReturn(tableKey);
         LogEventHeader logEventHeader = spy(new LogEventHeader());
         testEvent.setLogEventHeader(logEventHeader);
         doReturn(101L).when(logEventHeader).getEventSize();
@@ -48,13 +57,20 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
     @Test
     public void testTransformMetaAndType() throws Exception {
         ByteBuf byteBuf = initRowsByteBuf();
-        TestEvent writeRowsEvent = (TestEvent) new TestEvent().read(byteBuf);
+        TestEvent writeRowsEvent = (TestEvent) new TestEvent() {
+            @Override
+            public RowsEventPostHeader getRowsEventPostHeader() {
+                return new RowsEventPostHeader();
+            }
+        }.read(byteBuf);
         LinkContext linkContext = mock(LinkContext.class);
-        when(linkContext.fetchTableKey()).thenReturn(TableKey.from("prod", "hello"));
-        when(linkContext.fetchColumns(any())).thenReturn(mockOriginColumns());
+        TableKey tableKey = TableKey.from("prod", "hello");
+        tableKey.setColumns(mockOriginColumns());
+        when(linkContext.fetchTableKey()).thenReturn(tableKey);
+        when(linkContext.fetchTableKeyInMap(0L)).thenReturn(tableKey);
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(initTableMapByteBuf());
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
-        when(linkContext.fetchColumns()).thenReturn(Columns.from(columnList));
+        when(linkContext.fetchColumns(tableKey)).thenReturn(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
         writeRowsEvent.tryLoad();
         Assert.assertTrue(writeRowsEvent.isLoaded());
@@ -65,11 +81,14 @@ public class ApplierRowsEventTest implements ApplierColumnsRelatedTest {
         ByteBuf byteBuf = initEnumRowsByteBuf();
         TestEvent writeRowsEvent = (TestEvent) new TestEvent().read(byteBuf);
         LinkContext linkContext = mock(LinkContext.class);
-        when(linkContext.fetchTableKey()).thenReturn(TableKey.from("prod", "hello"));
+        TableKey tableKey = TableKey.from("prod", "hello");
+
+        when(linkContext.fetchTableKey()).thenReturn(tableKey);
         when(linkContext.fetchColumns(any())).thenReturn(mockEnumOriginColumns());
+        when(linkContext.fetchTableKeyInMap(155L)).thenReturn(tableKey);
         TableMapLogEvent tableMapLogEvent = new TableMapLogEvent().read(initEnumTableMapByteBuf());
         List<TableMapLogEvent.Column> columnList = tableMapLogEvent.getColumns();
-        when(linkContext.fetchColumns()).thenReturn(Columns.from(columnList));
+        tableKey.setColumns(Columns.from(columnList));
         writeRowsEvent.involve(linkContext);
         writeRowsEvent.tryLoad();
         List<List<Object>> values = writeRowsEvent.getBeforePresentRowsValues();

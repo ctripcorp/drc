@@ -57,8 +57,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
     @Mock
     private DefaultConsoleConfig consoleConfig;
     
-    @Mock
-    private MhaGrayConfig mhaGrayConfig;
 
     private static final String DC1= "dc1";
 
@@ -113,6 +111,12 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         Assert.assertNotNull(drc);
         Mockito.verify(compositeConfig, times(1)).updateConfig();
 
+    }
+
+    @Test
+    public void testGetDcBy() {
+        Dc dc = dbClusterSourceProvider.getDcBy("dbcluster1.mha1dc1");
+        Assert.assertNotNull(dc);
     }
 
     @Test
@@ -425,7 +429,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
             add("dc1");
             add("dc2");
         }});
-        Mockito.when(mhaGrayConfig.gray(Mockito.anyString())).thenReturn(true);
 
         Map<String, List<ReplicatorWrapper>> allReplicators = 
                 dbClusterSourceProvider.getAllReplicatorsInLocalRegion();
@@ -438,4 +441,6 @@ public class DbClusterSourceProviderTest extends AbstractTest {
         Set<String> mhas = dbClusterSourceProvider.getAllMhaWithMessengerInLocalRegion();
         Assert.assertEquals(0,mhas.size());
     }
+
+    
 }

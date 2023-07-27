@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvi
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.RowsFilterService;
 import com.ctrip.framework.drc.console.service.impl.*;
+import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.vo.display.MhaGroupPair;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
@@ -55,6 +56,8 @@ public class MetaController {
     @Autowired
     private RowsFilterService rowsFilterService;
     
+    @Autowired
+    private MetaGrayService metaGrayService;
     
     
     @GetMapping("orderedGroups/all")
@@ -174,7 +177,13 @@ public class MetaController {
     @GetMapping
     public String getAllMetaData() {
         logger.info("[meta] get all");
-        return sourceProvider.getDrcString();
+        return metaGrayService.getDrc().toString();
+    }
+
+    @GetMapping("old")
+    public String getOldMeta() {
+        logger.info("[meta] get all old meat");
+        return sourceProvider.getDrc().toString();
     }
 
     /**
@@ -197,7 +206,7 @@ public class MetaController {
     public String getDrcStr(@PathVariable String dc) {
         logger.info("[meta] get meta for {}", dc);
         try {
-            String metaData = sourceProvider.getDrc(dc).toString();
+            String metaData = metaGrayService.getDrc(dc).toString();
             META_LOGGER.debug("meta in {}: {}", dc, metaData);
             return metaData;
         } catch (Exception e) {

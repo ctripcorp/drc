@@ -42,10 +42,11 @@ public class BuildController {
     public ApiResult getOrBuildSimplexDrc(@RequestParam(value = "srcMha", defaultValue = "") String srcMha,
                                           @RequestParam(value = "destMha", defaultValue = "") String destMha) {
         try {
+            logger.info("[meta] init simplex drc srcMha:{},destMha:{}",srcMha,destMha);
             return drcBuildService.getOrBuildSimplexDrc(srcMha,destMha);
-        } catch (SQLException e) {
-            logger.error("sql error", e);
-            return ApiResult.getFailInstance("sql error");
+        } catch (Exception e) {
+            logger.error("error in init drc", e);
+            return ApiResult.getFailInstance(e.getStackTrace(),"error in init drc");
         }
     }
 

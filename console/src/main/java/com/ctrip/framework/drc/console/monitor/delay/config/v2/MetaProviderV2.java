@@ -1,10 +1,13 @@
 package com.ctrip.framework.drc.console.monitor.delay.config.v2;
 
-import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,18 +28,31 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
 
     protected volatile Drc drc;
     
-    public Drc getDrc() {
+    public synchronized Drc getDrc() {
         if (drc == null) {
            scheduledTask(); 
         }
         return drc;
     }
+
+    public Dc getDcBy(String dbClusterId) {
+        Drc drc = getDrc();
+        Map<String, Dc> dcs = drc.getDcs();
+        for (Entry<String, Dc> dcEntry : dcs.entrySet()) {
+            Dc dc = dcEntry.getValue();
+            DbCluster dbCluster = dc.findDbCluster(dbClusterId);
+            if (dbCluster != null) {
+                return dc;
+            }
+        }
+        throw new IllegalArgumentException("dbCluster not find!");
+    }
     
 
     @Override
     public void initialize() {
-        setInitialDelay(30);
-        setPeriod(180);
+        setInitialDelay(300);
+        setPeriod(300);
         setTimeUnit(TimeUnit.SECONDS);
         super.initialize();
     }

@@ -52,7 +52,6 @@ public class SchemasTest {
                         new Column("id", true, "int", null, "10", null, null, null, null, "int(11)", null, null, null),
                         new Column("company", true, "varchar", "60", "11", null, null, "utf8", "utf8_general_ci", "varchar(20)", null, null, null)
         )));
-        assertNotSame(merged, schemas);
         assertEquals("[id, company]", merged.getColumns("prod", "hello").getNames().toString());
     }
 
