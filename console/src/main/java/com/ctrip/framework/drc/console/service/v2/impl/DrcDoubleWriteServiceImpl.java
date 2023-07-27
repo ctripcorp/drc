@@ -393,6 +393,12 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         }
 
         ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryByPk(applierGroupTbl.getId());
+        if (applierGroupTblV2 == null) {
+            logger.info("applierGroupTblV2 not build yet, applierGroupTbl: {}", applierGroupTbl.getId());
+            return;
+        }
+
+        logger.info("delete applierGroupTblV2, applierGroupId: {}", applierGroupTblV2.getId());
         applierGroupTblV2.setDeleted(BooleanEnum.TRUE.getCode());
         applierGroupTblV2Dao.update(applierGroupTblV2);
 
@@ -449,14 +455,14 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         MhaTblV2 dstMha = mhaPair.getRight();
         List<ApplierTbl> applierTbls = applierTblDao.queryByApplierGroupIds(Lists.newArrayList(applierGroupId), BooleanEnum.FALSE.getCode());
 
-        List<String> dbList = insertMhaDbMappings(applierGroupTbl, srcMha, dstMha);
-        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
-
         if (CollectionUtils.isEmpty(applierTbls)) {
             logger.info("applierTbls is empty, applierGroupId: {}", applierGroupId);
             return;
         }
+
+        List<String> dbList = insertMhaDbMappings(applierGroupTbl, srcMha, dstMha);
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
 
         long mhaReplicationId = insertOrUpdateMhaReplication(srcMha.getId(), applierGroupTbl.getMhaId());
         ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblV2Dao.queryById(applierGroupId);
