@@ -17,10 +17,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 
-import static com.ctrip.framework.drc.console.AllTests.*;
-import static com.ctrip.framework.drc.console.utils.UTConstants.*;
+import static com.ctrip.framework.drc.console.AllTests.ciWriteSqlOperatorWrapper;
 import static com.ctrip.framework.drc.console.monitor.consistency.utils.Constant.DEFAULT_FETCH_SIZE;
 import static com.ctrip.framework.drc.console.monitor.consistency.utils.Constant.QUERY_TIMEOUT_INSECOND;
+import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_TIMEOUT;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.JDBC_URL_FORMAT;
 

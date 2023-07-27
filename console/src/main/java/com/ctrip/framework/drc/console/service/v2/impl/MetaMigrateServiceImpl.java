@@ -114,7 +114,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
     private static final int MHA_GROUP_SIZE = 2;
     private static final int BATCH_SIZE = 2000;
     private static final int TIME_OUT = 60;
-    private static final int QUERY_MYSQL_TIMEOUT = 10;
+    private static final int QUERY_MYSQL_TIMEOUT = 60;
     private static final String MONITOR_DB = "drcmonitordb\\.delaymonitor";
     private static final String TEST_BU_NAME = "TEST";
 
@@ -1164,7 +1164,7 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
 
         String nameFilter = applierGroupTbl.getNameFilter();
         if (StringUtils.isBlank(nameFilter)) {
-            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, nameFilter);
+            List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, "");
             if (CollectionUtils.isEmpty(dbNames)) {
                 logger.warn("mhaName: {} query db is empty", mhaName);
             }
@@ -1183,8 +1183,9 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
                     continue;
                 }
 
-                List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, dbFilter);
                 String[] db = dbFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+                List<String> dbNames = drcBuildService.queryDbsWithNameFilter(mhaName, db[0]);
+
                 for (String dbName : dbNames) {
                     String srcTableName = "";
                     try {
@@ -1232,14 +1233,14 @@ public class MetaMigrateServiceImpl implements MetaMigrateService {
         List<String> dbNameFilters = Lists.newArrayList(srcDataMediaName.split(","));
         Set<String> errorDbs = new HashSet<>();
         for (String dbNameFilter : dbNameFilters) {
+            String[] tables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             List<String> dbNames = new ArrayList<>();
             try {
-                dbNames = drcBuildService.queryDbsWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), dbNameFilter);
+                dbNames = drcBuildService.queryDbsWithNameFilter(mhaTblMap.get(messengerGroupTbl.getMhaId()), tables[0]);
             } catch (Exception e) {
                 throw new RuntimeException(String.format("errorMha: %s", mhaTblMap.get(messengerGroupTbl.getMhaId())));
             }
 
-            String[] tables = dbNameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             for (String dbName : dbNames) {
                 try {
                     long dbId = dbTblMap.get(dbName);
