@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
