@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.core.http;
 
-public class PageReq {
+import java.io.Serializable;
+
+public class PageReq implements Serializable {
 
     public static final int MAX_PAGE_SIZE = 200;
     private int pageIndex = 1;

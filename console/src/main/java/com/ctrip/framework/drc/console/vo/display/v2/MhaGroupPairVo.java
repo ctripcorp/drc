@@ -8,6 +8,8 @@ public class MhaGroupPairVo {
     private Integer status;
     private Long srcBuId;
     private Long dstBuId;
+    private Long srcDcId;
+    private Long dstDcId;
     private Integer srcMhaMonitorSwitch;
     private Integer dstMhaMonitorSwitch;
     private Long datachangeLasttime;
@@ -82,5 +84,21 @@ public class MhaGroupPairVo {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Long getSrcDcId() {
+        return srcDcId;
+    }
+
+    public void setSrcDcId(Long srcDcId) {
+        this.srcDcId = srcDcId;
+    }
+
+    public Long getDstDcId() {
+        return dstDcId;
+    }
+
+    public void setDstDcId(Long dstDcId) {
+        this.dstDcId = dstDcId;
     }
 }

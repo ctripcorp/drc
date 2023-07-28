@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,7 @@ public class MhaReplicationController {
             // convert query condition
             MhaQueryDto srcMha = queryDto.getSrcMha();
             if (srcMha != null && srcMha.isConditionalQuery()) {
-                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(srcMha.getName(), srcMha.getBuId(), srcMha.getRegionId());
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(StringUtils.trim(srcMha.getName()), srcMha.getBuId(), srcMha.getRegionId());
                 if (CollectionUtils.isEmpty(mhaTblV2Map)) {
                     return ApiResult.getSuccessInstance(PageResult.emptyResult());
                 }
@@ -61,7 +62,7 @@ public class MhaReplicationController {
             }
             MhaQueryDto dstMha = queryDto.getDstMha();
             if (dstMha != null && dstMha.isConditionalQuery()) {
-                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(dstMha.getName(), dstMha.getBuId(), dstMha.getRegionId());
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(StringUtils.trim(dstMha.getName()), dstMha.getBuId(), dstMha.getRegionId());
                 if (CollectionUtils.isEmpty(mhaTblV2Map)) {
                     return ApiResult.getSuccessInstance(PageResult.emptyResult());
                 }
@@ -108,12 +109,19 @@ public class MhaReplicationController {
                         String.format("dstMhaTbl 不存在. replicationTbl:%s, dstMhaTblId:%d", replicationTbl, replicationTbl.getDstMhaId())
                 );
             }
+            // source
             vo.setSrcMhaName(srcMhaTbl.getMhaName());
-            vo.setDstMhaName(dstMhaTbl.getMhaName());
             vo.setSrcBuId(srcMhaTbl.getBuId());
-            vo.setDstBuId(dstMhaTbl.getBuId());
+            vo.setSrcDcId(srcMhaTbl.getDcId());
             vo.setSrcMhaMonitorSwitch(srcMhaTbl.getMonitorSwitch());
+
+            // destination
+            vo.setDstMhaName(dstMhaTbl.getMhaName());
+            vo.setDstBuId(dstMhaTbl.getBuId());
+            vo.setDstDcId(dstMhaTbl.getDcId());
             vo.setDstMhaMonitorSwitch(dstMhaTbl.getMonitorSwitch());
+
+            // other
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));
             vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
             vo.setStatus(DEFAULT_REPLICATION_STATUS);

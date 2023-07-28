@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.ctrip.framework.drc.console.dao.BuTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -48,6 +49,16 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     public List<RegionTbl> queryAllRegion() {
         try {
             return regionTblDao.queryAll();
+        } catch (SQLException e) {
+            logger.error("queryAllRegion exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public List<DcTbl> queryAllDcWithCache() {
+        try {
+            return dcTblDao.queryAll();
         } catch (SQLException e) {
             logger.error("queryAllRegion exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);

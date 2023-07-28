@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
@@ -109,7 +111,7 @@ public class MetaControllerV2 {
 
     @GetMapping("regions/all")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<BuTbl>> getAllRegionTbls() {
+    public ApiResult<List<RegionTbl>> getAllRegionTbls() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllRegion());
         } catch (ConsoleException e) {
@@ -117,6 +119,20 @@ public class MetaControllerV2 {
             return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
             logger.error("[meta] getAllBuTbls error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
+    @GetMapping("dcs/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<DcTbl>> getAllDcs() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllDcWithCache());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllDcs exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllDcs error", e);
             return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
         }
     }

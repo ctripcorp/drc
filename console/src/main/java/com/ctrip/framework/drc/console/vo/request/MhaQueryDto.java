@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.console.vo.request;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class MhaQueryDto {
+import java.io.Serializable;
+
+public class MhaQueryDto implements Serializable {
 
     private String name;
 
@@ -11,7 +13,7 @@ public class MhaQueryDto {
     private Long regionId;
 
     public boolean isConditionalQuery() {
-        return StringUtils.isNotEmpty(name)
+        return StringUtils.isNotBlank(name)
                 || (buId != null && buId > 0)
                 || (regionId != null && regionId > 0);
     }
