@@ -380,7 +380,7 @@ public class TransferServiceImpl implements TransferService {
         dalUtils.getReplicatorTblDao().update(replicatorTblsToBeDeleted);
         dalUtils.getApplierTblDao().update(applierTblsToBeDeleted);
 
-        if (CollectionUtils.isEmpty(deletedMhaTbls)) {
+        if (!CollectionUtils.isEmpty(deletedMhaTbls)) {
             logger.info("delete mhaTblV2: {}", deletedMhaTbls);
             mhaTblV2Dao.batchUpdate(deletedMhaTbls);
         }

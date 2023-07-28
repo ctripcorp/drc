@@ -97,7 +97,7 @@ public class DrcDoubleWriteServiceTest {
         Mockito.when(applierTblDao.queryByApplierGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(getApplierTbls());
         Mockito.when(mhaTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getMhaTblV2());
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
-        Mockito.when(drcBuildService.queryDbsWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("db200"));
+        Mockito.when(drcBuildService.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("db200.table1", "db201.table2"));
 
 
         drcDoubleWriteService.configureMhaReplication(200L);

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.AbstractIntegrationTest;
 import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import org.junit.Assert;
 import org.junit.Before;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.AllTests.ciEndpoint;
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 
 /**
@@ -105,6 +107,11 @@ public class DrcDoubleWriteServiceIntegrationTest extends AbstractIntegrationTes
         messengerGroupTblDao.insert(new DalHints().enableIdentityInsert(), getMessengerGroup());
         messengerTblDao.insert(new DalHints().enableIdentityInsert(), getMessenger());
         dataMediaPairTblDao.insert(new DalHints().enableIdentityInsert(), getDataMediaPairTbl());
+    }
+
+    @Test
+    public void testQueryDbs() {
+        List<String> dbs = MySqlUtils.queryDbsWithFilter(ciEndpoint, "");
     }
 
     @Test
