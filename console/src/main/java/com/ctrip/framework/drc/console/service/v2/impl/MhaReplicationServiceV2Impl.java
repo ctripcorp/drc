@@ -39,4 +39,14 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
+
+    @Override
+    public List<MhaReplicationTbl> queryRelatedReplications(Long relatedMhaId) {
+        try {
+            return mhaReplicationTblDao.queryByRelatedMhaId(relatedMhaId);
+        } catch (SQLException e) {
+            logger.error("queryRelatedReplications error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
 }

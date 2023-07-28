@@ -21,8 +21,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,36 @@ public class MhaReplicationController {
 
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+
+
+    @GetMapping("queryMhaRelated")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaGroupPairVo>> queryMhaReplications(@RequestParam(name = "relatedMhaId") Long relatedMhaId) {
+        logger.info("[meta] queryMhaReplications:{}", relatedMhaId);
+        try {
+            if (relatedMhaId == null || relatedMhaId <= 0) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "relatedMhaId不可为空，请联系开发！");
+            }
+
+            // query related replications
+            List<MhaReplicationTbl> data = mhaReplicationServiceV2.queryRelatedReplications(relatedMhaId);
+            if (CollectionUtils.isEmpty(data)) {
+                return ApiResult.getSuccessInstance(Collections.emptyList());
+            }
+
+            // query mha detail
+            Set<Long> mhaIdSet = Sets.newHashSet();
+            mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getSrcMhaId).collect(Collectors.toSet()));
+            mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
+            Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
+
+            // fill
+            return ApiResult.getSuccessInstance(this.buildVo(data, mhaTblMap));
+        } catch (Exception e) {
+            logger.error("queryMhaReplications error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
     @GetMapping("query")
     @SuppressWarnings("unchecked")

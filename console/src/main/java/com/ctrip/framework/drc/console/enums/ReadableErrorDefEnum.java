@@ -6,6 +6,9 @@ package com.ctrip.framework.drc.console.enums;
  * @author yongnian
  */
 public enum ReadableErrorDefEnum implements IErrorDef {
+
+    REQUEST_PARAM_INVALID("REQUEST_PARAM_INVALID", "请求参数异常"),
+
     /**
      * 查询正常，结果为空
      */

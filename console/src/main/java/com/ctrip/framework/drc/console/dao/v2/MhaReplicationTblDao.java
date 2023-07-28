@@ -50,6 +50,16 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
 
+    public List<MhaReplicationTbl> queryByRelatedMhaId(Long mhaId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectAll().and()
+                .leftBracket()
+                .equal(SRC_MHA_ID, mhaId, Types.BIGINT)
+                .or()
+                .equal(DST_MHA_ID, mhaId, Types.BIGINT)
+                .rightBracket();
+        return client.query(sqlBuilder, new DalHints());
+    }
 
     public MhaReplicationTbl queryByMhaId(Long srcMhaId, Long dstMhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
