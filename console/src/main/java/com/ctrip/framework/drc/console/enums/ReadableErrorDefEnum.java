@@ -10,7 +10,7 @@ public enum ReadableErrorDefEnum implements IErrorDef {
      * 查询正常，结果为空
      */
     QUERY_RESULT_EMPTY("QUERY_RESULT_EMPTY", "查询结果为空！"),
-    QUERY_DATA_INCOMPLETE("QUERY_DATA_INCOMPLETE", "查询结果不完整，请联系开发！"),
+    QUERY_DATA_INCOMPLETE("QUERY_DATA_INCOMPLETE", "查询异常，请联系开发！"),
 
 
     /**

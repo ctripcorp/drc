@@ -22,26 +22,31 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
     private static final String SRC_MHA_ID = "src_mha_id";
     private static final String DST_MHA_ID = "dst_mha_id";
     private static final String DELETED = "deleted";
+    private static final String DATA_CHANGE_LAST_TIME = "datachange_lasttime";
+
+    private static final boolean DESCENDING = false;
 
     public MhaReplicationTblDao() throws SQLException {
         super(MhaReplicationTbl.class);
     }
 
     public List<MhaReplicationTbl> queryByPage(MhaReplicationQuery query) throws SQLException {
-        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll()
-                .atPage(query.getPageIndex(), query.getPageSize())
-                .orderBy("src_mha_id", false)
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.atPage(query.getPageIndex(), query.getPageSize())
+                .orderBy(SRC_MHA_ID, DESCENDING)
+                .orderBy(DATA_CHANGE_LAST_TIME, DESCENDING)
+                .and()
                 .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
+
         return client.query(sqlBuilder, new DalHints());
     }
 
     public int count(MhaReplicationQuery query) throws SQLException {
-        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectCount()
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectCount().and()
                 .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDesMhaIdList(), Types.BIGINT);
+                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
 

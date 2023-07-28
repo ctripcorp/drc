@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.http;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,6 +19,14 @@ public class PageResult<T> {
         result.pageIndex = pageIndex;
         result.pageSize = pageSize;
         result.totalCount = totalCount;
+        return result;
+    }
+
+    public static <T> PageResult<T> emptyResult() {
+        PageResult<T> result = new PageResult<>();
+        result.data = Collections.emptyList();
+        result.pageIndex = 1;
+        result.totalCount = 0;
         return result;
     }
 

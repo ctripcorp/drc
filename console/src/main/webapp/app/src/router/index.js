@@ -166,6 +166,11 @@ const routes = [
     name: 'mqConfigs',
     component: () => import('../views/drcConfig/mqConfigs.vue')
   },
+  // v2 new model
+  {
+    path: '/mhaReplications',
+    component: () => import('../views/v2/mhaReplications.vue')
+  },
   {
     path: '/',
     redirect: '/home'

@@ -35,8 +35,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             int count = mhaReplicationTblDao.count(query);
             return PageResult.newInstance(data, query.getPageIndex(), query.getPageSize(), count);
         } catch (SQLException e) {
-            logger.error("sql error", e);
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e.getMessage());
+            logger.error("queryByPage error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 }

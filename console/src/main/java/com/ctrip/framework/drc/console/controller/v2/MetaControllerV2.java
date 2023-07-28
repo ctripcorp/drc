@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -29,7 +34,10 @@ public class MetaControllerV2 {
 
     @Autowired
     private MetaGrayService metaServiceV2;
-    
+
+    @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
+
     @Autowired
     private MetaGeneratorV2 metaGeneratorV2;
 
@@ -84,4 +92,33 @@ public class MetaControllerV2 {
             return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }
+
+    @GetMapping("bus/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<BuTbl>> getAllBuTbls() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllBu());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllBuTbls error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
+    @GetMapping("regions/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<BuTbl>> getAllRegionTbls() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllRegion());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllBuTbls error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
 }

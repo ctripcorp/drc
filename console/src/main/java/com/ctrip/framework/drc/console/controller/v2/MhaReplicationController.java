@@ -8,12 +8,12 @@ import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaGroupPairVo;
-import com.ctrip.framework.drc.console.vo.request.DrcGroupQueryDto;
+import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
+import com.ctrip.framework.drc.console.vo.request.MhaReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,43 +33,46 @@ import java.util.stream.Collectors;
 public class MhaReplicationController {
     private static final Logger logger = LoggerFactory.getLogger(MhaReplicationController.class);
 
+    private static final Integer DEFAULT_REPLICATION_STATUS = 1;
+
     @Autowired
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     @Autowired
     private MhaServiceV2 mhaServiceV2;
 
-
     @GetMapping("query")
     @SuppressWarnings("unchecked")
-    public ApiResult<PageResult<MhaGroupPairVo>> listOrderedGroupsByPage(DrcGroupQueryDto queryDto) {
-        logger.info("[meta] get allOrderedGroup,drcGroupQueryDto:{}", queryDto);
+    public ApiResult<PageResult<MhaGroupPairVo>> queryMhaReplicationsByPage(MhaReplicationQueryDto queryDto) {
+        logger.info("[meta] get allOrderedGroup,drcGroupQueryDto:{}", queryDto.toString());
         try {
             MhaReplicationQuery query = new MhaReplicationQuery();
             query.setPageIndex(queryDto.getPageIndex());
             query.setPageSize(queryDto.getPageSize());
 
-            // filter condition 1：mha names
-            if (StringUtils.isNotBlank(queryDto.getSrcMha())) {
-                List<Long> srcMhaIds = this.queryMhaIdsByNames(queryDto.getSrcMha().trim());
-                if (CollectionUtils.isEmpty(srcMhaIds)) {
-                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY);
+            // convert query condition
+            MhaQueryDto srcMha = queryDto.getSrcMha();
+            if (srcMha != null && srcMha.isConditionalQuery()) {
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(srcMha.getName(), srcMha.getBuId(), srcMha.getRegionId());
+                if (CollectionUtils.isEmpty(mhaTblV2Map)) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
                 }
-                query.setSrcMhaIdList(srcMhaIds);
+                query.setSrcMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
-            if (StringUtils.isNotBlank(queryDto.getDestMha())) {
-                List<Long> destMhaIds = this.queryMhaIdsByNames(queryDto.getDestMha().trim());
-                if (CollectionUtils.isEmpty(destMhaIds)) {
-                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY);
+            MhaQueryDto dstMha = queryDto.getDstMha();
+            if (dstMha != null && dstMha.isConditionalQuery()) {
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(dstMha.getName(), dstMha.getBuId(), dstMha.getRegionId());
+                if (CollectionUtils.isEmpty(mhaTblV2Map)) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
                 }
-                query.setDesMhaIdList(destMhaIds);
+                query.setDstMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
 
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);
             List<MhaReplicationTbl> data = tblPageResult.getData();
             if (tblPageResult.getTotalCount() == 0) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY);
+                return ApiResult.getSuccessInstance(PageResult.emptyResult());
             }
 
             // query mha detail information
@@ -83,7 +86,7 @@ public class MhaReplicationController {
                     PageResult.newInstance(res, tblPageResult.getPageIndex(), tblPageResult.getPageSize(), tblPageResult.getTotalCount())
             );
         } catch (Exception e) {
-            logger.error("[meta] get MhaGroup error", e);
+            logger.error("queryMhaReplicationsByPage error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -105,23 +108,16 @@ public class MhaReplicationController {
                         String.format("dstMhaTbl 不存在. replicationTbl:%s, dstMhaTblId:%d", replicationTbl, replicationTbl.getDstMhaId())
                 );
             }
-            vo.setSrcMha(srcMhaTbl.getMhaName());
-            vo.setDstMha(dstMhaTbl.getMhaName());
-            vo.setBuId(srcMhaTbl.getBuId());
+            vo.setSrcMhaName(srcMhaTbl.getMhaName());
+            vo.setDstMhaName(dstMhaTbl.getMhaName());
+            vo.setSrcBuId(srcMhaTbl.getBuId());
+            vo.setDstBuId(dstMhaTbl.getBuId());
             vo.setSrcMhaMonitorSwitch(srcMhaTbl.getMonitorSwitch());
             vo.setDstMhaMonitorSwitch(dstMhaTbl.getMonitorSwitch());
+            vo.setReplicationId(String.valueOf(replicationTbl.getId()));
+            vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
+            vo.setStatus(DEFAULT_REPLICATION_STATUS);
             return vo;
         }).collect(Collectors.toList());
     }
-
-    /**
-     * @param mhaNames mha names joined by ','. e.g. "mha1,mha2"
-     * @return corresponding mha id list. Throws exception if result is empty
-     */
-    private List<Long> queryMhaIdsByNames(String mhaNames) {
-        List<String> srcMhaNameList = Lists.newArrayList(mhaNames.trim().split(",")).stream().distinct().collect(Collectors.toList());
-        Map<String, MhaTblV2> mhaTblV2Map = mhaServiceV2.queryMhaByNames(srcMhaNameList);
-        return mhaTblV2Map.values().stream().map(MhaTblV2::getId).collect(Collectors.toList());
-    }
-
 }

@@ -20,4 +20,8 @@ public class ConsoleExceptionUtils {
     public static ConsoleException message(IErrorDef readableErrorDefEnum, String extraMsg) {
         return new ConsoleException(String.join("/", readableErrorDefEnum.getMessage(), extraMsg));
     }
+
+    public static ConsoleException message(IErrorDef readableErrorDefEnum, Throwable e) {
+        return new ConsoleException(readableErrorDefEnum.getMessage(), e);
+    }
 }

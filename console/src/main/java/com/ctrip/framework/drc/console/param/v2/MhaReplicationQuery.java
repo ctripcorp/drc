@@ -6,14 +6,14 @@ import java.util.List;
 
 public class MhaReplicationQuery extends PageReq {
     private List<Long> srcMhaIdList;
-    private List<Long> desMhaIdList;
+    private List<Long> dstMhaIdList;
 
-    public List<Long> getDesMhaIdList() {
-        return desMhaIdList;
+    public List<Long> getDstMhaIdList() {
+        return dstMhaIdList;
     }
 
-    public void setDesMhaIdList(List<Long> desMhaIdList) {
-        this.desMhaIdList = desMhaIdList;
+    public void setDstMhaIdList(List<Long> dstMhaIdList) {
+        this.dstMhaIdList = dstMhaIdList;
     }
 
     public List<Long> getSrcMhaIdList() {

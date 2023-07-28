@@ -1,9 +1,17 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,17 +37,36 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
 
+    @Autowired
+    private DcTblDao dcTblDao;
+
+    @Autowired
+    private RegionTblDao regionTblDao;
+
     @Override
-    public Map<String, MhaTblV2> queryMhaByNames(List<String> mhaNames) {
-        if (CollectionUtils.isEmpty(mhaNames)) {
-            return Collections.emptyMap();
-        }
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public Map<Long, MhaTblV2> query(String containMhaName, Long buId, Long regionId) {
         try {
-            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(mhaNames);
-            return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, Function.identity(), (e1, e2) -> e1));
+            MhaQuery mhaQuery = new MhaQuery();
+            mhaQuery.setContainMhaName(containMhaName);
+            mhaQuery.setBuId(buId);
+            if (regionId != null && regionId > 0) {
+                RegionTbl regionTbl = regionTblDao.queryById(regionId);
+                if (regionTbl == null || StringUtils.isEmpty(regionTbl.getRegionName())) {
+                    return Collections.emptyMap();
+                }
+                List<DcTbl> dcTblList = dcTblDao.queryByRegionName(regionTbl.getRegionName());
+                mhaQuery.setDcIdList(dcTblList.stream().map(DcTbl::getId).collect(Collectors.toList()));
+            }
+
+            if (mhaQuery.emptyQueryCondition()) {
+                return Collections.emptyMap();
+            }
+            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.query(mhaQuery);
+            return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity(), (e1, e2) -> e1));
         } catch (SQLException e) {
-            logger.error("queryByMhaNames exception", e);
-            throw ConsoleExceptionUtils.message("查询 mhaTbl 失败，请重试或联系开发。错误信息：" + e.getMessage());
+            logger.error("queryMhaByName exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 
