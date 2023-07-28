@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
@@ -24,15 +27,51 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired
+    private MhaTblV2Dao mhaTblDao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMha(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
         String clusterName = param.getDstMhaName() + CLUSTER_NAME_SUFFIX;
         MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), param.getSrcDcId(), param.getBuId(), clusterName);
         MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), param.getDstDcId(), param.getBuId(), clusterName);
+
+        long srcMhaId = insertMha(srcMha);
+        long dstMhaId = insertMha(dstMha);
+        insertMhaReplication(srcMhaId, dstMhaId);
+        insertMhaReplication(dstMhaId, srcMhaId);
+    }
+
+    private void insertMhaReplication(long srcMhaId, long dstMhaId) throws Exception {
+        MhaReplicationTbl existMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId, BooleanEnum.FALSE.getCode());
+        if (existMhaReplication != null) {
+            logger.info("mhaReplication already exist, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+            return;
+        }
+
+        MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
+        mhaReplicationTbl.setSrcMhaId(srcMhaId);
+        mhaReplicationTbl.setDstMhaId(dstMhaId);
+        mhaReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
+        mhaReplicationTblDao.insert(mhaReplicationTbl);
+    }
+
+    private long insertMha(MhaTblV2 mhaTblV2) throws Exception {
+        MhaTblV2 existMhaTbl = mhaTblDao.queryByMhaName(mhaTblV2.getMhaName());
+        if (null == existMhaTbl) {
+            return mhaTblDao.insertWithReturnId(mhaTblV2);
+        } else if (existMhaTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())){
+            existMhaTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            mhaTblDao.update(existMhaTbl);
+        }
+        return existMhaTbl.getId();
     }
 
     private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String clusterName) {
