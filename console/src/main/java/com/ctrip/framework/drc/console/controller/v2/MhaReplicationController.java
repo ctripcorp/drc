@@ -1,13 +1,17 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaReplicationQueryDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -28,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -43,6 +48,9 @@ public class MhaReplicationController {
 
     @Autowired
     private MhaServiceV2 mhaServiceV2;
+
+    @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
 
     @GetMapping("queryMhaRelated")
@@ -125,10 +133,19 @@ public class MhaReplicationController {
     }
 
     private List<MhaGroupPairVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
+        // prepare meta data
+        List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
+        List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
+
+        Map<Long, DcDo> dcMap = dcDos.stream().collect(Collectors.toMap(DcDo::getDcId, Function.identity()));
+        Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
+
         return replicationTblList.stream().map(replicationTbl -> {
             MhaGroupPairVo vo = new MhaGroupPairVo();
             MhaTblV2 srcMhaTbl = mhaTblMap.get(replicationTbl.getSrcMhaId());
             MhaTblV2 dstMhaTbl = mhaTblMap.get(replicationTbl.getDstMhaId());
+
+            // pre-check data integrity
             if (srcMhaTbl == null) {
                 throw ConsoleExceptionUtils.message(
                         ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE,
@@ -141,19 +158,11 @@ public class MhaReplicationController {
                         String.format("dstMhaTbl 不存在. replicationTbl:%s, dstMhaTblId:%d", replicationTbl, replicationTbl.getDstMhaId())
                 );
             }
-            // source
-            vo.setSrcMhaName(srcMhaTbl.getMhaName());
-            vo.setSrcBuId(srcMhaTbl.getBuId());
-            vo.setSrcDcId(srcMhaTbl.getDcId());
-            vo.setSrcMhaMonitorSwitch(srcMhaTbl.getMonitorSwitch());
+            // set vo: mha
+            vo.setSrcMha(MhaVo.from(srcMhaTbl, dcMap.get(srcMhaTbl.getDcId()), buMap.get(srcMhaTbl.getBuId())));
+            vo.setDstMha(MhaVo.from(dstMhaTbl, dcMap.get(dstMhaTbl.getDcId()), buMap.get(dstMhaTbl.getBuId())));
 
-            // destination
-            vo.setDstMhaName(dstMhaTbl.getMhaName());
-            vo.setDstBuId(dstMhaTbl.getBuId());
-            vo.setDstDcId(dstMhaTbl.getDcId());
-            vo.setDstMhaMonitorSwitch(dstMhaTbl.getMonitorSwitch());
-
-            // other
+            // set vo: replication
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));
             vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
             vo.setStatus(DEFAULT_REPLICATION_STATUS);

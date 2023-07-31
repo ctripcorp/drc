@@ -104,15 +104,38 @@ export default {
         {
           title: '序号',
           key: 'replicationId',
-          width: 80
+          width: 80,
+          render: (h, params) => {
+            const row = params.row
+            const type = 'success'
+            const text = '拓扑'
+
+            return h('Button', {
+              props: {
+                type: type,
+                size: 'small'
+              },
+              on: {
+                click: () => {
+                  this.goToLink(row)
+                }
+              }
+            }, text)
+          }
         },
         {
           title: '源集群名',
-          key: 'srcMhaName'
+          key: 'srcMhaName',
+          render: (h, params) => {
+            return h('p', params.row.srcMha.name)
+          }
         },
         {
           title: '目标集群名',
-          key: 'dstMhaName'
+          key: 'dstMha.name',
+          render: (h, params) => {
+            return h('p', params.row.dstMha.name)
+          }
         },
         {
           title: '地域',
@@ -120,7 +143,7 @@ export default {
           render: (h, params) => {
             const row = params.row
             const color = 'blue'
-            const text = this.dcRegionMaps.get(row.srcDcId) + ' -> ' + this.dcRegionMaps.get(row.dstDcId)
+            const text = row.srcMha.regionName + ' -> ' + row.dstMha.regionName
             return h('Tag', {
               props: {
                 color: color
@@ -134,10 +157,10 @@ export default {
           render: (h, params) => {
             const row = params.row
             let color = 'blue'
-            let text = this.buIdMaps.get(row.srcBuId)
-            if (row.srcBuId !== row.dstBuId) {
+            let text = row.srcMha.buName
+            if (row.srcMha.buId !== row.dstMha.buId) {
               color = 'red'
-              text = this.buIdMaps.get(row.srcBuId) + ' -> ' + this.buIdMaps.get(row.dstBuId)
+              text = row.srcMha.buName + ' -> ' + row.dstMha.buName
             }
             return h('Tag', {
               props: {
@@ -171,7 +194,7 @@ export default {
             return h('i-switch', {
               props: {
                 size: 'large',
-                value: row.srcMhaMonitorSwitch === 1,
+                value: row.srcMha.monitorSwitch === 1,
                 beforeChange: this.handleBeforeChange
               },
               scopedSlots: {
@@ -180,13 +203,13 @@ export default {
               },
               on: {
                 'on-change': () => {
-                  this.switchMonitor(row.srcMhaName, row.srcMhaMonitorSwitch)
+                  this.switchMonitor(row.srcMha.name, row.srcMha.monitorSwitch)
                 }
               },
               nativeOn: {
                 mousedown: () => { // 监听组件原生事件mousedown,此事件在click之前触发
                   this.switchOneInfo = {
-                    srcMhaMonitorSwitch: row.srcMhaMonitorSwitch
+                    srcMhaMonitorSwitch: row.srcMha.monitorSwitch
                   }
                 }
               }
@@ -203,7 +226,7 @@ export default {
             return h('i-switch', {
               props: {
                 size: 'large',
-                value: row.dstMhaMonitorSwitch === 1,
+                value: row.dstMha.monitorSwitch === 1,
                 beforeChange: this.handleBeforeChange
               },
               scopedSlots: {
@@ -212,13 +235,13 @@ export default {
               },
               on: {
                 'on-change': () => {
-                  this.switchMonitor(row.dstMhaName, row.dstMhaMonitorSwitch)
+                  this.switchMonitor(row.dstMha.mame, row.dstMha.monitorSwitch)
                 }
               },
               nativeOn: {
                 mousedown: () => { // 监听组件原生事件mousedown,此事件在click之前触发
                   this.switchOneInfo = {
-                    dstMhaMonitorSwitch: row.dstMhaMonitorSwitch
+                    dstMhaMonitorSwitch: row.dstMha.monitorSwitch
                   }
                 }
               }
@@ -248,31 +271,27 @@ export default {
       this.axios.get('/api/drc/v2/meta/bus/all')
         .then(response => {
           this.bus = response.data.data
-          this.buIdMaps = new Map()
-          this.bus.forEach((item, index) => {
-            this.buIdMaps.set(item.id, item.buName)
-          })
         })
     },
     getRegions () {
       this.axios.get('/api/drc/v2/meta/regions/all')
         .then(response => {
           this.regions = response.data.data
-          this.regionIdMaps = new Map()
-          this.regions.forEach((item, index) => {
-            this.regionIdMaps.set(item.id, item.regionName)
-          })
         })
     },
-    getDcs () {
-      this.axios.get('/api/drc/v2/meta/dcs/all')
-        .then(response => {
-          this.dcs = response.data.data
-          this.dcRegionMaps = new Map()
-          this.dcs.forEach((item, index) => {
-            this.dcRegionMaps.set(item.id, item.regionName)
-          })
-        })
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     getReplications () {
       const that = this
@@ -282,21 +301,8 @@ export default {
         pageIndex: this.current,
         pageSize: this.size
       }
-      const flattenObj = (ob) => {
-        const result = {}
-        for (const i in ob) {
-          if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
-            const temp = flattenObj(ob[i])
-            for (const j in temp) {
-              result[i + '.' + j] = temp[j]
-            }
-          } else {
-            result[i] = ob[i]
-          }
-        }
-        return result
-      }
-      const reqParam = flattenObj(params)
+
+      const reqParam = this.flattenObj(params)
       that.dataLoading = true
       that.axios.get('/api/drc/v2/replication/query', { params: reqParam })
         .then(response => {
@@ -362,6 +368,15 @@ export default {
     checkConfig (row, index) {
       console.log(row.srcMha)
       console.log(row.destMha)
+    },
+    goToLink (row) {
+      console.log('go to detail information for:' + row.srcMha.name)
+      const mhaId = row.srcMha.id
+      // this.$router.push({ path: '/access', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
+      this.$router.push({
+        path: '/v2/mhaReplicationDetails',
+        query: { mhaId: mhaId }
+      })
     }
   },
   created () {

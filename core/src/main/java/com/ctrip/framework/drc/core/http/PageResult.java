@@ -3,10 +3,6 @@ package com.ctrip.framework.drc.core.http;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Created by mingdongli
- * 2019/11/23 下午7:22.
- */
 public class PageResult<T> {
     private List<T> data;
     private int pageIndex;

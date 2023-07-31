@@ -3,15 +3,11 @@ package com.ctrip.framework.drc.console.vo.display.v2;
 public class MhaGroupPairVo {
 
     private String replicationId;
-    private String srcMhaName;
-    private String dstMhaName;
+    private MhaVo srcMha;
+    private MhaVo dstMha;
+
+    // connection status
     private Integer status;
-    private Long srcBuId;
-    private Long dstBuId;
-    private Long srcDcId;
-    private Long dstDcId;
-    private Integer srcMhaMonitorSwitch;
-    private Integer dstMhaMonitorSwitch;
     private Long datachangeLasttime;
 
     public String getReplicationId() {
@@ -22,60 +18,20 @@ public class MhaGroupPairVo {
         this.replicationId = replicationId;
     }
 
-    public String getSrcMhaName() {
-        return srcMhaName;
+    public MhaVo getSrcMha() {
+        return srcMha;
     }
 
-    public void setSrcMhaName(String srcMhaName) {
-        this.srcMhaName = srcMhaName;
+    public void setSrcMha(MhaVo srcMha) {
+        this.srcMha = srcMha;
     }
 
-    public String getDstMhaName() {
-        return dstMhaName;
+    public MhaVo getDstMha() {
+        return dstMha;
     }
 
-    public void setDstMhaName(String dstMhaName) {
-        this.dstMhaName = dstMhaName;
-    }
-
-    public Long getSrcBuId() {
-        return srcBuId;
-    }
-
-    public void setSrcBuId(Long srcBuId) {
-        this.srcBuId = srcBuId;
-    }
-
-    public Long getDstBuId() {
-        return dstBuId;
-    }
-
-    public void setDstBuId(Long dstBuId) {
-        this.dstBuId = dstBuId;
-    }
-
-    public Integer getSrcMhaMonitorSwitch() {
-        return srcMhaMonitorSwitch;
-    }
-
-    public void setSrcMhaMonitorSwitch(Integer srcMhaMonitorSwitch) {
-        this.srcMhaMonitorSwitch = srcMhaMonitorSwitch;
-    }
-
-    public Integer getDstMhaMonitorSwitch() {
-        return dstMhaMonitorSwitch;
-    }
-
-    public void setDstMhaMonitorSwitch(Integer dstMhaMonitorSwitch) {
-        this.dstMhaMonitorSwitch = dstMhaMonitorSwitch;
-    }
-
-    public Long getDatachangeLasttime() {
-        return datachangeLasttime;
-    }
-
-    public void setDatachangeLasttime(Long datachangeLasttime) {
-        this.datachangeLasttime = datachangeLasttime;
+    public void setDstMha(MhaVo dstMha) {
+        this.dstMha = dstMha;
     }
 
     public Integer getStatus() {
@@ -86,19 +42,11 @@ public class MhaGroupPairVo {
         this.status = status;
     }
 
-    public Long getSrcDcId() {
-        return srcDcId;
+    public Long getDatachangeLasttime() {
+        return datachangeLasttime;
     }
 
-    public void setSrcDcId(Long srcDcId) {
-        this.srcDcId = srcDcId;
-    }
-
-    public Long getDstDcId() {
-        return dstDcId;
-    }
-
-    public void setDstDcId(Long dstDcId) {
-        this.dstDcId = dstDcId;
+    public void setDatachangeLasttime(Long datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 }

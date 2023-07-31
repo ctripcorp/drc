@@ -1,17 +1,14 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,10 +35,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private MhaTblV2Dao mhaTblV2Dao;
 
     @Autowired
-    private DcTblDao dcTblDao;
-
-    @Autowired
-    private RegionTblDao regionTblDao;
+    private MetaInfoServiceV2 metaInfoServiceV2;
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -51,12 +45,15 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             mhaQuery.setContainMhaName(containMhaName);
             mhaQuery.setBuId(buId);
             if (regionId != null && regionId > 0) {
-                RegionTbl regionTbl = regionTblDao.queryById(regionId);
-                if (regionTbl == null || StringUtils.isEmpty(regionTbl.getRegionName())) {
+                List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
+                List<Long> dcIdList = dcDos.stream()
+                        .filter(e -> regionId.equals(e.getRegionId()))
+                        .map(DcDo::getDcId)
+                        .collect(Collectors.toList());
+                if (CollectionUtils.isEmpty(dcIdList)) {
                     return Collections.emptyMap();
                 }
-                List<DcTbl> dcTblList = dcTblDao.queryByRegionName(regionTbl.getRegionName());
-                mhaQuery.setDcIdList(dcTblList.stream().map(DcTbl::getId).collect(Collectors.toList()));
+                mhaQuery.setDcIdList(dcIdList);
             }
 
             if (mhaQuery.emptyQueryCondition()) {

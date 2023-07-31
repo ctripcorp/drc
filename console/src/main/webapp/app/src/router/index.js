@@ -172,6 +172,10 @@ const routes = [
     component: () => import('../views/v2/mhaReplications.vue')
   },
   {
+    path: '/v2/mhaReplicationDetails',
+    component: () => import('../views/v2/mhaReplicationDetails.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }
