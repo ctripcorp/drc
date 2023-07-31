@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.mock.LocalMasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.console.mock.LocalSlaveMySQLEndpointObservable;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
@@ -59,7 +60,7 @@ public class UuidMonitorTest extends AbstractTest {
     private DefaultCurrentMetaManager currentMetaManager;
 
     @Mock
-    private DbClusterSourceProvider sourceProvider;
+    private DataCenterService dataCenterService;
 
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
@@ -107,7 +108,7 @@ public class UuidMonitorTest extends AbstractTest {
         Map<String, String> consoleDcInfos = Maps.newHashMap();
         consoleDcInfos.put("shaoy", "uri");
         Mockito.when(consoleConfig.getConsoleDcInfos()).thenReturn(consoleDcInfos);
-        Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
+        Mockito.doReturn(DC1).when(dataCenterService).getDc();
 //        Mockito.doNothing().when(currentMetaManager).addObserver(uuidMonitor);
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getUuidMonitorSwitch();
         Mockito.doReturn(SWITCH_STATUS_ON).when(monitorTableSourceProvider).getUuidCorrectSwitch();
@@ -156,7 +157,7 @@ public class UuidMonitorTest extends AbstractTest {
 
     @Test
     public void testInit() {
-        verify(sourceProvider, times(1)).getLocalDcName();
+        verify(dataCenterService, times(1)).getDc();
         verify(currentMetaManager, times(1)).addObserver(uuidMonitor);
     }
 

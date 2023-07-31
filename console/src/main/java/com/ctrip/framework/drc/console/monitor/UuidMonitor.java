@@ -4,7 +4,7 @@ package com.ctrip.framework.drc.console.monitor;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.console.service.impl.openapi.OpenService;
 import com.ctrip.framework.drc.console.task.AbstractAllMySQLEndPointObserver;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.service.utils.Constants;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.vo.response.UuidResponseVo;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
@@ -58,7 +57,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
     @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    private DataCenterService dataCenterService;
 
     @Autowired
     private DefaultCurrentMetaManager currentMetaManager;
@@ -72,7 +71,8 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
     @Autowired
     private OpenService openService;
 
-    private MachineTblDao machineTblDao = DalUtils.getInstance().getMachineTblDao();
+    @Autowired
+    private MachineTblDao machineTblDao;
     
     private static final String UUID_ERROR_NUM_MEASUREMENT = "fx.drc.uuid.errorNums";
     protected static final String ALI_RDS = "/*FORCE_MASTER*/";
@@ -303,7 +303,7 @@ public class UuidMonitor extends AbstractAllMySQLEndPointObserver implements Mas
 
     @Override
     public void setLocalDcName() {
-        localDcName = sourceProvider.getLocalDcName();
+        localDcName = dataCenterService.getDc();
     }
     
     @Override
