@@ -17,4 +17,6 @@ public interface DrcBuildServiceV2 {
     void buildDrc(DrcBuildParam param) throws Exception;
 
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;
+
+    void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
 }

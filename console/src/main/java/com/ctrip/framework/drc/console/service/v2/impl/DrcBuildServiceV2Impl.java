@@ -78,6 +78,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
+    @Autowired
+    private DbReplicationFilterMappingTblDao dBReplicationFilterMappingTblDao;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
@@ -97,6 +99,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildDrc(DrcBuildParam param) throws Exception {
         checkDrcBuildParam(param);
         DrcBuildBaseParam srcBuildParam = param.getSrcBuildParam();
@@ -123,6 +126,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
         checkDbReplicationBuildParam(param);
         MhaTblV2 srcMha = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
@@ -136,6 +140,29 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha.getId(), dstMha.getId(), dbList, nameFilter);
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
         return dbReplicationIds;
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteDbReplications(List<Long> dbReplicationIds) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            throw ConsoleExceptionUtils.message("delete dbReplications are empty!");
+        }
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+            logger.info("dbReplicationTbls not exist");
+            return;
+        }
+        dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dBReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
+            logger.info("dbReplicationFilterMappingTbls not exist");
+            return;
+        }
+        dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        dBReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
     }
 
     private List<DbReplicationTbl> insertDbReplications(long srcMhaId, long dstMhaId, List<String> dbList, String nameFilter) throws Exception {
