@@ -18,19 +18,27 @@ import java.util.List;
 public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
 
     private static final String MHA_NAME = "mha_name";
+    private static final String DELETED = "deleted";
+
     public MhaTblV2Dao() throws SQLException {
         super(MhaTblV2.class);
     }
 
     public MhaTblV2 queryByMhaName(String mhaName) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.and().equal(MHA_NAME, mhaName, Types.VARCHAR);
+        sqlBuilder.selectAll().equal(MHA_NAME, mhaName, Types.VARCHAR);
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 
     public List<MhaTblV2> queryByMhaNames(List<String> mhaNames) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.and().in(MHA_NAME, mhaNames, Types.VARCHAR);
+        sqlBuilder.selectAll().in(MHA_NAME, mhaNames, Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
+    }
+
+    public MhaTblV2 queryByMhaName(String mhaName, int deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, deleted, Types.TINYINT).and().equal(MHA_NAME, mhaName, Types.VARCHAR);
+        return client.queryFirst(sqlBuilder, new DalHints());
     }
 }
