@@ -35,8 +35,8 @@ public class MetaControllerV2 {
 
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh" , required = false, defaultValue = "false") String refresh) {
-        logger.info("[meta] get all");
         try {
+            logger.info("[meta] get all");
             Drc drc;
             if (StringUtils.equals("true",refresh)) {
                 metaProviderV2.scheduledTask();
@@ -47,15 +47,15 @@ public class MetaControllerV2 {
             logger.info("drc:\n {}", drc.toString());
             return drc.toString();
         } catch (Exception e) {
-            logger.error("get drc fail: {}", e);
+            logger.error("get drc fail", e);
             return "get drc fail";
         }
     }
 
     @GetMapping("compareRes")
     public ApiResult<String> compareOldNewMeta() {
-        logger.info("[[tag=metaCompare]] start compareOldNewMeta");
         try {
+            logger.info("[[tag=metaCompare]] start compareOldNewMeta");
             String compareRecorder = metaServiceV2.compareDrcMeta();
             if (compareRecorder.contains("not equal") || compareRecorder.contains("empty") || compareRecorder.contains("fail")) {
                 return ApiResult.getSuccessInstance(compareRecorder,"not equal");
@@ -70,8 +70,8 @@ public class MetaControllerV2 {
 
     @GetMapping("compareRes/dbcluster")
     public ApiResult<DbClusterCompareRes> compareOldNewMeta(@RequestParam String dbclusterId) {
-        logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}",dbclusterId);
         try {
+            logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}",dbclusterId);
             DbClusterCompareRes res = metaServiceV2.compareDbCluster(dbclusterId);
             String compareRes = res.getCompareRes();
             if (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail")) {
@@ -84,4 +84,5 @@ public class MetaControllerV2 {
             return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }
+    
 }

@@ -7,8 +7,10 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.MessengerService;
 import com.ctrip.framework.drc.console.service.OpenApiService;
+import com.ctrip.framework.drc.console.service.v2.MetaCacheService;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
 import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
@@ -16,6 +18,7 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
+import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
@@ -55,9 +58,7 @@ public class OpenApiServiceImpl implements OpenApiService {
     
     @Autowired private MetaInfoServiceImpl metaInfoService;
     
-    @Autowired private MessengerService messengerService;
-    
-    @Autowired private DbClusterSourceProvider  dbClusterSourceProvider;
+    @Autowired private MetaProviderV2 metaProviderV2;
     
     
     
@@ -112,7 +113,24 @@ public class OpenApiServiceImpl implements OpenApiService {
 
     @Override
     public List<MessengerInfo> getAllMessengersInfo() throws SQLException {
-        return messengerService.getAllMessengersInfo();
+        List<MessengerInfo> res = Lists.newArrayList();
+        Map<String, Dc> dcs = metaProviderV2.getDrc().getDcs();
+        for (Dc dc : dcs.values()) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            for (DbCluster dbCluster : dbClusters.values()) {
+                List<Messenger> messengers = dbCluster.getMessengers();
+                if (!CollectionUtils.isEmpty(messengers)) {
+                    for (Messenger messenger : messengers) {
+                        MessengerInfo mInfo = new MessengerInfo();
+                        mInfo.setMhaName(dbCluster.getMhaName());
+                        mInfo.setNameFilter(messenger.getNameFilter());
+                        res.add(mInfo);
+                        break;
+                    }
+                }
+            }
+        }
+        return res;
     }
 
     
@@ -120,7 +138,7 @@ public class OpenApiServiceImpl implements OpenApiService {
     @Override
     public List<DrcDbInfo> getDrcDbInfos(String dbName) {
         List<DrcDbInfo> res = Lists.newArrayList();
-        Drc drc = dbClusterSourceProvider.getDrc();
+        Drc drc = metaProviderV2.getDrc();
         for (Entry<String, Dc> dcInfo : drc.getDcs().entrySet()) {
             Dc dcMeta = dcInfo.getValue();
             String destRegion = dcMeta.getRegion();

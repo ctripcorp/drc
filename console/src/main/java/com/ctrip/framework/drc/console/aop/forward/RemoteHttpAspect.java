@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.aop;
+package com.ctrip.framework.drc.console.aop.forward;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -41,11 +41,11 @@ public class RemoteHttpAspect {
     
     private  DalUtils dalUtils = DalUtils.getInstance();
     
-    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.PossibleRemote)")
+    @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
     
     @Around(value = "pointCut() && @annotation(possibleRemote)")
-    public Object aroundOperate(ProceedingJoinPoint point,PossibleRemote possibleRemote) {
+    public Object aroundOperate(ProceedingJoinPoint point, PossibleRemote possibleRemote) {
         try {
             String localRegion = consoleConfig.getRegion();
             Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();

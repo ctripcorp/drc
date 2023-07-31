@@ -121,6 +121,8 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
 
     protected synchronized String getDrcMetaCompareRes() {
         try {
+            metaProviderV2.scheduledTask();
+            metaProviderV1.scheduledTask();
             Drc newDrc = metaProviderV2.getDrc();
             Drc oldDrc = metaProviderV1.getDrc();
             recorder = new StringBuilder();

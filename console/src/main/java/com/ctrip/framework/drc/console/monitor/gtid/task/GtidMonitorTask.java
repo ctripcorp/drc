@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.monitor.gtid.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtid;
@@ -32,20 +33,15 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Component
 public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver , LeaderSwitchable {
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DataCenterService dataCenterService;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    @Autowired private MetaInfoServiceImpl metaInfoService;
 
-    @Autowired
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Autowired private DefaultCurrentMetaManager currentMetaManager;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -87,7 +83,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     
     @Override
     public void setLocalDcName() {
-        localDcName = sourceProvider.getLocalDcName();
+        localDcName = dataCenterService.getDc();
     }
 
     @Override
