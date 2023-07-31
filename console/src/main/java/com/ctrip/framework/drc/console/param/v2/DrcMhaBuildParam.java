@@ -22,6 +22,26 @@ public class DrcMhaBuildParam {
                 '}';
     }
 
+    public void setSrcMhaName(String srcMhaName) {
+        this.srcMhaName = srcMhaName;
+    }
+
+    public void setDstMhaName(String dstMhaName) {
+        this.dstMhaName = dstMhaName;
+    }
+
+    public void setSrcDcId(Long srcDcId) {
+        this.srcDcId = srcDcId;
+    }
+
+    public void setDstDcId(Long dstDcId) {
+        this.dstDcId = dstDcId;
+    }
+
+    public void setBuId(Long buId) {
+        this.buId = buId;
+    }
+
     public String getSrcMhaName() {
         return srcMhaName;
     }

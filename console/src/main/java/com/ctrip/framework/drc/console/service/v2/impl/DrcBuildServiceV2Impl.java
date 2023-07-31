@@ -1,32 +1,35 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
 import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +55,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
     @Autowired
+    private MhaDbMappingService mhaDbMappingService;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
+    @Autowired
     private MhaTblV2Dao mhaTblDao;
     @Autowired
     private MhaReplicationTblDao mhaReplicationTblDao;
@@ -65,8 +72,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private ApplierTblV2Dao applierTblV2Dao;
     @Autowired
     private ResourceTblDao resourceTblDao;
+    @Autowired
+    private DbTblDao dbTblDao;
+    @Autowired
+    private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Autowired
+    private DbReplicationTblDao dbReplicationTblDao;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
+    private static final String DEFAULT_TABLE_NAME = ".*";
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -106,6 +120,74 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         configureApplierGroup(srcMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps());
         configureApplierGroup(dstMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps());
+    }
+
+    @Override
+    public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
+        checkDbReplicationBuildParam(param);
+        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
+        if (srcMha == null || dstMha == null) {
+            throw ConsoleExceptionUtils.message("srcMha or dstMha not exist");
+        }
+        String nameFilter = param.getDbName() + "\\." + param.getTableName();
+        List<String> dbList = mhaDbMappingService.buildMhaDbMappings(srcMha, dstMha, nameFilter);
+
+        List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha.getId(), dstMha.getId(), dbList, nameFilter);
+        List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        return dbReplicationIds;
+    }
+
+    private List<DbReplicationTbl> insertDbReplications(long srcMhaId, long dstMhaId, List<String> dbList, String nameFilter) throws Exception {
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMhaId);
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMhaId);
+        Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappings.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, MhaDbMappingTbl::getId));
+        Map<Long, Long> dstMhaDbMappingMap = dstMhaDbMappings.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, MhaDbMappingTbl::getId));
+
+        List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbList);
+        Map<String, Long> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getDbName, DbTbl::getId));
+
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        if (StringUtils.isBlank(nameFilter)) {
+            dbReplicationTbls.addAll(buildDbReplications(dbList, dbMap, srcMhaDbMappingMap, dstMhaDbMappingMap, DEFAULT_TABLE_NAME));
+        } else {
+            String[] dbFullNames = nameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+            String srcTableName = dbFullNames[1];
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(dbFullNames[0]);
+            List<String> dbNames = dbList.stream().filter(db -> aviatorRegexFilter.filter(db)).collect(Collectors.toList());
+
+            dbReplicationTbls.addAll(buildDbReplications(dbNames, dbMap, srcMhaDbMappingMap, dstMhaDbMappingMap, srcTableName));
+        }
+
+        dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
+        logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
+        return dbReplicationTbls;
+    }
+
+    private List<DbReplicationTbl> buildDbReplications(List<String> dbList,
+                                                       Map<String, Long> dbMap,
+                                                       Map<Long, Long> srcMhaDbMappingMap,
+                                                       Map<Long, Long> dstMhaDbMappingMap,
+                                                       String srcTableName) {
+        List<DbReplicationTbl> dbReplicationTbls = new ArrayList<>();
+        for (String dbName : dbList) {
+            long dbId = dbMap.get(dbName);
+            long srcMhaDbMappingId = srcMhaDbMappingMap.get(dbId);
+            long dstMhaDbMappingId = dstMhaDbMappingMap.get(dbId);
+            dbReplicationTbls.add(buildDbReplicationTbl(srcTableName, srcMhaDbMappingId, dstMhaDbMappingId, ReplicationTypeEnum.DB_TO_DB.getType()));
+        }
+        return dbReplicationTbls;
+    }
+
+    private DbReplicationTbl buildDbReplicationTbl(String srcTableName, long srcMhaDbMappingId, long dstMhaDbMappingId, int replicationType) {
+        DbReplicationTbl dbReplicationTbl = new DbReplicationTbl();
+        dbReplicationTbl.setSrcMhaDbMappingId(srcMhaDbMappingId);
+        dbReplicationTbl.setDstMhaDbMappingId(dstMhaDbMappingId);
+        dbReplicationTbl.setSrcLogicTableName(srcTableName);
+        dbReplicationTbl.setDstLogicTableName("");
+        dbReplicationTbl.setReplicationType(replicationType);
+        dbReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return dbReplicationTbl;
     }
 
     private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps) throws Exception {
@@ -283,6 +365,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkId(param.getBuId(), "buId requires not null!");
         PreconditionUtils.checkId(param.getSrcDcId(), "srcDcId requires not null!");
         PreconditionUtils.checkId(param.getDstDcId(), "dstDcId requires not null!");
+    }
 
+    private void checkDbReplicationBuildParam(DbReplicationBuildParam param) {
+        PreconditionUtils.checkNotNull(param);
+        PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
+        PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
+        PreconditionUtils.checkString(param.getDbName(), "dbName requires not empty!");
+        PreconditionUtils.checkString(param.getTableName(), "tableName requires not empty!");
     }
 }

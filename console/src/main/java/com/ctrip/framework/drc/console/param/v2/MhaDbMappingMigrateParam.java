@@ -10,9 +10,6 @@ public class MhaDbMappingMigrateParam {
     private String mhaName;
     private List<String > dbs;
 
-    public MhaDbMappingMigrateParam() {
-    }
-
     public MhaDbMappingMigrateParam(String mhaName, List<String> dbs) {
         this.mhaName = mhaName;
         this.dbs = dbs;
