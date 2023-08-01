@@ -13,15 +13,15 @@ public class ConsoleExceptionUtils {
         return new ConsoleException(message);
     }
 
-    public static ConsoleException message(IErrorDef readableErrorDefEnum) {
-        return new ConsoleException(readableErrorDefEnum.getMessage());
+    public static ConsoleException message(IErrorDef errorDef) {
+        return new ConsoleException(errorDef.getMessage());
     }
 
-    public static ConsoleException message(IErrorDef readableErrorDefEnum, String extraMsg) {
-        return new ConsoleException(String.join("|", readableErrorDefEnum.getMessage(), extraMsg));
+    public static ConsoleException message(IErrorDef errorDef, String extraMsg) {
+        return new ConsoleException(String.join("|", errorDef.getMessage(), extraMsg));
     }
 
-    public static ConsoleException message(IErrorDef readableErrorDefEnum, Throwable e) {
-        return new ConsoleException(readableErrorDefEnum.getMessage(), e);
+    public static ConsoleException message(IErrorDef errorDef, Throwable e) {
+        return new ConsoleException(errorDef.getMessage(), e);
     }
 }
