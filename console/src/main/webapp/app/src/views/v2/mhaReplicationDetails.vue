@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="height:calc(50vh);">
+    <div style="height:calc(65vh);">
       <RelationGraph
         ref="seeksRelationGraph"
         :options="graphOptions"
