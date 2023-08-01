@@ -13,5 +13,5 @@ public interface MhaServiceV2 {
      * @return id -> MhaTblV2 map
      */
     Map<Long, MhaTblV2> query(String containMhaName, Long buId, Long regionId);
-    Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaNames);
+    Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaIds);
 }

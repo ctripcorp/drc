@@ -6,8 +6,10 @@ public class MhaGroupPairVo {
     private MhaVo srcMha;
     private MhaVo dstMha;
 
-    // connection status
-    private Integer status;
+    /**
+     * @see com.ctrip.framework.drc.console.enums.TransmissionTypeEnum
+     */
+    private String type;
     private Long datachangeLasttime;
 
     public String getReplicationId() {
@@ -34,13 +36,6 @@ public class MhaGroupPairVo {
         this.dstMha = dstMha;
     }
 
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
 
     public Long getDatachangeLasttime() {
         return datachangeLasttime;
@@ -48,5 +43,13 @@ public class MhaGroupPairVo {
 
     public void setDatachangeLasttime(Long datachangeLasttime) {
         this.datachangeLasttime = datachangeLasttime;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

@@ -41,7 +41,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     @Override
-    public List<MhaReplicationTbl> queryRelatedReplications(Long relatedMhaId) {
+    public List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId) {
         try {
             return mhaReplicationTblDao.queryByRelatedMhaId(relatedMhaId);
         } catch (SQLException e) {

@@ -9,5 +9,5 @@ import java.util.List;
 public interface MhaReplicationServiceV2 {
     PageResult<MhaReplicationTbl> queryByPage(MhaReplicationQuery query);
 
-    List<MhaReplicationTbl> queryRelatedReplications(Long relatedMhaId);
+    List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 }

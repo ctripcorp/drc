@@ -66,7 +66,7 @@
           </Col>
         </Row>
         <br>
-        <Table :loading="dataLoading" stripe :columns="columns" :data="replications">
+        <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
             <Button disabled type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
               查看
@@ -84,8 +84,11 @@
             :transfer="true"
             :total="total"
             :current.sync="current"
+            :page-size-opts="[10,20,50,100]"
+            :page-size="10"
             show-total
             show-sizer
+            show-elevator
             @on-change="getReplications"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
@@ -95,6 +98,8 @@
 </template>
 
 <script>
+// eslint-disable-next-line no-unused-vars
+import MhaGraph from '@/views/v2/mhaReplicationDetails.vue'
 
 export default {
   name: 'Application',
@@ -102,14 +107,26 @@ export default {
     return {
       columns: [
         {
-          title: '序号',
+          title: '类型',
           key: 'replicationId',
           width: 80,
           render: (h, params) => {
             const row = params.row
-            const type = 'success'
-            const text = '拓扑'
-
+            let text = 'none'
+            let type = 'error'
+            switch (row.type) {
+              case 'simplex':
+                text = '单'
+                type = 'info'
+                break
+              case 'duplex':
+                text = '双'
+                type = 'success'
+                break
+              default:
+                text = 'none'
+                break
+            }
             return h('Button', {
               props: {
                 type: type,
@@ -117,7 +134,7 @@ export default {
               },
               on: {
                 click: () => {
-                  this.goToLink(row)
+                  this.showModal(row)
                 }
               }
             }, text)
@@ -132,7 +149,7 @@ export default {
         },
         {
           title: '目标集群名',
-          key: 'dstMha.name',
+          key: 'dstMhaName',
           render: (h, params) => {
             return h('p', params.row.dstMha.name)
           }
@@ -162,21 +179,6 @@ export default {
               color = 'red'
               text = row.srcMha.buName + ' -> ' + row.dstMha.buName
             }
-            return h('Tag', {
-              props: {
-                color: color
-              }
-            }, text)
-          }
-        },
-        {
-          title: '连接状态',
-          key: 'drcEstablishStatus',
-          align: 'center',
-          render: (h, params) => {
-            const row = params.row
-            const color = row.status === 1 ? 'blue' : 'volcano'
-            const text = row.status === 1 ? '已接入' : '未接入'
             return h('Tag', {
               props: {
                 color: color
@@ -315,6 +317,7 @@ export default {
           } else {
             that.total = pageResult.totalCount
             that.current = pageResult.pageIndex
+            that.calTableSpan(pageResult.data)
             that.replications = pageResult.data
             that.$Message.success('查询成功')
           }
@@ -369,21 +372,76 @@ export default {
       console.log(row.srcMha)
       console.log(row.destMha)
     },
-    goToLink (row) {
-      console.log('go to detail information for:' + row.srcMha.name)
-      const mhaId = row.srcMha.id
-      // this.$router.push({ path: '/access', query: { step: '3', clustername: row.srcMha, newclustername: row.destMha } })
-      this.$router.push({
-        path: '/v2/mhaReplicationDetails',
-        query: { mhaId: mhaId }
+    showModal (row) {
+      console.log('show modal')
+      this.$Modal.success({
+        title: '节点拓扑信息',
+        width: '1000',
+        closable: true,
+        render: (h) => {
+          return h('div', [
+            h('div', '点击可加载关联节点'),
+            h(MhaGraph, {
+              props: {
+                mhaIdList: [row.srcMha.id, row.dstMha.id]
+              }
+            })
+          ])
+        }
       })
+    },
+    calTableSpan (replications) {
+      console.log('calTableSpan')
+      if (replications == null || replications.length === 0) {
+        return
+      }
+      const length = replications.length
+
+      calSrcMhaSpan()
+      calDstMhaSpan()
+
+      function calSrcMhaSpan () {
+        let i = 0
+        while (i < length) {
+          let j = i + 1
+          while (j < length && replications[i].srcMha.id === replications[j].srcMha.id) {
+            replications[j].srcMha.rowSpan = 0
+            replications[j].srcMha.colSpan = 0
+            j++
+          }
+          replications[i].srcMha.rowSpan = j - i
+          replications[i].srcMha.colSpan = 1
+          i = j
+        }
+      }
+
+      function calDstMhaSpan () {
+        let i = 0
+        while (i < length) {
+          let j = i + 1
+          while (j < length && replications[i].dstMha.id === replications[j].dstMha.id) {
+            replications[j].dstMha.rowSpan = 0
+            replications[j].dstMha.colSpan = 0
+            j++
+          }
+          replications[i].dstMha.rowSpan = j - i
+          replications[i].dstMha.colSpan = 1
+          i = j
+        }
+      }
+    },
+    handleSpan ({ row, column, rowIndex, columnIndex }) {
+      if (column.key === 'srcMhaName') {
+        return [row.srcMha.rowSpan, row.srcMha.colSpan]
+      } else if (column.key === 'dstMhaName') {
+        return [row.dstMha.rowSpan, row.dstMha.colSpan]
+      }
     }
   },
   created () {
     this.getReplications()
     this.getRegions()
     this.getBus()
-    this.getDcs()
   }
 }
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div style="height:calc(100vh - 50px);">
+    <div style="height:calc(50vh);">
       <RelationGraph
         ref="seeksRelationGraph"
         :options="graphOptions"
@@ -13,13 +13,18 @@
 
 <script>
 export default {
-  name: 'mhaReplicationVisualization',
+  name: 'MhaGraph',
   components: {},
+  props: {
+    mhaIdList: Array
+  },
   data () {
     return {
       dataLoading: false,
       graphData: {
         graphInit: false,
+        graph: null,
+        lastClickedNodeObject: null,
         mhaIdRequested: new Set(),
         mhaIdShown: new Set(),
         replicationIdShown: new Set(),
@@ -57,25 +62,18 @@ export default {
               to: replication.dstMha.id + '',
               color: 'rgb(135, 135, 135)',
               selected: true,
-              lineWidth: 1
+              lineWidth: 2
             })
           }
         },
-        appendDataToGraph (graph) {
+        appendDataToGraph () {
+          const graph = this.graph
           // eslint-disable-next-line camelcase
           if (!this.graphInit) {
             this.graphInit = true
             graph.setJsonData(this, (graphInstance) => {
               // 这些写上当图谱初始化完成后需要执行的代码
-              console.log(graphInstance.getLinks())
-              graphInstance.getLinks().forEach(e => {
-                console.log(e)
-                e.relations.forEach(line => {
-                  console.log(line.id)
-                  graphInstance.setCheckedLine(line.id)
-                })
-              })
-              graphInstance.dataUpdated()
+              this.deepenClickedNode()
               console.log('init graph success')
             })
           } else {
@@ -92,6 +90,19 @@ export default {
             this.mhaIdRequested.add(mhaId)
             return false
           }
+        },
+        deepenClickedNode (nodeObject) {
+          if (nodeObject != null) {
+            nodeObject.color = 'rgb(0,166,81)'
+          } else {
+            // refresh all
+            const nodes = this.graph.getNodes()
+            nodes.forEach(e => {
+              if (this.mhaIdRequested.has(e.id)) {
+                e.color = 'rgb(0,166,81)'
+              }
+            })
+          }
         }
       },
       graphOptions: {
@@ -102,9 +113,8 @@ export default {
         defaultLineWidth: 2,
         defaultNodeBorderWidth: 1,
         defaultNodeBorderColor: 'rgb(152,213,244)',
-        defaultNodeColor: 'rgba(238, 178, 94, 1)',
+        defaultNodeColor: 'rgb(66,66,66)',
         allowSwitchLineShape: true,
-        allowSwitchJunctionPoint: true,
         checkedLineColor: 'rgba(30, 144, 255, 1)', // 当线条被选中时的颜色
         defaultLineShape: 1,
         layouts: [
@@ -120,19 +130,24 @@ export default {
     }
   },
   mounted () {
-    const mhaId = this.$route.query.mhaId
-    console.log('mhaId' + mhaId)
-    this.showMore(mhaId)
+    const mhaIdList = this.mhaIdList
+    console.log('mount mhaId: ' + mhaIdList)
+    this.graphData.graph = this.$refs.seeksRelationGraph
+    this.graphData.rootId = mhaIdList[0]
+    this.showMore(mhaIdList)
   },
   methods: {
-    async showMore (mhaId, nodeObject) {
-      if (this.graphData.hasShow(mhaId)) {
+    showMore (mhaIdList) {
+      const filteredIdList = mhaIdList.filter(mhaId => {
+        return !this.graphData.hasShow(mhaId + '')
+      })
+      if (filteredIdList == null || filteredIdList.length === 0) {
         return
       }
       const reqParam = {
-        relatedMhaId: mhaId
+        relatedMhaId: filteredIdList.join(',')
       }
-      await this.axios.get('/api/drc/v2/replication/queryMhaRelated', { params: reqParam })
+      this.axios.get('/api/drc/v2/replication/queryMhaRelated', { params: reqParam })
         .then(response => {
           const replications = response.data.data
           const emptyResult = replications == null || !Array.isArray(replications) || replications.length === 0
@@ -141,14 +156,18 @@ export default {
             return
           }
           // append graph data
-          this.appendGraphData(replications)
+          this.graphData.clear()
+          replications.forEach((replication) => {
+            this.graphData.appendNode(replication.srcMha)
+            this.graphData.appendNode(replication.dstMha)
+            this.graphData.appendLine(replication)
+          })
+          // 加深
           if (this.graphData.isEmpty()) {
-            this.$Message.success('无新数据')
             return
           }
           // refresh graph
-          this.graphData.appendDataToGraph(this.$refs.seeksRelationGraph)
-          this.$Message.success('成功')
+          this.graphData.appendDataToGraph()
         })
         .catch(message => {
           console.log(message)
@@ -161,23 +180,19 @@ export default {
     onNodeClick (nodeObject, $event) {
       console.log('onNodeClick:', nodeObject.id)
       this.dataLoading = true
-      this.showMore(nodeObject.id)
+      this.showMore([nodeObject.id])
+      this.graphData.deepenClickedNode(nodeObject)
+      this.$copyText(nodeObject.text).then(e => {
+        this.$Message.success('已复制: ' + e.text)
+        console.log(e)
+      })
     },
     onLineClick (lineObject, linkObject, $event) {
       console.log('onLineClick:', lineObject)
-    },
-    appendGraphData: function (replications) {
-      this.graphData.clear()
-      replications.forEach((replication) => {
-        this.graphData.appendNode(replication.srcMha)
-        this.graphData.appendNode(replication.dstMha)
-        this.graphData.appendLine(replication)
-      })
     }
   }
 }
 </script>
-
 <style lang="scss">
 </style>
 

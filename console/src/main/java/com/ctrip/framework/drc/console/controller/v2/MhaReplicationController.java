@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -41,8 +42,6 @@ import java.util.stream.Collectors;
 public class MhaReplicationController {
     private static final Logger logger = LoggerFactory.getLogger(MhaReplicationController.class);
 
-    private static final Integer DEFAULT_REPLICATION_STATUS = 1;
-
     @Autowired
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
@@ -55,10 +54,10 @@ public class MhaReplicationController {
 
     @GetMapping("queryMhaRelated")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MhaGroupPairVo>> queryMhaReplications(@RequestParam(name = "relatedMhaId") Long relatedMhaId) {
+    public ApiResult<List<MhaGroupPairVo>> queryMhaReplications(@RequestParam(name = "relatedMhaId") List<Long> relatedMhaId) {
         logger.info("[meta] queryMhaReplications:{}", relatedMhaId);
         try {
-            if (relatedMhaId == null || relatedMhaId <= 0) {
+            if (CollectionUtils.isEmpty(relatedMhaId)) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "relatedMhaId不可为空，请联系开发！");
             }
 
@@ -123,6 +122,16 @@ public class MhaReplicationController {
             Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
 
             List<MhaGroupPairVo> res = this.buildVo(data, mhaTblMap);
+
+            // 设置同步类型
+            List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
+            Set<String> links = mhaReplicationTbls.stream().map(e -> e.getSrcMhaId() + "->" + e.getDstMhaId()).collect(Collectors.toSet());
+            res.forEach(e -> {
+                boolean hasReverseLink = links.contains(e.getDstMha().getId() + "->" + e.getSrcMha().getId());
+                TransmissionTypeEnum type = hasReverseLink ? TransmissionTypeEnum.DUPLEX : TransmissionTypeEnum.SIMPLEX;
+                e.setType(type.getType());
+            });
+
             return ApiResult.getSuccessInstance(
                     PageResult.newInstance(res, tblPageResult.getPageIndex(), tblPageResult.getPageSize(), tblPageResult.getTotalCount())
             );
@@ -165,7 +174,6 @@ public class MhaReplicationController {
             // set vo: replication
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));
             vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
-            vo.setStatus(DEFAULT_REPLICATION_STATUS);
             return vo;
         }).collect(Collectors.toList());
     }
