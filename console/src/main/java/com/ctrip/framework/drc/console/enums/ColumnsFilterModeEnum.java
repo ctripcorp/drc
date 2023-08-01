@@ -36,6 +36,15 @@ public enum ColumnsFilterModeEnum {
         throw new IllegalArgumentException(String.format("Unexpected ColumnsFilterMode: %s", name));
     }
 
+    public static boolean checkMode(int code) {
+        for (ColumnsFilterModeEnum value : ColumnsFilterModeEnum.values()) {
+            if (value.code == code) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Integer getCode() {
         return code;
     }

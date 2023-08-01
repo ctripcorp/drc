@@ -13,12 +13,11 @@ import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
+import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
-import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
-import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
-import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
+import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
@@ -27,6 +26,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.utils.Constants;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +39,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -79,7 +80,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
     @Autowired
-    private DbReplicationFilterMappingTblDao dBReplicationFilterMappingTblDao;
+    private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
+    @Autowired
+    private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
+    @Autowired
+    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
@@ -156,13 +161,109 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
 
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dBReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
             logger.info("dbReplicationFilterMappingTbls not exist");
             return;
         }
         dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-        dBReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
+        dbReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
+    }
+
+    @Override
+    public void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception {
+        checkColumnsFilterCreateParam(param);
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(param.getDbReplicationIds());
+        if (CollectionUtils.isEmpty(dbReplicationTbls) || dbReplicationTbls.size() != param.getDbReplicationIds().size()) {
+            throw ConsoleExceptionUtils.message("dbReplications not exist!");
+        }
+
+        long columnsFilterId = insertColumnsFilter(param.getMode(), param.getColumns());
+        insertDbReplicationFilterMappings(param.getDbReplicationIds(), columnsFilterId, FilterTypeEnum.COLUMNS_FILTER.getCode());
+    }
+
+    @Override
+    public void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            throw ConsoleExceptionUtils.message("dbReplicationIds are empty!");
+        }
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationTbls) || dbReplicationTbls.size() != dbReplicationIds.size()) {
+            throw ConsoleExceptionUtils.message("dbReplications not exist!");
+        }
+
+        List<DbReplicationFilterMappingTbl> existFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(existFilterMappings)) {
+            logger.error("dbReplicationFilterMapping not exist, dbReplicationIds: {}", dbReplicationIds);
+            throw ConsoleExceptionUtils.message("dbReplicationFilterMapping not exist!");
+        }
+
+        existFilterMappings.forEach(e -> {
+            if (e.getRowsFilterId() != -1L) {
+                e.setColumnsFilterId(-1L);
+            } else {
+                e.setDeleted(BooleanEnum.TRUE.getCode());
+            }
+        });
+        dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
+
+    }
+
+    private void insertDbReplicationFilterMappings(List<Long> dbReplicationIds, long filterId, int filterType) throws Exception {
+        List<DbReplicationFilterMappingTbl> existFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        Map<Long, DbReplicationFilterMappingTbl> existFilterMappingMap = existFilterMappings.stream().collect(Collectors.toMap(DbReplicationFilterMappingTbl::getDbReplicationId, Function.identity()));
+
+        List<DbReplicationFilterMappingTbl> insertFilterMappings = new ArrayList<>();
+        List<DbReplicationFilterMappingTbl> updateFilterMappings = new ArrayList<>();
+        for (long dbReplicationId : dbReplicationIds) {
+            DbReplicationFilterMappingTbl dbReplicationFilterMappingTbl;
+            if (existFilterMappingMap.containsKey(dbReplicationId)) {
+                dbReplicationFilterMappingTbl = existFilterMappingMap.get(dbReplicationId);
+                updateFilterMappings.add(dbReplicationFilterMappingTbl);
+            } else {
+                dbReplicationFilterMappingTbl = new DbReplicationFilterMappingTbl();
+                dbReplicationFilterMappingTbl.setDbReplicationId(dbReplicationId);
+                dbReplicationFilterMappingTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                insertFilterMappings.add(dbReplicationFilterMappingTbl);
+            }
+
+            switch (FilterTypeEnum.getByCode(filterType)) {
+                case ROWS_FILTER:
+                    dbReplicationFilterMappingTbl.setRowsFilterId(filterId);
+                    break;
+                case COLUMNS_FILTER:
+                    dbReplicationFilterMappingTbl.setColumnsFilterId(filterId);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(insertFilterMappings)) {
+            logger.info("insertDbReplicationFilterMappings insertFilterMappings: {}", insertFilterMappings);
+            dbReplicationFilterMappingTblDao.batchInsert(insertFilterMappings);
+        }
+        if (!CollectionUtils.isEmpty(updateFilterMappings)) {
+            logger.info("insertDbReplicationFilterMappings updateFilterMappings: {}", updateFilterMappings);
+            dbReplicationFilterMappingTblDao.batchUpdate(updateFilterMappings);
+        }
+    }
+
+    private long insertColumnsFilter(int mode, List<String> columns) throws Exception {
+        String columnsJson = JsonUtils.toJson(columns);
+        List<ColumnsFilterTblV2> existColumnsFilters = columnFilterTblV2Dao.queryByMode(mode);
+        for (ColumnsFilterTblV2 columnsFilter : existColumnsFilters) {
+            if (columnsFilter.getColumns().equals(columnsJson)) {
+                return columnsFilter.getId();
+            }
+        }
+
+        ColumnsFilterTblV2 columnsFilterTblV2 = new ColumnsFilterTblV2();
+        columnsFilterTblV2.setDeleted(BooleanEnum.FALSE.getCode());
+        columnsFilterTblV2.setColumns(columnsJson);
+        columnsFilterTblV2.setMode(mode);
+        long columnsFilterId = columnFilterTblV2Dao.insertReturnId(columnsFilterTblV2);
+        return columnsFilterId;
     }
 
     private List<DbReplicationTbl> insertDbReplications(long srcMhaId, long dstMhaId, List<String> dbList, String nameFilter) throws Exception {
@@ -400,5 +501,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDbName(), "dbName requires not empty!");
         PreconditionUtils.checkString(param.getTableName(), "tableName requires not empty!");
+    }
+
+    private void checkColumnsFilterCreateParam(ColumnsFilterCreateParam param) {
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getDbReplicationIds()), "dbReplicationIds require not empty!");
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getColumns()), "dbReplicationIds require not empty!");
+        PreconditionUtils.checkArgument(ColumnsFilterModeEnum.checkMode(param.getMode()), "columnsFilter mode not support!");
     }
 }
