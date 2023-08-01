@@ -12,10 +12,7 @@ import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.enums.ColumnsFilterModeEnum;
-import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
-import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
@@ -184,6 +181,44 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     public void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception {
+        List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+
+        existFilterMappings.forEach(e -> {
+            if (e.getRowsFilterId() != -1L) {
+                e.setColumnsFilterId(-1L);
+            } else {
+                e.setDeleted(BooleanEnum.TRUE.getCode());
+            }
+        });
+        dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
+
+    }
+
+    public void buildRowsFilter(RowsFilterCreateParam param) throws Exception {
+        checkRowsFilterCreateParam(param);
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(param.getDbReplicationIds());
+        if (CollectionUtils.isEmpty(dbReplicationTbls) || dbReplicationTbls.size() != param.getDbReplicationIds().size()) {
+            throw ConsoleExceptionUtils.message("dbReplications not exist!");
+        }
+        long rowsFilterId = insertRowsFilter(param);
+        insertDbReplicationFilterMappings(param.getDbReplicationIds(), rowsFilterId, FilterTypeEnum.ROWS_FILTER.getCode());
+    }
+
+    @Override
+    public void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception {
+        List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+
+        existFilterMappings.forEach(e -> {
+            if (e.getColumnsFilterId() != -1L) {
+                e.setRowsFilterId(-1L);
+            } else {
+                e.setDeleted(BooleanEnum.TRUE.getCode());
+            }
+        });
+        dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
+    }
+
+    private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             throw ConsoleExceptionUtils.message("dbReplicationIds are empty!");
         }
@@ -197,17 +232,22 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("dbReplicationFilterMapping not exist, dbReplicationIds: {}", dbReplicationIds);
             throw ConsoleExceptionUtils.message("dbReplicationFilterMapping not exist!");
         }
-
-        existFilterMappings.forEach(e -> {
-            if (e.getRowsFilterId() != -1L) {
-                e.setColumnsFilterId(-1L);
-            } else {
-                e.setDeleted(BooleanEnum.TRUE.getCode());
-            }
-        });
-        dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
-
+        return existFilterMappings;
     }
+
+    private long insertRowsFilter(RowsFilterCreateParam param) throws Exception {
+        RowsFilterTblV2 rowsFilter = param.extractRowsFilterTbl();
+        List<RowsFilterTblV2> existRowsFilters = rowsFilterTblV2Dao.queryByMode(param.getMode());
+        for (RowsFilterTblV2 existRowsFilter : existRowsFilters) {
+            if (rowsFilter.getConfigs().equals(existRowsFilter.getConfigs())) {
+                return existRowsFilter.getId();
+            }
+        }
+
+        long rowsFilterId = rowsFilterTblV2Dao.insertReturnId(rowsFilter);
+        return rowsFilterId;
+    }
+
 
     private void insertDbReplicationFilterMappings(List<Long> dbReplicationIds, long filterId, int filterType) throws Exception {
         List<DbReplicationFilterMappingTbl> existFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
@@ -505,7 +545,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     private void checkColumnsFilterCreateParam(ColumnsFilterCreateParam param) {
         PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getDbReplicationIds()), "dbReplicationIds require not empty!");
-        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getColumns()), "dbReplicationIds require not empty!");
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getColumns()), "columns require not empty!");
         PreconditionUtils.checkArgument(ColumnsFilterModeEnum.checkMode(param.getMode()), "columnsFilter mode not support!");
+    }
+
+    private void checkRowsFilterCreateParam(RowsFilterCreateParam param) {
+        PreconditionUtils.checkArgument(!CollectionUtils.isEmpty(param.getDbReplicationIds()), "dbReplicationIds require not empty!");
+        PreconditionUtils.checkArgument(RowsFilterModeEnum.checkMode(param.getMode()), "rowsFilter mode not support!");
     }
 }
