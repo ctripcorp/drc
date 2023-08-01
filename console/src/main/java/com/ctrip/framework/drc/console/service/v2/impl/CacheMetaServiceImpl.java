@@ -5,10 +5,8 @@ import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
-import com.ctrip.framework.drc.console.service.v2.MetaCacheService;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.Applier;
@@ -36,14 +34,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 /**
- * @ClassName MetaCacheServiceImpl
+ * @ClassName CacheMetaServiceImpl
  * @Author haodongPan
  * @Date 2023/7/28 17:52
  * @Version: $
  * @Description: aggregate all kinds of meta info by meta drc cache
  */
 @Service
-public class MetaCacheServiceImpl implements MetaCacheService {
+public class CacheMetaServiceImpl implements CacheMetaService {
     
     @Autowired private MetaProviderV2 metaProviderV2;
 

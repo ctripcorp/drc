@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.sql.SQLException;
 
-public interface MetaDbCorrectService {
+public interface DbMetaCorrectService {
 
     boolean updateMasterReplicatorIfChange(String mhaName, String newIp)  throws SQLException;
 

@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.console.service.impl;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
 import com.ctrip.framework.drc.console.monitor.delay.task.ListenReplicatorTask;
 import com.ctrip.framework.drc.console.service.SwitchService;
-import com.ctrip.framework.drc.console.service.v2.MetaDbCorrectService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
@@ -28,12 +28,12 @@ public class SwitchServiceImpl implements SwitchService {
 
     @Autowired private ListenReplicatorTask listenReplicatorTask;
 
-    @Autowired private MetaDbCorrectService metaDbCorrectService;
+    @Autowired private DbMetaCorrectService dbMetaCorrectService;
 
     @Override
     public ApiResult switchUpdateDb(String registryKey, DbEndpointDto dbEndpointDto) {
         currentMetaManager.updateMasterMySQL(registryKey, new DefaultEndPoint(dbEndpointDto.getIp(), dbEndpointDto.getPort()));
-        return metaDbCorrectService.mhaMasterDbChange(RegistryKey.from(registryKey).getMhaName(), dbEndpointDto.getIp(), dbEndpointDto.getPort());
+        return dbMetaCorrectService.mhaMasterDbChange(RegistryKey.from(registryKey).getMhaName(), dbEndpointDto.getIp(), dbEndpointDto.getPort());
     }
 
     @Async

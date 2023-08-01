@@ -30,8 +30,6 @@ public class MetaControllerV2 {
     @Autowired
     private MetaGrayService metaServiceV2;
     
-    @Autowired
-    private MetaGeneratorV2 metaGeneratorV2;
 
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh" , required = false, defaultValue = "false") String refresh) {

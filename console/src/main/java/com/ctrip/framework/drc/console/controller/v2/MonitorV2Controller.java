@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
-import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.util.List;
 import org.slf4j.Logger;

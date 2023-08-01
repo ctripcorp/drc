@@ -6,7 +6,7 @@ import com.ctrip.framework.drc.console.monitor.comparator.MySQLMetaComparator;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
-import com.ctrip.framework.drc.console.service.v2.MetaCacheService;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
@@ -51,7 +51,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     private ScheduledExecutorService updateMySQLMonitorMetaScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("update-mysql-meta-scheduledExecutorService");
 
-    @Autowired private MetaCacheService metaCacheService;
+    @Autowired private CacheMetaService cacheMetaService;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
 
@@ -64,7 +64,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
 
     public synchronized void init() throws SQLException {
         if(masterMySQLEndpoint.isEmpty()) {
-            MonitorMetaInfo monitorMetaInfo = metaCacheService.getMonitorMetaInfo();
+            MonitorMetaInfo monitorMetaInfo = cacheMetaService.getMonitorMetaInfo();
             masterMySQLEndpoint = monitorMetaInfo.getMasterMySQLEndpoint();
             logger.info("masterMySQLEndpoint size is: {}", masterMySQLEndpoint.size());
             slaveMySQLEndpoint = monitorMetaInfo.getSlaveMySQLEndpoint();
@@ -80,7 +80,7 @@ public class DefaultCurrentMetaManager implements CurrentMetaManager, MasterMySQ
                 logger.info("[[monitor=monitors]] update monitor meta info switch switch is: {}", updateMonitorMetaInfoSwitch);
                 if(SWITCH_STATUS_ON.equalsIgnoreCase(updateMonitorMetaInfoSwitch)) {
                     try {
-                        MonitorMetaInfo theNewestMonitorMetaInfo = metaCacheService.getMonitorMetaInfo();
+                        MonitorMetaInfo theNewestMonitorMetaInfo = cacheMetaService.getMonitorMetaInfo();
                         checkMasterMySQLChange(masterMySQLEndpoint, theNewestMonitorMetaInfo.getMasterMySQLEndpoint());
                         checkSlaveMySQLChange(slaveMySQLEndpoint, theNewestMonitorMetaInfo.getSlaveMySQLEndpoint());
                     } catch (SQLException e) {

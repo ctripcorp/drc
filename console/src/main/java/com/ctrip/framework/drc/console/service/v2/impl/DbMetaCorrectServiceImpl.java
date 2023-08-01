@@ -15,7 +15,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.service.v2.MetaDbCorrectService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -36,13 +36,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 /**
- * @ClassName MetaDbCorrectServiceImpl
+ * @ClassName DbMetaCorrectServiceImpl
  * @Author haodongPan
  * @Date 2023/7/28 18:01
  * @Version: $
  */
 @Service
-public class MetaDbCorrectServiceImpl implements MetaDbCorrectService {
+public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     
     
     @Autowired private MhaTblV2Dao mhaTblV2Dao;

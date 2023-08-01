@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface MetaCacheService {
+public interface CacheMetaService {
 
     Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion();
 

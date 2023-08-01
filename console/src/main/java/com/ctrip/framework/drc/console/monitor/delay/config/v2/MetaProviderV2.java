@@ -75,7 +75,7 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
 
     @Override
     public void initialize() {
-        setInitialDelay(120);
+        setInitialDelay(0);
         setPeriod(300);
         setTimeUnit(TimeUnit.SECONDS);
         super.initialize();

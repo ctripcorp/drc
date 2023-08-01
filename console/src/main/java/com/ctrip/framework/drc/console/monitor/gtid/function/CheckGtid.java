@@ -61,8 +61,7 @@ public class CheckGtid extends AbstractConfigBean {
      */
     private Map<String, List<GapInterval>> uuidGapIntervalsMapper = new ConcurrentHashMap<>();
 
-    @Autowired // todo 老模型
-    private DataCenterService dataCenterService;
+    @Autowired private DataCenterService dataCenterService;
 
     /**
      * check GtidSet from mha's master db in local dc,

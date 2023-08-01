@@ -14,8 +14,8 @@ import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorSe
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
-import com.ctrip.framework.drc.console.service.v2.MetaCacheService;
-import com.ctrip.framework.drc.console.service.v2.MetaDbCorrectService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.entity.Route;
@@ -80,10 +80,10 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     private Map<String, ReplicatorWrapper> replicatorWrappers = Maps.newConcurrentMap();
     private Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
 
-    @Autowired private MetaCacheService metaCacheService;
+    @Autowired private CacheMetaService cacheMetaService;
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     @Autowired private ModuleCommunicationServiceImpl moduleCommunicationService;
-    @Autowired private MetaDbCorrectService metaDbCorrectService;
+    @Autowired private DbMetaCorrectService dbMetaCorrectService;
     @Autowired private DefaultConsoleConfig consoleConfig;
     @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
     @Autowired private MonitorService monitorService;
@@ -414,7 +414,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     protected void updateListenReplicatorSlaves() throws SQLException {
         Map<String, ReplicatorWrapper> theNewestSlaveReplicatorWrappers = Maps.newConcurrentMap();
         
-        Map<String, List<ReplicatorWrapper>> allReplicatorsInLocalRegion = metaCacheService.getAllReplicatorsInLocalRegion();
+        Map<String, List<ReplicatorWrapper>> allReplicatorsInLocalRegion = cacheMetaService.getAllReplicatorsInLocalRegion();
         filterMasterReplicator(allReplicatorsInLocalRegion);
         
         for (List<ReplicatorWrapper> replicatorWrappers : allReplicatorsInLocalRegion.values()) {
@@ -453,7 +453,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @VisibleForTesting
     protected void updateListenReplicators() throws SQLException {
         List<String> mhasToBeMonitored = monitorService.getMhaNamesToBeMonitored();
-        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = metaCacheService.getMasterReplicatorsToBeMonitored(
+        Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = cacheMetaService.getMasterReplicatorsToBeMonitored(
                 mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers,
                 replicatorWrappers, delayMonitorServerMap);
@@ -521,7 +521,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
             monitorMasterRExecutorService.submit(() -> {
                 try {
                     // todo 老模型
-                    metaDbCorrectService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
+                    dbMetaCorrectService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
                 } catch (Throwable t) {
                     logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}",
                             mhaName,newReplicatorIp,t);

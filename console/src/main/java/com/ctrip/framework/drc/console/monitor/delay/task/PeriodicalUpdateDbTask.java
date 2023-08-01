@@ -1,14 +1,14 @@
 package com.ctrip.framework.drc.console.monitor.delay.task;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.ForwardService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.column.DelayInfo;
@@ -35,24 +35,19 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.SLOW_COMMI
  * STEP 2
  */
 @Order(1)
-@DependsOn("dbClusterSourceProvider")
+@DependsOn("metaProviderV2")
 @Component("periodicalUpdateDbTask")
 public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver {
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DataCenterService dataCenterService;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Autowired
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Autowired private DefaultCurrentMetaManager currentMetaManager;
     
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
     
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    @Autowired private ForwardService forwardService;
     
 
     public static final int INITIAL_DELAY = 0;
@@ -92,7 +87,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     private void refreshMhaTblMap() {
         try {
             Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
-            String localDcName = sourceProvider.getLocalDcName();
+            String localDcName = dataCenterService.getDc();
             if (localConfigCloudDc.contains(localDcName)) {
                 mhaName2IdMap.putAll(consoleConfig.getLocalConfigMhasMap());
             } else {
@@ -106,7 +101,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
     }
     
     private void refreshMhaTblByDc(String dcName) throws Exception {
-        List<MhaTbl> mhasByDc = metaInfoService.getMhas(dcName);
+        List<MhaTblV2> mhasByDc = forwardService.getMhaTblV2s(dcName);
         mhasByDc.forEach(
                 mhaTbl -> mhaName2IdMap.put(mhaTbl.getMhaName(),mhaTbl.getId())
         );
@@ -178,7 +173,7 @@ public class PeriodicalUpdateDbTask extends AbstractMasterMySQLEndpointObserver 
 
     @Override
     public void setLocalDcName() {
-        localDcName = sourceProvider.getLocalDcName();
+        localDcName = dataCenterService.getDc();
     }
 
     @Override

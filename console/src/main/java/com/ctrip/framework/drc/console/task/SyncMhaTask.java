@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
-import com.ctrip.framework.drc.console.service.v2.MetaDbCorrectService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
@@ -42,7 +42,7 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     @Autowired private DalServiceImpl dalService;
 
-    @Autowired private MetaDbCorrectService metaDbCorrectService;
+    @Autowired private DbMetaCorrectService dbMetaCorrectService;
 
     @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     
@@ -112,7 +112,7 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
             try {
                 if (null != mhaInstanceGroupDto) {
                     logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
-                    metaDbCorrectService.mhaInstancesChange(mhaInstanceGroupDto, mhaTblV2);
+                    dbMetaCorrectService.mhaInstancesChange(mhaInstanceGroupDto, mhaTblV2);
                 }
             } catch (Exception e) {
                 logger.error("[[task=syncMhaTask]] update mha {} instance fail", mhaTblV2.getMhaName(), e);

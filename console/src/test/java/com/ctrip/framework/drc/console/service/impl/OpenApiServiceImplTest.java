@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.enums.EstablishStatusEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.vo.api.DrcDbInfo;
+import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
 import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.transform.DefaultSaxParser;
@@ -24,17 +25,13 @@ import java.util.List;
 
 public class OpenApiServiceImplTest {
     
-    @Mock
-    private MetaGenerator metaGenerator;
+    @Mock private MetaGenerator metaGenerator;
     
-    @Mock
-    private MetaInfoServiceImpl metaInfoService;
+    @Mock private MetaInfoServiceImpl metaInfoService;
 
-    @Mock
-    private MetaProviderV2 metaProviderV2;
+    @Mock private MetaProviderV2 metaProviderV2;
     
-    @InjectMocks
-    private OpenApiServiceImpl openApiService;
+    @InjectMocks private OpenApiServiceImpl openApiService;
 
     
 
@@ -188,6 +185,16 @@ public class OpenApiServiceImplTest {
 
         List<DrcDbInfo> allDrcDbInfo = openApiService.getDrcDbInfos(null);
         Assert.assertNotEquals(0, allDrcDbInfo.size());
+    }
+
+
+    @Test
+    public void testGetAllMessengersInfo() throws Exception {
+        Drc drc = DefaultSaxParser.parse(FileUtils.getFileInputStream("api/open_api_meta.xml"));
+        Mockito.doReturn(drc).when(metaProviderV2).getDrc();
+
+        List<MessengerInfo> allMessengersInfo = openApiService.getAllMessengersInfo();
+        Assert.assertEquals(1,allMessengersInfo.size());
     }
     
     @Test 

@@ -4,13 +4,13 @@ import com.ctrip.framework.drc.console.AllTests;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.MockTest;
 import com.ctrip.framework.drc.console.monitor.comparator.ListeningReplicatorComparator;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveConfig;
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
@@ -41,8 +41,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
  */
 public class ListenReplicatorTaskTest extends MockTest {
 
-    @InjectMocks
-    private ListenReplicatorTask task = new ListenReplicatorTask();
+    @InjectMocks private ListenReplicatorTask task = new ListenReplicatorTask();
 
     private Drc drc;
 
@@ -50,23 +49,17 @@ public class ListenReplicatorTaskTest extends MockTest {
 
     private Drc newDrc;
 
-    @Mock
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
+    @Mock private DbMetaCorrectService dbMetaCorrectService;
 
-    @Mock
-    private DbClusterSourceProvider dbClusterSourceProvider;
+    @Mock private CacheMetaService cacheMetaService;
 
-    @Mock
-    private MonitorService monitorService;
+    @Mock private MonitorService monitorService;
 
-    @Mock
-    private StaticDelayMonitorServer delayMonitorServer;
+    @Mock private StaticDelayMonitorServer delayMonitorServer;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
     
-    @Mock
-    private ModuleCommunicationServiceImpl moduleCommunicationService;
+    @Mock private ModuleCommunicationServiceImpl moduleCommunicationService;
     
     private Map<String, ReplicatorWrapper> oldReplicatorWrappers;
 
@@ -133,7 +126,7 @@ public class ListenReplicatorTaskTest extends MockTest {
         Mockito.doReturn(delayMonitorServer).when(listenReplicatorTask).createDelayMonitorServer(Mockito.any(DelayMonitorSlaveConfig.class));
         Mockito.when(consoleConfig.getDelayExceptionTime()).thenReturn(1000L);
         Mockito.when(monitorService.getMhaNamesToBeMonitored()).thenReturn(Lists.newArrayList("mhaToBeMonitored"));
-        Mockito.when(dbClusterSourceProvider.getMasterReplicatorsToBeMonitored(Mockito.anyList())).thenReturn(newReplicatorWrappers);
+        Mockito.when(cacheMetaService.getMasterReplicatorsToBeMonitored(Mockito.anyList())).thenReturn(newReplicatorWrappers);
         listenReplicatorTask.setReplicatorWrappers(oldReplicatorWrappers);
         Map<String, StaticDelayMonitorServer> delayMonitorServerMap = Maps.newConcurrentMap();
         delayMonitorServerMap.put("dbcluster3.mha3dc2", delayMonitorServer);
@@ -148,7 +141,7 @@ public class ListenReplicatorTaskTest extends MockTest {
         String oldFile = ClassUtils.getDefaultClassLoader().getResource(XML_DELAY_MONITOR_DRC_OLD).getPath();
         String oldRouteDrcXmlStr = AllTests.readFileContent(oldFile);
         drc = DefaultSaxParser.parse(oldRouteDrcXmlStr);
-        Mockito.when(dbClusterSourceProvider.getAllReplicatorsInLocalRegion()).thenReturn(getAllReplicatorsInDc(drc,"dc1"));
+        Mockito.when(cacheMetaService.getAllReplicatorsInLocalRegion()).thenReturn(getAllReplicatorsInDc(drc,"dc1"));
         
         Mockito.doNothing().when(listenReplicatorTask).updateMasterReplicatorIfChange(Mockito.anyString(),Mockito.anyString());
         

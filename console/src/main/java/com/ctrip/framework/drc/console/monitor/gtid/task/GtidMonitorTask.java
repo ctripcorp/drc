@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourcePr
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtid;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
@@ -39,7 +40,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     
     @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired private MetaInfoServiceImpl metaInfoService;
+    @Autowired private CacheMetaService cacheMetaService;
 
     @Autowired private DefaultCurrentMetaManager currentMetaManager;
 
@@ -69,7 +70,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
             final String gtidMonitorSwitch = monitorTableSourceProvider.getGtidMonitorSwitch();
             if (SWITCH_STATUS_ON.equalsIgnoreCase(gtidMonitorSwitch)) {
                 logger.info("[[monitor=gtid]] is Leader, going to check gtid");
-                Map<String, Set<String>> uuidMapper = metaInfoService.getUuidMap(dcsInRegion);
+                Map<String, Set<String>> uuidMapper = cacheMetaService.getMha2UuidsMap(dcsInRegion);
                 checkGtid.checkGtidGap(uuidMapper, masterMySQLEndpointMap);
             } else {
                 logger.info("[[monitor=gtid]] is Leader,but switch is off doNothing");
