@@ -16,6 +16,8 @@ import java.sql.Types;
 public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
 
     private static final String MHA_REPLICATION_ID = "mha_replication_id";
+    private static final String DELETED = "deleted";
+
     public ApplierGroupTblV2Dao() throws SQLException {
         super(ApplierGroupTblV2.class);
     }
@@ -26,6 +28,13 @@ public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
     public ApplierGroupTblV2 queryByMhaReplicationId(long mhaReplicationId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(MHA_REPLICATION_ID, mhaReplicationId, Types.BIGINT);
+        return queryOne(sqlBuilder);
+    }
+
+    public ApplierGroupTblV2 queryByMhaReplicationId(long mhaReplicationId, int deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(MHA_REPLICATION_ID, mhaReplicationId, Types.BIGINT)
+        .and().equal(DELETED, deleted, Types.BIGINT);
         return queryOne(sqlBuilder);
     }
 }

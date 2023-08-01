@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 
 import java.util.List;
 
@@ -25,4 +26,6 @@ public interface DrcBuildServiceV2 {
     void buildRowsFilter(RowsFilterCreateParam param) throws Exception;
 
     void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception;
+
+    DrcConfigView getDrcConfigView(String srcMhaName, String dstMhaName) throws Exception;
 }

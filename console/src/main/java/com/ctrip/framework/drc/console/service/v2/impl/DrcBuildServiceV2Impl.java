@@ -20,6 +20,8 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
+import com.ctrip.framework.drc.console.vo.v2.DrcMhaConfigView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -67,7 +69,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Autowired
-    private ApplierTblV2Dao applierTblV2Dao;
+    private ApplierTblV2Dao applierTblDao;
     @Autowired
     private ResourceTblDao resourceTblDao;
     @Autowired
@@ -218,6 +220,61 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
     }
 
+    @Override
+    public DrcConfigView getDrcConfigView(String srcMhaName, String dstMhaName) throws Exception {
+        DrcConfigView drcConfigView = new DrcConfigView();
+        DrcMhaConfigView srcMhaConfigView = new DrcMhaConfigView();
+        DrcMhaConfigView dstMhaConfigView = new DrcMhaConfigView();
+        drcConfigView.setSrcMhaConfigView(srcMhaConfigView);
+        drcConfigView.setDstMhaConfigView(dstMhaConfigView);
+
+        srcMhaConfigView.setMhaName(srcMhaName);
+        dstMhaConfigView.setMhaName(dstMhaName);
+
+        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
+
+        buildDrcMhaConfigView(srcMhaConfigView, srcMha, dstMha);
+        buildDrcMhaConfigView(dstMhaConfigView, dstMha, srcMha);
+        return drcConfigView;
+    }
+
+    private void buildDrcMhaConfigView(DrcMhaConfigView mhaConfigView, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
+        if (srcMha == null) {
+            return;
+        }
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(srcMha.getId(), BooleanEnum.FALSE.getCode());
+        if (replicatorGroupTbl != null) {
+            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(replicatorTbls)) {
+                List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
+                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+                List<String> replicatorIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+                mhaConfigView.setReplicatorIps(replicatorIps);
+            }
+        }
+
+        if (dstMha == null) {
+            return;
+        }
+
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
+        if (mhaReplicationTbl != null) {
+            ApplierGroupTblV2 applierGroupTbl = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+            if (applierGroupTbl == null) {
+                return;
+            }
+            mhaConfigView.setApplierInitGtid(applierGroupTbl.getGtidInit());
+            List<ApplierTblV2> applierTbls = applierTblDao.queryByApplierGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
+            if (!CollectionUtils.isEmpty(applierTbls)) {
+                List<Long> resourceIds = applierTbls.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
+                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+                List<String> applierIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+                mhaConfigView.setApplierIps(applierIps);
+            }
+        }
+    }
+
     private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             throw ConsoleExceptionUtils.message("dbReplicationIds are empty!");
@@ -327,9 +384,43 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dbReplicationTbls.addAll(buildDbReplications(dbNames, dbMap, srcMhaDbMappingMap, dstMhaDbMappingMap, srcTableName));
         }
 
+        checkDbReplicationExist(dbReplicationTbls, srcMhaDbMappings, dstMhaDbMappings);
         dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
         logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
         return dbReplicationTbls;
+    }
+
+    private void checkDbReplicationExist(List<DbReplicationTbl> dbReplicationTbls,
+                                         List<MhaDbMappingTbl> srcMhaDbMappings,
+                                         List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
+        List<DbReplicationTbl> existDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
+        if (!CollectionUtils.isEmpty(existDbReplications)) {
+            return;
+        }
+
+        List<Long> existDbReplicationIds = new ArrayList<>();
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
+            for (DbReplicationTbl existDbReplication : existDbReplications) {
+                if (dbReplicationTbl.getSrcMhaDbMappingId().equals(existDbReplication.getSrcMhaDbMappingId())
+                        && dbReplicationTbl.getDstMhaDbMappingId().equals(existDbReplication.getDstMhaDbMappingId())
+                        && dbReplicationTbl.getSrcLogicTableName().equals(existDbReplication.getSrcLogicTableName())) {
+                    existDbReplicationIds.add(dbReplicationTbl.getId());
+                }
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(existDbReplicationIds)) {
+            logger.error("dbReplication already exist, existDbReplicationIds: {}", existDbReplicationIds);
+            throw ConsoleExceptionUtils.message(String.format("dbReplication already exist, existDbReplicationIds: %s", existDbReplicationIds));
+        }
+    }
+
+    private List<DbReplicationTbl> getExistDbReplications(List<MhaDbMappingTbl> srcMhaDbMappings, List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
+        List<Long> srcMhaDbMappingIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+        List<Long> dstMhaDbMappingIds = dstMhaDbMappings.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+        List<DbReplicationTbl> existDbReplications = dbReplicationTblDao.queryByMappingIds(srcMhaDbMappingIds, dstMhaDbMappingIds, ReplicationTypeEnum.DB_TO_DB.getType());
+        return existDbReplications;
     }
 
     private List<DbReplicationTbl> buildDbReplications(List<String> dbList,
@@ -364,11 +455,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void configureAppliers(long applierGroupId, List<String> applierIps) throws Exception {
-        List<ApplierTblV2> existAppliers = applierTblV2Dao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
+        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(existAppliers)) {
             logger.info("delete appliers: {}", existAppliers);
             existAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            applierTblV2Dao.batchUpdate(existAppliers);
+            applierTblDao.batchUpdate(existAppliers);
         }
 
         if (CollectionUtils.isEmpty(applierIps)) {
@@ -390,7 +481,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }).collect(Collectors.toList());
 
         logger.info("insert applierIps: {}", applierIps);
-        applierTblV2Dao.batchInsert(applierTbls);
+        applierTblDao.batchInsert(applierTbls);
     }
 
     private long insertOrUpdateApplierGroup(long mhaReplicationId, String applierInitGtid) throws Exception {
