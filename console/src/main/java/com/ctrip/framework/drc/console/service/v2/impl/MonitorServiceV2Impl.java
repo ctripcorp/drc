@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
+import com.ctrip.framework.drc.console.vo.response.MhaNamesResponseVo;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import java.sql.SQLException;
 import java.util.List;
@@ -34,7 +35,7 @@ public class MonitorServiceV2Impl implements MonitorServiceV2 {
 
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/monitor/mhaNames",forwardType = ForwardTypeEnum.TO_META_DB)
+    @PossibleRemote(path = "/api/drc/v2/monitor/mhaNames",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaNamesResponseVo.class)
     public List<String> getMhaNamesToBeMonitored() throws SQLException  {
         List<String> mhaNamesToBeMonitored;
         // vpc
