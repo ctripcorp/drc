@@ -47,6 +47,9 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.impl.CacheMetaServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.impl.CacheMetaServiceImplTest;
+import com.ctrip.framework.drc.console.service.v2.impl.DbMetaCorrectServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.integration.DrcDoubleWriteServiceIntegrationTest;
@@ -150,6 +153,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGrayServiceImplTest.class,
         MetaCompareServiceImplTest.class,
         DrcDoubleWriteServiceTest.class,
+        CacheMetaServiceImplTest.class,
+        DbMetaCorrectServiceImplTest.class,
 //
         // controller
         AccessControllerTest.class,
