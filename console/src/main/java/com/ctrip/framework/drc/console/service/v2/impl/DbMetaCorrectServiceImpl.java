@@ -135,71 +135,40 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
                 logger.error("[[mha={}]]no such mha", mhaName);
                 return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "no such mha " + mhaName);
             }
-            List<String> masterDb = Lists.newArrayList();
-            List<String> slaveDb = Lists.newArrayList();
-            List<MachineTbl> machineTblToBeUpdated = checkMachinesInUse(masterDb, slaveDb, mhaTblV2.getId(), mhaName, ip, port);
+            List<MachineTbl> machineTblToBeUpdated = checkMachinesInUse(mhaTblV2.getId(), mhaName, ip, port);
             if (machineTblToBeUpdated.size() == 0) {
                 return ApiResult.getInstance(0, ResultCode.HANDLE_SUCCESS.getCode(), mhaName + ' ' + ip + ':' + port + " already master");
             }
-            int insertAffected = 0;
-            if (!CollectionUtils.isEmpty(masterDb)) {
-                insertAffected = insertMasterMachine(mhaTblV2.getId(), mhaName, ip, port);
-            }
+            int[] affectedUpdateArr = machineTblDao.batchUpdate(machineTblToBeUpdated);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.switch." + mhaName, ip);
-            int[] AffectedUpdateArr = machineTblDao.batchUpdate(machineTblToBeUpdated);
-            int updateAffected = Arrays.stream(AffectedUpdateArr).reduce(0, Integer::sum);
-            int allAffected = insertAffected + updateAffected;
-            return SHOULD_AFFECTED_ROWS == allAffected ? ApiResult.getInstance(allAffected, ResultCode.HANDLE_SUCCESS.getCode(), 
-                    "update " + mhaName + " master instance succeeded, u" + updateAffected + 'i' + insertAffected) : 
-                    ApiResult.getInstance(allAffected, ResultCode.HANDLE_FAIL.getCode(), 
-                            mhaName + " inserted: " + insertAffected + ", updated: " + updateAffected);
+            int updateAffected = Arrays.stream(affectedUpdateArr).sum();
+            return SHOULD_AFFECTED_ROWS == updateAffected ? 
+                    ApiResult.getInstance(updateAffected, ResultCode.HANDLE_SUCCESS.getCode(), "update " + mhaName + " master instance succeeded") :
+                    ApiResult.getInstance(updateAffected, ResultCode.HANDLE_FAIL.getCode(), mhaName + ", updated: " + updateAffected);
         } catch (Throwable t) {
             logger.error("Fail update {} master instance", mhaName, t);
             return ApiResult.getInstance(0, ResultCode.HANDLE_FAIL.getCode(), "Fail update master instance as " + t);
         }
     }
-
-
-    private List<MachineTbl> checkMachinesInUse(List<String> masterDb, List<String> slaveDb, Long mhaId,
-            String mhaName, String ip, int port) throws SQLException {
+    
+    @VisibleForTesting
+    protected List<MachineTbl> checkMachinesInUse(Long mhaId, String mhaName, String ip, int port) throws SQLException {
         List<MachineTbl> machineTblToBeUpdated = Lists.newArrayList();
         List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId,BooleanEnum.FALSE.getCode());
         for (MachineTbl machineTbl : machineTbls) {
             if (ip.equalsIgnoreCase(machineTbl.getIp()) && port == machineTbl.getPort()) {
                 if (machineTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
-                    masterDb.add(ip + ':' + port);
                     machineTbl.setMaster(BooleanEnum.TRUE.getCode());
                     machineTblToBeUpdated.add(machineTbl);
+                    logger.info("[[mha={}]]todo slave->master: {} ", mhaName, machineTbl.getIp() + ":" + machineTbl.getPort());
                 }
             } else if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
-                slaveDb.add(machineTbl.getIp() + ':' + machineTbl.getPort());
                 machineTbl.setMaster(BooleanEnum.FALSE.getCode());
                 machineTblToBeUpdated.add(machineTbl);
+                logger.info("[[mha={}]]todo master->slave: {} ", mhaName,  machineTbl.getIp() + ":" + machineTbl.getPort());
             }
         }
-        logger.info("[[mha={}]]slave->master: {}, master->slave: {} ", mhaName, masterDb, slaveDb);
         return machineTblToBeUpdated;
-    }
-
-    private int insertMasterMachine(Long mhaId, String mhaName, String ip, int port) throws Throwable {
-        logger.info("[[mha={}]]no such master {}:{}, try insert", mhaName, ip, port);
-
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByPk(mhaId);
-        String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), true);
-        if (null == uuid) {
-            logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.insert.fail." + mhaName, ip);
-            throw new IllegalArgumentException(mhaName + " cannot get uuid " + ip);
-        }
-        logger.info("[[mha={}]] insert master {}:{}", mhaName, ip, port);
-        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.insert." + mhaName, ip);
-        MachineTbl daoPojo = new MachineTbl();
-        daoPojo.setIp(ip);
-        daoPojo.setPort(port);
-        daoPojo.setMaster(BooleanEnum.TRUE.getCode());
-        daoPojo.setUuid(uuid);
-        daoPojo.setMhaId(mhaId);
-        return machineTblDao.insert(daoPojo);
     }
     
     private void loggingAction(String mha,int[] effects,String action) {
