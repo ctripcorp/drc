@@ -31,7 +31,7 @@ public class ForwardServiceImpl implements ForwardService {
     
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/meta/mhaTblV2s",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaV2ListResponse.class)
+    @PossibleRemote(path = "/api/drc/v2/centralService/mhaTblV2s",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaV2ListResponse.class)
     public List<MhaTblV2> getMhaTblV2s(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         MhaTblV2 sample = new MhaTblV2();
