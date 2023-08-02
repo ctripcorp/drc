@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceIm
 import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.core.entity.Route;
@@ -86,7 +87,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
     @Autowired private DbMetaCorrectService dbMetaCorrectService;
     @Autowired private DefaultConsoleConfig consoleConfig;
     @Autowired private PeriodicalUpdateDbTask periodicalUpdateDbTask;
-    @Autowired private MonitorService monitorService;
+    @Autowired private MonitorServiceV2 monitorServiceV2;
 
     private static void log(DelayMonitorSlaveConfig config, String msg, String types, Exception e) {
         String prefix = CLOG_TAGS + msg;
@@ -452,7 +453,7 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
 
     @VisibleForTesting
     protected void updateListenReplicators() throws SQLException {
-        List<String> mhasToBeMonitored = monitorService.getMhaNamesToBeMonitored();
+        List<String> mhasToBeMonitored = monitorServiceV2.getMhaNamesToBeMonitored();
         Map<String, ReplicatorWrapper> theNewestReplicatorWrappers = cacheMetaService.getMasterReplicatorsToBeMonitored(
                 mhasToBeMonitored);
         checkReplicatorWrapperChange(replicatorWrappers, theNewestReplicatorWrappers,

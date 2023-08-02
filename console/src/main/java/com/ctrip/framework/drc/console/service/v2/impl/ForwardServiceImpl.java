@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.MhaV2ListResponse;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -30,7 +31,7 @@ public class ForwardServiceImpl implements ForwardService {
     
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/meta/mhaTblV2s",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaListApiResult.class)
+    @PossibleRemote(path = "/api/drc/v2/meta/mhaTblV2s",forwardType = ForwardTypeEnum.TO_META_DB,responseType = MhaV2ListResponse.class)
     public List<MhaTblV2> getMhaTblV2s(String dcName) throws SQLException {
         Long dcId = getDcId(dcName);
         MhaTblV2 sample = new MhaTblV2();

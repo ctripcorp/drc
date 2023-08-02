@@ -8,9 +8,9 @@ import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorSlaveCon
 import com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.impl.ModuleCommunicationServiceImpl;
-import com.ctrip.framework.drc.console.service.monitor.MonitorService;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
+import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.RouteUtils;
@@ -53,7 +53,7 @@ public class ListenReplicatorTaskTest extends MockTest {
 
     @Mock private CacheMetaService cacheMetaService;
 
-    @Mock private MonitorService monitorService;
+    @Mock private MonitorServiceV2 monitorService;
 
     @Mock private StaticDelayMonitorServer delayMonitorServer;
 

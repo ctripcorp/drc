@@ -49,8 +49,8 @@ import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZ
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SOURCE_QCONFIG;
 
 @Service
-public class
-MetaInfoServiceImpl implements MetaInfoService {
+@Deprecated
+public class MetaInfoServiceImpl implements MetaInfoService {
 
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";
