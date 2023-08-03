@@ -12,7 +12,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.apache.commons.collections.CollectionUtils;
+import org.springframework.util.CollectionUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +69,7 @@ public class MetaControllerV2Test {
                 .andReturn();
         ApiResult<List> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
 
-        Assert.assertTrue(CollectionUtils.isNotEmpty(apiResult.getData()));
+        Assert.assertTrue(!CollectionUtils.isEmpty(apiResult.getData()));
         Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
     }
 
@@ -81,7 +81,7 @@ public class MetaControllerV2Test {
                 .andReturn();
         ApiResult<List> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
 
-        Assert.assertTrue(CollectionUtils.isNotEmpty(apiResult.getData()));
+        Assert.assertTrue(!CollectionUtils.isEmpty(apiResult.getData()));
         Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
 
     }
@@ -94,7 +94,7 @@ public class MetaControllerV2Test {
                 .andReturn();
         ApiResult<List> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
 
-        Assert.assertTrue(CollectionUtils.isNotEmpty(apiResult.getData()));
+        Assert.assertTrue(!CollectionUtils.isEmpty(apiResult.getData()));
         Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
     }
 

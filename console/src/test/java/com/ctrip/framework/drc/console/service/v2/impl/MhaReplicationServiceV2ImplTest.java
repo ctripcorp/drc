@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
-import org.apache.commons.collections.CollectionUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -14,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.Collections;
@@ -44,7 +44,7 @@ public class MhaReplicationServiceV2ImplTest {
 
         Assert.assertNotNull(pageResult);
 
-        Assert.assertTrue(CollectionUtils.isNotEmpty(pageResult.getData()));
+        Assert.assertFalse(CollectionUtils.isEmpty(pageResult.getData()));
         Assert.assertEquals(1, pageResult.getTotalCount());
     }
 
@@ -53,7 +53,7 @@ public class MhaReplicationServiceV2ImplTest {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(1L));
 
         Assert.assertNotNull(mhaReplicationTbls);
-        Assert.assertTrue(CollectionUtils.isNotEmpty(mhaReplicationTbls));
+        Assert.assertFalse(CollectionUtils.isEmpty(mhaReplicationTbls));
 
     }
 }
