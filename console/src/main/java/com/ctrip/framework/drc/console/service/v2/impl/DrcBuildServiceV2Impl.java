@@ -20,6 +20,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DrcMhaConfigView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -127,6 +128,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         configureApplierGroup(srcMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps());
         configureApplierGroup(dstMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps());
+
+        if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
+            dstMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+            mhaTblDao.update(dstMha);
+        }
+        if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
+            srcMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+            mhaTblDao.update(srcMha);
+        }
     }
 
     @Override
@@ -144,6 +154,38 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<DbReplicationTbl> dbReplicationTbls = insertDbReplications(srcMha.getId(), dstMha.getId(), dbList, nameFilter);
         List<Long> dbReplicationIds = dbReplicationTbls.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
         return dbReplicationIds;
+    }
+
+    @Override
+    public List<DbReplicationView> getDbReplicationView(String srcMhaName, String dstMhaName) throws Exception {
+        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
+        if (srcMha == null || dstMha == null) {
+            throw ConsoleExceptionUtils.message("srcMha or dstMha not exist");
+        }
+
+        List<DbReplicationView> views = new ArrayList<>();
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<DbReplicationTbl> existDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
+        if (CollectionUtils.isEmpty(existDbReplications)) {
+            return views;
+        }
+
+        List<Long> srcDbIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryByIds(srcDbIds);
+        Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+        Map<Long, Long> srcMhaDbMappingMap = srcMhaDbMappings.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+
+        views = existDbReplications.stream().map(source -> {
+            DbReplicationView target = new DbReplicationView();
+            target.setDbReplicationId(source.getId());
+            target.setLogicTableName(source.getSrcLogicTableName());
+            long dbId = srcMhaDbMappingMap.get(source.getSrcMhaDbMappingId());
+            target.setDbName(dbTblMap.get(dbId));
+            return target;
+        }).collect(Collectors.toList());
+        return views;
     }
 
     @Override

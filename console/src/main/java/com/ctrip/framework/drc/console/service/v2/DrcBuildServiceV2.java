@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 
 import java.util.List;
@@ -16,6 +17,8 @@ public interface DrcBuildServiceV2 {
     void buildDrc(DrcBuildParam param) throws Exception;
 
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;
+
+    List<DbReplicationView> getDbReplicationView(String srcMhaName, String dstMhaName) throws Exception;
 
     void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
 
