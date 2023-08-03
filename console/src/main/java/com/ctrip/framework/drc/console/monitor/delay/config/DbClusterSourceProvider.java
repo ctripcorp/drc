@@ -268,7 +268,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
         return res;
     }
     
-    
+    @Deprecated
     public Map<String, List<ReplicatorWrapper>> getAllReplicatorsInLocalRegion() {
         Map<String, List<ReplicatorWrapper>> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
@@ -309,7 +309,8 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
      *  key: clusterId where the replicator bounds to, aka registryKey
      *  value: ReplicatorWrapper
      */
-    public Map<String, ReplicatorWrapper> getReplicatorsNeeded(List<String> mhaNamesToBeMonitored) {
+    @Deprecated
+    public Map<String, ReplicatorWrapper> getMasterReplicatorsToBeMonitored(List<String> mhaNamesToBeMonitored) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();
         Set<String> dcsInLocalRegion = consoleConfig.getDcsInLocalRegion();
         for (String dcInLocalRegion : dcsInLocalRegion) {

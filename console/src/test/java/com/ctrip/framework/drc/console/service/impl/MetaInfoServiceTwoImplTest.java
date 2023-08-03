@@ -37,7 +37,7 @@ public class MetaInfoServiceTwoImplTest extends AbstractTest {
     private MetaInfoServiceTwoImpl metaInfoServiceTwo;
 
     @Mock
-    private DbClusterSourceProvider sourceProvider;
+    private DbClusterSourceProvider dbClusterSourceProvider;
 
     @Mock
     private MetaInfoServiceImpl metaInfoService;
@@ -70,7 +70,7 @@ public class MetaInfoServiceTwoImplTest extends AbstractTest {
         Drc drc = DefaultSaxParser.parse(DRC_XML);
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha1dc1").getDbs().getDbs().clear();
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha2dc1").getDbs().getDbs().forEach(m -> m.setMaster(false));
-        Mockito.doReturn(drc).when(sourceProvider).getDrc();
+        Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
         MonitorMetaInfo monitorMetaInfo = metaInfoServiceTwo.getMonitorMetaInfo();
         Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint = monitorMetaInfo.getMasterMySQLEndpoint();
         Assert.assertEquals(5, masterMySQLEndpoint.size());
@@ -90,7 +90,7 @@ public class MetaInfoServiceTwoImplTest extends AbstractTest {
         Drc drc = DefaultSaxParser.parse(DRC_XML);
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha1dc1").getDbs().getDbs().clear();
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha2dc1").getDbs().getDbs().forEach(m -> m.setMaster(false));
-        Mockito.doReturn(drc).when(sourceProvider).getDrc();
+        Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
         MonitorMetaInfo monitorMetaInfo = metaInfoServiceTwo.getMonitorMetaInfo();
         Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint = monitorMetaInfo.getSlaveMySQLEndpoint();
         Assert.assertEquals(6, slaveMySQLEndpoint.size());
@@ -112,7 +112,7 @@ public class MetaInfoServiceTwoImplTest extends AbstractTest {
 
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha1dc1").getReplicators().clear();
         drc.getDcs().get("dc1").getDbClusters().get("dbcluster1.mha2dc1").getReplicators().forEach(r -> r.setMaster(false));
-        Mockito.doReturn(drc).when(sourceProvider).getDrc();
+        Mockito.doReturn(drc).when(dbClusterSourceProvider).getDrc();
         MonitorMetaInfo monitorMetaInfo = metaInfoServiceTwo.getMonitorMetaInfo();
         Map<MetaKey, Endpoint> masterReplicatorEndpoint = monitorMetaInfo.getMasterReplicatorEndpoint();
         Assert.assertEquals(6, masterReplicatorEndpoint.size());

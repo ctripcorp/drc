@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.monitor.comparator.MySQLEndpointComparator;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceTwoImpl;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
@@ -26,7 +26,6 @@ import java.util.Map;
 
 import static com.ctrip.framework.drc.console.monitor.MockTest.times;
 import static com.ctrip.framework.drc.console.utils.UTConstants.*;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -36,11 +35,9 @@ import static org.mockito.Mockito.verify;
  */
 public class DefaultCurrentMetaManagerTest {
 
-    @InjectMocks
-    private DefaultCurrentMetaManager currentMetaManager;
+    @InjectMocks private DefaultCurrentMetaManager currentMetaManager;
 
-    @Mock
-    private MetaInfoServiceTwoImpl metaInfoServiceTwo;
+    @Mock  private CacheMetaService cacheMetaService;
 
 
     private Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint;
@@ -75,7 +72,7 @@ public class DefaultCurrentMetaManagerTest {
         MonitorMetaInfo monitorMetaInfo = new MonitorMetaInfo();
         monitorMetaInfo.setMasterMySQLEndpoint(masterMySQLEndpoint);
         monitorMetaInfo.setSlaveMySQLEndpoint(slaveMySQLEndpoint);
-        Mockito.doReturn(monitorMetaInfo).when(metaInfoServiceTwo).getMonitorMetaInfo();
+        Mockito.doReturn(monitorMetaInfo).when(cacheMetaService).getMonitorMetaInfo();
 
         masterMySQLEndpointObserver = mock(MasterMySQLEndpointObserver.class);
         currentMetaManager.addObserver(masterMySQLEndpointObserver);
@@ -90,7 +87,7 @@ public class DefaultCurrentMetaManagerTest {
     @Test
     public void testInit() throws SQLException {
         currentMetaManager.init();
-        verify(metaInfoServiceTwo, times(0)).getMonitorMetaInfo();
+        verify(cacheMetaService, times(0)).getMonitorMetaInfo();
 
         verify(masterMySQLEndpointObserver, times(MASTER_MYSQL_NOTIFY_OFFSET)).update(Mockito.any(), Mockito.any(MasterMySQLEndpointObservable.class));
         verify(masterMySQLEndpointObserver, times(MASTER_MYSQL_NOTIFY_OFFSET)).update(Mockito.eq(new Triple<>(metaKey, MYSQL_ENDPOINT1_MHA1DC1, ActionEnum.ADD)), Mockito.any(MasterMySQLEndpointObservable.class));
