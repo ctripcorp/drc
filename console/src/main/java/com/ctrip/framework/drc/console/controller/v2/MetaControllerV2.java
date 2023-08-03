@@ -1,8 +1,12 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -14,6 +18,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -29,7 +35,10 @@ public class MetaControllerV2 {
 
     @Autowired
     private MetaGrayService metaServiceV2;
-    
+
+    @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
+
 
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh" , required = false, defaultValue = "false") String refresh) {
@@ -82,5 +91,47 @@ public class MetaControllerV2 {
             return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }
-    
+
+    @GetMapping("bus/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<BuTbl>> getAllBuTbls() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllBuWithCache());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllBuTbls error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
+    @GetMapping("regions/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<RegionTbl>> getAllRegionTbls() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllRegionWithCache());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllBuTbls error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
+    @GetMapping("dcs/all")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<DcDo>> getAllDcs() {
+        try {
+            return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllDcWithCache());
+        } catch (ConsoleException e) {
+            logger.error("[meta] getAllDcs exception" + e.getMessage());
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("[meta] getAllDcs error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+
 }

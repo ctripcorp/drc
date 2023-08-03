@@ -29,6 +29,8 @@ import com.ctrip.framework.drc.core.driver.command.packet.server.ErrorPacketTest
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTaskTest;
 import com.ctrip.framework.drc.core.driver.schema.SchemaTests;
 import com.ctrip.framework.drc.core.driver.util.MySQLPasswordEncrypterTest;
+import com.ctrip.framework.drc.core.http.PageReqTest;
+import com.ctrip.framework.drc.core.http.PageResultTest;
 import com.ctrip.framework.drc.core.meta.DataMediaConfigTest;
 import com.ctrip.framework.drc.core.meta.MessengerPropertiesTest;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfigTest;
@@ -177,6 +179,8 @@ import org.junit.runners.Suite;
 
         //Http response test
         AppNodeTest.class,
+        PageReqTest.class,
+        PageResultTest.class,
 
         DrcLeaderElectorTest.class,
 
