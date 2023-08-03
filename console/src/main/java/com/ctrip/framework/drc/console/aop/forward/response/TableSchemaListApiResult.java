@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.aop.reponse;
+package com.ctrip.framework.drc.console.aop.forward.response;
 
 import com.ctrip.framework.drc.console.utils.MySqlUtils.TableSchemaName;
 import com.ctrip.framework.drc.core.http.ApiResult;

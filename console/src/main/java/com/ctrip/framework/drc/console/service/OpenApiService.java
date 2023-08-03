@@ -9,10 +9,11 @@ import java.util.List;
 
 public interface OpenApiService {
 
+    @Deprecated
     List<MhaGroupFilterVo> getAllDrcMhaDbFilters() throws SQLException;
 
     List<MessengerInfo> getAllMessengersInfo() throws SQLException;
-
+    
     // return all infos if dbName is empty
     List<DrcDbInfo> getDrcDbInfos(String dbName);
 }

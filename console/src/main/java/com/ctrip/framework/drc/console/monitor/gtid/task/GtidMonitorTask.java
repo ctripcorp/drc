@@ -3,11 +3,13 @@ package com.ctrip.framework.drc.console.monitor.gtid.task;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.ha.LeaderSwitchable;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.gtid.function.CheckGtid;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.task.AbstractMasterMySQLEndpointObserver;
 import com.ctrip.framework.drc.core.monitor.datasource.DataSourceManager;
 import com.ctrip.framework.drc.core.server.observer.endpoint.MasterMySQLEndpointObserver;
@@ -32,20 +34,15 @@ import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableS
 @Component
 public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver implements MasterMySQLEndpointObserver , LeaderSwitchable {
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DataCenterService dataCenterService;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
-    @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    @Autowired private CacheMetaService cacheMetaService;
 
-    @Autowired
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Autowired private DefaultCurrentMetaManager currentMetaManager;
 
     public static final int INITIAL_DELAY = 0;
 
@@ -73,7 +70,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
             final String gtidMonitorSwitch = monitorTableSourceProvider.getGtidMonitorSwitch();
             if (SWITCH_STATUS_ON.equalsIgnoreCase(gtidMonitorSwitch)) {
                 logger.info("[[monitor=gtid]] is Leader, going to check gtid");
-                Map<String, Set<String>> uuidMapper = metaInfoService.getUuidMap(dcsInRegion);
+                Map<String, Set<String>> uuidMapper = cacheMetaService.getMha2UuidsMap(dcsInRegion);
                 checkGtid.checkGtidGap(uuidMapper, masterMySQLEndpointMap);
             } else {
                 logger.info("[[monitor=gtid]] is Leader,but switch is off doNothing");
@@ -87,7 +84,7 @@ public class GtidMonitorTask extends AbstractMasterMySQLEndpointObserver impleme
     
     @Override
     public void setLocalDcName() {
-        localDcName = sourceProvider.getLocalDcName();
+        localDcName = dataCenterService.getDc();
     }
 
     @Override

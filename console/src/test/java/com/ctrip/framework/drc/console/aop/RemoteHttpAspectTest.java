@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.aop;
 
+import com.ctrip.framework.drc.console.aop.forward.RemoteHttpAspect;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.service.impl.MySqlServiceImpl;

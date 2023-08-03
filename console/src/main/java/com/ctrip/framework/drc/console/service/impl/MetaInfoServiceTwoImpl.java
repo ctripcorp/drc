@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Deprecated
 public class MetaInfoServiceTwoImpl {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

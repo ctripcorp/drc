@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.aop;
+package com.ctrip.framework.drc.console.aop.forward;
 
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
