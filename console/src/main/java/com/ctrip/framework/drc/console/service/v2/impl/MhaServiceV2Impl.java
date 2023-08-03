@@ -77,7 +77,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             return mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity(), (e1, e2) -> e1));
         } catch (SQLException e) {
             logger.error("queryByMhaNames exception", e);
-            throw ConsoleExceptionUtils.message("查询 mhaTbl 失败，请重试或联系开发。错误信息：" + e.getMessage());
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }
 }
