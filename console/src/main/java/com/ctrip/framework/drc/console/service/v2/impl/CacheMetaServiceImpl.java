@@ -49,14 +49,6 @@ public class CacheMetaServiceImpl implements CacheMetaService {
 
     @Autowired private MonitorServiceV2 monitorServiceV2;
 
-    Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint;
-
-    Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint;
-
-    Map<MetaKey, Endpoint> masterReplicatorEndpoint;
-
-    private MonitorMetaInfo monitorMetaInfo;
-
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
@@ -121,17 +113,11 @@ public class CacheMetaServiceImpl implements CacheMetaService {
 
     @Override
     public MonitorMetaInfo getMonitorMetaInfo() throws SQLException {
-        refreshMetaEndpoints();
-        return monitorMetaInfo;
-    }
-
-    private void refreshMetaEndpoints() throws SQLException {
         List<String> mhaNamesToBeMonitored = monitorServiceV2.getMhaNamesToBeMonitored();
-        monitorMetaInfo = new MonitorMetaInfo();
-        masterMySQLEndpoint = Maps.newConcurrentMap();
-        slaveMySQLEndpoint = Maps.newConcurrentMap();
-        masterReplicatorEndpoint = Maps.newConcurrentMap();
-
+        MonitorMetaInfo monitorMetaInfo = new MonitorMetaInfo();
+        Map<MetaKey, MySqlEndpoint> masterMySQLEndpoint = Maps.newConcurrentMap();
+        Map<MetaKey, MySqlEndpoint> slaveMySQLEndpoint= Maps.newConcurrentMap();
+        Map<MetaKey, Endpoint> masterReplicatorEndpoint = Maps.newConcurrentMap();
         monitorMetaInfo.setMasterMySQLEndpoint(masterMySQLEndpoint);
         monitorMetaInfo.setSlaveMySQLEndpoint(slaveMySQLEndpoint);
         monitorMetaInfo.setMasterReplicatorEndpoint(masterReplicatorEndpoint);
@@ -139,8 +125,8 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         try {
             Drc drc = metaProviderV2.getDrc();
             if(drc == null) {
-                logger.info("[MetaInfoServiceTwoImpl] return drc null");
-                return;
+                logger.info("[getMonitorMetaInfo] return drc null");
+                return null;
             }
             for(Dc dc : drc.getDcs().values()) {
                 for(DbCluster dbCluster : dc.getDbClusters().values()) {
@@ -187,11 +173,12 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                     }
                 }
             }
-
         } catch (Exception e) {
             logger.error("Fail get master replicator endpoint, ", e);
         }
+        return monitorMetaInfo;
     }
+    
 
 
     private Map<String, ReplicatorWrapper> getReplicatorsSrcDcRelated(List<String> mhaNamesToBeMonitored, String srcDc) {
