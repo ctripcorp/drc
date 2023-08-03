@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
  * @version 1.0
  * date: 2020-03-05
  */
-// todo 老模型
 public interface SwitchService {
     ApiResult switchUpdateDb(String cluster, DbEndpointDto dbEndpointDto);
 

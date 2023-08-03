@@ -521,7 +521,6 @@ public class ListenReplicatorTask extends AbstractLeaderAwareMonitor {
         if ("on".equalsIgnoreCase(consoleConfig.getUpdateReplicatorSwitch())) {
             monitorMasterRExecutorService.submit(() -> {
                 try {
-                    // todo 老模型
                     dbMetaCorrectService.updateMasterReplicatorIfChange(mhaName, newReplicatorIp);
                 } catch (Throwable t) {
                     logger.error("updateMasterReplicatorIfChange error mha:{},newRIp:{}",

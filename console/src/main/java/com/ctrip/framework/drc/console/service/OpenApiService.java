@@ -7,7 +7,6 @@ import com.ctrip.framework.drc.console.vo.api.MhaGroupFilterVo;
 import java.sql.SQLException;
 import java.util.List;
 
-// todo 老模型
 public interface OpenApiService {
 
     @Deprecated

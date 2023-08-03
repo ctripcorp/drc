@@ -100,7 +100,7 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
         }
     }
 
-    // todo 老模型
+    
     protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
         MhaTblV2 condition = new MhaTblV2();
         condition.setDeleted(BooleanEnum.FALSE.getCode());
