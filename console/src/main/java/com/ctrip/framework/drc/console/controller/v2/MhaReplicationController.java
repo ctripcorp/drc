@@ -58,7 +58,7 @@ public class MhaReplicationController {
         logger.info("[meta] queryMhaReplications:{}", relatedMhaId);
         try {
             if (CollectionUtils.isEmpty(relatedMhaId)) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "relatedMhaId不可为空，请联系开发！");
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
             }
 
             // query related replications
@@ -158,13 +158,13 @@ public class MhaReplicationController {
             if (srcMhaTbl == null) {
                 throw ConsoleExceptionUtils.message(
                         ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE,
-                        String.format("srcMhaTbl 不存在. replicationTbl:%s, srcMhaTblId:%d", replicationTbl, replicationTbl.getSrcMhaId())
+                        String.format("srcMhaTbl not exist. replicationTbl:%s, srcMhaTblId:%d", replicationTbl, replicationTbl.getSrcMhaId())
                 );
             }
             if (dstMhaTbl == null) {
                 throw ConsoleExceptionUtils.message(
                         ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE,
-                        String.format("dstMhaTbl 不存在. replicationTbl:%s, dstMhaTblId:%d", replicationTbl, replicationTbl.getDstMhaId())
+                        String.format("dstMhaTbl not exist. replicationTbl:%s, dstMhaTblId:%d", replicationTbl, replicationTbl.getDstMhaId())
                 );
             }
             // set vo: mha
