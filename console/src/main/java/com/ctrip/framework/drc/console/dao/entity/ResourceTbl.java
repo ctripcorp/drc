@@ -54,12 +54,33 @@ public class ResourceTbl implements DalPojo {
 	@Type(value = Types.TINYINT)
 	private Integer type;
 
+	/**
+	 * azId
+	 */
+	@Column(name = "az_id")
+	@Type(value = Types.VARCHAR)
+	private String azId;
+
+	/**
+	 * 机器标签
+	 */
+	@Column(name = "tag")
+	@Type(value = Types.VARCHAR)
+	private String tag;
+
     /**
      * 是否删除, 0:否; 1:是
      */
 	@Column(name = "deleted")
 	@Type(value = Types.TINYINT)
 	private Integer deleted;
+
+	/**
+	 * 是否可用, 0:否; 1:是
+	 */
+	@Column(name = "active")
+	@Type(value = Types.TINYINT)
+	private Integer active;
 
     /**
      * 创建时间
@@ -74,6 +95,30 @@ public class ResourceTbl implements DalPojo {
 	@Column(name = "datachange_lasttime", insertable = false, updatable = false)
 	@Type(value = Types.TIMESTAMP)
 	private Timestamp datachangeLasttime;
+
+	public Integer getActive() {
+		return active;
+	}
+
+	public void setActive(Integer active) {
+		this.active = active;
+	}
+
+	public String getAzId() {
+		return azId;
+	}
+
+	public void setAzId(String azId) {
+		this.azId = azId;
+	}
+
+	public String getTag() {
+		return tag;
+	}
+
+	public void setTag(String tag) {
+		this.tag = tag;
+	}
 
 	public Long getId() {
 		return id;
