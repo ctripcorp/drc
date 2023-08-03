@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.param.v2;
 import com.ctrip.framework.drc.core.http.PageReq;
 
 import java.util.List;
+import java.util.Objects;
 
 public class MhaReplicationQuery extends PageReq {
     private List<Long> srcMhaIdList;
@@ -22,5 +23,19 @@ public class MhaReplicationQuery extends PageReq {
 
     public void setSrcMhaIdList(List<Long> srcMhaIdList) {
         this.srcMhaIdList = srcMhaIdList;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MhaReplicationQuery)) return false;
+        if (!super.equals(o)) return false;
+        MhaReplicationQuery query = (MhaReplicationQuery) o;
+        return Objects.equals(srcMhaIdList, query.srcMhaIdList) && Objects.equals(dstMhaIdList, query.dstMhaIdList);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), srcMhaIdList, dstMhaIdList);
     }
 }

@@ -123,7 +123,7 @@ public class MhaReplicationController {
 
             List<MhaGroupPairVo> res = this.buildVo(data, mhaTblMap);
 
-            // 设置同步类型
+            // simplex or duplex
             List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
             Set<String> links = mhaReplicationTbls.stream().map(e -> e.getSrcMhaId() + "->" + e.getDstMhaId()).collect(Collectors.toSet());
             res.forEach(e -> {
@@ -173,7 +173,9 @@ public class MhaReplicationController {
 
             // set vo: replication
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));
-            vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
+            if (replicationTbl.getDatachangeLasttime() != null) {
+                vo.setDatachangeLasttime(replicationTbl.getDatachangeLasttime().getTime());
+            }
             return vo;
         }).collect(Collectors.toList());
     }
