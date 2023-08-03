@@ -12,7 +12,7 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
-import com.ctrip.framework.drc.console.vo.display.v2.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
@@ -93,7 +93,7 @@ public class MhaReplicationControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
-        ApiResult<List<MhaGroupPairVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        ApiResult<List<MhaReplicationVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
         Assert.assertNull(apiResult.getData());
         Assert.assertEquals(1L, apiResult.getStatus().longValue());
         Assert.assertTrue(apiResult.getMessage().contains("请求参数异常"));
@@ -106,7 +106,7 @@ public class MhaReplicationControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
-        ApiResult<List<MhaGroupPairVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        ApiResult<List<MhaReplicationVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
 
         Assert.assertEquals(2, apiResult.getData().size());
         Assert.assertEquals(0, apiResult.getStatus().longValue());
@@ -120,7 +120,7 @@ public class MhaReplicationControllerTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
-        ApiResult<List<MhaGroupPairVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        ApiResult<List<MhaReplicationVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
 
         Assert.assertEquals(0, apiResult.getData().size());
         Assert.assertEquals(0, apiResult.getStatus().longValue());

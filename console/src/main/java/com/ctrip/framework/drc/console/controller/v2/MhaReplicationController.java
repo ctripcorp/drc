@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.vo.display.v2.MhaGroupPairVo;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
 import com.ctrip.framework.drc.console.vo.request.MhaReplicationQueryDto;
@@ -54,7 +54,7 @@ public class MhaReplicationController {
 
     @GetMapping("queryMhaRelated")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MhaGroupPairVo>> queryMhaReplications(@RequestParam(name = "relatedMhaId") List<Long> relatedMhaId) {
+    public ApiResult<List<MhaReplicationVo>> queryMhaReplications(@RequestParam(name = "relatedMhaId") List<Long> relatedMhaId) {
         logger.info("[meta] queryMhaReplications:{}", relatedMhaId);
         try {
             if (CollectionUtils.isEmpty(relatedMhaId)) {
@@ -62,19 +62,19 @@ public class MhaReplicationController {
             }
 
             // query related replications
-            List<MhaReplicationTbl> data = mhaReplicationServiceV2.queryRelatedReplications(relatedMhaId);
-            if (CollectionUtils.isEmpty(data)) {
+            List<MhaReplicationTbl> replicationTbls = mhaReplicationServiceV2.queryRelatedReplications(relatedMhaId);
+            if (CollectionUtils.isEmpty(replicationTbls)) {
                 return ApiResult.getSuccessInstance(Collections.emptyList());
             }
 
             // query mha detail
             Set<Long> mhaIdSet = Sets.newHashSet();
-            mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getSrcMhaId).collect(Collectors.toSet()));
-            mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
+            mhaIdSet.addAll(replicationTbls.stream().map(MhaReplicationTbl::getSrcMhaId).collect(Collectors.toSet()));
+            mhaIdSet.addAll(replicationTbls.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
             Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
 
             // fill
-            return ApiResult.getSuccessInstance(this.buildVo(data, mhaTblMap));
+            return ApiResult.getSuccessInstance(this.buildVo(replicationTbls, mhaTblMap));
         } catch (Exception e) {
             logger.error("queryMhaReplications error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -83,7 +83,7 @@ public class MhaReplicationController {
 
     @GetMapping("query")
     @SuppressWarnings("unchecked")
-    public ApiResult<PageResult<MhaGroupPairVo>> queryMhaReplicationsByPage(MhaReplicationQueryDto queryDto) {
+    public ApiResult<PageResult<MhaReplicationVo>> queryMhaReplicationsByPage(MhaReplicationQueryDto queryDto) {
         logger.info("[meta] get allOrderedGroup,drcGroupQueryDto:{}", queryDto.toString());
         try {
             MhaReplicationQuery query = new MhaReplicationQuery();
@@ -121,7 +121,7 @@ public class MhaReplicationController {
             mhaIdSet.addAll(data.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
             Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
 
-            List<MhaGroupPairVo> res = this.buildVo(data, mhaTblMap);
+            List<MhaReplicationVo> res = this.buildVo(data, mhaTblMap);
 
             // simplex or duplex
             List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
@@ -141,7 +141,7 @@ public class MhaReplicationController {
         }
     }
 
-    private List<MhaGroupPairVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
+    private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
         // prepare meta data
         List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
         List<BuTbl> buTbls = metaInfoServiceV2.queryAllBuWithCache();
@@ -150,7 +150,7 @@ public class MhaReplicationController {
         Map<Long, BuTbl> buMap = buTbls.stream().collect(Collectors.toMap(BuTbl::getId, Function.identity()));
 
         return replicationTblList.stream().map(replicationTbl -> {
-            MhaGroupPairVo vo = new MhaGroupPairVo();
+            MhaReplicationVo vo = new MhaReplicationVo();
             MhaTblV2 srcMhaTbl = mhaTblMap.get(replicationTbl.getSrcMhaId());
             MhaTblV2 dstMhaTbl = mhaTblMap.get(replicationTbl.getDstMhaId());
 

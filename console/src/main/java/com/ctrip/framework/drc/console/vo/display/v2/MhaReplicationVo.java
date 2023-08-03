@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.vo.display.v2;
 
-public class MhaGroupPairVo {
+public class MhaReplicationVo {
 
     private String replicationId;
     private MhaVo srcMha;
