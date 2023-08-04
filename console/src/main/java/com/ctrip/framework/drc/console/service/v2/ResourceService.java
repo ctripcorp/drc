@@ -27,4 +27,10 @@ public interface ResourceService {
     List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception;
 
     List<ResourceView> autoConfigureResource(String mhaName, int type, List<String> selectedIps) throws Exception;
+
+    List<ResourceView> getResourceUnused(int type) throws Exception;
+
+    int deleteResourceUnused(List<String> ips) throws Exception;
+
+    int deleteResourceUnused(int type) throws Exception;
 }

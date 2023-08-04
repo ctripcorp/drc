@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.service.v2.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
+import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -48,6 +48,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DcTblDao dcTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblDao;
+
+    private static final int THOUSAND = 1000;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -182,24 +184,61 @@ public class ResourceServiceImpl implements ResourceService {
             return resultViews;
         }
 
-        Map<String, ResourceView> resourceViewMap = resourceViews.stream().collect(Collectors.toMap(ResourceView::getIp, Function.identity()));
         if (!CollectionUtils.isEmpty(selectedIps) && selectedIps.size() == 1) {
-            ResourceView firstResource = resourceViewMap.get(selectedIps.get(0));
-            resultViews.add(firstResource);
+            ResourceView firstResource = resourceViews.stream().filter(e -> e.getIp().equals(selectedIps.get(0))).findFirst().orElse(null);
+            if (firstResource != null) {
+                resultViews.add(firstResource);
+            }
 
         } else if (!CollectionUtils.isEmpty(selectedIps)) {
             resourceViews = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).collect(Collectors.toList());
         }
 
         setResourceView(resultViews, resourceViews);
-
         return resultViews;
     }
 
-    private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
-        if (resourceViews.size() == 2) {
-            return;
+    @Override
+    public List<ResourceView> getResourceUnused(int type) throws Exception {
+        ResourceQueryParam param = new ResourceQueryParam();
+        param.setType(type);
+        PageReq pageReq = new PageReq();
+        pageReq.setPageSize(THOUSAND);
+        param.setPageReq(pageReq);
+
+        List<ResourceView> resourceViews = getResourceView(param);
+        List<ResourceView> resourcesUnused = resourceViews.stream().filter(e -> e.getInstanceNum() == 0L).collect(Collectors.toList());
+        return resourcesUnused;
+    }
+
+    @Override
+    public int deleteResourceUnused(List<String> ips) throws Exception {
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(ips);
+        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
+        List<ReplicatorTbl> replicators = replicatorTblDao.queryByResourceIds(resourceIds);
+        List<ApplierTblV2> appliers = applierTblDao.queryByResourceIds(resourceIds);
+
+        Set<Long> resourceIdsInUse = replicators.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toSet());
+        resourceIdsInUse.addAll(appliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toSet()));
+
+        resourceTbls = resourceTbls.stream().filter(e -> !resourceIdsInUse.contains(e.getId())).collect(Collectors.toList());
+        resourceTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        int result = resourceTblDao.update(resourceTbls).length;
+        return result;
+    }
+
+    @Override
+    public int deleteResourceUnused(int type) throws Exception {
+        List<ResourceView> resourceViews = getResourceUnused(type);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            return 0;
         }
+
+        List<String> ips = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
+        return deleteResourceUnused(ips);
+    }
+
+    private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
         if (CollectionUtils.isEmpty(resultViews)) {
             resultViews.add(resourceViews.get(0));
         }

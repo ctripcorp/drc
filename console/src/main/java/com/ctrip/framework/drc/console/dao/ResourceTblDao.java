@@ -6,9 +6,11 @@ import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.digester.ArrayStack;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,6 +34,18 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.equal(IP, ip, Types.VARCHAR);
         return queryOne(sqlBuilder);
+    }
+
+    public List<ResourceTbl> queryByIps(List<String> ips) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().inNullable(IP, ips, Types.VARCHAR);
+        return queryList(sqlBuilder);
+    }
+
+    public List<ResourceTbl> queryByType(int type) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(TYPE, type, Types.TINYINT);
+        return queryList(sqlBuilder);
     }
 
     public List<ResourceTbl> queryByParam(ResourceQueryParam param) throws SQLException {
