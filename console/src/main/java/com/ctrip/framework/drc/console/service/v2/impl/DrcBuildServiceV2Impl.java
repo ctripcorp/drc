@@ -2,14 +2,8 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.*;
@@ -131,10 +125,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
             dstMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+            dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
+            mhaReplicationTblDao.update(dstMhaReplication);
             mhaTblDao.update(dstMha);
         }
         if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
             srcMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+            srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
+            mhaReplicationTblDao.update(srcMhaReplication);
             mhaTblDao.update(srcMha);
         }
     }
