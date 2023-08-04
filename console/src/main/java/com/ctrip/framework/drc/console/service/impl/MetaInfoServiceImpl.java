@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.MhaGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.*;
@@ -49,8 +49,8 @@ import static com.ctrip.framework.drc.console.config.ConsoleConfig.MHA_GROUP_SIZ
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SOURCE_QCONFIG;
 
 @Service
-public class
-MetaInfoServiceImpl implements MetaInfoService {
+@Deprecated
+public class MetaInfoServiceImpl implements MetaInfoService {
 
     public static final String ALLMATCH = ".*";
     public static final String NO_MATCH = "![.*]";

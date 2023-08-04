@@ -8,6 +8,15 @@
             <Icon type="ios-navigate"></Icon>
             <span>监控大盘</span>
           </MenuItem>
+          <Submenu name="-1">
+            <template slot="title">
+              <Icon type="ios-apps"></Icon>
+              集群管理 v2
+            </template>
+            <MenuItem name="/mhaReplications" to="/mhaReplications">
+              <span>MHA复制</span>
+            </MenuItem>
+          </Submenu>
           <Submenu name="0">
             <template slot="title">
               <Icon type="ios-apps"></Icon>

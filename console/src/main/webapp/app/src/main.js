@@ -12,6 +12,8 @@ import moment from 'moment'
 import VueCodeMirror from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
 import constant from './common/constant'
+import RelationGraph from 'relation-graph'
+import VueClipboard from 'vue-clipboard2'
 
 Vue.config.productionTip = false
 Vue.component('dev-article', devArticle)
@@ -20,6 +22,8 @@ Vue.component('base-component', baseComponent)
 Vue.use(VueCodeMirror)
 Vue.use(JsonViewer)
 Vue.prototype.constant = constant
+Vue.use(RelationGraph)
+Vue.use(VueClipboard)
 
 Vue.filter('dateFormat', function (dateStr, pattern = 'YYYY-MM-DD HH:mm:ss') {
   return moment(dateStr).format(pattern)

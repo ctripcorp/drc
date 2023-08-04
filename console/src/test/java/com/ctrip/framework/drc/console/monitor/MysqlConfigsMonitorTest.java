@@ -5,7 +5,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.mock.LocalMasterMySQLEndpointObservable;
 import com.ctrip.framework.drc.console.mock.LocalSlaveMySQLEndpointObservable;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultReporterHolder;
@@ -35,20 +35,15 @@ import static org.mockito.Mockito.verify;
  */
 public class MysqlConfigsMonitorTest extends AbstractTest {
 
-    @InjectMocks
-    private MysqlConfigsMonitor mysqlConfigsMonitor;
+    @InjectMocks private MysqlConfigsMonitor mysqlConfigsMonitor;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Mock private DefaultCurrentMetaManager currentMetaManager;
 
-    @Mock
-    private DbClusterSourceProvider sourceProvider;
+    @Mock private DataCenterService dataCenterService;
 
     @Mock
     private Reporter reporter = DefaultReporterHolder.getInstance();
@@ -63,7 +58,7 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
         super.setUp();
         MockitoAnnotations.openMocks(this);
 
-        Mockito.doReturn(DC1).when(sourceProvider).getLocalDcName();
+        Mockito.doReturn(DC1).when(dataCenterService).getDc();
         Mockito.doReturn("on").when(monitorTableSourceProvider).getMysqlConfigsMonitorSwitch();
         Mockito.doNothing().when(currentMetaManager).addObserver(mysqlConfigsMonitor);
         Mockito.doReturn("sha").when(consoleConfig).getRegion();
@@ -76,7 +71,7 @@ public class MysqlConfigsMonitorTest extends AbstractTest {
     @Test
     public void testInit() {
 
-        verify(sourceProvider, times(1)).getLocalDcName();
+        verify(dataCenterService, times(1)).getDc();
         verify(currentMetaManager, times(1)).addObserver(mysqlConfigsMonitor);
     }
 

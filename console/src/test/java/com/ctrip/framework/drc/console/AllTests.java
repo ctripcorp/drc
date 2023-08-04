@@ -9,6 +9,8 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
+import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
+import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
@@ -47,6 +49,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.integration.DrcDoubleWriteServiceIntegrationTest;
@@ -150,8 +153,15 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaGrayServiceImplTest.class,
         MetaCompareServiceImplTest.class,
         DrcDoubleWriteServiceTest.class,
+        CacheMetaServiceImplTest.class,
+        DbMetaCorrectServiceImplTest.class,
+        MetaInfoServiceV2ImplTest.class,
+        MhaServiceV2ImplTest.class,
+        MhaReplicationServiceV2ImplTest.class,
 //
         // controller
+        MetaControllerV2Test.class,
+        MhaReplicationControllerTest.class,
         AccessControllerTest.class,
         BuildControllerTest.class,
         LocalControllerTest.class,
@@ -233,7 +243,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //integrationTest
         MigrateServiceIntegrationTest.class,
         DrcDoubleWriteServiceIntegrationTest.class
-        
+
 })
 public class AllTests {
 

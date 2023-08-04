@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.monitor;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
 import com.ctrip.framework.drc.console.monitor.task.AliBinlogRetentionTimeQueryTask;
 import com.ctrip.framework.drc.console.monitor.task.AwsBinlogRetentionTimeQueryTask;
@@ -40,24 +42,19 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONSOLE_MY
  */
 @Order(2)
 @Component
-@DependsOn("dbClusterSourceProvider")
 public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implements MasterMySQLEndpointObserver, SlaveMySQLEndpointObserver {
 
     public Logger logger = LoggerFactory.getLogger(CONSOLE_MYSQL_LOG);
 
     private Reporter reporter = DefaultReporterHolder.getInstance();
 
-    @Autowired
-    private DbClusterSourceProvider sourceProvider;
+    @Autowired private DataCenterService dataCenterService;
 
-    @Autowired
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Autowired private DefaultCurrentMetaManager currentMetaManager;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
     
-    @Autowired
-    private DefaultConsoleConfig consoleConfig;
+    @Autowired private DefaultConsoleConfig consoleConfig;
 
     public static final String BINLOG_RETENTION_TIME_MEASUREMENT = "fx.drc.binlog.retention.time";
 
@@ -170,7 +167,7 @@ public class MysqlConfigsMonitor extends AbstractAllMySQLEndPointObserver implem
 
     @Override
     public void setLocalDcName() {
-        localDcName = sourceProvider.getLocalDcName();
+        localDcName = dataCenterService.getDc();
     }
 
     @Override

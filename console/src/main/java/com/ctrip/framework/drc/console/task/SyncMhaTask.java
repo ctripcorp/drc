@@ -1,19 +1,18 @@
 package com.ctrip.framework.drc.console.task;
 
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
-import com.ctrip.framework.drc.console.enums.TableEnum;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractLeaderAwareMonitor;
 import com.ctrip.framework.drc.console.monitor.Monitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.impl.DalServiceImpl;
-import com.ctrip.framework.drc.console.service.impl.DrcMaintenanceServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
-import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.foundation.Foundation;
-import com.ctrip.platform.dal.dao.DalPojo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
@@ -41,14 +40,13 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
 
     public static final TimeUnit TIME_UNIT = TimeUnit.MINUTES;
 
-    @Autowired
-    private DalServiceImpl dalService;
+    @Autowired private DalServiceImpl dalService;
 
-    @Autowired
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
+    @Autowired private DbMetaCorrectService dbMetaCorrectService;
 
-    @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Autowired private MonitorTableSourceProvider monitorTableSourceProvider;
+    
+    @Autowired private MhaTblV2Dao mhaTblV2Dao;
     
     private final static int RETRY_TIME = 10;
     
@@ -102,24 +100,27 @@ public class SyncMhaTask extends AbstractLeaderAwareMonitor implements Monitor {
         }
     }
 
+    
     protected void updateAllMhaInstanceGroup(Map<String, MhaInstanceGroupDto> mhaInstanceGroupsMap) throws Exception {
-        List<DalPojo> allPojos = TableEnum.MHA_TABLE.getAllPojos();
+        MhaTblV2 condition = new MhaTblV2();
+        condition.setDeleted(BooleanEnum.FALSE.getCode());
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryBy(condition);
+
         boolean updateFail = false;
-        for (DalPojo pojo : allPojos) {
-            MhaTbl mhaTbl = (MhaTbl) pojo;
-            MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTbl.getMhaName());
+        for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
+            MhaInstanceGroupDto mhaInstanceGroupDto = mhaInstanceGroupsMap.get(mhaTblV2.getMhaName());
             try {
                 if (null != mhaInstanceGroupDto) {
                     logger.info("[[task=syncMhaTask]] update mha {} instance", mhaInstanceGroupDto.getMhaName());
-                    drcMaintenanceService.mhaInstancesChange(mhaInstanceGroupDto, mhaTbl);
+                    dbMetaCorrectService.mhaInstancesChange(mhaInstanceGroupDto, mhaTblV2);
                 }
             } catch (Exception e) {
-                logger.error("[[task=syncMhaTask]] update mha {} instance fail",mhaTbl.getMhaName(),e);
+                logger.error("[[task=syncMhaTask]] update mha {} instance fail", mhaTblV2.getMhaName(), e);
                 updateFail = true;
             }
-        }
-        if (updateFail) {
-            throw new IllegalArgumentException("syncMhaTask fail");
+            if (updateFail) {
+                throw new IllegalArgumentException("syncMhaTask fail");
+            }
         }
     }
 
