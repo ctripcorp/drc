@@ -45,6 +45,14 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         return queryList(sqlbuilder);
     }
 
+    public List<ResourceTbl> queryByDcAndTag(List<Long> dcIds, String tag, int type) throws SQLException {
+        SelectSqlBuilder sqlbuilder = initSqlBuilder();
+        sqlbuilder.and().inNullable(DC_ID, dcIds, Types.BIGINT)
+                .and().equal(TAG, tag, Types.VARCHAR)
+                .and().equal(TYPE, type, Types.TINYINT);
+        return queryList(sqlbuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuild(ResourceQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         if (StringUtils.isNotBlank(param.getIp())) {

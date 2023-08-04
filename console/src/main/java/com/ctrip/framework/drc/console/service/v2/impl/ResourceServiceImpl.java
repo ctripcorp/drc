@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
 import com.ctrip.framework.drc.console.service.v2.ResourceService;
@@ -24,9 +25,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -153,28 +153,113 @@ public class ResourceServiceImpl implements ResourceService {
         Map<Long, Long> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
         Map<Long, Long> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
 
-        List<ResourceView> views = resourceTbls.stream().map(source -> {
-            ResourceView target = new ResourceView();
-            target.setResourceId(source.getId());
-            target.setIp(source.getIp());
-            target.setActive(source.getActive());
-            target.setReplicatorNum(replicatorMap.getOrDefault(source.getId(), 0L));
-            target.setApplierNum(applierMap.getOrDefault(source.getId(), 0L));
-            return target;
-        }).collect(Collectors.toList());
+        List<ResourceView> views = buildResourceViews(resourceTbls, replicatorMap, applierMap);
         return views;
     }
 
     @Override
-    public List<String> getResourceIpByMha(String mhaName, int type) throws Exception {
+    public List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception {
         MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             logger.info("mha: {} not exist", mhaName);
             return new ArrayList<>();
         }
-        DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
 
-        return null;
+        if (type != ModuleEnum.REPLICATOR.getCode() || type != ModuleEnum.APPLIER.getCode()) {
+            logger.info("resource type: {} can only be replicator or applier", type);
+            return new ArrayList<>();
+        }
+        DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
+        List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
+        return getResourceViews(dcIds, type, mhaTbl.getTag());
+    }
+
+    @Override
+    public List<ResourceView> autoConfigureResource(String mhaName, int type, List<String> selectedIps) throws Exception {
+        List<ResourceView> resultViews = new ArrayList<>();
+        List<ResourceView> resourceViews = getResourceIpByMha(mhaName, type);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            return resultViews;
+        }
+
+        Map<String, ResourceView> resourceViewMap = resourceViews.stream().collect(Collectors.toMap(ResourceView::getIp, Function.identity()));
+        if (!CollectionUtils.isEmpty(selectedIps) && selectedIps.size() == 1) {
+            ResourceView firstResource = resourceViewMap.get(selectedIps.get(0));
+            resultViews.add(firstResource);
+
+        } else if (!CollectionUtils.isEmpty(selectedIps)) {
+            resourceViews = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).collect(Collectors.toList());
+        }
+
+        setResourceView(resultViews, resourceViews);
+
+        return resultViews;
+    }
+
+    private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
+        if (resourceViews.size() == 2) {
+            return;
+        }
+        if (CollectionUtils.isEmpty(resultViews)) {
+            resultViews.add(resourceViews.get(0));
+        }
+        ResourceView firstResource = resultViews.get(0);
+        ResourceView secondResource = resourceViews.stream().filter(e -> e.getAz().equals(firstResource.getAz())).findFirst().orElse(null);
+        if (secondResource != null) {
+            resultViews.add(secondResource);
+        }
+    }
+
+    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws Exception {
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type);
+        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
+
+        Map<Long, Long> replicatorMap = new HashMap<>();
+        Map<Long, Long> applierMap = new HashMap<>();
+        if (type == ModuleEnum.REPLICATOR.getCode()) {
+            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
+            replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
+        } else if (type == ModuleEnum.APPLIER.getCode()) {
+            List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(resourceIds);
+            applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
+        }
+
+        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap);
+        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
+            return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
+        }
+        Collections.sort(resourceViews);
+        return resourceViews;
+    }
+
+    public static void main(String[] args) {
+        List<ResourceView> resourceViews = new ArrayList<>();
+        Random random = new Random();
+        for (int i = 10; i > 0; i--) {
+            ResourceView view = new ResourceView();
+            view.setInstanceNum(Long.valueOf(random.nextInt(100)));
+            resourceViews.add(view);
+        }
+        Collections.sort(resourceViews);
+        resourceViews.forEach(e -> System.out.println(e.getInstanceNum()));
+    }
+
+    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap) {
+        List<ResourceView> views = resourceTbls.stream().map(source -> {
+            ResourceView target = new ResourceView();
+            target.setResourceId(source.getId());
+            target.setIp(source.getIp());
+            target.setActive(source.getActive());
+            target.setAz(source.getAz());
+            target.setType(source.getType());
+            if (source.getType() == ModuleEnum.REPLICATOR.getCode()) {
+                target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
+            } else if (source.getType() == ModuleEnum.APPLIER.getCode()) {
+                target.setInstanceNum(applierMap.getOrDefault(source.getId(), 0L));
+            }
+            return target;
+        }).collect(Collectors.toList());
+        return views;
     }
 
     private void checkResourceBuildParam(ResourceBuildParam param) {

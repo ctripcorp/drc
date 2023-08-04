@@ -4,12 +4,37 @@ package com.ctrip.framework.drc.console.vo.v2;
  * Created by dengquanliang
  * 2023/8/3 17:56
  */
-public class ResourceView {
+public class ResourceView implements Comparable<ResourceView> {
     private Long resourceId;
     private String ip;
-    private Long replicatorNum;
-    private Long applierNum;
     private Integer active;
+    private String az;
+    private Integer type;
+    private Long instanceNum;
+
+    public Integer getType() {
+        return type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    public Long getInstanceNum() {
+        return instanceNum;
+    }
+
+    public void setInstanceNum(Long instanceNum) {
+        this.instanceNum = instanceNum;
+    }
+
+    public String getAz() {
+        return az;
+    }
+
+    public void setAz(String az) {
+        this.az = az;
+    }
 
     public Long getResourceId() {
         return resourceId;
@@ -27,27 +52,16 @@ public class ResourceView {
         this.ip = ip;
     }
 
-    public Long getReplicatorNum() {
-        return replicatorNum;
-    }
-
-    public void setReplicatorNum(Long replicatorNum) {
-        this.replicatorNum = replicatorNum;
-    }
-
-    public Long getApplierNum() {
-        return applierNum;
-    }
-
-    public void setApplierNum(Long applierNum) {
-        this.applierNum = applierNum;
-    }
-
     public Integer getActive() {
         return active;
     }
 
     public void setActive(Integer active) {
         this.active = active;
+    }
+
+    @Override
+    public int compareTo(ResourceView o) {
+        return (int) (this.instanceNum - o.getInstanceNum());
     }
 }

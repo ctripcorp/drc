@@ -24,5 +24,7 @@ public interface ResourceService {
 
     List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception;
 
-    List<String> getResourceIpByMha(String mhaName, int type) throws Exception;
+    List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception;
+
+    List<ResourceView> autoConfigureResource(String mhaName, int type, List<String> selectedIps) throws Exception;
 }

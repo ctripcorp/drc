@@ -179,7 +179,7 @@ CREATE TABLE `resource_tbl`
     `ip`                  varchar(16) COMMENT '机器ip',
     `dc_id`               bigint(20) COMMENT 'dc id',
     `type`                tinyint COMMENT '机器所在app应用类型',
-    `tag`                 varchar(32)  NOT NULL DEFAULT '' COMMENT '机器标签',
+    `tag`                 varchar(32)  NOT NULL DEFAULT 'COMMON' COMMENT '标签',
     `az`                  varchar(32)  NOT NULL DEFAULT '' COMMENT 'az',
     `deleted`             tinyint      NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
     `active`              tinyint      NOT NULL DEFAULT 1 COMMENT '是否可用, 0:否; 1:是',
@@ -428,6 +428,7 @@ CREATE TABLE `mha_tbl_v2`
     `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
     `app_id`              bigint(11) NOT NULL DEFAULT '-1' COMMENT 'appId',
+    `tag`                 varchar(32)  NOT NULL DEFAULT 'COMMON' COMMENT '标签',
     PRIMARY KEY (`id`),
     UNIQUE KEY `idx_mha_name` (`mha_name`)
 ) ENGINE=InnoDB COMMENT='mha_tbl元信息表';
