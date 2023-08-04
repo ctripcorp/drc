@@ -7,10 +7,9 @@ package com.ctrip.framework.drc.console.vo.v2;
 public class ResourceView {
     private Long resourceId;
     private String ip;
-    private Integer replicatorNum;
-    private Integer applierNum;
+    private Long replicatorNum;
+    private Long applierNum;
     private Integer active;
-    private Integer deleted;
 
     public Long getResourceId() {
         return resourceId;
@@ -28,19 +27,19 @@ public class ResourceView {
         this.ip = ip;
     }
 
-    public Integer getReplicatorNum() {
+    public Long getReplicatorNum() {
         return replicatorNum;
     }
 
-    public void setReplicatorNum(Integer replicatorNum) {
+    public void setReplicatorNum(Long replicatorNum) {
         this.replicatorNum = replicatorNum;
     }
 
-    public Integer getApplierNum() {
+    public Long getApplierNum() {
         return applierNum;
     }
 
-    public void setApplierNum(Integer applierNum) {
+    public void setApplierNum(Long applierNum) {
         this.applierNum = applierNum;
     }
 
@@ -50,13 +49,5 @@ public class ResourceView {
 
     public void setActive(Integer active) {
         this.active = active;
-    }
-
-    public Integer getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(Integer deleted) {
-        this.deleted = deleted;
     }
 }

@@ -12,7 +12,6 @@ public class ResourceQueryParam {
     private Long dcId;
     private String tag;
     private Integer active;
-    private Integer deleted;
     private PageReq pageReq;
 
     public String getIp() {
@@ -53,14 +52,6 @@ public class ResourceQueryParam {
 
     public void setActive(Integer active) {
         this.active = active;
-    }
-
-    public Integer getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(Integer deleted) {
-        this.deleted = deleted;
     }
 
     public PageReq getPageReq() {

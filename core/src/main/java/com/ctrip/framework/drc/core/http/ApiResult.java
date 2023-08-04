@@ -14,6 +14,8 @@ public class ApiResult<T> {
 
     private T data;
 
+    private PageReq pageReq;
+
     public static <T> ApiResult getInstance( T data, Integer status, String message) {
         ApiResult<T> result = new ApiResult<T>();
         result.setData(data);
@@ -60,6 +62,10 @@ public class ApiResult<T> {
 
     public void setData(T data) {
         this.data = data;
+    }
+
+    public void setPageReq(PageReq pageReq) {
+        this.pageReq = pageReq;
     }
 
 }

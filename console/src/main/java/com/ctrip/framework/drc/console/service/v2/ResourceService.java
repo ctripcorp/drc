@@ -3,7 +3,8 @@ package com.ctrip.framework.drc.console.service.v2;
 import com.ctrip.framework.drc.console.param.v2.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
-import com.ctrip.framework.drc.core.http.PageResult;
+
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -21,5 +22,7 @@ public interface ResourceService {
 
     void recoverResource(long resourceId) throws Exception;
 
-    PageResult<ResourceView> getResourceView(ResourceQueryParam param);
+    List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception;
+
+    List<String> getResourceIpByMha(String mhaName, int type) throws Exception;
 }

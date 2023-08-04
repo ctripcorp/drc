@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
+import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.digester.ArrayStack;
@@ -34,8 +35,34 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
     }
 
     public List<ResourceTbl> queryByParam(ResourceQueryParam param) throws SQLException {
-        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        return new ArrayStack<>();
+        SelectSqlBuilder sqlbuilder = buildSqlBuild(param);
+        sqlbuilder.selectCount();
+        int count = client.count(sqlbuilder, new DalHints()).intValue();
+        param.getPageReq().setTotalCount(count);
+
+        sqlbuilder = buildSqlBuild(param);
+        sqlbuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize());
+        return queryList(sqlbuilder);
+    }
+
+    private SelectSqlBuilder buildSqlBuild(ResourceQueryParam param) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        if (StringUtils.isNotBlank(param.getIp())) {
+            sqlBuilder.and().equal(IP, param.getIp(), Types.VARCHAR);
+        }
+        if (param.getType() != null && param.getType() > -1) {
+            sqlBuilder.and().equal(TYPE, param.getType(), Types.TINYINT);
+        }
+        if (StringUtils.isNotBlank(param.getTag())) {
+            sqlBuilder.and().equal(TAG, param.getTag(), Types.VARCHAR);
+        }
+        if (param.getDcId() != null && param.getDcId() > 0L) {
+            sqlBuilder.and().equal(DC_ID, param.getDcId(), Types.BIGINT);
+        }
+        if (param.getActive() != null && param.getActive() > -1) {
+            sqlBuilder.and().equal(ACTIVE, param.getActive(), Types.TINYINT);
+        }
+        return sqlBuilder;
     }
 
 }

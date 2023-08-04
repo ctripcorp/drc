@@ -55,11 +55,11 @@ public class ResourceTbl implements DalPojo {
 	private Integer type;
 
 	/**
-	 * azId
+	 * az
 	 */
-	@Column(name = "az_id")
+	@Column(name = "az")
 	@Type(value = Types.VARCHAR)
-	private String azId;
+	private String az;
 
 	/**
 	 * 机器标签
@@ -104,12 +104,12 @@ public class ResourceTbl implements DalPojo {
 		this.active = active;
 	}
 
-	public String getAzId() {
-		return azId;
+	public String getAz() {
+		return az;
 	}
 
-	public void setAzId(String azId) {
-		this.azId = azId;
+	public void setAz(String az) {
+		this.az = az;
 	}
 
 	public String getTag() {

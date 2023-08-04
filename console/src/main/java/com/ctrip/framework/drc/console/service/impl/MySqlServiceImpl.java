@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.MySqlService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;

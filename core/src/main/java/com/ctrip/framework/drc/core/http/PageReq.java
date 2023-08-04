@@ -1,12 +1,22 @@
 package com.ctrip.framework.drc.core.http;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class PageReq implements Serializable {
 
     public static final int MAX_PAGE_SIZE = 200;
     private int pageIndex = 1;
     private int pageSize = 20;
+    private int totalCount = 0;
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
+    }
 
     public int getPageIndex() {
         return pageIndex;
@@ -31,5 +41,18 @@ public class PageReq implements Serializable {
             throw new IllegalArgumentException("pageSize should <= 200");
         }
         this.pageSize = pageSize;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PageReq)) return false;
+        PageReq pageReq = (PageReq) o;
+        return pageIndex == pageReq.pageIndex && pageSize == pageReq.pageSize;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pageIndex, pageSize);
     }
 }

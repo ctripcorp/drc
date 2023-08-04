@@ -9,7 +9,7 @@ public class ResourceBuildParam {
     private String type;
     private Long dcId;
     private String tag;
-    private String azId;
+    private String az;
 
     public String getIp() {
         return ip;
@@ -43,11 +43,11 @@ public class ResourceBuildParam {
         this.tag = tag;
     }
 
-    public String getAzId() {
-        return azId;
+    public String getAz() {
+        return az;
     }
 
-    public void setAzId(String azId) {
-        this.azId = azId;
+    public void setAz(String az) {
+        this.az = az;
     }
 }

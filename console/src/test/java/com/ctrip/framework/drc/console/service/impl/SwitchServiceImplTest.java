@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
+import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.server.config.console.dto.DbEndpointDto;
@@ -23,19 +24,16 @@ import static org.mockito.Mockito.verify;
  */
 public class SwitchServiceImplTest {
 
-    @InjectMocks
-    private SwitchServiceImpl switchService;
+    @InjectMocks private SwitchServiceImpl switchService;
 
-    @Mock
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Mock private DefaultCurrentMetaManager currentMetaManager;
 
-    @Mock
-    private DrcMaintenanceServiceImpl drcMaintenanceService;
+    @Mock private DbMetaCorrectService dbMetaCorrectService;
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        Mockito.doReturn(ApiResult.getSuccessInstance("")).when(drcMaintenanceService).changeMasterDb(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt());
+        Mockito.doReturn(ApiResult.getSuccessInstance("")).when(dbMetaCorrectService).mhaMasterDbChange(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt());
         Mockito.doNothing().when(currentMetaManager).updateMasterMySQL(Mockito.anyString(), Mockito.any());
     }
 
