@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.resource.ResourceOfflineParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
@@ -41,7 +40,15 @@ public interface ResourceService {
 
     int updateMhaTag() throws Exception;
 
-    List<Long> getGroupIdsWithSameAz(int type) throws Exception;
+    List<Long> getReplicatorGroupIdsWithSameAz() throws Exception;
 
-    int offlineResourceWithSameAz(ResourceOfflineParam param) throws Exception;
+    List<Long> getApplierGroupIdsWithSameAz() throws Exception;
+
+    int offlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception;
+
+    int offlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception;
+
+    int onlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception;
+
+    int onlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception;
 }
