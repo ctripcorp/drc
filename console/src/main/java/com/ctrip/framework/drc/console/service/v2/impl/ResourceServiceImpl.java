@@ -1,11 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
@@ -13,6 +9,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceOfflineParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.service.v2.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -20,6 +17,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -49,7 +47,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
-    private MhaTblV2Dao mhaTblDao;
+    private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MhaTblDao mhaTblDao;
+    @Autowired
+    private ApplierGroupTblDao applierGroupTblDao;
+    @Autowired
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
 
     private static final int THOUSAND = 1000;
 
@@ -163,7 +167,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception {
-        MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             logger.info("mha: {} not exist", mhaName);
             return new ArrayList<>();
@@ -288,6 +292,159 @@ public class ResourceServiceImpl implements ResourceService {
         return resourceTbls.size();
     }
 
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public int updateMhaTag() throws Exception {
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ApplierTblV2> applierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+
+        Map<Long, MhaTbl> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, Function.identity()));
+        Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, ReplicatorGroupTbl::getId));
+        Map<Long, Long> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getMhaId, ApplierGroupTbl::getId));
+        Map<Long, ReplicatorTbl> replicatorMap = replicatorTbls.stream().collect(Collectors.toMap(ReplicatorTbl::getRelicatorGroupId, Function.identity(), (k1, k2) -> k1));
+        Map<Long, ApplierTblV2> applierMap = applierTbls.stream().collect(Collectors.toMap(ApplierTblV2::getApplierGroupId, Function.identity(), (k1, k2) -> k1));
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getTag));
+
+        for (MhaTblV2 mhaTblV2 : mhaTblV2s) {
+            String tag = ResourceTagEnum.COMMON.getName();
+            MhaTbl mhaTbl = mhaTblMap.get(mhaTblV2.getId());
+            Long replicatorGroupId = replicatorGroupMap.get(mhaTblV2.getId());
+            Long applierGroupId = applierGroupMap.get(mhaTblV2.getId());
+
+            if (replicatorGroupId != null && replicatorMap.containsKey(replicatorGroupId)) {
+                ReplicatorTbl replicatorTbl = replicatorMap.get(replicatorGroupId);
+                String replicatorTag = resourceMap.get(replicatorTbl.getResourceId());
+                if (!replicatorTag.equals(tag)) {
+                    tag = replicatorTag;
+                }
+            }
+
+            if (applierGroupId != null && applierMap.containsKey(applierGroupId)) {
+                ApplierTblV2 applierTblV2 = applierMap.get(applierGroupId);
+                String applierTag = resourceMap.get(applierTblV2.getResourceId());
+                if (!applierTag.equals(ResourceTagEnum.COMMON.getName())) {
+                    tag = applierTag;
+                }
+            }
+
+            mhaTblV2.setTag(tag);
+            mhaTbl.setTag(tag);
+        }
+
+        mhaTblV2Dao.update(mhaTblV2s);
+        mhaTblDao.update(mhaTbls);
+
+        return mhaTbls.size();
+    }
+
+    @Override
+    public List<Long> getGroupIdsWithSameAz(int type) throws Exception {
+        if (type == ModuleEnum.REPLICATOR.getCode()) {
+            return getReplicatorGroupIdsWithSameAz();
+        } else if (type == ModuleEnum.APPLIER.getCode()) {
+            return getApplierGroupIdsWithSameAz();
+        }
+        return new ArrayList<>();
+    }
+
+    @Override
+    public int offlineResourceWithSameAz(ResourceOfflineParam param) throws Exception {
+        if (param.getType() == ModuleEnum.REPLICATOR.getCode()) {
+            return offlineReplicatorWithSameAz(param.getGroupIds());
+        } else if (param.getType() == ModuleEnum.APPLIER.getCode()) {
+            return offlineApplierWithSameAz(param.getGroupIds());
+        }
+        return 0;
+    }
+
+    private int offlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception {
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+
+        List<ReplicatorTbl> updateTbls = new ArrayList<>();
+        for (long replicatorGroupId : replicatorGroupIds) {
+            List<ReplicatorTbl> replicators = replicatorMap.get(replicatorGroupId);
+            if (replicators.size() != 2) {
+                continue;
+            }
+            ReplicatorTbl replicatorTbl = replicators.stream().filter(e -> e.getMaster() == BooleanEnum.FALSE.getCode()).findFirst().orElse(null);
+            if (replicatorTbl != null) {
+                replicatorTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                updateTbls.add(replicatorTbl);
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(updateTbls)) {
+            replicatorTblDao.update(updateTbls);
+        }
+        return updateTbls.size();
+    }
+
+    private int offlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception {
+        List<ApplierTblV2> applierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        Map<Long, List<ApplierTblV2>> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+
+        List<ApplierTblV2> updateTbls = new ArrayList<>();
+        for (long applierGroupId : applierGroupIds) {
+            List<ApplierTblV2> appliers = applierMap.get(applierGroupId);
+            if (appliers.size() != 2) {
+                continue;
+            }
+            ApplierTblV2 applierTblV2 = appliers.get(1);
+            applierTblV2.setDeleted(BooleanEnum.TRUE.getCode());
+            updateTbls.add(applierTblV2);
+        }
+
+        if (!CollectionUtils.isEmpty(updateTbls)) {
+            applierTblDao.update(updateTbls);
+        }
+        return updateTbls.size();
+    }
+
+    private List<Long> getReplicatorGroupIdsWithSameAz() throws Exception {
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+
+        List<Long> replicatorGroupIds = new ArrayList<>();
+        replicatorMap.forEach((replicatorGroupId, replicators) -> {
+            if (replicators.size() == 2) {
+                String firstAz = resourceMap.get(replicators.get(0).getResourceId());
+                String secondAz = resourceMap.get(replicators.get(1).getResourceId());
+                if (firstAz.equalsIgnoreCase(secondAz)) {
+                    replicatorGroupIds.add(replicatorGroupId);
+                }
+            }
+        });
+        return replicatorGroupIds;
+    }
+
+
+    private List<Long> getApplierGroupIdsWithSameAz() throws Exception {
+        List<ApplierTblV2> applierTblV2ss = applierTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted() == BooleanEnum.FALSE.getCode()).collect(Collectors.toList());
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+        Map<Long, List<ApplierTblV2>> applierMap = applierTblV2ss.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+
+        List<Long> applierGroupIds = new ArrayList<>();
+        applierMap.forEach((applierGroupId, appliers) -> {
+            if (appliers.size() == 2) {
+                String firstAz = resourceMap.get(appliers.get(0).getResourceId());
+                String secondAz = resourceMap.get(appliers.get(1).getResourceId());
+                if (firstAz.equalsIgnoreCase(secondAz)) {
+                    applierGroupIds.add(applierGroupId);
+                }
+            }
+        });
+        return applierGroupIds;
+    }
+
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
         if (CollectionUtils.isEmpty(resultViews)) {
             resultViews.add(resourceViews.get(0));
@@ -319,18 +476,6 @@ public class ResourceServiceImpl implements ResourceService {
         }
         Collections.sort(resourceViews);
         return resourceViews;
-    }
-
-    public static void main(String[] args) {
-        List<ResourceView> resourceViews = new ArrayList<>();
-        Random random = new Random();
-        for (int i = 10; i > 0; i--) {
-            ResourceView view = new ResourceView();
-            view.setInstanceNum(Long.valueOf(random.nextInt(100)));
-            resourceViews.add(view);
-        }
-        Collections.sort(resourceViews);
-        resourceViews.forEach(e -> System.out.println(e.getInstanceNum()));
     }
 
     private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap) {

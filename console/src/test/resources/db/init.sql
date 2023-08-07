@@ -76,6 +76,7 @@ CREATE TABLE `mha_tbl`
     `deleted`             tinyint      NOT NULL DEFAULT 0 COMMENT '是否删除, 0:否; 1:是',
     `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    `tag`                 varchar(32)  NOT NULL DEFAULT 'COMMON' COMMENT '标签',
     PRIMARY KEY (`id`),
     UNIQUE KEY `mha_name` (`mha_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='mha表';
