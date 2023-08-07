@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.param.v2;
+package com.ctrip.framework.drc.console.param.v2.resource;
 
 /**
  * Created by dengquanliang

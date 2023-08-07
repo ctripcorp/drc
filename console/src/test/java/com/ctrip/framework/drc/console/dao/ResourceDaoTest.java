@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.service.v2.AbstractIntegrationTest;
 import com.ctrip.framework.drc.core.http.PageReq;
 import org.junit.Test;

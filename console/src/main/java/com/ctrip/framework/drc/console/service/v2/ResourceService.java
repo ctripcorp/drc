@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.param.v2.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
 import java.util.List;
@@ -33,4 +33,6 @@ public interface ResourceService {
     int deleteResourceUnused(List<String> ips) throws Exception;
 
     int deleteResourceUnused(int type) throws Exception;
+
+    int updateResource(List<ResourceBuildParam> params) throws Exception;
 }

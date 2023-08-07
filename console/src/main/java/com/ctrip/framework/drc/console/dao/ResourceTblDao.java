@@ -1,16 +1,13 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.digester.ArrayStack;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.List;
 
 /**

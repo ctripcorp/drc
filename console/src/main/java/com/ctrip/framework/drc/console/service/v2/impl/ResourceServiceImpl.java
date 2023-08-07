@@ -12,8 +12,8 @@ import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
-import com.ctrip.framework.drc.console.param.v2.ResourceBuildParam;
-import com.ctrip.framework.drc.console.param.v2.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.service.v2.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
@@ -21,12 +21,14 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -236,6 +238,39 @@ public class ResourceServiceImpl implements ResourceService {
 
         List<String> ips = resourceViews.stream().map(ResourceView::getIp).collect(Collectors.toList());
         return deleteResourceUnused(ips);
+    }
+
+    @Override
+    public int updateResource(List<ResourceBuildParam> params) throws Exception {
+        List<String> ips = params.stream().map(ResourceBuildParam::getIp).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(ips);
+        Map<String, ResourceTbl> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, Function.identity()));
+
+        List<String> notExistIps = new ArrayList<>();
+        List<ResourceTbl> updateResourceTbls = new ArrayList<>();
+        for (ResourceBuildParam param : params) {
+            String ip = param.getIp();
+            if (!resourceMap.containsKey(ip)) {
+                notExistIps.add(ip);
+                continue;
+            }
+            ResourceTbl resourceTbl = resourceMap.get(ip);
+            if (StringUtils.isNotBlank(param.getTag())) {
+                resourceTbl.setTag(param.getTag());
+            }
+            if (StringUtils.isNotBlank(param.getAz())) {
+                resourceTbl.setAz(param.getAz());
+            }
+            updateResourceTbls.add(resourceTbl);
+        }
+
+        if (!CollectionUtils.isEmpty(notExistIps)) {
+            throw ConsoleExceptionUtils.message(String.format("ip: %s not exist", notExistIps));
+        }
+        if (!CollectionUtils.isEmpty(updateResourceTbls)) {
+            resourceTblDao.update(updateResourceTbls);
+        }
+        return updateResourceTbls.size();
     }
 
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
