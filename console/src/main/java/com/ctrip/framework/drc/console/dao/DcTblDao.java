@@ -14,6 +14,7 @@ import java.util.List;
 public class DcTblDao extends AbstractDao<DcTbl> {
 
 	private static final String REGION_NAME = "region_name";
+	private static final String DC_NAME = "dc_name";
 
 	public DcTblDao() throws SQLException {
 		super(DcTbl.class);
@@ -23,6 +24,12 @@ public class DcTblDao extends AbstractDao<DcTbl> {
 		SelectSqlBuilder sqlBuilder = initSqlBuilder();
 		sqlBuilder.and().equal(REGION_NAME, regionName, Types.VARCHAR);
 		return queryList(sqlBuilder);
+	}
+
+	public DcTbl queryByDcName(String dcName) throws SQLException {
+	    SelectSqlBuilder sqlBuilder = initSqlBuilder();
+		sqlBuilder.and().equal(DC_NAME, dcName, Types.VARCHAR);
+		return queryOne(sqlBuilder);
 	}
 
 }

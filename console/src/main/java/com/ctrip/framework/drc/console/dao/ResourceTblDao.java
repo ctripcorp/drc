@@ -27,6 +27,12 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         super(ResourceTbl.class);
     }
 
+    public List<ResourceTbl> queryByDcId(long dcId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DC_ID, dcId, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
     public ResourceTbl queryByIp(String ip) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.equal(IP, ip, Types.VARCHAR);

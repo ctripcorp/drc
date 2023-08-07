@@ -35,4 +35,6 @@ public interface ResourceService {
     int deleteResourceUnused(int type) throws Exception;
 
     int updateResource(List<ResourceBuildParam> params) throws Exception;
+
+    int updateResource(String dc) throws Exception;
 }
