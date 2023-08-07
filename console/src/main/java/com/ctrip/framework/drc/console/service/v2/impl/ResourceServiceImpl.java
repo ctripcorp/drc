@@ -191,7 +191,6 @@ public class ResourceServiceImpl implements ResourceService {
             if (firstResource != null) {
                 resultViews.add(firstResource);
             }
-
         } else if (!CollectionUtils.isEmpty(selectedIps)) {
             resourceViews = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).collect(Collectors.toList());
         }
@@ -293,7 +292,7 @@ public class ResourceServiceImpl implements ResourceService {
             resultViews.add(resourceViews.get(0));
         }
         ResourceView firstResource = resultViews.get(0);
-        ResourceView secondResource = resourceViews.stream().filter(e -> e.getAz().equals(firstResource.getAz())).findFirst().orElse(null);
+        ResourceView secondResource = resourceViews.stream().filter(e -> !e.getAz().equals(firstResource.getAz())).findFirst().orElse(null);
         if (secondResource != null) {
             resultViews.add(secondResource);
         }
