@@ -479,12 +479,13 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
                 ApplierTbl applierTbl = buildApplier(applierGroupId, resourceId, applierGtid);
                 insertApplierTbls.add(applierTbl);
             } catch (Exception e) {
-                logger.error("onlineReplicatorWithSameAz fail", e);
+                logger.error("onlineApplierWithSameAz fail", e);
                 throw ConsoleExceptionUtils.message(e.getMessage());
             }
         }
 
         if (!CollectionUtils.isEmpty(insertApplierTbls)) {
+            logger.info("onlineApplierWithSameAz insertApplierTbls:{}", insertApplierTbls);
             applierTblDao.batchInsertWithReturnId(insertApplierTbls);
 
             List<ApplierTblV2> insertApplierTblV2s = insertApplierTbls.stream().map(source -> {
@@ -498,6 +499,7 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
                 return target;
             }).collect(Collectors.toList());
 
+            logger.info("onlineApplierWithSameAz insertApplierTblV2s:{}", insertApplierTblV2s);
             applierTblV2Dao.insert(new DalHints().enableIdentityInsert(), insertApplierTblV2s);
         }
         return insertApplierTbls.size();
@@ -505,7 +507,67 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
 
     @Override
     public int onlineMessengerWithSameAz(List<Long> messengerGroupIds) throws Exception {
-        return 0;
+        logger.info("onlineMessengerWithSameAz messengerGroupIds: {}", messengerGroupIds);
+        List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryAllList();
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllList();
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+        Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+        Map<Long, MessengerGroupTbl> messengerGroupTblMap = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getId, Function.identity()));
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
+
+        List<ListenableFuture<Pair<Long, Long>>> futures = new ArrayList<>();
+        for (long messengerGroupId : messengerGroupIds) {
+            List<MessengerTbl> messengers = messengerMap.get(messengerGroupId);
+            if (CollectionUtils.isEmpty(messengers) || messengers.size() == 2) {
+                continue;
+            }
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblMap.get(messengerGroupId);
+            long mhaId = messengerGroupTbl.getMhaId();
+            String mhaName = mhaMap.get(mhaId);
+            String selectedIp = resourceMap.get(messengers.get(0).getResourceId());
+            ListenableFuture<Pair<Long, Long>> future = resourceExecutorService.submit(() ->
+                    getSecondResource(messengerGroupId, mhaName, ModuleEnum.REPLICATOR.getCode(), Lists.newArrayList(selectedIp)));
+            futures.add(future);
+        }
+
+        List<Long> failMessengerGroupIds = new ArrayList<>();
+        List<MessengerTbl> insertMessengerTbls = new ArrayList<>();
+
+        for (ListenableFuture<Pair<Long, Long>> future : futures) {
+            try {
+                Pair<Long, Long> resultPair = future.get(TIME_OUT, TimeUnit.SECONDS);
+                long messengerGroupId = resultPair.getLeft();
+                if (resultPair.getRight() == null) {
+                    failMessengerGroupIds.add(messengerGroupId);
+                    continue;
+                }
+
+                long resourceId = resultPair.getRight();
+                MessengerTbl messengerTbl = buildMessengerTbl(messengerGroupId, resourceId);
+                insertMessengerTbls.add(messengerTbl);
+            } catch (Exception e) {
+                logger.error("onlineMessengerWithSameAz fail", e);
+                throw ConsoleExceptionUtils.message(e.getMessage());
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(insertMessengerTbls)) {
+            logger.info("onlineMessengerWithSameAz insertMessengerTbls: {}", insertMessengerTbls);
+            messengerTblDao.insert(insertMessengerTbls);
+        }
+        return insertMessengerTbls.size();
+    }
+
+    private MessengerTbl buildMessengerTbl(long messengerGroupId, long resourceId) {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setResourceId(resourceId);
+        messengerTbl.setMessengerGroupId(messengerGroupId);
+        messengerTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+        return messengerTbl;
     }
 
     private ReplicatorTbl buildReplicatorTbl(long replicatorGroupId, long resourceId, String ip, String replicatorInitGtid) throws Exception {
