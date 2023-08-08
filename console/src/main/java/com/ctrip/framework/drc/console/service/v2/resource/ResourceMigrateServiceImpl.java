@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -276,6 +277,50 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     }
 
     @Override
+    public List<Long> getReplicatorGroupIdsWithSameAz() throws Exception {
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+
+        List<Long> replicatorGroupIds = new ArrayList<>();
+        replicatorMap.forEach((replicatorGroupId, replicators) -> {
+            if (replicators.size() == 2) {
+                String firstAz = resourceMap.get(replicators.get(0).getResourceId());
+                String secondAz = resourceMap.get(replicators.get(1).getResourceId());
+                if (firstAz.equalsIgnoreCase(secondAz)) {
+                    replicatorGroupIds.add(replicatorGroupId);
+                }
+            }
+        });
+
+        logger.info("getReplicatorGroupIdsWithSameAz replicatorGroupIds: {}", replicatorGroupIds);
+        return replicatorGroupIds;
+    }
+
+    @Override
+    public List<Long> getApplierGroupIdsWithSameAz() throws Exception {
+        List<ApplierTblV2> applierTblV2ss = applierTblV2Dao.queryAllList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+        Map<Long, List<ApplierTblV2>> applierMap = applierTblV2ss.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+
+        List<Long> applierGroupIds = new ArrayList<>();
+        applierMap.forEach((applierGroupId, appliers) -> {
+            if (appliers.size() == 2) {
+                String firstAz = resourceMap.get(appliers.get(0).getResourceId());
+                String secondAz = resourceMap.get(appliers.get(1).getResourceId());
+                if (firstAz.equalsIgnoreCase(secondAz)) {
+                    applierGroupIds.add(applierGroupId);
+                }
+            }
+        });
+
+        logger.info("getApplierGroupIdsWithSameAz applierGroupIds: {}", applierGroupIds);
+        return applierGroupIds;
+    }
+
+    @Override
     public int onlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception {
         logger.info("onlineReplicatorWithSameAz replicatorGroupIds: {}", replicatorGroupIds);
         List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAllList();
@@ -333,52 +378,73 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int onlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception {
-        return 0;
-    }
-
-    @Override
-    public List<Long> getReplicatorGroupIdsWithSameAz() throws Exception {
-        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
+        logger.info("onlineApplierWithSameAz applierGroupIds: {}", applierGroupIds);
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAllList();
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllList();
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryAllList();
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
-        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
-        Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
+        Map<Long, List<ApplierTblV2>> applierMap = applierTblV2s.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        Map<Long, String> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, MhaTblV2::getMhaName));
+        Map<Long, ApplierGroupTbl> applierGroupMap = applierGroupTbls.stream().collect(Collectors.toMap(ApplierGroupTbl::getId, Function.identity()));
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
 
-        List<Long> replicatorGroupIds = new ArrayList<>();
-        replicatorMap.forEach((replicatorGroupId, replicators) -> {
-            if (replicators.size() == 2) {
-                String firstAz = resourceMap.get(replicators.get(0).getResourceId());
-                String secondAz = resourceMap.get(replicators.get(1).getResourceId());
-                if (firstAz.equalsIgnoreCase(secondAz)) {
-                    replicatorGroupIds.add(replicatorGroupId);
-                }
+        List<ListenableFuture<Pair<Long, Long>>> futures = new ArrayList<>();
+        for (long applierGroupId : applierGroupIds) {
+            List<ApplierTblV2> appliers = applierMap.get(applierGroupId);
+            if (CollectionUtils.isEmpty(appliers) || appliers.size() == 2) {
+                continue;
             }
-        });
+            ApplierGroupTbl applierGroupTbl = applierGroupMap.get(applierGroupId);
+            long mhaId = applierGroupTbl.getMhaId();
+            String mhaName = mhaMap.get(mhaId);
+            String selectedIp = resourceMap.get(appliers.get(0).getResourceId());
+            ListenableFuture<Pair<Long, Long>> future = resourceExecutorService.submit(() ->
+                    getSecondResource(applierGroupId, mhaName, ModuleEnum.REPLICATOR.getCode(), Lists.newArrayList(selectedIp)));
+            futures.add(future);
+        }
 
-        logger.info("getReplicatorGroupIdsWithSameAz replicatorGroupIds: {}", replicatorGroupIds);
-        return replicatorGroupIds;
-    }
+        List<Long> failApplierGroupIds = new ArrayList<>();
+        List<ApplierTbl> insertApplierTbls = new ArrayList<>();
 
-    @Override
-    public List<Long> getApplierGroupIdsWithSameAz() throws Exception {
-        List<ApplierTblV2> applierTblV2ss = applierTblV2Dao.queryAllList();
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
-        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
-        Map<Long, List<ApplierTblV2>> applierMap = applierTblV2ss.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
-
-        List<Long> applierGroupIds = new ArrayList<>();
-        applierMap.forEach((applierGroupId, appliers) -> {
-            if (appliers.size() == 2) {
-                String firstAz = resourceMap.get(appliers.get(0).getResourceId());
-                String secondAz = resourceMap.get(appliers.get(1).getResourceId());
-                if (firstAz.equalsIgnoreCase(secondAz)) {
-                    applierGroupIds.add(applierGroupId);
+        for (ListenableFuture<Pair<Long, Long>> future : futures) {
+            try {
+                Pair<Long, Long> resultPair = future.get(TIME_OUT, TimeUnit.SECONDS);
+                long applierGroupId = resultPair.getLeft();
+                if (resultPair.getRight() == null) {
+                    failApplierGroupIds.add(applierGroupId);
+                    continue;
                 }
-            }
-        });
 
-        logger.info("getApplierGroupIdsWithSameAz applierGroupIds: {}", applierGroupIds);
-        return applierGroupIds;
+                ApplierGroupTbl applierGroupTbl = applierGroupMap.get(applierGroupId);
+                String applierGtid = applierGroupTbl.getGtidExecuted();
+                long resourceId = resultPair.getRight();
+                ApplierTbl applierTbl = buildApplier(applierGroupId, resourceId, applierGtid);
+                insertApplierTbls.add(applierTbl);
+            } catch (Exception e) {
+                logger.error("onlineReplicatorWithSameAz fail", e);
+                throw ConsoleExceptionUtils.message(e.getMessage());
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(insertApplierTbls)) {
+            applierTblDao.batchInsertWithReturnId(insertApplierTbls);
+
+            List<ApplierTblV2> insertApplierTblV2s = insertApplierTbls.stream().map(source -> {
+                ApplierTblV2 target = new ApplierTblV2();
+                target.setId(source.getId());
+                target.setResourceId(source.getResourceId());
+                target.setPort(source.getPort());
+                target.setMaster(source.getMaster());
+                target.setDeleted(BooleanEnum.FALSE.getCode());
+                target.setApplierGroupId(source.getApplierGroupId());
+                return target;
+            }).collect(Collectors.toList());
+
+            applierTblV2Dao.insert(new DalHints().enableIdentityInsert(), insertApplierTblV2s);
+        }
+        return insertApplierTbls.size();
     }
 
     private ReplicatorTbl buildReplicatorTbl(long replicatorGroupId, long resourceId, String ip, String replicatorInitGtid) throws Exception {
@@ -392,6 +458,18 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
         replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
 
         return replicatorTbl;
+    }
+
+    private ApplierTbl buildApplier(long applierGroupId, long resourceId, String applierGtid) {
+        ApplierTbl applierTbl = new ApplierTbl();
+        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        applierTbl.setGtidInit(applierGtid);
+        applierTbl.setApplierGroupId(applierGroupId);
+        applierTbl.setResourceId(resourceId);
+        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+
+        return applierTbl;
     }
 
     private Pair<Long, Long> getSecondResource(long groupId, String mhaName, int type, List<String> selectedIps) throws Exception {

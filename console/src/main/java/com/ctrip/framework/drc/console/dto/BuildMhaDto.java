@@ -16,6 +16,26 @@ public class BuildMhaDto {
 
     private String newBuiltMhaDc;
 
+    private String originTag;
+
+    private String dstTag;
+
+    public String getOriginTag() {
+        return originTag;
+    }
+
+    public void setOriginTag(String originTag) {
+        this.originTag = originTag;
+    }
+
+    public String getDstTag() {
+        return dstTag;
+    }
+
+    public void setDstTag(String dstTag) {
+        this.dstTag = dstTag;
+    }
+
     public String getBuName() {
         return buName;
     }
