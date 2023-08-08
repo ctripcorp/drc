@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console.service.v2.impl;
+package com.ctrip.framework.drc.console.service.v2.resource;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
@@ -11,12 +11,9 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
-import com.ctrip.framework.drc.console.service.MetaInfoService;
 import com.ctrip.framework.drc.console.service.impl.DrcBuildServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
-import com.ctrip.framework.drc.console.service.v2.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
@@ -33,19 +30,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-
 /**
  * Created by dengquanliang
- * 2023/8/3 16:18
+ * 2023/8/8 10:46
  */
-public class ResourceServiceImpl implements ResourceService {
-
+public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -53,7 +50,9 @@ public class ResourceServiceImpl implements ResourceService {
     @Autowired
     private ReplicatorTblDao replicatorTblDao;
     @Autowired
-    private ApplierTblV2Dao applierTblDao;
+    private ApplierTblV2Dao applierTblV2Dao;
+    @Autowired
+    private ApplierTblDao applierTblDao;
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
@@ -68,156 +67,12 @@ public class ResourceServiceImpl implements ResourceService {
     private DrcBuildServiceImpl drcBuildService;
     @Autowired
     private MetaInfoServiceImpl metaInfoService;
+    @Autowired
+    private ResourceService resourceService;
 
     private final ListeningExecutorService resourceExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "resourceExecutor"));
     private static final int TIME_OUT = 5;
     private static final int THOUSAND = 1000;
-
-    @Override
-    public void configureResource(ResourceBuildParam param) throws Exception {
-        checkResourceBuildParam(param);
-
-        ResourceTbl resourceTbl = new ResourceTbl();
-        resourceTbl.setIp(param.getIp());
-        resourceTbl.setDcId(param.getDcId());
-        resourceTbl.setAz(param.getAz());
-        resourceTbl.setTag(param.getTag());
-        resourceTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        resourceTbl.setActive(BooleanEnum.TRUE.getCode());
-
-        ModuleEnum module = ModuleEnum.getModuleEnum(param.getType());
-        resourceTbl.setAppId(module.getAppId());
-        resourceTbl.setType(module.getCode());
-
-        ResourceTbl existResourceTbl = resourceTblDao.queryByIp(param.getIp());
-        if (existResourceTbl != null) {
-            if (existResourceTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {
-                resourceTbl.setId(existResourceTbl.getId());
-                resourceTblDao.update(resourceTbl);
-                return;
-            } else {
-                throw ConsoleExceptionUtils.message(String.format("ip :{} already exist!", param.getIp()));
-            }
-        }
-
-        logger.info("insert resource: {}", resourceTbl);
-        resourceTblDao.insert(resourceTbl);
-    }
-
-    @Override
-    public void offlineResource(long resourceId) throws Exception {
-        ResourceTbl resourceTbl = resourceTblDao.queryByPk(resourceId);
-        if (resourceTbl == null) {
-            throw ConsoleExceptionUtils.message("resource not exist!");
-        }
-        if (resourceTbl.getType() == ModuleEnum.REPLICATOR.getCode()) {
-            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            if (!CollectionUtils.isEmpty(replicatorTbls)) {
-                throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
-            }
-        } else if (resourceTbl.getType() == ModuleEnum.APPLIER.getCode()) {
-            List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            if (!CollectionUtils.isEmpty(applierTbls)) {
-                throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
-            }
-        }
-
-        resourceTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        logger.info("offline resourceIp: {}", resourceTbl.getIp());
-        resourceTblDao.update(resourceTbl);
-    }
-
-    @Override
-    public void onlineResource(long resourceId) throws Exception {
-        ResourceTbl resourceTbl = resourceTblDao.queryByPk(resourceId);
-        if (resourceTbl == null) {
-            throw ConsoleExceptionUtils.message("resource not exist!");
-        }
-
-        resourceTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        logger.info("online resourceIp: {}", resourceTbl.getIp());
-        resourceTblDao.update(resourceTbl);
-    }
-
-    @Override
-    public void deactivateResource(long resourceId) throws Exception {
-        ResourceTbl resourceTbl = resourceTblDao.queryByPk(resourceId);
-        if (resourceTbl == null) {
-            throw ConsoleExceptionUtils.message("resource not exist!");
-        }
-
-        resourceTbl.setActive(BooleanEnum.FALSE.getCode());
-        logger.info("deactivate resourceIp: {}", resourceTbl.getIp());
-        resourceTblDao.update(resourceTbl);
-    }
-
-    @Override
-    public void recoverResource(long resourceId) throws Exception {
-        ResourceTbl resourceTbl = resourceTblDao.queryByPk(resourceId);
-        if (resourceTbl == null) {
-            throw ConsoleExceptionUtils.message("resource not exist!");
-        }
-
-        resourceTbl.setActive(BooleanEnum.TRUE.getCode());
-        logger.info("deactivate resourceIp: {}", resourceTbl.getIp());
-        resourceTblDao.update(resourceTbl);
-    }
-
-    @Override
-    public List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception {
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByParam(param);
-        if (CollectionUtils.isEmpty(resourceTbls)) {
-            return new ArrayList<>();
-        }
-
-        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
-        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
-        List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(resourceIds);
-
-        Map<Long, Long> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
-        Map<Long, Long> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
-
-        List<ResourceView> views = buildResourceViews(resourceTbls, replicatorMap, applierMap);
-        return views;
-    }
-
-    @Override
-    public List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception {
-        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
-        if (mhaTbl == null) {
-            logger.info("mha: {} not exist", mhaName);
-            return new ArrayList<>();
-        }
-
-        if (type != ModuleEnum.REPLICATOR.getCode() || type != ModuleEnum.APPLIER.getCode()) {
-            logger.info("resource type: {} can only be replicator or applier", type);
-            return new ArrayList<>();
-        }
-        DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
-        List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
-        return getResourceViews(dcIds, type, mhaTbl.getTag());
-    }
-
-    @Override
-    public List<ResourceView> autoConfigureResource(String mhaName, int type, List<String> selectedIps) throws Exception {
-        List<ResourceView> resultViews = new ArrayList<>();
-        List<ResourceView> resourceViews = getResourceIpByMha(mhaName, type);
-        if (CollectionUtils.isEmpty(resourceViews)) {
-            return resultViews;
-        }
-
-        if (!CollectionUtils.isEmpty(selectedIps) && selectedIps.size() == 1) {
-            ResourceView firstResource = resourceViews.stream().filter(e -> e.getIp().equals(selectedIps.get(0))).findFirst().orElse(null);
-            if (firstResource != null) {
-                resultViews.add(firstResource);
-            }
-        } else if (!CollectionUtils.isEmpty(selectedIps)) {
-            resourceViews = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).collect(Collectors.toList());
-        }
-
-        setResourceView(resultViews, resourceViews);
-        return resultViews;
-    }
 
     @Override
     public List<ResourceView> getResourceUnused(int type) throws Exception {
@@ -227,7 +82,7 @@ public class ResourceServiceImpl implements ResourceService {
         pageReq.setPageSize(THOUSAND);
         param.setPageReq(pageReq);
 
-        List<ResourceView> resourceViews = getResourceView(param);
+        List<ResourceView> resourceViews = resourceService.getResourceView(param);
         List<ResourceView> resourcesUnused = resourceViews.stream().filter(e -> e.getInstanceNum() == 0L).collect(Collectors.toList());
         return resourcesUnused;
     }
@@ -237,7 +92,7 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(ips);
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
         List<ReplicatorTbl> replicators = replicatorTblDao.queryByResourceIds(resourceIds);
-        List<ApplierTblV2> appliers = applierTblDao.queryByResourceIds(resourceIds);
+        List<ApplierTblV2> appliers = applierTblV2Dao.queryByResourceIds(resourceIds);
 
         Set<Long> resourceIdsInUse = replicators.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toSet());
         resourceIdsInUse.addAll(appliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toSet()));
@@ -315,7 +170,7 @@ public class ResourceServiceImpl implements ResourceService {
         List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAllList();
         List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAllList();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
-        List<ApplierTblV2> applierTbls = applierTblDao.queryAllList();
+        List<ApplierTblV2> applierTbls = applierTblV2Dao.queryAllList();
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
 
         Map<Long, MhaTbl> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, Function.identity()));
@@ -383,26 +238,41 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int offlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception {
         logger.info("offlineApplierWithSameAz applierGroupIds: {}", applierGroupIds);
-        List<ApplierTblV2> applierTbls = applierTblDao.queryAllList();
-        Map<Long, List<ApplierTblV2>> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryAllList();
+        List<ApplierTbl> applierTbls = applierTblDao.queryAllList();
+        Map<Long, List<ApplierTblV2>> applierV2Map = applierTblV2s.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        Map<Long, ApplierTbl> applierMap = applierTbls.stream().collect(Collectors.toMap(ApplierTbl::getId, Function.identity()));
 
-        List<ApplierTblV2> updateTbls = new ArrayList<>();
+        List<ApplierTblV2> updateTblV2s = new ArrayList<>();
+        List<ApplierTbl> updateTbls = new ArrayList<>();
         for (long applierGroupId : applierGroupIds) {
-            List<ApplierTblV2> appliers = applierMap.get(applierGroupId);
+            List<ApplierTblV2> appliers = applierV2Map.get(applierGroupId);
             if (appliers.size() != 2) {
                 continue;
             }
             ApplierTblV2 applierTblV2 = appliers.get(1);
             applierTblV2.setDeleted(BooleanEnum.TRUE.getCode());
-            updateTbls.add(applierTblV2);
+            updateTblV2s.add(applierTblV2);
+
+            ApplierTbl applierTbl = applierMap.get(applierTblV2.getId());
+            applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            updateTbls.add(applierTbl);
         }
 
+        if (updateTbls.size() != updateTblV2s.size()) {
+            logger.error("updateTbls and updateTblV2s size not equal");
+            throw ConsoleExceptionUtils.message("offlineApplierWithSameAz fail");
+        }
+        if (!CollectionUtils.isEmpty(updateTblV2s)) {
+            applierTblV2Dao.update(updateTblV2s);
+        }
         if (!CollectionUtils.isEmpty(updateTbls)) {
             applierTblDao.update(updateTbls);
         }
-        return updateTbls.size();
+        return updateTblV2s.size();
     }
 
     @Override
@@ -462,25 +332,6 @@ public class ResourceServiceImpl implements ResourceService {
         return insertTbls.size();
     }
 
-    private ReplicatorTbl buildReplicatorTbl(long replicatorGroupId, long resourceId, String ip, String replicatorInitGtid) throws Exception {
-        ReplicatorTbl replicatorTbl = new ReplicatorTbl();
-        replicatorTbl.setRelicatorGroupId(replicatorGroupId);
-        replicatorTbl.setGtidInit(replicatorInitGtid);
-        replicatorTbl.setResourceId(resourceId);
-        replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
-        replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(ip));
-        replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
-        replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
-
-        return replicatorTbl;
-    }
-
-    private Pair<Long, Long> getSecondResource(long groupId, String mhaName, int type, List<String> selectedIps) throws Exception {
-        List<ResourceView> resourceViews = autoConfigureResource(mhaName, type, selectedIps);
-        Long resourceId = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).map(ResourceView::getResourceId).findFirst().orElse(null);
-        return Pair.of(groupId, resourceId);
-    }
-
     @Override
     public int onlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception {
         return 0;
@@ -510,7 +361,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Long> getApplierGroupIdsWithSameAz() throws Exception {
-        List<ApplierTblV2> applierTblV2ss = applierTblDao.queryAllList();
+        List<ApplierTblV2> applierTblV2ss = applierTblV2Dao.queryAllList();
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
         Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
         Map<Long, List<ApplierTblV2>> applierMap = applierTblV2ss.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
@@ -530,61 +381,22 @@ public class ResourceServiceImpl implements ResourceService {
         return applierGroupIds;
     }
 
-    private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
-        if (CollectionUtils.isEmpty(resultViews)) {
-            resultViews.add(resourceViews.get(0));
-        }
-        ResourceView firstResource = resultViews.get(0);
-        ResourceView secondResource = resourceViews.stream().filter(e -> !e.getAz().equals(firstResource.getAz())).findFirst().orElse(null);
-        if (secondResource != null) {
-            resultViews.add(secondResource);
-        }
+    private ReplicatorTbl buildReplicatorTbl(long replicatorGroupId, long resourceId, String ip, String replicatorInitGtid) throws Exception {
+        ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+        replicatorTbl.setRelicatorGroupId(replicatorGroupId);
+        replicatorTbl.setGtidInit(replicatorInitGtid);
+        replicatorTbl.setResourceId(resourceId);
+        replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
+        replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(ip));
+        replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
+        replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+        return replicatorTbl;
     }
 
-    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws Exception {
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type);
-        List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
-
-        Map<Long, Long> replicatorMap = new HashMap<>();
-        Map<Long, Long> applierMap = new HashMap<>();
-        if (type == ModuleEnum.REPLICATOR.getCode()) {
-            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
-            replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
-        } else if (type == ModuleEnum.APPLIER.getCode()) {
-            List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(resourceIds);
-            applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
-        }
-
-        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap);
-        if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
-            return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
-        }
-        Collections.sort(resourceViews);
-        return resourceViews;
-    }
-
-    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap) {
-        List<ResourceView> views = resourceTbls.stream().map(source -> {
-            ResourceView target = new ResourceView();
-            target.setResourceId(source.getId());
-            target.setIp(source.getIp());
-            target.setActive(source.getActive());
-            target.setAz(source.getAz());
-            target.setType(source.getType());
-            if (source.getType() == ModuleEnum.REPLICATOR.getCode()) {
-                target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
-            } else if (source.getType() == ModuleEnum.APPLIER.getCode()) {
-                target.setInstanceNum(applierMap.getOrDefault(source.getId(), 0L));
-            }
-            return target;
-        }).collect(Collectors.toList());
-        return views;
-    }
-
-    private void checkResourceBuildParam(ResourceBuildParam param) {
-        PreconditionUtils.checkString(param.getIp(), "ip requires not empty!");
-        PreconditionUtils.checkString(param.getType(), "type requires not empty!");
-        PreconditionUtils.checkId(param.getDcId(), "dc requires not empty!");
-        PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
+    private Pair<Long, Long> getSecondResource(long groupId, String mhaName, int type, List<String> selectedIps) throws Exception {
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(mhaName, type, selectedIps);
+        Long resourceId = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).map(ResourceView::getResourceId).findFirst().orElse(null);
+        return Pair.of(groupId, resourceId);
     }
 }
