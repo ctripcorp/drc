@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.impl.DrcBuildServiceImpl;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -29,6 +30,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -43,6 +46,8 @@ import java.util.stream.Collectors;
  * Created by dengquanliang
  * 2023/8/8 10:46
  */
+@Service
+@Lazy
 public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -64,6 +69,10 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     private ApplierGroupTblDao applierGroupTblDao;
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private DrcBuildServiceImpl drcBuildService;
     @Autowired
@@ -277,6 +286,31 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     }
 
     @Override
+    public int offlineMessengerWithSameAz(List<Long> messengerGroupIds) throws Exception {
+        logger.info("offlineMessengerWithSameAz messengerGroupIds: {}", messengerGroupIds);
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllList();
+        Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+
+        List<MessengerTbl> updateTbls = new ArrayList<>();
+        for (long messengerGroupId : messengerGroupIds) {
+            List<MessengerTbl> messengers = messengerMap.get(messengerGroupId);
+            if (messengers.size() != 2) {
+                continue;
+            }
+            MessengerTbl messengerTbl = messengers.get(1);
+            if (messengerTbl != null) {
+                messengerTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                updateTbls.add(messengerTbl);
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(updateTbls)) {
+            messengerTblDao.update(updateTbls);
+        }
+        return updateTbls.size();
+    }
+
+    @Override
     public List<Long> getReplicatorGroupIdsWithSameAz() throws Exception {
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
         List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
@@ -318,6 +352,28 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
 
         logger.info("getApplierGroupIdsWithSameAz applierGroupIds: {}", applierGroupIds);
         return applierGroupIds;
+    }
+
+    @Override
+    public List<Long> getMessengerGroupIdsWithSameAz() throws Exception {
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllList();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
+        Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+
+        List<Long> messengerGroupIds = new ArrayList<>();
+        messengerMap.forEach((messengerGroupId, messengers) -> {
+            if (messengers.size() == 2) {
+                String firstAz = resourceMap.get(messengers.get(0).getResourceId());
+                String secondAz = resourceMap.get(messengers.get(1).getResourceId());
+                if (firstAz.equalsIgnoreCase(secondAz)) {
+                    messengerGroupIds.add(messengerGroupId);
+                }
+            }
+        });
+
+        logger.info("getMessengerGroupIdsWithSameAz messengerGroupIds: {}", messengerGroupIds);
+        return messengerGroupIds;
     }
 
     @Override
@@ -447,6 +503,11 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
         return insertApplierTbls.size();
     }
 
+    @Override
+    public int onlineMessengerWithSameAz(List<Long> messengerGroupIds) throws Exception {
+        return 0;
+    }
+
     private ReplicatorTbl buildReplicatorTbl(long replicatorGroupId, long resourceId, String ip, String replicatorInitGtid) throws Exception {
         ReplicatorTbl replicatorTbl = new ReplicatorTbl();
         replicatorTbl.setRelicatorGroupId(replicatorGroupId);
@@ -473,7 +534,7 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     }
 
     private Pair<Long, Long> getSecondResource(long groupId, String mhaName, int type, List<String> selectedIps) throws Exception {
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(mhaName, type, selectedIps);
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(mhaName, type, selectedIps));
         Long resourceId = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).map(ResourceView::getResourceId).findFirst().orElse(null);
         return Pair.of(groupId, resourceId);
     }

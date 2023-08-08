@@ -68,4 +68,7 @@ public class ApiResult<T> {
         this.pageReq = pageReq;
     }
 
+    public PageReq getPageReq() {
+        return pageReq;
+    }
 }

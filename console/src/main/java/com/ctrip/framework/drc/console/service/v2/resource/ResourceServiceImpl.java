@@ -1,9 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
 import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
@@ -14,6 +16,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -22,6 +25,7 @@ import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
@@ -32,6 +36,7 @@ import java.util.stream.Collectors;
  * Created by dengquanliang
  * 2023/8/3 16:18
  */
+@Service
 public class ResourceServiceImpl implements ResourceService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -46,6 +51,8 @@ public class ResourceServiceImpl implements ResourceService {
     private DcTblDao dcTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -139,6 +146,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception {
+        logger.info("getResourceView queryParam: {}", param);
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(resourceTbls)) {
             return new ArrayList<>();
@@ -147,16 +155,18 @@ public class ResourceServiceImpl implements ResourceService {
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
         List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(resourceIds);
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
 
         Map<Long, Long> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
         Map<Long, Long> applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
+        Map<Long, Long> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
 
-        List<ResourceView> views = buildResourceViews(resourceTbls, replicatorMap, applierMap);
+        List<ResourceView> views = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
         return views;
     }
 
     @Override
-    public List<ResourceView> getResourceIpByMha(String mhaName, int type) throws Exception {
+    public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             logger.info("mha: {} not exist", mhaName);
@@ -173,13 +183,14 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> autoConfigureResource(String mhaName, int type, List<String> selectedIps) throws Exception {
+    public List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws Exception {
         List<ResourceView> resultViews = new ArrayList<>();
-        List<ResourceView> resourceViews = getResourceIpByMha(mhaName, type);
+        List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType());
         if (CollectionUtils.isEmpty(resourceViews)) {
             return resultViews;
         }
 
+        List<String> selectedIps = param.getSelectedIps();
         if (!CollectionUtils.isEmpty(selectedIps) && selectedIps.size() == 1) {
             ResourceView firstResource = resourceViews.stream().filter(e -> e.getIp().equals(selectedIps.get(0))).findFirst().orElse(null);
             if (firstResource != null) {
@@ -210,15 +221,18 @@ public class ResourceServiceImpl implements ResourceService {
 
         Map<Long, Long> replicatorMap = new HashMap<>();
         Map<Long, Long> applierMap = new HashMap<>();
+        Map<Long, Long> messengerMap = new HashMap<>();
         if (type == ModuleEnum.REPLICATOR.getCode()) {
             List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(resourceIds);
             replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getResourceId, Collectors.counting()));
         } else if (type == ModuleEnum.APPLIER.getCode()) {
             List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(resourceIds);
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
             applierMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getResourceId, Collectors.counting()));
+            messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getResourceId, Collectors.counting()));
         }
 
-        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap);
+        List<ResourceView> resourceViews = buildResourceViews(resourceTbls, replicatorMap, applierMap, messengerMap);
         if (CollectionUtils.isEmpty(resourceViews) && !tag.equals(ResourceTagEnum.COMMON.getName())) {
             return getResourceViews(dcIds, type, ResourceTagEnum.COMMON.getName());
         }
@@ -226,7 +240,7 @@ public class ResourceServiceImpl implements ResourceService {
         return resourceViews;
     }
 
-    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap) {
+    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls, Map<Long, Long> replicatorMap, Map<Long, Long> applierMap, Map<Long, Long> messengerMap) {
         List<ResourceView> views = resourceTbls.stream().map(source -> {
             ResourceView target = new ResourceView();
             target.setResourceId(source.getId());
@@ -237,7 +251,9 @@ public class ResourceServiceImpl implements ResourceService {
             if (source.getType() == ModuleEnum.REPLICATOR.getCode()) {
                 target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
             } else if (source.getType() == ModuleEnum.APPLIER.getCode()) {
-                target.setInstanceNum(applierMap.getOrDefault(source.getId(), 0L));
+                long applierNum = applierMap.getOrDefault(source.getId(), 0L);
+                long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
+                target.setInstanceNum(applierNum + messengerNum);
             }
             return target;
         }).collect(Collectors.toList());

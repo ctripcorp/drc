@@ -27,11 +27,17 @@ public interface ResourceMigrateService {
 
     List<Long> getApplierGroupIdsWithSameAz() throws Exception;
 
+    List<Long> getMessengerGroupIdsWithSameAz() throws Exception;
+
     int offlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception;
 
     int offlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception;
 
+    int offlineMessengerWithSameAz(List<Long> messengerGroupIds) throws Exception;
+
     int onlineReplicatorWithSameAz(List<Long> replicatorGroupIds) throws Exception;
 
     int onlineApplierWithSameAz(List<Long> applierGroupIds) throws Exception;
+
+    int onlineMessengerWithSameAz(List<Long> messengerGroupIds) throws Exception;
 }

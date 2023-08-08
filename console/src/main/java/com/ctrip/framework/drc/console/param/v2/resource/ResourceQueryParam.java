@@ -61,4 +61,16 @@ public class ResourceQueryParam {
     public void setPageReq(PageReq pageReq) {
         this.pageReq = pageReq;
     }
+
+    @Override
+    public String toString() {
+        return "ResourceQueryParam{" +
+                "ip='" + ip + '\'' +
+                ", type=" + type +
+                ", dcId=" + dcId +
+                ", tag='" + tag + '\'' +
+                ", active=" + active +
+                ", pageReq=" + pageReq +
+                '}';
+    }
 }
