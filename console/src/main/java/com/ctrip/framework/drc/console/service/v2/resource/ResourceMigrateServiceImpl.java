@@ -22,11 +22,9 @@ import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -80,8 +77,6 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     @Autowired
     private ResourceService resourceService;
 
-    private final ListeningExecutorService resourceExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "resourceExecutor"));
-    private static final int TIME_OUT = 5;
     private static final int THOUSAND = 1000;
 
     @Override
@@ -439,7 +434,7 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
             long mhaId = applierGroupTbl.getMhaId();
             String mhaName = mhaMap.get(mhaId);
             String selectedIp = resourceMap.get(appliers.get(0).getResourceId());
-            Long secondResourceId = getSecondResourceId(mhaName, ModuleEnum.REPLICATOR.getCode(), Lists.newArrayList(selectedIp));
+            Long secondResourceId = getSecondResourceId(mhaName, ModuleEnum.APPLIER.getCode(), Lists.newArrayList(selectedIp));
             if (secondResourceId == null) {
                 failApplierGroupIds.add(applierGroupId);
             } else {
@@ -477,7 +472,7 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
         Map<Long, MessengerGroupTbl> messengerGroupTblMap = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getId, Function.identity()));
         Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getIp));
 
-        List<ListenableFuture<Pair<Long, Long>>> futures = new ArrayList<>();
+        List<Long> failMessengerGroupIds = new ArrayList<>();
         for (long messengerGroupId : messengerGroupIds) {
             List<MessengerTbl> messengers = messengerMap.get(messengerGroupId);
             if (CollectionUtils.isEmpty(messengers) || messengers.size() == 2) {
@@ -487,37 +482,20 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
             long mhaId = messengerGroupTbl.getMhaId();
             String mhaName = mhaMap.get(mhaId);
             String selectedIp = resourceMap.get(messengers.get(0).getResourceId());
-            ListenableFuture<Pair<Long, Long>> future = resourceExecutorService.submit(() ->
-                    getSecondResource(messengerGroupId, mhaName, ModuleEnum.REPLICATOR.getCode(), Lists.newArrayList(selectedIp)));
-            futures.add(future);
-        }
 
-        List<Long> failMessengerGroupIds = new ArrayList<>();
-        List<MessengerTbl> insertMessengerTbls = new ArrayList<>();
-
-        for (ListenableFuture<Pair<Long, Long>> future : futures) {
-            try {
-                Pair<Long, Long> resultPair = future.get(TIME_OUT, TimeUnit.SECONDS);
-                long messengerGroupId = resultPair.getLeft();
-                if (resultPair.getRight() == null) {
-                    failMessengerGroupIds.add(messengerGroupId);
-                    continue;
-                }
-
-                long resourceId = resultPair.getRight();
-                MessengerTbl messengerTbl = buildMessengerTbl(messengerGroupId, resourceId);
-                insertMessengerTbls.add(messengerTbl);
-            } catch (Exception e) {
-                logger.error("onlineMessengerWithSameAz fail", e);
-                throw ConsoleExceptionUtils.message(e.getMessage());
+            Long secondResourceId = getSecondResourceId(mhaName, ModuleEnum.APPLIER.getCode(), Lists.newArrayList(selectedIp));
+            if (secondResourceId == null) {
+                failMessengerGroupIds.add(secondResourceId);
+            } else {
+                MessengerTbl secondMessenger = buildMessengerTbl(messengerGroupId, secondResourceId);
+                messengerTblDao.insert(secondMessenger);
             }
         }
 
-        if (!CollectionUtils.isEmpty(insertMessengerTbls)) {
-            logger.info("onlineMessengerWithSameAz insertMessengerTbls: {}", insertMessengerTbls);
-            messengerTblDao.insert(insertMessengerTbls);
+        if (!CollectionUtils.isEmpty(failMessengerGroupIds)) {
+            throw ConsoleExceptionUtils.message(String.format("failMessengerGroupIds: %s", failMessengerGroupIds));
         }
-        return insertMessengerTbls.size();
+        return messengerGroupIds.size();
     }
 
     private MessengerTbl buildMessengerTbl(long messengerGroupId, long resourceId) {
@@ -553,12 +531,6 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
         applierTbl.setMaster(BooleanEnum.FALSE.getCode());
 
         return applierTbl;
-    }
-
-    private Pair<Long, Long> getSecondResource(long groupId, String mhaName, int type, List<String> selectedIps) throws Exception {
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(new ResourceSelectParam(mhaName, type, selectedIps));
-        Long resourceId = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).map(ResourceView::getResourceId).findFirst().orElse(null);
-        return Pair.of(groupId, resourceId);
     }
 
     private Long getSecondResourceId(String mhaName, int type, List<String> selectedIps) throws Exception {
