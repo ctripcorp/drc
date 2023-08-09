@@ -6,12 +6,15 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.config.MhaGrayConfig;
 import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.enums.ActionEnum;
 import com.ctrip.framework.drc.console.monitor.DefaultCurrentMetaManager;
+import com.ctrip.framework.drc.console.monitor.delay.config.DataCenterService;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.ForwardService;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -53,33 +56,20 @@ public class PeriodicalUpdateDbTaskTest {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    @InjectMocks
-    private PeriodicalUpdateDbTask task;
+    @InjectMocks private PeriodicalUpdateDbTask task;
 
-    @Mock
-    private DbClusterSourceProvider sourceProvider;
+    @Mock private DataCenterService dataCenterService;
 
-    @Mock
-    private DefaultCurrentMetaManager currentMetaManager;
+    @Mock private DefaultCurrentMetaManager currentMetaManager;
 
-    @Mock
-    private MonitorTableSourceProvider monitorTableSourceProvider;
+    @Mock private MonitorTableSourceProvider monitorTableSourceProvider;
 
-    @Mock
-    private DefaultConsoleConfig consoleConfig;
+    @Mock private DefaultConsoleConfig consoleConfig;
 
-    @Mock
-    private MetaInfoServiceImpl metaInfoService;
+    @Mock private ForwardService forwardService;
     
 
-//    @Mock
-//    private MetaInfoServiceImpl metaInfoService;
-//
-//    @Mock
-//    private MetaServiceImpl metaService;
-//
-//    @Mock
-//    private MonitorServiceImpl monitorService;
+
 
     private Drc drc;
 
@@ -150,7 +140,7 @@ public class PeriodicalUpdateDbTaskTest {
 
         MockitoAnnotations.openMocks(this);
         task.setLocalDcName(DC1);
-        Mockito.when(sourceProvider.getLocalDcName()).thenReturn(DC1);
+        Mockito.when(dataCenterService.getDc()).thenReturn(DC1);
         Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet("dc-readMhaFromConfig"));
         Mockito.when(consoleConfig.getRegion()).thenReturn("sha");
         Mockito.when(consoleConfig.getRegionForDc(Mockito.anyString())).thenReturn("sha");
@@ -158,15 +148,15 @@ public class PeriodicalUpdateDbTaskTest {
         Mockito.doNothing().when(currentMetaManager).addObserver(Mockito.any());
         Mockito.when(monitorTableSourceProvider.getDelayMonitorUpdatedbSwitch()).thenReturn(SWITCH_STATUS_ON);
 
-        MhaTbl mhaTbl1 = new MhaTbl();
+        MhaTblV2 mhaTbl1 = new MhaTblV2();
         mhaTbl1.setMhaName(MHA1DC1);
         mhaTbl1.setId(4L);
-        MhaTbl mhaTbl2 = new MhaTbl();
+        MhaTblV2 mhaTbl2 = new MhaTblV2();
         mhaTbl2.setId(2L);
         mhaTbl2.setMhaName(MHA1DC2);
 
-        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(metaInfoService).getMhas(Mockito.eq(DC1));
-        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(metaInfoService).getMhas(Mockito.eq(DC2));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl1)).when(forwardService).getMhaTblV2s(Mockito.eq(DC1));
+        Mockito.doReturn(Lists.newArrayList(mhaTbl2)).when(forwardService).getMhaTblV2s(Mockito.eq(DC2));
         task.isleader();
     }
 

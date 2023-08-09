@@ -14,7 +14,7 @@
         <dependency>
             <groupId>com.ctrip.framework.xpipe.redis</groupId>
             <artifactId>redis-proxy-client</artifactId>
-            <version>${xpipe.version}</version>
+            <version>${xpipe.proxy.client.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.alibaba.arthas</groupId>

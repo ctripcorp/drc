@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.console.service.impl;
 
-import com.ctrip.framework.drc.console.aop.PossibleRemote;
-import com.ctrip.framework.drc.console.aop.reponse.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;

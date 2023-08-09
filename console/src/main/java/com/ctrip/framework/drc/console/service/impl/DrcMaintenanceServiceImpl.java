@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +37,7 @@ import static com.ctrip.framework.drc.console.config.ConsoleConfig.SHOULD_AFFECT
 import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_ON;
 
 @Service
+@Deprecated
 public class DrcMaintenanceServiceImpl implements DrcMaintenanceService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     

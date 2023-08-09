@@ -244,7 +244,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
         super.doInitialize();
         String routeInfo = config.getRouteInfo();
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.registerProxy(config.getIp(), config.getPort(), routeInfo);
+            ProxyRegistry.registerProxy(config.getRegistryKey(), config.getIp(), config.getPort(), routeInfo);
         }
         log("initialized server success", INFO, null);
     }
@@ -317,7 +317,7 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
     protected void doDispose() throws Exception {
         super.doDispose();
         if (StringUtils.isNotBlank(config.getRouteInfo())) {
-            ProxyRegistry.unregisterProxy(config.getIp(), config.getPort());
+            ProxyRegistry.unregisterProxy(config.getRegistryKey(), config.getIp(), config.getPort());
         }
         log("disposed server success", INFO, null);
     }
