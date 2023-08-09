@@ -30,6 +30,4 @@ public interface DrcDoubleWriteService {
     void deleteMqConfig(Long mhaId) throws Exception;
 
     void switchMonitor(Long mhaId) throws Exception;
-
-    void updateMhaTag(String mhaName, String tag) throws Exception;
 }

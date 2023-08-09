@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,17 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/drc/v2/mha/")
-public class MhaV2Controller {
+public class MhaControllerV2 {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private DrcDoubleWriteService drcDoubleWriteService;
+    private MhaServiceV2 mhaService;
 
     @PostMapping("tag")
     public ApiResult<Boolean> updateMhaTag(@RequestParam String mhaName, @RequestParam String tag) {
         try {
-            drcDoubleWriteService.updateMhaTag(mhaName, tag);
+            mhaService.updateMhaTag(mhaName, tag);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
