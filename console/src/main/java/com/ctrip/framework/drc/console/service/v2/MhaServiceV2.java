@@ -14,4 +14,6 @@ public interface MhaServiceV2 {
      */
     Map<Long, MhaTblV2> query(String containMhaName, Long buId, Long regionId);
     Map<Long, MhaTblV2> queryMhaByIds(List<Long> mhaIds);
+
+    void updateMhaTag(String mhaName, String tag) throws Exception;
 }

@@ -379,18 +379,6 @@ public class DrcDoubleWriteServiceImpl implements DrcDoubleWriteService {
         mhaTblV2Dao.update(mhaTblV2);
     }
 
-    @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void updateMhaTag(String mhaName, String tag) throws Exception {
-        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
-        mhaTbl.setTag(tag);
-        mhaTblV2.setTag(tag);
-
-        mhaTblV2Dao.update(mhaTblV2);
-        mhaTblDao.update(mhaTbl);
-    }
-
     private void deleteMhaReplication(Long srcMhaId, Long dstMhaId) throws Exception {
         logger.info("deleteMhaReplication srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(srcMhaId);

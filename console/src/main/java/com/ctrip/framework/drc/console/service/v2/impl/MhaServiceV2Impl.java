@@ -1,7 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.dao.MhaTblDao;
+import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
@@ -33,6 +36,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
 
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
+    @Autowired
+    private MhaTblDao mhaTblDao;
 
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
@@ -78,6 +83,20 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         } catch (SQLException e) {
             logger.error("queryByMhaNames exception", e);
             throw ConsoleExceptionUtils.message("查询 mhaTbl 失败，请重试或联系开发。错误信息：" + e.getMessage());
+        }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void updateMhaTag(String mhaName, String tag) throws Exception {
+        MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+        mhaTblV2.setTag(tag);
+        mhaTblV2Dao.update(mhaTblV2);
+
+        if (mhaTbl != null) {
+            mhaTbl.setTag(tag);
+            mhaTblDao.update(mhaTbl);
         }
     }
 }
