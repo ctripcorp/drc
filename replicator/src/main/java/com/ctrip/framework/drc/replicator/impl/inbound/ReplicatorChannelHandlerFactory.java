@@ -23,6 +23,7 @@ public class ReplicatorChannelHandlerFactory implements ChannelHandlerFactory {
         handlerList.add(new UnpackDecoder());  // 拆包
         handlerList.add(new HandshakeInitializationHandler());  //握手
         handlerList.add(new AuthenticateResultHandler());  //认证
+        handlerList.add(new ReceiveCheckHandler());
         handlerList.add(new CommandResultHandler());  //处理command
         return handlerList;
     }
