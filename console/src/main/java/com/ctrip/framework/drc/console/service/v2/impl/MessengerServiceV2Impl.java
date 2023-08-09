@@ -4,26 +4,23 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DataMediaPairTbl;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MessengerFilterTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MessengerFilterTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
-import com.ctrip.framework.drc.console.vo.api.MessengerInfo;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
@@ -32,7 +29,6 @@ import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +65,26 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private DbTblDao dbTblDao;
     @Autowired
     private MessengerFilterTblDao messengerFilterTblDao;
+    @Autowired
+    private MhaServiceV2 mhaService;
 
+
+    @Override
+    public List<MhaTblV2> getAllMessengerMhaTbls() {
+        try {
+            MessengerGroupTbl sample = new MessengerGroupTbl();
+            sample.setDeleted(BooleanEnum.FALSE.getCode());
+            List<MessengerGroupTbl> messengers = messengerGroupTblDao.queryBy(sample);
+            List<Long> mhaIdList = messengers.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+            Map<Long, MhaTblV2> mhaTblV2Map = mhaService.queryMhaByIds(mhaIdList);
+            return messengers.stream()
+                    .sorted(Comparator.comparing(MessengerGroupTbl::getDatachangeLasttime).reversed()) // order by .. desc
+                    .map(e->mhaTblV2Map.get(e.getMhaId())).filter(Objects::nonNull).collect(Collectors.toList());
+        } catch (SQLException e) {
+            logger.error("queryAllBu exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
     @Override
     public List<Messenger> generateMessengers(Long mhaId) throws SQLException {
         List<Messenger> messengers = Lists.newArrayList();

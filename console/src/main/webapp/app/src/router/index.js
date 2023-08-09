@@ -168,12 +168,20 @@ const routes = [
   },
   // v2 new model
   {
-    path: '/mhaReplications',
+    path: '/v2/mhaReplications',
     component: () => import('../views/v2/mhaReplications.vue')
   },
   {
     path: '/v2/mhaReplicationDetails',
     component: () => import('../views/v2/mhaReplicationDetails.vue')
+  },
+  {
+    path: '/v2/messengers',
+    component: () => import('../views/v2/messengers.vue')
+  },
+  {
+    path: '/v2/buildMessenger',
+    component: () => import('../views/v2/buildMessenger.vue')
   },
   {
     path: '/',

@@ -104,11 +104,29 @@ public class MetaControllerV2 {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
             }
 
-            // todo: unit test + remove password
             Drc drc = metaInfoServiceV2.getDrcReplicationConfig(replicationId);
             return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
         } catch (ConsoleException e) {
             logger.error("queryReplicationDetailConfig for {}", replicationId, e);
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("queryReplicationDetailConfig error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+        }
+    }
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaMessenger")
+    public ApiResult<String> queryMhaMessengerDetailConfig(@RequestParam(name = "mhaName") String mhaName) {
+        logger.info("queryMhaMessengerDetailConfig for {}", mhaName);
+        try {
+            if (StringUtils.isBlank(mhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcMessengerConfig(mhaName.trim());
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (ConsoleException e) {
+            logger.error("queryReplicationDetailConfig for {}", mhaName, e);
             return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
             logger.error("queryReplicationDetailConfig error", e);

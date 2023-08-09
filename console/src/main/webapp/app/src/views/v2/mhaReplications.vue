@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/mhaReplications">MHA 复制链路</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaReplications">MHA 复制链路</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
@@ -92,17 +92,35 @@
             @on-change="getReplications"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
-        <Modal
-          v-model="replicationDetailModal.show"
-          title="DRC配置"
-          width="1200px">
-          <Form style="width: 100%">
-            <FormItem label="集群配置">
-              <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="replicationDetailModal.data"
-                     readonly/>
-            </FormItem>
-          </Form>
-        </Modal>
+        <Drawer title="Basic Drawer" width="90" :closable="true" v-model="replicationDetail.show">
+          <template #header>
+            查看详情
+            <div style="float:right;margin-right: 100px">
+              自动换行
+              <i-switch v-model="replicationDetail.lineWrap"/>
+              黑夜模式
+              <i-switch v-model="replicationDetail.darkMode"
+                        on-change="(status)=>{this.$Message.info('开关状态：'+status)}"/>
+            </div>
+          </template>
+          <div id="xmlCode">
+            <codemirror
+              v-model="replicationDetail.data"
+              class="code"
+              :options="{
+                  mode: 'xml',
+                  theme: replicationDetail.darkMode? 'monokai':'default',
+                  autofocus: true,
+                  lineWrapping: replicationDetail.lineWrap,
+                  readOnly: true,
+                  lineNumbers: true,
+                  foldGutter: true,
+                  styleActiveLine: true,
+                  gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+            }">
+            </codemirror>
+          </div>
+        </Drawer>
       </div>
     </Content>
   </base-component>
@@ -111,6 +129,11 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import MhaGraph from '@/views/v2/mhaReplicationDetails.vue'
+import 'codemirror/theme/monokai.css'
+import 'codemirror/mode/xml/xml.js'
+
+import 'codemirror/addon/fold/foldgutter.css'
+import 'codemirror/addon/fold/foldgutter.js'
 
 export default {
   name: 'Application',
@@ -278,10 +301,13 @@ export default {
       replications: [],
       bus: [],
       regions: [],
-      // tags for frontend show
-      replicationDetailModal: {
+      // for detail show
+      replicationDetail: {
         show: false,
-        data: {}
+        data: null,
+        darkMode: true,
+        lineWrap: false,
+        row: {}
       },
       dataLoading: true
     }
@@ -388,18 +414,16 @@ export default {
       })
     },
     checkConfig (row, index) {
-      console.log(row.srcMha.name)
-      console.log(row.dstMha.name)
+      console.log(row.srcMha.name + '->' + row.dstMha.name)
       this.dataLoading = true
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
         params: {
           replicationId: row.replicationId
         }
       }).then(response => {
-        const data = response.data.data
-        console.log(data)
-        this.replicationDetailModal.data = data
-        this.replicationDetailModal.show = true
+        this.replicationDetail.data = response.data.data
+        this.replicationDetail.show = true
+        this.replicationDetail.row = row
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
@@ -482,4 +506,12 @@ export default {
 
 <style scoped>
 
+</style>
+<style lang="scss">
+#xmlCode {
+  .CodeMirror {
+    overscroll-y: scroll !important;
+    height: auto !important;
+  }
+}
 </style>

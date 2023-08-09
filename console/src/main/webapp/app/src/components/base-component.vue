@@ -8,13 +8,19 @@
             <Icon type="ios-navigate"></Icon>
             <span>监控大盘</span>
           </MenuItem>
-          <Submenu name="-1">
+          <Submenu name="v2-0">
             <template slot="title">
               <Icon type="ios-apps"></Icon>
               集群管理 v2
             </template>
-            <MenuItem name="/mhaReplications" to="/mhaReplications">
+            <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
               <span>MHA复制</span>
+            </MenuItem>
+            <MenuItem name="/v2/messengers" to="/v2/messengers">
+              <span>Messenger集群</span>
+            </MenuItem>
+            <MenuItem name="/v2/buildMessenger" to="/v2/buildMessenger">
+              <span>Messenger配置</span>
             </MenuItem>
           </Submenu>
           <Submenu name="0">
@@ -152,6 +158,9 @@ export default {
   created () {
     switch (this.$route.path) {
       default : this.openNames = ['']; break
+      case '/v2/mhaReplications':
+      case '/v2/buildMessenger':
+      case '/v2/messengers':this.openNames = ['v2-0']; break
       case '/apply':
       case '/clusters':
       case '/drcclusters':

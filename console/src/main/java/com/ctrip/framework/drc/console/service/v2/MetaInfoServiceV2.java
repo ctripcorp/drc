@@ -22,4 +22,6 @@ public interface MetaInfoServiceV2 {
     List<DcDo> queryAllDcWithCache();
 
     Drc getDrcReplicationConfig(Long replicationId);
+
+    Drc getDrcMessengerConfig(String mhaName);
 }

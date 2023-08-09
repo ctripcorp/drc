@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
@@ -81,6 +82,8 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     private DbTblDao dbTblDao;
     @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
+    @Autowired
+    MessengerServiceV2 messengerService;
 
     @Override
     public Drc getDrcReplicationConfig(Long replicationId) {
@@ -95,8 +98,8 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> Objects.equals(e.getId(), replicationTbl.getSrcMhaId())).findFirst().orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "src mha not exist: " + replicationTbl.getSrcMhaId()));
             MhaTblV2 dstMhaTbl = mhaTblV2List.stream().filter(e -> Objects.equals(e.getId(), replicationTbl.getDstMhaId())).findFirst().orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "dst mha not exist: " + replicationTbl.getDstMhaId()));
 
-            this.appendConfig(drc, srcMhaTbl, dstMhaTbl);
-            this.appendConfig(drc, dstMhaTbl, srcMhaTbl);
+            this.appendReplicationConfig(drc, srcMhaTbl, dstMhaTbl);
+            this.appendReplicationConfig(drc, dstMhaTbl, srcMhaTbl);
         } catch (SQLException e) {
             logger.error("getDrcReplicationConfig sql exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -104,7 +107,38 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         return drc;
     }
 
-    private void appendConfig(Drc drc, MhaTblV2 mhaTbl, MhaTblV2 dstMhaTbl) throws SQLException {
+    @Override
+    public Drc getDrcMessengerConfig(String mhaName) {
+        Drc drc = new Drc();
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+            if (mhaTblV2 == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "replication not exist: " + mhaName);
+            }
+            this.appendMessengerConfig(drc, mhaTblV2);
+        } catch (SQLException e) {
+            logger.error("getDrcMessengerConfig sql exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+        return drc;
+    }
+
+    private void appendMessengerConfig(Drc drc, MhaTblV2 mhaTbl) throws SQLException {
+        DcDo dcDo = this.queryAllDc()
+                .stream()
+                .filter(e -> e.getDcId().equals(mhaTbl.getDcId()))
+                .findFirst()
+                .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "dc not exist: " + mhaTbl.getDcId()));
+
+        Dc dc = generateDcFrame(drc, dcDo);
+        DbCluster dbCluster = generateDbCluster(dc, mhaTbl);
+        generateDbs(dbCluster, mhaTbl);
+        generateReplicators(dbCluster, mhaTbl);
+        generateMessengers(dbCluster, mhaTbl);
+    }
+
+
+    private void appendReplicationConfig(Drc drc, MhaTblV2 mhaTbl, MhaTblV2 dstMhaTbl) throws SQLException {
         DcDo dcDo = this.queryAllDc().stream().filter(e -> e.getDcId().equals(mhaTbl.getDcId())).findFirst().orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "dc not exist: " + mhaTbl.getDcId()));
 
         Dc dc = generateDcFrame(drc, dcDo);
@@ -124,6 +158,12 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
     }
 
+    private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
+        List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
+        for (Messenger messenger : messengers) {
+            dbCluster.addMessenger(messenger);
+        }
+    }
 
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhaTbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
         // db mappings
