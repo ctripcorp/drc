@@ -2,12 +2,15 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.apache.commons.lang3.StringUtils;
@@ -89,6 +92,27 @@ public class MetaControllerV2 {
         } catch (Throwable e) {
             logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}",dbclusterId,e);
             return ApiResult.getFailInstance("compareOldNewMeta error");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaReplication")
+    public ApiResult<String> queryMhaReplicationDetailConfig(@RequestParam(name = "replicationId") Long replicationId) {
+        logger.info("queryReplicationDetailConfig for {}", replicationId);
+        try {
+            if (replicationId == null || replicationId <= 0) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            // todo: unit test + remove password
+            Drc drc = metaInfoServiceV2.getDrcReplicationConfig(replicationId);
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (ConsoleException e) {
+            logger.error("queryReplicationDetailConfig for {}", replicationId, e);
+            return ApiResult.getFailInstance(e.getMessage());
+        } catch (Throwable e) {
+            logger.error("queryReplicationDetailConfig error", e);
+            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
         }
     }
 

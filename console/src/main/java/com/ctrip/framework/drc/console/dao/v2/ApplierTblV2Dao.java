@@ -28,4 +28,10 @@ public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
         sqlBuilder.selectAll().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }
+
+    public List<ApplierTblV2> queryUndeletedByApplierGroupId(Long applierGroupId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectAll().and().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
 }

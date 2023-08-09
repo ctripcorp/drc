@@ -68,7 +68,7 @@
         <br>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
-            <Button disabled type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
               查看
             </Button>
             <Button disabled type="primary" size="small" style="margin-right: 5px">
@@ -92,6 +92,17 @@
             @on-change="getReplications"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
+        <Modal
+          v-model="replicationDetailModal.show"
+          title="DRC配置"
+          width="1200px">
+          <Form style="width: 100%">
+            <FormItem label="集群配置">
+              <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="replicationDetailModal.data"
+                     readonly/>
+            </FormItem>
+          </Form>
+        </Modal>
       </div>
     </Content>
   </base-component>
@@ -256,14 +267,22 @@ export default {
           align: 'center'
         }
       ],
+      // page
       total: 0,
       current: 1,
       size: 10,
-      replications: [],
+      // query param
       srcMha: {},
       dstMha: {},
+      // get from backend
+      replications: [],
       bus: [],
       regions: [],
+      // tags for frontend show
+      replicationDetailModal: {
+        show: false,
+        data: {}
+      },
       dataLoading: true
     }
   },
@@ -369,8 +388,23 @@ export default {
       })
     },
     checkConfig (row, index) {
-      console.log(row.srcMha)
-      console.log(row.destMha)
+      console.log(row.srcMha.name)
+      console.log(row.dstMha.name)
+      this.dataLoading = true
+      this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
+        params: {
+          replicationId: row.replicationId
+        }
+      }).then(response => {
+        const data = response.data.data
+        console.log(data)
+        this.replicationDetailModal.data = data
+        this.replicationDetailModal.show = true
+      }).catch(message => {
+        this.$Message.error('查询异常: ' + message)
+      }).finally(() => {
+        this.dataLoading = false
+      })
     },
     showModal (row) {
       console.log('show modal')

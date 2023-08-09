@@ -12,4 +12,6 @@ import java.util.List;
  */
 public interface DataMediaServiceV2 {
     DataMediaConfig generateConfig(List<DbReplicationDto> dbReplicationDtos) throws SQLException;
+
+    DataMediaConfig generateConfigFast(List<DbReplicationDto> dbReplicationDtos) throws SQLException;
 }
