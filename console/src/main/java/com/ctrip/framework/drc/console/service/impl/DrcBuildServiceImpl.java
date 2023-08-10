@@ -345,7 +345,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/rowsFilter/commonColumns",responseType = StringSetApiResult.class)
     public Set<String> getCommonColumnInDataMedias(String mhaName, String namespace, String name) {
         logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name, mhaName);
-        Endpoint mySqlEndpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        Endpoint mySqlEndpoint = metaProviderV2.getMasterEndpoint(mhaName);
         if (mySqlEndpoint != null) {
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
             return MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -87,9 +88,9 @@ public class DrcBuildControllerV2 {
     }
 
     @DeleteMapping("dbReplication")
-    public ApiResult<Boolean> deleteDbReplications(@RequestBody List<Long> dbReplicationIds) {
+    public ApiResult<Boolean> deleteDbReplications(@RequestParam long dbReplicationId) {
         try {
-            drcBuildServiceV2.deleteDbReplications(dbReplicationIds);
+            drcBuildServiceV2.deleteDbReplications(dbReplicationId);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
@@ -101,6 +102,15 @@ public class DrcBuildControllerV2 {
         try {
             drcBuildServiceV2.buildColumnsFilter(param);
             return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("columnsFilter")
+    public ApiResult<ColumnsConfigView> getColumnsConfigView(@RequestParam long dbReplicationId) {
+        try {
+            return ApiResult.getSuccessInstance(drcBuildServiceV2.getColumnsConfigView(dbReplicationId));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }

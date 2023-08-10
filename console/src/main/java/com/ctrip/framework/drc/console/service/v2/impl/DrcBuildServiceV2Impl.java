@@ -17,10 +17,7 @@ import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
-import com.ctrip.framework.drc.console.vo.v2.DrcMhaApplierView;
-import com.ctrip.framework.drc.console.vo.v2.DrcMhaConfigView;
+import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -211,11 +208,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbReplications(List<Long> dbReplicationIds) throws Exception {
-        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+    public void deleteDbReplications(long dbReplicationId) throws Exception {
+        if (dbReplicationId == 0L) {
             throw ConsoleExceptionUtils.message("delete dbReplications are empty!");
         }
-        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(Lists.newArrayList(dbReplicationId));
         if (CollectionUtils.isEmpty(dbReplicationTbls)) {
             logger.info("dbReplicationTbls not exist");
             return;
@@ -223,7 +220,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
 
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationId);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
             logger.info("dbReplicationFilterMappingTbls not exist");
             return;
@@ -242,6 +239,23 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         long columnsFilterId = insertColumnsFilter(param.getMode(), param.getColumns());
         insertDbReplicationFilterMappings(param.getDbReplicationIds(), columnsFilterId, FilterTypeEnum.COLUMNS_FILTER.getCode());
+    }
+
+    @Override
+    public ColumnsConfigView getColumnsConfigView(long dbReplicationId) throws Exception {
+        ColumnsConfigView columnsConfigView = new ColumnsConfigView();
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationId);
+        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
+            return columnsConfigView;
+        }
+        long columnsFilterId = dbReplicationFilterMappingTbls.get(0).getColumnsFilterId();
+        if (columnsFilterId > 0L) {
+            ColumnsFilterTblV2 columnsFilterTblV2 = columnFilterTblV2Dao.queryById(columnsFilterId);
+            columnsConfigView.setColumns(JsonUtils.fromJsonToList(columnsFilterTblV2.getColumns(), String.class));
+            columnsConfigView.setMode(columnsFilterTblV2.getMode());
+        }
+
+        return columnsConfigView;
     }
 
     @Override
@@ -541,7 +555,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
         List<DbReplicationTbl> existDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
-        if (!CollectionUtils.isEmpty(existDbReplications)) {
+        if (CollectionUtils.isEmpty(existDbReplications)) {
             return;
         }
 
@@ -551,7 +565,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 if (dbReplicationTbl.getSrcMhaDbMappingId().equals(existDbReplication.getSrcMhaDbMappingId())
                         && dbReplicationTbl.getDstMhaDbMappingId().equals(existDbReplication.getDstMhaDbMappingId())
                         && dbReplicationTbl.getSrcLogicTableName().equals(existDbReplication.getSrcLogicTableName())) {
-                    existDbReplicationIds.add(dbReplicationTbl.getId());
+                    existDbReplicationIds.add(existDbReplication.getId());
                 }
             }
         }

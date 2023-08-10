@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DrcMhaApplierView;
@@ -21,9 +22,11 @@ public interface DrcBuildServiceV2 {
 
     List<DbReplicationView> getDbReplicationView(String srcMhaName, String dstMhaName) throws Exception;
 
-    void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
+    void deleteDbReplications(long dbReplicationId) throws Exception;
 
     void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception;
+
+    ColumnsConfigView getColumnsConfigView(long dbReplicationId) throws Exception;
 
     void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception;
 
