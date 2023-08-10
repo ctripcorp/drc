@@ -78,7 +78,7 @@
                   </FormItem>
                 </Form>
               </div>
-              <rows-filter-config v-bind="commonInfo" v-if="currentStep === 1"></rows-filter-config>
+              <rows-filter-v2 v-bind="commonInfo" v-if="currentStep === 1"></rows-filter-v2>
               <columns-filter-v2 v-bind="commonInfo" v-if="currentStep === 2"></columns-filter-v2>
               <complete v-bind="commonInfo" v-if="currentStep === 3"></complete>
             </Card>
@@ -101,14 +101,14 @@
 </template>
 
 <script>
-import rowsFilterConfig from '@/components/configs/flow/rowsFilterConfig'
+import rowsFilterV2 from './rowsFilterV2'
 import columnsFilterV2 from './columnsFilterV2'
 import complete from '@/components/configs/flow/complete'
 
 export default {
   name: 'dbReplicationConfig',
   components: {
-    rowsFilterConfig,
+    rowsFilterV2,
     columnsFilterV2,
     complete
   },
@@ -281,9 +281,9 @@ export default {
       dbReplicationIds: [],
       tableData: []
     }
-    alert('ok')
+    // alert('ok')
     this.commonInfo.dbReplicationIds.push(this.$route.query.dbReplicationId)
-    alert(this.commonInfo.dbReplicationIds)
+    // alert(this.commonInfo.dbReplicationIds)
     if (this.commonInfo.dbName !== '' && this.commonInfo.tableName !== '') {
       this.checkMysqlTablesInSrcMha()
     }

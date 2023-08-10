@@ -13,7 +13,7 @@
           <Input v-model="this.tableName" style="width:200px" disabled/>
         </FormItem>
         <FormItem label="模式">
-          <Select v-model="columnsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
+          <Select v-model="columnsFilterConfig.mode" style="width: 200px" placeholder="选择字段过滤模式">
             <Option v-for="item in modes" :value="item.mode" :key="item.mode">{{ item.name }}</Option>
           </Select>
         </FormItem>
@@ -71,11 +71,6 @@ export default {
           name: 'regex',
           mode: 2
         }
-      ],
-      modesForChose: [
-        'exclude',
-        'include',
-        'regex'
       ],
       columnsForChose: []
     }
