@@ -169,7 +169,7 @@ export default {
   methods: {
     getResources () {
       // this.axios.get('/api/drc/v1/meta/resources?type=R')
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.mhaName + '/resources/all/types/R')
+      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 0 } })
         .then(response => {
           console.log(response.data)
           this.drc.replicatorList = []
@@ -177,7 +177,7 @@ export default {
         })
       // actually , messenger is an applier
       // this.axios.get('/api/drc/v1/meta/resources?type=A')
-      this.axios.get('/api/drc/v1/meta/mhas/' + this.drc.mhaName + '/resources/all/types/A')
+      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 1 } })
         .then(response => {
           console.log(response.data)
           this.drc.messengerList = []
@@ -185,22 +185,18 @@ export default {
         })
     },
     getResourcesInUse () {
-      // todo by yongnian 替换为新接口
-      this.axios.get('/api/drc/v1/meta/resources/using/types/R?localMha=' + this.drc.mhaName)
+      this.axios.get('/api/drc/v2/mha/replicator', { params: { mhaName: this.drc.mhaName } })
         .then(response => {
           console.log(this.drc.mhaName + ' replicators ' + response.data.data)
           this.drc.replicators = []
           response.data.data.forEach(ip => this.drc.replicators.push(ip))
         })
-      this.axios.get('/api/drc/v2/messenger/resources/using', {
-        params: {
-          mhaName: this.drc.mhaName
-        }
-      }).then(response => {
-        console.log(this.drc.mhaName + ' messengers ' + response.data.data)
-        this.drc.messengers = []
-        response.data.data.forEach(ip => this.drc.messengers.push(ip))
-      })
+      this.axios.get('/api/drc/v2/mha/messenger', { params: { mhaName: this.drc.mhaName } })
+        .then(response => {
+          console.log(this.drc.mhaName + ' messengers ' + response.data.data)
+          this.drc.messengers = []
+          response.data.data.forEach(ip => this.drc.messengers.push(ip))
+        })
       this.axios.get('/api/drc/v1/messenger/executedGtid?localMha=' + this.drc.mhaName)
         .then(response => {
           console.log('aGtidExecuted:' + response.data.data)
@@ -209,7 +205,7 @@ export default {
     },
     goToMqConfigs () {
       console.log('go to change mq config for ' + this.drc.mhaName)
-      this.$router.push({ path: '/mqConfigs', query: { mhaName: this.drc.mhaName } })
+      this.$router.push({ path: '/v2/mqConfigs', query: { mhaName: this.drc.mhaName } })
     },
     handleReset (name) {
       this.$refs[name].resetFields()

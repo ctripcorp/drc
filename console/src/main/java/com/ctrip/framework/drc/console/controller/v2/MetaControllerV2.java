@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
-import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
@@ -106,14 +105,12 @@ public class MetaControllerV2 {
 
             Drc drc = metaInfoServiceV2.getDrcReplicationConfig(replicationId);
             return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
-        } catch (ConsoleException e) {
-            logger.error("queryReplicationDetailConfig for {}", replicationId, e);
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("queryReplicationDetailConfig error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("queryMhaReplicationDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
     @SuppressWarnings("unchecked")
     @GetMapping("queryConfig/mhaMessenger")
     public ApiResult<String> queryMhaMessengerDetailConfig(@RequestParam(name = "mhaName") String mhaName) {
@@ -125,12 +122,9 @@ public class MetaControllerV2 {
 
             Drc drc = metaInfoServiceV2.getDrcMessengerConfig(mhaName.trim());
             return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
-        } catch (ConsoleException e) {
-            logger.error("queryReplicationDetailConfig for {}", mhaName, e);
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("queryReplicationDetailConfig error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("queryMhaMessengerDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -139,12 +133,9 @@ public class MetaControllerV2 {
     public ApiResult<List<BuTbl>> getAllBuTbls() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllBuWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllBuTbls error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllBuTbls exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -153,12 +144,9 @@ public class MetaControllerV2 {
     public ApiResult<List<RegionTbl>> getAllRegionTbls() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllRegionWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllBuTbls error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllRegionTbls exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -167,12 +155,9 @@ public class MetaControllerV2 {
     public ApiResult<List<DcDo>> getAllDcs() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllDcWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllDcs exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllDcs error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllDcs exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

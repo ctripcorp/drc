@@ -19,7 +19,9 @@ import java.util.List;
 public class DbReplicationFilterMappingTblDao extends AbstractDao<DbReplicationFilterMappingTbl> {
 
     private static final String DB_REPLICATION_ID = "db_replication_id";
+    private static final String MESSENGER_FILTER_ID = "messenger_filter_id";
     private static final String DELETED = "deleted";
+    private static final int DEFAULT_NULL_TAG = -1;
 
     public DbReplicationFilterMappingTblDao() throws SQLException {
         super(DbReplicationFilterMappingTbl.class);
@@ -34,6 +36,15 @@ public class DbReplicationFilterMappingTblDao extends AbstractDao<DbReplicationF
     public List<DbReplicationFilterMappingTbl> queryByDbReplicationIds(List<Long> dbReplicationIds) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<DbReplicationFilterMappingTbl> queryMessengerDbReplicationByIds(List<Long> dbReplicationIds) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll()
+                .in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT)
+                .and().notEqual(MESSENGER_FILTER_ID, DEFAULT_NULL_TAG, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
     }
 }

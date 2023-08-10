@@ -204,6 +204,11 @@ const routes = [
     component: () => import('../views/v2/dbReplicationConfig.vue')
   },
   {
+    path: '/v2/mqConfigs',
+    name: 'v2/mqConfigs',
+    component: () => import('../views/v2/drcConfig/mqConfigs.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

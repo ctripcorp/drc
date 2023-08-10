@@ -71,10 +71,10 @@
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
               查看
             </Button>
-            <Button disabled type="primary" size="small" style="margin-right: 5px">
+            <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
               修改
             </Button>
-            <Button disabled type="error" size="small" style="margin-right: 5px">
+            <Button disabled type=" error" size="small" style="margin-right: 5px">
               删除
             </Button>
           </template>
@@ -306,7 +306,7 @@ export default {
         show: false,
         data: null,
         darkMode: true,
-        lineWrap: false,
+        lineWrap: true,
         row: {}
       },
       dataLoading: true
@@ -428,6 +428,17 @@ export default {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
         this.dataLoading = false
+      })
+    },
+    goToLink (row, index) {
+      console.log('go to change config for ' + row.srcMha.name + ' and ' + row.destMha)
+      this.$router.push({
+        path: '/drcV2',
+        query: {
+          step: 3,
+          srcMhaName: row.srcMha.name,
+          dstMhaName: row.dstMha.name
+        }
       })
     },
     showModal (row) {

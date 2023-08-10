@@ -218,22 +218,27 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
 
     private void generateReplicators(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
-        if (null != replicatorGroupTbl) {
-            List<ReplicatorTbl> curMhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
-            List<Long> resourceIdList = curMhaReplicators.stream().map(ReplicatorTbl::getResourceId).distinct().collect(Collectors.toList());
-            Map<Long, ResourceTbl> resoueceMap = resourceTblDao.queryByIds(resourceIdList).stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
-            for (ReplicatorTbl replicatorTbl : curMhaReplicators) {
-                ResourceTbl resourceTbl = resoueceMap.get(replicatorTbl.getResourceId());
-                Replicator replicator = new Replicator();
-                replicator.setIp(resourceTbl.getIp())
-                        .setPort(replicatorTbl.getPort())
-                        .setApplierPort(replicatorTbl.getApplierPort())
-                        .setExcludedTables(replicatorGroupTbl.getExcludedTables())
-                        .setGtidSkip(replicatorTbl.getGtidInit())
-                        .setMaster(BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster()));
+        if (null == replicatorGroupTbl) {
+            return;
+        }
+        List<ReplicatorTbl> curMhaReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(curMhaReplicators)) {
+            return;
+        }
 
-                dbCluster.addReplicator(replicator);
-            }
+        List<Long> resourceIdList = curMhaReplicators.stream().map(ReplicatorTbl::getResourceId).distinct().collect(Collectors.toList());
+        Map<Long, ResourceTbl> resoueceMap = resourceTblDao.queryByIds(resourceIdList).stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity()));
+        for (ReplicatorTbl replicatorTbl : curMhaReplicators) {
+            ResourceTbl resourceTbl = resoueceMap.get(replicatorTbl.getResourceId());
+            Replicator replicator = new Replicator();
+            replicator.setIp(resourceTbl.getIp())
+                    .setPort(replicatorTbl.getPort())
+                    .setApplierPort(replicatorTbl.getApplierPort())
+                    .setExcludedTables(replicatorGroupTbl.getExcludedTables())
+                    .setGtidSkip(replicatorTbl.getGtidInit())
+                    .setMaster(BooleanEnum.TRUE.getCode().equals(replicatorTbl.getMaster()));
+
+            dbCluster.addReplicator(replicator);
         }
     }
 

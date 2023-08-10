@@ -8,18 +8,28 @@ package com.ctrip.framework.drc.console.enums;
 public enum ReadableErrorDefEnum implements IErrorDef {
 
     REQUEST_PARAM_INVALID("REQUEST_PARAM_INVALID", "invalid param! "),
+    DELETE_TBL_CHECK_FAIL_EXCEPTION("DELETE_TBL_CHECK_FAIL_EXCEPTION", "delete exception, please contact devops"),
 
     /**
-     * 查询正常，结果为空
+     * query return empty result
      */
     QUERY_RESULT_EMPTY("QUERY_RESULT_EMPTY", "query result is empty"),
     QUERY_DATA_INCOMPLETE("QUERY_DATA_INCOMPLETE", "query exception, please contact devops"),
 
 
     /**
-     * 查询数据库失败
+     * query datasource exception
      */
-    QUERY_TBL_EXCEPTION("QUERY_TBL_EXCEPTION", "query datasource exception, please contact devops");
+    QUERY_TBL_EXCEPTION("QUERY_TBL_EXCEPTION", "query datasource exception, please contact devops"),
+
+    /**
+     * delete datasource exception
+     */
+    DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
+
+
+    ;
+
 
     ReadableErrorDefEnum(String code, String message) {
         this.code = code;

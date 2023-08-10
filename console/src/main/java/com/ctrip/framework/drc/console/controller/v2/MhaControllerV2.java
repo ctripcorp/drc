@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/drc/v2/mha/")
 public class MhaControllerV2 {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private MhaServiceV2 mhaServiceV2;
@@ -35,6 +38,16 @@ public class MhaControllerV2 {
         try {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMhaAvailableResource(mhaName, type));
         } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("messenger")
+    public ApiResult<List<String>> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaMessengers(mhaName));
+        } catch (Throwable e) {
+            logger.error("getMhaMessengers for {} exception ", mhaName, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

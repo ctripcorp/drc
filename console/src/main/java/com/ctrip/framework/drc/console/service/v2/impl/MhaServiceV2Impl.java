@@ -1,13 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -55,6 +49,10 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private ResourceTblDao resourceTblDao;
     @Autowired
     private DcTblDao dcTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -139,5 +137,26 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndType(dcIds, type);
         List<String> ips = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         return ips;
+    }
+
+    @Override
+    public List<String> getMhaMessengers(String mhaName) {
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+            if (mhaTblV2 == null) {
+                logger.info("mha: {} not exist", mhaName);
+                return Collections.emptyList();
+            }
+            MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+
+            List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+            List<ResourceTbl> resourceTbl = resourceTblDao.queryByIds(resourceIds);
+            List<String> ips = resourceTbl.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+            return ips;
+        } catch (SQLException e) {
+            logger.error("getMhaAvailableMessengerResource exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 }

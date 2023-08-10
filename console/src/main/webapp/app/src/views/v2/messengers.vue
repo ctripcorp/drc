@@ -12,7 +12,7 @@
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看
               </Button>
               <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
-              <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">
+              <Button disabled type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">
                 删除
               </Button>
             </template>
@@ -92,8 +92,8 @@ export default {
           data: ''
         },
         drawer: {
-          lineWrap: false,
-          darkMode: false,
+          lineWrap: true,
+          darkMode: true,
           show: false,
           data: ''
         },
