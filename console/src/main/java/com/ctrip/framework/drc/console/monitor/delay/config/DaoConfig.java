@@ -2,16 +2,12 @@ package com.ctrip.framework.drc.console.monitor.delay.config;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
-import com.ctrip.framework.drc.core.entity.DbCluster;
-import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
 import com.ctrip.framework.drc.core.entity.Drc;
-import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
@@ -22,6 +18,9 @@ public class DaoConfig extends AbstractConfig implements Config{
 
     @Autowired
     private MetaGenerator metaGenerator;
+
+    @Autowired
+    private MetaGeneratorV2 metaGeneratorV2;
     
     @Autowired
     private DataCenterService dataCenterService;
@@ -37,7 +36,7 @@ public class DaoConfig extends AbstractConfig implements Config{
             if (publicCloudRegion.contains(region)) {
                 return;
             }
-            Drc drc = metaGenerator.getDrc();
+            Drc drc = metaGeneratorV2.getDrc();
             META_LOGGER.debug("[meta] generated drc: {}", drc);
 
             if (null != drc && drc.getDcs().size() != 0 && !drc.toString().equalsIgnoreCase(this.xml)) {

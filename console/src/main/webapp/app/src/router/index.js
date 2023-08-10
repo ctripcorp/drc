@@ -184,6 +184,26 @@ const routes = [
     component: () => import('../views/v2/buildMessenger.vue')
   },
   {
+    path: '/v2/mhaBuild',
+    name: 'mhaBuild',
+    component: () => import('../views/v2/mhaBuild.vue')
+  },
+  {
+    path: '/drcV2',
+    name: 'drcV2',
+    component: () => import('../views/v2/drcV2.vue')
+  },
+  {
+    path: '/dbTables',
+    name: 'dbTables',
+    component: () => import('../views/v2/dbTables.vue')
+  },
+  {
+    path: '/dbReplicationConfig',
+    name: 'dbReplicationConfig',
+    component: () => import('../views/v2/dbReplicationConfig.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

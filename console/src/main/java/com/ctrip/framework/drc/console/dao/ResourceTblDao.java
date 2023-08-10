@@ -17,6 +17,7 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
 
 	private static final String TYPE = "type";
 	private static final String IP = "ip";
+	private static final String DC_ID = "dc_id";
 
 	public ResourceTblDao() throws SQLException {
 		super(ResourceTbl.class);
@@ -35,6 +36,13 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
 		SelectSqlBuilder sqlBuilder = initSqlBuilder();
 	    sqlBuilder.and().in(IP, ips, Types.VARBINARY);
 	    return queryList(sqlBuilder);
+	}
+
+	public List<ResourceTbl> queryByDcAndType(List<Long> dcIds, int type) throws SQLException {
+		SelectSqlBuilder sqlbuilder = initSqlBuilder();
+		sqlbuilder.and().inNullable(DC_ID, dcIds, Types.BIGINT)
+				.and().equal(TYPE, type, Types.TINYINT);
+		return queryList(sqlbuilder);
 	}
 
 }

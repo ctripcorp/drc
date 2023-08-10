@@ -16,6 +16,9 @@
             <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
               <span>MHA复制</span>
             </MenuItem>
+            <MenuItem name="/drcV2" to="/drcV2">
+              <span>DRC配置</span>
+            </MenuItem>
             <MenuItem name="/v2/messengers" to="/v2/messengers">
               <span>Messenger集群</span>
             </MenuItem>
