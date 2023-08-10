@@ -18,6 +18,7 @@ import java.util.List;
 public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
 
     private static final String APPLIER_GROUP_ID = "applier_group_id";
+    private static final String DELETED = "deleted";
 
     public ApplierTblV2Dao() throws SQLException {
         super(ApplierTblV2.class);
@@ -29,9 +30,9 @@ public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
         return client.query(sqlBuilder, new DalHints());
     }
 
-    public List<ApplierTblV2> queryUndeletedByApplierGroupId(Long applierGroupId) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.selectAll().and().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
+    public List<ApplierTblV2> queryByApplierGroupId(Long applierGroupId, Integer deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, deleted, Types.TINYINT).and().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }
 }

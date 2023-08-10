@@ -32,7 +32,7 @@ public class RowsFilterTbl implements DalPojo {
 	private Long id;
 
     /**
-     * 行过滤配置 模式 regex, trip_uid,customized
+     * Mock 模式 regex, trip_uid,customized
      */
 	@Column(name = "mode")
 	@Type(value = Types.VARCHAR)

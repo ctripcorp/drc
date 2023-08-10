@@ -154,7 +154,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         if (mhaReplicationTbl == null) {
             return;
         }
-        ApplierGroupTblV2 applierGroupTbl = applierGroupTblV2Dao.queryByReplicationId(mhaReplicationTbl.getId());
+        ApplierGroupTblV2 applierGroupTbl = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), 0);
         generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
     }
 
@@ -188,7 +188,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         Map<Long, String> dstDbTblMap = dbTbls.stream().filter(e -> dstDbIds.contains(e.getId())).collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
 
         // appliers
-        List<ApplierTblV2> curMhaAppliers = applierTblV2Dao.queryUndeletedByApplierGroupId(applierGroupTbl.getId());
+        List<ApplierTblV2> curMhaAppliers = applierTblV2Dao.queryByApplierGroupId(applierGroupTbl.getId(), 0);
 
         // dc
         DcDo srcDcTbl = this.queryAllDcWithCache().stream().filter(e -> e.getDcId().equals(srcMhaTbl.getDcId())).findFirst().orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, "dc not exist: " + srcMhaTbl.getDcId()));

@@ -22,6 +22,8 @@ import java.util.List;
 public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
 
     private static final String MHA_NAME = "mha_name";
+    private static final String DELETED = "deleted";
+
     private static final String BU_ID = "bu_id";
     private static final String DC_ID = "dc_id";
     private static final String ID = "id";
@@ -31,15 +33,21 @@ public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
     }
 
     public MhaTblV2 queryByMhaName(String mhaName) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(MHA_NAME, mhaName, Types.VARCHAR);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(MHA_NAME, mhaName, Types.VARCHAR);
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 
     public List<MhaTblV2> queryByMhaNames(List<String> mhaNames) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().in(MHA_NAME, mhaNames, Types.VARCHAR);
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(MHA_NAME, mhaNames, Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
+    }
+
+    public MhaTblV2 queryByMhaName(String mhaName, int deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, deleted, Types.TINYINT).and().equal(MHA_NAME, mhaName, Types.VARCHAR);
+        return client.queryFirst(sqlBuilder, new DalHints());
     }
 
     public List<MhaTblV2> query(MhaQuery mhaQuery) throws SQLException {
