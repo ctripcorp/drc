@@ -37,7 +37,7 @@ public class AbstractDao<T> {
 
     public List<T> queryByIds(List<Long> ids) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.selectAll().in("id", ids, Types.BIGINT);
+        sqlBuilder.and().in("id", ids, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 

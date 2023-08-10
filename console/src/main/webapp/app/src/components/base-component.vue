@@ -16,6 +16,9 @@
             <MenuItem name="/mhaReplications" to="/mhaReplications">
               <span>MHA复制</span>
             </MenuItem>
+            <MenuItem name="/drcV2" to="/drcV2">
+              <span>DRC配置</span>
+            </MenuItem>
           </Submenu>
           <Submenu name="0">
             <template slot="title">

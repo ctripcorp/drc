@@ -297,7 +297,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlTables")
     public List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter) {
         List<TableCheckVo> tableVos = Lists.newArrayList();
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("[[tag=preCheck]] preCheckMySqlTables from mha:{},db not exist",mha);
             return tableVos;
@@ -308,7 +308,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/queryDbs")
     public List<String> queryDbsWithNameFilter(String mha, String nameFilter) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("queryDbsWithNameFilter from mha: {},db not exist", mha);
             return new ArrayList<>();
@@ -319,7 +319,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/queryTables")
     public List<String> queryTablesWithNameFilter(String mha, String nameFilter) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("queryTablesWithNameFilter from mha: {},db not exist", mha);
             return new ArrayList<>();
