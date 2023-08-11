@@ -90,6 +90,7 @@ export default {
         illegalArgument: false,
         fetchMode: 0
       },
+      update: true,
       configInTripUid: {
         regionsChosen: []
       },
@@ -171,7 +172,9 @@ export default {
       }
     },
     submitConfig () {
-      // alert('ok')
+      // if (!this.update) {
+      //   alert('查看状态不能修改')
+      // }
       console.log(this.rowsFilterConfig)
       if (this.rowsFilterConfig.mode === 1) {
         if (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0) {
@@ -206,7 +209,7 @@ export default {
           mode: this.rowsFilterConfig.mode,
           columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
           udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.udlColumns,
-          drcStrategyId: this.rowsFilterConfig.drcStrategyId,
+          drcStrategyId: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.drcStrategyId,
           routeStrategyId: this.rowsFilterConfig.routeStrategyId,
           illegalArgument: this.rowsFilterConfig.illegalArgument,
           fetchMode: this.rowsFilterConfig.fetchMode,

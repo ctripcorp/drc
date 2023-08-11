@@ -41,6 +41,7 @@ public class RowsFilterCreateParam {
             List<RowsFilterConfig.Parameters> parametersList = Lists.newArrayList();
             if (!CollectionUtils.isEmpty(udlColumns)) {
                 // generate udl parameters
+                configs.setDrcStrategyId(this.drcStrategyId);
                 RowsFilterConfig.Parameters parameters = new RowsFilterConfig.Parameters();
                 parameters.setColumns(this.udlColumns);
                 parameters.setUserFilterMode(UserFilterMode.Udl.getName());
@@ -61,7 +62,6 @@ public class RowsFilterCreateParam {
             }
 
             configs.setParameterList(parametersList);
-            configs.setDrcStrategyId(this.drcStrategyId);
             configs.setRouteStrategyId(this.routeStrategyId);
 
         } else {
