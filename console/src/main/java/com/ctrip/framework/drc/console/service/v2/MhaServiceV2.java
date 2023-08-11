@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 
 import java.util.List;
 import java.util.Map;
@@ -19,4 +20,5 @@ public interface MhaServiceV2 {
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;
     String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception;
+    boolean recordMhaInstances(MhaInstanceGroupDto dto) throws Exception;
 }

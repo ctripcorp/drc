@@ -174,6 +174,8 @@ export default {
   props: {
     srcMhaName: String,
     dstMhaName: String,
+    srcDc: String,
+    dstDc: String,
     env: String
   },
   data () {
@@ -321,8 +323,7 @@ export default {
     },
     querySrcMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.srcBuildParam.mhaName)
-      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.srcBuildParam.mhaName)
+      that.axios.get('/api/drc/v2/mha/gtid/executed?mha=' + this.srcBuildParam.mhaName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -339,9 +340,7 @@ export default {
         return
       }
       const that = this
-      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.srcBuildParam.mhaName +
-        '&configGtid=' + this.srcBuildParam.replicatorInitGtid)
-      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.srcBuildParam.mhaName +
+      that.axios.get('/api/drc/v2/mha/gtid/checkResult?mha=' + this.srcBuildParam.mhaName +
         '&configGtid=' + this.srcBuildParam.replicatorInitGtid)
         .then(response => {
           if (response.data.status === 0) {
@@ -353,15 +352,13 @@ export default {
             }
             this.gtidCheck.modal = true
           } else {
-            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.srcBuildParam.mhaName +
-              '&configGtid=' + this.srcBuildParam.replicatorInitGtid)
+            alert('位点校验失败!')
           }
         })
     },
     queryDstMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.dstBuildParam.mhaName)
-      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.dstBuildParam.mhaName)
+      that.axios.get('/api/drc/v2/mha/gtid/executed?mha=' + this.dstBuildParam.mhaName)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -378,9 +375,7 @@ export default {
         return
       }
       const that = this
-      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.dstBuildParam.mhaName +
-        '&configGtid=' + this.dstBuildParam.replicatorInitGtid)
-      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.dstBuildParam.mhaName +
+      that.axios.get('/api/drc/v2/mha/gtid/checkResult?mha=' + this.dstBuildParam.mhaName +
         '&configGtid=' + this.dstBuildParam.replicatorInitGtid)
         .then(response => {
           if (response.data.status === 0) {
@@ -392,25 +387,9 @@ export default {
             }
             this.gtidCheck.modal = true
           } else {
-            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.dstBuildParam.mhaName +
-              '&configGtid=' + this.dstBuildParam.replicatorInitGtid)
+            alert('位点校验失败!')
           }
         })
-    },
-    debug () {
-      console.log('replicators: ' + this.drc.replicatorlist)
-      console.log('appliers: ' + this.drc.applierlist)
-    },
-    searchUsedReplicatorPorts () {
-      this.axios.get('/api/drc/v1/meta/resources/ip/' + this.drc.searchReplicatorIp)
-        .then(response => {
-          console.log(response.data)
-          this.drc.usedReplicatorPorts = []
-          response.data.data.forEach(port => this.drc.usedReplicatorPorts.push(port))
-        })
-    },
-    changeSelection () {
-      this.drc.selectedDbs = this.$refs.selection.getSelection()
     },
     changeSrcMha () {
       this.$emit('srcMhaNameChanged', this.srcBuildParam.mhaName)
@@ -462,20 +441,14 @@ export default {
         that.resultModal = true
       })
     },
-    goToConfigRowsFiltersInSrcApplier () {
-      console.log('go to change rowsFilter config for ' + this.newClusterName + '-> ' + this.oldClusterName)
-      this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.newClusterName, destMha: this.oldClusterName } })
-    },
-    goToConfigRowsFiltersInDestApplier () {
-      console.log('go to change rowsFilter config for ' + this.oldClusterName + '-> ' + this.newClusterName)
-      this.$router.push({ path: '/rowsFilterConfigs', query: { srcMha: this.oldClusterName, destMha: this.newClusterName } })
-    },
     getSrcDbReplications () {
       this.$router.push({
         path: '/dbTables',
         query: {
           srcMhaName: this.dstBuildParam.mhaName,
           dstMhaName: this.srcBuildParam.mhaName,
+          srcDc: this.dstDc,
+          dstDc: this.srcDc,
           order: true
         }
       })
@@ -486,44 +459,11 @@ export default {
         query: {
           srcMhaName: this.srcBuildParam.mhaName,
           dstMhaName: this.dstBuildParam.mhaName,
+          srcDc: this.srcDc,
+          dstDc: this.dstDc,
           order: true
         }
       })
-    },
-    checkMysqlTablesInOldMha () {
-      this.checkMySqlTables(this.srcBuildParam.mhaName, this.drc.oldNameFilter)
-    },
-    checkMysqlTablesInNewMha () {
-      this.checkMySqlTables(this.dstBuildParam.mhaName, this.drc.newNameFilter)
-    },
-    checkMySqlTables (mha, nameFilter) {
-      console.log('nameFilter:' + nameFilter)
-      if (nameFilter === undefined || nameFilter === null) {
-        nameFilter = ''
-      }
-      this.$Spin.show({
-        render: (h) => {
-          return h('div', [
-            h('Icon', {
-              class: 'demo-spin-icon-load',
-              props: {
-                size: 18
-              }
-            }),
-            h('div', '检测中，请稍等...')
-          ])
-        }
-      })
-      setTimeout(() => {
-        this.$Spin.hide()
-      }, 80000)
-      this.axios.get('/api/drc/v1/build/preCheckMySqlTables?mha=' + mha +
-        '&' + 'nameFilter=' + nameFilter)
-        .then(response => {
-          this.nameFilterCheck.tableData = response.data.data
-          this.$Spin.hide()
-          this.nameFilterCheck.modal = true
-        })
     },
     handleChangeSize (val) {
       this.size = val

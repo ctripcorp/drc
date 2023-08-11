@@ -253,7 +253,7 @@ export default {
         })
     },
     getCommonColumns () {
-      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
+      this.axios.get('/api/drc/v2/mysql/commonColumns?' +
         '&mhaName=' + this.srcMhaName +
         '&namespace=' + this.dbName +
         '&name=' + this.tableName)

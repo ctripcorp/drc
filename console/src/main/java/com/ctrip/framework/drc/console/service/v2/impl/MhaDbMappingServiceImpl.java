@@ -7,8 +7,8 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -34,7 +34,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private DrcBuildService drcBuildService;
+    private MysqlServiceV2 mysqlServiceV2;
     @Autowired
     private DefaultConsoleConfig defaultConsoleConfig;
     @Autowired
@@ -150,7 +150,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     }
 
     private List<String> queryDbs(String mhaName, String nameFilter) {
-        List<String> tableList = drcBuildService.queryTablesWithNameFilter(mhaName, nameFilter);
+        List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
         List<String> dbList = new ArrayList<>();
         if (CollectionUtils.isEmpty(tableList)) {
             logger.info("mha: {} query db empty, nameFilter: {}", mhaName, nameFilter);

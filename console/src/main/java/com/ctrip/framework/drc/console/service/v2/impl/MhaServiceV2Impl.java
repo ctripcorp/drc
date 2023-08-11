@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
@@ -13,8 +14,12 @@ import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +55,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private ResourceTblDao resourceTblDao;
     @Autowired
     private DcTblDao dcTblDao;
+    @Autowired
+    private MachineTblDao machineTblDao;
     @Autowired
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
@@ -148,6 +155,103 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         }
         String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), master);
         return uuid;
+    }
+
+    @Override
+    public boolean recordMhaInstances(MhaInstanceGroupDto dto) throws Exception {
+        String mhaName = dto.getMhaName();
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (null == mhaTblV2) {
+            logger.info("mha({}) null", mhaName);
+            return false;
+        }
+        Long mhaId = mhaTblV2.getId();
+        List<MachineTbl> currentMachineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (dto.getMaster() != null) {
+            logger.info("add master machine-{} in mha-{}", dto.getMaster(), dto.getMhaName());
+            return checkMasterMachineMatch(dto, currentMachineTbls, mhaTblV2);
+        } else if (dto.getSlaves() != null) {
+            logger.info("add slave machine-{} in mha-{}", dto.getMaster(), dto.getMhaName());
+            checkSlaveMachines(dto, currentMachineTbls, mhaTblV2);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean checkMasterMachineMatch(MhaInstanceGroupDto dto, List<MachineTbl> currentMachineTbls, MhaTblV2 mhaTblV2) throws Exception {
+        MhaInstanceGroupDto.MySQLInstance master = dto.getMaster();
+        if (currentMachineTbls.size() == 0) {
+            insertMasterMachine(mhaTblV2, master.getIp(), master.getPort(), master.getUuid());
+            return true;
+        } else {
+            // check: alert if master not exist in current or current master does not match
+            boolean masterMatch = false;
+            for (MachineTbl machineTbl : currentMachineTbls) {
+                if (BooleanEnum.TRUE.getCode().equals(machineTbl.getMaster()) && machineTbl.getIp().equalsIgnoreCase(master.getIp()) && machineTbl.getPort().equals(master.getPort())) {
+                    masterMatch = true;
+                    break;
+                }
+            }
+            if (!masterMatch) {
+                logger.error("new master {} {}:{} after init", mhaTblV2.getMhaName(), master.getIp(), master.getPort());
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.instance.unnotified", mhaTblV2.getMhaName());
+            }
+            return masterMatch;
+        }
+    }
+
+    private void checkSlaveMachines(MhaInstanceGroupDto dto, List<MachineTbl> currentMachineTbls, MhaTblV2 mhaTblV2) throws Exception {
+        List<String> currentMachineIps = currentMachineTbls.stream().map(MachineTbl::getIp).collect(Collectors.toList());
+        List<MhaInstanceGroupDto.MySQLInstance> slaves = dto.getSlaves();
+        for (MhaInstanceGroupDto.MySQLInstance slave : slaves) {
+            String ip = slave.getIp();
+            if (!currentMachineIps.contains(ip)) {
+                int port = slave.getPort();
+                insertSlaveMachine(mhaTblV2, ip, port, slave.getUuid());
+            }
+        }
+    }
+
+    private int insertMasterMachine(MhaTblV2 mhaTblV2, String ip, int port, String suppliedUuid) throws Exception {
+        String mhaName = mhaTblV2.getMhaName();
+        long mhaId = mhaTblV2.getId();
+        logger.info("[[mha={}]]no such master {}:{}, try insert", mhaTblV2.getMhaName(), ip, port);
+        String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), true);
+        if (null == uuid) {
+            logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaTblV2.getMhaName(), ip, port);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.insert.fail." + mhaName, ip);
+            throw ConsoleExceptionUtils.message(mhaName + " cannot get uuid " + ip);
+        }
+        logger.info("[[mha={}]] insert master {}:{}", mhaName, ip, port);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.master.insert." + mhaName, ip);
+        return insertMachine(ip, port, uuid, BooleanEnum.TRUE.getCode(), mhaId);
+    }
+
+    private int insertSlaveMachine(MhaTblV2 mhaTblV2, String ip, int port, String suppliedUuid) throws Exception {
+        String mhaName = mhaTblV2.getMhaName();
+        long mhaId = mhaTblV2.getId();
+        logger.info("[[mha={}]]no such slave {}:{}, try insert", mhaName, ip, port);
+        String uuid = StringUtils.isNotBlank(suppliedUuid) ? suppliedUuid : MySqlUtils.getUuid(ip, port, mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), false);
+        if (null == uuid) {
+            logger.error("[[mha={}]]cannot get uuid for {}:{}, do nothing", mhaName, ip, port);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.slave.insert.fail." + mhaName, ip);
+            throw ConsoleExceptionUtils.message(mhaName + " cannot get uuid " + ip);
+        }
+        logger.info("[[mha={}]] insert slave {}:{}", mhaName, ip, port);
+        DefaultEventMonitorHolder.getInstance().logEvent("DRC.mysql.slave.insert." + mhaName, ip);
+        return insertMachine(ip, port, uuid, BooleanEnum.FALSE.getCode(), mhaId);
+    }
+
+    private int insertMachine(String ip, int port, String uuid, int master, long mhaId) throws Exception {
+        MachineTbl daoPojo = new MachineTbl();
+        daoPojo.setIp(ip);
+        daoPojo.setPort(port);
+        daoPojo.setMaster(master);
+        daoPojo.setUuid(uuid);
+        daoPojo.setMhaId(mhaId);
+
+        KeyHolder keyHolder = new KeyHolder();
+        return machineTblDao.insert(new DalHints(), keyHolder, daoPojo);
     }
 
     @Override

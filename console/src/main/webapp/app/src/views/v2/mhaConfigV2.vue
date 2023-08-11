@@ -16,7 +16,7 @@
           <FormItem label="Port" prop="port">
             <Input v-model="srcMha.port"  placeholder="请输入录入DB端口"/>
           </FormItem >
-          <FormItem label="DB机房" prop="idc">
+          <FormItem label="DB机房" prop="srcDc">
             <Select v-model="srcMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
@@ -51,7 +51,7 @@
           <FormItem label="Port" prop="port">
             <Input v-model="dstMha.port"  number placeholder="请输入录入DB端口"/>
           </FormItem >
-          <FormItem label="DB机房" prop="idc">
+          <FormItem label="DB机房" prop="dstDc">
             <Select v-model="dstMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option boolean v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
@@ -197,10 +197,7 @@ export default {
     },
     querySrcMhaUuid () {
       const that = this
-      console.log('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
+      that.axios.get('/api/drc/v2/mha/uuid?mhaName=' + this.srcMha.mhaName + '&ip=' + this.srcMha.ip + '&port=' + this.srcMha.port + '&master=' + this.srcMha.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -213,8 +210,7 @@ export default {
     },
     queryDstMhaUuid () {
       const that = this
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.dstMha.ip + '/' + this.dstMha.port + '/' + this.srcMha.master)
+      that.axios.get('/api/drc/v2/mha/uuid?mhaName=' + this.dstMha.mhaName + '&ip=' + this.dstMha.ip + '&port=' + this.dstMha.port + '&master=' + this.dstMha.master)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -236,7 +232,7 @@ export default {
     },
     submitsrcMha () {
       const that = this
-      that.axios.post('/api/drc/v1/access/mha/machineInfo', {
+      that.axios.post('/api/drc/v2/mha/machineInfo', {
         mhaName: this.srcMha.mhaName,
         master: this.srcMha.master,
         mySQLInstance: {
@@ -269,7 +265,7 @@ export default {
     },
     submitdstMha () {
       const that = this
-      that.axios.post('/api/drc/v1/access/mha/machineInfo', {
+      that.axios.post('/api/drc/v2/mha/machineInfo', {
         mhaName: this.dstMha.mhaName,
         master: this.dstMha.master,
         mySQLInstance: {
