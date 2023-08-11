@@ -13,6 +13,17 @@ public class DrcBuildBaseParam {
     private String replicatorInitGtid;
     private String applierInitGtid;
 
+    public DrcBuildBaseParam(String mhaName, List<String> replicatorIps, List<String> applierIps, String replicatorInitGtid, String applierInitGtid) {
+        this.mhaName = mhaName;
+        this.replicatorIps = replicatorIps;
+        this.applierIps = applierIps;
+        this.replicatorInitGtid = replicatorInitGtid;
+        this.applierInitGtid = applierInitGtid;
+    }
+
+    public DrcBuildBaseParam() {
+    }
+
     public String getMhaName() {
         return mhaName;
     }

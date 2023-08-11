@@ -11,6 +11,18 @@ public class DrcMhaBuildParam {
     private String dstDc;
     private String buName;
 
+
+    public DrcMhaBuildParam(String srcMhaName, String dstMhaName, String srcDc, String dstDc, String buName) {
+        this.srcMhaName = srcMhaName;
+        this.dstMhaName = dstMhaName;
+        this.srcDc = srcDc;
+        this.dstDc = dstDc;
+        this.buName = buName;
+    }
+
+    public DrcMhaBuildParam() {
+    }
+
     @Override
     public String toString() {
         return "DrcMhaBuildParam{" +
