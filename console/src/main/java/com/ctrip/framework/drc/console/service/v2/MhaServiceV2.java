@@ -18,4 +18,5 @@ public interface MhaServiceV2 {
     List<String> getMhaMessengers(String mhaName);
 
     List<String> getMhaAvailableResource(String mhaName, int type) throws Exception;
+    String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception;
 }

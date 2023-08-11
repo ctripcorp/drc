@@ -15,9 +15,9 @@
         </Steps>
       </template>
       <mhaBuild v-if="current === 0" v-bind="clusterPair" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha" v-on:dstDcChanged="updateDstDc" v-on:srcDcChanged="updateSrcDc"/>
-      <mhaConfig v-if="current === 1" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha"/>
-      <preCheck v-if="current === 2" v-bind="clusterPair" />
-      <drc v-if="current === 3" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha" />
+      <mha-config-v2 v-if="current === 1" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha"/>
+      <pre-check-v2 v-if="current === 2" v-bind="clusterPair" />
+      <drc-build-v2 v-if="current === 3" v-bind="clusterPair" v-on:envChanged="updateEnv" v-on:srcMhaNameChanged="updateSrcMha" v-on:dstMhaNameChanged="updateDstMha" />
       <complete v-if="current === 4"/>
       <Divider/>
       <div style="padding: 1px 1px; height: 100px; margin-top: 75px">
@@ -36,16 +36,16 @@
 
 <script>
 import mhaBuild from './mhaBuild.vue'
-import mhaConfig from './mhaConfigV2.vue'
-import preCheck from './preCheckV2.vue'
-import drc from './drcBuildV2.vue'
+import mhaConfigV2 from './mhaConfigV2.vue'
+import preCheckV2 from './preCheckV2.vue'
+import drcBuildV2 from './drcBuildV2.vue'
 import complete from '../../components/access/complete.vue'
 export default {
   components: {
     mhaBuild,
-    mhaConfig,
-    preCheck,
-    drc,
+    mhaConfigV2,
+    preCheckV2,
+    drcBuildV2,
     complete
   },
   data () {

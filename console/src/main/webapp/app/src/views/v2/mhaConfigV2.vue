@@ -6,24 +6,24 @@
     </Alert>
     <Row>
       <i-col span="12">
-        <Form ref="oldMhaMachine" :model="oldMhaMachine" :rules="ruleMhaMachine" :label-width="250" style="float: left; margin-top: 50px">
+        <Form ref="srcMha" :model="srcMha" :rules="ruleMhaMachine" :label-width="250" style="float: left; margin-top: 50px">
           <FormItem label="源集群名" prop="mhaName" style="width: 600px">
-            <Input v-model="oldMhaMachine.mhaName" @input="changeOldMha" placeholder="请输入源集群名"/>
+            <Input v-model="srcMha.mhaName" @input="changeSrcMha" placeholder="请输入源集群名"/>
           </FormItem>
           <FormItem label="添加Ip" prop="ip">
-            <Input v-model="oldMhaMachine.ip"  number placeholder="请输入录入DB的IP"/>
+            <Input v-model="srcMha.ip"  number placeholder="请输入录入DB的IP"/>
           </FormItem>
           <FormItem label="Port" prop="port">
-            <Input v-model="oldMhaMachine.port"  placeholder="请输入录入DB端口"/>
+            <Input v-model="srcMha.port"  placeholder="请输入录入DB端口"/>
           </FormItem >
           <FormItem label="DB机房" prop="idc">
-            <Select v-model="oldMhaMachine.idc" style="width: 200px"  placeholder="选择db机房区域" >
+            <Select v-model="srcMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
           </FormItem>
           <FormItem label="UUID" prop="uuid">
-            <Input v-model="oldMhaMachine.uuid"  placeholder="请输入录入DB的uuid"/>
-            <Button @click="queryOldMhaMachineUuid">连接查询</Button>
+            <Input v-model="srcMha.uuid"  placeholder="请输入录入DB的uuid"/>
+            <Button @click="querySrcMhaUuid">连接查询</Button>
             <span v-if="hasTest1">
             <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                   :color="testSuccess1 ? 'green' : 'red'"/>
@@ -31,34 +31,34 @@
             </span>
           </FormItem>
           <FormItem label="Master" prop="master">
-            <Select  v-model="oldMhaMachine.master" style="width: 200px"  placeholder="是否为Master" >
+            <Select  v-model="srcMha.master" style="width: 200px"  placeholder="是否为Master" >
               <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.key">{{ item.key }}</Option>
             </Select>
           </FormItem>
           <FormItem>
-            <Button type="primary"  @click="preCheckOldMhaMachine ('oldMhaMachine')">录入DB</Button><br><br>
+            <Button type="primary"  @click="preChecksrcMha ('srcMha')">录入DB</Button><br><br>
           </FormItem>
         </Form>
       </i-col>
       <i-col span="12">
-        <Form ref="newMhaMachine" :model="newMhaMachine" :rules="ruleMhaMachine" :label-width="250" style="float: left; margin-top: 50px">
+        <Form ref="dstMha" :model="dstMha" :rules="ruleMhaMachine" :label-width="250" style="float: left; margin-top: 50px">
           <FormItem label="新集群名" prop="mhaName" style="width: 600px">
-            <Input v-model="newMhaMachine.mhaName" @input="changeNewMha" placeholder="请输入源集群名"/>
+            <Input v-model="dstMha.mhaName" @input="changeDstMha" placeholder="请输入源集群名"/>
           </FormItem>
           <FormItem label="添加Ip" prop="ip">
-            <Input v-model="newMhaMachine.ip"  placeholder="请输入录入DB的IP"/>
+            <Input v-model="dstMha.ip"  placeholder="请输入录入DB的IP"/>
           </FormItem>
           <FormItem label="Port" prop="port">
-            <Input v-model="newMhaMachine.port"  number placeholder="请输入录入DB端口"/>
+            <Input v-model="dstMha.port"  number placeholder="请输入录入DB端口"/>
           </FormItem >
           <FormItem label="DB机房" prop="idc">
-            <Select v-model="newMhaMachine.idc" style="width: 200px"  placeholder="选择db机房区域" >
+            <Select v-model="dstMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option boolean v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
           </FormItem>
           <FormItem label="UUID" prop="uuid">
-            <Input v-model="newMhaMachine.uuid"  placeholder="请输入录入DB的uuid"/>
-            <Button @click="queryNewMhaMachineUuid">连接查询</Button>
+            <Input v-model="dstMha.uuid"  placeholder="请输入录入DB的uuid"/>
+            <Button @click="queryDstMhaUuid">连接查询</Button>
             <span v-if="hasTest2">
             <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
                   :color="testSuccess2 ? 'green' : 'red'"/>
@@ -66,35 +66,35 @@
             </span>
           </FormItem>
           <FormItem label="Master" prop="master">
-            <Select  v-model="newMhaMachine.master" style="width: 200px"  placeholder="是否为Master" >
+            <Select  v-model="dstMha.master" style="width: 200px"  placeholder="是否为Master" >
               <Option v-for="item in selectOption.isMaster" :value="item.value" :key="item.key">{{ item.key }}</Option>
             </Select>
           </FormItem>
           <FormItem>
-            <Button type="primary"  @click="preCheckNewMhaMachine ('newMhaMachine')">录入DB</Button><br><br>
+            <Button type="primary"  @click="preCheckdstMha ('dstMha')">录入DB</Button><br><br>
           </FormItem>
         </Form>
       </i-col>
     </Row>
     <Modal
-      v-model="oldMhaMachine.modal"
+      v-model="srcMha.modal"
       title="录入左侧Mha Db信息"
-      @on-ok="submitOldMhaMachine">
-      <p>Mha: {{oldMhaMachine.mhaName}} </p>
-      <p> db信息 [host: {{oldMhaMachine.ip}}:{{oldMhaMachine.port}}]</p>
-      <p> db信息 [isMaster:{{oldMhaMachine.master}}]</p>
-      <p> db信息 [idc:{{oldMhaMachine.idc}}]</p>
-      <p> db信息 [uuid:{{oldMhaMachine.uuid}}]</p>
+      @on-ok="submitsrcMha">
+      <p>Mha: {{srcMha.mhaName}} </p>
+      <p> db信息 [host: {{srcMha.ip}}:{{srcMha.port}}]</p>
+      <p> db信息 [isMaster:{{srcMha.master}}]</p>
+      <p> db信息 [idc:{{srcMha.idc}}]</p>
+      <p> db信息 [uuid:{{srcMha.uuid}}]</p>
     </Modal>
     <Modal
-      v-model="newMhaMachine.modal"
+      v-model="dstMha.modal"
       title="录入右侧Mha Db信息"
-      @on-ok="submitNewMhaMachine">
-      <p>Mha: {{newMhaMachine.mhaName}} </p>
-      <p> db信息 [host: {{newMhaMachine.ip}}:{{newMhaMachine.port}}]</p>
-      <p> db信息 [isMaster:{{newMhaMachine.master}}]</p>
-      <p> db信息 [idc:{{newMhaMachine.idc}}]</p>
-      <p> db信息 [uuid:{{newMhaMachine.uuid}}]</p>
+      @on-ok="submitdstMha">
+      <p>Mha: {{dstMha.mhaName}} </p>
+      <p> db信息 [host: {{dstMha.ip}}:{{dstMha.port}}]</p>
+      <p> db信息 [isMaster:{{dstMha.master}}]</p>
+      <p> db信息 [idc:{{dstMha.idc}}]</p>
+      <p> db信息 [uuid:{{dstMha.uuid}}]</p>
     </Modal>
 
   </div>
@@ -103,10 +103,10 @@
 export default {
   name: 'mhaConfig',
   props: {
-    oldClusterName: String,
-    newClusterName: String,
-    oldDrcZone: String,
-    newDrcZone: String
+    srcMhaName: String,
+    dstMhaName: String,
+    srcDc: String,
+    dstDc: String
   },
   data () {
     const validateInteger = (rule, value, callback) => {
@@ -133,23 +133,23 @@ export default {
       testSuccess1: false,
       hasTest2: false,
       testSuccess2: false,
-      oldMhaMachine: {
+      srcMha: {
         modal: false,
-        mhaName: this.oldClusterName,
-        zoneId: this.oldDrcZone,
+        mhaName: this.srcMhaName,
+        zoneId: this.srcDc,
         ip: '',
         port: '',
-        idc: this.oldDrcZone,
+        idc: this.srcDc,
         uuid: '',
         master: 1
       },
-      newMhaMachine: {
+      dstMha: {
         modal: false,
-        mhaName: this.newClusterName,
-        zoneId: this.newDrcZone,
+        mhaName: this.dstMhaName,
+        zoneId: this.dstDc,
         ip: '',
         port: '',
-        idc: this.newDrcZone,
+        idc: this.dstDc,
         uuid: '',
         master: 1
       },
@@ -189,104 +189,104 @@ export default {
     }
   },
   methods: {
-    changeOldMha () {
-      this.$emit('oldClusterChanged', this.oldMhaMachine.mhaName)
+    changeSrcMha () {
+      this.$emit('srcMhaNameChanged', this.srcMha.mhaName)
     },
-    changeNewMha () {
-      this.$emit('newClusterChanged', this.newMhaMachine.mhaName)
+    changeDstMha () {
+      this.$emit('dstMhaNameChanged', this.dstMha.mhaName)
     },
-    queryOldMhaMachineUuid () {
+    querySrcMhaUuid () {
       const that = this
-      console.log('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/' + this.oldMhaMachine.ip + '/' + this.oldMhaMachine.port + '/' + this.oldMhaMachine.master)
+      console.log('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
+        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
+      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
+        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
-            this.oldMhaMachine.uuid = response.data.data
+            this.srcMha.uuid = response.data.data
             this.testSuccess1 = true
           } else {
             this.testSuccess1 = false
           }
         })
     },
-    queryNewMhaMachineUuid () {
+    queryDstMhaUuid () {
       const that = this
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.oldMhaMachine.mhaName +
-        ',' + this.newMhaMachine.mhaName + '/' + this.newMhaMachine.ip + '/' + this.newMhaMachine.port + '/' + this.oldMhaMachine.master)
+      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
+        ',' + this.dstMha.mhaName + '/' + this.dstMha.ip + '/' + this.dstMha.port + '/' + this.srcMha.master)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
-            this.newMhaMachine.uuid = response.data.data
+            this.dstMha.uuid = response.data.data
             this.testSuccess2 = true
           } else {
             this.testSuccess2 = false
           }
         })
     },
-    preCheckOldMhaMachine (name) {
+    preChecksrcMha (name) {
       this.$refs[name].validate((valid) => {
         if (!valid) {
           this.$Message.error('仍有必填项未填!')
         } else {
-          this.oldMhaMachine.modal = true
+          this.srcMha.modal = true
         }
       })
     },
-    submitOldMhaMachine () {
+    submitsrcMha () {
       const that = this
       that.axios.post('/api/drc/v1/access/mha/machineInfo', {
-        mhaName: this.oldMhaMachine.mhaName,
-        master: this.oldMhaMachine.master,
+        mhaName: this.srcMha.mhaName,
+        master: this.srcMha.master,
         mySQLInstance: {
-          ip: this.oldMhaMachine.ip,
-          port: this.oldMhaMachine.port,
-          idc: this.oldMhaMachine.idc,
-          uuid: this.oldMhaMachine.uuid
+          ip: this.srcMha.ip,
+          port: this.srcMha.port,
+          idc: this.srcMha.idc,
+          uuid: this.srcMha.uuid
         }
       }).then(response => {
         that.hasResp = true
         if (response.data.status === 0) {
           that.status = 'success'
-          that.title = 'mha:' + this.oldMhaMachine.mhaName + '录入db成功!'
+          that.title = 'mha:' + this.srcMha.mhaName + '录入db成功!'
           that.message = response.data.message
         } else {
           that.status = 'error'
-          that.title = 'mha:' + this.oldMhaMachine.mhaName + '录入db失败!'
+          that.title = 'mha:' + this.srcMha.mhaName + '录入db失败!'
           that.message = response.data.message
         }
       })
     },
-    preCheckNewMhaMachine (name) {
+    preCheckdstMha (name) {
       this.$refs[name].validate((valid) => {
         if (!valid) {
           this.$Message.error('仍有必填项未填!')
         } else {
-          this.newMhaMachine.modal = true
+          this.dstMha.modal = true
         }
       })
     },
-    submitNewMhaMachine () {
+    submitdstMha () {
       const that = this
       that.axios.post('/api/drc/v1/access/mha/machineInfo', {
-        mhaName: this.newMhaMachine.mhaName,
-        master: this.newMhaMachine.master,
+        mhaName: this.dstMha.mhaName,
+        master: this.dstMha.master,
         mySQLInstance: {
-          ip: this.newMhaMachine.ip,
-          port: this.newMhaMachine.port,
-          idc: this.newMhaMachine.idc,
-          uuid: this.newMhaMachine.uuid
+          ip: this.dstMha.ip,
+          port: this.dstMha.port,
+          idc: this.dstMha.idc,
+          uuid: this.dstMha.uuid
         }
       }).then(response => {
         that.hasResp = true
         if (response.data.status === 0) {
           that.status = 'success'
-          that.title = 'mha:' + this.newMhaMachine.mhaName + '录入db成功!'
+          that.title = 'mha:' + this.dstMha.mhaName + '录入db成功!'
           that.message = response.data.message
         } else {
           that.status = 'error'
-          that.title = 'mha:' + this.newMhaMachine.mhaName + '录入db失败!'
+          that.title = 'mha:' + this.dstMha.mhaName + '录入db失败!'
           that.message = response.data.message
         }
       })

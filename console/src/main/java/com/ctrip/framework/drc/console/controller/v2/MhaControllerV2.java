@@ -42,6 +42,16 @@ public class MhaControllerV2 {
         }
     }
 
+    @GetMapping("uuid")
+    public ApiResult<String> getMhaMysqlUuid(@RequestParam String mhaName, @RequestParam String ip,
+                                             @RequestParam int port, @RequestParam boolean master) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMysqlUuid(mhaName, ip, port, master));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("messenger")
     public ApiResult<List<String>> getMhaMessengers(@RequestParam(name = "mhaName") String mhaName) {
         try {

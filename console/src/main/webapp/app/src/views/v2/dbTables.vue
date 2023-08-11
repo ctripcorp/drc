@@ -63,7 +63,7 @@ export default {
         srcMhaName: '',
         srcMhaId: 0,
         dstMhaName: '',
-        applierGroupId: 0,
+        dbReplicationId: 0,
         srcDc: '',
         dstDc: '',
         order: true
@@ -142,34 +142,30 @@ export default {
     },
     goToUpdateConfig (row, index) {
       this.$router.push({
-        path: '/tables/configFlow',
+        path: '/dbReplicationConfig',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
-          srcMhaId: this.initInfo.srcMhaId,
           dstMhaName: this.initInfo.dstMhaName,
-          applierGroupId: this.initInfo.applierGroupId,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
           order: this.initInfo.order,
-          dataMediaId: row.id,
-          namespace: row.namespace,
-          name: row.name
-          // tableData: []
+          dbName: row.dbName,
+          tableName: row.logicTableName,
+          dbReplicationId: row.dbReplicationId
         }
       })
     },
     goToDeleteConfig (row, index) {
       // todo, json确认弹窗
       console.log(row)
-      this.axios.delete('/api/drc/v1/dataMedia/dataMediaConfig/' + row.id)
-        .then(response => {
-          if (response.data.status === 1) {
-            window.alert('删除失败!')
-          } else {
-            window.alert('删除成功!')
-            this.getDbReplications()
-          }
-        })
+      this.axios.delete('/api/drc/v2/config/dbReplication?dbReplicationId=' + row.dbReplicationId).then(response => {
+        if (response.data.status === 1) {
+          window.alert('删除失败!')
+        } else {
+          window.alert('删除成功!')
+          this.getDbReplications()
+        }
+      })
     },
     showPropertiesJson () {
       console.log('showPropertiesJson')

@@ -25,9 +25,9 @@
       <template>
         <Steps :current="currentStep" style="width: 90%; margin-left: 50px; margin-bottom: 15px; margin-top: 50px">
           <Step title="配置表" content="添加同步表" @click.native="jumpTo(0)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="行过滤" content="配置行过滤（非必要）" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="字段过滤" content="配置字段过滤(非必要）" @click.native="jumpTo(4)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="完成" content="完成该表同步配置" @click.native="jumpTo(5)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="行过滤" content="配置行过滤（非必要）" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="字段过滤" content="配置字段过滤(非必要）" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
+          <Step title="完成" content="完成该表同步配置" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
         </Steps>
       </template>
       <Card dis-hover>
@@ -62,7 +62,7 @@
                   <FormItem prop="dbName" label="库名" style="width: 350px">
                     <Input type="text" v-model="commonInfo.dbName" placeholder="请输入库名（支持正则）"/>
                   </FormItem>
-                  <FormItem prop="name" label="表名" style="width: 350px">
+                  <FormItem prop="tableName" label="表名" style="width: 350px">
                     <Input type="text" v-model="commonInfo.tableName" placeholder="请输入表名（支持正则）">
                     </Input>
                   </FormItem>
@@ -78,11 +78,9 @@
                   </FormItem>
                 </Form>
               </div>
-              <table-mapping-config v-bind="commonInfo" v-if="currentStep === 1"></table-mapping-config>
-              <columns-mapping-config v-bind="commonInfo" v-if="currentStep === 2"></columns-mapping-config>
-              <rows-filter-config v-bind="commonInfo" v-if="currentStep === 3"></rows-filter-config>
-              <columns-filter-config v-bind="commonInfo" v-if="currentStep === 4"></columns-filter-config>
-              <complete v-bind="commonInfo" v-if="currentStep === 5"></complete>
+              <rows-filter-v2 v-bind="commonInfo" v-if="currentStep === 1"></rows-filter-v2>
+              <columns-filter-v2 v-bind="commonInfo" v-if="currentStep === 2"></columns-filter-v2>
+              <complete v-bind="commonInfo" v-if="currentStep === 3"></complete>
             </Card>
           </Col>
           <Divider/>
@@ -103,19 +101,15 @@
 </template>
 
 <script>
-import tableMappingConfig from '@/components/configs/flow/tableMappingConfig'
-import columnsMappingConfig from '@/components/configs/flow/columnsMappingConfig'
-import rowsFilterConfig from '@/components/configs/flow/rowsFilterConfig'
-import columnsFilterConfig from '@/components/configs/flow/columnsFilterConfig'
+import rowsFilterV2 from './rowsFilterV2'
+import columnsFilterV2 from './columnsFilterV2'
 import complete from '@/components/configs/flow/complete'
 
 export default {
   name: 'dbReplicationConfig',
   components: {
-    tableMappingConfig,
-    columnsMappingConfig,
-    rowsFilterConfig,
-    columnsFilterConfig,
+    rowsFilterV2,
+    columnsFilterV2,
     complete
   },
   data () {
@@ -129,6 +123,7 @@ export default {
         dstDc: '',
         order: true,
         dbReplicationIds: [],
+        dbReplicationId: 0,
         dbName: '',
         tableName: '',
         tableData: []
@@ -219,6 +214,7 @@ export default {
         } else {
           this.commonInfo.dbReplicationIds = response.data.data
           alert('提交成功！')
+          alert(this.dbReplicationIds)
         }
       })
     },
@@ -281,8 +277,13 @@ export default {
       order: this.$route.query.order,
       dbName: this.$route.query.dbName,
       tableName: this.$route.query.tableName,
+      dbReplicationId: this.$route.query.dbReplicationId,
+      dbReplicationIds: [],
       tableData: []
     }
+    // alert('ok')
+    this.commonInfo.dbReplicationIds.push(this.$route.query.dbReplicationId)
+    // alert(this.commonInfo.dbReplicationIds)
     if (this.commonInfo.dbName !== '' && this.commonInfo.tableName !== '') {
       this.checkMysqlTablesInSrcMha()
     }
