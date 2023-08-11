@@ -55,61 +55,6 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
         throw new IllegalArgumentException("dbCluster not find!");
     }
 
-    public Endpoint getMasterEndpoint(String mha) {
-        Map<String, Dc> dcs = getDcs();
-        for(Dc dc : dcs.values()) {
-            Map<String, DbCluster> dbClusters = dc.getDbClusters();
-            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
-            if(null != dbCluster) {
-                return getMaster(dbCluster);
-            }
-        }
-        return null;
-    }
-
-    public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
-        Map<String, Dc> dcs = getDcs();
-        for(Dc dc : dcs.values()) {
-            Map<String, DbCluster> dbClusters = dc.getDbClusters();
-            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
-            if(null != dbCluster) {
-                return getAllAccountsMaster(dbCluster);
-            }
-        }
-        return null;
-    }
-
-    public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {
-        Dbs dbs = dbCluster.getDbs();
-        List<Db> dbList = dbs.getDbs();
-        List<Endpoint> endpoints = Lists.newArrayList();
-        for(Db db : dbList) {
-            if(db.isMaster()) {
-                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getReadUser(), dbs.getReadPassword(), BooleanEnum.TRUE.isValue()));
-                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue()));
-                return endpoints;
-            }
-        }
-        return null;
-    }
-
-    public Map<String, Dc> getDcs() {
-        return getDrc() != null ? getDrc().getDcs() : Maps.newLinkedHashMap();
-    }
-
-    public Endpoint getMaster(DbCluster dbCluster) {
-        Dbs dbs = dbCluster.getDbs();
-        List<Db> dbList = dbs.getDbs();
-        for(Db db : dbList) {
-            if(db.isMaster()) {
-                return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue());
-            }
-        }
-        return null;
-    }
-    
-
     @Override
     public void initialize() {
         setInitialDelay(0);

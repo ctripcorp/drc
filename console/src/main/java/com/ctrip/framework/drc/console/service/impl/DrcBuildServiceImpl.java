@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.enums.TableEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcDoubleWriteService;
 import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -77,6 +78,8 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private DbClusterSourceProvider metaProviderV1;
+    @Autowired
+    private CacheMetaService cacheMetaService;
 
     @Override
     public String submitConfig(MetaProposalDto metaProposalDto) throws Exception {
@@ -268,7 +271,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
         Map<String, Object> res = new HashMap<>();
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("[[tag=preCheck]] preCheckMySqlConfig from mha:{},db not exist", mha);
             return res;
@@ -283,7 +286,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         res.put("autoIncrementStep", MySqlUtils.checkAutoIncrementStep(endpoint));
         res.put("autoIncrementOffset", MySqlUtils.checkAutoIncrementOffset(endpoint));
         res.put("binlogRowImage", MySqlUtils.checkBinlogRowImage(endpoint));
-        List<Endpoint> endpoints = metaProviderV2.getMasterEndpointsInAllAccounts(mha);
+        List<Endpoint> endpoints = cacheMetaService.getMasterEndpointsInAllAccounts(mha);
         if (CollectionUtils.isEmpty(endpoints) || endpoints.size() != 3) {
             logger.error("[[tag=preCheck]] preCHeckDrcAccounts from mha:{},db not exist",mha);
             res.put("drcAccounts","no db endpoint find");
@@ -297,7 +300,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlTables")
     public List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter) {
         List<TableCheckVo> tableVos = Lists.newArrayList();
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("[[tag=preCheck]] preCheckMySqlTables from mha:{},db not exist",mha);
             return tableVos;
@@ -308,7 +311,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/queryDbs")
     public List<String> queryDbsWithNameFilter(String mha, String nameFilter) {
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("queryDbsWithNameFilter from mha: {},db not exist", mha);
             return new ArrayList<>();
@@ -319,7 +322,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @Override
     @PossibleRemote(path = "/api/drc/v1/build/queryTables")
     public List<String> queryTablesWithNameFilter(String mha, String nameFilter) {
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("queryTablesWithNameFilter from mha: {},db not exist", mha);
             return new ArrayList<>();
@@ -345,7 +348,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/rowsFilter/commonColumns",responseType = StringSetApiResult.class)
     public Set<String> getCommonColumnInDataMedias(String mhaName, String namespace, String name) {
         logger.info("[[tag=commonColumns]] get columns {}\\.{} from {}",namespace,name, mhaName);
-        Endpoint mySqlEndpoint = metaProviderV2.getMasterEndpoint(mhaName);
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
         if (mySqlEndpoint != null) {
             AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." +  name);
             return MySqlUtils.getAllCommonColumns(mySqlEndpoint, aviatorRegexFilter);
@@ -727,12 +730,12 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             return "";
         }
 
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mhaTbl.getMhaName());
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaTbl.getMhaName());
         return MySqlUtils.getUnionExecutedGtid(endpoint);
     }
 
     public String getNativeGtid(String mhaName) {
-        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mhaName);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);
     }
 
