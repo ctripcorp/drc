@@ -30,32 +30,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/local/createTblStmts/query", excludeArguments = {"endpoint"})
-    public Map<String, String> getCreateTableStatements(String mha, String unionFilter, Endpoint endpoint) {
-        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(unionFilter);
-        return MySqlUtils.getDefaultCreateTblStmts(endpoint, aviatorRegexFilter);
-    }
-
-    @Override
-    @PossibleRemote(path = "/api/drc/v2/local/sql/integer/query", excludeArguments = {"endpoint"})
-    public Integer getAutoIncrement(String mha, String sql, int index, Endpoint endpoint) {
-        return MySqlUtils.getSqlResultInteger(endpoint, sql, index);
-    }
-
-    @Override
-    @PossibleRemote(path = "/api/drc/v2/mha/gtid/drcExecuted")
-    public String getDrcExecutedGtid(String mha) {
-        logger.info("[[tag=gtidQuery]] try to getDrcExecutedGtid from mha{}", mha);
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
-        if (endpoint == null) {
-            logger.warn("[[tag=gtidQuery]] getDrcExecutedGtid from mha{},machine not exist", mha);
-            return null;
-        } else {
-            return MySqlUtils.getUnionExecutedGtid(endpoint);
-        }
-    }
-
-    @Override
     @PossibleRemote(path = "/api/drc/v2/mha/gtid/executed")
     public String getMhaExecutedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getMhaExecutedGtid from mha{}", mha);
