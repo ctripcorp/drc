@@ -26,24 +26,24 @@
         </Form>
       </i-col>
       <i-col span="12">
-        <Form  :model="destMha"  :label-width="250" style="float: left; margin-top: 50px">
-          <FormItem label="目标集群名" prop="mhaName" style="width: 600px">
+        <Form  :model="dstMha"  :label-width="250" style="float: left; margin-top: 50px">
+          <FormItem label="目标集群名" prop="dstMhaName" style="width: 600px">
             <Row>
               <Col span="16">
-                <Input v-model="destMha.mhaName"  readonly placeholder="请输入源集群名"/>
+                <Input v-model="dstMha.mhaName"  readonly placeholder="请输入源集群名"/>
               </Col>
               <Col span="5">
-                <Button type="primary" @click="checkMySqlConfig(destMha)"  ghost style="margin-left: 10px">配置校验</Button>
+                <Button type="primary" @click="checkMySqlConfig(dstMha)"  ghost style="margin-left: 10px">配置校验</Button>
               </Col>
             </Row>
           </FormItem>
           <FormItem label="同步表" prop="ip">
             <Row>
               <Col span="16">
-                <Input v-model="destMha.nameFilter"  placeholder="支持正则，默认全部"/>
+                <Input v-model="dstMha.nameFilter"  placeholder="支持正则，默认全部"/>
               </Col>
               <Col span="5">
-                <Button  type="primary" @click="checkMySqlTables(destMha)" ghost style="margin-left: 10px">表校验</Button>
+                <Button  type="primary" @click="checkMySqlTables(dstMha)" ghost style="margin-left: 10px">表校验</Button>
               </Col>
             </Row>
           </FormItem>
@@ -117,21 +117,20 @@
 </template>
 <script>
 export default {
-  name: 'preCheck',
+  name: 'preCheckV2',
   props: {
-    oldClusterName: String,
-    newClusterName: String,
-    oldDrcZone: String,
-    newDrcZone: String
+    srcMhaName: String,
+    dstMhaName: String,
+    env: String
   },
   data () {
     return {
       srcMha: {
-        mhaName: this.oldClusterName,
+        mhaName: this.srcMhaName,
         nameFilter: ''
       },
-      destMha: {
-        mhaName: this.newClusterName,
+      dstMha: {
+        mhaName: this.dstMhaName,
         nameFilter: ''
       },
       configCheck: {

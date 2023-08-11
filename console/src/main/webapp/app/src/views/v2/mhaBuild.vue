@@ -6,18 +6,18 @@
     </Alert>
     <Form ref="build" :model="build" :rules="ruleBuild" :label-width="250" style="margin-top: 50px">
       <FormItem label="源Mha集群名" prop="srcMhaName" style="width: 600px">
-        <Input v-model="build.srcMhaName" @input="changeOldMha" placeholder="请输入源集群名" />
+        <Input v-model="build.srcMhaName" @input="changeSrcMha" placeholder="请输入源集群名" />
       </FormItem>
       <FormItem label="源集群机房区域" prop="srcDc">
-        <Select v-model="build.srcDc" style="width: 200px"  placeholder="选择机房区域" @input="changeOldZone">
+        <Select v-model="build.srcDc" style="width: 200px"  placeholder="选择机房区域" @input="changeSrcDc">
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
       <FormItem label="新Mha集群名" prop="dstMhaName" style="width: 600px">
-        <Input v-model="build.dstMhaName" @input="changeNewMha" placeholder="请输入新集群名" />
+        <Input v-model="build.dstMhaName" @input="changeDstMha" placeholder="请输入新集群名" />
       </FormItem>
       <FormItem label="新集群机房区域" prop="dstDc">
-        <Select v-model="build.dstDc" style="width: 200px"  placeholder="选择机房区域" @input="changeNewZone">
+        <Select v-model="build.dstDc" style="width: 200px"  placeholder="选择机房区域" @input="changeDstDc">
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
@@ -112,16 +112,16 @@ export default {
     handleReset (name) {
       this.$refs[name].resetFields()
     },
-    changeOldMha () {
+    changeSrcMha () {
       this.$emit('srcMhaNameChanged', this.build.srcMhaName)
     },
-    changeNewMha () {
+    changeDstMha () {
       this.$emit('dstMhaNameChanged', this.build.dstMhaName)
     },
-    changeOldZone () {
+    changeSrcDc () {
       this.$emit('srcDcChanged', this.build.srcDc)
     },
-    changeNewZone () {
+    changeDstDc () {
       this.$emit('dstDcChanged', this.build.dstDc)
     },
     changeBu () {

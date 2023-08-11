@@ -10,7 +10,7 @@
           <Input v-model="this.tableName" style="width:200px" disabled/>
         </FormItem>
         <FormItem label="模式">
-          <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
+          <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式"  @input="selectMode">
             <Option v-for="item in modes" :value="item.mode" :key="item.mode">{{ item.name }}</Option>
           </Select>
         </FormItem>
@@ -75,7 +75,6 @@ export default {
     destDc: String,
     dbName: String,
     tableName: String,
-    test: String,
     dbReplicationId: Number,
     dbReplicationIds: []
   },
@@ -151,6 +150,26 @@ export default {
     }
   },
   methods: {
+    test () {
+      alert(this.rowsFilterConfig.mode)
+    },
+    selectMode () {
+      if (this.rowsFilterConfig.mode === 1) {
+        this.rowsFilterConfig = {
+          mode: 1,
+          drcStrategyId: 0,
+          routeStrategyId: 0,
+          udlColumns: [],
+          columns: [],
+          context: '',
+          illegalArgument: false,
+          fetchMode: 0
+        }
+        this.configInTripUid = {
+          regionsChosen: []
+        }
+      }
+    },
     submitConfig () {
       // alert('ok')
       console.log(this.rowsFilterConfig)
@@ -193,16 +212,45 @@ export default {
           fetchMode: this.rowsFilterConfig.fetchMode,
           context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
         }
-        alert('提交')
         this.axios.post('/api/drc/v2/config/rowsFilter', requestParam).then(response => {
           if (response.data.status === 1) {
             window.alert('提交失败!')
           } else {
             window.alert('提交成功!')
-            this.getRowsFilterConfigs()
+            // this.getConfig()
           }
         })
       }
+    },
+    getConfig () {
+      console.log(this.dbReplicationId)
+      this.axios.get('/api/drc/v2/config/rowsFilter?dbReplicationId=' + this.dbReplicationId)
+        .then(response => {
+          if (response.data.status === 1) {
+            alert('查询行过滤配置失败!')
+          } else {
+            const res = response.data.data
+            if (res == null) {
+              // empty config
+            } else {
+              this.rowsFilterConfig.mode = res.mode
+              this.rowsFilterConfig.columns = res.columns
+              this.rowsFilterConfig.udlColumns = res.udlColumns
+              this.rowsFilterConfig.drcStrategyId = res.drcStrategyId
+              this.rowsFilterConfig.routeStrategyId = res.routeStrategyId
+              this.rowsFilterConfig.context = res.context
+              this.rowsFilterConfig.illegalArgument = res.illegalArgument
+              this.rowsFilterConfig.fetchMode = res.fetchMode
+              if (res.mode === 1) {
+                this.configInTripUid.regionsChosen = res.context.split(',')
+              } else {
+                this.configInTripUid = {
+                  regionsChosen: []
+                }
+              }
+            }
+          }
+        })
     },
     getCommonColumns () {
       this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
@@ -231,6 +279,7 @@ export default {
     }
   },
   created () {
+    this.getConfig()
     this.getCommonColumns()
   }
 

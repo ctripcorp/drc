@@ -268,7 +268,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
     @PossibleRemote(path = "/api/drc/v1/build/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
         Map<String, Object> res = new HashMap<>();
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.error("[[tag=preCheck]] preCheckMySqlConfig from mha:{},db not exist", mha);
             return res;
@@ -283,7 +283,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         res.put("autoIncrementStep", MySqlUtils.checkAutoIncrementStep(endpoint));
         res.put("autoIncrementOffset", MySqlUtils.checkAutoIncrementOffset(endpoint));
         res.put("binlogRowImage", MySqlUtils.checkBinlogRowImage(endpoint));
-        List<Endpoint> endpoints = dbClusterSourceProvider.getMasterEndpointsInAllAccounts(mha);
+        List<Endpoint> endpoints = metaProviderV2.getMasterEndpointsInAllAccounts(mha);
         if (CollectionUtils.isEmpty(endpoints) || endpoints.size() != 3) {
             logger.error("[[tag=preCheck]] preCHeckDrcAccounts from mha:{},db not exist",mha);
             res.put("drcAccounts","no db endpoint find");
@@ -727,12 +727,12 @@ public class DrcBuildServiceImpl implements DrcBuildService {
             return "";
         }
 
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaTbl.getMhaName());
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mhaTbl.getMhaName());
         return MySqlUtils.getUnionExecutedGtid(endpoint);
     }
 
     public String getNativeGtid(String mhaName) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        Endpoint endpoint = metaProviderV2.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);
     }
 

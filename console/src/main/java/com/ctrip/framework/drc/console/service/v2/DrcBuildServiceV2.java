@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
-import com.ctrip.framework.drc.console.vo.v2.DrcMhaApplierView;
+import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 
 import java.util.List;
 
@@ -30,13 +30,13 @@ public interface DrcBuildServiceV2 {
 
     void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception;
 
+    RowsFilterConfigView getRowsConfigView(long dbReplicationId) throws Exception;
+
     void buildRowsFilter(RowsFilterCreateParam param) throws Exception;
 
     void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception;
 
     DrcConfigView getDrcConfigView(String srcMhaName, String dstMhaName) throws Exception;
-
-    DrcMhaApplierView getDrcMhaApplierView(String srcMhaName, String dstMhaName) throws Exception;
 
     List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception;
 
