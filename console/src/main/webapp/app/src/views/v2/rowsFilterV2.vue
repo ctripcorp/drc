@@ -10,7 +10,8 @@
           <Input v-model="this.tableName" style="width:200px" disabled/>
         </FormItem>
         <FormItem label="模式">
-          <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式"  @input="selectMode">
+<!--          <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式"  @input="selectMode">-->
+          <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式" >
             <Option v-for="item in modes" :value="item.mode" :key="item.mode">{{ item.name }}</Option>
           </Select>
         </FormItem>
@@ -25,23 +26,23 @@
         </FormItem>
         <Divider v-if="rowsFilterConfig.mode === 1">UDL配置</Divider>
         <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 1">
-          <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="不选默认则无UDL配置">
+          <Select   v-model="rowsFilterConfig.udlColumns"  filterable allow-create  multiple style="width: 200px" placeholder="不选默认则无UDL配置">
             <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
           </Select>
         </FormItem>
         <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.udlColumns.length !== 0">
-          <Select   v-model="rowsFilterConfig.drcStrategyId"  filterable allow-create @on-create="handleCreateDrcStrategyId"  style="width: 200px" placeholder="请选择ucs策略id">
+          <Select   v-model="rowsFilterConfig.drcStrategyId"  filterable allow-create  style="width: 200px" placeholder="请选择ucs策略id">
             <Option v-for="item in drcStrategyIdsForChose" :value="item" :key="item">{{ item }}</Option>
           </Select>
         </FormItem>
         <Divider v-if="rowsFilterConfig.mode === 1">UID配置</Divider>
         <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 1">
-          <Select v-model="rowsFilterConfig.columns" filterable allow-create @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关字段">
+          <Select v-model="rowsFilterConfig.columns" filterable allow-create  multiple style="width: 200px" placeholder="选择相关字段">
             <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
           </Select>
         </FormItem>
         <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 1">
-          <Select  v-model="rowsFilterConfig.columns"   filterable allow-create @on-create="handleCreateUIDColumn" multiple style="width: 200px" placeholder="不选默认则无UID配置">
+          <Select  v-model="rowsFilterConfig.columns"   filterable allow-create  multiple style="width: 200px" placeholder="不选默认则无UID配置">
             <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
           </Select>
         </FormItem>
@@ -76,7 +77,8 @@ export default {
     dbName: String,
     tableName: String,
     dbReplicationId: Number,
-    dbReplicationIds: []
+    dbReplicationIds: [],
+    update: Number
   },
   data () {
     return {
@@ -90,7 +92,6 @@ export default {
         illegalArgument: false,
         fetchMode: 0
       },
-      update: true,
       configInTripUid: {
         regionsChosen: []
       },
@@ -142,18 +143,7 @@ export default {
       ]
     }
   },
-  computed: {
-    dataWithPage () {
-      const data = this.tableData
-      const start = this.current * this.size - this.size
-      const end = start + this.size
-      return [...data].slice(start, end)
-    }
-  },
   methods: {
-    test () {
-      alert(this.rowsFilterConfig.mode)
-    },
     selectMode () {
       if (this.rowsFilterConfig.mode === 1) {
         this.rowsFilterConfig = {
@@ -220,7 +210,7 @@ export default {
             window.alert('提交失败!')
           } else {
             window.alert('提交成功!')
-            // this.getConfig()
+            this.getConfig()
           }
         })
       }
@@ -236,14 +226,9 @@ export default {
             if (res == null) {
               // empty config
             } else {
-              this.rowsFilterConfig.mode = res.mode
-              this.rowsFilterConfig.columns = res.columns
-              this.rowsFilterConfig.udlColumns = res.udlColumns
-              this.rowsFilterConfig.drcStrategyId = res.drcStrategyId
-              this.rowsFilterConfig.routeStrategyId = res.routeStrategyId
+              // rowsFilterConfig.context和onfigInTripUid.regionsChosen要放在前面
+              // 不然会失效
               this.rowsFilterConfig.context = res.context
-              this.rowsFilterConfig.illegalArgument = res.illegalArgument
-              this.rowsFilterConfig.fetchMode = res.fetchMode
               if (res.mode === 1) {
                 this.configInTripUid.regionsChosen = res.context.split(',')
               } else {
@@ -251,6 +236,23 @@ export default {
                   regionsChosen: []
                 }
               }
+              this.rowsFilterConfig.mode = res.mode
+              this.rowsFilterConfig.columns = res.columns
+              if (res.udlColumns.length !== 0) {
+                this.rowsFilterConfig.udlColumns = res.udlColumns
+              }
+              this.rowsFilterConfig.drcStrategyId = res.drcStrategyId === 0 ? null : res.drcStrategyId
+              this.rowsFilterConfig.routeStrategyId = res.routeStrategyId
+              this.rowsFilterConfig.illegalArgument = res.illegalArgument
+              this.rowsFilterConfig.fetchMode = res.fetchMode
+              // if (res.mode === 1) {
+              //   alert('ok')
+              //   this.configInTripUid.regionsChosen = res.context.split(',')
+              // } else {
+              //   this.configInTripUid = {
+              //     regionsChosen: []
+              //   }
+              // }
             }
           }
         })
@@ -262,7 +264,7 @@ export default {
         '&name=' + this.tableName)
         .then(response => {
           if (response.data.status === 1) {
-            alert('查询公共列名失败，请手动添加！' + response.data.data)
+            alert('查询公共列名失败，请手动添加！')
             this.columnsForChose = []
           } else {
             console.log(response.data.data)

@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -292,9 +293,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
         RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
         if (rowsFilterTblV2.getMode() == RowsFilterModeEnum.TRIP_UDL.getCode()) {
-            rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
+            if (firstParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
+            } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+                rowsFilterConfigView.setColumns(firstParameters.getColumns());
+            }
             if (parametersList.size() > 1) {
-                rowsFilterConfigView.setColumns(parametersList.get(1).getColumns());
+                RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
+                if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                    rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
+                } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+                    rowsFilterConfigView.setColumns(secondParameters.getColumns());
+                }
             }
         } else {
             rowsFilterConfigView.setColumns(firstParameters.getColumns());
