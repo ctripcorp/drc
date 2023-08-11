@@ -38,4 +38,14 @@ public class MhaControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @GetMapping("uuid")
+    public ApiResult<String> getMhaMysqlUuid(@RequestParam String mhaName, @RequestParam String ip,
+                                             @RequestParam int port, @RequestParam boolean master) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMysqlUuid(mhaName, ip, port, master));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }

@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
@@ -139,5 +140,15 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndType(dcIds, type);
         List<String> ips = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
         return ips;
+    }
+
+    @Override
+    public String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(String.format("mha: %s not exist", mhaName));
+        }
+        String uuid = MySqlUtils.getUuid(ip, port, mhaTblV2.getReadUser(), mhaTblV2.getReadPassword(), master);
+        return uuid;
     }
 }
