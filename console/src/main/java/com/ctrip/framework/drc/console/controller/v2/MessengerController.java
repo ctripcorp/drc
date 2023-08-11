@@ -2,8 +2,10 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
@@ -68,7 +70,6 @@ public class MessengerController {
         }
     }
 
-    // todo by yongnian: 2023/8/11 bus查表？
     @GetMapping("/qmq/bus")
     @SuppressWarnings("unchecked")
     public ApiResult<List<String>> getBuListFromQmq() {
@@ -77,6 +78,49 @@ public class MessengerController {
         } catch (Exception e) {
             logger.error("[[tag=qmqInit]]error in getBusFromQmq", e);
             return ApiResult.getFailInstance(null, "error in getBusFromQmq");
+        }
+    }
+
+    // todo by yongnian: 2023/8/11 test
+    @GetMapping("checkMqConfig")
+    @SuppressWarnings("unchecked")
+    public ApiResult<MqConfigCheckVo> checkMqConfig(MqConfigDto dto) {
+        try {
+            logger.info("checkMqConfig :{}", dto);
+
+            dto.validCheckRequest();
+
+            MqConfigCheckVo mqConfigCheckVo = messengerService.checkMqConfig(dto);
+            return ApiResult.getSuccessInstance(mqConfigCheckVo);
+        } catch (Throwable e) {
+            logger.error("checkMqConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("insertConfig")
+    public ApiResult<Boolean> insertConfig(@RequestBody MqConfigDto dto) {
+        try {
+            logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
+
+            boolean res = messengerService.processAddMqConfig(dto);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("submitConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("updateConfig")
+    public ApiResult<Boolean> updateConfig(@RequestBody MqConfigDto dto) {
+        try {
+            logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
+
+            boolean res = messengerService.processUpdateMqConfig(dto);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("updateConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

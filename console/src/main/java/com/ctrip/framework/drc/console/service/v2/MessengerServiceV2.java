@@ -1,6 +1,8 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
+import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.core.entity.Messenger;
 
@@ -23,4 +25,9 @@ public interface MessengerServiceV2 {
 
     List<MqConfigVo> queryMhaMessengerConfigs(String mhaName);
 
+    MqConfigCheckVo checkMqConfig(MqConfigDto dto);
+
+    boolean processAddMqConfig(MqConfigDto dto);
+
+    boolean processUpdateMqConfig(MqConfigDto dto);
 }

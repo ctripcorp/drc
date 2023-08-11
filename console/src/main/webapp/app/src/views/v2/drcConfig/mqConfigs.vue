@@ -531,6 +531,46 @@ export default {
           }
         })
     },
+    doSubmitAfterCheck: function (dto) {
+      this.axios.post('/api/drc/v1/messenger/mqConfig', dto).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.error('提交失败: ' + response.data.message)
+          return
+        }
+        this.$Message.success('提交成功: ' + response.data.message)
+        this.display.mqConfigModal = false
+        this.getMqConfigs()
+      })
+    },
+    checkAndSubmit: function (dto) {
+      // check mqConfig before sumbit
+      this.submitConfigDataLoading = true
+      this.axios.get('/api/drc/v2/messenger/checkMqConfig', {
+        params: dto
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.error('配置校验失败: ' + response.data.message)
+          return
+        }
+        const res = response.data.data
+        if (!res.allowSubmit) {
+          if (res.tag != null) {
+            this.mqConfig.tag = res.tag
+          }
+          this.tagInfo.conflictVos = res.conflictTables
+          this.tagInfo.inputDisplay = true
+          this.tagInfo.modal = true
+          return
+        }
+        this.$Message.success('校验成功！')
+        // submit
+        this.doSubmitAfterCheck(dto)
+      }).catch(message => {
+        this.$Message.error('配置校验异常: ' + message)
+      }).finally(() => {
+        this.submitConfigDataLoading = false
+      })
+    },
     submitConfig () {
       // preCheckInput
       if (this.display.showOnly) {
@@ -570,7 +610,6 @@ export default {
       }
       const dto = {
         id: this.mqConfig.id,
-
         bu: this.topic.bu,
         mqType: this.mqConfig.mqType,
         table: this.mqConfig.table,
@@ -582,42 +621,12 @@ export default {
         orderKey: this.mqConfig.orderKey === '' ? null : this.mqConfig.orderKey,
         delayTime: this.mqConfig.delayTime === null ? 0 : this.mqConfig.delayTime,
         processor: this.mqConfig.processor === '' ? null : this.processor,
-
         messengerGroupId: this.drc.messengerGroupId,
         mhaName: this.drc.mhaName,
-
         tag: this.mqConfig.tag === '' ? null : this.mqConfig.tag
       }
       this.tagInfo.conflictVos = []
-      // check mqConfig before sumbit
-      this.axios.post('/api/drc/v1/messenger/mqConfig/check', dto)
-        .then(response => {
-          if (response.data.status === 1) {
-            window.alert('mqConfig 配置校验失败!   ' + response.data.message)
-          } else {
-            const res = response.data.data
-            if (res.allowSubmit) {
-              // submit
-              this.axios.post('/api/drc/v1/messenger/mqConfig', dto)
-                .then(response => {
-                  if (response.data.status === 1) {
-                    window.alert('mqConfig 提交失败!   ' + response.data.message)
-                  } else {
-                    window.alert('提交成功!' + response.data.message)
-                    this.display.mqConfigModal = false
-                    this.getMqConfigs()
-                  }
-                })
-            } else {
-              if (res.tag != null) {
-                this.mqConfig.tag = res.tag
-              }
-              this.tagInfo.conflictVos = res.conflictTables
-              this.tagInfo.inputDisplay = true
-              this.tagInfo.modal = true
-            }
-          }
-        })
+      this.checkAndSubmit(dto)
     },
     getMqConfigs () {
       this.dataLoading = true

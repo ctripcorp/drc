@@ -12,13 +12,18 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
+import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -28,6 +33,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
@@ -42,6 +48,8 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARACTER_DOT_REGEX;
 
 /**
  * Created by dengquanliang
@@ -185,6 +193,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         QmqBuList response = HttpUtils.post(qmqBuListUrl, null, QmqBuList.class);
         return response.getData();
     }
+
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void deleteDbReplicationForMq(String mhaName, List<Long> dbReplicationIds) {
@@ -271,6 +280,96 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             messengers.add(messenger);
         }
         return messengers;
+    }
+
+    @Override
+    public MqConfigCheckVo checkMqConfig(MqConfigDto dto) {
+        String mhaName = dto.getMhaName();
+        String table = dto.getTable();
+
+        // query requested requestedTables
+        List<MySqlUtils.TableSchemaName> requestedTables = this.queryMatchTables(table, mhaName);
+
+        // query exist messenger replication
+        try {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
+            if (mhaTblV2 == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "mha not found: " + mhaName);
+            }
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(mhaTblV2.getId());
+            List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+            Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+
+            List<DbReplicationTbl> messengerDbReplications = dbReplicationTblDao.queryBySrcMappingIds(mhaDbMappingIds, ReplicationTypeEnum.DB_TO_MQ.getType());
+
+            List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+            List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
+            Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+
+
+            // if update request, remove itself before check conflicts
+            boolean updateRequest = dto.getDbReplicationId() != null;
+            if (updateRequest) {
+                boolean anyRemove = messengerDbReplications.removeIf(e -> e.getId().equals(dto.getDbReplicationId()));
+                if (!anyRemove) {
+                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE);
+                }
+            }
+
+            // one table only send to one topic
+            List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
+            for (DbReplicationTbl replicationTbl : messengerDbReplications) {
+                Long dbId = mhaDbMappingMap.get(replicationTbl.getSrcMhaDbMappingId());
+                boolean dbNotExist = dbId == null || !dbTblMap.containsKey(dbId);
+                if (dbNotExist) {
+                    continue;
+                }
+                String dbName = dbTblMap.get(dbId);
+                AviatorRegexFilter filter = new AviatorRegexFilter(dbName + "\\." + replicationTbl.getSrcLogicTableName());
+                for (MySqlUtils.TableSchemaName requestTable : requestedTables) {
+                    String directSchemaTableName = requestTable.getDirectSchemaTableName();
+                    boolean sameTable = filter.filter(directSchemaTableName);
+                    if (sameTable) {
+                        MqConfigConflictTable vo = new MqConfigConflictTable();
+                        vo.setTable(directSchemaTableName);
+                        vo.setTopic(replicationTbl.getDstLogicTableName());
+                        conflictTables.add(vo);
+                    }
+                }
+            }
+            return MqConfigCheckVo.from(conflictTables);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+
+    }
+
+
+    @Autowired
+    private DrcBuildService drcBuildService;
+
+    // todo by yongnian: 2023/8/11 wait dql to replace old method
+    private List<MySqlUtils.TableSchemaName> queryMatchTables(String table, String mhaName) {
+        String namespace = table.split(ESCAPE_CHARACTER_DOT_REGEX)[0];
+        String name = table.split(ESCAPE_CHARACTER_DOT_REGEX)[1];
+
+        return drcBuildService.getMatchTable(namespace, name, mhaName, 0);
+    }
+
+    /**
+     * @see MessengerServiceImpl#processAddMqConfig(com.ctrip.framework.drc.console.dto.MqConfigDto)
+     * @param dto
+     * @return
+     */
+    @Override
+    public boolean processAddMqConfig(MqConfigDto dto) {
+        //
+        return false;
+    }
+
+    @Override
+    public boolean processUpdateMqConfig(MqConfigDto dto) {
+        return false;
     }
 
     private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
