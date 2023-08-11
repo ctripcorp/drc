@@ -271,7 +271,7 @@ export default {
           ])
         }
       })
-      this.axios.get('/api/drc/v1/build/preCheckMySqlConfig?mha=' + mha.mhaName)
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlConfig?mha=' + mha.mhaName)
         .then(response => {
           console.log(response)
           const result = response.data.data
@@ -308,7 +308,7 @@ export default {
       setTimeout(() => {
         this.$Spin.hide()
       }, 80000)
-      this.axios.get('/api/drc/v1/build/preCheckMySqlTables?mha=' + mha.mhaName +
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables?mha=' + mha.mhaName +
         '&' + 'nameFilter=' + mha.nameFilter)
         .then(response => {
           this.tableData = response.data.data

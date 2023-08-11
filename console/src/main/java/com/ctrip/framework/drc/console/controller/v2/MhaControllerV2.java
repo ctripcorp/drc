@@ -1,12 +1,13 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
+import com.ctrip.framework.drc.console.dto.MhaMachineDto;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/drc/v2/mha/")
 public class MhaControllerV2 {
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private MhaServiceV2 mhaServiceV2;
@@ -46,6 +49,19 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMysqlUuid(mhaName, ip, port, master));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("machineInfo")
+    public ApiResult recordMachineInfo(@RequestBody MhaMachineDto dto) {
+        logger.info("record machineInfo : {}", dto);
+        try {
+            MhaInstanceGroupDto mhaInstanceGroupDto = MhaMachineDto.transferToMhaInstanceGroupDto(dto);
+            logger.info("record mha instance: {}", dto);
+            Boolean res = mhaServiceV2.recordMhaInstances(mhaInstanceGroupDto);
+            return ApiResult.getSuccessInstance(String.format("record mha machine %s result: %s", dto, res));
+        } catch (Throwable t) {
+            return ApiResult.getFailInstance(String.format("Fail record mha machine %s for %s", dto, t));
         }
     }
 }

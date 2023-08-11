@@ -197,10 +197,7 @@ export default {
     },
     querySrcMhaUuid () {
       const that = this
-      console.log('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.srcMha.ip + '/' + this.srcMha.port + '/' + this.srcMha.master)
+      that.axios.get('/api/drc/v2/mha/uuid?mhaName=' + this.srcMha.mhaName + '&ip=' + this.srcMha.ip + '&port=' + this.srcMha.port + '&master=' + this.srcMha.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -213,8 +210,7 @@ export default {
     },
     queryDstMhaUuid () {
       const that = this
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.srcMha.mhaName +
-        ',' + this.dstMha.mhaName + '/' + this.dstMha.ip + '/' + this.dstMha.port + '/' + this.srcMha.master)
+      that.axios.get('/api/drc/v2/mha/uuid?mhaName=' + this.dstMha.mhaName + '&ip=' + this.dstMha.ip + '&port=' + this.dstMha.port + '&master=' + this.dstMha.master)
         .then(response => {
           this.hasTest2 = true
           if (response.data.status === 0) {
@@ -236,7 +232,7 @@ export default {
     },
     submitsrcMha () {
       const that = this
-      that.axios.post('/api/drc/v1/access/mha/machineInfo', {
+      that.axios.post('/api/drc/v2/mha/machineInfo', {
         mhaName: this.srcMha.mhaName,
         master: this.srcMha.master,
         mySQLInstance: {
@@ -269,7 +265,7 @@ export default {
     },
     submitdstMha () {
       const that = this
-      that.axios.post('/api/drc/v1/access/mha/machineInfo', {
+      that.axios.post('/api/drc/v2/mha/machineInfo', {
         mhaName: this.dstMha.mhaName,
         master: this.dstMha.master,
         mySQLInstance: {

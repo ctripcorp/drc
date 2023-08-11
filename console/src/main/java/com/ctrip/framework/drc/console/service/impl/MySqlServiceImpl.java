@@ -2,9 +2,7 @@ package com.ctrip.framework.drc.console.service.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.service.MySqlService;
-import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -23,8 +21,9 @@ import java.util.Map;
  */
 @Service
 public class MySqlServiceImpl implements MySqlService {
+
     @Autowired
-    private CacheMetaService cacheMetaService;
+    private DbClusterSourceProvider dbClusterSourceProvider;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -45,7 +44,7 @@ public class MySqlServiceImpl implements MySqlService {
     @PossibleRemote(path="/api/drc/v1/mha/gtid/drcExecuted")
     public String getDrcExecutedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getDrcExecutedGtid from mha{}",mha);
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.warn("[[tag=gtidQuery]] getDrcExecutedGtid from mha{},machine not exist",mha);
             return null;
@@ -58,7 +57,7 @@ public class MySqlServiceImpl implements MySqlService {
     @PossibleRemote(path="/api/drc/v1/mha/gtid/executed")
     public String getMhaExecutedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getMhaExecutedGtid from mha{}",mha);
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.warn("[[tag=gtidQuery]] getMhaExecutedGtid from mha {},machine not exist",mha);
             return null;
@@ -73,7 +72,7 @@ public class MySqlServiceImpl implements MySqlService {
     @PossibleRemote(path="/api/drc/v1/mha/gtid/purged")
     public String getMhaPurgedGtid(String mha) {
         logger.info("[[tag=gtidQuery]] try to getMhaPurgedGtid from mha{}",mha);
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.warn("[[tag=gtidQuery]] getMhaPurgedGtid from mha {},machine not exist",mha);
             return null;

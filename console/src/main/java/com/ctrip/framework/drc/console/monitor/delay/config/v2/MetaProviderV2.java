@@ -1,20 +1,16 @@
 package com.ctrip.framework.drc.console.monitor.delay.config.v2;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
-import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
-import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.xpipe.api.endpoint.Endpoint;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.entity.Dc;
+import com.ctrip.framework.drc.core.entity.Drc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.PriorityOrdered;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;

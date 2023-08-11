@@ -1,16 +1,15 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.*;
-import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -55,8 +54,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
     @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
-    @Autowired
     private MhaTblV2Dao mhaTblDao;
     @Autowired
     private MhaReplicationTblDao mhaReplicationTblDao;
@@ -87,7 +84,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
-    private DbClusterSourceProvider dbClusterSourceProvider;
+    private CacheMetaService cacheMetaService;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
@@ -719,7 +716,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     public String getNativeGtid(String mhaName) {
-        Endpoint endpoint = dbClusterSourceProvider.getMasterEndpoint(mhaName);
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
         return MySqlUtils.getExecutedGtid(endpoint);
     }
 
