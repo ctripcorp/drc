@@ -7,18 +7,17 @@
           step: 3,
           srcMhaName: this.initInfo.srcMhaName,
           dstMhaName: this.initInfo.dstMhaName,
+          srcDc: this.initInfo.srcDc,
+          dstDc: this.initInfo.dstDc,
           order: this.initInfo.order
         }
-      }">DRC配置</BreadcrumbItem>
+      }">DRC配置V2</BreadcrumbItem>
       <BreadcrumbItem >同步表</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
         <Col span="20">
           <span style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
-        </Col>
-        <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="showPropertiesJson">总览</Button>
         </Col>
         <Col span="2">
           <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加</Button>
@@ -166,19 +165,6 @@ export default {
           this.getDbReplications()
         }
       })
-    },
-    showPropertiesJson () {
-      console.log('showPropertiesJson')
-      console.log('/api/drc/v1/dataMedia/properties?applierGroupId=' + this.initInfo.applierGroupId)
-      this.axios.get('/api/drc/v1/dataMedia/properties?applierGroupId=' + this.initInfo.applierGroupId)
-        .then(response => {
-          if (response.data.status === 1) {
-            window.alert('查询配置失败!')
-          } else {
-            this.display.showPropertiesJson = true
-            this.propertiesJson = response.data.data
-          }
-        })
     }
   },
   created () {

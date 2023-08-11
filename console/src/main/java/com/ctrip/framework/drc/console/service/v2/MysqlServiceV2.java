@@ -5,6 +5,7 @@ import com.ctrip.xpipe.api.endpoint.Endpoint;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -37,4 +38,7 @@ public interface MysqlServiceV2 {
 
     // route By mha
     List<String> queryTablesWithNameFilter(String mha, String nameFilter);
+
+    // route By mhaName
+    Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
 }

@@ -121,6 +121,8 @@ export default {
   props: {
     srcMhaName: String,
     dstMhaName: String,
+    srcDc: String,
+    dstDc: String,
     env: String
   },
   data () {

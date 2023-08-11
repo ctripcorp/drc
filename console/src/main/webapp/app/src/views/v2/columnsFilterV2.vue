@@ -94,15 +94,6 @@ export default {
       })
     },
     deleteConfig () {
-      this.axios.delete('/api/drc/v1/dataMedia/columnsFilterConfig/' + this.columnsFilterConfig.id).then(response => {
-        if (response.data.status === 1) {
-          alert('删除失败!' + response.data.data)
-        } else {
-          this.getConfig()
-          this.getCommonColumns()
-          alert('删除成功！')
-        }
-      })
     },
     getConfig () {
       console.log(this.dbReplicationId)
@@ -123,7 +114,7 @@ export default {
         })
     },
     getCommonColumns () {
-      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
+      this.axios.get('/api/drc/v2/mysql/commonColumns?' +
         '&mhaName=' + this.srcMhaName +
         '&namespace=' + this.dbName +
         '&name=' + this.tableName)

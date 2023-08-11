@@ -48,6 +48,13 @@ export default {
     drcBuildV2,
     complete
   },
+  props: {
+    srcMhaName: String,
+    dstMhaName: String,
+    srcDc: String,
+    dstDc: String,
+    env: String
+  },
   data () {
     return {
       current: 0,
@@ -103,10 +110,14 @@ export default {
       console.log('order is null, do nothing')
       this.clusterPair.srcMhaName = this.$route.query.srcMhaName
       this.clusterPair.dstMhaName = this.$route.query.dstMhaName
+      this.clusterPair.srcDc = this.$route.query.srcDc
+      this.clusterPair.dstDc = this.$route.query.dstDc
     } else {
       if (order) {
         this.clusterPair.srcMhaName = this.$route.query.srcMhaName
         this.clusterPair.dstMhaName = this.$route.query.dstMhaName
+        this.clusterPair.srcDc = this.$route.query.srcDc
+        this.clusterPair.dstDc = this.$route.query.dstDc
       } else {
         this.clusterPair.srcMhaName = this.$route.query.dstMhaName
         this.clusterPair.dstMhaName = this.$route.query.srcMhaName

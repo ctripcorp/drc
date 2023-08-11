@@ -16,7 +16,7 @@
           <FormItem label="Port" prop="port">
             <Input v-model="srcMha.port"  placeholder="请输入录入DB端口"/>
           </FormItem >
-          <FormItem label="DB机房" prop="idc">
+          <FormItem label="DB机房" prop="srcDc">
             <Select v-model="srcMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>
@@ -51,7 +51,7 @@
           <FormItem label="Port" prop="port">
             <Input v-model="dstMha.port"  number placeholder="请输入录入DB端口"/>
           </FormItem >
-          <FormItem label="DB机房" prop="idc">
+          <FormItem label="DB机房" prop="dstDc">
             <Select v-model="dstMha.idc" style="width: 200px"  placeholder="选择db机房区域" >
               <Option boolean v-for="item in selectOption.drcZoneList" :value="item.value" :key="item.label">{{ item.label }}</Option>
             </Select>

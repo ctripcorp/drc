@@ -3,6 +3,8 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.google.common.collect.Lists;
+import com.googlecode.aviator.exception.CompileExpressionErrorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by dengquanliang
@@ -72,6 +75,23 @@ public class MysqlController {
         } catch (Exception e) {
             logger.warn("[[tag=queryTables,mha={}]]  in queryTablesWithNameFilter", mha, e);
             return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("commonColumns")
+    public ApiResult getCommonColumn (@RequestParam String mhaName, @RequestParam String namespace, @RequestParam String name) {
+        try {
+            Set<String> commonColumns = mysqlServiceV2.getCommonColumnIn(mhaName, namespace, name);
+            return ApiResult.getSuccessInstance(Lists.newArrayList(commonColumns));
+        } catch (Exception e) {
+            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name, mhaName,e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else if (e instanceof IllegalArgumentException) {
+                return ApiResult.getFailInstance("no machine find for " + mhaName);
+            } else {
+                return ApiResult.getFailInstance("other error");
+            }
         }
     }
 }

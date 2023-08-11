@@ -7,15 +7,17 @@
           step: 3,
           srcMhaName: this.commonInfo.srcMhaName,
           dstMhaName: this.commonInfo.dstMhaName,
+          srcDc: this.commonInfo.srcDc,
+          dstDc: this.commonInfo.dstDc,
           order: this.commonInfo.order
         }
-      }">DRC配置</BreadcrumbItem>
+      }">DRC配置V2</BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/dbTables',query :{
-          srcMhaName: commonInfo.srcMhaName,
-          dstMhaName: commonInfo.dstMhaName,
-          srcDc: commonInfo.srcDc,
-          dstDc: commonInfo.dstDc
+          srcMhaName: this.commonInfo.srcMhaName,
+          dstMhaName: this.commonInfo.dstMhaName,
+          srcDc: this.commonInfo.srcDc,
+          dstDc: this.commonInfo.dstDc
         }
       }">同步表</BreadcrumbItem>
       <BreadcrumbItem >配置流程</BreadcrumbItem>
@@ -242,7 +244,7 @@ export default {
       setTimeout(() => {
         this.$Spin.hide()
       }, 80000)
-      this.axios.get('/api/drc/v1/build/preCheckMySqlTables?mha=' + mha +
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables?mha=' + mha +
         '&' + 'nameFilter=' + nameFilter)
         .then(response => {
           this.commonInfo.tableData = response.data.data
