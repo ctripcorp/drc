@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,7 +131,22 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         } else {
             throw new IllegalArgumentException("no machine find for" + mhaName);
         }
-
     }
 
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/columnCheck", responseType = StringSetApiResult.class)
+    public Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName) {
+        Set<String> tables = Sets.newHashSet();
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(namespace + "\\." + name);
+        List<MySqlUtils.TableSchemaName> tablesAfterRegexFilter = MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, aviatorRegexFilter);
+        Map<String, Set<String>> allColumnsByTable = MySqlUtils.getAllColumnsByTable(mySqlEndpoint, tablesAfterRegexFilter, true);
+        for (Map.Entry<String, Set<String>> entry : allColumnsByTable.entrySet()) {
+            String tableName = entry.getKey();
+            if (!entry.getValue().contains(column)) {
+                tables.add(tableName);
+            }
+        }
+        return tables;
+    }
 }

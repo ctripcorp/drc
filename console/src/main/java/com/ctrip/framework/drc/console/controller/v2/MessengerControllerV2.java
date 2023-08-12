@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 
 @RestController("MessengerControllerV2")
 @RequestMapping("/api/drc/v2/messenger/")
-public class MessengerController {
+public class MessengerControllerV2 {
 
-    private static final Logger logger = LoggerFactory.getLogger(MessengerController.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessengerControllerV2.class);
 
     @Autowired
     MessengerServiceV2 messengerService;
@@ -98,28 +98,19 @@ public class MessengerController {
         }
     }
 
-    @PostMapping("insertConfig")
+    @PostMapping("submitConfig")
+    @SuppressWarnings("unchecked")
     public ApiResult<Boolean> insertConfig(@RequestBody MqConfigDto dto) {
         try {
             logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
-
-            boolean res = messengerService.processAddMqConfig(dto);
-            return ApiResult.getSuccessInstance(null);
+            if (dto.isInsertRequest()) {
+                messengerService.processAddMqConfig(dto);
+            } else {
+                messengerService.processUpdateMqConfig(dto);
+            }
+            return ApiResult.getSuccessInstance(true);
         } catch (Throwable e) {
             logger.error("submitConfig exception", e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @PostMapping("updateConfig")
-    public ApiResult<Boolean> updateConfig(@RequestBody MqConfigDto dto) {
-        try {
-            logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
-
-            boolean res = messengerService.processUpdateMqConfig(dto);
-            return ApiResult.getSuccessInstance(null);
-        } catch (Throwable e) {
-            logger.error("updateConfig exception", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -138,6 +129,17 @@ public class MessengerController {
         } catch (Throwable e) {
             logger.error("deleteMqConfig exception", e);
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("initGtid")
+    public ApiResult getMessengerExecutedGtid(@RequestParam(value = "mhaName") String mhaName) {
+        logger.info("[[tag=messenger]] getMessengerExecutedGtid for mha: {} ", mhaName);
+        try {
+            return ApiResult.getSuccessInstance(messengerService.getMessengerGtidExecuted(mhaName));
+        } catch (Exception e) {
+            logger.error("[[tag=messenger]] fail in getMessengerExecutedGtid for mha: {} ", mhaName, e);
+            return ApiResult.getSuccessInstance(null);
         }
     }
 }

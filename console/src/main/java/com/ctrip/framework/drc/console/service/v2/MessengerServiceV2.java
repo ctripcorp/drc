@@ -27,7 +27,9 @@ public interface MessengerServiceV2 {
 
     MqConfigCheckVo checkMqConfig(MqConfigDto dto);
 
-    boolean processAddMqConfig(MqConfigDto dto);
+    void processAddMqConfig(MqConfigDto dto) throws Exception;
 
-    boolean processUpdateMqConfig(MqConfigDto dto);
+    void processUpdateMqConfig(MqConfigDto dto) throws Exception;
+
+    String getMessengerGtidExecuted(String mhaName);
 }

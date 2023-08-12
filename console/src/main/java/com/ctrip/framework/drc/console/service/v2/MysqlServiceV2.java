@@ -31,4 +31,6 @@ public interface MysqlServiceV2 {
 
     // route By mhaName
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
+
+    Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
 }

@@ -79,16 +79,31 @@ public class MysqlController {
     }
 
     @GetMapping("commonColumns")
-    public ApiResult getCommonColumn (@RequestParam String mhaName, @RequestParam String namespace, @RequestParam String name) {
+    public ApiResult getCommonColumn(@RequestParam String mhaName, @RequestParam String namespace, @RequestParam String name) {
         try {
             Set<String> commonColumns = mysqlServiceV2.getCommonColumnIn(mhaName, namespace, name);
             return ApiResult.getSuccessInstance(Lists.newArrayList(commonColumns));
         } catch (Exception e) {
-            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error",namespace,name, mhaName,e);
+            logger.warn("[[tag=commonColumns]] get columns {}\\.{} from {} error", namespace, name, mhaName, e);
             if (e instanceof CompileExpressionErrorException) {
                 return ApiResult.getFailInstance("expression error");
             } else if (e instanceof IllegalArgumentException) {
                 return ApiResult.getFailInstance("no machine find for " + mhaName);
+            } else {
+                return ApiResult.getFailInstance("other error");
+            }
+        }
+    }
+
+    @GetMapping("columnCheck")
+    public ApiResult columnCheck(@RequestParam String mhaName, @RequestParam String namespace, @RequestParam String name, @RequestParam String column) {
+        try {
+            Set<String> commonColumns = mysqlServiceV2.getTablesWithoutColumn(column, namespace, name, mhaName);
+            return ApiResult.getSuccessInstance(Lists.newArrayList(commonColumns));
+        } catch (Exception e) {
+            logger.warn("[[tag=columnsCheck]]  columnsCheck column:{} in {}\\.{} from {}", column, namespace, name, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
             } else {
                 return ApiResult.getFailInstance("other error");
             }

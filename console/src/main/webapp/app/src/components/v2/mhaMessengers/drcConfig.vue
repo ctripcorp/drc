@@ -168,7 +168,6 @@ export default {
   },
   methods: {
     getResources () {
-      // this.axios.get('/api/drc/v1/meta/resources?type=R')
       this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 0 } })
         .then(response => {
           console.log(response.data)
@@ -176,7 +175,6 @@ export default {
           response.data.data.forEach(ip => this.drc.replicatorList.push(ip))
         })
       // actually , messenger is an applier
-      // this.axios.get('/api/drc/v1/meta/resources?type=A')
       this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 1 } })
         .then(response => {
           console.log(response.data)
@@ -197,7 +195,7 @@ export default {
           this.drc.messengers = []
           response.data.data.forEach(ip => this.drc.messengers.push(ip))
         })
-      this.axios.get('/api/drc/v1/messenger/executedGtid?localMha=' + this.drc.mhaName)
+      this.axios.get('/api/drc/v2/messenger/initGtid?mhaName=' + this.drc.mhaName)
         .then(response => {
           console.log('aGtidExecuted:' + response.data.data)
           this.drc.aGtidExecuted = response.data.data
@@ -211,10 +209,14 @@ export default {
       this.$refs[name].resetFields()
     },
     preCheckConfigure () {
-      this.axios.post('/api/drc/v1/build/replicatorIps/check', {
+      const params = {
         mhaName: this.drc.mhaName,
-        replicatorIps: this.drc.replicators,
-        messengerIps: this.drc.messengers
+        replicatorIps: this.drc.replicators.join(','),
+        messengerIps: this.drc.messengers.join(',')
+      }
+      console.log(params)
+      this.axios.get('/api/drc/v2/mha/replicatorIps/check', {
+        params: params
       }).then(response => {
         const preCheckRes = response.data.data
         if (preCheckRes.status === 0) {
@@ -234,8 +236,8 @@ export default {
     },
     queryMhaMachineGtid () {
       const that = this
-      console.log('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
-      that.axios.get('/api/drc/v1/mha/gtid/executed?mha=' + this.drc.mhaName)
+      console.log('/api/drc/v2/mha/gtid/executed?mha=' + this.drc.mhaName)
+      that.axios.get('/api/drc/v2/mha/gtid/executed?mha=' + this.drc.mhaName)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -243,18 +245,22 @@ export default {
             this.testSuccess1 = true
           } else {
             this.testSuccess1 = false
+            this.$Message.warning('查询位点失败: ' + response.data.message)
           }
+        })
+        .catch(message => {
+          this.$Message.error('查询位点异常: ' + message)
         })
     },
     queryMhaGtidCheckRes () {
       if (this.drc.rGtidExecuted == null || this.drc.rGtidExecuted === '') {
-        alert('位点为空！')
+        this.$Message.warning('位点为空！')
         return
       }
       const that = this
-      console.log('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+      console.log('/api/drc/v2/mha/gtid/checkResult?mha=' + this.drc.mhaName +
         '&configGtid=' + this.drc.rGtidExecuted)
-      that.axios.get('/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+      that.axios.get('/api/drc/v2/mha/gtid/checkResult?mha=' + this.drc.mhaName +
         '&configGtid=' + this.drc.rGtidExecuted)
         .then(response => {
           if (response.data.status === 0) {
@@ -266,14 +272,17 @@ export default {
             }
             this.gtidCheck.modal = true
           } else {
-            console.log('api fail:' + '/api/drc/v1/mha/gtid/checkResult?mha=' + this.drc.mhaName +
+            console.log('api fail:' + '/api/drc/v2/mha/gtid/checkResult?mha=' + this.drc.mhaName +
               '&configGtid=' + this.drc.rGtidExecuted)
           }
+        })
+        .catch(message => {
+          this.$Message.error('校验位点异常: ' + message)
         })
     },
     submitConfig () {
       const that = this
-      this.axios.post('/api/drc/v1/build/config', {
+      this.axios.post('/api/drc/v2/mha/messenger/submitConfig', {
         mhaName: this.drc.mhaName,
         replicatorIps: this.drc.replicators,
         messengerIps: this.drc.messengers,

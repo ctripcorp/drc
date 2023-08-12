@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -41,4 +42,6 @@ public interface DrcBuildServiceV2 {
     List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception;
 
     String getApplierGtid(String srcMhaName, String dstMhaName) throws Exception;
+
+    void buildMessengerDrc(MessengerMetaDto dto) throws Exception;
 }

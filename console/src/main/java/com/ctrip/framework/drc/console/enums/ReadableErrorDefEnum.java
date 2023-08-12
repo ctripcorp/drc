@@ -16,6 +16,10 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     QUERY_RESULT_EMPTY("QUERY_RESULT_EMPTY", "query result is empty"),
     QUERY_DATA_INCOMPLETE("QUERY_DATA_INCOMPLETE", "query exception, please contact devops"),
 
+    /**
+     * common dao exception
+     */
+    DAO_TBL_EXCEPTION("DAO_TBL_EXCEPTION", "dao exception"),
 
     /**
      * query datasource exception

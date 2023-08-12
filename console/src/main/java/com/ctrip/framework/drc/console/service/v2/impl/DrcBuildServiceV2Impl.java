@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
@@ -26,17 +27,22 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.config.ConsoleConfig.ADD_REMOVE_PAIR_SIZE;
+import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_APPLIER_PORT;
 
 /**
  * Created by dengquanliang
@@ -403,6 +409,135 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupTbl.getGtidInit();
     }
 
+    // todo by yongnian: 2023/8/13 test check code
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMessengerDrc(MessengerMetaDto dto) throws Exception {
+        // 0. check
+        MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,"mha not recorded");
+        }
+        // 3. configure and persistent in database
+        long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
+        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
+        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
+    }
+
+    public Long configureMessengers(MhaTblV2 mhaTbl,
+                                    Long replicatorGroupId,
+                                    List<String> messengerIps,
+                                    String gtidExecuted) throws SQLException {
+        Long messengerGroupId = configureMessengerGroup(mhaTbl, replicatorGroupId, gtidExecuted);
+        configureMessengerInstances(mhaTbl, messengerIps, messengerGroupId);
+        return messengerGroupId;
+    }
+
+    protected Long configureMessengerGroup(MhaTblV2 mhaTbl, Long replicatorGroupId, String gtidExecuted) throws SQLException {
+        String mhaName = mhaTbl.getMhaName();
+        Long mhaId = mhaTbl.getId();
+        logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
+        return messengerGroupTblDao.upsertIfNotExist(mhaId, replicatorGroupId, formatGtid(gtidExecuted));
+    }
+
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
+
+    protected void configureMessengerInstances(MhaTblV2 mhaTbl, List<String> messengerIps, Long messengerGroupId) throws SQLException {
+        String mhaName = mhaTbl.getMhaName();
+
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupId);
+        List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+        List<String> messengersInuse = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+
+        List<List<String>> addRemoveMessengerIpsPair = getRemoveAndAddInstanceIps(messengersInuse, messengerIps);
+        if (ADD_REMOVE_PAIR_SIZE != addRemoveMessengerIpsPair.size()) {
+            logger.info("[[mha={}]] wrong add remove messenger pair size {}!={}",
+                    mhaName, addRemoveMessengerIpsPair.size(), ADD_REMOVE_PAIR_SIZE);
+            return;
+        }
+
+        List<String> messengerIpsToBeAdded = addRemoveMessengerIpsPair.get(0);
+        List<String> messengerIpsToBeRemoved = addRemoveMessengerIpsPair.get(1);
+        logger.info("[[mha={}]]try add messenger {}, remove messenger {}", mhaName, messengerIpsToBeAdded, messengerIpsToBeRemoved);
+
+        List<String> messengerInstancesAdded = addMessengerInstances(messengerIpsToBeAdded, mhaTbl, messengerGroupId);
+        List<String> messengerInstancesRemoved = removeMessengerInstances(messengerIpsToBeRemoved, mhaName, messengerGroupId, resourceTbls, messengerTbls);
+        logger.info("added M:{}, removed M:{}", messengerInstancesAdded, messengerInstancesRemoved);
+    }
+
+    protected List<String> addMessengerInstances(List<String> messengerIpsToBeAdded, MhaTblV2 mhaTbl, Long messengerGroupId) {
+        logger.info("[[mha={}]]try add messengers {}", mhaTbl.getMhaName(), messengerIpsToBeAdded);
+        List<String> messengerInstancesAdded = Lists.newArrayList();
+        String mhaName = mhaTbl.getMhaName();
+        try {
+            List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(messengerIpsToBeAdded);
+            Map<String, ResourceTbl> ipMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, e -> e));
+            for (String ip : messengerIpsToBeAdded) {
+                logger.info("[[mha={}]]add messenger: {}", mhaName, ip);
+                ResourceTbl resourceTbl = ipMap.get(ip);
+                if (null == resourceTbl) {
+                    logger.info("[[mha={}]]UNLIKELY-messenger resource({}) should already be loaded", mhaName, ip);
+                    continue;
+                }
+                logger.info("[[mha={}]]configure messenger instance: {}", mhaName, ip);
+                messengerTblDao.insertMessenger(DEFAULT_APPLIER_PORT, resourceTbl.getId(), messengerGroupId);
+                messengerInstancesAdded.add(ip);
+            }
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION, e);
+        }
+        return messengerInstancesAdded;
+    }
+
+    protected List<String> removeMessengerInstances(
+            List<String> messengerIpsToBeRemoved,
+            String mhaName, Long messengerGroupId,
+            List<ResourceTbl> resourceTbls,
+            List<MessengerTbl> messengerTbls) {
+        logger.info("[[mha={}]] try remove messengers {}", mhaName, messengerIpsToBeRemoved);
+        List<String> messengerInstancesRemoved = Lists.newArrayList();
+        if (messengerIpsToBeRemoved.size() != 0) {
+            for (String ip : messengerIpsToBeRemoved) {
+                logger.info("[[mha={}]]remove messenger: {}", mhaName, ip);
+                ResourceTbl resourceTbl = resourceTbls.stream().filter(p -> ip.equalsIgnoreCase(p.getIp())).findFirst().orElse(null);
+                if (null == resourceTbl) {
+                    logger.info("[[mha={}]]UNLIKELY-messenger resource({}) should already be loaded", mhaName, ip);
+                    continue;
+                }
+                MessengerTbl messengerTbl = messengerTbls.stream()
+                        .filter(p -> (messengerGroupId.equals(p.getMessengerGroupId()))
+                                && resourceTbl.getId().equals(p.getResourceId()))
+                        .findFirst().orElse(null);
+                try {
+                    assert null != messengerTbl;
+                    messengerTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                    messengerTblDao.update(messengerTbl);
+                    messengerInstancesRemoved.add(ip);
+                } catch (Throwable t) {
+                    logger.error("[[mha={}]]Failed remove messenger {}", mhaName, ip, t);
+                }
+            }
+        }
+        return messengerInstancesRemoved;
+    }
+
+    protected List<List<String>> getRemoveAndAddInstanceIps(List<String> ipsInUse, List<String> ipsNewConfigured) {
+        List<List<String>> addRemoveReplicatorIpsPair = Lists.newArrayList();
+
+        List<String> toBeAdded = Lists.newArrayList(ipsNewConfigured);
+        toBeAdded.removeAll(Lists.newArrayList(ipsInUse));
+        addRemoveReplicatorIpsPair.add(toBeAdded);
+
+        List<String> toBeRemoved = Lists.newArrayList(ipsInUse);
+        toBeRemoved.removeAll(Lists.newArrayList(ipsNewConfigured));
+        addRemoveReplicatorIpsPair.add(toBeRemoved);
+
+        return addRemoveReplicatorIpsPair;
+    }
 
     private void buildDrcMhaConfigView(DrcMhaConfigView mhaConfigView, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
         if (srcMha == null) {

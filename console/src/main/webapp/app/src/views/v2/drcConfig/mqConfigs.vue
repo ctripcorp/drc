@@ -31,25 +31,25 @@
     <Modal
       v-model="display.mqConfigModal"
       title="MQ 投递配置"
-      width="1000px"
+      width="1200px"
     >
       <Modal
         v-model="tagInfo.modal"
         title="冲突配置"
-        width="500px">
+        width="800px">
         <Table :columns="tagInfo.columns" :data="tagInfo.conflictVos"></Table>
       </Modal>
-      <Row>
-        <Col span="2">
-          <Button type="dashed" size="large" @click="goToNormalTopicApplication">标准</Button>
-        </Col>
-        <Col span="2">
-          <Button type="dashed" size="large" @click="goToCustomTopicApplication">自定义</Button>
-        </Col>
-      </Row>
-      <Divider/>
+      <!--      <Row>-->
+      <!--        <Col span="2">-->
+      <!--          <Button type="dashed" size="large" @click="goToNormalTopicApplication">标准</Button>-->
+      <!--        </Col>-->
+      <!--        <Col span="2">-->
+      <!--          <Button type="dashed" size="large" @click="goToCustomTopicApplication">自定义</Button>-->
+      <!--        </Col>-->
+      <!--      </Row>-->
+      <!--      <Divider/>-->
       <Row :gutter="10">
-        <Col span="16">
+        <Col span="14">
           <Card>
             <div slot="title">
               <span>配置</span>
@@ -82,7 +82,8 @@
                     </Input>
                   </Col>
                   <Col span="4">
-                    <Button type="info" @click="check" style="margin-left: 10px">表校验</Button>
+                    <Button type="info" @click="check" :loading="checkDbTableLoading" style="margin-left: 10px">表校验
+                    </Button>
                   </Col>
                 </Row>
               </FormItem>
@@ -116,10 +117,10 @@
               <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
               <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
               <!--             </FormItem>-->
-              <FormItem label="tag" v-if="tagInfo.inputDisplay">
-                <Input v-model="mqConfig.tag" style="width:350px"
-                       placeholder="存在冲突配置，需要输入业务名（小写英文）区分"/>
-              </FormItem>
+              <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
+              <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
+              <!--                       placeholder="存在冲突配置，需要输入业务名（小写英文）区分"/>-->
+              <!--              </FormItem>-->
             </Form>
             <Form v-if="!display.normalTopicForm" :model="mqConfig" :label-width="100"
                   style="margin-top: 10px">
@@ -145,7 +146,8 @@
                     <Input v-model="topic.table" style="width:200px" placeholder="表名（支持正则）"/>
                   </Col>
                   <Col span="4">
-                    <Button type="info" @click="check" style="margin-left: 10px">表校验</Button>
+                    <Button type="info" @click="check" :loading="checkDbTableLoading" style="margin-left: 10px">表校验
+                    </Button>
                   </Col>
                 </Row>
               </FormItem>
@@ -182,19 +184,20 @@
               <!--             <FormItem v-if="mqConfig.mqType === 'qmq'" label="延迟投递">-->
               <!--               <Input v-model="mqConfig.delayTime" style="width:200px" placeholder="qmq延迟投递时间,单位:秒"/>-->
               <!--             </FormItem>-->
-              <FormItem label="tag" v-if="tagInfo.inputDisplay">
-                <Input v-model="mqConfig.tag" style="width:350px"
-                       placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>
-              </FormItem>
+              <!--              <FormItem label="tag" v-if="tagInfo.inputDisplay">-->
+              <!--                <Input v-model="mqConfig.tag" style="width:350px"-->
+              <!--                       placeholder="存在冲突，请输入业务名作为唯一标识（小写英文）"/>-->
+              <!--              </FormItem>-->
             </Form>
           </Card>
         </Col>
-        <Col span="8">
+        <Col span="10">
           <Card>
             <div slot="title">
               <span>相关表</span>
             </div>
-            <Table stripe :columns="columnsForTableCheck" :data="dataWithPage" border></Table>
+            <Table stripe :loading="checkDbTableLoading" :columns="columnsForTableCheck" :data="dataWithPage"
+                   border></Table>
             <div style="text-align: center;margin: 16px 0">
               <Page
                 :transfer="true"
@@ -212,7 +215,8 @@
       </Row>
       <template #footer>
         <Button type="text" size="large" @click="cancelSubmit">取消</Button>
-        <Button type="primary" @click="submitConfig">提交</Button>
+        <Button type="primary" @click="submitConfig" :loading="checkDbTableLoading || submitConfigDataLoading">提交
+        </Button>
       </template>
     </Modal>
   </base-component>
@@ -248,6 +252,8 @@ export default {
         refreshCache: false,
         tag: ''
       },
+      checkDbTableLoading: false,
+      submitConfigDataLoading: false,
       tagInfo: {
         inputDisplay: false,
         modal: false,
@@ -265,20 +271,20 @@ export default {
               )
             }
           },
-          {
-            title: '标识',
-            key: 'tag',
-            width: 100
-          },
+          // {
+          //   title: '标识',
+          //   key: 'tag',
+          //   width: 100
+          // },
           {
             title: '库表名',
             key: 'table',
-            width: 200
+            width: 400
           },
           {
             title: '主题',
             key: 'topic',
-            width: 200
+            width: 400
           }
         ]
       },
@@ -441,7 +447,7 @@ export default {
       this.columnsForChose = []
       this.display = {
         showOnly: false,
-        normalTopicForm: true,
+        normalTopicForm: false,
         mqConfigModal: true
       }
     },
@@ -471,7 +477,7 @@ export default {
     },
     mqInitConfigInitFormRow: function (row, index) {
       this.mqConfig = {
-        id: row.id,
+        dbReplicationId: row.dbReplicationId,
         mqType: row.mqType,
         table: row.table, // full name:schema\.table
         topic: row.topic,
@@ -507,14 +513,14 @@ export default {
     getCommonColumns () {
       this.columnsForChose = []
       if (this.topic.db == null || this.topic.db === '' || this.topic.table == null || this.topic.table === '') {
-        alert('查询公共字段，db.talbe不能为空')
+        this.$Message.warning('查询公共字段失败：库名、表名不能为空')
         return
       }
-      console.log('/api/drc/v1/build/rowsFilter/commonColumns?' +
+      console.log('/api/drc/v2/mysql/commonColumns?' +
         '&mhaName=' + this.drc.mhaName +
         '&namespace=' + this.topic.db +
         '&name=' + this.topic.table)
-      this.axios.get('/api/drc/v1/build/rowsFilter/commonColumns?' +
+      this.axios.get('/api/drc/v2/mysql/commonColumns?' +
         '&mhaName=' + this.drc.mhaName +
         '&namespace=' + this.topic.db +
         '&name=' + this.topic.table)
@@ -531,8 +537,9 @@ export default {
           }
         })
     },
-    doSubmitAfterCheck: function (dto) {
-      this.axios.post('/api/drc/v1/messenger/mqConfig', dto).then(response => {
+    doSubmitAfterCheck: async function (dto) {
+      this.$Message.loading('步骤二：提交中')
+      await this.axios.post('/api/drc/v2/messenger/submitConfig', dto).then(response => {
         if (response.data.status === 1) {
           this.$Message.error('提交失败: ' + response.data.message)
           return
@@ -543,11 +550,12 @@ export default {
       })
     },
     checkAndSubmit: function (dto) {
-      // check mqConfig before sumbit
+      // check mqConfig before submit
+      this.$Message.loading('步骤一：检查中...')
       this.submitConfigDataLoading = true
       this.axios.get('/api/drc/v2/messenger/checkMqConfig', {
         params: dto
-      }).then(response => {
+      }).then(async response => {
         if (response.data.status === 1) {
           this.$Message.error('配置校验失败: ' + response.data.message)
           return
@@ -560,11 +568,12 @@ export default {
           this.tagInfo.conflictVos = res.conflictTables
           this.tagInfo.inputDisplay = true
           this.tagInfo.modal = true
+          this.$Message.warning('校验未通过，请检查冲突')
           return
         }
         this.$Message.success('校验成功！')
         // submit
-        this.doSubmitAfterCheck(dto)
+        await this.doSubmitAfterCheck(dto)
       }).catch(message => {
         this.$Message.error('配置校验异常: ' + message)
       }).finally(() => {
@@ -609,7 +618,7 @@ export default {
         this.mqConfig.table = this.topic.db + '\\.' + this.topic.table
       }
       const dto = {
-        id: this.mqConfig.id,
+        dbReplicationId: this.mqConfig.dbReplicationId,
         bu: this.topic.bu,
         mqType: this.mqConfig.mqType,
         table: this.mqConfig.table,
@@ -634,7 +643,7 @@ export default {
         params: { mhaName: this.drc.mhaName }
       }).then(response => {
         if (response.data.status === 1) {
-          window.alert('查询行过滤配置失败!')
+          this.$Message.error('查询 messenger 配置失败: ' + response.data.message)
           return
         }
         this.$Message.success('查询成功')
@@ -671,36 +680,48 @@ export default {
     check () {
       this.showMatchTables()
     },
+    getTableData: function (response) {
+      return response.map(item => {
+        return {
+          directSchemaTableName: item.schema + '.' + item.table,
+          name: item.table,
+          schema: item.schema
+        }
+      })
+    },
     showMatchTables () {
+      this.tableData = []
       if (this.topic.db === '' || this.topic.table === '') {
-        window.alert('库表名不能为空')
-      } else {
-        console.log('/api/drc/v1/build/dataMedia/check?' +
-          'namespace=' + this.topic.db +
-          '&name=' + this.topic.table +
-          '&mhaName=' + this.drc.mhaName +
-          '&type=' + 0)
-        this.axios.get('/api/drc/v1/build/dataMedia/check?' +
-          'namespace=' + this.topic.db +
-          '&name=' + this.topic.table +
-          '&mhaName=' + this.drc.mhaName +
-          '&type=' + 0)
-          .then(response => {
-            if (response.data.status === 1) {
-              window.alert('查询匹配表失败' + response.data.data)
-            } else {
-              console.log(response.data.data)
-              this.tableData = response.data.data
-              if (this.display.normalTopicForm && this.tableData.length !== 1) {
-                this.display.normalTopicForm = false
-              }
-              if (this.tableData.length === 0) {
-                window.alert('无匹配表 或 查询匹配表失败')
-              }
-              this.getCommonColumns()
-            }
-          })
+        this.$Message.warning('查询失败：库表名不能为空')
+        return
       }
+      this.checkDbTableLoading = true
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables', {
+        params: {
+          mha: this.drc.mhaName,
+          nameFilter:
+            this.topic.db + '.' + this.topic.table
+        }
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.error('查询匹配表失败' + response.data.data)
+        } else {
+          console.log(response.data.data)
+          this.tableData = this.getTableData(response.data.data)
+          if (this.display.normalTopicForm && this.tableData.length !== 1) {
+            this.display.normalTopicForm = false
+          }
+          if (this.tableData.length === 0) {
+            this.$Message.warning('无匹配表')
+            return
+          }
+          this.$Message.success('查询表结构成功')
+        }
+      }).catch(message => {
+        this.$Message.error('表校验查询异常: ' + message)
+      }).finally(() => {
+        this.checkDbTableLoading = false
+      })
     },
     handleCreateColumn (val) {
       if (this.contains(this.columnsForChose, val)) {
@@ -711,13 +732,13 @@ export default {
         alert('字段不能为空')
         return
       }
-      console.log('/api/drc/v1/build/dataMedia/columnCheck?' +
+      console.log('/api/drc/v2/mysql/columnCheck?' +
         'mhaName=' + this.drc.mhaName +
         '&namespace=' + this.topic.db +
         '&name=' + this.topic.table +
         '&column=' + val)
       this.axios.get(
-        '/api/drc/v1/build/dataMedia/columnCheck?' +
+        '/api/drc/v2/mysql/columnCheck?' +
         'mhaName=' + this.drc.mhaName +
         '&namespace=' + this.topic.db +
         '&name=' + this.topic.table +

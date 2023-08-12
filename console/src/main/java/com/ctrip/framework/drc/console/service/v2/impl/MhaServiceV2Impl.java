@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.platform.dal.dao.DalHints;
@@ -272,6 +273,35 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         } catch (SQLException e) {
             logger.error("getMhaAvailableMessengerResource exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public DrcBuildPreCheckVo preCheckBeReplicatorIps(String mhaName, List<String> replicatorIps) throws Exception {
+        MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (srcMhaTbl == null) {
+            return new DrcBuildPreCheckVo(null, null, DrcBuildPreCheckVo.NO_CONFLICT);
+        }
+        // todo by yongnian: 2023/8/13
+        boolean b = false;
+        if (b) {
+            List<String> resourcesInUse = this.getMhaReplicators(mhaName);
+            if (!resourcesCompare(resourcesInUse, replicatorIps)) {
+                logger.info("[preCheck before build] try to update one2many share replicators,mha is {}", mhaName);
+                return new DrcBuildPreCheckVo(mhaName, resourcesInUse, DrcBuildPreCheckVo.CONFLICT);
+            }
+        }
+        return new DrcBuildPreCheckVo(null, null, DrcBuildPreCheckVo.NO_CONFLICT);
+    }
+
+    private boolean resourcesCompare(List<String> resourcesInUse, List<String> replicatorsToBeUpdated) {
+        if (resourcesInUse == null) return replicatorsToBeUpdated == null;
+        else if (replicatorsToBeUpdated == null) return false;
+        else if (resourcesInUse.size() != replicatorsToBeUpdated.size()) return false;
+        else {
+            List<String> copyResourcesInUse = Lists.newArrayList(resourcesInUse);
+            copyResourcesInUse.removeAll(replicatorsToBeUpdated);
+            return copyResourcesInUse.size() == 0;
         }
     }
 }

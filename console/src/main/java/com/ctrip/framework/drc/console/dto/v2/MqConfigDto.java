@@ -30,6 +30,10 @@ public class MqConfigDto implements Serializable {
         }
     }
 
+    public boolean isInsertRequest() {
+        return dbReplicationId == null;
+    }
+
     public Long getDbReplicationId() {
         return dbReplicationId;
     }
