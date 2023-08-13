@@ -238,7 +238,7 @@ export default {
           ])
         }
       })
-      this.axios.get('/api/drc/v1/build/preCheckMySqlConfig?mha=' + this.mhaInfo.mhaName)
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlConfig?mha=' + this.mhaInfo.mhaName)
         .then(response => {
           console.log(response)
           const result = response.data.data

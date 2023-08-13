@@ -188,7 +188,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setPersistent(mqConfig.isPersistent());
                 mqConfigVo.setDelayTime(mqConfig.getDelayTime());
                 list.add(mqConfigVo);
-                // todo by yongnian: 2023/8/10 rwos filter
             }
             return list;
         } catch (SQLException e) {
@@ -360,7 +359,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     }
 
 
-    // todo by yongnian: still useFull?
+    // todo by yongnian: replace?
     private List<MySqlUtils.TableSchemaName> queryMatchTables(String table, String mhaName) {
         String namespace = table.split(ESCAPE_CHARACTER_DOT_REGEX)[0];
         String name = table.split(ESCAPE_CHARACTER_DOT_REGEX)[1];

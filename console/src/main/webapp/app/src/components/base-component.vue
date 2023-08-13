@@ -19,10 +19,10 @@
             <MenuItem name="/drcV2" to="/drcV2">
               <span>DRC配置</span>
             </MenuItem>
-            <MenuItem name="/v2/messengers" to="/v2/messengers">
+            <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
               <span>Messenger集群</span>
             </MenuItem>
-            <MenuItem name="/v2/buildMessenger" to="/v2/buildMessenger">
+            <MenuItem name="/v2/buildMessengerV2" to="/v2/buildMessengerV2">
               <span>Messenger配置</span>
             </MenuItem>
           </Submenu>
@@ -162,8 +162,8 @@ export default {
     switch (this.$route.path) {
       default : this.openNames = ['']; break
       case '/v2/mhaReplications':
-      case '/v2/buildMessenger':
-      case '/v2/messengers':this.openNames = ['v2-0']; break
+      case '/v2/buildMessengerV2':
+      case '/v2/messengersV2':this.openNames = ['v2-0']; break
       case '/apply':
       case '/clusters':
       case '/drcclusters':

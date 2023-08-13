@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/messengers">MQ投递集群</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/messengersV2">MQ投递集群</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
@@ -208,7 +208,7 @@ export default {
     },
     goToLink (row, index) {
       console.log('go to change messenger config for ' + row.mhaName)
-      this.$router.push({ path: '/v2/buildMessenger', query: { step: '3', mhaName: row.mhaName } })
+      this.$router.push({ path: '/v2/buildMessengerV2', query: { step: '3', mhaName: row.mhaName } })
     },
     checkConfig (row, index) {
       console.log(row.mhaName)

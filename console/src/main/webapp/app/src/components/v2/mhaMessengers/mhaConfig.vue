@@ -127,10 +127,9 @@ export default {
   },
   methods: {
     queryUuid () {
-      // todo 重写接口
       const that = this
-      console.log('/api/drc/v1/mha/uuid/' + this.dbInfo.mhaName + '/' + this.dbInfo.ip + '/' + this.dbInfo.port + '/' + this.dbInfo.master)
-      that.axios.get('/api/drc/v1/mha/uuid/' + this.dbInfo.mhaName + '/' + this.dbInfo.ip + '/' + this.dbInfo.port + '/' + this.dbInfo.master)
+      console.log('/api/drc/v2/mha/uuid?mhaName=' + this.dbInfo.mhaName + '&ip=' + this.dbInfo.ip + '&port=' + this.dbInfo.port + '&master=' + this.dbInfo.master)
+      that.axios.get('/api/drc/v2/mha/uuid?mhaName=' + this.dbInfo.mhaName + '&ip=' + this.dbInfo.ip + '&port=' + this.dbInfo.port + '&master=' + this.dbInfo.master)
         .then(response => {
           this.hasTest1 = true
           if (response.data.status === 0) {
@@ -152,7 +151,7 @@ export default {
     },
     submitDbInfo () {
       const that = this
-      that.axios.post('/api/drc/v1/access/mha/machineInfo', {
+      that.axios.post('/api/drc/v2/mha/machineInfo', {
         mhaName: this.dbInfo.mhaName,
         master: this.dbInfo.master,
         mySQLInstance: {

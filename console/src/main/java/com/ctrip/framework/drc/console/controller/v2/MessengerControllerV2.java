@@ -81,7 +81,6 @@ public class MessengerControllerV2 {
         }
     }
 
-    // todo by yongnian: 2023/8/11 test
     @GetMapping("checkMqConfig")
     @SuppressWarnings("unchecked")
     public ApiResult<MqConfigCheckVo> checkMqConfig(MqConfigDto dto) {
@@ -115,7 +114,6 @@ public class MessengerControllerV2 {
         }
     }
 
-    // todo by yongnian: 2023/8/11 test
     @DeleteMapping("deleteMqConfig")
     @SuppressWarnings("unchecked")
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {

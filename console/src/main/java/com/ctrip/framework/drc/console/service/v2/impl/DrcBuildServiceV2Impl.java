@@ -418,7 +418,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupTbl.getGtidInit();
     }
 
-    // todo by yongnian: 2023/8/13 test check code
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMessengerDrc(MessengerMetaDto dto) throws Exception {
         // 0. check

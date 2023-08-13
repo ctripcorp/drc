@@ -176,12 +176,12 @@ const routes = [
     component: () => import('../views/v2/mhaReplicationDetails.vue')
   },
   {
-    path: '/v2/messengers',
-    component: () => import('../views/v2/messengers.vue')
+    path: '/v2/messengersV2',
+    component: () => import('../views/v2/messengersV2.vue')
   },
   {
-    path: '/v2/buildMessenger',
-    component: () => import('../views/v2/buildMessenger.vue')
+    path: '/v2/buildMessengerV2',
+    component: () => import('../views/v2/buildMessengerV2.vue')
   },
   {
     path: '/v2/mhaBuild',

@@ -24,7 +24,7 @@
       </FormItem>
       <FormItem>
         <Button @click="handleReset('mhaInfo')">重置</Button>
-        <Button type="primary" @click="changeModal('mhaInfo')" style="margin-left: 150px">Exception</Button>
+        <Button type="primary" @click="changeModal('mhaInfo')" style="margin-left: 150px">录入</Button>
         <Modal
           v-model="mhaInfo.modal"
           title="录入mha相关信息"
@@ -91,6 +91,7 @@ export default {
           that.$Message.error('仍有必填项未填!')
         } else {
           this.hasResp = false
+          // todo by yongnian: replace
           console.log('/api/drc/v1/mha/')
           that.axios.post('/api/drc/v1/mha/', {
             buName: this.mhaInfo.bu,
