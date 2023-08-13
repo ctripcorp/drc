@@ -117,6 +117,7 @@ export default {
   data () {
     return {
       currentStep: 0,
+      update: 1,
       commonInfo: {
         srcMhaName: '',
         srcMhaId: 0,
@@ -216,7 +217,6 @@ export default {
         } else {
           this.commonInfo.dbReplicationIds = response.data.data
           alert('提交成功！')
-          alert(this.dbReplicationIds)
         }
       })
     },

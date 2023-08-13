@@ -10,6 +10,16 @@ public class DbReplicationBuildParam {
     private String dbName;
     private String tableName;
 
+    public DbReplicationBuildParam(String srcMhaName, String dstMhaName, String dbName, String tableName) {
+        this.srcMhaName = srcMhaName;
+        this.dstMhaName = dstMhaName;
+        this.dbName = dbName;
+        this.tableName = tableName;
+    }
+
+    public DbReplicationBuildParam() {
+    }
+
     public String getSrcMhaName() {
         return srcMhaName;
     }

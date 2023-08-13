@@ -19,6 +19,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.v2.*;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -99,7 +100,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMha(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
-        String clusterName = param.getDstMhaName() + CLUSTER_NAME_SUFFIX;
         BuTbl buTbl = buTblDao.queryByBuName(param.getBuName());
         if (buTbl == null) {
             throw ConsoleExceptionUtils.message(String.format("buName: %s not exist", param.getBuName()));
@@ -110,8 +110,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("srcDc: %s or dstDc: %s not exist", param.getSrcDc(), param.getDstDc()));
         }
 
-        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buTbl.getId(), clusterName);
-        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buTbl.getId(), clusterName);
+        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buTbl.getId());
+        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buTbl.getId());
 
         long srcMhaId = insertMha(srcMha);
         long dstMhaId = insertMha(dstMha);
@@ -299,9 +299,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
         RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
         if (rowsFilterTblV2.getMode() == RowsFilterModeEnum.TRIP_UDL.getCode()) {
-            rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
+            if (firstParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
+            } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+                rowsFilterConfigView.setColumns(firstParameters.getColumns());
+            }
             if (parametersList.size() > 1) {
-                rowsFilterConfigView.setColumns(parametersList.get(1).getColumns());
+                RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
+                if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
+                    rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
+                } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+                    rowsFilterConfigView.setColumns(secondParameters.getColumns());
+                }
             }
         } else {
             rowsFilterConfigView.setColumns(firstParameters.getColumns());
@@ -902,7 +911,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return existMhaTbl.getId();
     }
 
-    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String clusterName) {
+    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId) {
+        String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
         mhaTblV2.setMhaName(mhaName);
         mhaTblV2.setDcId(dcId);

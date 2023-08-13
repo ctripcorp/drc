@@ -263,6 +263,19 @@ public class MigrateEntityBuilder {
         return tbls;
     }
 
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls1() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 201; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(Long.valueOf(i));
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
     public static List<DbTbl> getDbTbls() {
         List<DbTbl> tbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {
@@ -390,5 +403,35 @@ public class MigrateEntityBuilder {
         }
 
         return tbls;
+    }
+
+    public static List<DcTbl> getDcTbls() {
+        List<DcTbl> dcTbls = new ArrayList<>();
+        DcTbl tbl1 = new DcTbl();
+        tbl1.setId(200L);
+        tbl1.setDcName("shaxy");
+        tbl1.setRegionName("sha");
+
+        DcTbl tb2 = new DcTbl();
+        tb2.setId(201L);
+        tb2.setDcName("sinaws");
+        tb2.setRegionName("sin");
+
+        dcTbls.add(tbl1);
+        dcTbls.add(tb2);
+        return dcTbls;
+    }
+
+    public static BuTbl getBuTbl() {
+        BuTbl buTbl = new BuTbl();
+        buTbl.setBuName("BBZ");
+        buTbl.setId(200L);
+        return buTbl;
+    }
+
+    public static List<ResourceTbl> getResourceTbls() {
+        ResourceTbl resourceTbl = new ResourceTbl();
+        resourceTbl.setId(200L);
+        return Lists.newArrayList(resourceTbl);
     }
 }

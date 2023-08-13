@@ -150,7 +150,8 @@ export default {
           order: this.initInfo.order,
           dbName: row.dbName,
           tableName: row.logicTableName,
-          dbReplicationId: row.dbReplicationId
+          dbReplicationId: row.dbReplicationId,
+          update: 0
         }
       })
     },
