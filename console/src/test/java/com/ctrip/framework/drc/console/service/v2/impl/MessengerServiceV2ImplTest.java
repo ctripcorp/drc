@@ -1,23 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.*;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
-import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
-import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
@@ -25,23 +12,16 @@ import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
-import org.apache.commons.io.IOUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
-import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
@@ -408,5 +388,3 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
     }
 
 }
-
-//Generated with love by TestMe :) Please report issues and submit feature requests at: http://weirddev.com/forum#!/testme

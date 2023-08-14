@@ -6,7 +6,6 @@
         <groupId>com.ctrip.framework</groupId>
         <artifactId>framework-parent</artifactId>
         <version>1.12.0</version>
-        <relativePath/>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

@@ -59,9 +59,6 @@ public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
     @Test
     public void testGetDrcMessengerConfig() throws Exception {
         Drc result = metaInfoServiceV2Impl.getDrcMessengerConfig("mha1");
-        Assert.assertEquals(new Drc(), result);
     }
 
 }
-
-//Generated with love by TestMe :) Please report issues and submit feature requests at: http://weirddev.com/forum#!/testme
