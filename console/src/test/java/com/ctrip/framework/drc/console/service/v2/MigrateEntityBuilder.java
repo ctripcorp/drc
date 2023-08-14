@@ -2,6 +2,9 @@ package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
+import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -218,6 +221,15 @@ public class MigrateEntityBuilder {
         return tbl;
     }
 
+    public static ColumnsFilterTblV2 getColumnsFilterTbl() {
+        ColumnsFilterTblV2 tbl = new ColumnsFilterTblV2();
+        tbl.setDeleted(0);
+        tbl.setId(200L);
+        tbl.setMode(0);
+        tbl.setColumns(JsonUtils.toJson(Lists.newArrayList("column")));
+        return tbl;
+    }
+
     public static List<RowsFilterTbl> getRowsFilterTbls() {
         List<RowsFilterTbl> tbls = new ArrayList<>();
         for (int i = 200; i < 202; i++) {
@@ -239,6 +251,28 @@ public class MigrateEntityBuilder {
         tbl.setConfigs("configs");
         tbl.setDeleted(0);
         return tbl;
+    }
+
+    public static RowsFilterTblV2 getRowsFilterTbl() {
+        RowsFilterCreateParam rowsFilterCreateParam = getRowsFilterCreateParam();
+        RowsFilterTblV2 rowsFilterTblV2 = rowsFilterCreateParam.extractRowsFilterTbl();
+        rowsFilterTblV2.setId(200L);
+        return rowsFilterTblV2;
+    }
+
+    public static RowsFilterCreateParam getRowsFilterCreateParam() {
+        RowsFilterCreateParam param = new RowsFilterCreateParam();
+        param.setDbReplicationIds(Lists.newArrayList(200L, 201L));
+        param.setMode(RowsFilterModeEnum.TRIP_UDL.getCode());
+        param.setColumns(Lists.newArrayList("uid"));
+        param.setUdlColumns(Lists.newArrayList("udl"));
+        param.setDrcStrategyId(1);
+        param.setRouteStrategyId(0);
+        param.setContext("context");
+        param.setIllegalArgument(false);
+        param.setFetchMode(0);
+
+        return param;
     }
 
     public static MhaReplicationTbl getMhaReplicationTbl() {
@@ -433,5 +467,16 @@ public class MigrateEntityBuilder {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setId(200L);
         return Lists.newArrayList(resourceTbl);
+    }
+
+    public static List<DbReplicationFilterMappingTbl> getFilterMappings() {
+        DbReplicationFilterMappingTbl tbl = new DbReplicationFilterMappingTbl();
+        tbl.setId(200L);
+        tbl.setDbReplicationId(200L);
+        tbl.setColumnsFilterId(200L);
+        tbl.setRowsFilterId(200L);
+        tbl.setMessengerFilterId(200L);
+
+        return Lists.newArrayList(tbl);
     }
 }

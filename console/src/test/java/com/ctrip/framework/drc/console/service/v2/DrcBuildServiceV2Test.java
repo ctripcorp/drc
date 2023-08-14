@@ -5,12 +5,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
-import com.ctrip.framework.drc.console.param.v2.DrcBuildBaseParam;
-import com.ctrip.framework.drc.console.param.v2.DrcBuildParam;
-import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
+import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
+import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -159,4 +159,110 @@ public class DrcBuildServiceV2Test {
 
     }
 
+    @Test
+    public void testGetDbReplicationView() throws Exception {
+        List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("srcMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("dstMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+
+        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(getMhaDbMappingTbls1());
+        Mockito.when(dbReplicationTblDao.queryByMappingIds(Mockito.anyList(), Mockito.anyList(), Mockito.anyInt())).thenReturn(getDbReplicationTbls());
+        Mockito.when(dbTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbTbls());
+
+        List<DbReplicationView> result = drcBuildServiceV2.getDbReplicationView("srcMha", "dstMha");
+        Assert.assertEquals(result.size(), 2);
+    }
+
+    @Test
+    public void testDeleteDbReplications() throws Exception {
+        Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
+        Mockito.when(dbReplicationTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(new ArrayList<>());
+        Mockito.when(dbReplicationFilterMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
+
+        drcBuildServiceV2.deleteDbReplications(200L);
+        Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchUpdate(Mockito.any());
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchUpdate(Mockito.any());
+    }
+
+    @Test
+    public void testBuildColumnsFilter() throws Exception {
+        ColumnsFilterCreateParam param = new ColumnsFilterCreateParam(Lists.newArrayList(200L, 201L), 0, Lists.newArrayList("column"));
+        Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
+        Mockito.when(columnFilterTblV2Dao.queryByMode(Mockito.anyInt())).thenReturn(new ArrayList<>());
+        Mockito.when(columnFilterTblV2Dao.insertReturnId(Mockito.any())).thenReturn(200L);
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(new ArrayList<>());
+
+        drcBuildServiceV2.buildColumnsFilter(param);
+        Mockito.verify(columnFilterTblV2Dao, Mockito.times(1)).insertReturnId(Mockito.any());
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchUpdate(Mockito.anyList());
+
+    }
+
+    @Test
+    public void testGetColumnsConfigView() throws Exception {
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(getFilterMappings());
+        Mockito.when(columnFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getColumnsFilterTbl());
+
+        ColumnsConfigView result = drcBuildServiceV2.getColumnsConfigView(200L);
+        Assert.assertEquals(result.getColumns().size(), 1);
+    }
+
+    @Test
+    public void testDeleteColumnsFilter() throws Exception {
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
+        Mockito.when(dbReplicationFilterMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
+
+        drcBuildServiceV2.deleteColumnsFilter(Lists.newArrayList(200L, 201L));
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.times(1)).batchUpdate(Mockito.anyList());
+    }
+
+    @Test
+    public void testGetRowsConfigView() throws Exception {
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(getFilterMappings());
+        Mockito.when(rowsFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getRowsFilterTbl());
+
+        RowsFilterConfigView result = drcBuildServiceV2.getRowsConfigView(200L);
+        Assert.assertEquals(result.getColumns().size(), 1);
+        Assert.assertEquals(result.getUdlColumns().size(), 1);
+        Assert.assertEquals(result.getMode(), 1);
+    }
+
+    @Test
+    public void testDeleteRowsFilter() throws Exception {
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
+        Mockito.when(dbReplicationFilterMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
+
+        drcBuildServiceV2.deleteRowsFilter(Lists.newArrayList(200L, 201L));
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.times(1)).batchUpdate(Mockito.anyList());
+    }
+
+    @Test
+    public void testBuildRowsFilter() throws Exception {
+        RowsFilterCreateParam param = getRowsFilterCreateParam();
+        Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
+        Mockito.when(rowsFilterTblV2Dao.queryByMode(Mockito.anyInt())).thenReturn(new ArrayList<>());
+        Mockito.when(rowsFilterTblV2Dao.insertReturnId(Mockito.any())).thenReturn(200L);
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(new ArrayList<>());
+
+        drcBuildServiceV2.buildRowsFilter(param);
+        Mockito.verify(rowsFilterTblV2Dao, Mockito.times(1)).insertReturnId(Mockito.any());
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.times(1)).batchInsert(Mockito.anyList());
+        Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchUpdate(Mockito.anyList());
+    }
+
+    @Test
+    public void testGetApplierGtid() throws Exception {
+        List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("srcMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("dstMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyLong())).thenReturn(getMhaReplicationTbl());
+        Mockito.when(applierGroupTblDao.queryByMhaReplicationId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(getApplierGroupTblV2s().get(0));
+
+        String result = drcBuildServiceV2.getApplierGtid("srcMha", "dstMha");
+        Assert.assertEquals(result, getApplierGroupTblV2s().get(0).getGtidInit());
+    }
 }

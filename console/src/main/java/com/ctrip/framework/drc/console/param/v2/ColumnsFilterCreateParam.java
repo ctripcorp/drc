@@ -11,6 +11,15 @@ public class ColumnsFilterCreateParam {
     private int mode;
     private List<String> columns;
 
+    public ColumnsFilterCreateParam(List<Long> dbReplicationIds, int mode, List<String> columns) {
+        this.dbReplicationIds = dbReplicationIds;
+        this.mode = mode;
+        this.columns = columns;
+    }
+
+    public ColumnsFilterCreateParam() {
+    }
+
     public List<Long> getDbReplicationIds() {
         return dbReplicationIds;
     }

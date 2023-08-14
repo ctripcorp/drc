@@ -341,24 +341,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
     }
 
-    @Override
-    public DrcConfigView getDrcConfigView(String srcMhaName, String dstMhaName) throws Exception {
-        DrcConfigView drcConfigView = new DrcConfigView();
-        DrcMhaConfigView srcMhaConfigView = new DrcMhaConfigView();
-        DrcMhaConfigView dstMhaConfigView = new DrcMhaConfigView();
-        drcConfigView.setSrcMhaConfigView(srcMhaConfigView);
-        drcConfigView.setDstMhaConfigView(dstMhaConfigView);
-
-        srcMhaConfigView.setMhaName(srcMhaName);
-        dstMhaConfigView.setMhaName(dstMhaName);
-
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-
-        buildDrcMhaConfigView(srcMhaConfigView, srcMha, dstMha);
-        buildDrcMhaConfigView(dstMhaConfigView, dstMha, srcMha);
-        return drcConfigView;
-    }
 
     @Override
     public List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception {
@@ -410,43 +392,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return applierGtid;
         }
         return applierGroupTbl.getGtidInit();
-    }
-
-
-    private void buildDrcMhaConfigView(DrcMhaConfigView mhaConfigView, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
-        if (srcMha == null) {
-            return;
-        }
-        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(srcMha.getId(), BooleanEnum.FALSE.getCode());
-        if (replicatorGroupTbl != null) {
-            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(replicatorTbls)) {
-                List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
-                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-                List<String> replicatorIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-                mhaConfigView.setReplicatorIps(replicatorIps);
-            }
-        }
-
-        if (dstMha == null) {
-            return;
-        }
-
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
-        if (mhaReplicationTbl != null) {
-            ApplierGroupTblV2 applierGroupTbl = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-            if (applierGroupTbl == null) {
-                return;
-            }
-            mhaConfigView.setApplierInitGtid(applierGroupTbl.getGtidInit());
-            List<ApplierTblV2> applierTbls = applierTblDao.queryByApplierGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(applierTbls)) {
-                List<Long> resourceIds = applierTbls.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-                List<String> applierIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-                mhaConfigView.setApplierIps(applierIps);
-            }
-        }
     }
 
     private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {
