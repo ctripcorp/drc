@@ -583,7 +583,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private void handNameFilterTableMapEvent(FileChannel fileChannel, long eventSize, ByteBuf headByteBuf) throws IOException {
             TableMapLogEvent tableMapLogEvent = new TableMapLogEvent();
             CompositeByteBuf compositeByteBuf = EventReader.readEvent(fileChannel, eventSize, tableMapLogEvent, headByteBuf);
-            if (aviatorFilter != null && !aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
+            if (aviatorFilter == null || !aviatorFilter.filter(tableMapLogEvent.getSchemaNameDotTableName())) {
                 sendingSchema = DRC_FILTERED_DB_NAME;
                 shouldSkipEvent = true;
                 skipTableNameMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent.getSchemaNameDotTableName());
