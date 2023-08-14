@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.console.aop.forward;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
@@ -38,8 +41,12 @@ public class RemoteHttpAspect {
     
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
-    private  DalUtils dalUtils = DalUtils.getInstance();
+
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
+
+    @Autowired
+    private DcTblDao dcTblDao;
     
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
@@ -140,9 +147,9 @@ public class RemoteHttpAspect {
                 } else if (arguments.containsKey("dcName"))  {
                     dcName = (String) arguments.get("dcName");
                 } else if (arguments.containsKey("mha")) {
-                    dcName = dalUtils.getDcName((String) arguments.get("mha"), BooleanEnum.FALSE.getCode());
+                    dcName = getDcName((String) arguments.get("mha"));
                 } else if (arguments.containsKey("mhaName")) {
-                    dcName = dalUtils.getDcName((String) arguments.get("mhaName"), BooleanEnum.FALSE.getCode());
+                    dcName = getDcName((String) arguments.get("mhaName"));
                 }
             }
             return dcName;
@@ -150,6 +157,14 @@ public class RemoteHttpAspect {
             logger.error("[[tag=remoteHttpAop]] sql error", e);
             return null;
         }
+    }
+
+    private String getDcName(String mha) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mha, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            return null;
+        }
+        return dcTblDao.queryByPk(mhaTblV2.getDcId()).getDcName();
     }
     
     private String getRegionByArgs(Map<String, Object> arguments) {

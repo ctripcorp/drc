@@ -150,7 +150,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mha/uuid")
     public String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTblV2 == null) {

@@ -40,10 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -201,8 +198,8 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         // db mappings
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaIds(Lists.newArrayList(srcMhaTbl.getId(), dstMhaTbl.getId()));
         Map<Long, List<MhaDbMappingTbl>> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
-        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingMap.get(srcMhaTbl.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingMap.get(dstMhaTbl.getId());
+        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingMap.getOrDefault(srcMhaTbl.getId(), new ArrayList<>());
+        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingMap.getOrDefault(dstMhaTbl.getId(), new ArrayList<>());
         List<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
         List<DbReplicationTbl> dbReplicationTblList = dbReplicationTblDao.queryByMappingIds(srcMhaDbMappingIds, dstMhaDbMappingIds, ReplicationTypeEnum.DB_TO_DB.getType());

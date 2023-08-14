@@ -104,7 +104,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MetaProviderV2 metaProviderV2;
 
-    private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("drcMetaRefreshV2");
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5,"drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
 
@@ -135,20 +135,17 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     public String buildDrc(DrcBuildParam param) throws Exception {
         submitDrc(param);
 
+        Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
             logger.error("metaProvider scheduledTask error, {}", e);
         }
-        long start = System.currentTimeMillis();
-        Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
-        long cost = System.currentTimeMillis() - start;
-        logger.info("get drc cost: {}", cost);
         return XmlUtils.formatXML(drc.toString());
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void submitDrc(DrcBuildParam param) throws Exception{
+    public void submitDrc(DrcBuildParam param) throws Exception {
         checkDrcBuildParam(param);
         DrcBuildBaseParam srcBuildParam = param.getSrcBuildParam();
         DrcBuildBaseParam dstBuildParam = param.getDstBuildParam();
@@ -326,14 +323,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode())) {
             if (firstParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
                 rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
-            } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+            } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
                 rowsFilterConfigView.setColumns(firstParameters.getColumns());
             }
             if (parametersList.size() > 1) {
                 RowsFilterConfig.Parameters secondParameters = parametersList.get(1);
                 if (secondParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
                     rowsFilterConfigView.setUdlColumns(secondParameters.getColumns());
-                } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
+                } else if (secondParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())) {
                     rowsFilterConfigView.setColumns(secondParameters.getColumns());
                 }
             }
@@ -430,7 +427,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         // 0. check
         MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,"mha not recorded");
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
         }
         // 3. configure and persistent in database
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
@@ -548,6 +545,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         return addRemoveReplicatorIpsPair;
     }
+
     private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             throw ConsoleExceptionUtils.message("dbReplicationIds are empty!");
