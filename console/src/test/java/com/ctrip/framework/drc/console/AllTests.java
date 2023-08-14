@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.config.DefaultConsoleConfigTest;
 import com.ctrip.framework.drc.console.config.UdlMigrateConfigurationTest;
 import com.ctrip.framework.drc.console.controller.*;
 import com.ctrip.framework.drc.console.controller.monitor.MonitorControllerTest;
+import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
@@ -158,10 +159,14 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaInfoServiceV2ImplTest.class,
         MhaServiceV2ImplTest.class,
         MhaReplicationServiceV2ImplTest.class,
+        MessengerServiceV2ImplTest.class,
+        MetaInfoServiceV2ImplTest2.class,
+        DrcBuildServiceV2Test.class,
 //
         // controller
         MetaControllerV2Test.class,
         MhaReplicationControllerTest.class,
+        MessengerControllerV2Test.class,
         AccessControllerTest.class,
         BuildControllerTest.class,
         LocalControllerTest.class,
