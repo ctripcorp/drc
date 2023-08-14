@@ -3,6 +3,9 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
@@ -65,6 +68,12 @@ public class MhaServiceV2ImplTest {
 
     @Mock
     private MachineTblDao machineTblDao;
+
+    @Mock
+    private MessengerTblDao messengerTblDao;
+
+    @Mock
+    private MessengerGroupTblDao messengerGroupTblDao;
 
     @Before
     public void setup() throws SQLException {
@@ -197,6 +206,23 @@ public class MhaServiceV2ImplTest {
         dto.setSlaves(Lists.newArrayList(mySQLInstance));
         isSuccess = mhaServiceV2.recordMhaInstances(dto);
         Assert.assertEquals(true, isSuccess);
+    }
+
+    @Test
+    public void testGetMhaMessengers() throws Exception {
+        String mhaName = "mha1";
+        MhaTblV2 mhaTblV2 = getAllMhaData().stream().filter(e -> e.getMhaName().equals(mhaName)).findFirst().orElseThrow(() -> new Exception("data incomplete"));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(mhaTblV2);
+        List<MessengerTbl> messengerTbls = JSON.parseArray("[{\"id\":1,\"messengerGroupId\":1,\"resourceId\":1,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"},{\"id\":2,\"messengerGroupId\":1,\"resourceId\":2,\"port\":8080,\"deleted\":0,\"createTime\":\"2028-11-02 21:41:45\",\"datachangeLasttime\":\"2015-04-01 03:25:43\"}]", MessengerTbl.class);
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.anyLong())).thenReturn(messengerTbls);
+        MessengerGroupTbl messengerGroupTbl = JSON.parseObject("{\"id\":1,\"mhaId\":1,\"replicatorGroupId\":1,\"deleted\":0,\"gtidExecuted\":\"gtid1\",\"datachangeLasttime\":\"2023-08-13 00:00:00\"}", MessengerGroupTbl.class);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(messengerGroupTbl);
+        List<ResourceTbl> resourceTbls = JSON.parseArray("[{\"id\":1,\"type\":0,\"ip\":\"1.113.60.1\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"},{\"id\":2,\"type\":0,\"ip\":\"1.113.60.2\",\"dcId\":1,\"appId\":100023498,\"deleted\":0,\"createTime\":\"2026-06-10 15:35:59\",\"datachangeLasttime\":\"2014-07-19 15:55:18\"}]", ResourceTbl.class);
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(resourceTbls);
+
+        List<String> mha1 = mhaServiceV2.getMhaMessengers(mhaName);
+
+        Assert.assertEquals(2, mha1.size());
     }
 
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {
