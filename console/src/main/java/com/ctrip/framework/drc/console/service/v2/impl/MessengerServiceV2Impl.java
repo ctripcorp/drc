@@ -20,7 +20,10 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
-import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
@@ -508,7 +511,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             return dbList;
         }
         for (String table : tableList) {
-            String[] tables = table.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
+            String[] tables = table.split("\\.");
             dbList.add(tables[0]);
         }
         return dbList.stream().distinct().collect(Collectors.toList());

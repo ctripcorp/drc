@@ -95,7 +95,7 @@
             @on-change="getReplications"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
-        <Drawer title="Basic Drawer" width="90" :closable="true" v-model="replicationDetail.show">
+        <Drawer title="Basic Drawer" width="80" :closable="true" v-model="replicationDetail.show">
           <template #header>
             查看详情
             <div style="float:right;margin-right: 100px">
@@ -328,7 +328,7 @@ export default {
         show: false,
         data: null,
         darkMode: true,
-        lineWrap: true,
+        lineWrap: false,
         row: {}
       },
       dataLoading: true

@@ -334,7 +334,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha1");
             dto.setMqType("qmq");
-            dto.setTable("db1\\.(table1|table2)");
+            dto.setTable("db1\\\\.(table1|table2)");
             messengerServiceV2Impl.processAddMqConfig(dto);
         }
     }
@@ -358,7 +358,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha2");
             dto.setMqType("qmq");
-            dto.setTable("db3\\.(table1|table2)");
+            dto.setTable("db3\\\\.(table1|table2)");
             messengerServiceV2Impl.processAddMqConfig(dto);
         }
     }

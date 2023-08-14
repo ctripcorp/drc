@@ -30,7 +30,7 @@
           </div>
         </Card>
       </div>
-      <Drawer title="DRC配置" width="90" :closable="true" v-model="cluster.drawer.show">
+      <Drawer title="DRC配置" width="80" :closable="true" v-model="cluster.drawer.show">
         <template #header>
           查看详情
           <div style="float:right;margin-right: 100px">
@@ -92,7 +92,7 @@ export default {
           data: ''
         },
         drawer: {
-          lineWrap: true,
+          lineWrap: false,
           darkMode: true,
           show: false,
           data: ''

@@ -433,6 +433,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
         configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
+
+        try {
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
+        }
     }
 
     public Long configureMessengers(MhaTblV2 mhaTbl,

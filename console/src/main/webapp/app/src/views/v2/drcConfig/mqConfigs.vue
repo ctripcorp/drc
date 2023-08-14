@@ -215,7 +215,7 @@
       </Row>
       <template #footer>
         <Button type="text" size="large" @click="cancelSubmit">取消</Button>
-        <Button type="primary" @click="submitConfig" :loading="checkDbTableLoading || submitConfigDataLoading">提交
+        <Button type="primary" @click="submitConfig" :disabled="display.showOnly" :loading="checkDbTableLoading || submitConfigDataLoading">提交
         </Button>
       </template>
     </Modal>
@@ -690,6 +690,7 @@ export default {
       })
     },
     showMatchTables () {
+      this.current = 1
       this.tableData = []
       if (this.topic.db === '' || this.topic.table === '') {
         this.$Message.warning('查询失败：库表名不能为空')
