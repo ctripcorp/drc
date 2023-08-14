@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -149,6 +150,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/mha/uuid")
     public String getMysqlUuid(String mhaName, String ip, int port, boolean master) throws Exception {
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTblV2 == null) {
