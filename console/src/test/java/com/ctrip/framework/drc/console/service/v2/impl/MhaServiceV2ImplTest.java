@@ -192,6 +192,11 @@ public class MhaServiceV2ImplTest {
         dto.setMaster(mySQLInstance);
         Boolean isSuccess = mhaServiceV2.recordMhaInstances(dto);
         Assert.assertEquals(true, isSuccess);
+
+        dto.setMaster(null);
+        dto.setSlaves(Lists.newArrayList(mySQLInstance));
+        isSuccess = mhaServiceV2.recordMhaInstances(dto);
+        Assert.assertEquals(true, isSuccess);
     }
 
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {

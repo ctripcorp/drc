@@ -6,7 +6,6 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.DrcBuildServiceV2Impl;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
@@ -35,7 +34,7 @@ public class DrcBuildServiceV2Test {
     @Mock
     private MonitorTableSourceProvider monitorTableSourceProvider;
     @Mock
-    private MetaInfoServiceImpl metaInfoService;
+    private MetaInfoServiceV2 metaInfoService;
     @Mock
     private MhaDbMappingService mhaDbMappingService;
     @Mock
