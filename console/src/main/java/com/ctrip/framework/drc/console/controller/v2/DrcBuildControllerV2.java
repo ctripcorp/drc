@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
-import com.ctrip.framework.drc.console.vo.v2.DrcConfigView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,15 +39,6 @@ public class DrcBuildControllerV2 {
             return "ok";
         } catch (Exception e) {
             return e.getMessage();
-        }
-    }
-
-    @GetMapping("")
-    public ApiResult<DrcConfigView> getDrcConfig(@RequestParam String srcMhaName, @RequestParam String dstMhaName) {
-        try {
-            return ApiResult.getSuccessInstance(drcBuildServiceV2.getDrcConfigView(srcMhaName, dstMhaName));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

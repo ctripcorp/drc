@@ -1,12 +1,18 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Assert;
@@ -21,11 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.ctrip.framework.drc.console.service.v2.MetaGeneratorBuilder.getReplicatorTbls;
+import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -41,6 +50,21 @@ public class MhaServiceV2ImplTest {
 
     @Mock
     private MetaInfoServiceV2 metaInfoServiceV2;
+
+    @Mock
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
+
+    @Mock
+    private ResourceTblDao resourceTblDao;
+
+    @Mock
+    private ReplicatorTblDao replicatorTblDao;
+
+    @Mock
+    private DcTblDao dcTblDao;
+
+    @Mock
+    private MachineTblDao machineTblDao;
 
     @Before
     public void setup() throws SQLException {
@@ -130,6 +154,44 @@ public class MhaServiceV2ImplTest {
     public void queryMhaByIdsException() throws SQLException {
         Mockito.when(mhaTblV2Dao.queryByIds(Mockito.any())).thenThrow(SQLException.class);
         Map<Long, MhaTblV2> result = mhaServiceV2.queryMhaByIds(Lists.newArrayList(1L));
+    }
+
+    @Test
+    public void testGetMhaReplicators() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTblV2s().get(0));
+        Mockito.when(replicatorGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(getReplicatorGroupTbls().get(0));
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.anyInt())).thenReturn(getReplicatorTbls());
+        Mockito.when(resourceTblDao.queryByIds(Mockito.anyList())).thenReturn(getResourceTbls());
+        List<String> result = mhaServiceV2.getMhaReplicators("mha");
+        Assert.assertEquals(result.size(), 1);
+    }
+
+    @Test
+    public void testGetMhaAvailableResource() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTblV2s().get(0));
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
+        Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
+        Mockito.when(resourceTblDao.queryByDcAndType(Mockito.anyList(), Mockito.anyInt())).thenReturn(getResourceTbls());
+
+        List<String> result = mhaServiceV2.getMhaAvailableResource("mha", ModuleEnum.APPLIER.getCode());
+        Assert.assertEquals(result.size(), 1);
+    }
+
+    @Test
+    public void testRecordMhaInstances() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.anyString(), Mockito.anyInt())).thenReturn(getMhaTblV2s().get(0));
+        Mockito.when(machineTblDao.queryByMhaId(Mockito.anyLong(), Mockito.anyInt())).thenReturn(new ArrayList<>());
+        Mockito.when(machineTblDao.insert(Mockito.any(DalHints.class), Mockito.any(KeyHolder.class), Mockito.any(MachineTbl.class))).thenReturn(1);
+
+        MhaInstanceGroupDto dto = new MhaInstanceGroupDto();
+        dto.setMhaName("mha");
+        MhaInstanceGroupDto.MySQLInstance mySQLInstance = new MhaInstanceGroupDto.MySQLInstance();
+        mySQLInstance.setIp("127.0.0.1");
+        mySQLInstance.setPort(3306);
+        mySQLInstance.setUuid("uuid");
+        dto.setMaster(mySQLInstance);
+        Boolean isSuccess = mhaServiceV2.recordMhaInstances(dto);
+        Assert.assertEquals(true, isSuccess);
     }
 
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {

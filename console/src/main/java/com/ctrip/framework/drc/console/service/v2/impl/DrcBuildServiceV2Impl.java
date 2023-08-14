@@ -9,15 +9,17 @@ import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -57,7 +59,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
     @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    private MetaInfoServiceV2 metaInfoService;
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
     @Autowired
@@ -92,6 +94,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private DcTblDao dcTblDao;
     @Autowired
     private CacheMetaService cacheMetaService;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
 
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
@@ -347,24 +353,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         dbReplicationFilterMappingTblDao.batchUpdate(existFilterMappings);
     }
 
-    @Override
-    public DrcConfigView getDrcConfigView(String srcMhaName, String dstMhaName) throws Exception {
-        DrcConfigView drcConfigView = new DrcConfigView();
-        DrcMhaConfigView srcMhaConfigView = new DrcMhaConfigView();
-        DrcMhaConfigView dstMhaConfigView = new DrcMhaConfigView();
-        drcConfigView.setSrcMhaConfigView(srcMhaConfigView);
-        drcConfigView.setDstMhaConfigView(dstMhaConfigView);
-
-        srcMhaConfigView.setMhaName(srcMhaName);
-        dstMhaConfigView.setMhaName(dstMhaName);
-
-        MhaTblV2 srcMha = mhaTblDao.queryByMhaName(srcMhaName, BooleanEnum.FALSE.getCode());
-        MhaTblV2 dstMha = mhaTblDao.queryByMhaName(dstMhaName, BooleanEnum.FALSE.getCode());
-
-        buildDrcMhaConfigView(srcMhaConfigView, srcMha, dstMha);
-        buildDrcMhaConfigView(dstMhaConfigView, dstMha, srcMha);
-        return drcConfigView;
-    }
 
     @Override
     public List<String> getMhaAppliers(String srcMhaName, String dstMhaName) throws Exception {
@@ -446,11 +434,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         logger.info("[[mha={}, mhaId={},replicatorGroupId={}]]configure or update messenger group", mhaName, mhaId, replicatorGroupId);
         return messengerGroupTblDao.upsertIfNotExist(mhaId, replicatorGroupId, formatGtid(gtidExecuted));
     }
-
-    @Autowired
-    private MessengerGroupTblDao messengerGroupTblDao;
-    @Autowired
-    private MessengerTblDao messengerTblDao;
 
     protected void configureMessengerInstances(MhaTblV2 mhaTbl, List<String> messengerIps, Long messengerGroupId) throws SQLException {
         String mhaName = mhaTbl.getMhaName();
@@ -546,43 +529,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         return addRemoveReplicatorIpsPair;
     }
-
-    private void buildDrcMhaConfigView(DrcMhaConfigView mhaConfigView, MhaTblV2 srcMha, MhaTblV2 dstMha) throws Exception {
-        if (srcMha == null) {
-            return;
-        }
-        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(srcMha.getId(), BooleanEnum.FALSE.getCode());
-        if (replicatorGroupTbl != null) {
-            List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(replicatorTbls)) {
-                List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
-                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-                List<String> replicatorIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-                mhaConfigView.setReplicatorIps(replicatorIps);
-            }
-        }
-
-        if (dstMha == null) {
-            return;
-        }
-
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId());
-        if (mhaReplicationTbl != null) {
-            ApplierGroupTblV2 applierGroupTbl = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
-            if (applierGroupTbl == null) {
-                return;
-            }
-            mhaConfigView.setApplierInitGtid(applierGroupTbl.getGtidInit());
-            List<ApplierTblV2> applierTbls = applierTblDao.queryByApplierGroupId(applierGroupTbl.getId(), BooleanEnum.FALSE.getCode());
-            if (!CollectionUtils.isEmpty(applierTbls)) {
-                List<Long> resourceIds = applierTbls.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-                List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
-                List<String> applierIps = resourceTbls.stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-                mhaConfigView.setApplierIps(applierIps);
-            }
-        }
-    }
-
     private List<DbReplicationFilterMappingTbl> getDbReplicationFilterMappings(List<Long> dbReplicationIds) throws Exception {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             throw ConsoleExceptionUtils.message("dbReplicationIds are empty!");

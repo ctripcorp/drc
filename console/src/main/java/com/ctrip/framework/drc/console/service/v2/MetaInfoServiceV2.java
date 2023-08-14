@@ -21,6 +21,8 @@ public interface MetaInfoServiceV2 {
 
     List<DcDo> queryAllDcWithCache();
 
+    Integer findAvailableApplierPort(String ip) throws Exception;
+
     Drc getDrcReplicationConfig(Long replicationId);
 
     Drc getDrcMessengerConfig(String mhaName);
