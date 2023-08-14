@@ -88,7 +88,7 @@ export default {
           that.$Message.error('仍有必填项未填!')
         } else {
           this.hasResp = false
-          that.axios.post('/api/drc/v2/drcBuild/mha', {
+          that.axios.post('/api/drc/v2/config/mha', {
             buName: this.build.buName,
             srcMhaName: this.build.srcMhaName,
             dstMhaName: this.build.dstMhaName,

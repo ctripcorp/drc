@@ -104,7 +104,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MetaProviderV2 metaProviderV2;
 
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(1, "drcMetaRefreshV2");
+    private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
 
@@ -140,7 +140,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         } catch (Exception e) {
             logger.error("metaProvider scheduledTask error, {}", e);
         }
+        long start = System.currentTimeMillis();
         Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
+        long cost = System.currentTimeMillis() - start;
+        logger.info("get drc cost: {}", cost);
         return XmlUtils.formatXML(drc.toString());
     }
 
