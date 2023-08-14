@@ -1,22 +1,12 @@
 package com.ctrip.framework.drc.core.driver.command.netty.codec;
 
 import io.netty.channel.*;
-import io.netty.util.concurrent.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 
 /**
@@ -28,9 +18,6 @@ public class ReceiveCheckHandlerTest {
 
     @Mock
     private ChannelHandlerContext channelHandlerContext;
-
-    @Mock
-    private Channel channel;
 
     @Before
     public void setUp() {
