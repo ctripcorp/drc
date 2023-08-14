@@ -170,6 +170,7 @@ public class MhaReplicationController {
             // set vo: mha
             vo.setSrcMha(MhaVo.from(srcMhaTbl, dcMap.get(srcMhaTbl.getDcId()), buMap.get(srcMhaTbl.getBuId())));
             vo.setDstMha(MhaVo.from(dstMhaTbl, dcMap.get(dstMhaTbl.getDcId()), buMap.get(dstMhaTbl.getBuId())));
+            vo.setStatus(replicationTbl.getDrcStatus());
 
             // set vo: replication
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));

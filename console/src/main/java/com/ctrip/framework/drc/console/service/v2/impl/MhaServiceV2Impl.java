@@ -282,7 +282,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         if (srcMhaTbl == null) {
             return new DrcBuildPreCheckVo(null, null, DrcBuildPreCheckVo.NO_CONFLICT);
         }
-// todo by yongnian: 2023/8/13 test
         List<String> resourcesInUse = this.getMhaReplicators(mhaName);
         if (!resourcesCompare(resourcesInUse, replicatorIps)) {
             logger.info("[preCheck before build] try to update one2many share replicators,mha is {}", mhaName);
