@@ -35,8 +35,7 @@ public class DrcBuildControllerV2 {
     @PostMapping("")
     public String buildDrc(@RequestBody DrcBuildParam param) {
         try {
-            drcBuildServiceV2.buildDrc(param);
-            return "ok";
+            return drcBuildServiceV2.buildDrc(param);
         } catch (Exception e) {
             return e.getMessage();
         }

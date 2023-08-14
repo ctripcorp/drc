@@ -436,7 +436,7 @@ export default {
         dstBuildParam: this.dstBuildParam
       }).then(response => {
         console.log(response.data)
-        that.result = response.data.data
+        that.result = response.data
         that.reviewModal = false
         that.resultModal = true
       })
