@@ -11,6 +11,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.springframework.util.CollectionUtils;
 import org.junit.Assert;
@@ -29,6 +30,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -110,5 +114,21 @@ public class MetaControllerV2Test {
 
         Assert.assertTrue(CollectionUtils.isEmpty(apiResult.getData()));
         Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), apiResult.getStatus().longValue());
+    }
+
+    @Test
+    public void testQueryMhaReplicationDetailConfig() throws Exception {
+        when(metaInfoServiceV2.getDrcReplicationConfig(anyLong())).thenReturn(new Drc());
+
+        ApiResult<String> result = controller.queryMhaReplicationDetailConfig(Long.valueOf(1));
+        verify(metaInfoServiceV2, times(1)).getDrcReplicationConfig(anyLong());
+    }
+
+    @Test
+    public void testQueryMhaMessengerDetailConfig() throws Exception {
+        when(metaInfoServiceV2.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+
+        ApiResult<String> result = controller.queryMhaMessengerDetailConfig("mhaName");
+        verify(metaInfoServiceV2, times(1)).getDrcMessengerConfig(anyString());
     }
 }

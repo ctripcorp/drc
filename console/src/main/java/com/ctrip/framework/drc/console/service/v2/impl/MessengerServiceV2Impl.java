@@ -20,9 +20,7 @@ import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
-import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
@@ -102,6 +100,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private MetaInfoServiceV2 metaInfoServiceV2;
     @Autowired
     private DrcBuildService drcBuildService;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
 
     @Override
     public List<MhaTblV2> getAllMessengerMhaTbls() {
@@ -240,11 +240,11 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             }
 
             // check mha && dbReplication match
-            List<Long> mhaDbMappingId = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
-            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(mhaDbMappingId);
+            List<Long> mhaDbMappingIds = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(mhaDbMappingIds);
             boolean mhaIdNotMatch = mhaDbMappingTbls.stream().anyMatch(mhaDbMappingTbl -> !mhaTblV2.getId().equals(mhaDbMappingTbl.getMhaId()));
             if (mhaIdNotMatch) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DELETE_TBL_CHECK_FAIL_EXCEPTION, "dbReplication not belong to this mha: " + mhaName);
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DELETE_TBL_CHECK_FAIL_EXCEPTION, String.format("some dbReplication %s not belong to this mha: %s", dbReplicationIds, mhaName));
             }
 
             dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
@@ -326,7 +326,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             if (updateRequest) {
                 boolean anyRemove = messengerDbReplications.removeIf(e -> e.getId().equals(dto.getDbReplicationId()));
                 if (!anyRemove) {
-                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE);
+                    throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, String.format("update replicationId %d that not belong to mha :%s", dto.getDbReplicationId(), mhaName));
                 }
             }
 
@@ -361,8 +361,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     // todo by yongnian: replace?
     private List<MySqlUtils.TableSchemaName> queryMatchTables(String table, String mhaName) {
-        String namespace = table.split(ESCAPE_CHARACTER_DOT_REGEX)[0];
-        String name = table.split(ESCAPE_CHARACTER_DOT_REGEX)[1];
+        String[] split = table.split(ESCAPE_CHARACTER_DOT_REGEX);
+        String namespace = split[0];
+        String name = split[1];
 
         return drcBuildService.getMatchTable(namespace, name, mhaName, 0);
     }
@@ -421,7 +422,13 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     @Override
     public String getMessengerGtidExecuted(String mhaName) {
         try {
+            if (StringUtils.isBlank(mhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "input is blank");
+            }
             MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+            if (mhaTbl == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist:" + mhaName);
+            }
             MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(), BooleanEnum.FALSE.getCode());
             return mGroup.getGtidExecuted();
         } catch (SQLException e) {
@@ -493,16 +500,15 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         insertDbs(dbList);
         insertMhaDbMappings(mhaTblV2.getId(), dbList);
     }
-
     private List<String> queryDbs(String mhaName, String nameFilter) {
-        List<String> tableList = drcBuildService.queryTablesWithNameFilter(mhaName, nameFilter);
+        List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
         List<String> dbList = new ArrayList<>();
         if (CollectionUtils.isEmpty(tableList)) {
             logger.info("mha: {} query db empty, nameFilter: {}", mhaName, nameFilter);
             return dbList;
         }
         for (String table : tableList) {
-            String[] tables = table.split("\\.");
+            String[] tables = table.split(Constants.ESCAPE_CHARACTER_DOT_REGEX);
             dbList.add(tables[0]);
         }
         return dbList.stream().distinct().collect(Collectors.toList());

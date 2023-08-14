@@ -57,7 +57,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Autowired
     private RegionTblDao regionTblDao;
     @Autowired
-    private MhaReplicationTblDao replicationTblDao;
+    private MhaReplicationTblDao mhaReplicationTblDao;
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -73,8 +73,6 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Autowired
     private ApplierGroupTblV2Dao applierGroupTblV2Dao;
     @Autowired
-    private MhaReplicationTblDao mhaReplicationTblDao;
-    @Autowired
     private ApplierTblV2Dao applierTblV2Dao;
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
@@ -89,7 +87,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     public Drc getDrcReplicationConfig(Long replicationId) {
         Drc drc = new Drc();
         try {
-            MhaReplicationTbl replicationTbl = replicationTblDao.queryById(replicationId);
+            MhaReplicationTbl replicationTbl = mhaReplicationTblDao.queryById(replicationId);
             if (replicationTbl == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "replication not exist: " + replicationId);
             }
@@ -111,7 +109,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     public Drc getDrcMessengerConfig(String mhaName) {
         Drc drc = new Drc();
         try {
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
             if (mhaTblV2 == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_RESULT_EMPTY, "replication not exist: " + mhaName);
             }

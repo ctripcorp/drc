@@ -33,7 +33,7 @@ public class MessengerControllerV2 {
 
     @GetMapping("all")
     @SuppressWarnings("unchecked")
-    public ApiResult<MessengerVo> getAllMessengerVos() {
+    public ApiResult<List<MessengerVo>> getAllMessengerVos() {
         try {
             List<MhaTblV2> messengerMhaTbls = messengerService.getAllMessengerMhaTbls();
 
@@ -99,7 +99,7 @@ public class MessengerControllerV2 {
 
     @PostMapping("submitConfig")
     @SuppressWarnings("unchecked")
-    public ApiResult<Boolean> insertConfig(@RequestBody MqConfigDto dto) {
+    public ApiResult<Boolean> submitConfig(@RequestBody MqConfigDto dto) {
         try {
             logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
             if (dto.isInsertRequest()) {

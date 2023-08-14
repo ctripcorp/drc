@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "type": 0,
+    "ip": "1.113.60.1",
+    "dcId": 1,
+    "appId": 100023498,
+    "deleted": 0,
+    "createTime": "2026-06-10 15:35:59",
+    "datachangeLasttime": "2014-07-19 15:55:18"
+  },
+  {
+    "id": 2,
+    "type": 0,
+    "ip": "1.113.60.2",
+    "dcId": 1,
+    "appId": 100023498,
+    "deleted": 0,
+    "createTime": "2026-06-10 15:35:59",
+    "datachangeLasttime": "2014-07-19 15:55:18"
+  },
+  {
+    "id": 3,
+    "type": 1,
+    "ip": "2.113.60.1",
+    "dcId": 1,
+    "appId": 100023498,
+    "deleted": 0,
+    "createTime": "2026-06-10 15:35:59",
+    "datachangeLasttime": "2014-07-19 15:55:18"
+  },
+  {
+    "id": 4,
+    "type": 1,
+    "ip": "2.113.60.2",
+    "dcId": 1,
+    "appId": 100023498,
+    "deleted": 0,
+    "createTime": "2026-06-10 15:35:59",
+    "datachangeLasttime": "2014-07-19 15:55:18"
+  }
+]
