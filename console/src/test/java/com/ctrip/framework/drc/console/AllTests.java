@@ -158,6 +158,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaInfoServiceV2ImplTest.class,
         MhaServiceV2ImplTest.class,
         MhaReplicationServiceV2ImplTest.class,
+        MhaDbMappingServiceTest.class,
+        DrcBuildServiceV2Test.class,
 //
         // controller
         MetaControllerV2Test.class,
