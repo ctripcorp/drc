@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
+import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
@@ -20,17 +21,18 @@ import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -98,7 +101,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private MessengerTblDao messengerTblDao;
+    @Autowired
+    private MetaProviderV2 metaProviderV2;
 
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(1, "drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
 
@@ -126,8 +132,20 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public String buildDrc(DrcBuildParam param) throws Exception {
+        submitDrc(param);
+
+        try {
+            executorService.submit(() -> metaProviderV2.scheduledTask());
+        } catch (Exception e) {
+            logger.error("metaProvider scheduledTask error, {}", e);
+        }
+        Drc drc = metaInfoService.getDrcReplicationConfig(param.getSrcBuildParam().getMhaName(), param.getDstBuildParam().getMhaName());
+        return XmlUtils.formatXML(drc.toString());
+    }
+
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void submitDrc(DrcBuildParam param) throws Exception{
         checkDrcBuildParam(param);
         DrcBuildBaseParam srcBuildParam = param.getSrcBuildParam();
         DrcBuildBaseParam dstBuildParam = param.getDstBuildParam();
@@ -163,8 +181,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             mhaReplicationTblDao.update(srcMhaReplication);
             mhaTblDao.update(srcMha);
         }
-
-        return "";
     }
 
     @Override
