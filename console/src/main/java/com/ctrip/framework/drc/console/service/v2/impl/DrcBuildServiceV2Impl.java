@@ -294,7 +294,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         List<RowsFilterConfig.Parameters> parametersList = configs.getParameterList();
         RowsFilterConfig.Parameters firstParameters = parametersList.get(0);
-        if (rowsFilterTblV2.getMode() == RowsFilterModeEnum.TRIP_UDL.getCode()) {
+        if (rowsFilterTblV2.getMode().equals(RowsFilterModeEnum.TRIP_UDL.getCode())) {
             if (firstParameters.getUserFilterMode().equals(UserFilterMode.Udl.getName())) {
                 rowsFilterConfigView.setUdlColumns(firstParameters.getColumns());
             } else if (firstParameters.getUserFilterMode().equals(UserFilterMode.Uid.getName())){
@@ -687,7 +687,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return replicatorGroupTblDao.insertWithReturnId(replicatorGroupTbl);
         } else {
             replicatorGroupId = existReplicatorGroup.getId();
-            if (existReplicatorGroup.getDeleted() == BooleanEnum.TRUE.getCode()) {
+            if (existReplicatorGroup.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
                 existReplicatorGroup.setDeleted(BooleanEnum.FALSE.getCode());
                 replicatorGroupTblDao.update(existReplicatorGroup);
             }
