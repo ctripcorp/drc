@@ -173,7 +173,7 @@ public class ResourceServiceImpl implements ResourceService {
             return new ArrayList<>();
         }
 
-        if (type != ModuleEnum.REPLICATOR.getCode() || type != ModuleEnum.APPLIER.getCode()) {
+        if (type != ModuleEnum.REPLICATOR.getCode() && type != ModuleEnum.APPLIER.getCode()) {
             logger.info("resource type: {} can only be replicator or applier", type);
             return new ArrayList<>();
         }
