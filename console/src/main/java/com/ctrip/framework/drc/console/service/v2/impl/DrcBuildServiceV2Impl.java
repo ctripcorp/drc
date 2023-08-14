@@ -845,20 +845,27 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void insertMhaReplication(long srcMhaId, long dstMhaId) throws Exception {
-        MhaReplicationTbl existMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId, BooleanEnum.FALSE.getCode());
+        MhaReplicationTbl existMhaReplication = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId);
         if (existMhaReplication != null) {
-            logger.info("mhaReplication already exist, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
-            return;
+            if (existMhaReplication.getDeleted().equals(BooleanEnum.FALSE.getCode())) {
+                logger.info("mhaReplication already exist, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+                return;
+            } else {
+                existMhaReplication.setDeleted(BooleanEnum.FALSE.getCode());
+                logger.info("recover mhaReplication, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+                mhaReplicationTblDao.update(existMhaReplication);
+            }
+
+        } else {
+            MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
+            mhaReplicationTbl.setSrcMhaId(srcMhaId);
+            mhaReplicationTbl.setDstMhaId(dstMhaId);
+            mhaReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
+            mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
+
+            logger.info("insertMhaReplication srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+            mhaReplicationTblDao.insert(mhaReplicationTbl);
         }
-
-        MhaReplicationTbl mhaReplicationTbl = new MhaReplicationTbl();
-        mhaReplicationTbl.setSrcMhaId(srcMhaId);
-        mhaReplicationTbl.setDstMhaId(dstMhaId);
-        mhaReplicationTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
-
-        logger.info("insertMhaReplication srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
-        mhaReplicationTblDao.insert(mhaReplicationTbl);
     }
 
     private long insertMha(MhaTblV2 mhaTblV2) throws Exception {
