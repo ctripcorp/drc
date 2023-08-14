@@ -62,7 +62,10 @@
             </Card>
           </Col>
           <Col span="3">
-            <Button type="primary" icon="ios-search" @click="getReplications">Search</Button>
+            <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications">查询</Button>
+          </Col>
+          <Col span="3" style="margin-top: 20px">
+            <Button icon="md-refresh" @click="resetParam" :loading="dataLoading">重置</Button>
           </Col>
         </Row>
         <br>
@@ -74,7 +77,7 @@
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
               修改
             </Button>
-            <Button disabled type=" error" size="small" style="margin-right: 5px">
+            <Button disabled type="error" size="small" style="margin-right: 5px">
               删除
             </Button>
           </template>
@@ -148,6 +151,7 @@ export default {
             const row = params.row
             let text = 'none'
             let type = 'error'
+            let disabled = false
             switch (row.type) {
               case 'simplex':
                 text = '单'
@@ -158,13 +162,15 @@ export default {
                 type = 'success'
                 break
               default:
-                text = 'none'
+                text = '无'
+                disabled = true
                 break
             }
             return h('Button', {
               props: {
                 type: type,
-                size: 'small'
+                size: 'small',
+                disabled: disabled
               },
               on: {
                 click: () => {
@@ -186,6 +192,22 @@ export default {
           key: 'dstMhaName',
           render: (h, params) => {
             return h('p', params.row.dstMha.name)
+          }
+        },
+        {
+          title: '状态',
+          key: 'status',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const color = row.status === 1 ? 'blue' : 'volcano'
+            const text = row.status === 1 ? '已接入' : '未接入'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
           }
         },
         {
@@ -340,6 +362,19 @@ export default {
       }
       return result
     },
+    resetParam () {
+      this.srcMha = {
+        name: null,
+        buName: null,
+        regionName: null
+      }
+      this.dstMha = {
+        name: null,
+        buName: null,
+        regionName: null
+      }
+      this.getReplications()
+    },
     getReplications () {
       const that = this
       const params = {
@@ -416,11 +451,16 @@ export default {
     checkConfig (row, index) {
       console.log(row.srcMha.name + '->' + row.dstMha.name)
       this.dataLoading = true
+      this.replicationDetail.data = null
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
         params: {
           replicationId: row.replicationId
         }
       }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.warning('查询异常: ' + response.data.message)
+          return
+        }
         this.replicationDetail.data = response.data.data
         this.replicationDetail.show = true
         this.replicationDetail.row = row

@@ -359,7 +359,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     }
 
 
-    // todo by yongnian: replace?
+    // todo by yongnian: can use?
     private List<MySqlUtils.TableSchemaName> queryMatchTables(String table, String mhaName) {
         String[] split = table.split(ESCAPE_CHARACTER_DOT_REGEX);
         String namespace = split[0];
