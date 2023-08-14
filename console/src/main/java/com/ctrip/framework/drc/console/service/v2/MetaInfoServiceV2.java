@@ -24,6 +24,7 @@ public interface MetaInfoServiceV2 {
     Integer findAvailableApplierPort(String ip) throws Exception;
 
     Drc getDrcReplicationConfig(Long replicationId);
+    Drc getDrcReplicationConfig(String srcMhaName, String dstMhaName);
 
     Drc getDrcMessengerConfig(String mhaName);
 }

@@ -52,8 +52,31 @@ public class MetaInfoServiceV2ImplTest2 extends CommonDataInit {
         Assert.assertNotNull(dbCluster);
         Assert.assertEquals(1, dbCluster.getDbs().getDbs().size());
         Assert.assertEquals(2, dbCluster.getAppliers().size());
+    }
 
 
+    @Test
+    public void testGetDrcReplicationConfigByName() throws Exception {
+
+        Drc drc = metaInfoServiceV2Impl.getDrcReplicationConfig("mha1", "mha2");
+        String xml = XmlUtils.formatXML(drc.toString());
+        System.out.println(xml);
+
+        Assert.assertEquals(2, drc.getDcs().size());
+        Dc shaoy = drc.getDcs().get("shaoy");
+        Assert.assertNotNull(shaoy);
+        DbCluster dbCluster = shaoy.getDbClusters().get("test_dalcluster.mha1");
+        Assert.assertNotNull(dbCluster);
+        Assert.assertEquals(2, dbCluster.getDbs().getDbs().size());
+        Assert.assertEquals(2, dbCluster.getReplicators().size());
+
+
+        Dc sinaws = drc.getDcs().get("sinaws");
+        Assert.assertNotNull(sinaws);
+        dbCluster = sinaws.getDbClusters().get("test_dalcluster.mha2");
+        Assert.assertNotNull(dbCluster);
+        Assert.assertEquals(1, dbCluster.getDbs().getDbs().size());
+        Assert.assertEquals(2, dbCluster.getAppliers().size());
     }
 
     @Test

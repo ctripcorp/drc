@@ -94,6 +94,25 @@ public class MetaControllerV2 {
         }
     }
 
+
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaReplicationByName")
+    public ApiResult<String> queryMhaReplicationDetailConfig(@RequestParam(name = "srcMha") String srcMhaName,
+                                                             @RequestParam(name = "dstMha") String dstMhaName) {
+        logger.info("queryReplicationDetailConfig for {} - {}", srcMhaName, dstMhaName);
+        try {
+            if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dstMhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcReplicationConfig(srcMhaName, dstMhaName);
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (Throwable e) {
+            logger.error("queryMhaReplicationDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @GetMapping("queryConfig/mhaReplication")
     public ApiResult<String> queryMhaReplicationDetailConfig(@RequestParam(name = "replicationId") Long replicationId) {

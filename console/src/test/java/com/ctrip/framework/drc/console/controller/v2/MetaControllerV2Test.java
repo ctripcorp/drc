@@ -13,7 +13,6 @@ import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.springframework.util.CollectionUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 
@@ -122,6 +122,14 @@ public class MetaControllerV2Test {
 
         ApiResult<String> result = controller.queryMhaReplicationDetailConfig(Long.valueOf(1));
         verify(metaInfoServiceV2, times(1)).getDrcReplicationConfig(anyLong());
+    }
+
+    @Test
+    public void testQueryMhaReplicationDetailConfigByName() throws Exception {
+        when(metaInfoServiceV2.getDrcReplicationConfig(anyString(), anyString())).thenReturn(new Drc());
+
+        ApiResult<String> result = controller.queryMhaReplicationDetailConfig("mha1", "mha2");
+        verify(metaInfoServiceV2, times(1)).getDrcReplicationConfig(anyString(),anyString());
     }
 
     @Test

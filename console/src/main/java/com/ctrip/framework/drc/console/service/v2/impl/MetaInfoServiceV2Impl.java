@@ -122,6 +122,24 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     }
 
     @Override
+    public Drc getDrcReplicationConfig(String srcMhaName, String dstMhaName) {
+        Drc drc = new Drc();
+        try {
+            MhaTblV2 srcMhaTbl = mhaTblV2Dao.queryByMhaName(srcMhaName, 0);
+            MhaTblV2 dstMhaTbl = mhaTblV2Dao.queryByMhaName(dstMhaName, 0);
+            if (srcMhaTbl == null || dstMhaTbl == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found!");
+            }
+            this.appendReplicationConfig(drc, srcMhaTbl, dstMhaTbl);
+            this.appendReplicationConfig(drc, dstMhaTbl, srcMhaTbl);
+        } catch (SQLException e) {
+            logger.error("getDrcReplicationConfig sql exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+        return drc;
+    }
+
+    @Override
     public Drc getDrcMessengerConfig(String mhaName) {
         Drc drc = new Drc();
         try {
@@ -379,7 +397,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     public Integer findAvailableApplierPort(String ip) throws Exception {
         ResourceTbl resourceTbl = resourceTblDao.queryAll().stream().filter(predicate -> (predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getIp().equalsIgnoreCase(ip))).findFirst().get();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(r -> r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getResourceId().equals(resourceTbl.getId())).collect(Collectors.toList());
-        if(replicatorTbls.size() == 0) {
+        if (replicatorTbls.size() == 0) {
             return DEFAULT_REPLICATOR_APPLIER_PORT;
         }
         int size = consoleConfig.getAvailablePortSize();
