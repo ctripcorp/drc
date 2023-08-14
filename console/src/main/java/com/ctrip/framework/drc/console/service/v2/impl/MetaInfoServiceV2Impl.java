@@ -1,11 +1,17 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.BuTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
+import com.ctrip.framework.drc.console.dao.ResourceTblDao;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -23,6 +29,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.config.ConsoleConfig.DEFAULT_REPLICATOR_APPLIER_PORT;
 
 /**
  * Created by yongnian
@@ -47,6 +55,16 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
 
     @Autowired
     private RegionTblDao regionTblDao;
+
+    @Autowired
+    private ResourceTblDao resourceTblDao;
+
+    @Autowired
+    private ReplicatorTblDao replicatorTblDao;
+
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+
 
     @Override
     public List<DcDo> queryAllDcWithCache() {
@@ -109,5 +127,25 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
             logger.error("queryAllRegion exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    public Integer findAvailableApplierPort(String ip) throws Exception {
+        ResourceTbl resourceTbl = resourceTblDao.queryAll().stream().filter(predicate -> (predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getIp().equalsIgnoreCase(ip))).findFirst().get();
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(r -> r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getResourceId().equals(resourceTbl.getId())).collect(Collectors.toList());
+        if(replicatorTbls.size() == 0) {
+            return DEFAULT_REPLICATOR_APPLIER_PORT;
+        }
+        int size = consoleConfig.getAvailablePortSize();
+        boolean[] isUsedFlags = new boolean[size];
+        for (ReplicatorTbl r : replicatorTbls) {
+            int index = r.getApplierPort() - DEFAULT_REPLICATOR_APPLIER_PORT;
+            isUsedFlags[index] = true;
+        }
+        for (int i = 0; i <= size; i++) {
+            if (!isUsedFlags[i]) {
+                return DEFAULT_REPLICATOR_APPLIER_PORT + i;
+            }
+        }
+        throw ConsoleExceptionUtils.message("no available port find for replicator, all in use!");
     }
 }

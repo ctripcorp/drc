@@ -8,15 +8,17 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.param.v2.*;
-import com.ctrip.framework.drc.console.service.impl.MetaInfoServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
-import com.ctrip.framework.drc.console.vo.v2.*;
+import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -51,7 +53,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MonitorTableSourceProvider monitorTableSourceProvider;
     @Autowired
-    private MetaInfoServiceImpl metaInfoService;
+    private MetaInfoServiceV2 metaInfoService;
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
     @Autowired

@@ -19,4 +19,6 @@ public interface MetaInfoServiceV2 {
     List<DcDo> queryAllDc();
 
     List<DcDo> queryAllDcWithCache();
+
+    Integer findAvailableApplierPort(String ip) throws Exception;
 }
