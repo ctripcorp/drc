@@ -24,7 +24,7 @@
       </FormItem>
       <FormItem>
         <Button @click="handleReset('mhaInfo')">重置</Button>
-        <Button type="primary" @click="changeModal('mhaInfo')" style="margin-left: 150px">录入</Button>
+        <Button type="primary" :disabled="true" @click="changeModal('mhaInfo')" style="margin-left: 150px" >录入（暂不支持，请在DRC配置中录入）</Button>
         <Modal
           v-model="mhaInfo.modal"
           title="录入mha相关信息"
@@ -85,34 +85,34 @@ export default {
   },
   methods: {
     postMhaInfo (name) {
-      const that = this
-      that.$refs[name].validate((valid) => {
-        if (!valid) {
-          that.$Message.error('仍有必填项未填!')
-        } else {
-          this.hasResp = false
-          // todo by yongnian: replace
-          console.log('/api/drc/v1/mha/')
-          that.axios.post('/api/drc/v1/mha/', {
-            buName: this.mhaInfo.bu,
-            dalClusterName: this.mhaInfo.dalclustername,
-            appid: this.mhaInfo.appid,
-            mhaName: this.mhaInfo.mhaName,
-            dc: this.mhaInfo.dc
-          }).then(response => {
-            that.hasResp = true
-            if (response.data.status === 0) {
-              that.status = 'success'
-              that.title = 'Mha录入完成!'
-              that.message = response.data.message
-            } else {
-              that.status = 'error'
-              that.title = 'Mha录入失败!'
-              that.message = response.data.message
-            }
-          })
-        }
-      })
+      // const that = this
+      // that.$refs[name].validate((valid) => {
+      //   if (!valid) {
+      //     that.$Message.error('仍有必填项未填!')
+      //   } else {
+      //     this.hasResp = false
+      //     // todo by yongnian: replace
+      //     console.log('/api/drc/v1/mha/')
+      //     that.axios.post('/api/drc/v1/mha/', {
+      //       buName: this.mhaInfo.bu,
+      //       dalClusterName: this.mhaInfo.dalclustername,
+      //       appid: this.mhaInfo.appid,
+      //       mhaName: this.mhaInfo.mhaName,
+      //       dc: this.mhaInfo.dc
+      //     }).then(response => {
+      //       that.hasResp = true
+      //       if (response.data.status === 0) {
+      //         that.status = 'success'
+      //         that.title = 'Mha录入完成!'
+      //         that.message = response.data.message
+      //       } else {
+      //         that.status = 'error'
+      //         that.title = 'Mha录入失败!'
+      //         that.message = response.data.message
+      //       }
+      //     })
+      //   }
+      // })
     },
     handleReset (name) {
       this.$refs[name].resetFields()
