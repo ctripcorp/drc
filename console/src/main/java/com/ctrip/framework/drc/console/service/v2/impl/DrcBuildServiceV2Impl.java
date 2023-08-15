@@ -178,8 +178,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         configureReplicatorGroup(srcMha, srcBuildParam.getReplicatorInitGtid(), srcBuildParam.getReplicatorIps(), resourceTbls);
         configureReplicatorGroup(dstMha, dstBuildParam.getReplicatorInitGtid(), dstBuildParam.getReplicatorIps(), resourceTbls);
 
-        configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls);
-        configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls);
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<DbReplicationTbl> srcDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
+        List<DbReplicationTbl> dstDbReplications = getExistDbReplications(dstMhaDbMappings, srcMhaDbMappings);
+
+        configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls, srcDbReplications);
+        configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls, dstDbReplications);
 
         if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
             dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
@@ -736,12 +741,16 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationTbl;
     }
 
-    private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls) throws Exception {
+    private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
         long applierGroupId = insertOrUpdateApplierGroup(mhaReplicationId, applierInitGtid);
-        configureAppliers(applierGroupId, applierIps, resourceTbls);
+        configureAppliers(applierGroupId, applierIps, resourceTbls, dbReplications);
     }
 
-    private void configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls) throws Exception {
+    private void configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplications) && !CollectionUtils.isEmpty(applierIps)) {
+            throw ConsoleExceptionUtils.message("dbReplication not config yet, cannot config applier");
+        }
+
         Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));
 
         List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
@@ -863,7 +872,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         for (String ip : existIps) {
             if (!insertIps.contains(ip)) {
-                deleteIps.contains(ip);
+                deleteIps.add(ip);
             }
         }
 

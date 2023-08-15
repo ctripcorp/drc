@@ -439,6 +439,7 @@ export default {
         that.result = response.data
         that.reviewModal = false
         that.resultModal = true
+        this.refresh()
       })
     },
     getSrcDbReplications () {
@@ -467,15 +468,18 @@ export default {
     },
     handleChangeSize (val) {
       this.size = val
+    },
+    refresh () {
+      this.getSrcMhaReplicatorsInUse()
+      this.getDstMhaReplicatorsInUse()
+      this.getSrcMhaAppliersInUse()
+      this.getDstMhaAppliersInUse()
     }
   },
   created () {
     this.getSrcMhaResources()
     this.getDstMhaResources()
-    this.getSrcMhaReplicatorsInUse()
-    this.getDstMhaReplicatorsInUse()
-    this.getSrcMhaAppliersInUse()
-    this.getDstMhaAppliersInUse()
+    this.refresh()
   }
 }
 </script>
