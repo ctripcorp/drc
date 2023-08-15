@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
+import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 
 import java.sql.SQLException;
+import java.sql.Types;
 
 /**
  * @author shb沈海波
@@ -14,4 +16,9 @@ public class BuTblDao extends AbstractDao<BuTbl> {
 		super(BuTbl.class);
 	}
 
+	public BuTbl queryByBuName(String buName) throws SQLException {
+		SelectSqlBuilder sqlBuilder = initSqlBuilder();
+		sqlBuilder.and().equal("bu_name", buName, Types.VARCHAR);
+		return queryOne(sqlBuilder);
+	}
 }

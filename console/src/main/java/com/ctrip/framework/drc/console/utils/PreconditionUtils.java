@@ -20,7 +20,7 @@ public class PreconditionUtils {
         try {
             Preconditions.checkNotNull(param, errorMessage);
         } catch (Exception e) {
-            throw new IllegalArgumentException(errorMessage);
+            throw ConsoleExceptionUtils.message(errorMessage);
         }
     }
 
@@ -36,6 +36,10 @@ public class PreconditionUtils {
         checkArgument(!CollectionUtils.isEmpty(collection), errorMessage);
     }
     public static void checkArgument(boolean expression, String errorMessage) {
-        Preconditions.checkArgument(expression, errorMessage);
+        try {
+            Preconditions.checkArgument(expression, errorMessage);
+        } catch (IllegalArgumentException e) {
+            throw ConsoleExceptionUtils.message(errorMessage);
+        }
     }
 }

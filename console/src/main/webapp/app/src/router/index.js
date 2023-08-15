@@ -168,12 +168,45 @@ const routes = [
   },
   // v2 new model
   {
-    path: '/mhaReplications',
+    path: '/v2/mhaReplications',
     component: () => import('../views/v2/mhaReplications.vue')
   },
   {
     path: '/v2/mhaReplicationDetails',
     component: () => import('../views/v2/mhaReplicationDetails.vue')
+  },
+  {
+    path: '/v2/messengersV2',
+    component: () => import('../views/v2/messengersV2.vue')
+  },
+  {
+    path: '/v2/buildMessengerV2',
+    component: () => import('../views/v2/buildMessengerV2.vue')
+  },
+  {
+    path: '/v2/mhaBuild',
+    name: 'mhaBuild',
+    component: () => import('../views/v2/mhaBuild.vue')
+  },
+  {
+    path: '/drcV2',
+    name: 'drcV2',
+    component: () => import('../views/v2/drcV2.vue')
+  },
+  {
+    path: '/dbTables',
+    name: 'dbTables',
+    component: () => import('../views/v2/dbTables.vue')
+  },
+  {
+    path: '/dbReplicationConfig',
+    name: 'dbReplicationConfig',
+    component: () => import('../views/v2/dbReplicationConfig.vue')
+  },
+  {
+    path: '/v2/mqConfigs',
+    name: 'v2/mqConfigs',
+    component: () => import('../views/v2/drcConfig/mqConfigs.vue')
   },
   {
     path: '/',

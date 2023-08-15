@@ -20,7 +20,7 @@ import java.util.List;
 public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 
 	private static final Logger logger = LoggerFactory.getLogger(ReplicatorGroupTblDao.class);
-	
+
 	public ReplicatorGroupTblDao() throws SQLException {
 		super(ReplicatorGroupTbl.class);
 	}
@@ -39,6 +39,13 @@ public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 	public ReplicatorGroupTbl queryByMhaId(Long mhaId) throws SQLException {
 		SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT);
+		return queryOne(builder);
+	}
+
+	public ReplicatorGroupTbl queryByMhaId(Long mhaId, Integer deleted) throws SQLException {
+		SelectSqlBuilder builder = new SelectSqlBuilder();
+		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT)
+		.and().equal("deleted", deleted, Types.TINYINT, false);
 		return queryOne(builder);
 	}
 
