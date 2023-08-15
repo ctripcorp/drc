@@ -61,6 +61,9 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
 
     @Override
     public void scheduledTask() {
+        if (consoleConfig.getMetaCompareSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+            return;
+        }
         try {
             if (!isRegionLeader) {
                 logger.info("[[task=MetaCompare]]not a leader start compare");
