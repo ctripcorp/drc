@@ -141,8 +141,8 @@ public class MhaControllerV2 {
     public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] submit meta config for {}", dto);
         try {
-            drcBuildServiceV2.buildMessengerDrc(dto);
-            return ApiResult.getSuccessInstance(null);
+            String xml = drcBuildServiceV2.buildMessengerDrc(dto);
+            return ApiResult.getSuccessInstance(xml);
         } catch (Throwable e) {
             logger.error("[meta] submit meta config for for {}", dto, e);
             return ApiResult.getFailInstance(null, e.getMessage());

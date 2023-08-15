@@ -423,7 +423,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void buildMessengerDrc(MessengerMetaDto dto) throws Exception {
+    public String buildMessengerDrc(MessengerMetaDto dto) throws Exception {
         // 0. check
         MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
@@ -433,12 +433,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
         configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
+        Drc drcMessengerConfig = metaInfoService.getDrcMessengerConfig(dto.getMhaName());
 
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
             logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
         }
+        return XmlUtils.formatXML(drcMessengerConfig.toString());
+
     }
 
     public Long configureMessengers(MhaTblV2 mhaTbl,

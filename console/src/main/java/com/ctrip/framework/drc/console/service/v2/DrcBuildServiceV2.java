@@ -40,5 +40,5 @@ public interface DrcBuildServiceV2 {
 
     String getApplierGtid(String srcMhaName, String dstMhaName) throws Exception;
 
-    void buildMessengerDrc(MessengerMetaDto dto) throws Exception;
+    String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
 }
