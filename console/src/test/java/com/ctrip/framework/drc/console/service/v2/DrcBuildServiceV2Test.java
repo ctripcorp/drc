@@ -127,6 +127,9 @@ public class DrcBuildServiceV2Test {
         Mockito.doNothing().when(metaProviderV2).scheduledTask();
         Mockito.when(metaInfoService.getDrcReplicationConfig(Mockito.anyString(), Mockito.anyString())).thenReturn(new Drc());
 
+        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(getMhaDbMappingTbls1());
+        Mockito.when(dbReplicationTblDao.queryByMappingIds(Mockito.anyList(), Mockito.anyList(), Mockito.anyInt())).thenReturn(getDbReplicationTbls());
+
         drcBuildServiceV2.buildDrc(param);
 
         Mockito.verify(replicatorTblDao, Mockito.never()).batchUpdate(Mockito.anyList());
@@ -140,7 +143,7 @@ public class DrcBuildServiceV2Test {
         Mockito.verify(applierGroupTblDao, Mockito.never()).update(Mockito.anyList());
 
         Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
-        Mockito.verify(mhaTblDao, Mockito.times(2)).update(Mockito.any(MhaTblV2.class));
+        Mockito.verify(mhaTblDao, Mockito.never()).update(Mockito.any(MhaTblV2.class));
     }
 
     @Test

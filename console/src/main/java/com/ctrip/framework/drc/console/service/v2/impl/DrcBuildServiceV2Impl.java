@@ -31,6 +31,7 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,7 +105,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Autowired
     private MessengerServiceV2 messengerServiceV2;
 
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5,"drcMetaRefreshV2");
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
     private static final String DEFAULT_TABLE_NAME = ".*";
 
@@ -112,24 +113,33 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMha(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
-        //todo butbl insert
-        BuTbl buTbl = buTblDao.queryByBuName(param.getBuName());
-        if (buTbl == null) {
-            throw ConsoleExceptionUtils.message(String.format("buName: %s not exist", param.getBuName()));
-        }
+
+        long buId = getBuId(param.getBuName());
         DcTbl srcDcTbl = dcTblDao.queryByDcName(param.getSrcDc());
         DcTbl dstDcTbl = dcTblDao.queryByDcName(param.getDstDc());
         if (srcDcTbl == null || dstDcTbl == null) {
             throw ConsoleExceptionUtils.message(String.format("srcDc: %s or dstDc: %s not exist", param.getSrcDc(), param.getDstDc()));
         }
 
-        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buTbl.getId());
-        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buTbl.getId());
+        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId);
+        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId);
 
         long srcMhaId = insertMha(srcMha);
         long dstMhaId = insertMha(dstMha);
         insertMhaReplication(srcMhaId, dstMhaId);
         insertMhaReplication(dstMhaId, srcMhaId);
+    }
+
+    private long getBuId(String buName) throws Exception {
+        BuTbl existBuTbl = buTblDao.queryByBuName(buName);
+        if (existBuTbl != null) {
+            return existBuTbl.getId();
+        }
+
+        BuTbl buTbl = new BuTbl();
+        buTbl.setBuName(buName);
+        buTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return buTblDao.insertWithReturnId(buTbl);
     }
 
     @Override
@@ -164,18 +174,24 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("mhaReplication between %s and %s not exist", srcMhaName, dstMhaName));
         }
 
-        configureReplicatorGroup(srcMha, srcBuildParam.getReplicatorInitGtid(), srcBuildParam.getReplicatorIps());
-        configureReplicatorGroup(dstMha, dstBuildParam.getReplicatorInitGtid(), dstBuildParam.getReplicatorIps());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        configureReplicatorGroup(srcMha, srcBuildParam.getReplicatorInitGtid(), srcBuildParam.getReplicatorIps(), resourceTbls);
+        configureReplicatorGroup(dstMha, dstBuildParam.getReplicatorInitGtid(), dstBuildParam.getReplicatorIps(), resourceTbls);
 
-        configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps());
-        configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps());
+        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
+        List<DbReplicationTbl> srcDbReplications = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
+        List<DbReplicationTbl> dstDbReplications = getExistDbReplications(dstMhaDbMappings, srcMhaDbMappings);
+
+        configureApplierGroup(srcMhaReplication.getId(), dstBuildParam.getApplierInitGtid(), dstBuildParam.getApplierIps(), resourceTbls, srcDbReplications);
+        configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps(), resourceTbls, dstDbReplications);
 
         if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
             dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
             mhaReplicationTblDao.update(dstMhaReplication);
         } else {
             dstMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
-            mhaTblDao.update(dstMha);
+            mhaReplicationTblDao.update(dstMhaReplication);
         }
         if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
             srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
@@ -451,7 +467,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
         // 1. configure and persistent in database
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
-        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps(), resourceTbls);
         configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
     }
 
@@ -741,39 +758,52 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationTbl;
     }
 
-    private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps) throws Exception {
+    private void configureApplierGroup(long mhaReplicationId, String applierInitGtid, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
         long applierGroupId = insertOrUpdateApplierGroup(mhaReplicationId, applierInitGtid);
-        configureAppliers(applierGroupId, applierIps);
+        configureAppliers(applierGroupId, applierIps, resourceTbls, dbReplications);
     }
 
-    private void configureAppliers(long applierGroupId, List<String> applierIps) throws Exception {
-        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
-        if (!CollectionUtils.isEmpty(existAppliers)) {
-            logger.info("delete appliers: {}", existAppliers);
-            existAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            applierTblDao.batchUpdate(existAppliers);
+    private void configureAppliers(long applierGroupId, List<String> applierIps, List<ResourceTbl> resourceTbls, List<DbReplicationTbl> dbReplications) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplications) && !CollectionUtils.isEmpty(applierIps)) {
+            throw ConsoleExceptionUtils.message("dbReplication not config yet, cannot config applier");
         }
 
-        if (CollectionUtils.isEmpty(applierIps)) {
-            return;
-        }
-
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(applierIps);
         Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));
 
-        List<ApplierTblV2> applierTbls = applierIps.stream().map(ip -> {
-            ApplierTblV2 applierTbl = new ApplierTblV2();
-            applierTbl.setApplierGroupId(applierGroupId);
-            applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
-            applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-            applierTbl.setResourceId(resourceTblMap.get(ip));
-            applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroupId, BooleanEnum.FALSE.getCode());
+        Map<Long, ApplierTblV2> existApplierMap = existAppliers.stream().collect(Collectors.toMap(ApplierTblV2::getResourceId, Function.identity()));
+        List<Long> existResourceIds = existAppliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
+        List<String> existIps = resourceTbls.stream().filter(e -> existResourceIds.contains(e.getId())).map(ResourceTbl::getIp).collect(Collectors.toList());
 
-            return applierTbl;
-        }).collect(Collectors.toList());
+        Pair<List<String>, List<String>> ipPairs = getAddAndDeleteResourceIps(applierIps, existIps);
+        List<String> insertIps = ipPairs.getLeft();
+        List<String> deleteIps = ipPairs.getRight();
+        List<ApplierTblV2> insertAppliers = new ArrayList<>();
+        List<ApplierTblV2> deleteAppliers = new ArrayList<>();
 
-        logger.info("insert applierIps: {}", applierIps);
-        applierTblDao.batchInsert(applierTbls);
+        if (!CollectionUtils.isEmpty(insertIps)) {
+            for (String ip : insertIps) {
+                ApplierTblV2 applierTbl = new ApplierTblV2();
+                applierTbl.setApplierGroupId(applierGroupId);
+                applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+                applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+                applierTbl.setResourceId(resourceTblMap.get(ip));
+                applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+                insertAppliers.add(applierTbl);
+            }
+            logger.info("insert insertIps: {}", insertIps);
+            applierTblDao.batchInsert(insertAppliers);
+        }
+
+        if (!CollectionUtils.isEmpty(deleteIps)) {
+            for (String ip : deleteIps) {
+                ApplierTblV2 applierTbl = existApplierMap.get(resourceTblMap.get(ip));
+                applierTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                deleteAppliers.add(applierTbl);
+            }
+            applierTblDao.update(deleteAppliers);
+        }
     }
 
     private long insertOrUpdateApplierGroup(long mhaReplicationId, String applierInitGtid) throws Exception {
@@ -798,43 +828,72 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupId;
     }
 
-    private void configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps) throws Exception {
+    private void configureReplicatorGroup(MhaTblV2 mhaTblV2, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTblV2.getId());
-        configureReplicators(mhaTblV2.getMhaName(), replicatorGroupId, replicatorInitGtid, replicatorIps);
+        configureReplicators(mhaTblV2.getMhaName(), replicatorGroupId, replicatorInitGtid, replicatorIps, resourceTbls);
     }
 
-    //todo
-    private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps) throws Exception {
-        List<ReplicatorTbl> existReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupId), BooleanEnum.FALSE.getCode());
-        if (!CollectionUtils.isEmpty(existReplicators)) {
-            logger.info("delete replicators: {}", existReplicators);
-            existReplicators.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-            replicatorTblDao.batchUpdate(existReplicators);
-        }
-
-        if (CollectionUtils.isEmpty(replicatorIps)) {
-            return;
-        }
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIps(replicatorIps);
+    private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps, List<ResourceTbl> resourceTbls) throws Exception {
         Map<String, Long> resourceTblMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getIp, ResourceTbl::getId));
 
-        List<ReplicatorTbl> replicatorTbls = new ArrayList<>();
-        for (String ip : replicatorIps) {
-            ReplicatorTbl replicatorTbl = new ReplicatorTbl();
-            replicatorTbl.setRelicatorGroupId(replicatorGroupId);
-            String gtidInit = StringUtils.isNotBlank(replicatorInitGtid) ? formatGtid(replicatorInitGtid) : getNativeGtid(mhaName);
-            replicatorTbl.setGtidInit(gtidInit);
-            replicatorTbl.setResourceId(resourceTblMap.get(ip));
-            replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
-            replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(ip));
-            replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
-            replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        List<ReplicatorTbl> existReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupId), BooleanEnum.FALSE.getCode());
+        Map<Long, ReplicatorTbl> existReplicatorMap = existReplicators.stream().collect(Collectors.toMap(ReplicatorTbl::getResourceId, Function.identity()));
+        List<Long> existResourceIds = existReplicators.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
+        List<String> existIps = resourceTbls.stream().filter(e -> existResourceIds.contains(e.getId())).map(ResourceTbl::getIp).collect(Collectors.toList());
 
-            replicatorTbls.add(replicatorTbl);
+        Pair<List<String>, List<String>> ipPairs = getAddAndDeleteResourceIps(replicatorIps, existIps);
+        List<String> insertIps = ipPairs.getLeft();
+        List<String> deleteIps = ipPairs.getRight();
+        List<ReplicatorTbl> insertReplicators = new ArrayList<>();
+        List<ReplicatorTbl> deleteReplicators = new ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(insertIps)) {
+            for (String ip : insertIps) {
+                ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+                replicatorTbl.setRelicatorGroupId(replicatorGroupId);
+                String gtidInit = StringUtils.isNotBlank(replicatorInitGtid) ? formatGtid(replicatorInitGtid) : getNativeGtid(mhaName);
+                replicatorTbl.setGtidInit(gtidInit);
+                replicatorTbl.setResourceId(resourceTblMap.get(ip));
+                replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
+                replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(ip));
+                replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
+                replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
+
+                insertReplicators.add(replicatorTbl);
+            }
+            logger.info("insert insertIps: {}", insertIps);
+            replicatorTblDao.batchInsert(insertReplicators);
         }
 
-        logger.info("insert replicatorIps: {}", replicatorIps);
-        replicatorTblDao.batchInsert(replicatorTbls);
+        if (!CollectionUtils.isEmpty(deleteIps)) {
+            for (String ip : deleteIps) {
+                ReplicatorTbl replicatorTbl = existReplicatorMap.get(resourceTblMap.get(ip));
+                replicatorTbl.setDeleted(BooleanEnum.TRUE.getCode());
+                deleteReplicators.add(replicatorTbl);
+            }
+            replicatorTblDao.update(deleteReplicators);
+        }
+    }
+
+    private Pair<List<String>, List<String>> getAddAndDeleteResourceIps(List<String> insertIps, List<String> existIps) {
+        if (CollectionUtils.isEmpty(existIps) || CollectionUtils.isEmpty(insertIps)) {
+            return Pair.of(insertIps, existIps);
+        }
+        List<String> addIps = new ArrayList<>();
+        List<String> deleteIps = new ArrayList<>();
+        for (String ip : insertIps) {
+            if (!existIps.contains(ip)) {
+                addIps.add(ip);
+            }
+        }
+
+        for (String ip : existIps) {
+            if (!insertIps.contains(ip)) {
+                deleteIps.add(ip);
+            }
+        }
+
+        return Pair.of(addIps, deleteIps);
     }
 
     private String formatGtid(String gtid) {
