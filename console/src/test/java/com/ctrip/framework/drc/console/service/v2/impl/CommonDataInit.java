@@ -10,7 +10,10 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
-import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -96,7 +99,6 @@ public class CommonDataInit {
 
     @Before
     public void setUp() throws SQLException, IOException {
-
         // ApplierTblV2
         List<ApplierTblV2> applierTblV2s = this.getData("ApplierTblV2.json", ApplierTblV2.class);
         when(applierTblV2Dao.queryByApplierGroupId(anyLong(), anyInt())).thenAnswer(i -> {

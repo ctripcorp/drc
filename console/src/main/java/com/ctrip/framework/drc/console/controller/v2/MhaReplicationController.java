@@ -128,10 +128,10 @@ public class MhaReplicationController {
             // simplex or duplex
             List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
             Set<String> links = mhaReplicationTbls.stream()
-                    .filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode()))
+                    .filter(e -> BooleanEnum.TRUE.getCode().equals(e.getDrcStatus()))
                     .map(e -> e.getSrcMhaId() + "->" + e.getDstMhaId()).collect(Collectors.toSet());
             res.forEach(e -> {
-                boolean hasLink = e.getStatus().equals(BooleanEnum.TRUE.getCode());
+                boolean hasLink = BooleanEnum.TRUE.getCode().equals(e.getStatus());
                 boolean hasReverseLink = links.contains(e.getDstMha().getId() + "->" + e.getSrcMha().getId());
                 TransmissionTypeEnum type = TransmissionTypeEnum.NOCONFIG;
                 if (hasLink && hasReverseLink) {

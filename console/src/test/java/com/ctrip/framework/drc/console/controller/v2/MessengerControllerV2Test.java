@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
@@ -30,10 +31,13 @@ public class MessengerControllerV2Test {
     MetaInfoServiceV2 metaInfoServiceV2;
     @InjectMocks
     MessengerControllerV2 messengerControllerV2;
+    @Mock
+    DefaultConsoleConfig defaultConsoleConfig;
 
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(defaultConsoleConfig.getNewDrcConfigSwitch()).thenReturn(DefaultConsoleConfig.SWITCH_ON);
     }
 
     @Test
@@ -109,7 +113,7 @@ public class MessengerControllerV2Test {
         requestDto.setMhaName("testMha");
         requestDto.setDbReplicationIdList(Lists.newArrayList(1L));
         ApiResult<Void> result = messengerControllerV2.deleteMqConfig(requestDto);
-        verify(messengerService, times(1)).deleteDbReplicationForMq(any(),any());
+        verify(messengerService, times(1)).processDeleteMqConfig(any());
     }
 
     @Test

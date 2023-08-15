@@ -434,7 +434,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             if (mhaTblV2 == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
             }
-            if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
+            List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
+            if (vpcMhaNames.contains(mhaTblV2.getMhaName())) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
             }
             this.initMqConfig(dto, mhaTblV2);

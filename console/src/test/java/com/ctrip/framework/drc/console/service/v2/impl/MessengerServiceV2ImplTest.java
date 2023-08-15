@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
 
-public class MessengerServiceV2ImplTest extends CommonDataInit{
+public class MessengerServiceV2ImplTest extends CommonDataInit {
     public static final String VPC_MHA_NAME = "vpcMha1";
 
     @Before
@@ -125,6 +125,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
     }
 
 
+
     @Test
     public void testCheckMqConfigForInsert() {
         MqConfigDto dto = new MqConfigDto();
@@ -133,7 +134,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db1", "table2")
         );
-        when(drcBuildService.getMatchTable("db1", "(table1|table2)", "mha1", 0)).thenReturn(ret1);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
         dto.setDbReplicationId(null); // insert
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table1|table2)");
@@ -148,7 +149,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db1", "table999")
         );
-        when(drcBuildService.getMatchTable("db1", "(table1|table999)", "mha1", 0)).thenReturn(ret2);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table999)")).thenReturn(ret2);
 
         dto.setTable("db1\\.(table1|table999)");
         result = messengerServiceV2Impl.checkMqConfig(dto);
@@ -159,7 +160,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
 
         // test no table
         dto.setTable("db1\\.(unpresentTableInDB)");
-        when(drcBuildService.getMatchTable("db1", "(unpresentTableInDB)", "mha1", 0)).thenReturn(Lists.emptyList());
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.unpresentTableInDB)")).thenReturn(Lists.emptyList());
 
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
@@ -169,7 +170,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
         List<MySqlUtils.TableSchemaName> ret3 = Lists.newArrayList(
                 new MySqlUtils.TableSchemaName("db1", "table999")
         );
-        when(drcBuildService.getMatchTable("db1", "(table999)", "mha1", 0)).thenReturn(ret3);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table999)")).thenReturn(ret3);
         dto.setTable("db1\\.(table999)");
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
@@ -179,7 +180,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
         List<MySqlUtils.TableSchemaName> ret4 = Lists.newArrayList(
                 new MySqlUtils.TableSchemaName("db999", "table1")
         );
-        when(drcBuildService.getMatchTable("db999", "(table1)", "mha1", 0)).thenReturn(ret4);
+        when(mysqlServiceV2.getMatchTable("mha1", "db999\\.(table1)")).thenReturn(ret4);
         dto.setTable("db999\\.(table1)");
         result = messengerServiceV2Impl.checkMqConfig(dto);
         System.out.println(JSON.toJSONString(result));
@@ -195,7 +196,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db1", "table2")
         );
-        when(drcBuildService.getMatchTable("db1", "(table1|table2)", "mha1", 0)).thenReturn(ret1);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table1|table2)");
         dto.setDbReplicationId(3L);
@@ -210,7 +211,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table2"),
                 new MySqlUtils.TableSchemaName("db1", "table3")
         );
-        when(drcBuildService.getMatchTable("db1", "(table2|table3)", "mha1", 0)).thenReturn(ret2);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table2|table3)")).thenReturn(ret2);
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table2|table3)");
         dto.setDbReplicationId(1L);
@@ -225,7 +226,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db999", "table1"),
                 new MySqlUtils.TableSchemaName("db999", "table2")
         );
-        when(drcBuildService.getMatchTable("db999", "(table1|table2)", "mha1", 0)).thenReturn(ret3);
+        when(mysqlServiceV2.getMatchTable("mha1", "db999\\.(table1|table2)")).thenReturn(ret3);
         dto.setMhaName("mha1");
         dto.setTable("db999\\.(table1|table2)");
         dto.setDbReplicationId(1L);
@@ -237,7 +238,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
         List<MySqlUtils.TableSchemaName> ret4 = Lists.newArrayList(
                 new MySqlUtils.TableSchemaName("db1", "table999")
         );
-        when(drcBuildService.getMatchTable("db1", "(table999)", "mha1", 0)).thenReturn(ret4);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table999)")).thenReturn(ret4);
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table999)");
         dto.setDbReplicationId(1L);
@@ -249,7 +250,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
         // no conflict: update itself
         List<MySqlUtils.TableSchemaName> ret5 = Lists.newArrayList(
                 new MySqlUtils.TableSchemaName("db1", "table1"));
-        when(drcBuildService.getMatchTable("db1", "(table1)", "mha1", 0)).thenReturn(ret5);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1)")).thenReturn(ret5);
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table1)");
         dto.setDbReplicationId(1L);
@@ -267,7 +268,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db1", "table2")
         );
-        when(drcBuildService.getMatchTable("db1", "(table1|table2)", "mha1", 0)).thenReturn(ret1);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret1);
         dto.setMhaName("mha1");
         dto.setTable("db1\\.(table1|table2)");
         dto.setDbReplicationId(999L);
@@ -326,7 +327,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db1", "table1"),
                 new MySqlUtils.TableSchemaName("db1", "table2")
         );
-        when(drcBuildService.getMatchTable("db1", "(table1|table2)", "mha1", 0)).thenReturn(ret2);
+        when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret2);
         when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db1\\.(table1|table2)")).thenReturn(Lists.newArrayList("db1\\.table1", "db1\\.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
@@ -350,7 +351,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db3", "table1"),
                 new MySqlUtils.TableSchemaName("db3", "table2")
         );
-        when(drcBuildService.getMatchTable("db3", "(table1|table2)", "mha1", 0)).thenReturn(ret2);
+        when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
         when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3\\.table1", "db3\\.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
@@ -373,7 +374,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit{
                 new MySqlUtils.TableSchemaName("db3", "table1"),
                 new MySqlUtils.TableSchemaName("db3", "table2")
         );
-        when(drcBuildService.getMatchTable("db3", "(table1|table2)", "mha1", 0)).thenReturn(ret2);
+        when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
         when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3\\.table1", "db3\\.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
