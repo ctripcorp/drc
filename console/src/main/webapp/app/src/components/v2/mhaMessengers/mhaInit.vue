@@ -24,7 +24,7 @@
       </FormItem>
       <FormItem>
         <Button @click="handleReset('mhaInfo')">重置</Button>
-        <Button type="primary" :disabled="true" @click="changeModal('mhaInfo')" style="margin-left: 150px" >录入（暂不支持，请在DRC配置中录入）</Button>
+        <Button type="primary" :disabled="true" @click="changeModal('mhaInfo')" style="margin-left: 150px" >录入（暂不支持，请在老Messenger配置中录入）</Button>
         <Modal
           v-model="mhaInfo.modal"
           title="录入mha相关信息"

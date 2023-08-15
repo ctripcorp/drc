@@ -10,9 +10,11 @@ import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -119,10 +121,14 @@ public class MessengerControllerV2 {
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
         try {
             logger.info("deleteMqConfig: {}", requestDto);
-            if (requestDto == null) {
+            if (requestDto == null || CollectionUtils.isEmpty(requestDto.getDbReplicationIdList())
+                    || StringUtils.isBlank(requestDto.getMhaName())) {
                 return ApiResult.getFailInstance("invalid empty input");
             }
-            messengerService.deleteDbReplicationForMq(requestDto.getMhaName(), requestDto.getDbReplicationIdList());
+            if (requestDto.getDbReplicationIdList().size() != 1) {
+                return ApiResult.getFailInstance("batch delete not supported");
+            }
+            messengerService.processDeleteMqConfig(requestDto);
             return ApiResult.getSuccessInstance(null);
         } catch (Throwable e) {
             logger.error("deleteMqConfig exception", e);

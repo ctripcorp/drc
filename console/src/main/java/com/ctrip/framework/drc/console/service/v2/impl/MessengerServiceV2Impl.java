@@ -17,7 +17,6 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
@@ -29,6 +28,7 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
@@ -101,8 +101,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
-    @Autowired
-    private DrcBuildService drcBuildService;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
 
@@ -302,10 +300,10 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     @Override
     public MqConfigCheckVo checkMqConfig(MqConfigDto dto) {
         String mhaName = dto.getMhaName();
-        String table = dto.getTable();
+        String nameFilter = dto.getTable();
 
         // query requested requestedTables
-        List<MySqlUtils.TableSchemaName> requestedTables = this.queryMatchTables(table, mhaName);
+        List<MySqlUtils.TableSchemaName> requestedTables = mysqlServiceV2.getMatchTable(mhaName, nameFilter);
 
         // query exist messenger replication
         try {
@@ -333,7 +331,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 }
             }
 
-            // one table only send to one topic
+            // one nameFilter only send to one topic
             List<MqConfigConflictTable> conflictTables = Lists.newArrayList();
             for (DbReplicationTbl replicationTbl : messengerDbReplications) {
                 Long dbId = mhaDbMappingMap.get(replicationTbl.getSrcMhaDbMappingId());
@@ -359,16 +357,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
 
-    }
-
-
-    // todo by yongnian: can use?
-    private List<MySqlUtils.TableSchemaName> queryMatchTables(String table, String mhaName) {
-        String[] split = table.split(ESCAPE_CHARACTER_DOT_REGEX);
-        String namespace = split[0];
-        String name = split[1];
-
-        return drcBuildService.getMatchTable(namespace, name, mhaName, 0);
     }
 
     private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
@@ -472,6 +460,20 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         this.updateMqConfig(dto, mhaTblV2);
     }
 
+    @Override
+    public void processDeleteMqConfig(MqConfigDeleteRequestDto dto) throws Exception {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
+        }
+        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
+        }
+
+        this.deleteDbReplicationForMq(dto.getMhaName(), dto.getDbReplicationIdList());
+        this.disableDalClusterMqConfigIfNecessary(dto.getDbReplicationIdList().get(0), mhaTblV2);
+    }
+
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void updateMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
         // delete old
@@ -487,11 +489,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         if (messengerGroupTbl == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
                     "messengerGroupTbl not exist for mha: " + mhaTblV2.getMhaName());
-        }
-        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
-        if (CollectionUtils.isEmpty(messengerTbls)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
-                    "messenger not configured yet for mha: " + mhaTblV2.getMhaName());
         }
 
         insertMhaDbMappings(mhaTblV2, dto);
@@ -740,7 +737,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             throw new IllegalArgumentException("illegal table name" + dto.getTable());
         }
 
-        List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0], dbAndTable[1], dto.getMhaName(), 0);
+        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(dto.getMhaName(), dto.getTable());
         String dcName = this.getDcName(mhaTblV2);
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Generate",
@@ -753,43 +750,51 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     private void updateDalClusterMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
         // delete + add
-        disableDalClusterMqConfigIfNecessary(dto, mhaTblV2);
+        disableDalClusterMqConfigIfNecessary(dto.getDbReplicationId(), mhaTblV2);
         addDalClusterMqConfig(dto, mhaTblV2);
     }
 
-    private void disableDalClusterMqConfigIfNecessary(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
-        Long dbReplicationId = dto.getDbReplicationId();
+    private void disableDalClusterMqConfigIfNecessary(Long dbReplicationId, MhaTblV2 mhaTblV2) throws Exception {
         DbReplicationTbl dbReplicationTbl = dbReplicationTblDao.queryById(dbReplicationId);
         MhaDbMappingTbl mhaDbMappingTbl = mhaDbMappingTblDao.queryById(dbReplicationTbl.getSrcMhaDbMappingId());
         DbTbl dbTbl = dbTblDao.queryById(mhaDbMappingTbl.getDbId());
 
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationId);
-        List<Long> messengerFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getMessengerFilterId).collect(Collectors.toList());
-        if (CollectionUtils.isEmpty(messengerFilterIds)) {
-            throw new IllegalArgumentException("update fail, messengerFilterIds empty, replicationId:  " + dto.getDbReplicationId());
-        }
-        Long messengerFilterId = messengerFilterIds.get(0);
-        MessengerFilterTbl messengerFilterTbl = messengerFilterTblDao.queryById(messengerFilterId);
-        if (messengerFilterTbl == null) {
-            throw new IllegalArgumentException("update fail, messengerFilterIds empty, replicationId:  " + dto.getDbReplicationId());
-        }
-        MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
-
-        String[] dbAndTable = dto.getTable().split(ESCAPE_CHARACTER_DOT_REGEX);
-        List<MySqlUtils.TableSchemaName> matchTables = drcBuildService.getMatchTable(dbAndTable[0], dbAndTable[1], mhaTblV2.getMhaName(), 0);
         String dcName = this.getDcName(mhaTblV2);
+        String dbName = dbTbl.getDbName();
+        String tableName = dbReplicationTbl.getSrcLogicTableName();
+        String topic = dbReplicationTbl.getDstLogicTableName();
+
+        List<String> tablesWithSameTopic = this.getTablesWithSameTopic(topic);
+        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), dbName + "\\." + tableName);
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Delete",
-                dbReplicationTbl.getDstLogicTableName(),
+                topic,
                 () -> qConfigService.removeDalClusterMqConfigIfNecessary(
                         dcName,
-                        dbReplicationTbl.getDstLogicTableName(),
-                        dbReplicationTbl.getSrcLogicTableName(),
-                        null, // todo by yongnian: 2023/8/12 tag ?????
+                        topic,
+                        tableName,
+                        null,
                         matchTables,
-                        Lists.newArrayList(dbTbl.getDbName() + "\\." + dbReplicationTbl.getSrcLogicTableName())
+                        tablesWithSameTopic
                 )
         );
+    }
+
+    private List<String> getTablesWithSameTopic(String topic) throws SQLException {
+        // query other table with same topic
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, ReplicationTypeEnum.DB_TO_MQ.getType());
+        List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(srcMhaDbMapping);
+        Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
+        Map<Long, String> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+
+        return dbReplicationTbls.stream().map(e -> {
+            Long dbId = mhaDbMappingMap.get(e.getSrcMhaDbMappingId());
+            String db = dbMap.get(dbId);
+            return db + "\\." + e.getSrcLogicTableName();
+        }).collect(Collectors.toList());
     }
 
 

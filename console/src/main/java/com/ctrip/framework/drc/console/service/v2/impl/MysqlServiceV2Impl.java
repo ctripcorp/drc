@@ -1,8 +1,11 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
+import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.response.StringSetApiResult;
@@ -96,6 +99,16 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return tableVos;
         }
         return MySqlUtils.checkTablesWithFilter(endpoint, nameFilter);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/getMatchTable", responseType = TableSchemaListApiResult.class)
+    public List<MySqlUtils.TableSchemaName> getMatchTable(String mhaName, String nameFilter) {
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.GET_MYSQL_ENDPOINT_NULL, "no machine find for: " + mhaName);
+        }
+        return MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, new AviatorRegexFilter(nameFilter));
     }
 
     @Override

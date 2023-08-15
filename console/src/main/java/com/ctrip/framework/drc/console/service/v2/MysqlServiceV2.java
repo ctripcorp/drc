@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 
 import java.util.List;
@@ -22,6 +23,8 @@ public interface MysqlServiceV2 {
 
     // route By mha
     List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter);
+
+    List<MySqlUtils.TableSchemaName> getMatchTable(String mhaName,String nameFilter);
 
     // route By mha
     List<String> queryDbsWithNameFilter(String mha, String nameFilter);

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
@@ -106,6 +107,25 @@ public class MysqlController {
                 return ApiResult.getFailInstance("expression error");
             } else {
                 return ApiResult.getFailInstance("other error");
+            }
+        }
+    }
+
+
+    @GetMapping("getMatchTable")
+    public ApiResult getMatchTable(@RequestParam String mhaName,
+                                   @RequestParam String nameFilter) {
+        try {
+            List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaName, nameFilter);
+            return ApiResult.getSuccessInstance(matchTables);
+        } catch (Exception e) {
+            logger.warn("[[tag=matchTable]] error when get {} from {}", nameFilter, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else if (e instanceof IllegalArgumentException) {
+                return ApiResult.getFailInstance("no machine find for " + mhaName);
+            } else {
+                return ApiResult.getFailInstance("other error see log");
             }
         }
     }

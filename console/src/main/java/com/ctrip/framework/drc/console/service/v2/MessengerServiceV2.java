@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
+import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
 import com.ctrip.framework.drc.core.entity.Messenger;
 
 import java.sql.SQLException;
@@ -30,6 +31,8 @@ public interface MessengerServiceV2 {
     void processAddMqConfig(MqConfigDto dto) throws Exception;
 
     void processUpdateMqConfig(MqConfigDto dto) throws Exception;
+
+    void processDeleteMqConfig(MqConfigDeleteRequestDto requestDto) throws Exception;
 
     String getMessengerGtidExecuted(String mhaName);
 }

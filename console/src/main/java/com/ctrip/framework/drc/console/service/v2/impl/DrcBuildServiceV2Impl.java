@@ -10,14 +10,12 @@ import com.ctrip.framework.drc.console.enums.*;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
-import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
@@ -103,6 +101,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MessengerTblDao messengerTblDao;
     @Autowired
     private MetaProviderV2 metaProviderV2;
+    @Autowired
+    private MessengerServiceV2 messengerServiceV2;
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5,"drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
@@ -422,26 +422,34 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return applierGroupTbl.getGtidInit();
     }
 
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    @Override
     public String buildMessengerDrc(MessengerMetaDto dto) throws Exception {
-        // 0. check
-        MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
-        if (mhaTbl == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
-        }
-        // 3. configure and persistent in database
-        long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
-        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
-        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
+        this.doBuildMessengerDrc(dto);
         Drc drcMessengerConfig = metaInfoService.getDrcMessengerConfig(dto.getMhaName());
-
         try {
             executorService.submit(() -> metaProviderV2.scheduledTask());
         } catch (Exception e) {
             logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
         }
         return XmlUtils.formatXML(drcMessengerConfig.toString());
+    }
 
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void doBuildMessengerDrc(MessengerMetaDto dto) throws Exception {
+
+        // 0. check
+        MhaTblV2 mhaTbl = mhaTblDao.queryByMhaName(dto.getMhaName(), BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
+        }
+        List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
+        if (CollectionUtils.isEmpty(mqConfigVos)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "config mq before build drc!");
+        }
+        // 1. configure and persistent in database
+        long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
+        configureReplicators(mhaTbl.getMhaName(), replicatorGroupId, dto.getrGtidExecuted(), dto.getReplicatorIps());
+        configureMessengers(mhaTbl, replicatorGroupId, dto.getMessengerIps(), dto.getaGtidExecuted());
     }
 
     public Long configureMessengers(MhaTblV2 mhaTbl,
