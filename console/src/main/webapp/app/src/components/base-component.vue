@@ -162,6 +162,7 @@ export default {
     switch (this.$route.path) {
       default : this.openNames = ['']; break
       case '/v2/mhaReplications':
+      case '/drcV2':
       case '/v2/buildMessengerV2':
       case '/v2/messengersV2':this.openNames = ['v2-0']; break
       case '/apply':

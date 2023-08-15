@@ -470,8 +470,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
         }
 
-        this.deleteDbReplicationForMq(dto.getMhaName(), dto.getDbReplicationIdList());
         this.disableDalClusterMqConfigIfNecessary(dto.getDbReplicationIdList().get(0), mhaTblV2);
+        this.deleteDbReplicationForMq(dto.getMhaName(), dto.getDbReplicationIdList());
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -765,17 +765,20 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         String topic = dbReplicationTbl.getDstLogicTableName();
 
         List<String> tablesWithSameTopic = this.getTablesWithSameTopic(topic);
-        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), dbName + "\\." + tableName);
+        String nameFilter = dbName + "\\." + tableName;
+        List<String> otherTablesByTopic = tablesWithSameTopic.stream().filter(e -> !nameFilter.equals(e)).collect(Collectors.toList());
+
+        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Delete",
                 topic,
                 () -> qConfigService.removeDalClusterMqConfigIfNecessary(
                         dcName,
                         topic,
-                        tableName,
+                        nameFilter,
                         null,
                         matchTables,
-                        tablesWithSameTopic
+                        otherTablesByTopic
                 )
         );
     }
