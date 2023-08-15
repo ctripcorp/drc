@@ -282,7 +282,7 @@ export default {
     },
     submitConfig () {
       const that = this
-      this.axios.post('/api/drc/v2/mha/messenger/submitConfig', {
+      this.axios.post('/api/drc/v2/config/messenger/submitConfig', {
         mhaName: this.drc.mhaName,
         replicatorIps: this.drc.replicators,
         messengerIps: this.drc.messengers,

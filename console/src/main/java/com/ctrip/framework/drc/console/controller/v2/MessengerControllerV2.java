@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
@@ -32,6 +33,9 @@ public class MessengerControllerV2 {
     MessengerServiceV2 messengerService;
     @Autowired
     MetaInfoServiceV2 metaInfoServiceV2;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
+
 
     @GetMapping("all")
     @SuppressWarnings("unchecked")
@@ -102,8 +106,11 @@ public class MessengerControllerV2 {
     @PostMapping("submitConfig")
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> submitConfig(@RequestBody MqConfigDto dto) {
+        logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
+        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+            return ApiResult.getFailInstance(null, "not allowed");
+        }
         try {
-            logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
             if (dto.isInsertRequest()) {
                 messengerService.processAddMqConfig(dto);
             } else {
@@ -119,8 +126,11 @@ public class MessengerControllerV2 {
     @DeleteMapping("deleteMqConfig")
     @SuppressWarnings("unchecked")
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
+        logger.info("deleteMqConfig: {}", requestDto);
+        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+            return ApiResult.getFailInstance(null, "not allowed");
+        }
         try {
-            logger.info("deleteMqConfig: {}", requestDto);
             if (requestDto == null || CollectionUtils.isEmpty(requestDto.getDbReplicationIdList())
                     || StringUtils.isBlank(requestDto.getMhaName())) {
                 return ApiResult.getFailInstance("invalid empty input");

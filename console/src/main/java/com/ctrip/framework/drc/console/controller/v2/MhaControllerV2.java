@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -31,8 +30,6 @@ public class MhaControllerV2 {
     private MhaServiceV2 mhaServiceV2;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
-    @Autowired
-    private DrcBuildServiceV2 drcBuildServiceV2;
 
     @GetMapping("replicator")
     public ApiResult<List<String>> getMhaReplicators(@RequestParam String mhaName) {
@@ -132,19 +129,6 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(mhaServiceV2.preCheckBeReplicatorIps(dto.getMhaName(), dto.getReplicatorIps()));
         } catch (Throwable e) {
             logger.error("[meta] preCheck meta config for {}", dto, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-
-    @PostMapping("messenger/submitConfig")
-    public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
-        logger.info("[meta] submit meta config for {}", dto);
-        try {
-            String xml = drcBuildServiceV2.buildMessengerDrc(dto);
-            return ApiResult.getSuccessInstance(xml);
-        } catch (Throwable e) {
-            logger.error("[meta] submit meta config for for {}", dto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

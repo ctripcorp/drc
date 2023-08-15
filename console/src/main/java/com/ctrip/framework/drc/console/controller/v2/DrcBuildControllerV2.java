@@ -1,12 +1,15 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/drc/v2/config/")
 public class DrcBuildControllerV2 {
+    private static final Logger logger = LoggerFactory.getLogger(DrcBuildControllerV2.class);
 
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
@@ -170,6 +174,22 @@ public class DrcBuildControllerV2 {
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+
+    @PostMapping("messenger/submitConfig")
+    public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
+        logger.info("[meta] submit meta config for {}", dto);
+        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+            return ApiResult.getFailInstance(null, "not allowed");
+        }
+        try {
+            String xml = drcBuildServiceV2.buildMessengerDrc(dto);
+            return ApiResult.getSuccessInstance(xml);
+        } catch (Throwable e) {
+            logger.error("[meta] submit meta config for for {}", dto, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }
