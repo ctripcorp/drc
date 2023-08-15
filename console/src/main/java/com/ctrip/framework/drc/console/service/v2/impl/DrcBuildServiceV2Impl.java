@@ -191,7 +191,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             mhaReplicationTblDao.update(dstMhaReplication);
         } else {
             dstMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
-            mhaTblDao.update(dstMha);
+            mhaReplicationTblDao.update(dstMhaReplication);
         }
         if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
             srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
