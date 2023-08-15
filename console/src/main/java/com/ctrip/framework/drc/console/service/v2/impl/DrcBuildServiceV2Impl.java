@@ -112,6 +112,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void buildMha(DrcMhaBuildParam param) throws Exception {
         checkDrcMhaBuildParam(param);
+        //todo butbl insert
         BuTbl buTbl = buTblDao.queryByBuName(param.getBuName());
         if (buTbl == null) {
             throw ConsoleExceptionUtils.message(String.format("buName: %s not exist", param.getBuName()));
@@ -170,19 +171,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         configureApplierGroup(dstMhaReplication.getId(), srcBuildParam.getApplierInitGtid(), srcBuildParam.getApplierIps());
 
         if (!CollectionUtils.isEmpty(srcBuildParam.getApplierIps())) {
-            dstMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
             dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
             mhaReplicationTblDao.update(dstMhaReplication);
-            mhaTblDao.update(dstMha);
         } else {
             dstMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
             mhaTblDao.update(dstMha);
         }
         if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
-            srcMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
             srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
             mhaReplicationTblDao.update(srcMhaReplication);
-            mhaTblDao.update(srcMha);
         } else {
             srcMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
             mhaReplicationTblDao.update(srcMhaReplication);
@@ -667,6 +664,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationTbls;
     }
 
+    //TODO check table same
     private void checkDbReplicationExist(List<DbReplicationTbl> dbReplicationTbls,
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
@@ -774,7 +772,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             applierGroupId = applierGroupTblDao.insertWithReturnId(applierGroupTbl);
         } else {
             applierGroupId = existApplierGroup.getId();
-            existApplierGroup.setGtidInit(applierInitGtid);
+            if (StringUtils.isNotBlank(applierInitGtid)) {
+                existApplierGroup.setGtidInit(applierInitGtid);
+            }
             existApplierGroup.setDeleted(BooleanEnum.FALSE.getCode());
             applierGroupTblDao.update(existApplierGroup);
         }
@@ -786,6 +786,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         configureReplicators(mhaTblV2.getMhaName(), replicatorGroupId, replicatorInitGtid, replicatorIps);
     }
 
+    //todo
     private void configureReplicators(String mhaName, long replicatorGroupId, String replicatorInitGtid, List<String> replicatorIps) throws Exception {
         List<ReplicatorTbl> existReplicators = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupId), BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(existReplicators)) {
