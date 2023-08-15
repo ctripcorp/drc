@@ -174,12 +174,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dstMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
             mhaReplicationTblDao.update(dstMhaReplication);
             mhaTblDao.update(dstMha);
+        } else {
+            dstMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
+            mhaTblDao.update(dstMha);
         }
         if (!CollectionUtils.isEmpty(dstBuildParam.getApplierIps())) {
             srcMha.setMonitorSwitch(BooleanEnum.TRUE.getCode());
             srcMhaReplication.setDrcStatus(BooleanEnum.TRUE.getCode());
             mhaReplicationTblDao.update(srcMhaReplication);
             mhaTblDao.update(srcMha);
+        } else {
+            srcMhaReplication.setDrcStatus(BooleanEnum.FALSE.getCode());
+            mhaReplicationTblDao.update(srcMhaReplication);
         }
     }
 
