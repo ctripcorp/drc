@@ -29,7 +29,6 @@ public class ReceiveCheckHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ctx.executor().scheduleWithFixedDelay(() -> {
             boolean checkSwitch = DynamicConfig.getInstance().getReceiveCheckSwitch();
-            System.out.println("switch is: " + checkSwitch);
             if (!msgReceived && checkSwitch) {
                 msgReceived = true;
                 HEARTBEAT_LOGGER.info("[ReceiveCheck] receive check error, close channel");
