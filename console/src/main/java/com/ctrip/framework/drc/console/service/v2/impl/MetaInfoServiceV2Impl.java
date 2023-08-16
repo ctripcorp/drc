@@ -1,17 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.BuTblDao;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.BuTbl;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
-import com.ctrip.framework.drc.console.dao.v2.RegionTblDao;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
@@ -179,11 +168,14 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
 
 
     private void generateAppliers(DbCluster dbCluster, MhaTblV2 mhaTbl, MhaTblV2 srcMhaTbl) throws SQLException {
-        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), mhaTbl.getId());
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), mhaTbl.getId(), 0);
         if (mhaReplicationTbl == null) {
             return;
         }
         ApplierGroupTblV2 applierGroupTbl = applierGroupTblV2Dao.queryByMhaReplicationId(mhaReplicationTbl.getId(), 0);
+        if (applierGroupTbl == null) {
+            return;
+        }
         generateApplierInstances(dbCluster, srcMhaTbl, mhaTbl, applierGroupTbl);
     }
 
