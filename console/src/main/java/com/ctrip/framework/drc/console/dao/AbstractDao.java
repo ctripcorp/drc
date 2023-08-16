@@ -192,6 +192,12 @@ public class AbstractDao<T> {
         return client.query(builder, hints);
     }
 
+
+    public List<T> queryAllUndeleted() throws SQLException {
+        SelectSqlBuilder builder = initSqlBuilder();
+        return client.query(builder, new DalHints());
+    }
+
     /**
      * Insert single pojo
      *

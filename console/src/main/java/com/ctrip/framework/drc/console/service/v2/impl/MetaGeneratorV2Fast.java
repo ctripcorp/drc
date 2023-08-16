@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
@@ -15,11 +16,14 @@ import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.meta.ColumnsFilterConfig;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
+import com.ctrip.framework.drc.core.meta.MqConfig;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
+import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.xpipe.api.monitor.Task;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -56,6 +60,10 @@ public class MetaGeneratorV2Fast {
     @Autowired
     private ApplierTblV2Dao applierTblDao;
     @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
+    @Autowired
+    private MessengerTblDao messengerTblDao;
+    @Autowired
     private DbReplicationTblDao dbReplicationTblDao;
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
@@ -90,6 +98,8 @@ public class MetaGeneratorV2Fast {
     @Autowired
     private ColumnsFilterTblV2Dao columnsFilterTblV2Dao;
     @Autowired
+    private MessengerFilterTblDao messengerFilterTblDao;
+    @Autowired
     private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
 
     private List<BuTbl> buTbls;
@@ -112,17 +122,24 @@ public class MetaGeneratorV2Fast {
     private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaId;
     private List<DbReplicationTbl> dbReplicationTbls;
     private List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls;
-    private List<ColumnsFilterTblV2> columnsFilterTblV2s;
-    private List<RowsFilterTblV2> rowsFilterTblV2s;
+    private List<ColumnsFilterTblV2> columnsFilterTbls;
+    private List<RowsFilterTblV2> rowsFilterTbls;
     private List<DbTbl> dbTbls;
+    private List<MessengerFilterTbl> messengerFilterTbls;
+    private List<MessengerGroupTbl> messengerGroupTbls;
+    private List<MessengerTbl> messengerTbls;
+    private Map<Long, List<MessengerTbl>> messengerTblByGroupId;
+    private Map<Long, List<DbReplicationFilterMappingTbl>> dbReplicationFilterMappingTblsByDbRplicationId;
 
     public Drc getDrc() throws Exception {
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
         if (publicCloudRegion.contains(consoleConfig.getRegion())) {
             return null;
         }
-        List<DcTbl> dcTbls = dcTblDao.queryAll();
+        List<DcTbl> dcTbls = dcTblDao.queryAllUndeleted();
         Drc drc = new Drc();
+
+        refreshMetaData();
         for (DcTbl dcTbl : dcTbls) {
             generateDc(drc, dcTbl);
         }
@@ -134,7 +151,6 @@ public class MetaGeneratorV2Fast {
         DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.console.meta", dcTbl.getDcName(), new Task() {
             @Override
             public void go() throws Exception {
-                refreshMetaData();
                 Dc dc = generateDcFrame(drc, dcTbl);
                 generateRoute(dc, dcTbl.getId());
                 generateClusterManager(dc, dcTbl.getId());
@@ -145,30 +161,36 @@ public class MetaGeneratorV2Fast {
     }
 
     private void refreshMetaData() throws SQLException {
-        buTbls = buTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        routeTbls = routeTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        proxyTbls = proxyTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        dcTbls = dcTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        mhaTbls = mhaTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        resourceTbls = resourceTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        machineTbls = machineTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        replicatorGroupTbls = replicatorGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        applierGroupTbls = applierGroupTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        clusterManagerTbls = clusterManagerTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        zookeeperTbls = zookeeperTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        replicatorTbls = replicatorTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        applierTbls = applierTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        mhaReplicationTbls = mhaReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        mhaDbMappingTbls = mhaDbMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        dbReplicationTbls = dbReplicationTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        dbTbls = dbTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        columnsFilterTblV2s = columnsFilterTblV2Dao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
-        rowsFilterTblV2s = rowsFilterTblV2Dao.queryAll().stream().filter(e -> e.getDeleted().equals(BooleanEnum.FALSE.getCode())).collect(Collectors.toList());
+        buTbls = buTblDao.queryAllUndeleted();
+        routeTbls = routeTblDao.queryAllUndeleted();
+        proxyTbls = proxyTblDao.queryAllUndeleted();
+        dcTbls = dcTblDao.queryAllUndeleted();
+        mhaTbls = mhaTblDao.queryAllUndeleted();
+        resourceTbls = resourceTblDao.queryAllUndeleted();
+        machineTbls = machineTblDao.queryAllUndeleted();
+        replicatorGroupTbls = replicatorGroupTblDao.queryAllUndeleted();
+        applierGroupTbls = applierGroupTblDao.queryAllUndeleted();
+        clusterManagerTbls = clusterManagerTblDao.queryAllUndeleted();
+        zookeeperTbls = zookeeperTblDao.queryAllUndeleted();
+        replicatorTbls = replicatorTblDao.queryAllUndeleted();
+        applierTbls = applierTblDao.queryAllUndeleted();
+        messengerGroupTbls = messengerGroupTblDao.queryAllUndeleted();
+        messengerTbls = messengerTblDao.queryAllUndeleted();
+
+        mhaReplicationTbls = mhaReplicationTblDao.queryAllUndeleted();
+        mhaDbMappingTbls = mhaDbMappingTblDao.queryAllUndeleted();
+        dbReplicationTbls = dbReplicationTblDao.queryAllUndeleted();
+        dbTbls = dbTblDao.queryAllUndeleted();
+        dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllUndeleted();
+        columnsFilterTbls = columnsFilterTblV2Dao.queryAllUndeleted();
+        messengerFilterTbls = messengerFilterTblDao.queryAllUndeleted();
+        rowsFilterTbls = rowsFilterTblV2Dao.queryAllUndeleted();
 
         resourceTblIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity(), (e1, e2) -> e1));
         mhaDbMappingTblsByMhaId = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
         applierTblsByGroupId = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        messengerTblByGroupId = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+        dbReplicationFilterMappingTblsByDbRplicationId = dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(e -> e.getDbReplicationId()));
     }
 
     private Dc generateDcFrame(Drc drc, DcTbl dcTbl) {
@@ -321,7 +343,7 @@ public class MetaGeneratorV2Fast {
 
     // todo by yongnian: 2023/8/16 next
     private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
-        List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
+        List<Messenger> messengers = this.generateMessengers(mhaTbl.getId());
         for (Messenger messenger : messengers) {
             dbCluster.addMessenger(messenger);
         }
@@ -459,12 +481,12 @@ public class MetaGeneratorV2Fast {
         // 1.4 rows filter
         List<Long> allRowsFilterIds = dbReplicationFilterMappingTbls.stream()
                 .map(DbReplicationFilterMappingTbl::getRowsFilterId).filter(NumberUtils::isPositive).collect(Collectors.toList());
-        Map<Long, RowsFilterTblV2> rowsFilterMap = rowsFilterTblV2s.stream().filter(e -> allRowsFilterIds.contains(e.getId()))
+        Map<Long, RowsFilterTblV2> rowsFilterMap = rowsFilterTbls.stream().filter(e -> allRowsFilterIds.contains(e.getId()))
                 .collect(Collectors.toMap(RowsFilterTblV2::getId, Function.identity()));
 
         // 1.5 cols filter
         List<Long> allColsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getColumnsFilterId).filter(NumberUtils::isPositive).collect(Collectors.toList());
-        Map<Long, ColumnsFilterTblV2> colsFilterMap = columnsFilterTblV2s.stream().filter(e -> allColsFilterIds.contains(e.getId()))
+        Map<Long, ColumnsFilterTblV2> colsFilterMap = columnsFilterTbls.stream().filter(e -> allColsFilterIds.contains(e.getId()))
                 .collect(Collectors.toMap(ColumnsFilterTblV2::getId, Function.identity()));
 
         // 2. build result
@@ -505,5 +527,90 @@ public class MetaGeneratorV2Fast {
         dataMediaConfig.setColumnsFilters(columnsFilters);
         dataMediaConfig.setRowsFilters(rowsFilters);
         return dataMediaConfig;
+    }
+
+
+    public List<Messenger> generateMessengers(Long mhaId) throws SQLException {
+        List<Messenger> messengers = Lists.newArrayList();
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).findFirst().orElse(null);
+        if (null == messengerGroupTbl) {
+            return messengers;
+        }
+
+        List<MessengerTbl> messengerTbls = messengerTblByGroupId.getOrDefault(messengerGroupTbl.getId(), Collections.emptyList());
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return messengers;
+        }
+
+        MessengerProperties messengerProperties = getMessengerProperties(mhaId);
+        String propertiesJson = JsonUtils.toJson(messengerProperties);
+        if (CollectionUtils.isEmpty(messengerProperties.getMqConfigs())) {
+            logger.info("no mqConfig, should not generate messenger");
+            return messengers;
+        }
+        for (MessengerTbl messengerTbl : messengerTbls) {
+            Messenger messenger = new Messenger();
+            ResourceTbl resourceTbl = resourceTblIdMap.get(messengerTbl.getResourceId());
+            messenger.setIp(resourceTbl.getIp());
+            messenger.setPort(messengerTbl.getPort());
+            messenger.setNameFilter(messengerProperties.getNameFilter());
+            messenger.setGtidExecuted(messengerGroupTbl.getGtidExecuted());
+            messenger.setProperties(propertiesJson);
+            messengers.add(messenger);
+        }
+        return messengers;
+    }
+
+
+    private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
+        MessengerProperties messengerProperties = new MessengerProperties();
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(mhaId);
+        List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
+        List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+
+        List<DbReplicationTbl> dbReplicationTbls = this.dbReplicationTbls.stream().filter(e -> mhaDbMappingIds.contains(e.getSrcMhaDbMappingId()) && ReplicationTypeEnum.DB_TO_MQ.getType().equals(e.getReplicationType())).collect(Collectors.toList());
+        List<DbTbl> dbTbls = this.dbTbls.stream().filter(e -> dbIds.contains(e.getId())).collect(Collectors.toList());
+        Map<Long, Long> mhaDbMappingMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, MhaDbMappingTbl::getDbId));
+        Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
+
+        Set<String> srcTables = new HashSet<>();
+        List<MqConfig> mqConfigs = new ArrayList<>();
+        DataMediaConfig dataMediaConfig = new DataMediaConfig();
+        List<RowsFilterConfig> rowFilters = new ArrayList<>();
+
+        for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
+            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationId.get(dbReplicationTbl.getId());
+            Long messengerFilterId = dbReplicationFilterMappings.stream()
+                    .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
+                    .filter(e -> e != null && e > 0L).findFirst().orElse(null);
+
+            MessengerFilterTbl messengerFilterTbl = messengerFilterTbls.stream().filter(e -> e.getId().equals(messengerFilterId)).findFirst().orElse(null);
+            if (null == messengerFilterTbl) {
+                logger.warn("Messenger Filter is Null, dbReplicationTbl: {}", dbReplicationTbl);
+                continue;
+            }
+            MqConfig mqConfig = JsonUtils.fromJson(messengerFilterTbl.getProperties(), MqConfig.class);
+
+            long dbId = mhaDbMappingMap.getOrDefault(dbReplicationTbl.getSrcMhaDbMappingId(), 0L);
+            String dbName = dbTblMap.getOrDefault(dbId, "");
+            String tableName = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
+            srcTables.add(tableName);
+            mqConfig.setTable(tableName);
+            mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
+            // processor is null
+            mqConfigs.add(mqConfig);
+
+            Set<Long> rowsFilterIds = dbReplicationFilterMappings.stream()
+                    .map(DbReplicationFilterMappingTbl::getRowsFilterId)
+                    .filter(e -> e != null && e > 0L).collect(Collectors.toSet());
+            List<RowsFilterTblV2> rowsFilterTblV2List = rowsFilterTbls.stream().filter(e -> rowsFilterIds.contains(e.getId())).collect(Collectors.toList());
+            rowFilters.addAll(rowsFilterServiceV2.generateRowsFiltersConfigFromTbl(tableName, rowsFilterTblV2List));
+        }
+
+        messengerProperties.setMqConfigs(mqConfigs);
+        messengerProperties.setNameFilter(Joiner.on(",").join(srcTables));
+        dataMediaConfig.setRowsFilters(rowFilters);
+        messengerProperties.setDataMediaConfig(dataMediaConfig);
+        return messengerProperties;
     }
 }
