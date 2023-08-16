@@ -319,6 +319,7 @@ public class MetaGeneratorV2Fast {
         }
     }
 
+    // todo by yongnian: 2023/8/16 next
     private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
         List<Messenger> messengers = messengerService.generateMessengers(mhaTbl.getId());
         for (Messenger messenger : messengers) {
@@ -342,6 +343,10 @@ public class MetaGeneratorV2Fast {
     }
 
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhatbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
+        List<ApplierTblV2> curMhaAppliers = applierTblsByGroupId.get(applierGroupTbl.getId());
+        if (CollectionUtils.isEmpty(curMhaAppliers)) {
+            return;
+        }
         List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(srcMhatbl.getId());
         List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(dstMhaTbl.getId());
 
@@ -362,7 +367,6 @@ public class MetaGeneratorV2Fast {
                 .collect(Collectors.toList());
         DcTbl srcDcTbl = dcTbls.stream().filter(e -> e.getId().equals(srcMhatbl.getDcId())).findFirst().get();
 
-        List<ApplierTblV2> curMhaAppliers = applierTblsByGroupId.get(applierGroupTbl.getId());
 
         String nameFilter = TableNameBuilder.buildNameFilter(srcDbTblMap, srcMhaDbMappingMap, dbReplicationTblList);
         String nameMapping = TableNameBuilder.buildNameMapping(srcDbTblMap, srcMhaDbMappingMap, dstDbTblMap, dstMhaDbMappingMap, dbReplicationTblList);

@@ -102,6 +102,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
+    private static String META_GENERATORV2_NEW_SWITCH = "meta.generatorv2.new.switch";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -457,6 +458,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getMetaCompareSwitch() {
         return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
+    }
+
+    public String getMetaGeneratorV2FastSwitch() {
+        return getProperty(META_GENERATORV2_NEW_SWITCH, SWITCH_OFF);
     }
 
 }
