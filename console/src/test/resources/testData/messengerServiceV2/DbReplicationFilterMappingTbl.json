@@ -38,5 +38,15 @@
     "deleted": 0,
     "createTime": "2028-09-07 00:59:51",
     "datachangeLasttime": "2016-11-23 00:57:54"
+  },
+  {
+    "id": 5,
+    "dbReplicationId": 6,
+    "messengerFilterId": -1,
+    "rowsFilterId": 1,
+    "columnsFilterId": 1,
+    "deleted": 0,
+    "createTime": "2028-09-07 00:59:51",
+    "datachangeLasttime": "2016-11-23 00:57:54"
   }
 ]

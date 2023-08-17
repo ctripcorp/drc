@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/drc/v2/compare/")
-public class DrcCompareController {
-    private static final Logger logger = LoggerFactory.getLogger(DrcCompareController.class);
+@RequestMapping("/api/drc/v2/generator/")
+public class DrcGeneratorController {
+    private static final Logger logger = LoggerFactory.getLogger(DrcGeneratorController.class);
 
     @Autowired
     private MetaGenerator metaGenerator;

@@ -423,10 +423,6 @@ public class MetaGeneratorV3 {
         return propertiesJson;
     }
 
-    private DataMediaConfig generateConfig(List<DbReplicationDto> dbReplicationDto) throws SQLException {
-        return generateConfigFast(dbReplicationDto);
-    }
-
     private String generateRouteInfo(String srcProxyIds, String relayProxyIds, String dstProxyIds) {
         List<String> srcProxyUris = getProxyUris(srcProxyIds);
         List<String> relayProxyUris = getProxyUris(relayProxyIds);
@@ -454,7 +450,7 @@ public class MetaGeneratorV3 {
     }
 
 
-    public DataMediaConfig generateConfigFast(List<DbReplicationDto> dbReplicationDtos) throws SQLException {
+    private DataMediaConfig generateConfig(List<DbReplicationDto> dbReplicationDtos) throws SQLException {
         // 1. prepare all data
 
         // 1.1 mha
@@ -525,7 +521,7 @@ public class MetaGeneratorV3 {
     }
 
 
-    public List<Messenger> generateMessengers(Long mhaId) throws SQLException {
+    private List<Messenger> generateMessengers(Long mhaId) throws SQLException {
         List<Messenger> messengers = Lists.newArrayList();
         MessengerGroupTbl messengerGroupTbl = messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).findFirst().orElse(null);
         if (null == messengerGroupTbl) {

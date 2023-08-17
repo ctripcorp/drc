@@ -94,6 +94,15 @@ public class MetaCompareServiceImplTest {
         String compareRes = dbClusterCompareRes.getCompareRes();
         Assert.assertTrue((!compareRes.contains("not equal")) && (!compareRes.contains("empty")) && (!compareRes.contains("fail")));
     }
-    
-    
+
+    @Test
+    public void testConsistentInput() {
+        Assert.assertTrue(metaCompareService.isConsistent("something normal"));
+        Assert.assertFalse(metaCompareService.isConsistent("something, not equal, and..."));
+        Assert.assertFalse(metaCompareService.isConsistent("....,empty,...."));
+        Assert.assertFalse(metaCompareService.isConsistent(",....fail,...."));
+        Assert.assertFalse(metaCompareService.isConsistent("not equal, and..."));
+        Assert.assertFalse(metaCompareService.isConsistent("empty,...."));
+        Assert.assertFalse(metaCompareService.isConsistent("fail,...."));
+    }
 }
