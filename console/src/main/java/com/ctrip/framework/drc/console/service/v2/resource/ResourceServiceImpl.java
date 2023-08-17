@@ -57,10 +57,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
         checkResourceBuildParam(param);
-
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDcName());
+        if (dcTbl == null) {
+            throw ConsoleExceptionUtils.message("dc: " + param.getDcName() + " not exist");
+        }
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setIp(param.getIp());
-        resourceTbl.setDcId(param.getDcId());
+        resourceTbl.setDcId(dcTbl.getId());
         resourceTbl.setAz(param.getAz());
         resourceTbl.setTag(param.getTag());
         resourceTbl.setDeleted(BooleanEnum.FALSE.getCode());
@@ -77,7 +80,7 @@ public class ResourceServiceImpl implements ResourceService {
                 resourceTblDao.update(resourceTbl);
                 return;
             } else {
-                throw ConsoleExceptionUtils.message(String.format("ip :{} already exist!", param.getIp()));
+                throw ConsoleExceptionUtils.message(String.format("ip :%s already exist!", param.getIp()));
             }
         }
 
@@ -263,7 +266,7 @@ public class ResourceServiceImpl implements ResourceService {
     private void checkResourceBuildParam(ResourceBuildParam param) {
         PreconditionUtils.checkString(param.getIp(), "ip requires not empty!");
         PreconditionUtils.checkString(param.getType(), "type requires not empty!");
-        PreconditionUtils.checkId(param.getDcId(), "dc requires not empty!");
+        PreconditionUtils.checkString(param.getDcName(), "dc requires not empty!");
         PreconditionUtils.checkString(param.getAz(), "AZ requires not empty!");
     }
 }

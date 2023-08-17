@@ -87,7 +87,6 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     }
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void updateMhaTag(String mhaName, String tag) throws Exception {
         MhaTbl mhaTbl = mhaTblDao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.param.v2.resource.DeleteIpParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceMigrateService;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
@@ -34,19 +35,19 @@ public class ResourceMigrateController {
         }
     }
 
-    @DeleteMapping("/unused")
-    public ApiResult<Integer> deleteResourceUnused(@RequestBody List<String> ips) {
+    @GetMapping("/deleted")
+    public ApiResult<List<ResourceView>> getDeletedIps(@RequestBody DeleteIpParam param) {
         try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.deleteResourceUnused(ips));
+            return ApiResult.getSuccessInstance(resourceMigrateService.getDeletedIps(param));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
-    @DeleteMapping("/unused/type")
-    public ApiResult<Integer> deleteResourceUnused(@RequestParam int type) {
+    @DeleteMapping("/unused")
+    public ApiResult<Integer> deleteResourceUnused(@RequestBody List<String> ips) {
         try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.deleteResourceUnused(type));
+            return ApiResult.getSuccessInstance(resourceMigrateService.deleteResourceUnused(ips));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
@@ -88,24 +89,6 @@ public class ResourceMigrateController {
         }
     }
 
-    @PostMapping("/replicator/offline")
-    public ApiResult<Integer> offlineReplicatorWithSameAz(@RequestBody List<Long> replicatorGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.offlineReplicatorWithSameAz(replicatorGroupIds));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @PostMapping("/replicator/online")
-    public ApiResult<Integer> onlineReplicatorWithSameAz(@RequestBody List<Long> replicatorGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.onlineReplicatorWithSameAz(replicatorGroupIds));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("/applier")
     public ApiResult<List<Long>> getApplierGroupIdsWithSameAz() {
         try {
@@ -115,46 +98,10 @@ public class ResourceMigrateController {
         }
     }
 
-    @PostMapping("/applier/offline")
-    public ApiResult<Integer> offlineApplierWithSameAz(@RequestBody List<Long> applierGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.offlineApplierWithSameAz(applierGroupIds));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @PostMapping("/applier/online")
-    public ApiResult<Integer> onlineApplierWithSameAz(@RequestBody List<Long> applierGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.onlineApplierWithSameAz(applierGroupIds));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @GetMapping("/messenger")
     public ApiResult<List<Long>> getMessengerGroupIdsWithSameAz() {
         try {
             return ApiResult.getSuccessInstance(resourceMigrateService.getMessengerGroupIdsWithSameAz());
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @PostMapping("/messenger/offline")
-    public ApiResult<Integer> offlineMessengerWithSameAz(@RequestBody List<Long> messengerGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.offlineMessengerWithSameAz(messengerGroupIds));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-    @PostMapping("/messenger/online")
-    public ApiResult<Integer> onlineMessengerWithSameAz(@RequestBody List<Long> messengerGroupIds) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.onlineMessengerWithSameAz(messengerGroupIds));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

@@ -7,7 +7,7 @@ package com.ctrip.framework.drc.console.param.v2.resource;
 public class ResourceBuildParam {
     private String ip;
     private String type;
-    private Long dcId;
+    private String dcName;
     private String tag;
     private String az;
 
@@ -23,16 +23,16 @@ public class ResourceBuildParam {
         return type;
     }
 
-    public void String(String type) {
+    public void setType(String type) {
         this.type = type;
     }
 
-    public Long getDcId() {
-        return dcId;
+    public String getDcName() {
+        return dcName;
     }
 
-    public void setDcId(Long dcId) {
-        this.dcId = dcId;
+    public void setDcName(String dcName) {
+        this.dcName = dcName;
     }
 
     public String getTag() {
