@@ -112,7 +112,7 @@ public class MetaGeneratorV3 {
     private List<ZookeeperTbl> zookeeperTbls;
     private List<ReplicatorTbl> replicatorTbls;
     private List<ApplierTblV2> applierTbls;
-    Map<Long, List<ApplierTblV2>> applierTblsByGroupId;
+    private Map<Long, List<ApplierTblV2>> applierTblsByGroupId;
     private List<MhaReplicationTbl> mhaReplicationTbls;
     private List<MhaDbMappingTbl> mhaDbMappingTbls;
     private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaId;
@@ -417,7 +417,7 @@ public class MetaGeneratorV3 {
             return target;
         }).collect(Collectors.toList());
 
-        DataMediaConfig properties = generateConfig(dbReplicationDto);
+        DataMediaConfig properties = generateFilters(dbReplicationDto);
         String propertiesJson = CollectionUtils.isEmpty(properties.getRowsFilters()) &&
                 CollectionUtils.isEmpty(properties.getColumnsFilters()) ? null : JsonUtils.toJson(properties);
         return propertiesJson;
@@ -450,7 +450,7 @@ public class MetaGeneratorV3 {
     }
 
 
-    private DataMediaConfig generateConfig(List<DbReplicationDto> dbReplicationDtos) throws SQLException {
+    private DataMediaConfig generateFilters(List<DbReplicationDto> dbReplicationDtos) throws SQLException {
         // 1. prepare all data
 
         // 1.1 mha
