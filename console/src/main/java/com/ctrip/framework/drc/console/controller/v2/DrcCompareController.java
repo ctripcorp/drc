@@ -4,7 +4,8 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.service.impl.MetaGenerator;
 import com.ctrip.framework.drc.console.service.v2.MetaCompareService;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2Fast;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
+import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
@@ -30,7 +31,7 @@ public class DrcCompareController {
     @Autowired
     private MetaGeneratorV2 metaGeneratorV2;
     @Autowired
-    private MetaGeneratorV2Fast metaGeneratorV2Fast;
+    private MetaGeneratorV3 metaGeneratorV3;
     @Autowired
     private MetaCompareService metaCompareService;
 
@@ -38,21 +39,23 @@ public class DrcCompareController {
     public ApiResult<GeneratorStatistics.Task> benchMarkTest(@RequestParam("compare") Boolean compare) {
         try {
             List<GeneratorStatistics.Task> list = Lists.newArrayList();
+            StopWatch stopWatch = new StopWatch();
+
+            // v3
+            logger.info("start v3");
+            stopWatch.start(metaGeneratorV3.getClass().getSimpleName());
+            Drc drcV3 = metaGeneratorV3.getDrc();
+            stopWatch.stop();
+            list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
+
 
             // v1
-            StopWatch stopWatch = new StopWatch();
+            logger.info("start v1");
             stopWatch.start(metaGenerator.getClass().getSimpleName());
             metaGenerator.getDrc();
             stopWatch.stop();
             list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
-
-            // v2 fast
-            logger.info("start v2 fast");
-            stopWatch.start(metaGeneratorV2Fast.getClass().getSimpleName());
-            Drc drcV2Fast = metaGeneratorV2Fast.getDrc();
-            stopWatch.stop();
-            list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
             // v2
             logger.info("start v2");
@@ -67,7 +70,7 @@ public class DrcCompareController {
             Boolean compareResult = null;
             if (Boolean.TRUE.equals(compare)) {
                 stopWatch.start(metaCompareService.getClass().getSimpleName());
-                String res = metaCompareService.compareDrcMeta(drcV2, drcV2Fast);
+                String res = metaCompareService.compareDrcMeta(drcV2, drcV3);
                 stopWatch.stop();
                 list.add(new GeneratorStatistics.Task(stopWatch.getLastTaskName(), stopWatch.getLastTaskTimeMillis()));
 
@@ -78,6 +81,35 @@ public class DrcCompareController {
             }
             logger.info(summaryInfo);
             return ApiResult.getSuccessInstance(new GeneratorStatistics(list, compareResult, summaryInfo));
+        } catch (Throwable e) {
+            logger.error("benchMarkTest error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+
+    @GetMapping("generateV3")
+    public ApiResult<String> generateV3() {
+        try {
+            // v3
+            logger.info("start v3");
+            Drc drcV3 = metaGeneratorV3.getDrc();
+            logger.info("finish v3");
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV3.toString()));
+        } catch (Throwable e) {
+            logger.error("benchMarkTest error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("generateV2")
+    public ApiResult<String> generateV2() {
+        try {
+            // v3
+            logger.info("start v2");
+            Drc drcV3 = metaGeneratorV2.getDrc();
+            logger.info("finish v2");
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV3.toString()));
         } catch (Throwable e) {
             logger.error("benchMarkTest error", e);
             return ApiResult.getFailInstance(null, e.getMessage());

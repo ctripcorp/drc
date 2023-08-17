@@ -1,11 +1,10 @@
 package com.ctrip.framework.drc.console.monitor.delay.config.v2;
 
-import com.ctrip.framework.drc.console.config.ConsoleConfig;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.monitor.AbstractMonitor;
 import com.ctrip.framework.drc.console.monitor.delay.config.DbClusterSourceProvider;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2;
-import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV2Fast;
+import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
@@ -28,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  {
     
     @Autowired private MetaGeneratorV2 metaGeneratorV2;
-    @Autowired private MetaGeneratorV2Fast metaGeneratorV2Fast;
+    @Autowired private MetaGeneratorV3 metaGeneratorV3;
 
     @Autowired private DefaultConsoleConfig consoleConfig;
     @Autowired private DbClusterSourceProvider metaProviderV1;
@@ -74,10 +73,10 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
                 drc = metaProviderV1.getDrc();
                 return;
             }
-            boolean fastSwitch = DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaGeneratorV2FastSwitch());
-            if (fastSwitch) {
-                logger.info("[[meta=v2]] MetaProviderV2Fast refresh drc end cost:{}", System.currentTimeMillis() - start);
-                drc = metaGeneratorV2Fast.getDrc();
+            boolean V3Switch = DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaGeneratorV3Switch());
+            if (V3Switch) {
+                logger.info("[[meta=v3]] MtaGeneratorV3 refresh drc end cost:{}", System.currentTimeMillis() - start);
+                drc = metaGeneratorV3.getDrc();
             } else {
                 logger.info("[[meta=v2]] MetaProviderV2 refresh drc end cost:{}", System.currentTimeMillis() - start);
                 drc = metaGeneratorV2.getDrc();

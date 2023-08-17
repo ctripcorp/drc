@@ -193,7 +193,7 @@ public class AbstractDao<T> {
     }
 
 
-    public List<T> queryAllUndeleted() throws SQLException {
+    public List<T> queryAllExist() throws SQLException {
         SelectSqlBuilder builder = initSqlBuilder();
         return client.query(builder, new DalHints());
     }

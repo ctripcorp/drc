@@ -9,7 +9,6 @@ import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.service.v2.ColumnsFilterServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.NumberUtils;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
@@ -38,18 +37,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Created by dengquanliang
- * 2023/5/25 14:09
+ * V2 fast version
  */
 @Service
-public class MetaGeneratorV2Fast {
+public class MetaGeneratorV3 {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    @Autowired
-    private MessengerServiceV2 messengerService;
     @Autowired
     private RowsFilterServiceV2 rowsFilterServiceV2;
     @Autowired
@@ -136,7 +132,7 @@ public class MetaGeneratorV2Fast {
         if (publicCloudRegion.contains(consoleConfig.getRegion())) {
             return null;
         }
-        List<DcTbl> dcTbls = dcTblDao.queryAllUndeleted();
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
         Drc drc = new Drc();
 
         refreshMetaData();
@@ -161,36 +157,36 @@ public class MetaGeneratorV2Fast {
     }
 
     private void refreshMetaData() throws SQLException {
-        buTbls = buTblDao.queryAllUndeleted();
-        routeTbls = routeTblDao.queryAllUndeleted();
-        proxyTbls = proxyTblDao.queryAllUndeleted();
-        dcTbls = dcTblDao.queryAllUndeleted();
-        mhaTbls = mhaTblDao.queryAllUndeleted();
-        resourceTbls = resourceTblDao.queryAllUndeleted();
-        machineTbls = machineTblDao.queryAllUndeleted();
-        replicatorGroupTbls = replicatorGroupTblDao.queryAllUndeleted();
-        applierGroupTbls = applierGroupTblDao.queryAllUndeleted();
-        clusterManagerTbls = clusterManagerTblDao.queryAllUndeleted();
-        zookeeperTbls = zookeeperTblDao.queryAllUndeleted();
-        replicatorTbls = replicatorTblDao.queryAllUndeleted();
-        applierTbls = applierTblDao.queryAllUndeleted();
-        messengerGroupTbls = messengerGroupTblDao.queryAllUndeleted();
-        messengerTbls = messengerTblDao.queryAllUndeleted();
+        buTbls = buTblDao.queryAllExist();
+        routeTbls = routeTblDao.queryAllExist();
+        proxyTbls = proxyTblDao.queryAllExist();
+        dcTbls = dcTblDao.queryAllExist();
+        mhaTbls = mhaTblDao.queryAllExist();
+        resourceTbls = resourceTblDao.queryAllExist();
+        machineTbls = machineTblDao.queryAllExist();
+        replicatorGroupTbls = replicatorGroupTblDao.queryAllExist();
+        applierGroupTbls = applierGroupTblDao.queryAllExist();
+        clusterManagerTbls = clusterManagerTblDao.queryAllExist();
+        zookeeperTbls = zookeeperTblDao.queryAllExist();
+        replicatorTbls = replicatorTblDao.queryAllExist();
+        applierTbls = applierTblDao.queryAllExist();
+        messengerGroupTbls = messengerGroupTblDao.queryAllExist();
+        messengerTbls = messengerTblDao.queryAllExist();
 
-        mhaReplicationTbls = mhaReplicationTblDao.queryAllUndeleted();
-        mhaDbMappingTbls = mhaDbMappingTblDao.queryAllUndeleted();
-        dbReplicationTbls = dbReplicationTblDao.queryAllUndeleted();
-        dbTbls = dbTblDao.queryAllUndeleted();
-        dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllUndeleted();
-        columnsFilterTbls = columnsFilterTblV2Dao.queryAllUndeleted();
-        messengerFilterTbls = messengerFilterTblDao.queryAllUndeleted();
-        rowsFilterTbls = rowsFilterTblV2Dao.queryAllUndeleted();
+        mhaReplicationTbls = mhaReplicationTblDao.queryAllExist();
+        mhaDbMappingTbls = mhaDbMappingTblDao.queryAllExist();
+        dbReplicationTbls = dbReplicationTblDao.queryAllExist();
+        dbTbls = dbTblDao.queryAllExist();
+        dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryAllExist();
+        columnsFilterTbls = columnsFilterTblV2Dao.queryAllExist();
+        messengerFilterTbls = messengerFilterTblDao.queryAllExist();
+        rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist();
 
         resourceTblIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity(), (e1, e2) -> e1));
         mhaDbMappingTblsByMhaId = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
         applierTblsByGroupId = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
         messengerTblByGroupId = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
-        dbReplicationFilterMappingTblsByDbRplicationId = dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(e -> e.getDbReplicationId()));
+        dbReplicationFilterMappingTblsByDbRplicationId = dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
     }
 
     private Dc generateDcFrame(Drc drc, DcTbl dcTbl) {
@@ -341,7 +337,6 @@ public class MetaGeneratorV2Fast {
         }
     }
 
-    // todo by yongnian: 2023/8/16 next
     private void generateMessengers(DbCluster dbCluster, MhaTblV2 mhaTbl) throws SQLException {
         List<Messenger> messengers = this.generateMessengers(mhaTbl.getId());
         for (Messenger messenger : messengers) {
