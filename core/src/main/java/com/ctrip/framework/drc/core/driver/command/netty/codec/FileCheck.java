@@ -7,13 +7,9 @@ import io.netty.channel.Channel;
  */
 public interface FileCheck {
 
-    void setChannel(Channel channel);
-
     void setFileManager(FileManager fileManager);
 
-    void startCheck();
+    void start(Channel channel);
 
-    void stopCheck();
-
-    boolean check();
+    void stop();
 }

@@ -83,7 +83,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
 
-        FileCheck fileCheck = new DefaultFileCheck();
+        FileCheck fileCheck = new DefaultFileCheck(clusterName);
 
         boolean isMaster = mySQLSlaveConfig.isMaster();
         MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint(), fileCheck)
