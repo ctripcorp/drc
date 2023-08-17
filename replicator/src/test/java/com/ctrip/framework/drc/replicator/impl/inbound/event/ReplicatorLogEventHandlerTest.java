@@ -22,7 +22,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCa
 import com.ctrip.framework.drc.replicator.impl.monitor.DefaultMonitorManager;
 import com.ctrip.framework.drc.replicator.store.AbstractTransactionTest;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;

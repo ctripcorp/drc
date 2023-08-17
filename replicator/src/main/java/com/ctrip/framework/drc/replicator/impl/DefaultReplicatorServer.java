@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.replicator.impl;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
 import com.ctrip.framework.drc.core.driver.config.MySQLSlaveConfig;
 import com.ctrip.framework.drc.core.monitor.entity.TrafficEntity;
 import com.ctrip.framework.drc.core.monitor.enums.DirectionEnum;
@@ -33,10 +34,13 @@ import com.ctrip.framework.drc.replicator.impl.oubound.handler.DelayMonitorComma
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.HeartBeatCommandHandler;
 import com.ctrip.framework.drc.replicator.store.EventStore;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
+import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheck;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.lifecycle.Destroyable;
 import com.ctrip.xpipe.lifecycle.LifecycleHelper;
 import com.ctrip.xpipe.utils.VisibleForTesting;
+
+import java.io.File;
 
 /**
  * @author wenchao.meng
@@ -79,8 +83,10 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
 
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
 
+        FileCheck fileCheck = new DefaultFileCheck();
+
         boolean isMaster = mySQLSlaveConfig.isMaster();
-        MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint())
+        MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint(), fileCheck)
                                                  : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
 
         replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);// mysql  binlog dump Server
@@ -93,6 +99,8 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
                                     : new BackupEventTransactionCache(eventStore, new TransactionFilterChainFactory().createFilterChain(transactionContext));
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
+
+        fileCheck.setFileManager(eventStore.getFileManager());
 
         TrafficEntity trafficEntity = replicatorConfig.getTrafficEntity(DirectionEnum.IN);
         delayMonitorReport = new DelayMonitorReport(replicatorConfig.getClusterAppId(), trafficEntity);

@@ -21,7 +21,6 @@ import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPoolTest;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactoryTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.AuthenticateResultHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.HandshakeInitializationHandlerTest;
-import com.ctrip.framework.drc.core.driver.command.netty.codec.ReceiveCheckHandlerTest;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ConnectGeneratorTest;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacketTest;
 import com.ctrip.framework.drc.core.driver.command.packet.client.*;
@@ -92,7 +91,6 @@ import org.junit.runners.Suite;
         AuthenticateResultHandlerTest.class,
         HandshakeInitializationHandlerTest.class,
         CharsetConversionTest.class,
-        ReceiveCheckHandlerTest.class,
 
         // messenger
         ConsumeTypeTest.class,

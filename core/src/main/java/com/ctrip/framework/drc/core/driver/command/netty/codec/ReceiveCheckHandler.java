@@ -1,48 +1,49 @@
 package com.ctrip.framework.drc.core.driver.command.netty.codec;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
-import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
-import java.util.concurrent.TimeUnit;
-
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION_IDLE_TIMEOUT_SECOND;
-import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by jixinwang on 2023/8/8
  */
 public class ReceiveCheckHandler extends ChannelInboundHandlerAdapter {
 
-    private static int CHECK_PERIOD = CONNECTION_IDLE_TIMEOUT_SECOND * 1000 * 2;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private boolean msgReceived = true;
+    private FileCheck fileCheck;
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        msgReceived = true;
-        ctx.fireChannelRead(msg);
+    private boolean readIdle;
+
+    public ReceiveCheckHandler(FileCheck fileCheck) {
+        this.fileCheck = fileCheck;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.executor().scheduleWithFixedDelay(() -> {
-            boolean checkSwitch = DynamicConfig.getInstance().getReceiveCheckSwitch();
-            if (!msgReceived && checkSwitch) {
-                msgReceived = true;
-                HEARTBEAT_LOGGER.info("[ReceiveCheck] receive check error, close channel");
-                ctx.close();
-            } else {
-                HEARTBEAT_LOGGER.info("[ReceiveCheck] receive check success");
-                msgReceived = false;
-            }
-            msgReceived = false;
-        }, CHECK_PERIOD, CHECK_PERIOD, TimeUnit.MILLISECONDS);
+        System.out.println("channel active: " + ctx.channel().toString());
+        fileCheck.setChannel(ctx.channel());
+        fileCheck.startCheck();
+        ctx.fireChannelActive();
     }
 
-    @VisibleForTesting
-    protected void setCheckPeriod(int checkPeriod) {
-        CHECK_PERIOD = checkPeriod;
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        fileCheck.stopCheck();
+        ctx.fireChannelInactive();
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent e = (IdleStateEvent) evt;
+            if (e.state() == IdleState.READER_IDLE) {
+                readIdle = true;
+            }
+        }
+        ctx.fireUserEventTriggered(evt);
     }
 }

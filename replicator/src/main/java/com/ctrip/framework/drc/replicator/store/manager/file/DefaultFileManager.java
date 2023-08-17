@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.core.driver.binlog.manager.ApplyResult;
 import com.ctrip.framework.drc.core.driver.binlog.manager.SchemaManager;
 import com.ctrip.framework.drc.core.driver.binlog.manager.TableInfo;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.config.SystemConfig;
@@ -671,7 +672,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      * Return the current on-disk size of log size. This will be accurate only
      * after commit() is called. Otherwise, unflushed txns may not be included.
      */
-    private long getCurrentLogSize() {
+    public long getCurrentLogSize() {
         if (logFileWrite != null) {
             return logFileSize.get();
         }

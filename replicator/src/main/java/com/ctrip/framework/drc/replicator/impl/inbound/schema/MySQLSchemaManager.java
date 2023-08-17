@@ -21,7 +21,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbRestoreTask
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.MySQLInstance;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.store.EventStore;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.utils.VisibleForTesting;

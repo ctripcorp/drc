@@ -10,7 +10,7 @@ import com.ctrip.framework.drc.replicator.container.zookeeper.UuidOperator;
 import com.ctrip.framework.drc.replicator.impl.inbound.AbstractServerTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.ApplierRegisterCommandHandler;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.framework.drc.replicator.store.manager.gtid.DefaultGtidManager;
 import com.google.common.collect.Sets;
 import org.junit.After;

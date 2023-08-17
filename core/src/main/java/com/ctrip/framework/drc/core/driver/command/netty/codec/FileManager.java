@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.replicator.store.manager.file;
+package com.ctrip.framework.drc.core.driver.command.netty.codec;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidReader;
@@ -27,6 +27,8 @@ public interface FileManager extends GtidReader, GtidObservable, Flushable, Dest
     File getDataDir();
 
     File getCurrentLogFile();
+
+    long getCurrentLogSize();
 
     File getFirstLogFile();
 

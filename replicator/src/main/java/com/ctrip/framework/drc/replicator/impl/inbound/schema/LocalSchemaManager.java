@@ -11,7 +11,7 @@ import com.ctrip.framework.drc.core.monitor.entity.BaseEndpointEntity;
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.ColumnsQueryCommandExecutor;
 import com.ctrip.framework.drc.replicator.impl.inbound.handler.QueryClientCommandHandler;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.index.IndexExtractor;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.xpipe.api.command.CommandFuture;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.api.observer.Observable;

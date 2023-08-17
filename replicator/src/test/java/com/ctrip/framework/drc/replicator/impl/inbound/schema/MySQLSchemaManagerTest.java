@@ -17,7 +17,7 @@ import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransact
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStore;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

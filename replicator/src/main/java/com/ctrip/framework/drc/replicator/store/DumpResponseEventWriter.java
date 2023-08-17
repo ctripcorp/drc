@@ -1,7 +1,7 @@
 package com.ctrip.framework.drc.replicator.store;
 
 import com.ctrip.framework.drc.core.driver.binlog.impl.TransactionContext;
-import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
 import com.ctrip.xpipe.lifecycle.AbstractLifecycle;
 import io.netty.buffer.ByteBuf;
 import org.slf4j.Logger;
