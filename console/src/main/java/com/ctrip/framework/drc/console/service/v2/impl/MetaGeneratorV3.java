@@ -112,10 +112,10 @@ public class MetaGeneratorV3 {
     private List<ZookeeperTbl> zookeeperTbls;
     private List<ReplicatorTbl> replicatorTbls;
     private List<ApplierTblV2> applierTbls;
-    private Map<Long, List<ApplierTblV2>> applierTblsByGroupId;
+    private Map<Long, List<ApplierTblV2>> applierTblsByGroupIdMap;
     private List<MhaReplicationTbl> mhaReplicationTbls;
     private List<MhaDbMappingTbl> mhaDbMappingTbls;
-    private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaId;
+    private Map<Long, List<MhaDbMappingTbl>> mhaDbMappingTblsByMhaIdMap;
     private List<DbReplicationTbl> dbReplicationTbls;
     private List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls;
     private List<ColumnsFilterTblV2> columnsFilterTbls;
@@ -124,8 +124,8 @@ public class MetaGeneratorV3 {
     private List<MessengerFilterTbl> messengerFilterTbls;
     private List<MessengerGroupTbl> messengerGroupTbls;
     private List<MessengerTbl> messengerTbls;
-    private Map<Long, List<MessengerTbl>> messengerTblByGroupId;
-    private Map<Long, List<DbReplicationFilterMappingTbl>> dbReplicationFilterMappingTblsByDbRplicationId;
+    private Map<Long, List<MessengerTbl>> messengerTblByGroupIdMap;
+    private Map<Long, List<DbReplicationFilterMappingTbl>> dbReplicationFilterMappingTblsByDbRplicationIdMap;
 
     public Drc getDrc() throws Exception {
         Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
@@ -183,10 +183,10 @@ public class MetaGeneratorV3 {
         rowsFilterTbls = rowsFilterTblV2Dao.queryAllExist();
 
         resourceTblIdMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, Function.identity(), (e1, e2) -> e1));
-        mhaDbMappingTblsByMhaId = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
-        applierTblsByGroupId = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
-        messengerTblByGroupId = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
-        dbReplicationFilterMappingTblsByDbRplicationId = dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
+        mhaDbMappingTblsByMhaIdMap = mhaDbMappingTbls.stream().collect(Collectors.groupingBy(MhaDbMappingTbl::getMhaId));
+        applierTblsByGroupIdMap = applierTbls.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
+        messengerTblByGroupIdMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
+        dbReplicationFilterMappingTblsByDbRplicationIdMap = dbReplicationFilterMappingTbls.stream().collect(Collectors.groupingBy(DbReplicationFilterMappingTbl::getDbReplicationId));
     }
 
     private Dc generateDcFrame(Drc drc, DcTbl dcTbl) {
@@ -360,12 +360,12 @@ public class MetaGeneratorV3 {
     }
 
     private void generateApplierInstances(DbCluster dbCluster, MhaTblV2 srcMhatbl, MhaTblV2 dstMhaTbl, ApplierGroupTblV2 applierGroupTbl) throws SQLException {
-        List<ApplierTblV2> curMhaAppliers = applierTblsByGroupId.get(applierGroupTbl.getId());
+        List<ApplierTblV2> curMhaAppliers = applierTblsByGroupIdMap.get(applierGroupTbl.getId());
         if (CollectionUtils.isEmpty(curMhaAppliers)) {
             return;
         }
-        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(srcMhatbl.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(dstMhaTbl.getId());
+        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(srcMhatbl.getId());
+        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(dstMhaTbl.getId());
 
         Set<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
         Set<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
@@ -528,7 +528,7 @@ public class MetaGeneratorV3 {
             return messengers;
         }
 
-        List<MessengerTbl> messengerTbls = messengerTblByGroupId.getOrDefault(messengerGroupTbl.getId(), Collections.emptyList());
+        List<MessengerTbl> messengerTbls = messengerTblByGroupIdMap.getOrDefault(messengerGroupTbl.getId(), Collections.emptyList());
         if (CollectionUtils.isEmpty(messengerTbls)) {
             return messengers;
         }
@@ -555,7 +555,7 @@ public class MetaGeneratorV3 {
 
     private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
         MessengerProperties messengerProperties = new MessengerProperties();
-        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaId.get(mhaId);
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(mhaId);
         List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
 
@@ -567,10 +567,9 @@ public class MetaGeneratorV3 {
         Set<String> srcTables = new HashSet<>();
         List<MqConfig> mqConfigs = new ArrayList<>();
         DataMediaConfig dataMediaConfig = new DataMediaConfig();
-        List<RowsFilterConfig> rowFilters = new ArrayList<>();
 
         for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
-            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationId.get(dbReplicationTbl.getId());
+            List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationIdMap.get(dbReplicationTbl.getId());
             Long messengerFilterId = dbReplicationFilterMappings.stream()
                     .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
                     .filter(e -> e != null && e > 0L).findFirst().orElse(null);
@@ -590,17 +589,10 @@ public class MetaGeneratorV3 {
             mqConfig.setTopic(dbReplicationTbl.getDstLogicTableName());
             // processor is null
             mqConfigs.add(mqConfig);
-
-            Set<Long> rowsFilterIds = dbReplicationFilterMappings.stream()
-                    .map(DbReplicationFilterMappingTbl::getRowsFilterId)
-                    .filter(e -> e != null && e > 0L).collect(Collectors.toSet());
-            List<RowsFilterTblV2> rowsFilterTblV2List = rowsFilterTbls.stream().filter(e -> rowsFilterIds.contains(e.getId())).collect(Collectors.toList());
-            rowFilters.addAll(rowsFilterServiceV2.generateRowsFiltersConfigFromTbl(tableName, rowsFilterTblV2List));
         }
 
         messengerProperties.setMqConfigs(mqConfigs);
         messengerProperties.setNameFilter(Joiner.on(",").join(srcTables));
-        dataMediaConfig.setRowsFilters(rowFilters);
         messengerProperties.setDataMediaConfig(dataMediaConfig);
         return messengerProperties;
     }

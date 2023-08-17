@@ -105,11 +105,11 @@ public class DrcGeneratorController {
     @GetMapping("generateV2")
     public ApiResult<String> generateV2() {
         try {
-            // v3
+            // v2
             logger.info("start v2");
-            Drc drcV3 = metaGeneratorV2.getDrc();
+            Drc drcV2 = metaGeneratorV2.getDrc();
             logger.info("finish v2");
-            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV3.toString()));
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drcV2.toString()));
         } catch (Throwable e) {
             logger.error("benchMarkTest error", e);
             return ApiResult.getFailInstance(null, e.getMessage());
