@@ -45,8 +45,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
     @Autowired private DrcBuildService drcBuildService;
 
     @Autowired private DefaultConsoleConfig consoleConfig;
-    
-    private StringBuilder recorder;
+
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
     private volatile Boolean consistent;
 
@@ -72,7 +71,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
                     logger.info("[[task=MetaCompare]]public cloud console, do nothing");
                 } else {
                     String res = compareDrcMeta();
-                    consistent = !(res.contains("not equal") || res.contains("empty") || res.contains("fail"));
+                    consistent = this.isConsistent(res);
                     logger.info("[[task=MetaCompare]] compare consistent :{}",consistent);
                     DefaultEventMonitorHolder.getInstance().logEvent("console.metaCompare",String.valueOf(consistent));
                 }
@@ -85,7 +84,11 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
             logger.error("[[task=MetaCompare]] scheduledTask error,set consistent to false", t);
         }
     }
-    
+    @Override
+    public boolean isConsistent(String res) {
+        return !(res.contains("not equal") || res.contains("empty") || res.contains("fail"));
+    }
+
 
     @Override
     public String compareDrcMeta() throws Exception {
@@ -122,21 +125,33 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
         return consistent;
     }
 
+
+    @Override
+    public synchronized String compareDrcMeta(Drc newDrc, Drc oldDrc) {
+        StringBuilder recorder = new StringBuilder();
+        try {
+            compareLogically(oldDrc, newDrc, recorder);
+        } finally {
+            logger.info("[[tag=metaCompare]] res:{}", recorder.toString());
+        }
+        return recorder.toString();
+    }
+
     protected synchronized String getDrcMetaCompareRes() {
+        StringBuilder recorder = new StringBuilder();
         try {
             metaProviderV2.scheduledTask();
             metaProviderV1.scheduledTask();
             Drc newDrc = metaProviderV2.getDrc();
             Drc oldDrc = metaProviderV1.getDrc();
-            recorder = new StringBuilder();
-            compareLogically(oldDrc, newDrc);
+            compareLogically(oldDrc, newDrc, recorder);
         } finally {
             logger.info("[[tag=metaCompare]] res:{}",recorder.toString());
         }
         return recorder.toString();
     }
-    
-    protected void compareLogically(Drc oldDrc,Drc newDrc) {
+
+    protected void compareLogically(Drc oldDrc, Drc newDrc, StringBuilder recorder) {
         Map<String, Dc> oldDcs = oldDrc.getDcs();
         Map<String, Dc> newDcs = newDrc.getDcs();
         if (oldDcs.size() != newDcs.size()) {

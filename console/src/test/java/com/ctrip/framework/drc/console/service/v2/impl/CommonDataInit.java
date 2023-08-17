@@ -7,13 +7,11 @@ import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
-import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -96,6 +94,22 @@ public class CommonDataInit {
     MetaInfoServiceV2Impl metaInfoServiceV2Impl;
     @InjectMocks
     MessengerServiceV2Impl messengerServiceV2Impl;
+    @Mock
+    ColumnsFilterServiceV2 columnsFilterServiceV2;
+    RowsFilterServiceV2 rowsFilterServiceV2;
+    @Mock
+    RouteTblDao routeTblDao;
+    @Mock
+    ProxyTblDao proxyTblDao;
+    @Mock
+    ClusterManagerTblDao clusterManagerTblDao;
+    @Mock
+    ZookeeperTblDao zookeeperTblDao;
+    @Mock
+    RowsFilterTblV2Dao rowsFilterTblV2Dao;
+    @Mock
+    ColumnsFilterTblV2Dao columnsFilterTblV2Dao;
+
 
     @Before
     public void setUp() throws SQLException, IOException {
@@ -383,7 +397,44 @@ public class CommonDataInit {
             }
             throw new IllegalStateException("Unexpected value: " + aClass);
         });
+
+
+        List<ClusterManagerTbl> clusterManagerTblList = this.getData("ClusterManagerTbl.json", ClusterManagerTbl.class);
+        List<RouteTbl> routeTblList = this.getData("RouteTbl.json", RouteTbl.class);
+        List<ProxyTbl> proxyTblList = this.getData("ProxyTbl.json", ProxyTbl.class);
+        List<ZookeeperTbl> zookeeperTblList = this.getData("ZookeeperTbl.json", ZookeeperTbl.class);
+        List<RowsFilterTblV2> rowsFilterTblV2List = this.getData("RowsFilterTblV2.json", RowsFilterTblV2.class);
+        List<ColumnsFilterTblV2> columnsFilterTblV2List = this.getData("ColumnsFilterTblV2.json", ColumnsFilterTblV2.class);
+
+
+        // queryALlExist
+        when(applierTblV2Dao.queryAllExist()).thenReturn(applierTblV2s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(applierGroupTblV2Dao.queryAllExist()).thenReturn(applierGroupTblV2s.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(messengerGroupTblDao.queryAllExist()).thenReturn(messengerGroupTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(messengerTblDao.queryAllExist()).thenReturn(messengerTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(dbReplicationTblDao.queryAllExist()).thenReturn(dbReplicationTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(mhaDbMappingTblDao.queryAllExist()).thenReturn(mhaDbMappingTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(mhaReplicationTblDao.queryAllExist()).thenReturn(mhaReplicationTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(mhaTblV2Dao.queryAllExist()).thenReturn(mhaTblV2List.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(dbTblDao.queryAllExist()).thenReturn(dbTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(buTblDao.queryAllExist()).thenReturn(buTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(dcTblDao.queryAllExist()).thenReturn(dcTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(resourceTblDao.queryAllExist()).thenReturn(resourceTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(machineTblDao.queryAllExist()).thenReturn(machineTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(replicatorGroupTblDao.queryAllExist()).thenReturn(replicatorGroupTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(replicatorTblDao.queryAllExist()).thenReturn(replicatorTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(messengerFilterTblDao.queryAllExist()).thenReturn(messengerFilterTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(dbReplicationFilterMappingTblDao.queryAllExist()).thenReturn(dbReplicationFilterMappingTbls.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+
+        when(clusterManagerTblDao.queryAllExist()).thenReturn(clusterManagerTblList.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(routeTblDao.queryAllExist()).thenReturn(routeTblList.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(proxyTblDao.queryAllExist()).thenReturn(proxyTblList.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(zookeeperTblDao.queryAllExist()).thenReturn(zookeeperTblList.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(rowsFilterTblV2Dao.queryAllExist()).thenReturn(rowsFilterTblV2List.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+        when(columnsFilterTblV2Dao.queryAllExist()).thenReturn(columnsFilterTblV2List.stream().filter(e -> !BooleanEnum.TRUE.getCode().equals(e.getDeleted())).collect(Collectors.toList()));
+
     }
+
 
     private <T> List<T> getData(String fileName, Class<T> clazz) throws IOException {
         String prefix = "/testData/messengerServiceV2/";
