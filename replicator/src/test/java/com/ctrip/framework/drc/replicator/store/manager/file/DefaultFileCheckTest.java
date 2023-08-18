@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import io.netty.channel.Channel;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +20,7 @@ public class DefaultFileCheckTest {
     @Mock
     private Channel channel;
 
-    DefaultFileCheck fileCheck = new DefaultFileCheck("test", fileManager);
+    DefaultFileCheck fileCheck = new TestDefaultFileCheck("test", fileManager, null);
 
     @Before
     public void setUp() {
@@ -31,7 +32,19 @@ public class DefaultFileCheckTest {
     public void testStart() throws InterruptedException {
         when(fileManager.getCurrentLogSize()).thenReturn(100L);
         fileCheck.start(channel);
-        Thread.sleep(150);
+        Thread.sleep(180);
         Mockito.verify(channel, Mockito.times(1)).close();
+    }
+
+    class TestDefaultFileCheck extends DefaultFileCheck {
+
+        public TestDefaultFileCheck(String registerKey, FileManager fileManager, Endpoint endpoint) {
+            super(registerKey, fileManager, endpoint);
+        }
+
+        @Override
+        protected boolean gtidSetMoving() {
+            return true;
+        }
     }
 }

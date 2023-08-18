@@ -93,7 +93,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
-        FileCheck fileCheck = new DefaultFileCheck(clusterName, eventStore.getFileManager());
+        FileCheck fileCheck = new DefaultFileCheck(clusterName, eventStore.getFileManager(), mySQLSlaveConfig.getEndpoint());
         MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint(), fileCheck)
                 : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
 
