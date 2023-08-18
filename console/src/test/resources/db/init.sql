@@ -437,6 +437,7 @@ CREATE TABLE `mha_replication_tbl`
     `deleted`             tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0-否; 1-是',
     `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    `drc_status`          tinyint(4) NOT NULL DEFAULT '1' COMMENT '是否接入drc, 0-否; 1-是',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='mha同步复制链路表';
 

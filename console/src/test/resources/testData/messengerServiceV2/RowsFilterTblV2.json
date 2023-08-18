@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "mode": 1,
+    "configs": "{\"parameterList\":[{\"columns\":[\"UserData_Location\"],\"illegalArgument\":false,\"context\":\"SIN\",\"fetchMode\":0,\"userFilterMode\":\"udl\"}],\"drcStrategyId\":2000000002,\"routeStrategyId\":0}",
+    "deleted": 0,
+    "createTime": "2017-06-03 21:11:15",
+    "datachangeLasttime": "2032-08-29 04:10:11"
+  }
+]

@@ -62,7 +62,7 @@ public class MhaReplicationControllerTest {
         this.mvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         // mock data
-        List<MhaReplicationTbl> mhaReplicationTbls = JSON.parseArray("[{\"id\":0,\"srcMhaId\":1,\"dstMhaId\":2},{\"id\":1,\"srcMhaId\":2,\"dstMhaId\":1}]", MhaReplicationTbl.class);
+        List<MhaReplicationTbl> mhaReplicationTbls = JSON.parseArray("[{\"id\":0,\"srcMhaId\":1,\"dstMhaId\":2,\"drcStatus\": 1},{\"id\":1,\"srcMhaId\":2,\"dstMhaId\":1,\"drcStatus\": 1}]", MhaReplicationTbl.class);
         List<MhaTblV2> list = JSON.parseArray("[{\"id\":1,\"mhaName\":\"mha1\",\"dcId\":1,\"buId\":1},{\"id\":2,\"mhaName\":\"mha2\",\"dcId\":1,\"buId\":1}]", MhaTblV2.class);
         Map<Long, MhaTblV2> map = list.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
 

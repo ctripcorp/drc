@@ -6,9 +6,11 @@ import com.ctrip.platform.dal.dao.DalTableDao;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.helper.DalDefaultJpaParser;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,14 +32,20 @@ public class AbstractDao<T> {
     }
 
     public List<T> queryByPk(List<Long> ids) throws SQLException {
+        if (CollectionUtils.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().in("id", ids, Types.BIGINT);
+        sqlBuilder.and().in("id", ids, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 
     public List<T> queryByIds(List<Long> ids) throws SQLException {
+        if (CollectionUtils.isEmpty(ids)) {
+            return new ArrayList<>();
+        }
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.selectAll().in("id", ids, Types.BIGINT);
+        sqlBuilder.and().in("id", ids, Types.BIGINT);
         return queryList(sqlBuilder);
     }
 
@@ -182,6 +190,12 @@ public class AbstractDao<T> {
         SelectSqlBuilder builder = new SelectSqlBuilder().selectAll().orderBy("id", ASC);
 
         return client.query(builder, hints);
+    }
+
+
+    public List<T> queryAllExist() throws SQLException {
+        SelectSqlBuilder builder = initSqlBuilder();
+        return client.query(builder, new DalHints());
     }
 
     /**

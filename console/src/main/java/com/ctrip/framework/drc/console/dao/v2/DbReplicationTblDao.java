@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -77,6 +78,19 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         for (int i = 0; i <size; i++) {
             dbReplicationTbls.get(i).setId((Long) idList.get(i));
         }
+    }
+
+    public List<DbReplicationTbl> queryByDstLogicTableName(String dstLogicTableName, int replicationType) throws SQLException {
+        if (StringUtils.isBlank(dstLogicTableName)) {
+            return new ArrayList<>();
+        }
+
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectAll()
+                .and().equal(DST_LOGIC_TABLE_NAME, dstLogicTableName, Types.VARCHAR)
+                .and().equal(REPLICATION_TYPE, replicationType, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
     }
 
 }

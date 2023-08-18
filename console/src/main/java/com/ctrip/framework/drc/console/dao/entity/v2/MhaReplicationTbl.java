@@ -61,6 +61,13 @@ public class MhaReplicationTbl implements DalPojo {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * 是否接入DRC, 0-未接入; 1-已接入
+     */
+    @Column(name = "drc_status")
+    @Type(value = Types.TINYINT)
+    private Integer drcStatus;
+
     public Long getId() {
         return id;
     }
@@ -109,6 +116,14 @@ public class MhaReplicationTbl implements DalPojo {
         this.datachangeLasttime = datachangeLasttime;
     }
 
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
+
     @Override
     public String toString() {
         return "MhaReplicationTbl{" +
@@ -118,6 +133,7 @@ public class MhaReplicationTbl implements DalPojo {
                 ", deleted=" + deleted +
                 ", createTime=" + createTime +
                 ", datachangeLasttime=" + datachangeLasttime +
+                ", drcStatus=" + drcStatus +
                 '}';
     }
 }
