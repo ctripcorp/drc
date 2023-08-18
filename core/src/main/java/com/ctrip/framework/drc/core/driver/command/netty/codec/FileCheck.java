@@ -7,8 +7,6 @@ import io.netty.channel.Channel;
  */
 public interface FileCheck {
 
-    void setFileManager(FileManager fileManager);
-
     void start(Channel channel);
 
     void stop();

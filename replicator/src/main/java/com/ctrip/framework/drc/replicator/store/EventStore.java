@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.replicator.store;
 
-import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
+import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 
 /**

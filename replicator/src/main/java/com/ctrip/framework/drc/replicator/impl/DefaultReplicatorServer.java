@@ -82,14 +82,7 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         mySQLMasterServer = new MySQLMasterServer(mySQLMasterConfig);
 
         MySQLSlaveConfig mySQLSlaveConfig = replicatorConfig.getMySQLSlaveConfig();
-
-        FileCheck fileCheck = new DefaultFileCheck(clusterName);
-
         boolean isMaster = mySQLSlaveConfig.isMaster();
-        MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint(), fileCheck)
-                                                 : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
-
-        replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);// mysql  binlog dump Server
 
         DefaultMonitorManager delayMonitor = new DefaultMonitorManager(clusterName);
         int applyMode = mySQLSlaveConfig.getApplyMode();
@@ -100,7 +93,11 @@ public class DefaultReplicatorServer extends AbstractDrcServer implements Replic
         schemaManager.setTransactionCache(transactionCache);
         schemaManager.setEventStore(eventStore);
 
-        fileCheck.setFileManager(eventStore.getFileManager());
+        FileCheck fileCheck = new DefaultFileCheck(clusterName, eventStore.getFileManager());
+        MySQLConnector mySQLConnector = isMaster ? new ReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint(), fileCheck)
+                : new BackupReplicatorPooledConnector(mySQLSlaveConfig.getEndpoint());
+
+        replicatorSlaveServer = new ReplicatorSlaveServer(mySQLSlaveConfig, mySQLConnector, schemaManager);// mysql  binlog dump Server
 
         TrafficEntity trafficEntity = replicatorConfig.getTrafficEntity(DirectionEnum.IN);
         delayMonitorReport = new DelayMonitorReport(replicatorConfig.getClusterAppId(), trafficEntity);

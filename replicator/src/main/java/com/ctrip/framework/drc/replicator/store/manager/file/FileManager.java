@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.core.driver.command.netty.codec;
+package com.ctrip.framework.drc.replicator.store.manager.file;
 
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidReader;

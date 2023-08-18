@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.EventTransactionCache;
 import com.ctrip.framework.drc.replicator.impl.inbound.transaction.TransactionCache;
-import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
+import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 

@@ -32,7 +32,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChai
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundFilterChainFactory;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.OutboundLogEventContext;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManager;
-import com.ctrip.framework.drc.core.driver.command.netty.codec.FileManager;
+import com.ctrip.framework.drc.replicator.store.manager.file.FileManager;
 import com.ctrip.xpipe.api.observer.Observable;
 import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.ctrip.xpipe.tuple.Pair;
