@@ -44,7 +44,7 @@ public class ColumnsFilterServiceV2Test {
         columnsFilterTbls.add(columnsFilterTbl);
 
         Mockito.when(columnsFilterTblDao.queryByIds(Mockito.anyList())).thenReturn(columnsFilterTbls);
-        List<ColumnsFilterConfig> result = columnsFilterService.generateColumnsFilterConfig("table", new ArrayList<>());
+        List<ColumnsFilterConfig> result = columnsFilterService.generateColumnsFilterConfig("table", Lists.newArrayList(1L));
         Assert.assertEquals(result.size(), 1);
     }
 }

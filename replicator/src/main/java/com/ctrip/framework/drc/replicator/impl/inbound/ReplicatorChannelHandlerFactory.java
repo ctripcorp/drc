@@ -15,6 +15,15 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.CONNECTION
  */
 public class ReplicatorChannelHandlerFactory implements ChannelHandlerFactory {
 
+    private FileCheck fileCheck;
+
+//    public ReplicatorChannelHandlerFactory() {
+//    }
+
+    public ReplicatorChannelHandlerFactory(FileCheck fileCheck) {
+        this.fileCheck = fileCheck;
+    }
+
     @Override
     public List<ChannelHandler> createChannelHandlers() {
         List<ChannelHandler> handlerList = new ArrayList<>();
@@ -23,6 +32,7 @@ public class ReplicatorChannelHandlerFactory implements ChannelHandlerFactory {
         handlerList.add(new UnpackDecoder());  // 拆包
         handlerList.add(new HandshakeInitializationHandler());  //握手
         handlerList.add(new AuthenticateResultHandler());  //认证
+        handlerList.add(new ReceiveCheckHandler(fileCheck));
         handlerList.add(new CommandResultHandler());  //处理command
         return handlerList;
     }

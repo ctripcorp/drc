@@ -100,6 +100,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static int DEFAULT_META_COMPARE_PARALLEL = 10;
     private static String COST_TIME_TRACE_SWITCH ="cost.time.trace.switch";
     private static String DRC_DOUBLE_WRITE_SWITCH = "drc.double.write.switch";
+    private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
+    private static String META_COMPARE_SWITCH = "meta.compare.switch";
+    private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -447,6 +450,18 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     public String getDrcDoubleWriteSwitch() {
         return getProperty(DRC_DOUBLE_WRITE_SWITCH, SWITCH_OFF);
+    }
+
+    public String getNewDrcConfigSwitch() {
+        return getProperty(NEW_DRC_CONFIG_SWITCH, SWITCH_OFF);
+    }
+
+    public String getMetaCompareSwitch() {
+        return getProperty(META_COMPARE_SWITCH, SWITCH_ON);
+    }
+
+    public String getMetaGeneratorV3Switch() {
+        return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
     }
 
 }

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
@@ -63,6 +64,7 @@ public class MhaReplicationController {
 
             // query related replications
             List<MhaReplicationTbl> replicationTbls = mhaReplicationServiceV2.queryRelatedReplications(relatedMhaId);
+            replicationTbls = replicationTbls.stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(replicationTbls)) {
                 return ApiResult.getSuccessInstance(Collections.emptyList());
             }
@@ -125,10 +127,18 @@ public class MhaReplicationController {
 
             // simplex or duplex
             List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mhaIdSet));
-            Set<String> links = mhaReplicationTbls.stream().map(e -> e.getSrcMhaId() + "->" + e.getDstMhaId()).collect(Collectors.toSet());
+            Set<String> links = mhaReplicationTbls.stream()
+                    .filter(e -> BooleanEnum.TRUE.getCode().equals(e.getDrcStatus()))
+                    .map(e -> e.getSrcMhaId() + "->" + e.getDstMhaId()).collect(Collectors.toSet());
             res.forEach(e -> {
+                boolean hasLink = BooleanEnum.TRUE.getCode().equals(e.getStatus());
                 boolean hasReverseLink = links.contains(e.getDstMha().getId() + "->" + e.getSrcMha().getId());
-                TransmissionTypeEnum type = hasReverseLink ? TransmissionTypeEnum.DUPLEX : TransmissionTypeEnum.SIMPLEX;
+                TransmissionTypeEnum type = TransmissionTypeEnum.NOCONFIG;
+                if (hasLink && hasReverseLink) {
+                    type = TransmissionTypeEnum.DUPLEX;
+                } else if (hasLink || hasReverseLink) {
+                    type = TransmissionTypeEnum.SIMPLEX;
+                }
                 e.setType(type.getType());
             });
 
@@ -170,6 +180,7 @@ public class MhaReplicationController {
             // set vo: mha
             vo.setSrcMha(MhaVo.from(srcMhaTbl, dcMap.get(srcMhaTbl.getDcId()), buMap.get(srcMhaTbl.getBuId())));
             vo.setDstMha(MhaVo.from(dstMhaTbl, dcMap.get(dstMhaTbl.getDcId()), buMap.get(dstMhaTbl.getBuId())));
+            vo.setStatus(replicationTbl.getDrcStatus());
 
             // set vo: replication
             vo.setReplicationId(String.valueOf(replicationTbl.getId()));

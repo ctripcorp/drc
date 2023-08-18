@@ -39,11 +39,9 @@ import java.util.stream.Collectors;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-//@WebMvcTest(controllers = MhaReplicationController.class)
 @RunWith(MockitoJUnitRunner.class)
 public class MhaReplicationControllerTest {
     protected Logger logger = LoggerFactory.getLogger(getClass());
-
 
     private MockMvc mvc;
 
@@ -64,7 +62,7 @@ public class MhaReplicationControllerTest {
         this.mvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         // mock data
-        List<MhaReplicationTbl> mhaReplicationTbls = JSON.parseArray("[{\"id\":0,\"srcMhaId\":1,\"dstMhaId\":2},{\"id\":1,\"srcMhaId\":2,\"dstMhaId\":1}]", MhaReplicationTbl.class);
+        List<MhaReplicationTbl> mhaReplicationTbls = JSON.parseArray("[{\"id\":0,\"srcMhaId\":1,\"dstMhaId\":2,\"drcStatus\": 1},{\"id\":1,\"srcMhaId\":2,\"dstMhaId\":1,\"drcStatus\": 1}]", MhaReplicationTbl.class);
         List<MhaTblV2> list = JSON.parseArray("[{\"id\":1,\"mhaName\":\"mha1\",\"dcId\":1,\"buId\":1},{\"id\":2,\"mhaName\":\"mha2\",\"dcId\":1,\"buId\":1}]", MhaTblV2.class);
         Map<Long, MhaTblV2> map = list.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
 
@@ -82,7 +80,7 @@ public class MhaReplicationControllerTest {
         MhaReplicationQuery query = new MhaReplicationQuery();
         Mockito.when(mhaReplicationServiceV2.queryByPage(query)).thenReturn(PageResult.newInstance(mhaReplicationTbls, 1, 10, 2));
 
-        Mockito.when(mhaServiceV2.query("mha3",null,null)).thenReturn(Collections.emptyMap());
+        Mockito.when(mhaServiceV2.query("mha3", null, null)).thenReturn(Collections.emptyMap());
 
     }
 
@@ -95,8 +93,7 @@ public class MhaReplicationControllerTest {
                 .andReturn();
         ApiResult<List<MhaReplicationVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
         Assert.assertNull(apiResult.getData());
-        Assert.assertEquals(1L, apiResult.getStatus().longValue());
-        Assert.assertTrue(apiResult.getMessage().contains("请求参数异常"));
+        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), apiResult.getStatus().longValue());
     }
 
     @Test
@@ -130,8 +127,8 @@ public class MhaReplicationControllerTest {
     @Test
     public void testQueryPageEmptyInput() throws Exception {
         MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/query")
-                        .param("pageIndex","1")
-                        .param("pageSize","20")
+                        .param("pageIndex", "1")
+                        .param("pageSize", "20")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -145,9 +142,9 @@ public class MhaReplicationControllerTest {
     @Test
     public void testQueryPageNormalInput() throws Exception {
         MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/query")
-                        .param("pageIndex","1")
-                        .param("pageSize","20")
-                        .param("srcMha.name","mha3")
+                        .param("pageIndex", "1")
+                        .param("pageSize", "20")
+                        .param("srcMha.name", "mha3")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();

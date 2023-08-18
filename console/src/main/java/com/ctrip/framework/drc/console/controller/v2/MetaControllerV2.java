@@ -2,12 +2,14 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
-import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaGrayService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.apache.commons.lang3.StringUtils;
@@ -92,17 +94,67 @@ public class MetaControllerV2 {
         }
     }
 
+
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaReplicationByName")
+    public ApiResult<String> queryMhaReplicationDetailConfig(@RequestParam(name = "srcMha") String srcMhaName,
+                                                             @RequestParam(name = "dstMha") String dstMhaName) {
+        logger.info("queryReplicationDetailConfig for {} - {}", srcMhaName, dstMhaName);
+        try {
+            if (StringUtils.isBlank(srcMhaName) || StringUtils.isBlank(dstMhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcReplicationConfig(srcMhaName, dstMhaName);
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (Throwable e) {
+            logger.error("queryMhaReplicationDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaReplication")
+    public ApiResult<String> queryMhaReplicationDetailConfig(@RequestParam(name = "replicationId") Long replicationId) {
+        logger.info("queryReplicationDetailConfig for {}", replicationId);
+        try {
+            if (replicationId == null || replicationId <= 0) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcReplicationConfig(replicationId);
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (Throwable e) {
+            logger.error("queryMhaReplicationDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    @GetMapping("queryConfig/mhaMessenger")
+    public ApiResult<String> queryMhaMessengerDetailConfig(@RequestParam(name = "mhaName") String mhaName) {
+        logger.info("queryMhaMessengerDetailConfig for {}", mhaName);
+        try {
+            if (StringUtils.isBlank(mhaName)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            Drc drc = metaInfoServiceV2.getDrcMessengerConfig(mhaName.trim());
+            return ApiResult.getSuccessInstance(XmlUtils.formatXML(drc.toString()));
+        } catch (Throwable e) {
+            logger.error("queryMhaMessengerDetailConfig exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("bus/all")
     @SuppressWarnings("unchecked")
     public ApiResult<List<BuTbl>> getAllBuTbls() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllBuWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllBuTbls error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllBuTbls exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -111,12 +163,9 @@ public class MetaControllerV2 {
     public ApiResult<List<RegionTbl>> getAllRegionTbls() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllRegionWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllBuTbls exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllBuTbls error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllRegionTbls exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
@@ -125,12 +174,9 @@ public class MetaControllerV2 {
     public ApiResult<List<DcDo>> getAllDcs() {
         try {
             return ApiResult.getSuccessInstance(metaInfoServiceV2.queryAllDcWithCache());
-        } catch (ConsoleException e) {
-            logger.error("[meta] getAllDcs exception" + e.getMessage());
-            return ApiResult.getFailInstance(e.getMessage());
         } catch (Throwable e) {
-            logger.error("[meta] getAllDcs error", e);
-            return ApiResult.getFailInstance("unknown exception:" + e.getMessage());
+            logger.error("getAllDcs exception", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

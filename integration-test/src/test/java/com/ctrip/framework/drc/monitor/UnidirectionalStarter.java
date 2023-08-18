@@ -31,7 +31,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
 
     @Test
     public void doTest() throws Exception {
-        unidirectionalReplicateModule.setSrcImage("mysql:8.0");
+        unidirectionalReplicateModule.setSrcImage("mysql:5.7");
         unidirectionalReplicateModule.setDestImage("mysql:5.7");
         unidirectionalReplicateModule.startMySQLModule();
         unidirectionalReplicateModule.startRAModule(getSrcConfig(), getDstConfig());
@@ -53,6 +53,8 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         // applyMode
         customConfig.setApplyMode(ApplyMode.transaction_table);
 //        customConfig.setApplyMode(ApplyMode.mq);
+
+        customConfig.setNameFilter(".*\\..*");
 
         // rowsFilter
         customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX); // rowsFilter

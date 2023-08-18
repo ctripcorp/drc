@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
@@ -178,8 +179,62 @@ public class CacheMetaServiceImpl implements CacheMetaService {
         }
         return monitorMetaInfo;
     }
-    
 
+    @Override
+    public Endpoint getMasterEndpoint(String mha) {
+        Map<String, Dc> dcs = getDcs();
+        for(Dc dc : dcs.values()) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
+            if(null != dbCluster) {
+                return getMaster(dbCluster);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public List<Endpoint> getMasterEndpointsInAllAccounts(String mha) {
+        Map<String, Dc> dcs = getDcs();
+        for(Dc dc : dcs.values()) {
+            Map<String, DbCluster> dbClusters = dc.getDbClusters();
+            DbCluster dbCluster = dbClusters.values().stream().filter(p -> mha.equalsIgnoreCase(p.getMhaName())).findFirst().orElse(null);
+            if(null != dbCluster) {
+                return getAllAccountsMaster(dbCluster);
+            }
+        }
+        return null;
+    }
+
+    public List<Endpoint> getAllAccountsMaster(DbCluster dbCluster) {
+        Dbs dbs = dbCluster.getDbs();
+        List<Db> dbList = dbs.getDbs();
+        List<Endpoint> endpoints = Lists.newArrayList();
+        for(Db db : dbList) {
+            if(db.isMaster()) {
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getReadUser(), dbs.getReadPassword(), BooleanEnum.TRUE.isValue()));
+                endpoints.add(new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getWriteUser(), dbs.getWritePassword(), BooleanEnum.TRUE.isValue()));
+                return endpoints;
+            }
+        }
+        return null;
+    }
+
+    public Map<String, Dc> getDcs() {
+        return metaProviderV2.getDrc() != null ? metaProviderV2.getDrc().getDcs() : Maps.newLinkedHashMap();
+    }
+
+    public Endpoint getMaster(DbCluster dbCluster) {
+        Dbs dbs = dbCluster.getDbs();
+        List<Db> dbList = dbs.getDbs();
+        for(Db db : dbList) {
+            if(db.isMaster()) {
+                return new MySqlEndpoint(db.getIp(), db.getPort(), dbs.getMonitorUser(), dbs.getMonitorPassword(), BooleanEnum.TRUE.isValue());
+            }
+        }
+        return null;
+    }
 
     private Map<String, ReplicatorWrapper> getReplicatorsSrcDcRelated(List<String> mhaNamesToBeMonitored, String srcDc) {
         Map<String, ReplicatorWrapper> replicators = Maps.newHashMap();

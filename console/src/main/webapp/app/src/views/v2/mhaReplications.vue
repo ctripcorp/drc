@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/mhaReplications">MHA 复制链路</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/mhaReplications">MHA 复制链路</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
@@ -62,16 +62,19 @@
             </Card>
           </Col>
           <Col span="3">
-            <Button type="primary" icon="ios-search" @click="getReplications">Search</Button>
+            <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications">查询</Button>
+          </Col>
+          <Col span="3" style="margin-top: 20px">
+            <Button icon="md-refresh" @click="resetParam" :loading="dataLoading">重置</Button>
           </Col>
         </Row>
         <br>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
-            <Button disabled type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
               查看
             </Button>
-            <Button disabled type="primary" size="small" style="margin-right: 5px">
+            <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
               修改
             </Button>
             <Button disabled type="error" size="small" style="margin-right: 5px">
@@ -92,6 +95,35 @@
             @on-change="getReplications"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
+        <Drawer title="Basic Drawer" width="80" :closable="true" v-model="replicationDetail.show">
+          <template #header>
+            查看详情
+            <div style="float:right;margin-right: 100px">
+              自动换行
+              <i-switch v-model="replicationDetail.lineWrap"/>
+              黑夜模式
+              <i-switch v-model="replicationDetail.darkMode"
+                        on-change="(status)=>{this.$Message.info('开关状态：'+status)}"/>
+            </div>
+          </template>
+          <div id="xmlCode">
+            <codemirror
+              v-model="replicationDetail.data"
+              class="code"
+              :options="{
+                  mode: 'xml',
+                  theme: replicationDetail.darkMode? 'monokai':'default',
+                  autofocus: true,
+                  lineWrapping: replicationDetail.lineWrap,
+                  readOnly: true,
+                  lineNumbers: true,
+                  foldGutter: true,
+                  styleActiveLine: true,
+                  gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+            }">
+            </codemirror>
+          </div>
+        </Drawer>
       </div>
     </Content>
   </base-component>
@@ -100,6 +132,11 @@
 <script>
 // eslint-disable-next-line no-unused-vars
 import MhaGraph from '@/views/v2/mhaReplicationDetails.vue'
+import 'codemirror/theme/monokai.css'
+import 'codemirror/mode/xml/xml.js'
+
+import 'codemirror/addon/fold/foldgutter.css'
+import 'codemirror/addon/fold/foldgutter.js'
 
 export default {
   name: 'Application',
@@ -114,6 +151,7 @@ export default {
             const row = params.row
             let text = 'none'
             let type = 'error'
+            let disabled = false
             switch (row.type) {
               case 'simplex':
                 text = '单'
@@ -124,13 +162,15 @@ export default {
                 type = 'success'
                 break
               default:
-                text = 'none'
+                text = '无'
+                disabled = true
                 break
             }
             return h('Button', {
               props: {
                 type: type,
-                size: 'small'
+                size: 'small',
+                disabled: disabled
               },
               on: {
                 click: () => {
@@ -152,6 +192,22 @@ export default {
           key: 'dstMhaName',
           render: (h, params) => {
             return h('p', params.row.dstMha.name)
+          }
+        },
+        {
+          title: '状态',
+          key: 'status',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const color = row.status === 1 ? 'blue' : 'volcano'
+            const text = row.status === 1 ? '已接入' : '未接入'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
           }
         },
         {
@@ -256,14 +312,25 @@ export default {
           align: 'center'
         }
       ],
+      // page
       total: 0,
       current: 1,
       size: 10,
-      replications: [],
+      // query param
       srcMha: {},
       dstMha: {},
+      // get from backend
+      replications: [],
       bus: [],
       regions: [],
+      // for detail show
+      replicationDetail: {
+        show: false,
+        data: null,
+        darkMode: true,
+        lineWrap: false,
+        row: {}
+      },
       dataLoading: true
     }
   },
@@ -294,6 +361,19 @@ export default {
         }
       }
       return result
+    },
+    resetParam () {
+      this.srcMha = {
+        name: null,
+        buName: null,
+        regionName: null
+      }
+      this.dstMha = {
+        name: null,
+        buName: null,
+        regionName: null
+      }
+      this.getReplications()
     },
     getReplications () {
       const that = this
@@ -369,8 +449,37 @@ export default {
       })
     },
     checkConfig (row, index) {
-      console.log(row.srcMha)
-      console.log(row.destMha)
+      console.log(row.srcMha.name + '->' + row.dstMha.name)
+      this.dataLoading = true
+      this.replicationDetail.data = null
+      this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
+        params: {
+          replicationId: row.replicationId
+        }
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.warning('查询异常: ' + response.data.message)
+          return
+        }
+        this.replicationDetail.data = response.data.data
+        this.replicationDetail.show = true
+        this.replicationDetail.row = row
+      }).catch(message => {
+        this.$Message.error('查询异常: ' + message)
+      }).finally(() => {
+        this.dataLoading = false
+      })
+    },
+    goToLink (row, index) {
+      console.log('go to change config for ' + row.srcMha.name + ' and ' + row.destMha)
+      this.$router.push({
+        path: '/drcV2',
+        query: {
+          step: 3,
+          srcMhaName: row.srcMha.name,
+          dstMhaName: row.dstMha.name
+        }
+      })
     },
     showModal (row) {
       console.log('show modal')
@@ -448,4 +557,12 @@ export default {
 
 <style scoped>
 
+</style>
+<style lang="scss">
+#xmlCode {
+  .CodeMirror {
+    overscroll-y: scroll !important;
+    height: auto !important;
+  }
+}
 </style>

@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @Service
 public class MySqlServiceImpl implements MySqlService {
-    
+
     @Autowired
     private DbClusterSourceProvider dbClusterSourceProvider;
 

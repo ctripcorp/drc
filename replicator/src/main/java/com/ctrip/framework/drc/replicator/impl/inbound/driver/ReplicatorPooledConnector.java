@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.core.driver.ConnectionObserver;
 import com.ctrip.framework.drc.core.driver.MySQLConnector;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.NettyClientWithEndpoint;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
@@ -30,9 +31,13 @@ public class ReplicatorPooledConnector extends AbstractMySQLConnector implements
         super(endpoint);
     }
 
+    public ReplicatorPooledConnector(Endpoint endpoint, FileCheck fileCheck) {
+        super(endpoint, fileCheck);
+    }
+
     @Override
     protected ChannelHandlerFactory getChannelHandlerFactory() {
-        return new ReplicatorChannelHandlerFactory();
+        return new ReplicatorChannelHandlerFactory(fileCheck);
     }
 
     @Override

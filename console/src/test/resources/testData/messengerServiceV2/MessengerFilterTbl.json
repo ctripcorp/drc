@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "properties": "{\"mqType\":\"qmq\",\"serialization\":\"json\",\"persistent\":false,\"order\":true,\"orderKey\":\"ticket\",\"delayTime\":0}",
+    "deleted": 0
+  },
+  {
+    "id": 2,
+    "properties": "{\"mqType\":\"qmq\",\"serialization\":\"json\",\"persistent\":false,\"order\":true,\"orderKey\":\"ticket\",\"delayTime\":0}",
+    "deleted": 0
+  },
+  {
+    "id": 3,
+    "properties": "{\"mqType\":\"qmq\",\"serialization\":\"json\",\"persistent\":false,\"order\":true,\"orderKey\":\"ticket\",\"delayTime\":0}",
+    "deleted": 0
+  }
+]

@@ -11,6 +11,19 @@ public class MhaReplicationVo {
      */
     private String type;
     private Long datachangeLasttime;
+    /**
+     * 1: 已建立
+     * 0: 未建立
+     */
+    private Integer status;
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
 
     public String getReplicationId() {
         return replicationId;

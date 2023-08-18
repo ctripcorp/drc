@@ -22,6 +22,7 @@ import java.util.List;
 public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
 
     private static final String APPLIER_GROUP_ID = "applier_group_id";
+    private static final String DELETED = "deleted";
     private static final String RESOURCE_ID = "resource_id";
     private static final String DELETED = "deleted";
 
@@ -32,6 +33,12 @@ public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
     public List<ApplierTblV2> queryByApplierGroupId(Long applierGroupId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<ApplierTblV2> queryByApplierGroupId(Long applierGroupId, Integer deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DELETED, deleted, Types.TINYINT).and().equal(APPLIER_GROUP_ID, applierGroupId, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }
 

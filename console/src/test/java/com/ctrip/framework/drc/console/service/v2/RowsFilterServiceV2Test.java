@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.dao.RowsFilterTblDao;
-import com.ctrip.framework.drc.console.dao.entity.RowsFilterTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.RowsFilterTblV2;
 import com.ctrip.framework.drc.console.dao.v2.RowsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;

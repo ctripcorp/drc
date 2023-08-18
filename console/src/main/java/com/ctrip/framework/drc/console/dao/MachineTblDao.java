@@ -1,10 +1,7 @@
 package com.ctrip.framework.drc.console.dao;
 
-import com.ctrip.framework.drc.console.dao.entity.ApplierGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.fetcher.resource.context.sql.SelectBuilder;
 import com.ctrip.platform.dal.dao.DalHints;
-import com.ctrip.platform.dal.dao.sqlbuilder.AbstractTableSqlBuilder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 
 import java.sql.SQLException;

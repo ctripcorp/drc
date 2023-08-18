@@ -27,6 +27,18 @@ public class DcTblDao extends AbstractDao<DcTbl> {
 	}
 
 	public DcTbl queryByDcName(String dcName) throws SQLException {
+		SelectSqlBuilder sqlBuilder = initSqlBuilder();
+		sqlBuilder.and().equal(DC_NAME, dcName, Types.VARCHAR);
+		return queryOne(sqlBuilder);
+	}
+
+	public List<DcTbl> queryByRegionName(String regionName) throws SQLException {
+		SelectSqlBuilder sqlBuilder = initSqlBuilder();
+		sqlBuilder.and().equal(REGION_NAME, regionName, Types.VARCHAR);
+		return queryList(sqlBuilder);
+	}
+
+	public DcTbl queryByDcName(String dcName) throws SQLException {
 	    SelectSqlBuilder sqlBuilder = initSqlBuilder();
 		sqlBuilder.and().equal(DC_NAME, dcName, Types.VARCHAR);
 		return queryOne(sqlBuilder);

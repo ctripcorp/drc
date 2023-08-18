@@ -35,6 +35,7 @@ import com.ctrip.framework.drc.replicator.impl.oubound.filter.TableFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.filter.TypeFilterTest;
 import com.ctrip.framework.drc.replicator.impl.oubound.handler.*;
 import com.ctrip.framework.drc.replicator.store.FilePersistenceEventStoreTest;
+import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileCheckTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.DefaultIndexFileManagerTest;
 import com.ctrip.framework.drc.replicator.store.manager.file.IndicesEventManagerTest;
@@ -79,6 +80,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
         ApplierRegisterCommandHandlerTest.class,
         DefaultIndexFileManagerTest.class,
         DefaultFileManagerTest.class,
+        DefaultFileCheckTest.class,
         IndicesEventManagerTest.class,
         EventTransactionCacheTest.class,
         BackupTransactionEventTest.class,

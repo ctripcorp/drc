@@ -86,7 +86,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @Override
     public void doStart() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.registerProxy(replicatorIp, replicatorPort, routeInfo);
+            ProxyRegistry.registerProxy(registryKey, replicatorIp, replicatorPort, routeInfo);
         }
         Endpoint endpoint = new DefaultEndPoint(replicatorIp, replicatorPort);
         config = new FetcherSlaveConfig();
@@ -117,7 +117,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     @Override
     public void doStop() throws Exception {
         if (StringUtils.isNotBlank(routeInfo)) {
-            ProxyRegistry.unregisterProxy(replicatorIp, replicatorPort);
+            ProxyRegistry.unregisterProxy(registryKey, replicatorIp, replicatorPort);
         }
         server.stop();
         server.dispose();
