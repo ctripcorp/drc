@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.command.netty.AsyncNettyClientWithEnd
 import com.ctrip.framework.drc.core.driver.command.netty.DrcNettyClientPool;
 import com.ctrip.framework.drc.core.driver.command.netty.NettyClientFactory;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.ChannelHandlerFactory;
+import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.proxy.ProxyEnabled;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
@@ -39,11 +40,22 @@ public abstract class AbstractMySQLConnector extends AbstractLifecycle implement
 
     protected String threadNamePostfix;
 
+    protected FileCheck fileCheck;
+
     private SimpleObjectPool<NettyClient> objectPool;
 
     private ListeningExecutorService executorService;
 
     public AbstractMySQLConnector(Endpoint endpoint) {
+        this.endpoint = endpoint;
+        this.threadNamePostfix = endpoint.getSocketAddress().toString().replaceAll("/", "");
+        NettyClientFactory nettyClientFactory = getNettyClientFactory(getThreadName(getModuleName(), threadNamePostfix), autoRead());
+        nettyClientFactory.setHandlerFactory(getChannelHandlerFactory());
+        this.objectPool = new DrcNettyClientPool(endpoint, nettyClientFactory);
+    }
+
+    public AbstractMySQLConnector(Endpoint endpoint, FileCheck fileCheck) {
+        this.fileCheck = fileCheck;
         this.endpoint = endpoint;
         this.threadNamePostfix = endpoint.getSocketAddress().toString().replaceAll("/", "");
         NettyClientFactory nettyClientFactory = getNettyClientFactory(getThreadName(getModuleName(), threadNamePostfix), autoRead());

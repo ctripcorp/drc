@@ -23,6 +23,8 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
 
+    private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
+
     private DynamicConfig() {}
 
     private static class ConfigHolder {
@@ -59,5 +61,9 @@ public class DynamicConfig extends AbstractConfigBean {
             return getBooleanProperty(PURGED_GTID_SET_CHECK_SWITCH, false);
         }
         return Boolean.parseBoolean(value);
+    }
+
+    public boolean getReceiveCheckSwitch() {
+        return getBooleanProperty(RECEIVE_CHECK_SWITCH, false);
     }
 }
