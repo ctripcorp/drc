@@ -19,14 +19,6 @@ import java.util.List;
 
 /**
  * Created by dengquanliang
- * 2023/8/9 20:29
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-/**
- * Created by dengquanliang
  * 2023/8/8 14:54
  */
 @RestController
@@ -139,16 +131,12 @@ public class MhaControllerV2 {
             logger.error("[meta] preCheck meta config for {}", dto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
-
-    private Logger logger = LoggerFactory.getLogger(getClass());
-
-    @Autowired
-    private MhaServiceV2 mhaService;
+    }
 
     @PostMapping("tag")
     public ApiResult<Boolean> updateMhaTag(@RequestParam String mhaName, @RequestParam String tag) {
         try {
-            mhaService.updateMhaTag(mhaName, tag);
+            mhaServiceV2.updateMhaTag(mhaName, tag);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }

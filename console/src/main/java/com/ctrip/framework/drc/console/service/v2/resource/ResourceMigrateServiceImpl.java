@@ -134,21 +134,6 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     }
 
     @Override
-    public int updateResource(String dc) throws Exception {
-        DcTbl dcTbl = dcTblDao.queryByDcName(dc);
-        if (dcTbl == null) {
-            throw ConsoleExceptionUtils.message(String.format("dc: %s not exist", dc));
-        }
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcId(dcTbl.getId());
-        resourceTbls.forEach(e -> {
-            e.setAz(dc);
-            e.setTag(ResourceTagEnum.COMMON.getName());
-        });
-        resourceTblDao.update(resourceTbls);
-        return resourceTbls.size();
-    }
-
-    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int updateMhaTag() throws Exception {
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();

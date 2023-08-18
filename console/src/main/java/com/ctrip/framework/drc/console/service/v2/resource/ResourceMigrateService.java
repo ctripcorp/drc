@@ -20,8 +20,6 @@ public interface ResourceMigrateService {
 
     int updateResource(List<ResourceBuildParam> params) throws Exception;
 
-    int updateResource(String dc) throws Exception;
-
     int updateMhaTag() throws Exception;
 
     List<Long> getReplicatorGroupIdsWithSameAz() throws Exception;

@@ -75,7 +75,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         ResourceTbl existResourceTbl = resourceTblDao.queryByIp(param.getIp());
         if (existResourceTbl != null) {
-            if (existResourceTbl.getDeleted() == BooleanEnum.TRUE.getCode()) {
+            if (existResourceTbl.getDeleted().equals(BooleanEnum.TRUE.getCode())) {
                 resourceTbl.setId(existResourceTbl.getId());
                 resourceTblDao.update(resourceTbl);
                 return;
@@ -94,12 +94,12 @@ public class ResourceServiceImpl implements ResourceService {
         if (resourceTbl == null) {
             throw ConsoleExceptionUtils.message("resource not exist!");
         }
-        if (resourceTbl.getType() == ModuleEnum.REPLICATOR.getCode()) {
+        if (resourceTbl.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
             List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             if (!CollectionUtils.isEmpty(replicatorTbls)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
             }
-        } else if (resourceTbl.getType() == ModuleEnum.APPLIER.getCode()) {
+        } else if (resourceTbl.getType().equals(ModuleEnum.APPLIER.getCode())) {
             List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
             if (!CollectionUtils.isEmpty(applierTbls)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
@@ -251,9 +251,9 @@ public class ResourceServiceImpl implements ResourceService {
             target.setActive(source.getActive());
             target.setAz(source.getAz());
             target.setType(source.getType());
-            if (source.getType() == ModuleEnum.REPLICATOR.getCode()) {
+            if (source.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
                 target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
-            } else if (source.getType() == ModuleEnum.APPLIER.getCode()) {
+            } else if (source.getType().equals(ModuleEnum.APPLIER.getCode())) {
                 long applierNum = applierMap.getOrDefault(source.getId(), 0L);
                 long messengerNum = messengerMap.getOrDefault(source.getId(), 0L);
                 target.setInstanceNum(applierNum + messengerNum);

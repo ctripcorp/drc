@@ -24,7 +24,6 @@ public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
     private static final String APPLIER_GROUP_ID = "applier_group_id";
     private static final String DELETED = "deleted";
     private static final String RESOURCE_ID = "resource_id";
-    private static final String DELETED = "deleted";
 
     public ApplierTblV2Dao() throws SQLException {
         super(ApplierTblV2.class);

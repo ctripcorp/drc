@@ -164,6 +164,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DrcBuildServiceV2Test.class,
         MessengerServiceV2ImplTest.class,
         MetaInfoServiceV2ImplTest2.class,
+        ResourceMigrateServiceTest.class,
+        ResourceServiceTest.class,
 //
         // controller
         MetaControllerV2Test.class,

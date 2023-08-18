@@ -62,15 +62,6 @@ public class ResourceMigrateController {
         }
     }
 
-    @PostMapping("/dc")
-    public ApiResult<Integer> updateResource(@RequestParam String dc) {
-        try {
-            return ApiResult.getSuccessInstance(resourceMigrateService.updateResource(dc));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @PostMapping("/mha")
     public ApiResult<Integer> updateMhaTag() {
         try {
