@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import java.util.HashSet;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_LOGGER;
 import static com.ctrip.framework.drc.replicator.impl.inbound.filter.TransactionFlags.OTHER_F;
 
 /**
@@ -37,6 +38,7 @@ public class EventTypeFilter extends AbstractLogEventFilter<InboundLogEventConte
         }
 
         if (skip) {
+            HEARTBEAT_LOGGER.info("skip event type: {} when pull binlog", logEventType);
             value.reset();
             value.mark(OTHER_F);
         }
