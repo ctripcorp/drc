@@ -24,13 +24,6 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
 	private static final String TYPE = "type";
 	private static final String IP = "ip";
 	private static final String DC_ID = "dc_id";
-
-	public ResourceTblDao() throws SQLException {
-		super(ResourceTbl.class);
-	}
-    private static final String IP = "ip";
-    private static final String TYPE = "type";
-    private static final String DC_ID = "dc_id";
     private static final String TAG = "tag";
     private static final String ACTIVE = "active";
     private static final String DELETED = "deleted";
@@ -71,18 +64,6 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.equal(IP, ip, Types.VARCHAR);
         return queryOne(sqlBuilder);
-    }
-
-    public List<ResourceTbl> queryByIps(List<String> ips) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().inNullable(IP, ips, Types.VARCHAR);
-        return queryList(sqlBuilder);
-    }
-
-    public List<ResourceTbl> queryByType(int type) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().equal(TYPE, type, Types.TINYINT);
-        return queryList(sqlBuilder);
     }
 
     public List<ResourceTbl> queryByParam(ResourceQueryParam param) throws SQLException {

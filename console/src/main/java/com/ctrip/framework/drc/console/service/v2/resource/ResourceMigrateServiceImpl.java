@@ -151,13 +151,13 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public int updateMhaTag() throws Exception {
-        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllList();
-        List<MhaTbl> mhaTbls = mhaTblDao.queryAllList();
-        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAllList();
-        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAllList();
-        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
-        List<ApplierTblV2> applierTbls = applierTblV2Dao.queryAllList();
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryAllExist();
+        List<MhaTbl> mhaTbls = mhaTblDao.queryAllExist();
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryAllExist();
+        List<ApplierGroupTbl> applierGroupTbls = applierGroupTblDao.queryAllExist();
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllExist();
+        List<ApplierTblV2> applierTbls = applierTblV2Dao.queryAllExist();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
 
         Map<Long, MhaTbl> mhaTblMap = mhaTbls.stream().collect(Collectors.toMap(MhaTbl::getId, Function.identity()));
         Map<Long, Long> replicatorGroupMap = replicatorGroupTbls.stream().collect(Collectors.toMap(ReplicatorGroupTbl::getMhaId, ReplicatorGroupTbl::getId));
@@ -208,8 +208,8 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
 
     @Override
     public List<Long> getReplicatorGroupIdsWithSameAz() throws Exception {
-        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllList();
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAllExist();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
         Map<Long, List<ReplicatorTbl>> replicatorMap = replicatorTbls.stream().collect(Collectors.groupingBy(ReplicatorTbl::getRelicatorGroupId));
 
@@ -230,8 +230,8 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
 
     @Override
     public List<Long> getApplierGroupIdsWithSameAz() throws Exception {
-        List<ApplierTblV2> applierTblV2ss = applierTblV2Dao.queryAllList();
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        List<ApplierTblV2> applierTblV2ss = applierTblV2Dao.queryAllExist();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
         Map<Long, List<ApplierTblV2>> applierMap = applierTblV2ss.stream().collect(Collectors.groupingBy(ApplierTblV2::getApplierGroupId));
 
@@ -252,8 +252,8 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
 
     @Override
     public List<Long> getMessengerGroupIdsWithSameAz() throws Exception {
-        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllList();
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllList();
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryAllExist();
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryAllExist();
         Map<Long, String> resourceMap = resourceTbls.stream().collect(Collectors.toMap(ResourceTbl::getId, ResourceTbl::getAz));
         Map<Long, List<MessengerTbl>> messengerMap = messengerTbls.stream().collect(Collectors.groupingBy(MessengerTbl::getMessengerGroupId));
 

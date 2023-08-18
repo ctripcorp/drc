@@ -50,14 +50,6 @@ public class AbstractDao<T> {
     }
 
     /**
-     * DELETED-FALSE
-     */
-    public List<T> queryAllList() throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        return queryList(sqlBuilder);
-    }
-
-    /**
      * Insert T with return ID
      */
     public Long insertWithReturnId(T daoPojo) throws SQLException {
