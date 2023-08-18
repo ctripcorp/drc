@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +21,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.HEARTBEAT_
  */
 public class DefaultFileCheck implements FileCheck {
 
-    private static final int CHECK_PERIOD = CONNECTION_IDLE_TIMEOUT_SECOND * 2;
+    private int CHECK_PERIOD = CONNECTION_IDLE_TIMEOUT_SECOND * 1000 * 2;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -66,7 +67,7 @@ public class DefaultFileCheck implements FileCheck {
             } catch (Throwable t) {
                 logger.info("[file][check] for {} exception, with channel {}", registerKey, channel.toString(), t);
             }
-        }, initialDelay, CHECK_PERIOD, TimeUnit.SECONDS);
+        }, initialDelay, CHECK_PERIOD, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -75,5 +76,10 @@ public class DefaultFileCheck implements FileCheck {
             scheduledExecutor.shutdownNow();
             scheduledExecutor = null;
         }
+    }
+
+    @VisibleForTesting
+    protected void setCheckPeriod(int checkPeriod) {
+        this.CHECK_PERIOD = checkPeriod;
     }
 }
