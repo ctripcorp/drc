@@ -75,11 +75,11 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered  
             }
             boolean V3Switch = DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaGeneratorV3Switch());
             if (V3Switch) {
-                logger.info("[[meta=v3]] MtaGeneratorV3 refresh drc end cost:{}", System.currentTimeMillis() - start);
                 drc = metaGeneratorV3.getDrc();
+                logger.info("[[meta=v3]] MtaGeneratorV3 refresh drc end cost:{}", System.currentTimeMillis() - start);
             } else {
-                logger.info("[[meta=v2]] MetaProviderV2 refresh drc end cost:{}", System.currentTimeMillis() - start);
                 drc = metaGeneratorV2.getDrc();
+                logger.info("[[meta=v2]] MetaProviderV2 refresh drc end cost:{}", System.currentTimeMillis() - start);
             }
         } catch (Throwable t) {
             logger.error("[[meta=v2]] MetaProviderV2 get drc fail", t);
