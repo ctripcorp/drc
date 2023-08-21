@@ -72,7 +72,7 @@ export default {
       this.hasResp = false
     },
     updateMhaName (e) {
-      this.sharedInfo.mhaName = e
+      this.sharedInfo.mhaName = e.trim()
     },
     updateDc (e) {
       this.sharedInfo.dc = e

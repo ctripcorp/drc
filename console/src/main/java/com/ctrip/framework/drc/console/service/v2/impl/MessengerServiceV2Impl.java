@@ -18,6 +18,7 @@ import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -42,12 +43,14 @@ import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +73,7 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARAC
 public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private static final Logger logger = LoggerFactory.getLogger(MessengerServiceImpl.class);
     private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
+    private DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
 
     @Autowired
     private RowsFilterServiceV2 rowsFilterService;
@@ -181,6 +185,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setDbReplicationId(dbReplicationTbl.getId());
                 mqConfigVo.setTopic(dbReplicationTbl.getDstLogicTableName());
                 mqConfigVo.setTable(tableName);
+                mqConfigVo.setDatachangeLasttime(dbReplicationTbl.getDatachangeLasttime().getTime());
 
                 mqConfigVo.setMqType(mqConfig.getMqType());
                 mqConfigVo.setSerialization(mqConfig.getSerialization());
@@ -760,26 +765,35 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         String tableName = dbReplicationTbl.getSrcLogicTableName();
         String topic = dbReplicationTbl.getDstLogicTableName();
 
-        List<String> tablesWithSameTopic = this.getTablesWithSameTopic(topic);
-        String nameFilter = dbName + "\\." + tableName;
-        List<String> otherTablesByTopic = tablesWithSameTopic.stream().filter(e -> !nameFilter.equals(e)).collect(Collectors.toList());
+        // all topic tables
+        List<String> sameTopicTableFilters = this.getTableNameFiltersWithSameTopic(topic);
+        List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), sameTopicTableFilters);
 
-        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+        // to delete tables
+        String nameFilter = dbName + "\\." + tableName;
+        List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+
+        // final remain = all - delete
+        Set<MySqlUtils.TableSchemaName> tablesToDeletSet = Sets.newHashSet(tablesToDelete);
+        Set<MySqlUtils.TableSchemaName> allTablesSet = Sets.newHashSet(allTables);
+        allTablesSet.removeAll(tablesToDeletSet);
+        List<MySqlUtils.TableSchemaName> remainTables = Lists.newArrayList(allTablesSet);
+
+        // do update dal qmq config
+        String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Delete",
                 topic,
-                () -> qConfigService.removeDalClusterMqConfigIfNecessary(
+                () -> qConfigService.updateDalClusterMqConfig(
                         dcName,
                         topic,
-                        nameFilter,
-                        null,
-                        matchTables,
-                        otherTablesByTopic
+                        dalClusterName,
+                        remainTables
                 )
         );
     }
 
-    private List<String> getTablesWithSameTopic(String topic) throws SQLException {
+    private List<String> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
         // query other table with same topic
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, ReplicationTypeEnum.DB_TO_MQ.getType());
         List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());

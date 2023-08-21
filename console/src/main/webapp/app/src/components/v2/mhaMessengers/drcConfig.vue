@@ -290,9 +290,21 @@ export default {
         rGtidExecuted: this.drc.rGtidExecuted
       }).then(response => {
         console.log(response.data)
+        if (response.data.status === 1) {
+          this.$Message.warning({
+            content: '提交失败：' + response.data.message,
+            duration: 10
+          })
+          return
+        }
         that.result = response.data.data
         that.drc.reviewModal = false
         that.drc.resultModal = true
+      }).catch(message => {
+        this.$Message.error({
+          content: '提交异常: ' + message,
+          duration: 10
+        })
       })
     },
     reviewConfigure () {

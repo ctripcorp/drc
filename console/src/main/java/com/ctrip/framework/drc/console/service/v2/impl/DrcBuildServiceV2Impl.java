@@ -142,7 +142,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId);
-        insertMha(mhaTbl);
+        long mhaId = insertMha(mhaTbl);
+
+        // messengerGroup
+        Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
+        Long messengerGroupId = messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
     }
 
     private long getBuId(String buName) throws Exception {
