@@ -671,7 +671,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
      * Return the current on-disk size of log size. This will be accurate only
      * after commit() is called. Otherwise, unflushed txns may not be included.
      */
-    private long getCurrentLogSize() {
+    public long getCurrentLogSize() {
         if (logFileWrite != null) {
             return logFileSize.get();
         }

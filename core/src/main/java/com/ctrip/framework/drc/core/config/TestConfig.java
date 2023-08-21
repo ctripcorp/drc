@@ -9,6 +9,8 @@ public class TestConfig {
 
     private ApplyMode applyMode;
 
+    private String nameFilter;
+
     private String rowsFilter;
 
     private String properties;
@@ -28,6 +30,14 @@ public class TestConfig {
 
     public void setApplyMode(ApplyMode applyMode) {
         this.applyMode = applyMode;
+    }
+
+    public String getNameFilter() {
+        return nameFilter;
+    }
+
+    public void setNameFilter(String nameFilter) {
+        this.nameFilter = nameFilter;
     }
 
     public String getRowsFilter() {
