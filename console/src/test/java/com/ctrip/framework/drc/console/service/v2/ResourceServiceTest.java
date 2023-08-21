@@ -148,7 +148,7 @@ public class ResourceServiceTest {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
         Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
@@ -162,7 +162,7 @@ public class ResourceServiceTest {
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
         Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
         Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
-        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
         Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());

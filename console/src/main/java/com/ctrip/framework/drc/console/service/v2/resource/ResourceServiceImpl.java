@@ -101,7 +101,8 @@ public class ResourceServiceImpl implements ResourceService {
             }
         } else if (resourceTbl.getType().equals(ModuleEnum.APPLIER.getCode())) {
             List<ApplierTblV2> applierTbls = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
-            if (!CollectionUtils.isEmpty(applierTbls)) {
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+            if (!CollectionUtils.isEmpty(applierTbls) || !CollectionUtils.isEmpty(messengerTbls)) {
                 throw ConsoleExceptionUtils.message("resource is in use, cannot offline!");
             }
         }
@@ -200,7 +201,7 @@ public class ResourceServiceImpl implements ResourceService {
                 resultViews.add(firstResource);
             }
         } else if (!CollectionUtils.isEmpty(selectedIps)) {
-            resourceViews = resourceViews.stream().filter(e -> !selectedIps.contains(e.getIp())).collect(Collectors.toList());
+            resourceViews = resourceViews.stream().filter(e -> selectedIps.contains(e.getIp())).collect(Collectors.toList());
         }
 
         setResourceView(resultViews, resourceViews);
@@ -219,7 +220,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws Exception {
-        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type);
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
 
         Map<Long, Long> replicatorMap = new HashMap<>();

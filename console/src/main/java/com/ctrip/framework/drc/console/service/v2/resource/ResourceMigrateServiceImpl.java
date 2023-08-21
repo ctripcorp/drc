@@ -89,9 +89,11 @@ public class ResourceMigrateServiceImpl implements ResourceMigrateService {
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
         List<ReplicatorTbl> replicators = replicatorTblDao.queryByResourceIds(resourceIds);
         List<ApplierTblV2> appliers = applierTblV2Dao.queryByResourceIds(resourceIds);
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByResourceIds(resourceIds);
 
         Set<Long> resourceIdsInUse = replicators.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toSet());
         resourceIdsInUse.addAll(appliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toSet()));
+        resourceIdsInUse.addAll(messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toSet()));
 
         resourceTbls = resourceTbls.stream().filter(e -> !resourceIdsInUse.contains(e.getId())).collect(Collectors.toList());
         resourceTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
