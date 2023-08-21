@@ -18,6 +18,9 @@ public interface MysqlServiceV2 {
     // forward by mha
     String getMhaPurgedGtid(String mha);
 
+    // query (sourceMhaName) delay monitor info in (mha)
+    Long delayQuery(String mhaName, String sourceMhaName, String sourceDcName);
+
     // route By mha
     Map<String, Object> preCheckMySqlConfig(String mha) ;
 

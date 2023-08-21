@@ -1,12 +1,20 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +33,14 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
+    private MetaInfoServiceV2 metaInfoServiceV2;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
     private MhaReplicationTblDao mhaReplicationTblDao;
+
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
 
 
     @Override
@@ -46,6 +61,48 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             return mhaReplicationTblDao.queryByRelatedMhaId(relatedMhaId);
         } catch (SQLException e) {
             logger.error("queryRelatedReplications error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+
+    @Override
+    public MhaDelayInfoDto getMhaReplicationDelay(String srcMha, String dstMha) {
+        try {
+            // check
+            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(srcMha, dstMha));
+            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findFirst()
+                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + srcMha));
+            MhaTblV2 dstMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(dstMha)).findFirst()
+                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + dstMha));
+
+            List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
+            String dcName = dcDos.stream().filter(e -> e.getDcId().equals(srcMhaTbl.getDcId())).map(DcDo::getDcName).findFirst()
+                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, String.format("dc not found for mha %s", srcMhaTbl)));
+
+            // query dst first, result could be larger than original
+            long start = System.currentTimeMillis();
+            Long dstDelay = mysqlServiceV2.delayQuery(dstMha, srcMha, dcName);
+            if (dstDelay == null) {
+                logger.warn("query delay info empty in {} for: ({},{})", dstMha, srcMha, dcName);
+            }
+            logger.info("[delay query] dstMha:{}, cost:{}", dstMha, System.currentTimeMillis() - start);
+            start = System.currentTimeMillis();
+            Long srcDelay = mysqlServiceV2.delayQuery(srcMha, srcMha, dcName);
+            if (srcDelay == null) {
+                logger.warn("query delay info empty in {} for: ({},{})", srcMha, srcMha, dcName);
+            }
+            logger.info("[delay query] srcMha:{}, cost:{}", srcMha, System.currentTimeMillis() - start);
+
+            Long diff = null;
+            if (srcDelay != null && dstDelay != null) {
+                diff = srcDelay - dstDelay;
+            }
+            return new MhaDelayInfoDto(srcDelay, dstDelay, diff);
+        } catch (Exception e) {
+            if (e instanceof ConsoleException) {
+                throw (ConsoleException) e;
+            }
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
     }

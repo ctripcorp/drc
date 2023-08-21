@@ -61,6 +61,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/replication/delay")
+    public Long delayQuery(String mhaName, String sourceMhaName, String sourceDcName) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        if(endpoint == null){
+            logger.warn("[[tag=delayQuery]] delayQuery from mha {},machine not exist", mhaName);
+            return null;
+        }
+        return MySqlUtils.getDelay(endpoint, sourceMhaName, sourceDcName);
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
         Map<String, Object> res = new HashMap<>();
