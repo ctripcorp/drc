@@ -61,14 +61,14 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/replication/delay")
-    public Long delayQuery(String mhaName, String sourceMhaName, String sourceDcName) {
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mhaName);
-        if(endpoint == null){
-            logger.warn("[[tag=delayQuery]] delayQuery from mha {},machine not exist", mhaName);
+    @PossibleRemote(path = "/api/drc/v2/replication/lastUpdateTime")
+    public Long getDelayUpdateTime(String mha, String srcMha) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=delayQuery]] delayQuery from mha {},machine not exist", mha);
             return null;
         }
-        return MySqlUtils.getDelay(endpoint, sourceMhaName, sourceDcName);
+        return MySqlUtils.getDelayUpdateTime(endpoint, srcMha);
     }
 
     @Override

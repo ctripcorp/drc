@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.dto.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
-import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -71,22 +70,18 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         try {
             // check
             List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(srcMha, dstMha));
-            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findFirst()
+            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findAny()
                     .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + srcMha));
-            MhaTblV2 dstMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(dstMha)).findFirst()
+            MhaTblV2 dstMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(dstMha)).findAny()
                     .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + dstMha));
-
-            List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
-            String dcName = dcDos.stream().filter(e -> e.getDcId().equals(srcMhaTbl.getDcId())).map(DcDo::getDcName).findFirst()
-                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_DATA_INCOMPLETE, String.format("dc not found for mha %s", srcMhaTbl)));
 
             // query dst first, result could be larger than original
             long start = System.currentTimeMillis();
-            Long dstTime = mysqlServiceV2.delayQuery(dstMha, srcMha, dcName);
+            Long dstTime = mysqlServiceV2.getDelayUpdateTime(dstMha, srcMha);
             logger.info("[delay query] dstMha:{}, dstTime:{}, cost:{}", dstMha, dstTime, System.currentTimeMillis() - start);
 
             start = System.currentTimeMillis();
-            Long srcTime = mysqlServiceV2.delayQuery(srcMha, srcMha, dcName);
+            Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
             logger.info("[delay query] srcMha:{}, srcTime:{}, cost:{}", srcMha, srcTime, System.currentTimeMillis() - start);
 
             Long delay = null;
@@ -94,6 +89,29 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                 delay = srcTime - dstTime;
             }
             return new MhaDelayInfoDto(srcTime, dstTime, delay);
+        } catch (Exception e) {
+            if (e instanceof ConsoleException) {
+                throw (ConsoleException) e;
+            }
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public Long getMhaLastUpdateTime(String mha, String srcMha) {
+        try {
+            // check
+            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(srcMha, mha));
+            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findAny()
+                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + srcMha));
+            MhaTblV2 mhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(mha)).findAny()
+                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + mha));
+
+            // query dst first, result could be larger than original
+            long start = System.currentTimeMillis();
+            Long dstTime = mysqlServiceV2.getDelayUpdateTime(mha, srcMha);
+            logger.info("[delay query] mha:{}, dstTime:{}, cost:{}", mha, dstTime, System.currentTimeMillis() - start);
+            return dstTime;
         } catch (Exception e) {
             if (e instanceof ConsoleException) {
                 throw (ConsoleException) e;

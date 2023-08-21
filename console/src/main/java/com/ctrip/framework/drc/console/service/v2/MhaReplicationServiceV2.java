@@ -13,4 +13,5 @@ public interface MhaReplicationServiceV2 {
     List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 
     MhaDelayInfoDto getMhaReplicationDelay(String srcMha, String dstMha);
+    Long getMhaLastUpdateTime(String mha, String srcMha);
 }

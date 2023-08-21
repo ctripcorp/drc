@@ -93,7 +93,7 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
-    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime`, JSON_EXTRACT(dest_ip, \"$.m\") AS mha FROM `drcmonitordb`.`delaymonitor` WHERE `src_ip`='%s' AND JSON_EXTRACT(dest_ip, \"$.m\") = '%s'";
+    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE JSON_EXTRACT(dest_ip, \"$.m\") = '%s'";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
@@ -206,10 +206,10 @@ public class MySqlUtils {
     }
 
 
-    public static Long getDelay(Endpoint endpoint, String dc, String mha) {
+    public static Long getDelayUpdateTime(Endpoint endpoint, String mha) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         SimpleDateFormat formatter = dateFormatThreadLocal.get();
-        String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha, dc);
+        String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha);
         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
             ResultSet rs = readResource.getResultSet();
