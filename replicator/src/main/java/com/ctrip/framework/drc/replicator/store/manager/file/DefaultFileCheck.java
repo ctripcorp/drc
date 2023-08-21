@@ -1,14 +1,21 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.GtidReader;
+import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.codec.FileCheck;
+import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import io.netty.channel.Channel;
+import org.apache.commons.compress.utils.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,11 +38,14 @@ public class DefaultFileCheck implements FileCheck {
 
     private long lastLogSize;
 
+    private Endpoint endpoint;
+
     private ScheduledExecutorService scheduledExecutor;
 
-    public DefaultFileCheck(String registerKey, FileManager fileManager) {
+    public DefaultFileCheck(String registerKey, FileManager fileManager, Endpoint endpoint) {
         this.registerKey = registerKey;
         this.fileManager = fileManager;
+        this.endpoint = endpoint;
     }
 
     @Override
@@ -51,7 +61,11 @@ public class DefaultFileCheck implements FileCheck {
         scheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 long currentLogSize = fileManager.getCurrentLogSize();
-                if (lastLogSize != 0 && lastLogSize == currentLogSize) {
+                if (filePositionMoving(currentLogSize)) {
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("DRC.file.check.true", registerKey, 1, 0);
+                    HEARTBEAT_LOGGER.info("[file][check] for {} true, lastSize: {}, currentSize: {}, channel: {}", registerKey, lastLogSize, currentLogSize, channel.toString());
+                    lastLogSize = currentLogSize;
+                } else {
                     HEARTBEAT_LOGGER.info("[file][check] for {} false, lastSize: {}, currentSize: {}, channel: {}", registerKey, lastLogSize, currentLogSize, channel.toString());
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("DRC.file.check.false", registerKey, 1, 0);
                     boolean receiveCheckSwitch = DynamicConfig.getInstance().getReceiveCheckSwitch();
@@ -59,15 +73,31 @@ public class DefaultFileCheck implements FileCheck {
                         logger.info("[file][check] for {} false, close channel {}", registerKey, channel.toString());
                         channel.close();
                     }
-                } else {
-                    DefaultEventMonitorHolder.getInstance().logBatchEvent("DRC.file.check.true", registerKey, 1, 0);
-                    HEARTBEAT_LOGGER.info("[file][check] for {} true, lastSize: {}, currentSize: {}, channel: {}", registerKey, lastLogSize, currentLogSize, channel.toString());
-                    lastLogSize = currentLogSize;
                 }
             } catch (Throwable t) {
                 logger.info("[file][check] for {} exception, with channel {}", registerKey, channel.toString(), t);
             }
         }, initialDelay, CHECK_PERIOD, TimeUnit.MILLISECONDS);
+    }
+
+    private boolean filePositionMoving(long currentLogSize) throws InterruptedException {
+        if (lastLogSize != 0 && lastLogSize == currentLogSize) {
+            return !gtidSetMoving();
+        }
+        return true;
+    }
+
+    @VisibleForTesting
+    protected boolean gtidSetMoving() throws InterruptedException {
+        List<GtidReader> gtidReaderList = Lists.newArrayList();
+        gtidReaderList.add(new ShowMasterGtidReader());
+        ExecutedGtidQueryTask queryTask = new ExecutedGtidQueryTask(endpoint, gtidReaderList);
+        String firstResult = queryTask.call();
+        logger.info("[file][check] for {}, first query gtidset: {}", registerKey, firstResult);
+        Thread.sleep(5 * 1000);
+        String secondResult = queryTask.call();
+        logger.info("[file][check] for {}, second query gtidset: {}", registerKey, secondResult);
+        return !Objects.equals(firstResult, secondResult);
     }
 
     @Override
