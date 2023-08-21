@@ -97,26 +97,4 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
-    @Override
-    public Long getMhaLastUpdateTime(String mha, String srcMha) {
-        try {
-            // check
-            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(srcMha, mha));
-            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findAny()
-                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + srcMha));
-            MhaTblV2 mhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(mha)).findAny()
-                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + mha));
-
-            // query dst first, result could be larger than original
-            long start = System.currentTimeMillis();
-            Long dstTime = mysqlServiceV2.getDelayUpdateTime(mha, srcMha);
-            logger.info("[delay query] mha:{}, dstTime:{}, cost:{}", mha, dstTime, System.currentTimeMillis() - start);
-            return dstTime;
-        } catch (Exception e) {
-            if (e instanceof ConsoleException) {
-                throw (ConsoleException) e;
-            }
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
-    }
 }

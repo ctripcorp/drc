@@ -175,24 +175,6 @@ public class MhaReplicationController {
     }
 
 
-    @GetMapping("lastUpdateTime")
-    @SuppressWarnings("unchecked")
-    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String mha, @RequestParam String srcMha) {
-        logger.info("getMhaLastUpdateTime: {} for {}", srcMha, mha);
-        try {
-            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha)) {
-                return ApiResult.getFailInstance(null, "mha name should not be blank!");
-            }
-
-            Long time = mhaReplicationServiceV2.getMhaLastUpdateTime(mha.trim(), srcMha.trim());
-            return ApiResult.getSuccessInstance(time);
-        } catch (Throwable e) {
-            logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
-
     private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
         // prepare meta data
         List<DcDo> dcDos = metaInfoServiceV2.queryAllDcWithCache();
