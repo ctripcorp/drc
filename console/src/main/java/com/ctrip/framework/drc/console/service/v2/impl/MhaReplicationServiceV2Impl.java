@@ -82,23 +82,18 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
             // query dst first, result could be larger than original
             long start = System.currentTimeMillis();
-            Long dstDelay = mysqlServiceV2.delayQuery(dstMha, srcMha, dcName);
-            if (dstDelay == null) {
-                logger.warn("query delay info empty in {} for: ({},{})", dstMha, srcMha, dcName);
-            }
-            logger.info("[delay query] dstMha:{}, cost:{}", dstMha, System.currentTimeMillis() - start);
-            start = System.currentTimeMillis();
-            Long srcDelay = mysqlServiceV2.delayQuery(srcMha, srcMha, dcName);
-            if (srcDelay == null) {
-                logger.warn("query delay info empty in {} for: ({},{})", srcMha, srcMha, dcName);
-            }
-            logger.info("[delay query] srcMha:{}, cost:{}", srcMha, System.currentTimeMillis() - start);
+            Long dstTime = mysqlServiceV2.delayQuery(dstMha, srcMha, dcName);
+            logger.info("[delay query] dstMha:{}, dstTime:{}, cost:{}", dstMha, dstTime, System.currentTimeMillis() - start);
 
-            Long diff = null;
-            if (srcDelay != null && dstDelay != null) {
-                diff = srcDelay - dstDelay;
+            start = System.currentTimeMillis();
+            Long srcTime = mysqlServiceV2.delayQuery(srcMha, srcMha, dcName);
+            logger.info("[delay query] srcMha:{}, srcTime:{}, cost:{}", srcMha, srcTime, System.currentTimeMillis() - start);
+
+            Long delay = null;
+            if (srcTime != null && dstTime != null) {
+                delay = srcTime - dstTime;
             }
-            return new MhaDelayInfoDto(srcDelay, dstDelay, diff);
+            return new MhaDelayInfoDto(srcTime, dstTime, delay);
         } catch (Exception e) {
             if (e instanceof ConsoleException) {
                 throw (ConsoleException) e;
