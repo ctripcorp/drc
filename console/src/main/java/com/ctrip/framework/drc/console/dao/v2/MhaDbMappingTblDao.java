@@ -23,6 +23,7 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
     private static final String ID = "id";
     private static final String DELETED = "deleted";
     private static final String MHA_ID = "mha_id";
+    private static final String DB_ID = "db_id";
 
     public MhaDbMappingTblDao() throws SQLException {
         super(MhaDbMappingTbl.class);
@@ -47,5 +48,11 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(MHA_ID, mhaIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
+    }
+
+    public List<MhaDbMappingTbl> queryByDbIds(List<Long> dbIds) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().inNullable(DB_ID, dbIds, Types.BIGINT);
+        return queryList(sqlBuilder);
     }
 }
