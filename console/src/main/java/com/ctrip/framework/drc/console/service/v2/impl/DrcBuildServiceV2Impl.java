@@ -130,6 +130,21 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         insertMhaReplication(dstMhaId, srcMhaId);
     }
 
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMessengerMha(MessengerMhaBuildParam param) throws Exception {
+        checkMessengerMhaBuildParam(param);
+
+        long buId = getBuId(param.getBuName().trim());
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDc());
+        if (dcTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
+        }
+
+        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId);
+        insertMha(mhaTbl);
+    }
+
     private long getBuId(String buName) throws Exception {
         BuTbl existBuTbl = buTblDao.queryByBuName(buName);
         if (existBuTbl != null) {
@@ -999,6 +1014,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
         PreconditionUtils.checkString(param.getSrcDc(), "srcDc requires not null!");
         PreconditionUtils.checkString(param.getDstDc(), "dstDcId requires not null!");
+    }
+
+    private void checkMessengerMhaBuildParam(MessengerMhaBuildParam param) {
+        PreconditionUtils.checkNotNull(param);
+        PreconditionUtils.checkString(param.getMhaName(), "mhaName requires not empty!");
+        PreconditionUtils.checkString(param.getDc(), "dcName requires not empty!");
+        PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
     }
 
     private void checkDbReplicationBuildParam(DbReplicationBuildParam param) {
