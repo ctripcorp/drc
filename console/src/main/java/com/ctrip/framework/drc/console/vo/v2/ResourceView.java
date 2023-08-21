@@ -1,9 +1,5 @@
 package com.ctrip.framework.drc.console.vo.v2;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Created by dengquanliang
  * 2023/8/3 17:56
