@@ -429,37 +429,37 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @Override
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
-        try {
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
-            if (mhaTblV2 == null) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
-            }
-            List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
-            if (vpcMhaNames.contains(mhaTblV2.getMhaName())) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
-            }
-            this.initMqConfig(dto, mhaTblV2);
-            this.addDalClusterMqConfig(dto, mhaTblV2);
-            this.addMqConfig(dto, mhaTblV2);
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
+        MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
+        this.initMqConfig(dto, mhaTblV2);
+        this.addDalClusterMqConfig(dto, mhaTblV2);
+        this.addMqConfig(dto, mhaTblV2);
     }
 
     @Override
     public void processUpdateMqConfig(MqConfigDto dto) throws Exception {
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
-        if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
-        }
-        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
-        }
-
+        MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
         this.initMqConfig(dto, mhaTblV2);
         this.updateDalClusterMqConfig(dto, mhaTblV2);
         this.updateMqConfig(dto, mhaTblV2);
     }
+
+    private MhaTblV2 getAndCheckMessengerMha(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + mhaName);
+        }
+        List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
+        if (vpcMhaNames.contains(mhaTblV2.getMhaName())) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
+        }
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), 0);
+        if (messengerGroupTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
+                    "messengerGroupTbl not exist for mha: " + mhaTblV2.getMhaName());
+        }
+        return mhaTblV2;
+    }
+
 
     @Override
     public void processDeleteMqConfig(MqConfigDeleteRequestDto dto) throws Exception {
@@ -486,12 +486,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void addMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), 0);
-        if (messengerGroupTbl == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
-                    "messengerGroupTbl not exist for mha: " + mhaTblV2.getMhaName());
-        }
-
         insertMhaDbMappings(mhaTblV2, dto);
         insertDbReplicationAndFilterMapping(mhaTblV2, dto);
     }
@@ -501,6 +495,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         insertDbs(dbList);
         insertMhaDbMappings(mhaTblV2.getId(), dbList);
     }
+
     private List<String> queryDbs(String mhaName, String nameFilter) {
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
         List<String> dbList = new ArrayList<>();
