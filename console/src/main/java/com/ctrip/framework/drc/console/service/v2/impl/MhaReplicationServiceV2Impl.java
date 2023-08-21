@@ -7,8 +7,8 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.monitor.delay.task.PeriodicalUpdateDbTask;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -31,8 +31,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private MetaInfoServiceV2 metaInfoServiceV2;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
@@ -88,7 +86,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             if (srcTime != null && dstTime != null) {
                 delay = srcTime - dstTime;
             }
-            return new MhaDelayInfoDto(srcTime, dstTime, delay);
+            return new MhaDelayInfoDto(srcTime, dstTime, System.currentTimeMillis(), delay);
         } catch (Exception e) {
             if (e instanceof ConsoleException) {
                 throw (ConsoleException) e;
