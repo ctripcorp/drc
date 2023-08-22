@@ -136,7 +136,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         checkMessengerMhaBuildParam(param);
 
         long buId = getBuId(param.getBuName().trim());
-        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDc());
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDc().trim());
         if (dcTbl == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
         }
@@ -146,7 +146,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         // messengerGroup
         Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
-        Long messengerGroupId = messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
+        messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
     }
 
     private long getBuId(String buName) throws Exception {

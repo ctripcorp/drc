@@ -235,6 +235,8 @@ export default {
       })
     },
     queryMhaMachineGtid () {
+      this.hasTest1 = false
+      this.drc.rGtidExecuted = ''
       const that = this
       console.log('/api/drc/v2/mha/gtid/executed?mha=' + this.drc.mhaName)
       that.axios.get('/api/drc/v2/mha/gtid/executed?mha=' + this.drc.mhaName)

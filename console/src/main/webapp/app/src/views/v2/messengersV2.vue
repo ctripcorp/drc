@@ -12,7 +12,7 @@
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看
               </Button>
               <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">修改</Button>
-              <Button disabled type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">
+              <Button type="error" size="small" style="margin-right: 5px" @click="previewRemoveConfig(row, index)">
                 删除
               </Button>
             </template>
@@ -247,7 +247,11 @@ export default {
           ])
         }
       })
-      this.axios.get('/api/drc/v1/meta/config/mhas/' + row.mhaName).then(response => {
+      this.axios.get('/api/drc/v2/meta/queryConfig/mhaMessenger', {
+        params: {
+          mhaName: row.mhaName
+        }
+      }).then(response => {
         const data = response.data.data
         console.log(data)
         this.cluster.config = data
@@ -270,7 +274,7 @@ export default {
           ])
         }
       })
-      this.axios.delete('/api/drc/v1/messenger/?mhaName=' + this.cluster.mhaToBeRemoved).then(response => {
+      this.axios.delete('/api/drc/v2/messenger/deleteMha/?mhaName=' + this.cluster.mhaToBeRemoved).then(response => {
         if (response.data.status === 0) {
           location.reload()
         } else {

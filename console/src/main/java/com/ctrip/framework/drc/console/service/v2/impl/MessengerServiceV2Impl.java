@@ -6,10 +6,7 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
@@ -124,6 +121,30 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             logger.error("queryAllBu exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void removeMessengerGroup(String mhaName) throws SQLException {
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + mhaName);
+        }
+        Long mhaId = mhaTbl.getId();
+        MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (mGroup == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger group not exist: " + mhaName);
+        }
+        List<MessengerTbl> messengers = messengerTblDao.queryByGroupId(mGroup.getId());
+
+        // delete messenger & messenger group
+        messengers.forEach(m -> m.setDeleted(BooleanEnum.TRUE.getCode()));
+        logger.info("messengerTblDao.batchUpdate, group id: {}, messenger size: {}", mGroup.getId(), messengers.size());
+        messengerTblDao.batchUpdate(messengers);
+
+        mGroup.setDeleted(BooleanEnum.TRUE.getCode());
+        logger.info("messengerGroupTblDao.update, group id: {}", mGroup.getId());
+        messengerGroupTblDao.update(mGroup);
     }
 
     @Override
