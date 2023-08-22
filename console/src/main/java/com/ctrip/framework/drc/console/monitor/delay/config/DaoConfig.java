@@ -30,6 +30,7 @@ public class DaoConfig extends AbstractConfig implements Config {
                 return;
             }
             Drc drc = metaGeneratorV3.getDrc();
+            META_LOGGER.info("update config in DaoConfig");
             META_LOGGER.debug("[meta] generated drc: {}", drc);
 
             if (null != drc && drc.getDcs().size() != 0 && !drc.toString().equalsIgnoreCase(this.xml)) {

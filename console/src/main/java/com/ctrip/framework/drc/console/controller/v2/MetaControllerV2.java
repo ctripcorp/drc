@@ -42,11 +42,10 @@ public class MetaControllerV2 {
     @GetMapping
     public String getAllMetaData(@RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
         try {
-            logger.info("[meta] get all");
+            logger.info("[meta] get all, refresh: {}", refresh);
             Drc drc;
             if (StringUtils.equals("true", refresh)) {
-                metaProviderV2.scheduledTask();
-                drc = metaProviderV2.getDrc();
+                drc = metaProviderV2.getRealtimeDrc();
             } else {
                 drc = metaProviderV2.getDrc();
             }
