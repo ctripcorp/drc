@@ -16,6 +16,7 @@ import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -59,6 +60,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Autowired private DbReplicationTblDao dbReplicationTblDao;
     @Autowired private MhaDbMappingTblDao mhaDbMappingTblDao;
     @Autowired private DbTblDao dbTblDao;
+    @Autowired private MigrationTaskTblDao migrationTaskTblDao;
 
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
@@ -147,11 +149,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setOldMhaDba(dbMigrationRequest.getOldMha().getName());
         migrationTaskTbl.setNewMhaDba(dbMigrationRequest.getNewMha().getName());
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
-        // todo
-        return  null;
-        
-
-
+        migrationTaskTbl.setOperator(dbMigrationRequest.getOperator());
+        return migrationTaskTblDao.insertWithReturnId(migrationTaskTbl);
     }
 
     @Override

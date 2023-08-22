@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.enums;
 public enum MigrationStatusEnum {
     INIT("Init"),
     EX_STARTING( "ExStarting"),
+    EX_STARTED( "ExStarted"),
     STARTING("Starting"),
     READY_TO_SWITCH_DAL("ReadyToSwitchDal"),
     SUCCESS("Success"),

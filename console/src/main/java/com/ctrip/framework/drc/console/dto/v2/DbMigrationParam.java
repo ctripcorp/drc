@@ -13,6 +13,7 @@ public class DbMigrationParam {
     private List<String> dbs;
     private MigrateMhaInfo oldMha;
     private MigrateMhaInfo newMha;
+    private String operator;
 
     public List<String> getDbs() {
         return dbs;
@@ -36,6 +37,14 @@ public class DbMigrationParam {
 
     public void setNewMha(MigrateMhaInfo newMha) {
         this.newMha = newMha;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public void setOperator(String operator) {
+        this.operator = operator;
     }
 
     public static class MigrateMhaInfo {
