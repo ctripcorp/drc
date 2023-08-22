@@ -302,16 +302,16 @@ export default {
     },
     switchMonitors (mhaName, status) {
       console.log(mhaName)
-      this.axios.post('/api/drc/v1/monitor/switch/' + mhaName + '/' + status).then(res => {
+      this.axios.post('/api/drc/v2/monitor/switch/' + mhaName + '/' + status).then(res => {
         if (res.data.status === 0) {
           console.log(status)
           if (status === 'on') {
-            this.$Message.info('监控开启成功')
+            this.$Message.success('监控开启成功')
           } else {
-            this.$Message.info('监控关闭成功')
+            this.$Message.success('监控关闭成功')
           }
         } else {
-          this.$Message.info('监控操作失败')
+          this.$Message.warning('监控操作失败')
         }
         this.getAllMessengerVos()
       })

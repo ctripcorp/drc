@@ -2,13 +2,12 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * @ClassName MonitorV2Controller
@@ -35,6 +34,16 @@ public class MonitorV2Controller {
             return ApiResult.getFailInstance(null,"queryMhaNamesToBeMonitored fail");
         }
     }
-    
+
+    @PostMapping("switch/{mhaName}/{status}")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> switchMonitors(@PathVariable String mhaName, @PathVariable String status) {
+        try {
+            monitorServiceV2.switchMonitors(mhaName, status);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
     
 }
