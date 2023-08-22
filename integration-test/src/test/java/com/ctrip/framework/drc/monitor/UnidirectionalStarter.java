@@ -54,6 +54,8 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         customConfig.setApplyMode(ApplyMode.transaction_table);
 //        customConfig.setApplyMode(ApplyMode.mq);
 
+        customConfig.setNameFilter(".*\\..*");
+
         // rowsFilter
         customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX); // rowsFilter
 

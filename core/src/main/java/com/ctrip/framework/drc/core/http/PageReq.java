@@ -8,6 +8,15 @@ public class PageReq implements Serializable {
     public static final int MAX_PAGE_SIZE = 200;
     private int pageIndex = 1;
     private int pageSize = 20;
+    private int totalCount = 0;
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
+    }
 
     public int getPageIndex() {
         return pageIndex;

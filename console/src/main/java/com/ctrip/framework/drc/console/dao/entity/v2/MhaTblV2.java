@@ -138,6 +138,21 @@ public class MhaTblV2 implements DalPojo {
     @Type(value = Types.BIGINT)
     private Long appId;
 
+    /**
+     * 标签
+     */
+    @Column(name = "tag")
+    @Type(value = Types.VARCHAR)
+    private String tag;
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
     public Long getId() {
         return id;
     }
