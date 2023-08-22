@@ -86,7 +86,14 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         String region = dataCenterService.getRegion(dcId);
         RegionInfo regionInfo = consoleRegionInfos.get(region);
         if(null != regionInfo) {
-            String url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+            String url;
+            if (clusterManagerConfig.getRealtimeMetaInfo()) {
+                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
+                logger.info("[meta] for dc: {} using realtime url: {}", dcId, url);
+            } else {
+                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+                logger.info("[meta] for dc: {} using old url: {}", dcId, url);
+            }
             try {
                 long s = System.currentTimeMillis();
                 String dbClusters = restTemplate.getForObject(url, String.class);

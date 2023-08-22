@@ -24,7 +24,7 @@ public class RemoteConfig extends AbstractConfig implements Config {
 
     @Override
     public void updateConfig() {
-        
+
         Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
         String centerRegionUrl = consoleConfig.getCenterRegionUrl();
         if (localConfigCloudDc.contains(dbClusterSourceProvider.getLocalDcName())) {
@@ -32,7 +32,17 @@ public class RemoteConfig extends AbstractConfig implements Config {
         }
         if(!StringUtils.isEmpty(centerRegionUrl)) {
                 try {
-                    String drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", centerRegionUrl), String.class);
+                    String drcFromRemote;
+                    long s = System.currentTimeMillis();
+                    if (DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaRealtimeSwitch())) {
+                        drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v2/meta/?refresh=true", centerRegionUrl), String.class);
+                        META_LOGGER.info("remote update meta info with v2, refresh true");
+                    } else {
+                        drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", centerRegionUrl), String.class);
+                        META_LOGGER.info("remote update meta info with v1, refresh false");
+                    }
+                    long e = System.currentTimeMillis();
+                    logger.info("remote update meta info, took {}ms", e - s);
                     if(StringUtils.isNotBlank(drcFromRemote) && !drcFromRemote.equalsIgnoreCase(this.xml)) {
                         this.xml = drcFromRemote;
                         persistConfig();
