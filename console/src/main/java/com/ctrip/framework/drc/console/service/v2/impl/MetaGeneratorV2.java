@@ -287,7 +287,8 @@ public class MetaGeneratorV2 {
                         .setPort(replicatorTbl.getPort())
                         .setApplierPort(replicatorTbl.getApplierPort())
                         .setExcludedTables(replicatorGroupTbl.getExcludedTables())
-                        .setGtidSkip(replicatorTbl.getGtidInit());
+                        .setGtidSkip(replicatorTbl.getGtidInit())
+                        .setMaster(replicator.getMaster());
                 dbCluster.addReplicator(replicator);
             }
         }
