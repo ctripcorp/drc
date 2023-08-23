@@ -480,9 +480,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (mhaTbl == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
         }
-        List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
-        if (CollectionUtils.isEmpty(mqConfigVos)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "config mq before build drc!");
+        if (!CollectionUtils.isEmpty(dto.getMessengerIps())) {
+            List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
+            if (CollectionUtils.isEmpty(mqConfigVos)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Add mq config before put messengers!");
+            }
         }
         // 1. configure and persistent in database
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
