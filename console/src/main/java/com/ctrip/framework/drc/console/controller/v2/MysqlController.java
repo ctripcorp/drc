@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,6 +128,22 @@ public class MysqlController {
             } else {
                 return ApiResult.getFailInstance("other error see log");
             }
+        }
+    }
+
+    @GetMapping("lastUpdateTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String mha, @RequestParam String srcMha) {
+        logger.info("getMhaLastUpdateTime: {} for {}", srcMha, mha);
+        try {
+            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha)) {
+                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            }
+            Long time = mysqlServiceV2.getDelayUpdateTime(mha.trim(), srcMha.trim());
+            return ApiResult.getSuccessInstance(time);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

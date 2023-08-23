@@ -18,7 +18,7 @@ import com.ctrip.platform.dal.dao.DalPojo;
  * @date 2023-08-22
  */
 @Entity
-@Database(name = "fxdrcmetadb_dalcluster")
+@Database(name = "fxdrcmetadb_w")
 @Table(name = "migration_task_tbl")
 public class MigrationTaskTbl implements DalPojo {
 
