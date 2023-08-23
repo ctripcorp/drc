@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
-import com.ctrip.framework.drc.console.service.v2.impl.DbMigrateServiceImpl;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
@@ -34,10 +34,10 @@ import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
  * Created by dengquanliang
  * 2023/8/23 15:03
  */
-public class DbMigrateServiceTest {
+public class DbMigrationServiceTest {
 
     @InjectMocks
-    private DbMigrateServiceImpl dbMigrateService;
+    private DbMigrationServiceImpl dbMigrateService;
     @Mock
     private MhaTblV2Dao mhaTblV2Dao;
     @Mock
@@ -70,7 +70,51 @@ public class DbMigrateServiceTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+    }
 
+    @Test
+    public void testOfflineOldDrcConfig() throws Exception {
+        try (MockedStatic<HttpUtils> mockedStatic = Mockito.mockStatic(HttpUtils.class)) {
+            mockedStatic.when(() -> {
+                HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
+            }).thenReturn(ApiResult.getSuccessInstance(null));
+            initMock();
+            dbMigrateService.offlineOldDrcConfig(1L);
+
+            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
+            Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
+            Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
+            Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
+            Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
+        }
+
+    }
+
+    @Test
+    public void testRollBackNewDrcConfig() throws Exception {
+        try (MockedStatic<HttpUtils> mockedStatic = Mockito.mockStatic(HttpUtils.class)) {
+            mockedStatic.when(() -> {
+                HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
+            }).thenReturn(ApiResult.getSuccessInstance(null));
+            initMock();
+            dbMigrateService.rollBackNewDrcConfig(1L);
+
+
+            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
+            Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
+            Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
+            Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
+            Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
+
+        }
+
+    }
+
+    private void initMock() throws Exception {
         Mockito.when(migrationTaskTblDao.queryById(Mockito.anyLong())).thenReturn(getMigrationTaskTbl());
         List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("newMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
@@ -128,47 +172,6 @@ public class DbMigrateServiceTest {
         Map<String, String> urlMap = new HashMap<>();
         urlMap.put("sha", "url");
         Mockito.when(regionConfig.getCMRegionUrls()).thenReturn(urlMap);
-
-    }
-
-    @Test
-    public void testOfflineOldDrcConfig() throws Exception {
-        try (MockedStatic<HttpUtils> mockedStatic = Mockito.mockStatic(HttpUtils.class)) {
-            mockedStatic.when(() -> {
-                HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
-            }).thenReturn(ApiResult.getSuccessInstance(null));
-            dbMigrateService.offlineOldDrcConfig(1L);
-
-            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
-            Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
-            Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
-            Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
-            Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
-        }
-
-    }
-
-    @Test
-    public void testRollBackNewDrcConfig() throws Exception {
-        try (MockedStatic<HttpUtils> mockedStatic = Mockito.mockStatic(HttpUtils.class)) {
-            mockedStatic.when(() -> {
-                HttpUtils.post(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any(Map.class));
-            }).thenReturn(ApiResult.getSuccessInstance(null));
-            dbMigrateService.rollBackNewDrcConfig(1L);
-
-
-            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
-            Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
-            Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
-            Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
-            Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
-
-        }
-
     }
 
     private Drc getDrc() {

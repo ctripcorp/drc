@@ -4,9 +4,8 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
-import org.springframework.stereotype.Repository;
-
 import java.sql.SQLException;
+import org.springframework.stereotype.Repository;
 
 /**
  * @ClassName MigrationTaskTblDao

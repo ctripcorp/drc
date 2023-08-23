@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * Created by dengquanliang
- * 2023/8/9 20:29
+ * 2023/8/8 14:54
  */
 @RestController
 @RequestMapping("/api/drc/v2/mha/")
@@ -131,5 +131,15 @@ public class MhaControllerV2 {
             logger.error("[meta] preCheck meta config for {}", dto, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
+    }
+
+    @PostMapping("tag")
+    public ApiResult<Boolean> updateMhaTag(@RequestParam String mhaName, @RequestParam String tag) {
+        try {
+            mhaServiceV2.updateMhaTag(mhaName, tag);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+        return ApiResult.getSuccessInstance(true);
     }
 }

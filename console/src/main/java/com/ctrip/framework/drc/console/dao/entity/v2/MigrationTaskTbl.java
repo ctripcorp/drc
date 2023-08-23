@@ -1,12 +1,17 @@
 package com.ctrip.framework.drc.console.dao.entity.v2;
 
-import com.ctrip.platform.dal.dao.DalPojo;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 import com.ctrip.platform.dal.dao.annotation.Database;
 import com.ctrip.platform.dal.dao.annotation.Type;
-
-import javax.persistence.*;
-import java.sql.Timestamp;
 import java.sql.Types;
+import java.sql.Timestamp;
+
+import com.ctrip.platform.dal.dao.DalPojo;
 
 /**
  * @author phd潘昊栋

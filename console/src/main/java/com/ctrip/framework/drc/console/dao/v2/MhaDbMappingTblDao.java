@@ -38,6 +38,27 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<MhaDbMappingTbl> queryByDbId(Long dbId) throws SQLException {
+        if (dbId == null || dbId == 0L) {
+            throw new IllegalArgumentException("dbId is null or 0");
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DB_ID, dbId, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
+    public MhaDbMappingTbl queryByDbIdAndMhaId(Long dbId,Long mhaId) throws SQLException {
+        if (dbId == null || dbId == 0L || mhaId == null || mhaId == 0L) {
+            throw new IllegalArgumentException("dbId,mhaId is null or 0");
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().equal(DB_ID, dbId, Types.BIGINT).
+                and().equal(MHA_ID, mhaId, Types.BIGINT).
+                and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        List<MhaDbMappingTbl> query = client.query(sqlBuilder, new DalHints());
+        return CollectionUtils.isEmpty(query) ? null : query.get(0);
+    }
+
     public List<MhaDbMappingTbl> queryByMhaId(long mhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(MHA_ID, mhaId, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);

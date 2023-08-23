@@ -54,6 +54,7 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     public void monitorMessengerChange() {
         try {
+            // todo not leader should clear mhas,not refresh
             Set<String> mhas = dbClusterSource.getAllMhaWithMessengerInLocalRegion();
             consumer.mhasRefresh(mhas);
         } catch (Throwable t) {

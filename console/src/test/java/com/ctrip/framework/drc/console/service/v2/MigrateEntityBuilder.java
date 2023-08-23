@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.enums.RowsFilterModeEnum;
 import com.ctrip.framework.drc.console.param.v2.RowsFilterCreateParam;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 
@@ -92,6 +93,24 @@ public class MigrateEntityBuilder {
             replicatorGroupTbls.add(replicatorGroupTbl);
         }
         return replicatorGroupTbls;
+    }
+
+    public static List<ReplicatorTbl> getReplicatorTbls() {
+        List<ReplicatorTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+            replicatorTbl.setId(Long.valueOf(i));
+            replicatorTbl.setDeleted(0);
+            replicatorTbl.setRelicatorGroupId(200L);
+            replicatorTbl.setResourceId(200L);
+            replicatorTbl.setApplierPort(1010);
+            replicatorTbl.setGtidInit("gtId");
+            replicatorTbl.setPort(3030);
+            replicatorTbl.setMaster(1);
+            tbls.add(replicatorTbl);
+        }
+
+        return tbls;
     }
 
     public static ReplicatorGroupTbl getReplicatorGroupTbl() {
@@ -367,6 +386,19 @@ public class MigrateEntityBuilder {
         return messengerTbl;
     }
 
+    public static List<MessengerTbl> getMessengers() {
+        List<MessengerTbl> tbls = new ArrayList<>();
+        for (int i = 200; i < 202; i++) {
+            MessengerTbl tbl = new MessengerTbl();
+            tbl.setMessengerGroupId(200L);
+            tbl.setId(Long.valueOf(i));
+            tbl.setResourceId(200L);
+            tbl.setDeleted(0);
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
     public static DataMediaPairTbl getDataMediaPairTbl() {
         DataMediaPairTbl tbl = new DataMediaPairTbl();
         tbl.setDeleted(0);
@@ -436,6 +468,7 @@ public class MigrateEntityBuilder {
         tbl.setDeleted(0);
         tbl.setAppId(1L);
         tbl.setApplyMode(0);
+        tbl.setTag("tag");
 
         return tbl;
     }
@@ -492,6 +525,10 @@ public class MigrateEntityBuilder {
     public static List<ResourceTbl> getResourceTbls() {
         ResourceTbl resourceTbl = new ResourceTbl();
         resourceTbl.setId(200L);
+        resourceTbl.setType(0);
+        resourceTbl.setAz("AZ");
+        resourceTbl.setIp("ip");
+        resourceTbl.setTag("tag");
         return Lists.newArrayList(resourceTbl);
     }
 
