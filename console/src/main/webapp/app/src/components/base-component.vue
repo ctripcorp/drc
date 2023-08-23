@@ -25,6 +25,9 @@
             <MenuItem name="/v2/buildMessengerV2" to="/v2/buildMessengerV2">
               <span>Messenger配置</span>
             </MenuItem>
+            <MenuItem name="/v2/migration" to="/v2/migration">
+              <span>DB 搬迁任务</span>
+            </MenuItem>
           </Submenu>
           <Submenu name="0">
             <template slot="title">
@@ -164,6 +167,7 @@ export default {
       case '/v2/mhaReplications':
       case '/drcV2':
       case '/v2/buildMessengerV2':
+      case '/v2/migration':
       case '/v2/messengersV2':this.openNames = ['v2-0']; break
       case '/apply':
       case '/clusters':

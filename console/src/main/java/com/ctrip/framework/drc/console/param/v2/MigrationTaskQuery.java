@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.param.v2;
 
 import com.ctrip.framework.drc.core.http.PageReq;
+import org.apache.commons.lang3.StringUtils;
 
 public class MigrationTaskQuery extends PageReq {
 
@@ -8,6 +9,21 @@ public class MigrationTaskQuery extends PageReq {
     private String status;
     private String oldMha;
     private String newMha;
+
+    public void clean() {
+        if (StringUtils.isBlank(operator)) {
+            operator = null;
+        }
+        if (StringUtils.isBlank(status)) {
+            status = null;
+        }
+        if (StringUtils.isBlank(oldMha)) {
+            oldMha = null;
+        }
+        if (StringUtils.isBlank(newMha)) {
+            newMha = null;
+        }
+    }
 
     public String getOperator() {
         return operator;

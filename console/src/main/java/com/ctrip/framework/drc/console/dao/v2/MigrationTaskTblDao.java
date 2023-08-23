@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
@@ -46,10 +47,10 @@ public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.atPage(query.getPageIndex(), query.getPageSize())
                 .orderBy(ID, DESCENDING).and()
-                .equalNullable(OPERATOR, query.getOperator(), Types.VARCHAR).and()
-                .equalNullable(STATUS, query.getStatus(), Types.VARCHAR).and()
-                .equalNullable(OLD_MHA, query.getOldMha(), Types.VARCHAR).and()
-                .equalNullable(NEW_MHA, query.getNewMha(), Types.VARCHAR);
+                .likeNullable(OPERATOR, query.getOperator(),  MatchPattern.CONTAINS,Types.VARCHAR).and()
+                .likeNullable(OLD_MHA, query.getOldMha(), MatchPattern.CONTAINS, Types.VARCHAR).and()
+                .likeNullable(NEW_MHA, query.getNewMha(),  MatchPattern.CONTAINS,Types.VARCHAR).and()
+                .equalNullable(STATUS, query.getStatus(), Types.VARCHAR);
 
         return client.query(sqlBuilder, new DalHints());
     }
@@ -57,10 +58,10 @@ public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
     public int count(MigrationTaskQuery query) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.selectCount().and()
-                .equalNullable(OPERATOR, query.getOperator(), Types.VARCHAR).and()
-                .equalNullable(STATUS, query.getStatus(), Types.VARCHAR).and()
-                .equalNullable(OLD_MHA, query.getOldMha(), Types.VARCHAR).and()
-                .equalNullable(NEW_MHA, query.getNewMha(), Types.VARCHAR);
+                .likeNullable(OPERATOR, query.getOperator(),  MatchPattern.CONTAINS,Types.VARCHAR).and()
+                .likeNullable(OLD_MHA, query.getOldMha(), MatchPattern.CONTAINS, Types.VARCHAR).and()
+                .likeNullable(NEW_MHA, query.getNewMha(),  MatchPattern.CONTAINS,Types.VARCHAR).and()
+                .equalNullable(STATUS, query.getStatus(), Types.VARCHAR);
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
 
