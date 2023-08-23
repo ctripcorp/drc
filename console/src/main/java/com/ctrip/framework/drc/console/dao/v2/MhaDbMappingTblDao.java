@@ -70,4 +70,10 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         sqlBuilder.selectAll().in(MHA_ID, mhaIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
     }
+
+    public List<MhaDbMappingTbl> queryByDbIds(List<Long> dbIds) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().inNullable(DB_ID, dbIds, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
 }
