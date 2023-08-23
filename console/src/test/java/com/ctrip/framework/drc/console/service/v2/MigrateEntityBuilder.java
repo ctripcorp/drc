@@ -310,6 +310,32 @@ public class MigrateEntityBuilder {
         return tbls;
     }
 
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls2() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 202; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(200L);
+            tbl.setId(Long.valueOf(i));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
+    public static List<MhaDbMappingTbl> getMhaDbMappingTbls3() {
+        List<MhaDbMappingTbl> tbls = new ArrayList<>();
+        for (int i = 200; i <= 202; i++) {
+            MhaDbMappingTbl tbl = new MhaDbMappingTbl();
+            tbl.setDeleted(0);
+            tbl.setMhaId(Long.valueOf(i));
+            tbl.setDbId(200L);
+            tbl.setId(Long.valueOf(i + 10));
+            tbls.add(tbl);
+        }
+        return tbls;
+    }
+
     public static List<DbTbl> getDbTbls() {
         List<DbTbl> tbls = new ArrayList<>();
         for (int i = 200; i <= 201; i++) {

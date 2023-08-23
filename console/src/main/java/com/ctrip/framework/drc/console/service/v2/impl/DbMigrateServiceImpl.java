@@ -71,6 +71,8 @@ public class DbMigrateServiceImpl implements DbMigrateService {
     @Autowired
     private MigrationTaskTblDao migrationTaskTblDao;
 
+    private RegionConfig regionConfig = RegionConfig.getInstance();
+
     private static final String BASE_API_URL = "/api/drc/v2/clusterchange/clusterId?operator={operator}";
 
     @Override
@@ -151,7 +153,7 @@ public class DbMigrateServiceImpl implements DbMigrateService {
 
     private void pushConfigToCM(List<Long> mhaIds, String operator) throws Exception {
         Drc drc = metaGeneratorV3.getDrc();
-        Map<String, String> cmRegionUrls = RegionConfig.getInstance().getCMRegionUrls();
+        Map<String, String> cmRegionUrls = regionConfig.getCMRegionUrls();
         Map<String, String> paramMap = new HashMap<>();
         paramMap.put("operator", operator);
 
