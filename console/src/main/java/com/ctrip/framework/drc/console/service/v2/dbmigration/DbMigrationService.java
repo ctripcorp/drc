@@ -20,8 +20,11 @@ public interface DbMigrationService {
     // throw ConsoleException with reason when forbidden
     Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException;
     
+    boolean exStartDbMigrationTask(Long taskId) throws SQLException;
+
     boolean startDbMigrationTask(Long taskId) throws SQLException;
 
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
+
     
 }

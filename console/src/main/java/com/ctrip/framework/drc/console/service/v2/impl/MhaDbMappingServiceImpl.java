@@ -6,12 +6,14 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.utils.Constants;
+import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,8 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private DbTblDao dbTblDao;
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
 
     private static final String DRC = "drc";
 
@@ -57,6 +61,15 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         } else {
             return insertMhaDbMappings(srcMha, dstMha, nameFilter);
         }
+    }
+
+    @Override
+    public void buildMhaDbMappings(String mhaName,List<String> dbList) throws SQLException {
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        insertDbs(dbList);
+
+        //insertMhaDbMappings
+        insertMhaDbMappings(mhaTbl.getId(), dbList);
     }
 
     private List<String> getVpcMhaDbs(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
@@ -123,7 +136,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         return dbList;
     }
 
-    private void insertDbs(List<String> dbList) throws Exception {
+    private void insertDbs(List<String> dbList) throws SQLException {
         if (CollectionUtils.isEmpty(dbList)) {
             logger.warn("dbList is empty");
             return;
@@ -163,7 +176,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         return dbList.stream().distinct().collect(Collectors.toList());
     }
 
-    private void insertMhaDbMappings(long mhaId, List<String> dbList) throws Exception {
+    private void insertMhaDbMappings(long mhaId, List<String> dbList) throws SQLException {
         if (CollectionUtils.isEmpty(dbList)) {
             logger.warn("dbList is empty, mhaId: {}", mhaId);
             return;
