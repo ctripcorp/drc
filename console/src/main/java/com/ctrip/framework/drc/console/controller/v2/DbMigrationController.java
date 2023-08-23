@@ -1,8 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
 
-
-
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
 /**
  * @ClassName DbMigrationController
  * @Author haodongPan
@@ -42,7 +41,7 @@ public class DbMigrationController {
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         return null;
     }
-    
+
     @GetMapping("query")
     @SuppressWarnings("unchecked")
     public ApiResult<PageResult<MigrationTaskVo>> queryByPage(MigrationTaskQuery queryDto) {

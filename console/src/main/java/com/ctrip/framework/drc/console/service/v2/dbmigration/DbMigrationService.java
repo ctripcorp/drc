@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.v2.dbmigration;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.core.http.PageResult;
 
@@ -23,5 +24,9 @@ public interface DbMigrationService {
     boolean startDbMigrationTask(Long taskId) throws SQLException;
 
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
-    
+
+    void offlineOldDrcConfig(long taskId) throws Exception;
+
+    void rollBackNewDrcConfig(long taskId) throws Exception;
+
 }

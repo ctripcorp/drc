@@ -11,4 +11,6 @@ import java.util.List;
 public interface MhaDbMappingService {
 
     List<String> buildMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception;
+
+    List<String> buildMhaDbMappings(String mhaName) throws Exception;
 }
