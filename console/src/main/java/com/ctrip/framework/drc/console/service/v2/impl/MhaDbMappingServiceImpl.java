@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -41,6 +42,8 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private DbTblDao dbTblDao;
     @Autowired
     private MhaDbMappingTblDao mhaDbMappingTblDao;
+    @Autowired
+    private MhaTblV2Dao mhaTblV2Dao;
 
     private static final String DRC = "drc";
 
@@ -57,6 +60,18 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         } else {
             return insertMhaDbMappings(srcMha, dstMha, nameFilter);
         }
+    }
+
+    @Override
+    public List<String> buildMhaDbMappings(String mhaName) throws Exception {
+        List<String> dbList = queryDbs(mhaName, "");
+
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        insertDbs(dbList);
+
+        //insertMhaDbMappings
+        insertMhaDbMappings(mhaTbl.getId(), dbList);
+        return dbList;
     }
 
     private List<String> getVpcMhaDbs(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
