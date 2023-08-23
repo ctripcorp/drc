@@ -148,7 +148,7 @@ public class DbMigrateServiceImpl implements DbMigrateService {
 
         List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
         mhaIds.add(mhaId);
-        pushConfigToCM(mhaIds, operator);
+//        pushConfigToCM(mhaIds, operator);
     }
 
     private void pushConfigToCM(List<Long> mhaIds, String operator) throws Exception {
