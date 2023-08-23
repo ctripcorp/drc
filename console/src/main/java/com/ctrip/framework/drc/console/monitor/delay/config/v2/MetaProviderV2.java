@@ -43,6 +43,24 @@ public class MetaProviderV2 extends AbstractMonitor implements PriorityOrdered {
         return drc;
     }
 
+    public synchronized Drc getDrc(String dcId) {
+        if (drc == null) {
+            scheduledTask();
+        }
+        Dc dc = drc.findDc(dcId);
+        Drc drcWithOneDc = new Drc();
+        drcWithOneDc.addDc(dc);
+        return drcWithOneDc;
+    }
+
+    public synchronized Drc getRealtimeDrc(String dcId) {
+        scheduledTask();
+        Dc dc = drc.findDc(dcId);
+        Drc drcWithOneDc = new Drc();
+        drcWithOneDc.addDc(dc);
+        return drcWithOneDc;
+    }
+
     public Dc getDcBy(String dbClusterId) {
         Drc drc = getDrc();
         Map<String, Dc> dcs = drc.getDcs();

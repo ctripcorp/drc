@@ -60,14 +60,14 @@ public class MetaControllerV2 {
     @GetMapping("data/dcs/{dc}")
     public String getDrcStr(@PathVariable String dc, @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
         try {
-            logger.info("[meta] get dc: {} info, refresh: {}", dc, refresh);
-            Dc dcInfo;
+            logger.info("[meta] get meta of dc: {} info, refresh: {}", dc, refresh);
+            Drc dcInfo;
             if (StringUtils.equals("true", refresh)) {
-                dcInfo = metaProviderV2.getRealtimeDrc().findDc(dc);
+                dcInfo = metaProviderV2.getRealtimeDrc(dc);
             } else {
-                dcInfo = metaProviderV2.getDrc().findDc(dc);
+                dcInfo = metaProviderV2.getDrc(dc);
             }
-            logger.info("dc: {}, info: \n {}", dc, dcInfo.toString());
+            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfo.toString());
             return dcInfo.toString();
         } catch (Exception e) {
             logger.error("get dc: {} info fail", dc, e);

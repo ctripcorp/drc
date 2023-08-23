@@ -36,10 +36,10 @@ public class RemoteConfig extends AbstractConfig implements Config {
                     long s = System.currentTimeMillis();
                     if (DefaultConsoleConfig.SWITCH_ON.equals(consoleConfig.getMetaRealtimeSwitch())) {
                         drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v2/meta/?refresh=true", centerRegionUrl), String.class);
-                        META_LOGGER.info("remote update meta info with v2, refresh true, url: {}", drcFromRemote);
+                        META_LOGGER.info("remote update meta info with v2, refresh true");
                     } else {
                         drcFromRemote = HttpUtils.get(String.format("%s/api/drc/v1/meta/", centerRegionUrl), String.class);
-                        META_LOGGER.info("remote update meta info with v1, refresh false, url: {}", drcFromRemote);
+                        META_LOGGER.info("remote update meta info with v1, refresh false");
                     }
                     long e = System.currentTimeMillis();
                     META_LOGGER.info("remote update meta info, took {}ms", e - s);
