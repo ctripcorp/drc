@@ -278,7 +278,7 @@ export default {
         if (response.data.status === 0) {
           location.reload()
         } else {
-          alert('删除失败！')
+          alert('删除失败: ' + response.data.message)
         }
         this.$Spin.hide()
       })

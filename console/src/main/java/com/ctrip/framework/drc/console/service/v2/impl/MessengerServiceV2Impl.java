@@ -130,6 +130,11 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         if (mhaTbl == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + mhaName);
         }
+        List<MqConfigVo> currentMqConfig = this.queryMhaMessengerConfigs(mhaName);
+        if (!CollectionUtils.isEmpty(currentMqConfig)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.FORBIDDEN_OPERATION, "remove inner mq configs first!");
+        }
+
         Long mhaId = mhaTbl.getId();
         MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
         if (mGroup == null) {
