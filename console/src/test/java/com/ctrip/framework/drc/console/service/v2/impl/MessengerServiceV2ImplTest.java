@@ -13,7 +13,7 @@ import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.framework.drc.service.console.DbClusterApiServiceImpl;
+import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +33,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     public static final String VPC_MHA_NAME = "vpcMha1";
 
     @Mock
-    DbClusterApiServiceImpl dbClusterService;
+    DbClusterApiService dbClusterService;
 
     @Before
     public void setUp() throws IOException, SQLException {
