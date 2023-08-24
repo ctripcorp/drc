@@ -408,6 +408,9 @@ public class MetaGeneratorV3 {
     }
 
     private String getProperties(List<DbReplicationTbl> dbReplicationTblList) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplicationTblList)) {
+            return null;
+        }
         List<DbReplicationDto> dbReplicationDto = dbReplicationTblList.stream().map(source -> {
             DbReplicationDto target = new DbReplicationDto();
             target.setDbReplicationId(source.getId());
