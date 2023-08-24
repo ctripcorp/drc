@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dto.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
@@ -13,7 +12,6 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.vo.display.v2.DelayInfoVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.console.vo.request.MhaQueryDto;
@@ -152,28 +150,6 @@ public class MhaReplicationController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
-
-
-    /**
-     * @return src -> dst delay
-     */
-    @GetMapping("delay")
-    @SuppressWarnings("unchecked")
-    public ApiResult<DelayInfoVo> getMhaReplicationDelay(@RequestParam String srcMha, @RequestParam String dstMha) {
-        logger.info("getMhaDelay: {} -> {}", srcMha, dstMha);
-        try {
-            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(dstMha)) {
-                return ApiResult.getFailInstance(null, "mha name should not be blank!");
-            }
-
-            MhaDelayInfoDto mhaReplicationDelay = mhaReplicationServiceV2.getMhaReplicationDelay(srcMha.trim(), dstMha.trim());
-            return ApiResult.getSuccessInstance(DelayInfoVo.from(mhaReplicationDelay));
-        } catch (Throwable e) {
-            logger.error(String.format("getMhaDelay error: %s->%s", srcMha, dstMha), e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
 
     private List<MhaReplicationVo> buildVo(List<MhaReplicationTbl> replicationTblList, Map<Long, MhaTblV2> mhaTblMap) {
         // prepare meta data

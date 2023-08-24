@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -12,10 +13,12 @@ import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.service.console.DbClusterApiServiceImpl;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
@@ -28,6 +31,9 @@ import static org.mockito.Mockito.*;
 
 public class MessengerServiceV2ImplTest extends CommonDataInit {
     public static final String VPC_MHA_NAME = "vpcMha1";
+
+    @Mock
+    DbClusterApiServiceImpl dbClusterService;
 
     @Before
     public void setUp() throws IOException, SQLException {
@@ -123,7 +129,6 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         verify(mhaDbMappingTblDao).queryByIds(anyList());
         verify(dbReplicationFilterMappingTblDao).queryByDbReplicationIds(any());
     }
-
 
 
     @Test
@@ -328,7 +333,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
                 new MySqlUtils.TableSchemaName("db1", "table2")
         );
         when(mysqlServiceV2.getMatchTable("mha1", "db1\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db1\\.(table1|table2)")).thenReturn(Lists.newArrayList("db1\\.table1", "db1\\.table2"));
+        when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db1\\.(table1|table2)")).thenReturn(Lists.newArrayList("db1.table1", "db1.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
             mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
@@ -352,7 +357,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
                 new MySqlUtils.TableSchemaName("db3", "table2")
         );
         when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3\\.table1", "db3\\.table2"));
+        when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3.table1", "db3.table2"));
 
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
             mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
@@ -375,17 +380,30 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
                 new MySqlUtils.TableSchemaName("db3", "table2")
         );
         when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3\\.table1", "db3\\.table2"));
-
+        when(mysqlServiceV2.getAnyMatchTable("mha1", Lists.newArrayList("db3\\.(table1|table2)"))).thenReturn(ret2);
+        when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3.table1", "db3.table2"));
+        when(dbClusterService.getDalClusterName(any(), any())).thenReturn("dalcluster");
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
             mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
             MqConfigDto dto = new MqConfigDto();
             dto.setMhaName("mha1");
             dto.setTable("db3\\.(table1|table2)");
+            dto.setTopic("topic");
             dto.setMqType("qmq");
-            dto.setDbReplicationId(1L);
+            dto.setDbReplicationId(7L);
             messengerServiceV2Impl.processUpdateMqConfig(dto);
+            verify(qConfigService, times(1)).addOrUpdateDalClusterMqConfig(anyString(), anyString(), anyString(), eq(null), anyList());
+            verify(qConfigService, times(1)).updateDalClusterMqConfig(anyString(), anyString(), anyString(), anyList());
         }
+    }
+
+
+    @Test
+    public void testRemoveMessengerGroup() throws Exception {
+
+        messengerServiceV2Impl.removeMessengerGroup("mha1");
+        verify(messengerTblDao, times(1)).batchUpdate(anyList());
+        verify(messengerGroupTblDao, times(1)).update(any(MessengerGroupTbl.class));
     }
 
 }

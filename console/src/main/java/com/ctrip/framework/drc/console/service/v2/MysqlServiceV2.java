@@ -1,7 +1,5 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
-import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 
@@ -19,9 +17,6 @@ public interface MysqlServiceV2 {
 
     // forward by mha
     String getMhaPurgedGtid(String mha);
-
-    // query (sourceMhaName) delay monitor info in (mha)
-    Long getDelayUpdateTime(String mhaName, String sourceMhaName);
 
     // route By mha
     Map<String, Object> preCheckMySqlConfig(String mha) ;
@@ -43,5 +38,4 @@ public interface MysqlServiceV2 {
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
-    // todo by yongnian: 2023/8/21 查询数据库实时时间
 }

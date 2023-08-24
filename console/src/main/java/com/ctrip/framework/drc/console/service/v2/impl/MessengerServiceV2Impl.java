@@ -786,13 +786,18 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         String tableName = dbReplicationTbl.getSrcLogicTableName();
         String topic = dbReplicationTbl.getDstLogicTableName();
 
+        // to delete tables
+        String nameFilter = dbName + "\\." + tableName;
+        List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+        if (CollectionUtils.isEmpty(tablesToDelete)) {
+            logger.info("no table to delete: "+ nameFilter);
+            return;
+        }
+
         // all topic tables
         List<String> sameTopicTableFilters = this.getTableNameFiltersWithSameTopic(topic);
         List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), sameTopicTableFilters);
 
-        // to delete tables
-        String nameFilter = dbName + "\\." + tableName;
-        List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
 
         // final remain = all - delete
         Set<MySqlUtils.TableSchemaName> tablesToDeletSet = Sets.newHashSet(tablesToDelete);
