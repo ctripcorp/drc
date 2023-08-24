@@ -26,7 +26,8 @@ public interface MysqlServiceV2 {
 
     List<MySqlUtils.TableSchemaName> getMatchTable(String mhaName,String nameFilter);
 
-    List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, List<String> nameFilters);
+    // nameFilters: split with ','
+    List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, String nameFilters);
 
     // route By mha
     List<String> queryDbsWithNameFilter(String mha, String nameFilter);

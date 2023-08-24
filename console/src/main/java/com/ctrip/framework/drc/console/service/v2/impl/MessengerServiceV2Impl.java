@@ -801,7 +801,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
         // all topic tables
         List<String> sameTopicTableFilters = this.getTableNameFiltersWithSameTopic(topic);
-        List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), sameTopicTableFilters);
+        List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), String.join(",", sameTopicTableFilters));
 
 
         // final remain = all - delete

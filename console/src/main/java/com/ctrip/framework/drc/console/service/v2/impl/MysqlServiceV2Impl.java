@@ -114,12 +114,16 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/getAnyMatchTable", responseType = TableSchemaListApiResult.class)
-    public List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, List<String> nameFilters) {
+    public List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, String nameFilters) {
         Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
         if (mySqlEndpoint == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.GET_MYSQL_ENDPOINT_NULL, "no machine find for: " + mhaName);
         }
-        List<AviatorRegexFilter> filterList = nameFilters.stream().distinct().map(AviatorRegexFilter::new).collect(Collectors.toUnmodifiableList());
+        List<String> nameFiltersList = Lists.newArrayList(nameFilters.split(","));
+        if (CollectionUtils.isEmpty(nameFiltersList)) {
+            return Collections.emptyList();
+        }
+        List<AviatorRegexFilter> filterList = nameFiltersList.stream().distinct().map(AviatorRegexFilter::new).collect(Collectors.toUnmodifiableList());
         return MySqlUtils.getTablesMatchAnyRegexFilter(mySqlEndpoint, filterList);
     }
 

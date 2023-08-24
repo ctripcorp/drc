@@ -131,8 +131,8 @@ public class MysqlController {
     }
 
     @GetMapping("getAnyMatchTable")
-    public ApiResult getMatchTable(@RequestParam String mhaName,
-                                   @RequestParam List<String> nameFilters) {
+    public ApiResult getAnyMatchTable(@RequestParam String mhaName,
+                                      @RequestParam String nameFilters) {
         try {
             List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getAnyMatchTable(mhaName, nameFilters);
             return ApiResult.getSuccessInstance(matchTables);
