@@ -88,6 +88,9 @@ public class DataMediaServiceV2Impl implements DataMediaServiceV2 {
     @Override
     public DataMediaConfig generateConfigFast(List<DbReplicationDto> dbReplicationDtos) throws SQLException {
         // 1. prepare all data
+        if (CollectionUtils.isEmpty(dbReplicationDtos)) {
+            return new DataMediaConfig();
+        }
 
         // 1.1 mha
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(dbReplicationDtos.stream().map(DbReplicationDto::getSrcMhaDbMappingId).collect(Collectors.toList()));
