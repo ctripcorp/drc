@@ -80,10 +80,10 @@ export default {
             )
           }
         },
-        {
-          title: 'id',
-          key: 'dbReplicationId'
-        },
+        // {
+        //   title: 'id',
+        //   key: 'dbReplicationId'
+        // },
         {
           title: '库名',
           key: 'dbName'

@@ -1,14 +1,10 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
-import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
-import com.ctrip.framework.drc.console.dao.MhaTblDao;
-import com.ctrip.framework.drc.console.dao.entity.MhaTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
-import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
@@ -320,5 +316,15 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
             mhaTbl.setTag(tag);
             mhaTblDao.update(mhaTbl);
         }
+    }
+
+    @Override
+    public String getMhaDc(String mhaName) throws Exception {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            return null;
+        }
+        DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
+        return dcTbl.getDcName();
     }
 }

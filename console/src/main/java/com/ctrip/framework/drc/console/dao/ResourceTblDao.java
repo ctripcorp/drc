@@ -48,8 +48,11 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
     }
 
     public List<ResourceTbl> queryByDcAndType(List<Long> dcIds, int type) throws SQLException {
+        if (CollectionUtils.isEmpty(dcIds)) {
+            return new ArrayList<>();
+        }
         SelectSqlBuilder sqlbuilder = initSqlBuilder();
-        sqlbuilder.and().inNullable(DC_ID, dcIds, Types.BIGINT)
+        sqlbuilder.and().in(DC_ID, dcIds, Types.BIGINT)
                 .and().equal(TYPE, type, Types.TINYINT);
         return queryList(sqlbuilder);
     }
@@ -78,8 +81,11 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
     }
 
     public List<ResourceTbl> queryByDcAndTag(List<Long> dcIds, String tag, int type, int active) throws SQLException {
+        if (CollectionUtils.isEmpty(dcIds)) {
+            return new ArrayList<>();
+        }
         SelectSqlBuilder sqlbuilder = initSqlBuilder();
-        sqlbuilder.and().inNullable(DC_ID, dcIds, Types.BIGINT)
+        sqlbuilder.and().in(DC_ID, dcIds, Types.BIGINT)
                 .and().equal(TAG, tag, Types.VARCHAR)
                 .and().equal(TYPE, type, Types.TINYINT)
                 .and().equal(ACTIVE, active, Types.TINYINT);

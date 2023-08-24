@@ -142,4 +142,13 @@ public class MhaControllerV2 {
         }
         return ApiResult.getSuccessInstance(true);
     }
+
+    @GetMapping("dc")
+    public ApiResult<String> getMhaDc(@RequestParam String mhaName) {
+        try {
+            return ApiResult.getSuccessInstance(mhaServiceV2.getMhaDc(mhaName));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
 }

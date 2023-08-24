@@ -149,18 +149,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
     }
 
-    private long getBuId(String buName) throws Exception {
-        BuTbl existBuTbl = buTblDao.queryByBuName(buName);
-        if (existBuTbl != null) {
-            return existBuTbl.getId();
-        }
-
-        BuTbl buTbl = new BuTbl();
-        buTbl.setBuName(buName);
-        buTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        return buTblDao.insertWithReturnId(buTbl);
-    }
-
     @Override
     public String buildDrc(DrcBuildParam param) throws Exception {
         submitDrc(param);
@@ -982,6 +970,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             mhaTblDao.update(existMhaTbl);
         }
         return existMhaTbl.getId();
+    }
+
+    private long getBuId(String buName) throws Exception {
+        BuTbl existBuTbl = buTblDao.queryByBuName(buName);
+        if (existBuTbl != null) {
+            return existBuTbl.getId();
+        }
+
+        BuTbl buTbl = new BuTbl();
+        buTbl.setBuName(buName);
+        buTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return buTblDao.insertWithReturnId(buTbl);
     }
 
     private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId) {
