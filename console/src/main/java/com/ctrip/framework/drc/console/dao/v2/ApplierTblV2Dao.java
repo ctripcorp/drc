@@ -42,8 +42,11 @@ public class ApplierTblV2Dao extends AbstractDao<ApplierTblV2> {
     }
 
     public List<ApplierTblV2> queryByApplierGroupIds(List<Long> applierGroupIds, int deleted) throws SQLException {
+        if (CollectionUtils.isEmpty(applierGroupIds)) {
+            return new ArrayList<>();
+        }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
-        sqlBuilder.selectAll().inNullable(APPLIER_GROUP_ID, applierGroupIds, Types.BIGINT)
+        sqlBuilder.selectAll().in(APPLIER_GROUP_ID, applierGroupIds, Types.BIGINT)
                 .and().equal(DELETED, deleted, Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
     }
