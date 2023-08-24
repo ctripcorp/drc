@@ -26,4 +26,6 @@ public interface MhaServiceV2 {
     DrcBuildPreCheckVo preCheckBeReplicatorIps(String mhaName, List<String> replicatorIps) throws Exception;
 
     void updateMhaTag(String mhaName, String tag) throws Exception;
+
+    String getMhaDc(String mhaName) throws Exception;
 }

@@ -6,19 +6,27 @@
     </Alert>
     <Row>
       <i-col span="12">
-        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="250" style="float: left; margin-top: 50px">
+        <Form ref="drc1" :model="srcBuildParam" :rules="ruleDrc" :label-width="250"
+              style="float: left; margin-top: 50px">
           <FormItem label="源集群名" prop="srcMhaName" style="width: 600px">
             <Input v-model="srcBuildParam.mhaName" @input="changeSrcMha" placeholder="请输入源集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 200px" placeholder="选择源集群Replicator">
-              <Option v-for="item in replicatorList.src" :value="item" :key="item">{{ item }}</Option>
+            <Select v-model="srcBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择源集群Replicator">
+              <Option v-for="item in replicatorList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
+                }}
+              </Option>
             </Select>
+            &nbsp;
+            <Button type="success" @click="autoConfigSrcReplicator">自动录入</Button>
           </FormItem>
           <FormItem label="选择Applier" prop="applier">
-            <Select v-model="srcBuildParam.applierIps" multiple style="width: 200px" placeholder  ="选择源集群Applier">
-              <Option v-for="item in applierList.src" :value="item" :key="item">{{ item }}</Option>
+            <Select v-model="srcBuildParam.applierIps" multiple style="width: 250px" placeholder="选择源集群Applier">
+              <Option v-for="item in applierList.src" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
+              </Option>
             </Select>
+            &nbsp;
+            <Button type="success" @click="autoConfigSrcApplier">自动录入</Button>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="srcBuildParam.replicatorInitGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
@@ -45,19 +53,27 @@
         </Form>
       </i-col>
       <i-col span="12">
-        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="250" style="float: left; margin-top: 50px">
+        <Form ref="drc1" :model="dstBuildParam" :rules="ruleDrc" :label-width="250"
+              style="float: left; margin-top: 50px">
           <FormItem label="目标集群名" prop="dstMhaName" style="width: 600px">
             <Input v-model="dstBuildParam.mhaName" @input="changeDstMha" placeholder="请输入目标集群名"/>
           </FormItem>
           <FormItem label="选择Replicator" prop="replicator">
-            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 200px" placeholder="选择目标集群Replicator">
-              <Option v-for="item in replicatorList.dst" :value="item" :key="item">{{ item }}</Option>
+            <Select v-model="dstBuildParam.replicatorIps" multiple style="width: 250px" placeholder="选择目标集群Replicator">
+              <Option v-for="item in replicatorList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az
+                }}
+              </Option>
             </Select>
+            &nbsp;
+            <Button type="success" @click="autoConfigDstReplicator">自动录入</Button>
           </FormItem>
           <FormItem label="选择Applier" prop="applier">
-            <Select v-model="dstBuildParam.applierIps" multiple style="width: 200px" placeholder  ="选择目标集群Applier">
-              <Option v-for="item in applierList.dst" :value="item" :key="item">{{ item }}</Option>
+            <Select v-model="dstBuildParam.applierIps" multiple style="width: 250px" placeholder="选择目标集群Applier">
+              <Option v-for="item in applierList.dst" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
+              </Option>
             </Select>
+            &nbsp;
+            <Button type="success" @click="autoConfigDstApplier">自动录入</Button>
           </FormItem>
           <FormItem label="初始拉取位点R" style="width: 600px">
             <Input v-model="dstBuildParam.replicatorInitGtid" placeholder="变更replicator机器时,请输入binlog拉取位点"/>
@@ -86,9 +102,8 @@
     </Row>
     <Form :label-width="250" style="margin-top: 50px">
       <FormItem>
-        <Button @click="getSrcMhaAppliersInUse">重置</Button>
-        <br><br>
-        <Button type="primary" @click="preCheckConfigure ()">提交</Button>
+        <br>
+        <Button type="primary" style="width: 100px" @click="preCheckConfigure ()">提交</Button>
       </FormItem>
       <Modal
         v-model="reviewModal"
@@ -102,16 +117,20 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.mhaName" readonly/>
               </FormItem>
               <FormItem label="源集群端Replicator">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorIps" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorIps"
+                       readonly/>
               </FormItem>
               <FormItem label="源集群端Applier">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierIps" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierIps"
+                       readonly/>
               </FormItem>
               <FormItem label="源集群端R位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorInitGtid" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.replicatorInitGtid"
+                       readonly/>
               </FormItem>
               <FormItem label="源集群端A位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierInitGtid" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="srcBuildParam.applierInitGtid"
+                       readonly/>
               </FormItem>
             </Form>
           </i-col>
@@ -121,16 +140,20 @@
                 <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.mhaName" readonly/>
               </FormItem>
               <FormItem label="目标集群端Replicator">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorIps" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorIps"
+                       readonly/>
               </FormItem>
               <FormItem label="目标集群端Applier">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierIps" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierIps"
+                       readonly/>
               </FormItem>
               <FormItem label="目标集群端R位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorInitGtid" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.replicatorInitGtid"
+                       readonly/>
               </FormItem>
               <FormItem label="目标集群端A位点">
-                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierInitGtid" readonly/>
+                <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="dstBuildParam.applierInitGtid"
+                       readonly/>
               </FormItem>
             </Form>
           </i-col>
@@ -151,13 +174,13 @@
         title="gitd位点校验结果"
         width="900px">
         <Form style="width: 80%">
-          <FormItem  label="校验结果">
+          <FormItem label="校验结果">
             <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.legal" readonly/>
           </FormItem>
           <FormItem label="当前Mha">
-            <Input  :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
+            <Input :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.mha" readonly/>
           </FormItem>
-          <FormItem  label="配置位点">
+          <FormItem label="配置位点">
             <Input type="textarea" :autosize="{minRows: 1,maxRows: 30}" v-model="gtidCheck.resVo.configGtid" readonly/>
           </FormItem>
           <FormItem label="purgedGtid">
@@ -254,31 +277,76 @@ export default {
     }
   },
   methods: {
-    handleReset (name) {
-      this.$refs[name].resetFields()
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
+    },
+    autoConfigSrcReplicator () {
+      // const param = {
+      //   mhaName: this.srcBuildParam.mhaName,
+      //   type: 0,
+      //   selectIps: this.srcBuildParam.replicatorIps
+      // }
+      // const reqParam = this.flattenObj(param)
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.srcBuildParam.mhaName + '&type=0' + '&selectedIps=' + this.srcBuildParam.replicatorIps).then(response => {
+        console.log(response.data)
+        this.srcBuildParam.replicatorIps = []
+        response.data.data.forEach(ip => this.srcBuildParam.replicatorIps.push(ip.ip))
+      })
+    },
+    autoConfigSrcApplier () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.srcBuildParam.mhaName + '&type=1' + '&selectedIps=' + this.srcBuildParam.applierIps)
+        .then(response => {
+          console.log(response.data)
+          this.srcBuildParam.applierIps = []
+          response.data.data.forEach(ip => this.srcBuildParam.applierIps.push(ip.ip))
+        })
+    },
+    autoConfigDstReplicator () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.dstBuildParam.mhaName + '&type=0' + '&selectedIps=' + this.dstBuildParam.replicatorIps)
+        .then(response => {
+          console.log(response.data)
+          this.dstBuildParam.replicatorIps = []
+          response.data.data.forEach(ip => this.dstBuildParam.replicatorIps.push(ip.ip))
+        })
+    },
+    autoConfigDstApplier () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.dstBuildParam.mhaName + '&type=1' + '&selectedIps=' + this.dstBuildParam.applierIps)
+        .then(response => {
+          console.log(response.data)
+          this.dstBuildParam.applierIps = []
+          response.data.data.forEach(ip => this.dstBuildParam.applierIps.push(ip.ip))
+        })
     },
     getSrcMhaResources () {
-      this.axios.get('/api/drc/v2//mha/resources?mhaName=' + this.srcBuildParam.mhaName + '&type=0')
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.srcBuildParam.mhaName + '&type=0')
         .then(response => {
           console.log(response.data)
-          this.replicatorList.src = []
-          response.data.data.forEach(ip => this.replicatorList.src.push(ip))
+          this.replicatorList.src = response.data.data
         })
-      this.axios.get('/api/drc/v2//mha/resources?mhaName=' + this.srcBuildParam.mhaName + '&type=1')
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.srcBuildParam.mhaName + '&type=1')
         .then(response => {
           console.log(response.data)
-          this.applierList.src = []
-          response.data.data.forEach(ip => this.applierList.src.push(ip))
+          this.applierList.src = response.data.data
         })
     },
     getDstMhaResources () {
-      this.axios.get('/api/drc/v2//mha/resources?mhaName=' + this.dstBuildParam.mhaName + '&type=0')
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.dstBuildParam.mhaName + '&type=0')
         .then(response => {
           console.log(response.data)
           this.replicatorList.dst = response.data.data
-          // response.data.data.forEach(ip => this.replicatorList.src.push(ip))
         })
-      this.axios.get('/api/drc/v2//mha/resources?mhaName=' + this.dstBuildParam.mhaName + '&type=1')
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.dstBuildParam.mhaName + '&type=1')
         .then(response => {
           console.log(response.data)
           this.applierList.dst = response.data.data
@@ -391,12 +459,25 @@ export default {
           }
         })
     },
+    getSrcDc () {
+      this.axios.get('/api/drc/v2/mha/dc?mhaName=' + this.srcBuildParam.mhaName)
+        .then(response => {
+          this.srcDc = response.data.data
+        })
+    },
+    getDstDc () {
+      this.axios.get('/api/drc/v2/mha/dc?mhaName=' + this.dstBuildParam.mhaName)
+        .then(response => {
+          this.dstDc = response.data.data
+        })
+    },
     changeSrcMha () {
       this.$emit('srcMhaNameChanged', this.srcBuildParam.mhaName)
       this.getSrcMhaResources()
       this.getSrcMhaReplicatorsInUse()
       this.getSrcMhaAppliersInUse()
       this.getDstMhaAppliersInUse()
+      this.getSrcDc()
     },
     changeDstMha () {
       this.$emit('dstMhaNameChanged', this.dstBuildParam.mhaName)
@@ -404,6 +485,7 @@ export default {
       this.getDstMhaReplicatorsInUse()
       this.getDstMhaAppliersInUse()
       this.getSrcMhaAppliersInUse()
+      this.getDstDc()
     },
     start () {
       this.$Loading.start()
@@ -474,6 +556,8 @@ export default {
       this.getDstMhaReplicatorsInUse()
       this.getSrcMhaAppliersInUse()
       this.getDstMhaAppliersInUse()
+      this.getSrcDc()
+      this.getDstDc()
     }
   },
   created () {
