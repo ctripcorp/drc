@@ -59,6 +59,17 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         return CollectionUtils.isEmpty(query) ? null : query.get(0);
     }
 
+    public List<MhaDbMappingTbl> queryByDbIdsAndMhaId(List<Long> dbIds, Long mhaId) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds) || mhaId == null || mhaId == 0L) {
+            throw new IllegalArgumentException("dbIds is empty or mhaId is null or 0");
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().
+                and().equal(MHA_ID, mhaId, Types.BIGINT).
+                and().in(DB_ID, dbIds, Types.BIGINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public List<MhaDbMappingTbl> queryByMhaId(long mhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(MHA_ID, mhaId, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);

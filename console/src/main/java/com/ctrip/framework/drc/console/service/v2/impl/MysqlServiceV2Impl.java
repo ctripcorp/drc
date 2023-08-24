@@ -72,6 +72,16 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/currentTime")
+    public Long getCurrentTime(String mhaName) {
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint == null) {
+            throw new IllegalArgumentException("no machine find for" + mhaName);
+        }
+        return MySqlUtils.getCurrentTime(mySqlEndpoint);
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
         Map<String, Object> res = new HashMap<>();

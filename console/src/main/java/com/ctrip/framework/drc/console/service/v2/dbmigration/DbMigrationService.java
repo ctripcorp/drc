@@ -25,6 +25,8 @@ public interface DbMigrationService {
 
     boolean startDbMigrationTask(Long taskId) throws SQLException;
 
+    MigrationTaskTbl queryAndPushToReadyIfPossible(Long taskId);
+
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
 
     void offlineOldDrcConfig(long taskId) throws Exception;

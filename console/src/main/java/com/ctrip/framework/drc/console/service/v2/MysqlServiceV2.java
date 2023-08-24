@@ -39,4 +39,6 @@ public interface MysqlServiceV2 {
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
+
+    Long getCurrentTime(String srcMha);
 }

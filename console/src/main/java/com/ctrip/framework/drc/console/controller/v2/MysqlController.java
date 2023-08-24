@@ -146,4 +146,20 @@ public class MysqlController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @GetMapping("currentTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Long> getMhaCurrentTime(@RequestParam String mha) {
+        logger.info("getMhaLastUpdateTime: {}", mha);
+        try {
+            if (StringUtils.isBlank(mha)) {
+                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            }
+            Long time = mysqlServiceV2.getCurrentTime(mha.trim());
+            return ApiResult.getSuccessInstance(time);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaLastUpdateTime error: %s", mha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }

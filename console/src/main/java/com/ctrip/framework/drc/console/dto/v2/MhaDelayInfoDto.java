@@ -1,12 +1,18 @@
-package com.ctrip.framework.drc.console.vo.display.v2;
+package com.ctrip.framework.drc.console.dto.v2;
 
-import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import java.io.Serializable;
 
-public class DelayInfoVo {
+
+public class MhaDelayInfoDto implements Serializable {
 
     String srcMha;
     String dstMha;
     private Long delay;
+
+    @Override
+    public String toString() {
+        return String.format("%s->%s: %dms", srcMha, dstMha, delay);
+    }
 
     public String getSrcMha() {
         return srcMha;
@@ -30,13 +36,5 @@ public class DelayInfoVo {
 
     public void setDelay(Long delay) {
         this.delay = delay;
-    }
-
-    public static DelayInfoVo from(MhaDelayInfoDto dto) {
-        DelayInfoVo vo = new DelayInfoVo();
-        vo.setDelay(dto.getDelay());
-        vo.setDstMha(dto.getDstMha());
-        vo.setSrcMha(dto.getSrcMha());
-        return vo;
     }
 }
