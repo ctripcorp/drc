@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -12,12 +13,14 @@ import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.response.QmqApiResponse;
 import com.ctrip.framework.drc.console.vo.response.QmqBuEntity;
 import com.ctrip.framework.drc.console.vo.response.QmqBuList;
+import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -404,6 +407,29 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         messengerServiceV2Impl.removeMessengerGroup("mha1");
         verify(messengerTblDao, times(1)).batchUpdate(anyList());
         verify(messengerGroupTblDao, times(1)).update(any(MessengerGroupTbl.class));
+    }
+
+
+    @InjectMocks
+    DrcBuildServiceV2Impl drcBuildServiceV2;
+
+    @Mock
+    MetaInfoServiceV2Impl metaInfoService;
+    @Test
+    public void testBuildMhaDrc() throws Exception {
+
+        MessengerMetaDto dto = new MessengerMetaDto();
+        dto.setMhaName("mha1");
+        dto.setReplicatorIps(com.google.common.collect.Lists.newArrayList("1.113.60.1"));
+        dto.setMessengerIps(com.google.common.collect.Lists.newArrayList());
+        dto.setrGtidExecuted("testRGtidExecuted");
+        dto.setaGtidExecuted("testAGtidExecuted");
+
+
+        when(metaInfoService.getDrcMessengerConfig(anyString())).thenReturn(new Drc());
+        drcBuildServiceV2.buildMessengerDrc(dto);
+
+        verify(replicatorTblDao, times(1)).batchInsert(any());
     }
 
 }
