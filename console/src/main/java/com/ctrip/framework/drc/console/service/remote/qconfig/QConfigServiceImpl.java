@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,6 +135,42 @@ public class QConfigServiceImpl implements QConfigService {
         }
         return batchActionFlag;
     }
+
+    @Override
+    public boolean updateDalClusterMqConfig(String dcName, String topic, String dalClusterName, List<TableSchemaName> matchTables) {
+        Set<String> dcsInSameRegion = domainConfig.getIDCsInSameRegion(dcName);
+        boolean batchActionFlag = true;
+        for (String affectedDc : dcsInSameRegion) {
+            String localEnv = getLocalEnv();
+            String fileSubEnv = getFileSubEnv(affectedDc);
+            String fileName = dalClusterName + PROPERTIES_SUFFIX;
+
+            // query current config
+            logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] delete todo, fileName:{},topic:{}", fileName, topic);
+            FileDetailResponse fileDetailResponse = queryFileDetail(fileName, localEnv, fileSubEnv, BINLOG_TOPIC_REGISTRY);
+            if (!fileDetailResponse.isExist()) {
+                logger.warn("[[tag=BINLOG_TOPIC_REGISTRY]] file not exist,no need to remove,fileName:{},topic:{}", fileName, topic);
+                continue;
+            }
+
+            int version = fileDetailResponse.getData().getEditVersion();
+
+            // put result
+            Map<String, String> configContext = convertToContext(topic, matchTables);
+            List<UpdateRequestBody> updateRequestBodies = transformRequest(configContext, fileName, version);
+            BatchUpdateResponse batchUpdateResponse = batchUpdateConfigFile(BINLOG_TOPIC_REGISTRY, localEnv, fileSubEnv, updateRequestBodies);
+
+            if (batchUpdateResponse.getStatus() == 0) {
+                // success
+                logger.info("[[tag=BINLOG_TOPIC_REGISTRY]] update success,fileName:{}", fileName);
+            } else {
+                // fail
+                logger.error("[[tag=BINLOG_TOPIC_REGISTRY]] update fail,fileName:{},topic:{}", fileName, topic);
+                batchActionFlag = false;
+            }
+        }
+        return batchActionFlag;
+    }
     
     @Override
     public boolean removeDalClusterMqConfigIfNecessary(String fileDc, String topic, String table, String tag,
@@ -208,6 +246,14 @@ public class QConfigServiceImpl implements QConfigService {
         config.put(topic + "." + STATUS,OFF);
         config.put(topic + "." + DBNAME,"");
         config.put(topic + "." + TABLENAME,"");
+        return config;
+    }
+
+    private Map<String, String> convert(String topic, String dbs, String tables) {
+        Map<String, String> config = Maps.newLinkedHashMap();
+        config.put(topic + "." + STATUS, ON);
+        config.put(topic + "." + DBNAME, dbs);
+        config.put(topic + "." + TABLENAME, tables);
         return config;
     }
 
@@ -296,10 +342,16 @@ public class QConfigServiceImpl implements QConfigService {
         }
         throw new IllegalArgumentException("originalConfig is empty");
     }
-    
-    
-    
-    
+
+    private Map<String, String> convertToContext(String topic, List<TableSchemaName> tables) {
+        if (CollectionUtils.isEmpty(tables)) {
+            return processRemoveAllConfig(topic);
+        }
+        String topicDb = tables.stream().map(TableSchemaName::getSchema).distinct().collect(Collectors.joining(","));
+        String topicTable = tables.stream().map(TableSchemaName::getName).distinct().collect(Collectors.joining(","));
+        return convert(topic, topicDb, topicTable);
+    }
+
     private Map<String, String> processAddOrUpdateConfig(String topicRelated,String tagRelated, List<TableSchemaName> matchTables,
             Map<String, String> originalConfig) {
         Set<String> dbs = Sets.newLinkedHashSet();

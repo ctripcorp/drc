@@ -13,18 +13,12 @@
           <Option v-for="item in mhaInfo.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
-      <FormItem label="BU名" style="width: 600px" prop="bu">
-        <Input v-model="mhaInfo.bu"  placeholder="请输入BU名，自动绑定route策略" />
-      </FormItem>
-      <FormItem label="DAL Cluster名" style="width: 600px" prop="dalclustername">
-        <Input v-model="mhaInfo.dalclustername"  placeholder="请输入DAL Cluster名" />
-      </FormItem>
-      <FormItem label="appid" style="width: 600px" prop="appid">
-        <Input v-model="mhaInfo.appid"  placeholder="请输入appid" />
+      <FormItem label="BU名" style="width: 600px" prop="buName">
+        <Input v-model="mhaInfo.buName"  placeholder="请输入BU名，自动绑定route策略" />
       </FormItem>
       <FormItem>
         <Button @click="handleReset('mhaInfo')">重置</Button>
-        <Button type="primary" :disabled="true" @click="changeModal('mhaInfo')" style="margin-left: 150px" >录入（暂不支持，请在老Messenger配置中录入）</Button>
+        <Button type="primary" :loading="dataLoading" @click="changeModal('mhaInfo')" style="margin-left: 150px" >录入</Button>
         <Modal
           v-model="mhaInfo.modal"
           title="录入mha相关信息"
@@ -32,9 +26,7 @@
           <p>
             确定录入Mha: "{{mhaInfo.mhaName}}" 吗？
             并且设置DC:"{{mhaInfo.dc}}"
-            BU:"{{mhaInfo.bu}}"
-            DAL Cluster:"{{mhaInfo.dalclustername}}"
-            appid"{{mhaInfo.appid}}"
+            BU:"{{mhaInfo.buName}}"
           </p>
         </Modal>
       </FormItem>
@@ -52,15 +44,14 @@ export default {
   data () {
     return {
       mhaInfo: {
+        mhaName: '',
+        dc: '',
+        buName: '',
         modal: false,
-        mhaName: this.mhaName,
-        dc: this.dc,
-        bu: '',
-        dalclustername: '',
-        appid: '',
         drcZoneList: this.constant.dcList
       },
       status: '',
+      dataLoading: false,
       title: '',
       message: '',
       hasResp: false,
@@ -69,49 +60,45 @@ export default {
           { required: true, message: '源集群名不能为空', trigger: 'blur' }
         ],
         dc: [
-          { required: true, message: '新集群名不能为空', trigger: 'blur' }
+          { required: true, message: '源集群机房区域名 不能为空', trigger: 'blur' }
         ],
-        bu: [
+        buName: [
           { required: true, message: 'BU名不能为空', trigger: 'blur' }
-        ],
-        dalclustername: [
-          { required: true, message: 'DAL Cluster名不能为空', trigger: 'blur' }
-        ],
-        appid: [
-          { required: true, message: 'cluster appid不能为空', trigger: 'blur' }
         ]
       }
     }
   },
   methods: {
     postMhaInfo (name) {
-      // const that = this
-      // that.$refs[name].validate((valid) => {
-      //   if (!valid) {
-      //     that.$Message.error('仍有必填项未填!')
-      //   } else {
-      //     this.hasResp = false
-      //     console.log('/api/drc/v1/mha/')
-      //     that.axios.post('/api/drc/v1/mha/', {
-      //       buName: this.mhaInfo.bu,
-      //       dalClusterName: this.mhaInfo.dalclustername,
-      //       appid: this.mhaInfo.appid,
-      //       mhaName: this.mhaInfo.mhaName,
-      //       dc: this.mhaInfo.dc
-      //     }).then(response => {
-      //       that.hasResp = true
-      //       if (response.data.status === 0) {
-      //         that.status = 'success'
-      //         that.title = 'Mha录入完成!'
-      //         that.message = response.data.message
-      //       } else {
-      //         that.status = 'error'
-      //         that.title = 'Mha录入失败!'
-      //         that.message = response.data.message
-      //       }
-      //     })
-      //   }
-      // })
+      const that = this
+      that.$refs[name].validate((valid) => {
+        if (!valid) {
+          that.$Message.error('仍有必填项未填!')
+        } else {
+          this.dataLoading = true
+          this.hasResp = false
+          that.axios.post('/api/drc/v2/config/messengerMha', {
+            mhaName: this.mhaInfo.mhaName,
+            dc: this.mhaInfo.dc,
+            buName: this.mhaInfo.buName
+          }).then(response => {
+            that.hasResp = true
+            if (response.data.status === 0) {
+              that.status = 'success'
+              that.title = 'Mha录入完成!'
+              that.message = response.data.message
+            } else {
+              that.status = 'error'
+              that.title = 'Mha录入失败!'
+              that.message = response.data.message
+            }
+          }).catch(message => {
+            that.message = 'Mha录入异常: ' + message
+          }).finally(() => {
+            this.dataLoading = false
+          })
+        }
+      })
     },
     handleReset (name) {
       this.$refs[name].resetFields()

@@ -6,10 +6,7 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
@@ -18,6 +15,7 @@ import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.impl.MessengerServiceImpl;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -42,12 +40,14 @@ import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +70,7 @@ import static com.ctrip.framework.drc.core.service.utils.Constants.ESCAPE_CHARAC
 public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private static final Logger logger = LoggerFactory.getLogger(MessengerServiceImpl.class);
     private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
+    private DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
 
     @Autowired
     private RowsFilterServiceV2 rowsFilterService;
@@ -120,6 +121,35 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             logger.error("queryAllBu exception", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
         }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void removeMessengerGroup(String mhaName) throws SQLException {
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + mhaName);
+        }
+        List<MqConfigVo> currentMqConfig = this.queryMhaMessengerConfigs(mhaName);
+        if (!CollectionUtils.isEmpty(currentMqConfig)) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.FORBIDDEN_OPERATION, "remove inner mq configs first!");
+        }
+
+        Long mhaId = mhaTbl.getId();
+        MessengerGroupTbl mGroup = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (mGroup == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha messenger group not exist: " + mhaName);
+        }
+        List<MessengerTbl> messengers = messengerTblDao.queryByGroupId(mGroup.getId());
+
+        // delete messenger & messenger group
+        messengers.forEach(m -> m.setDeleted(BooleanEnum.TRUE.getCode()));
+        logger.info("messengerTblDao.batchUpdate, group id: {}, messenger size: {}", mGroup.getId(), messengers.size());
+        messengerTblDao.batchUpdate(messengers);
+
+        mGroup.setDeleted(BooleanEnum.TRUE.getCode());
+        logger.info("messengerGroupTblDao.update, group id: {}", mGroup.getId());
+        messengerGroupTblDao.update(mGroup);
     }
 
     @Override
@@ -181,6 +211,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                 mqConfigVo.setDbReplicationId(dbReplicationTbl.getId());
                 mqConfigVo.setTopic(dbReplicationTbl.getDstLogicTableName());
                 mqConfigVo.setTable(tableName);
+                mqConfigVo.setDatachangeLasttime(dbReplicationTbl.getDatachangeLasttime().getTime());
 
                 mqConfigVo.setMqType(mqConfig.getMqType());
                 mqConfigVo.setSerialization(mqConfig.getSerialization());
@@ -429,37 +460,37 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @Override
     public void processAddMqConfig(MqConfigDto dto) throws Exception {
-        try {
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
-            if (mhaTblV2 == null) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
-            }
-            List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
-            if (vpcMhaNames.contains(mhaTblV2.getMhaName())) {
-                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
-            }
-            this.initMqConfig(dto, mhaTblV2);
-            this.addDalClusterMqConfig(dto, mhaTblV2);
-            this.addMqConfig(dto, mhaTblV2);
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
+        MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
+        this.initMqConfig(dto, mhaTblV2);
+        this.addDalClusterMqConfig(dto, mhaTblV2);
+        this.addMqConfig(dto, mhaTblV2);
     }
 
     @Override
     public void processUpdateMqConfig(MqConfigDto dto) throws Exception {
-        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(dto.getMhaName(), 0);
-        if (mhaTblV2 == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + dto.getMhaName());
-        }
-        if (defaultConsoleConfig.getVpcMhaNames().contains(mhaTblV2.getMhaName())) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
-        }
-
+        MhaTblV2 mhaTblV2 = this.getAndCheckMessengerMha(dto.getMhaName());
         this.initMqConfig(dto, mhaTblV2);
         this.updateDalClusterMqConfig(dto, mhaTblV2);
         this.updateMqConfig(dto, mhaTblV2);
     }
+
+    private MhaTblV2 getAndCheckMessengerMha(String mhaName) throws SQLException {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, 0);
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not exist: " + mhaName);
+        }
+        List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
+        if (vpcMhaNames.contains(mhaTblV2.getMhaName())) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "vpc mha not supported!");
+        }
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), 0);
+        if (messengerGroupTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
+                    "messengerGroupTbl not exist for mha: " + mhaTblV2.getMhaName());
+        }
+        return mhaTblV2;
+    }
+
 
     @Override
     public void processDeleteMqConfig(MqConfigDeleteRequestDto dto) throws Exception {
@@ -486,12 +517,6 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void addMqConfig(MqConfigDto dto, MhaTblV2 mhaTblV2) throws Exception {
-        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTblV2.getId(), 0);
-        if (messengerGroupTbl == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID,
-                    "messengerGroupTbl not exist for mha: " + mhaTblV2.getMhaName());
-        }
-
         insertMhaDbMappings(mhaTblV2, dto);
         insertDbReplicationAndFilterMapping(mhaTblV2, dto);
     }
@@ -501,6 +526,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         insertDbs(dbList);
         insertMhaDbMappings(mhaTblV2.getId(), dbList);
     }
+
     private List<String> queryDbs(String mhaName, String nameFilter) {
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
         List<String> dbList = new ArrayList<>();
@@ -765,26 +791,40 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         String tableName = dbReplicationTbl.getSrcLogicTableName();
         String topic = dbReplicationTbl.getDstLogicTableName();
 
-        List<String> tablesWithSameTopic = this.getTablesWithSameTopic(topic);
+        // to delete tables
         String nameFilter = dbName + "\\." + tableName;
-        List<String> otherTablesByTopic = tablesWithSameTopic.stream().filter(e -> !nameFilter.equals(e)).collect(Collectors.toList());
+        List<MySqlUtils.TableSchemaName> tablesToDelete = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+        if (CollectionUtils.isEmpty(tablesToDelete)) {
+            logger.info("no table to delete: "+ nameFilter);
+            return;
+        }
 
-        List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getMatchTable(mhaTblV2.getMhaName(), nameFilter);
+        // all topic tables
+        List<String> sameTopicTableFilters = this.getTableNameFiltersWithSameTopic(topic);
+        List<MySqlUtils.TableSchemaName> allTables = mysqlServiceV2.getAnyMatchTable(mhaTblV2.getMhaName(), String.join(",", sameTopicTableFilters));
+
+
+        // final remain = all - delete
+        Set<MySqlUtils.TableSchemaName> tablesToDeletSet = Sets.newHashSet(tablesToDelete);
+        Set<MySqlUtils.TableSchemaName> allTablesSet = Sets.newHashSet(allTables);
+        allTablesSet.removeAll(tablesToDeletSet);
+        List<MySqlUtils.TableSchemaName> remainTables = Lists.newArrayList(allTablesSet);
+
+        // do update dal qmq config
+        String dalClusterName = dbClusterService.getDalClusterName(domainConfig.getDalClusterUrl(), tablesToDelete.get(0).getSchema());
         transactionMonitor.logTransaction(
                 "QConfig.OpenApi.MqConfig.Delete",
                 topic,
-                () -> qConfigService.removeDalClusterMqConfigIfNecessary(
+                () -> qConfigService.updateDalClusterMqConfig(
                         dcName,
                         topic,
-                        nameFilter,
-                        null,
-                        matchTables,
-                        otherTablesByTopic
+                        dalClusterName,
+                        remainTables
                 )
         );
     }
 
-    private List<String> getTablesWithSameTopic(String topic) throws SQLException {
+    private List<String> getTableNameFiltersWithSameTopic(String topic) throws SQLException {
         // query other table with same topic
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByDstLogicTableName(topic, ReplicationTypeEnum.DB_TO_MQ.getType());
         List<Long> srcMhaDbMapping = dbReplicationTbls.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList());

@@ -7,4 +7,6 @@ public interface MonitorServiceV2 {
     
     List<String> getMhaNamesToBeMonitored() throws SQLException;
 
+    void switchMonitors(String mhaName, String status) throws SQLException;
+
 }

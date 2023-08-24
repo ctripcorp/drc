@@ -50,6 +50,8 @@ public class MqConfigVo {
      */
     private long delayTime;
 
+    private Long datachangeLasttime;
+
     public long getDbReplicationId() {
         return dbReplicationId;
     }
@@ -120,5 +122,13 @@ public class MqConfigVo {
 
     public void setDelayTime(long delayTime) {
         this.delayTime = delayTime;
+    }
+
+    public Long getDatachangeLasttime() {
+        return datachangeLasttime;
+    }
+
+    public void setDatachangeLasttime(Long datachangeLasttime) {
+        this.datachangeLasttime = datachangeLasttime;
     }
 }

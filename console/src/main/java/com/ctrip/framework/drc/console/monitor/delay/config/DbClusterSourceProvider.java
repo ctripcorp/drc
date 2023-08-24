@@ -61,6 +61,7 @@ public class DbClusterSourceProvider extends AbstractMonitor implements Priority
     public void initialize() {
         super.initialize();
         setInitialDelay(0);
+        setPeriod(60);
     }
 
     @Override // refresh when new config submit

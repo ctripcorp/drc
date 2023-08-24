@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
@@ -73,6 +74,9 @@ public class DrcBuildServiceV2Test {
     private CacheMetaService cacheMetaService;
     @Mock
     private MetaProviderV2 metaProviderV2;
+
+    @Mock
+    private MessengerGroupTblDao messengerGroupTblDao;
 
     @Before
     public void setUp() {
@@ -272,5 +276,22 @@ public class DrcBuildServiceV2Test {
 
         String result = drcBuildServiceV2.getApplierGtid("srcMha", "dstMha");
         Assert.assertEquals(result, getApplierGroupTblV2s().get(0).getGtidInit());
+    }
+
+    @Test
+    public void testBuildMessengerMha() throws Exception {
+        List<DcTbl> dcTbls = getDcTbls();
+        Mockito.when(dcTblDao.queryByDcName(Mockito.anyString())).thenReturn(dcTbls.get(0));
+        Mockito.when(buTblDao.queryByBuName(Mockito.anyString())).thenReturn(getBuTbl());
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTblV2());
+        Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString())).thenReturn(1L);
+
+        // messengerGroup
+//        Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(1L);
+        MessengerMhaBuildParam param = new MessengerMhaBuildParam();
+        param.setBuName("bu");
+        param.setMhaName("mha");
+        param.setDc("dc");
+        drcBuildServiceV2.buildMessengerMha(param);
     }
 }

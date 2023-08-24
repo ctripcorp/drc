@@ -6,17 +6,23 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.vo.response.MhaNamesResponseVo;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider.SWITCH_STATUS_OFF;
 
 /**
  * @ClassName MonitorServiceV2Impl
@@ -26,9 +32,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class MonitorServiceV2Impl implements MonitorServiceV2 {
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    
+
     @Autowired private MhaTblV2Dao mhaTblV2Dao;
 
     @Autowired private DefaultConsoleConfig consoleConfig;
@@ -51,7 +57,18 @@ public class MonitorServiceV2Impl implements MonitorServiceV2 {
         List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryBy(sample);
         return mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
     }
-    
-    
-    
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void switchMonitors(String mhaName, String status) throws SQLException {
+        try {
+            MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+            int monitorSwitch = status.equalsIgnoreCase(SWITCH_STATUS_OFF) ? BooleanEnum.FALSE.getCode() : BooleanEnum.TRUE.getCode();
+            mhaTbl.setMonitorSwitch(monitorSwitch);
+            mhaTblV2Dao.update(mhaTbl);
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DAO_TBL_EXCEPTION, e);
+        }
+    }
+
 }
