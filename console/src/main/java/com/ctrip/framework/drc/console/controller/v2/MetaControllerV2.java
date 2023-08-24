@@ -10,16 +10,14 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.DbClusterCompareRes;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.XmlUtils;
+import com.ctrip.framework.drc.core.entity.Dc;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -41,15 +39,13 @@ public class MetaControllerV2 {
     @Autowired
     private MetaInfoServiceV2 metaInfoServiceV2;
 
-
     @GetMapping
-    public String getAllMetaData(@RequestParam(value = "refresh" , required = false, defaultValue = "false") String refresh) {
+    public String getAllMetaData(@RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
         try {
-            logger.info("[meta] get all");
+            logger.info("[meta] get all, refresh: {}", refresh);
             Drc drc;
-            if (StringUtils.equals("true",refresh)) {
-                metaProviderV2.scheduledTask();
-                drc = metaProviderV2.getDrc();
+            if (StringUtils.equals("true", refresh)) {
+                drc = metaProviderV2.getRealtimeDrc();
             } else {
                 drc = metaProviderV2.getDrc();
             }
@@ -61,35 +57,53 @@ public class MetaControllerV2 {
         }
     }
 
+    @GetMapping("data/dcs/{dc}")
+    public String getDrcStr(@PathVariable String dc, @RequestParam(value = "refresh", required = false, defaultValue = "false") String refresh) {
+        try {
+            logger.info("[meta] get meta of dc: {} info, refresh: {}", dc, refresh);
+            Drc dcInfo;
+            if (StringUtils.equals("true", refresh)) {
+                dcInfo = metaProviderV2.getRealtimeDrc(dc);
+            } else {
+                dcInfo = metaProviderV2.getDrc(dc);
+            }
+            logger.debug("get meta of dc: {}, info: \n {}", dc, dcInfo.toString());
+            return dcInfo.toString();
+        } catch (Exception e) {
+            logger.error("get dc: {} info fail", dc, e);
+            return null;
+        }
+    }
+
     @GetMapping("compareRes")
     public ApiResult<String> compareOldNewMeta() {
         try {
             logger.info("[[tag=metaCompare]] start compareOldNewMeta");
             String compareRecorder = metaServiceV2.compareDrcMeta();
             if (compareRecorder.contains("not equal") || compareRecorder.contains("empty") || compareRecorder.contains("fail")) {
-                return ApiResult.getSuccessInstance(compareRecorder,"not equal");
+                return ApiResult.getSuccessInstance(compareRecorder, "not equal");
             } else {
-                return ApiResult.getSuccessInstance(compareRecorder,"equal");
+                return ApiResult.getSuccessInstance(compareRecorder, "equal");
             }
         } catch (Throwable e) {
             logger.error("[[tag=metaCompare]] compareOldNewMeta error");
-            return ApiResult.getFailInstance(e,"compareOldNewMeta error");
+            return ApiResult.getFailInstance(e, "compareOldNewMeta error");
         }
     }
 
     @GetMapping("compareRes/dbcluster")
     public ApiResult<DbClusterCompareRes> compareOldNewMeta(@RequestParam String dbclusterId) {
         try {
-            logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}",dbclusterId);
+            logger.info("[[tag=metaCompare]] start compareOldNewMeta,dbclusterId:{}", dbclusterId);
             DbClusterCompareRes res = metaServiceV2.compareDbCluster(dbclusterId);
             String compareRes = res.getCompareRes();
             if (compareRes.contains("not equal") || compareRes.contains("empty") || compareRes.contains("fail")) {
-                return ApiResult.getSuccessInstance(res,"not equal");
+                return ApiResult.getSuccessInstance(res, "not equal");
             } else {
-                return ApiResult.getSuccessInstance(res,"equal");
+                return ApiResult.getSuccessInstance(res, "equal");
             }
         } catch (Throwable e) {
-            logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}",dbclusterId,e);
+            logger.error("[[tag=metaCompare]] compareOldNewMeta error,dbclusterId:{}", dbclusterId, e);
             return ApiResult.getFailInstance("compareOldNewMeta error");
         }
     }

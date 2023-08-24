@@ -11,21 +11,19 @@
           <Step title="mha配置" content="mha录入db信息" @click.native="jumpTo(1)" :style="{cursor: 'pointer'}"></Step>
           <Step title="预检测" content="检测mha配置" @click.native="jumpTo(2)" :style="{cursor: 'pointer'}"></Step>
           <Step title="建立同步" content="配置Replicator和Messenger实例" @click.native="jumpTo(3)" :style="{cursor: 'pointer'}"></Step>
-          <Step title="完成" content="已完成MQ同步配置" @click.native="jumpTo(4)" :style="{cursor: 'pointer'}"></Step>
         </Steps>
       </template>
       <mhaInit v-if="current === 0" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc"/>
       <mhaConfig v-if="current === 1" v-bind="sharedInfo" v-on:mhaNameChanged="updateMhaName" v-on:dcChanged="updateDc"/>
       <preCheck v-if="current === 2" v-bind="sharedInfo"/>
       <drcConfig v-if="current === 3" v-bind="sharedInfo"/>
-      <complete v-if="current === 4"/>
       <Divider/>
       <div style="padding: 1px 1px; height: 100px; margin-top: 75px">
         <div>
           <Button type="primary" @click="prev" style="position: absolute; left: 465px" v-if="current > 0 ">
             上一步
           </Button>
-          <Button type="primary" @click="next" style="position: absolute; left: 790px" v-if="current < 4">
+          <Button type="primary" @click="next" style="position: absolute; left: 790px" v-if="current < 3">
             下一步
           </Button>
         </div>
@@ -39,15 +37,13 @@ import mhaInit from '../../components/v2/mhaMessengers/mhaInit.vue'
 import mhaConfig from '../../components/v2/mhaMessengers/mhaConfig.vue'
 import preCheck from '../../components/v2/mhaMessengers/preCheck.vue'
 import drcConfig from '../../components/v2/mhaMessengers/drcConfig.vue'
-import complete from '../../components/v2/mhaMessengers/complete.vue'
 export default {
   name: 'buildMhaMessenger.vue',
   components: {
     mhaInit,
     mhaConfig,
     preCheck,
-    drcConfig,
-    complete
+    drcConfig
   },
   data () {
     return {
@@ -72,7 +68,7 @@ export default {
       this.hasResp = false
     },
     updateMhaName (e) {
-      this.sharedInfo.mhaName = e
+      this.sharedInfo.mhaName = e.trim()
     },
     updateDc (e) {
       this.sharedInfo.dc = e

@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.MessengerVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.request.MqConfigDeleteRequestDto;
+import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
@@ -18,7 +19,6 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.slf4j.Logger;
 
 import java.util.List;
 
@@ -123,5 +123,11 @@ public class MessengerControllerV2Test {
 
         ApiResult result = messengerControllerV2.getMessengerExecutedGtid("mhaName");
         Assert.assertEquals(gtid, result.getData());
+    }
+
+    @Test
+    public void testDeleteMha() {
+        ApiResult<Boolean> result = messengerControllerV2.removeMessengerGroupInMha("mhaName");
+        Assert.assertEquals((Integer) ResultCode.HANDLE_SUCCESS.getCode(), result.getStatus());
     }
 }

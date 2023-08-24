@@ -130,16 +130,23 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         insertMhaReplication(dstMhaId, srcMhaId);
     }
 
-    private long getBuId(String buName) throws Exception {
-        BuTbl existBuTbl = buTblDao.queryByBuName(buName);
-        if (existBuTbl != null) {
-            return existBuTbl.getId();
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildMessengerMha(MessengerMhaBuildParam param) throws Exception {
+        checkMessengerMhaBuildParam(param);
+
+        long buId = getBuId(param.getBuName().trim());
+        DcTbl dcTbl = dcTblDao.queryByDcName(param.getDc().trim());
+        if (dcTbl == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
         }
 
-        BuTbl buTbl = new BuTbl();
-        buTbl.setBuName(buName);
-        buTbl.setDeleted(BooleanEnum.FALSE.getCode());
-        return buTblDao.insertWithReturnId(buTbl);
+        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId);
+        long mhaId = insertMha(mhaTbl);
+
+        // messengerGroup
+        Long srcReplicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(mhaId);
+        messengerGroupTblDao.upsertIfNotExist(mhaId, srcReplicatorGroupId, "");
     }
 
     @Override
@@ -461,9 +468,11 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (mhaTbl == null) {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not recorded");
         }
-        List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
-        if (CollectionUtils.isEmpty(mqConfigVos)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "config mq before build drc!");
+        if (!CollectionUtils.isEmpty(dto.getMessengerIps())) {
+            List<MqConfigVo> mqConfigVos = messengerServiceV2.queryMhaMessengerConfigs(dto.getMhaName());
+            if (CollectionUtils.isEmpty(mqConfigVos)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Add mq config before put messengers!");
+            }
         }
         // 1. configure and persistent in database
         long replicatorGroupId = insertOrUpdateReplicatorGroup(mhaTbl.getId());
@@ -963,6 +972,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return existMhaTbl.getId();
     }
 
+    private long getBuId(String buName) throws Exception {
+        BuTbl existBuTbl = buTblDao.queryByBuName(buName);
+        if (existBuTbl != null) {
+            return existBuTbl.getId();
+        }
+
+        BuTbl buTbl = new BuTbl();
+        buTbl.setBuName(buName);
+        buTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return buTblDao.insertWithReturnId(buTbl);
+    }
+
     private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
@@ -999,6 +1020,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
         PreconditionUtils.checkString(param.getSrcDc(), "srcDc requires not null!");
         PreconditionUtils.checkString(param.getDstDc(), "dstDcId requires not null!");
+    }
+
+    private void checkMessengerMhaBuildParam(MessengerMhaBuildParam param) {
+        PreconditionUtils.checkNotNull(param);
+        PreconditionUtils.checkString(param.getMhaName(), "mhaName requires not empty!");
+        PreconditionUtils.checkString(param.getDc(), "dcName requires not empty!");
+        PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
     }
 
     private void checkDbReplicationBuildParam(DbReplicationBuildParam param) {

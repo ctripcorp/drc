@@ -184,6 +184,12 @@ public class CommonDataInit {
             Long id = i.getArgument(0, Long.class);
             return mhaReplicationTbls.stream().filter(e -> id.equals(e.getId())).findFirst().orElse(null);
         });
+        when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong(), anyInt())).thenAnswer(i -> {
+            Long srcMhaId = i.getArgument(0, Long.class);
+            Long dstMhaId = i.getArgument(1, Long.class);
+            Integer deleted = i.getArgument(2, Integer.class);
+            return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId) && Objects.equals(e.getDeleted(), deleted)).findFirst().orElse(null);
+        });
         when(mhaReplicationTblDao.queryByMhaId(anyLong(), anyLong())).thenAnswer(i -> {
             Long srcMhaId = i.getArgument(0, Long.class);
             Long dstMhaId = i.getArgument(1, Long.class);

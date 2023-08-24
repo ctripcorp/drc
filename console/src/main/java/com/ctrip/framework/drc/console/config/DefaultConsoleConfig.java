@@ -103,6 +103,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String NEW_DRC_CONFIG_SWITCH = "new.drc.config.switch";
     private static String META_COMPARE_SWITCH = "meta.compare.switch";
     private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
+    private static String META_REALTIME_SWITCH = "meta.realtime";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -464,4 +465,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return getProperty(META_GENERATOR_V3_SWITCH, SWITCH_OFF);
     }
 
+    public String getMetaRealtimeSwitch() {
+        return getProperty(META_REALTIME_SWITCH, SWITCH_OFF);
+    }
 }

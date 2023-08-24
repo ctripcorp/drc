@@ -197,6 +197,57 @@ public class QConfigServiceImplTest {
     }
 
 
+    @Test
+    public void testUpdate() throws SQLException {
+        String envName = Foundation.server().getEnv().getName().toLowerCase();
+        try(MockedStatic<HttpUtils> theMock = Mockito.mockStatic(HttpUtils.class)) {
+            theMock.when(() -> {
+                HttpUtils.get(
+                        Mockito.eq("url/configs"
+                                + "?token={token}"
+                                + "&groupid={groupid}"
+                                + "&dataid={dataid}"
+                                + "&env={env}"
+                                + "&subenv={subenv}"
+                                + "&targetgroupid={targetgroupid}"),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(JsonUtils.toJson(mockExistingFileDetailResponse()));
+
+
+            theMock.when(() -> {
+                HttpUtils.post(Mockito.eq("url"
+                                + "/properties/binlog-topic-registry/envs/"
+                                + envName
+                                + "/subenvs/SHAXY"
+                                + "?token={token}&operator={operator}&serverenv={serverenv}&groupid={groupid}"),
+                        Mockito.anyString(),
+                        Mockito.any(),
+                        Mockito.any(Map.class));
+            }).thenReturn(mockBatchUpdateResponse());
+
+            boolean b1 = qConfigService.updateDalClusterMqConfig(
+                    "shaxy",
+                    "topicName",
+                    "dalclusterName",
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db1", "t1"));
+                    }}
+            );
+
+            boolean b2 = qConfigService.updateDalClusterMqConfig(
+                    "shaxy",
+                    "topicName",
+                    "dalclusterName",
+                    new ArrayList<>() {{
+                        add(new TableSchemaName("db2", "t2"));
+                    }}
+            );
+            Assert.assertTrue( b1 & b2);
+        }
+    }
+
+
 
 
     private BatchUpdateResponse mockBatchUpdateResponse() {

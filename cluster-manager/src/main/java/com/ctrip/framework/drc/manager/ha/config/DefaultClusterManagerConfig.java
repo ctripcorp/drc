@@ -31,6 +31,7 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_CONSOLE_REGION_INFOS = "drc.console.region.infos";
     public static String KEY_MIGRATION_IDC = "drc.migration.idcs";
     public static String KEY_MIGRATION_BLACK_IPS = "drc.migration.black.ips";
+    public static String KEY_REALTIME_META_INFO = "drc.realtime.meta.info";
 
 
 
@@ -120,6 +121,11 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public String getMigrationBlackIps() {
         return getProperty(KEY_MIGRATION_BLACK_IPS, StringUtils.EMPTY);
+    }
+
+    @Override
+    public boolean getRealtimeMetaInfo() {
+        return getBooleanProperty(KEY_REALTIME_META_INFO, false);
     }
 
     @Override

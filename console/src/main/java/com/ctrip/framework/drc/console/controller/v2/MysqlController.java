@@ -131,6 +131,24 @@ public class MysqlController {
         }
     }
 
+    @GetMapping("getAnyMatchTable")
+    public ApiResult getAnyMatchTable(@RequestParam String mhaName,
+                                      @RequestParam String nameFilters) {
+        try {
+            List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getAnyMatchTable(mhaName, nameFilters);
+            return ApiResult.getSuccessInstance(matchTables);
+        } catch (Exception e) {
+            logger.warn("[[tag=matchTable]] error when get {} from {}", nameFilters, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else if (e instanceof IllegalArgumentException) {
+                return ApiResult.getFailInstance("no machine find for " + mhaName);
+            } else {
+                return ApiResult.getFailInstance("other error see log");
+            }
+        }
+    }
+
     @GetMapping("lastUpdateTime")
     @SuppressWarnings("unchecked")
     public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String mha, @RequestParam String srcMha) {

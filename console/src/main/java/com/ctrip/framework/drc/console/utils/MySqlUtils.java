@@ -180,6 +180,20 @@ public class MySqlUtils {
                 collect(Collectors.toList());
     }
 
+    public static List<TableSchemaName> getTablesMatchAnyRegexFilter(Endpoint endpoint, List<AviatorRegexFilter> aviatorRegexFilters) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        return tables.stream()
+                .filter(tableSchemaName -> !DRC_MONITOR_DB.equals(tableSchemaName.getSchema()))
+                .filter(tableSchemaName -> {
+                    for (AviatorRegexFilter aviatorRegexFilter : aviatorRegexFilters) {
+                        if (aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.toList());
+    }
+
     /**
      * @param endpoint
      * @return key: database.table, value: DelayMonitorConfig objects
@@ -414,7 +428,7 @@ public class MySqlUtils {
         }
         return tablesWithoutOnUpdate;
     }
-    
+
     @Deprecated
     public static List<String> checkOnUpdateKey(Endpoint endpoint) {
         List<TableSchemaName> tableSchemaNames = getDefaultTables(endpoint);
@@ -826,5 +840,17 @@ public class MySqlUtils {
             return String.format("%s.%s", schema, name);
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof TableSchemaName)) return false;
+            TableSchemaName that = (TableSchemaName) o;
+            return Objects.equals(schema, that.schema) && Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(schema, name);
+        }
     }
 }
