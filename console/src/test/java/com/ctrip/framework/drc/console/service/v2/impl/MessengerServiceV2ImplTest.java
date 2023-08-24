@@ -49,7 +49,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Test
     public void testGetAllMessengerMhaTbls() throws Exception {
         List<MhaTblV2> result = messengerServiceV2Impl.getAllMessengerMhaTbls();
-        Assert.assertEquals(result.size(), 2);
+        Assert.assertEquals(result.size(), 3);
         List<Long> ids = result.stream().map(MhaTblV2::getId).collect(Collectors.toList());
         Assert.assertTrue(ids.contains(1L));
         Assert.assertTrue(ids.contains(2L));
@@ -58,10 +58,11 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Test
     public void testQueryMhaMessengerConfigs() throws Exception {
         List<MqConfigVo> mq1 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha1");
-        Assert.assertEquals(3, mq1.size());
+        Assert.assertEquals(4, mq1.size());
+        System.out.println(mq1);
         System.out.println(JSON.toJSONString(mq1));
         Assert.assertTrue(mq1.stream().allMatch(e -> e.getTopic().equals("bbz.mha1.binlog")));
-        Assert.assertTrue(mq1.stream().allMatch(e -> Lists.newArrayList("db1\\.(table1|table2)", "db2\\.(table1|table2)", "db1\\.(table3|table4)").contains(e.getTable())));
+        Assert.assertTrue(mq1.stream().allMatch(e -> Lists.newArrayList("db1\\.(table1|table2)", "db2\\.(table1|table2)", "db1\\.(table3|table4)", "db3\\.(table1|table2)").contains(e.getTable())));
 
         List<MqConfigVo> mq2 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha2");
         Assert.assertEquals(1, mq2.size());
@@ -401,10 +402,16 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     }
 
 
+    @Test(expected = ConsoleException.class)
+    public void testRemoveMessengerGroupException() throws Exception {
+        // forbidden operation ( should remove inner mq configs first)
+        messengerServiceV2Impl.removeMessengerGroup("mha1");
+    }
+
     @Test
     public void testRemoveMessengerGroup() throws Exception {
 
-        messengerServiceV2Impl.removeMessengerGroup("mha1");
+        messengerServiceV2Impl.removeMessengerGroup("mha3");
         verify(messengerTblDao, times(1)).batchUpdate(anyList());
         verify(messengerGroupTblDao, times(1)).update(any(MessengerGroupTbl.class));
     }
