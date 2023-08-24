@@ -384,7 +384,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
                 new MySqlUtils.TableSchemaName("db3", "table2")
         );
         when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.getAnyMatchTable("mha1", Lists.newArrayList("db3\\.(table1|table2)"))).thenReturn(ret2);
+        when(mysqlServiceV2.getAnyMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
         when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3.table1", "db3.table2"));
         when(dbClusterService.getDalClusterName(any(), any())).thenReturn("dalcluster");
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
