@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.manager.service;
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.entity.Replicator;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.manager.config.DataCenterService;
 import com.ctrip.framework.drc.manager.ha.StateChangeHandler;
 import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.ctrip.framework.drc.core.server.config.SystemConfig.META_LOGGER;
 import static com.ctrip.framework.drc.core.server.config.SystemConfig.STATE_LOGGER;
 
 /**
@@ -85,16 +87,26 @@ public class ConsoleServiceImpl extends AbstractService implements StateChangeHa
         Map<String, RegionInfo> consoleRegionInfos = clusterManagerConfig.getConsoleRegionInfos();
         String region = dataCenterService.getRegion(dcId);
         RegionInfo regionInfo = consoleRegionInfos.get(region);
-        if(null != regionInfo) {
-            String url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+        if (null != regionInfo) {
+            String url;
+            if (clusterManagerConfig.getRealtimeMetaInfo()) {
+                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v2/meta/data/dcs/%s?refresh=true", dcId);
+                META_LOGGER.info("[meta] for dc: {} using realtime url: {}", dcId, url);
+            } else {
+                url = String.format(regionInfo.getMetaServerAddress() + "/api/drc/v1/meta/data/dcs/%s", dcId);
+                META_LOGGER.info("[meta] for dc: {} using old url: {}", dcId, url);
+            }
             try {
-                long s = System.currentTimeMillis();
-                String dbClusters = restTemplate.getForObject(url, String.class);
-                long e = System.currentTimeMillis();
-                logger.info("[meta] for dc: {}, took {}ms", dcId, e-s);
-                return dbClusters;
+                return DefaultTransactionMonitorHolder.getInstance().logTransaction("DRC.meta.get", region, () -> {
+                    long s = System.currentTimeMillis();
+                    String dbClusters = restTemplate.getForObject(url, String.class);
+                    long e = System.currentTimeMillis();
+                    META_LOGGER.info("[meta] for dc: {}, took {}ms", dcId, e - s);
+                    META_LOGGER.debug("[meta] for dc: {}, info: {}", dcId, dbClusters);
+                    return dbClusters;
+                });
             } catch (Exception e) {
-                logger.error("[meta] for dc: {}, ", dcId, e);
+                META_LOGGER.error("[meta] for dc: {}, ", dcId, e);
             }
         }
         return null;
