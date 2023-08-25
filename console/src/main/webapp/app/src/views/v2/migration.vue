@@ -115,6 +115,14 @@ export default {
           }
         },
         {
+          title: 'ID',
+          width: 80,
+          key: 'id',
+          render: (h, params) => {
+            return h('p', params.row.id)
+          }
+        },
+        {
           title: 'DB',
           key: 'srcMhaName',
           render: (h, params) => {
@@ -185,7 +193,7 @@ export default {
         })
     },
     getStatus () {
-      this.axios.get('/api/drc/v2/dbmigration/allStatus')
+      this.axios.get('/api/drc/v2/migration/allStatus')
         .then(response => {
           this.status = response.data.data
         })
@@ -213,7 +221,7 @@ export default {
 
       const reqParam = this.flattenObj(this.queryParam)
       that.dataLoading = true
-      that.axios.get('/api/drc/v2/dbmigration/query', { params: reqParam })
+      that.axios.get('/api/drc/v2/migration/query', { params: reqParam })
         .then(response => {
           const pageResult = response.data.data
           if (!pageResult || pageResult.totalCount === 0) {

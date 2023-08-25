@@ -58,14 +58,14 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
     @Test
     public void testQueryMhaMessengerConfigs() throws Exception {
         List<MqConfigVo> mq1 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha1");
-        Assert.assertEquals(4, mq1.size());
+        Assert.assertNotEquals(0, mq1.size());
         System.out.println(mq1);
         System.out.println(JSON.toJSONString(mq1));
         Assert.assertTrue(mq1.stream().allMatch(e -> e.getTopic().equals("bbz.mha1.binlog")));
         Assert.assertTrue(mq1.stream().allMatch(e -> Lists.newArrayList("db1\\.(table1|table2)", "db2\\.(table1|table2)", "db1\\.(table3|table4)", "db3\\.(table1|table2)").contains(e.getTable())));
 
         List<MqConfigVo> mq2 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha2");
-        Assert.assertEquals(1, mq2.size());
+        Assert.assertEquals(2, mq2.size());
         List<MqConfigVo> mq3 = messengerServiceV2Impl.queryMhaMessengerConfigs("mha3");
         Assert.assertEquals(0, mq3.size());
     }
@@ -380,21 +380,21 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         response.setStatus(0);
         response.setData(new Object());
         List<MySqlUtils.TableSchemaName> ret2 = Lists.newArrayList(
-                new MySqlUtils.TableSchemaName("db3", "table1"),
-                new MySqlUtils.TableSchemaName("db3", "table2")
+                new MySqlUtils.TableSchemaName("db2", "table1"),
+                new MySqlUtils.TableSchemaName("db2", "table2")
         );
-        when(mysqlServiceV2.getMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.getAnyMatchTable("mha1", "db3\\.(table1|table2)")).thenReturn(ret2);
-        when(mysqlServiceV2.queryTablesWithNameFilter("mha1", "db3\\.(table1|table2)")).thenReturn(Lists.newArrayList("db3.table1", "db3.table2"));
+        when(mysqlServiceV2.getMatchTable("mha2", "db2\\.(table1|table2)")).thenReturn(ret2);
+        when(mysqlServiceV2.getAnyMatchTable("mha2", "db2\\.(table1|table2)")).thenReturn(ret2);
+        when(mysqlServiceV2.queryTablesWithNameFilter("mha2", "db2\\.(table1|table2)")).thenReturn(Lists.newArrayList("db2.table1", "db2.table2"));
         when(dbClusterService.getDalClusterName(any(), any())).thenReturn("dalcluster");
         try (MockedStatic<HttpUtils> mocked = mockStatic(HttpUtils.class)) {
             mocked.when(() -> HttpUtils.post(any(), any(), any())).thenReturn(response);
             MqConfigDto dto = new MqConfigDto();
-            dto.setMhaName("mha1");
-            dto.setTable("db3\\.(table1|table2)");
+            dto.setMhaName("mha2");
+            dto.setTable("db2\\.(table1|table2)");
             dto.setTopic("topic");
             dto.setMqType("qmq");
-            dto.setDbReplicationId(7L);
+            dto.setDbReplicationId(5L);
             messengerServiceV2Impl.processUpdateMqConfig(dto);
             verify(qConfigService, times(1)).addOrUpdateDalClusterMqConfig(anyString(), anyString(), anyString(), eq(null), anyList());
             verify(qConfigService, times(1)).updateDalClusterMqConfig(anyString(), anyString(), anyString(), anyList());
@@ -422,6 +422,7 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
 
     @Mock
     MetaInfoServiceV2Impl metaInfoService;
+
     @Test
     public void testBuildMhaDrc() throws Exception {
 

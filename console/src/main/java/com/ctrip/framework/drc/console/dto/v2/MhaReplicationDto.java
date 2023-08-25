@@ -3,12 +3,13 @@ package com.ctrip.framework.drc.console.dto.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 
-import java.util.Map;
+import java.util.*;
 
 public class MhaReplicationDto {
     private Long replicationId;
     private MhaDto srcMha;
     private MhaDto dstMha;
+    private Set<String> dbs;
 
     /**
      * @see com.ctrip.framework.drc.console.enums.TransmissionTypeEnum
@@ -29,6 +30,44 @@ public class MhaReplicationDto {
         dto.setSrcMha(MhaDto.from(mhaMap.get(e.getSrcMhaId())));
         dto.setDstMha(MhaDto.from(mhaMap.get(e.getDstMhaId())));
         return dto;
+    }
+
+    public static MhaReplicationDto from(MhaReplicationTbl e) {
+        MhaReplicationDto dto = new MhaReplicationDto();
+        dto.setReplicationId(e.getId());
+        dto.setDatachangeLasttime(e.getDatachangeLasttime().getTime());
+        dto.setStatus(e.getDrcStatus());
+        dto.setDbs(new HashSet<>());
+
+        MhaDto srcMha = new MhaDto();
+        srcMha.setId(e.getSrcMhaId());
+        dto.setSrcMha(srcMha);
+
+        MhaDto dstMha = new MhaDto();
+        dstMha.setId(e.getDstMhaId());
+        dto.setDstMha(dstMha);
+        return dto;
+    }
+
+    public static MhaReplicationDto from(String srcMhaName, String dstMhaName) {
+        MhaReplicationDto dto = new MhaReplicationDto();
+
+        MhaDto srcMha = new MhaDto();
+        srcMha.setName(srcMhaName);
+        dto.setSrcMha(srcMha);
+
+        MhaDto dstMha = new MhaDto();
+        dstMha.setName(dstMhaName);
+        dto.setDstMha(dstMha);
+        return dto;
+    }
+
+    public Set<String> getDbs() {
+        return dbs;
+    }
+
+    public void setDbs(Set<String> dbs) {
+        this.dbs = dbs;
     }
 
     public Long getReplicationId() {
@@ -77,5 +116,18 @@ public class MhaReplicationDto {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return "MhaReplicationDto{" +
+                "replicationId=" + replicationId +
+                ", srcMha=" + srcMha +
+                ", dstMha=" + dstMha +
+                ", dbs=" + dbs +
+                ", type='" + type + '\'' +
+                ", datachangeLasttime=" + datachangeLasttime +
+                ", status=" + status +
+                '}';
     }
 }

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.DrcBuildService;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigService;
@@ -23,6 +24,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -94,6 +96,9 @@ public class CommonDataInit {
     MetaInfoServiceV2Impl metaInfoServiceV2Impl;
     @InjectMocks
     MessengerServiceV2Impl messengerServiceV2Impl;
+    @InjectMocks
+    MhaReplicationServiceV2Impl mhaReplicationServiceV2;
+
     @Mock
     ColumnsFilterServiceV2 columnsFilterServiceV2;
     RowsFilterServiceV2 rowsFilterServiceV2;
@@ -195,6 +200,39 @@ public class CommonDataInit {
             Long dstMhaId = i.getArgument(1, Long.class);
             return mhaReplicationTbls.stream().filter(e -> e.getSrcMhaId().equals(srcMhaId) && e.getDstMhaId().equals(dstMhaId)).findFirst().orElse(null);
         });
+        when(mhaReplicationTblDao.queryByPage(any(MhaReplicationQuery.class))).thenAnswer(i -> {
+            MhaReplicationQuery query = i.getArgument(0, MhaReplicationQuery.class);
+            return mhaReplicationTbls.stream().filter(e -> {
+                        if (!CollectionUtils.isEmpty(query.getSrcMhaIdList()) && !query.getSrcMhaIdList().contains(e.getSrcMhaId())) {
+                            return false;
+                        }
+                        return CollectionUtils.isEmpty(query.getDstMhaIdList()) || query.getDstMhaIdList().contains(e.getSrcMhaId());
+                    }).sorted(Comparator.comparing(MhaReplicationTbl::getId).thenComparing(Comparator.comparing(MhaReplicationTbl::getDatachangeLasttime).reversed()))
+                    .skip((long) (query.getPageIndex() - 1) * query.getPageSize())
+                    .limit(query.getPageSize()).collect(Collectors.toList());
+        });
+
+        when(mhaReplicationTblDao.count(any(MhaReplicationQuery.class))).thenAnswer(i -> {
+            MhaReplicationQuery query = i.getArgument(0, MhaReplicationQuery.class);
+            return (int) mhaReplicationTbls.stream().filter(e -> {
+                if (!CollectionUtils.isEmpty(query.getSrcMhaIdList()) && !query.getSrcMhaIdList().contains(e.getSrcMhaId())) {
+                    return false;
+                }
+                return CollectionUtils.isEmpty(query.getDstMhaIdList()) || query.getDstMhaIdList().contains(e.getSrcMhaId());
+            }).count();
+        });
+
+
+        when(mhaReplicationTblDao.queryByRelatedMhaId(anyList())).thenAnswer(i -> {
+            List<Long> relatedMhaList = i.getArgument(0, List.class);
+            return mhaReplicationTbls.stream().filter(e -> {
+                if (CollectionUtils.isEmpty(relatedMhaList)) {
+                    return false;
+                }
+                return relatedMhaList.contains(e.getSrcMhaId()) || relatedMhaList.contains(e.getDstMhaId());
+            }).collect(Collectors.toList());
+        });
+
 
 
         // messengerGroupTbl
@@ -233,6 +271,13 @@ public class CommonDataInit {
             Integer deleted = i.getArgument(1, Integer.class);
             return mhaTblV2List.stream().filter(e -> mhaName.equals(e.getMhaName()) && deleted.equals(e.getDeleted())).findFirst().orElse(null);
         });
+        when(mhaTblV2Dao.queryByMhaNames(anyList(), anyInt())).thenAnswer(i -> {
+            List<String> mhaNames = i.getArgument(0, List.class);
+            Integer deleted = i.getArgument(1, Integer.class);
+            return mhaTblV2List.stream().filter(e -> mhaNames.contains(e.getMhaName()) && deleted.equals(e.getDeleted()))
+                    .collect(Collectors.toList());
+        });
+
 
 
         // MhaDbMappingTbl
@@ -253,12 +298,27 @@ public class CommonDataInit {
             Long mhaDbMappingId = i.getArgument(0, Long.class);
             return mhaDbMappingTbls.stream().filter(e -> mhaDbMappingId.equals(e.getId())).findFirst().orElse(null);
         });
+        when(mhaDbMappingTblDao.queryByDbIdsAndMhaId(anyList(), anyLong())).thenAnswer(i -> {
+            List<Long> dbIds = i.getArgument(0, List.class);
+            Long mhaId = i.getArgument(1, Long.class);
+            return mhaDbMappingTbls.stream().filter(e -> {
+                return dbIds.contains(e.getDbId()) && mhaId.equals(e.getMhaId());
+            }).collect(Collectors.toList());
+        });
+
+
         // DbReplicationTbl
         List<DbReplicationTbl> dbReplicationTbls = this.getData("DbReplicationTbl.json", DbReplicationTbl.class);
         when(dbReplicationTblDao.queryBySrcMappingIds(anyList(), anyInt())).thenAnswer(i -> {
             List srcMhaDbMappingIds = i.getArgument(0, List.class);
             Integer replicationType = i.getArgument(1, Integer.class);
             return dbReplicationTbls.stream().filter(e -> srcMhaDbMappingIds.contains(e.getSrcMhaDbMappingId()) && replicationType.equals(e.getReplicationType()))
+                    .collect(Collectors.toList());
+        });
+        when(dbReplicationTblDao.queryByDestMappingIds(anyList(), anyInt())).thenAnswer(i -> {
+            List dstMhaDbMappingIds = i.getArgument(0, List.class);
+            Integer replicationType = i.getArgument(1, Integer.class);
+            return dbReplicationTbls.stream().filter(e -> dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId()) && replicationType.equals(e.getReplicationType()))
                     .collect(Collectors.toList());
         });
         when(dbReplicationTblDao.queryByMappingIds(anyList(), anyList(), anyInt())).thenAnswer(i -> {
