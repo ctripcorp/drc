@@ -47,6 +47,7 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -61,11 +62,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -761,34 +758,41 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
 
     @Override
-    public MigrationTaskTbl queryAndPushToReadyIfPossible(Long taskId) {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public String getAndUpdateTaskStatus(Long taskId) {
         try {
             MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
             if (migrationTaskTbl == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "task not exist: " + taskId);
             }
-            // todo by yongnian: 2023/8/23 precheck status
+            List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+            if (!statusList.contains(migrationTaskTbl.getStatus())) {
+                return migrationTaskTbl.getStatus();
+            }
+
             List<String> dbNames = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class);
             String oldMha = migrationTaskTbl.getOldMha();
             String newMha = migrationTaskTbl.getNewMha();
 
-            List<MhaReplicationDto> oldMhaReplication = mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames);
-            List<MhaReplicationDto> newMhaReplication = mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames);
             List<MhaReplicationDto> all = Lists.newArrayList();
-            all.addAll(oldMhaReplication);
-            all.addAll(newMhaReplication);
+            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames));
+            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames));
+            all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
 
             // query delay
             List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
+            logger.info("task({}) delay info: {}", taskId, delayInfos);
             List<MhaDelayInfoDto> notReadyList = delayInfos.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             boolean allReady = CollectionUtils.isEmpty(notReadyList);
-            if (allReady) {
-                migrationTaskTbl.setStatus(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+
+            String currStatus = migrationTaskTbl.getStatus();
+            String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
+            boolean needUpdate = !targetStatus.equals(currStatus);
+            if (needUpdate) {
+                migrationTaskTbl.setStatus(targetStatus);
                 migrationTaskTblDao.update(migrationTaskTbl);
-            } else {
-                logger.info("not ready: " + notReadyList);
             }
-            return migrationTaskTbl;
+            return targetStatus;
         } catch (SQLException e) {
             logger.error("queryAndPushToReadyIfPossible error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);

@@ -25,7 +25,7 @@ public interface DbMigrationService {
 
     boolean startDbMigrationTask(Long taskId) throws SQLException;
 
-    MigrationTaskTbl queryAndPushToReadyIfPossible(Long taskId);
+    String getAndUpdateTaskStatus(Long taskId);
 
     PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query);
 

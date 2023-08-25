@@ -5,8 +5,8 @@ import java.io.Serializable;
 
 public class MhaDelayInfoDto implements Serializable {
 
-    String srcMha;
-    String dstMha;
+    private String srcMha;
+    private String dstMha;
     private Long delay;
 
     @Override

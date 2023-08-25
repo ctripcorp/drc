@@ -3,14 +3,14 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
-import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
-import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
 import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,16 +41,15 @@ public class DbMigrationController {
     }
 
     @GetMapping("status")
-    public ApiResult<Integer> queryStatusAndPushToReadyIfPossible(@RequestParam(name = "taskId") Long taskId) {
-
+    public ApiResult<String> getTaskStatus(@RequestParam(name = "taskId") Long taskId) {
         try {
-            MigrationTaskTbl taskTbl = dbMigrationService.queryAndPushToReadyIfPossible(taskId);
-            if (taskTbl == null) {
+            String status = dbMigrationService.getAndUpdateTaskStatus(taskId);
+            if (StringUtils.isEmpty(status)) {
                 return ApiResult.getFailInstance(null, "task not exist: " + taskId);
             }
-            return ApiResult.getSuccessInstance(taskTbl.getStatus());
+            return ApiResult.getSuccessInstance(status);
         } catch (Throwable e) {
-            logger.error("queryStatusAndPushToReadyIfPossible", e);
+            logger.error("getTaskStatus", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
