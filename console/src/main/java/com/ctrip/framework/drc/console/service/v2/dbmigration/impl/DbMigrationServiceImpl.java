@@ -459,7 +459,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         deleteDrcConfig(taskId, true);
     }
 
-    private void deleteDrcConfig(long taskId, boolean rollBack) throws Exception {
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteDrcConfig(long taskId, boolean rollBack) throws Exception {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
         if (migrationTaskTbl == null) {
             throw ConsoleExceptionUtils.message("taskId: " + taskId + " not exist!");
@@ -468,6 +469,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         if (!migrationTaskTbl.getStatus().equals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus())) {
             throw ConsoleExceptionUtils.message("task status is: " + migrationTaskTbl.getStatus() + ", not ready to continue");
         }
+
+        String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
+        migrationTaskTbl.setStatus(status);
+        migrationTaskTblDao.update(migrationTaskTbl);
 
         String oldMhaName = migrationTaskTbl.getOldMha();
         String newMhaName = migrationTaskTbl.getNewMha();
@@ -489,34 +494,32 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         logger.info("offlineDrcConfig relatedMhaIds: {}", relatedMhaIds);
 
         long mhaId = rollBack ? newMhaTbl.getId() : oldMhaTbl.getId();
-        List<MhaDbMappingTbl> oldMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(oldMhaTbl.getId());
-        if (rollBack) {
-            deleteMqbReplicationForRollback(mhaId, relatedMhaDbMappingTbls);
-        } else {
-            deleteOldMqReplication(mhaId, oldMhaDbMappings, relatedMhaDbMappingTbls);
-        }
+        List<MhaDbMappingTbl> mhaDbMappings = mhaDbMappingTblDao.queryByMhaId(mhaId);
+
+        deleteMqReplication(mhaId, mhaDbMappings, relatedMhaDbMappingTbls);
 
         for (long relateMhaId : relatedMhaIds) {
             deleteDbReplications(mhaId, relateMhaId, relatedMhaDbMappingTbls);
             deleteDbReplications(relateMhaId, mhaId, relatedMhaDbMappingTbls);
-            if (rollBack) {
-                deleteMhaReplication(mhaId, relateMhaId);
-                deleteMhaReplication(relateMhaId, mhaId);
-            } else {
-                List<MhaDbMappingTbl> relatedMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(relateMhaId);
-                List<DbReplicationTbl> existDbReplications = getExistDbReplications(oldMhaDbMappings, relatedMhaDbMappings);
-                if (CollectionUtils.isEmpty(existDbReplications)) {
-                    logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
-                    deleteMhaReplication(mhaId, relateMhaId);
-                }
 
-                List<DbReplicationTbl> oppositeExistDbReplications = getExistDbReplications(relatedMhaDbMappings, oldMhaDbMappings);
-                if (CollectionUtils.isEmpty(oppositeExistDbReplications)) {
-                    logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
-                    deleteMhaReplication(relateMhaId, mhaId);
-                }
+            //delete mhaReplication
+            List<MhaDbMappingTbl> relatedMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(relateMhaId);
+            List<DbReplicationTbl> existDbReplications = getExistDbReplications(mhaDbMappings, relatedMhaDbMappings);
+            List<DbReplicationTbl> oppositeExistDbReplications = getExistDbReplications(relatedMhaDbMappings, mhaDbMappings);
+            boolean deleted = CollectionUtils.isEmpty(existDbReplications) && CollectionUtils.isEmpty(oppositeExistDbReplications);
+            if (CollectionUtils.isEmpty(existDbReplications)) {
+                logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
+                deleteMhaReplication(mhaId, relateMhaId, deleted);
+            }
+
+            if (CollectionUtils.isEmpty(oppositeExistDbReplications)) {
+                logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
+                deleteMhaReplication(relateMhaId, mhaId, deleted);
             }
         }
+
+        List<MhaDbMappingTbl> deleteMhaDbMappingTbls = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).collect(Collectors.toList());
+        mhaDbMappingTblDao.delete(deleteMhaDbMappingTbls);
 
         List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
         mhaIds.add(mhaId);
@@ -555,12 +558,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         deleteMessengers(newMhaId);
     }
 
-    private void deleteOldMqReplication(long oldMhaId, List<MhaDbMappingTbl> oldMhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
-        deleteMqDbReplications(oldMhaId, relatedMhaDbMappingTbls);
-        List<DbReplicationTbl> oldMqDbReplications = getExistMqDbReplications(oldMhaDbMappingTbls);
-        if (CollectionUtils.isEmpty(oldMqDbReplications)) {
-            logger.info("oldMqDbReplications are empty, delete messenger mhaId: {}", oldMhaId);
-            deleteMessengers(oldMhaId);
+    private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> mhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
+        deleteMqDbReplications(mhaId, relatedMhaDbMappingTbls);
+        List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(mhaDbMappingTbls);
+        if (CollectionUtils.isEmpty(mqDbReplications)) {
+            logger.info("oldMqDbReplications are empty, delete messenger mhaId: {}", mhaId);
+            deleteMessengers(mhaId);
         }
     }
 
@@ -627,15 +630,20 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private void deleteMhaReplication(long srcMhaId, long dstMhaId) throws Exception {
+    private void deleteMhaReplication(long srcMhaId, long dstMhaId, boolean deleted) throws Exception {
         logger.info("deleteMhaReplication srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId, BooleanEnum.FALSE.getCode());
         if (mhaReplicationTbl == null) {
             logger.info("mhaReplication from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
             return;
         }
-        mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        logger.info("delete mhaReplication: {}", mhaReplicationTbl);
+        if (deleted) {
+            mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        } else {
+            mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
+        }
+
+        logger.info("update mhaReplication: {}", mhaReplicationTbl);
         mhaReplicationTblDao.update(mhaReplicationTbl);
         deleteApplierGroup(mhaReplicationTbl.getId());
     }
@@ -649,7 +657,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         applierGroupTblV2.setDeleted(BooleanEnum.TRUE.getCode());
         logger.info("delete applierGroupTblV2: {}", applierGroupTblV2);
         applierGroupTblV2Dao.update(applierGroupTblV2);
-        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(), BooleanEnum.TRUE.getCode());
+        List<ApplierTblV2> applierTblV2s = applierTblV2Dao.queryByApplierGroupId(applierGroupTblV2.getId(), BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(applierTblV2s)) {
             applierTblV2s.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             logger.info("delete applierTblV2s: {}", applierTblV2s);

@@ -106,9 +106,9 @@ public class DbMigrationServiceTest {
             Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
             Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
             Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
-            Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
-            Mockito.verify(applierGroupTblV2Dao, Mockito.times(2)).update(Mockito.any(ApplierGroupTblV2.class));
-            Mockito.verify(applierTblV2Dao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));
+            Mockito.verify(applierGroupTblV2Dao, Mockito.never()).update(Mockito.any(ApplierGroupTblV2.class));
+            Mockito.verify(applierTblV2Dao, Mockito.never()).update(Mockito.anyList());
 
         }
 
@@ -172,6 +172,7 @@ public class DbMigrationServiceTest {
         Map<String, String> urlMap = new HashMap<>();
         urlMap.put("sha", "url");
         Mockito.when(regionConfig.getCMRegionUrls()).thenReturn(urlMap);
+        Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
     }
 
     private Drc getDrc() {
