@@ -12,11 +12,7 @@ import com.ctrip.framework.drc.core.http.PageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +25,7 @@ import java.util.stream.Collectors;
  * @Version: $
  */
 @RestController
-@RequestMapping("/api/drc/v2/dbmigration/")
+@RequestMapping("/api/drc/v2/migration/")
 public class DbMigrationController {
 
     private static final Logger logger = LoggerFactory.getLogger(DbMigrationController.class);
@@ -75,5 +71,25 @@ public class DbMigrationController {
                 .collect(Collectors.toList());
 
         return ApiResult.getSuccessInstance(statusList);
+    }
+
+    @PostMapping("afterDalSwtich/commit")
+    public ApiResult<String> offlineOldDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationService.offlineOldDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+    }
+
+    @PostMapping("afterDalSwtich/rollback")
+    public ApiResult<String> rollBackNewDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationService.rollBackNewDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
     }
 }

@@ -1,34 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2.dbmigration.impl;
 
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
-
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.MachineTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
@@ -57,20 +32,20 @@ import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+
+import java.sql.SQLException;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
 
 /**
  * @ClassName DbMigrationServiceImpl
@@ -510,8 +485,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
         List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
 
-        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(dbIds);
-        List<Long> relatedMhaIds = mhaDbMappingTbls.stream()
+        List<MhaDbMappingTbl> relatedMhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIds(dbIds);
+        List<Long> relatedMhaIds = relatedMhaDbMappingTbls.stream()
                 .map(MhaDbMappingTbl::getMhaId)
                 .filter(mhaId -> !mhaId.equals(oldMhaTbl.getId()) && !mhaId.equals(newMhaTbl.getId()))
                 .distinct()
@@ -521,14 +496,14 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         long mhaId = rollBack ? newMhaTbl.getId() : oldMhaTbl.getId();
         List<MhaDbMappingTbl> oldMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(oldMhaTbl.getId());
         if (rollBack) {
-            deleteMqbReplicationForRollback(mhaId, mhaDbMappingTbls);
+            deleteMqbReplicationForRollback(mhaId, relatedMhaDbMappingTbls);
         } else {
-            deleteOldMqReplication(mhaId, oldMhaDbMappings, mhaDbMappingTbls);
+            deleteOldMqReplication(mhaId, oldMhaDbMappings, relatedMhaDbMappingTbls);
         }
 
         for (long relateMhaId : relatedMhaIds) {
-            deleteDbReplications(mhaId, relateMhaId, mhaDbMappingTbls);
-            deleteDbReplications(relateMhaId, mhaId, mhaDbMappingTbls);
+            deleteDbReplications(mhaId, relateMhaId, relatedMhaDbMappingTbls);
+            deleteDbReplications(relateMhaId, mhaId, relatedMhaDbMappingTbls);
             if (rollBack) {
                 deleteMhaReplication(mhaId, relateMhaId);
                 deleteMhaReplication(relateMhaId, mhaId);
@@ -579,14 +554,14 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return dc.findDbCluster(dbClusterId);
     }
 
-    private void deleteMqbReplicationForRollback(long newMhaId, List<MhaDbMappingTbl> mhaDbMappingTbls) throws Exception {
+    private void deleteMqbReplicationForRollback(long newMhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
         logger.info("deleteMqbReplicationForRollback mhaId: {}", newMhaId);
-        deleteMqDbReplications(newMhaId, mhaDbMappingTbls);
+        deleteMqDbReplications(newMhaId, relatedMhaDbMappingTbls);
         deleteMessengers(newMhaId);
     }
 
-    private void deleteOldMqReplication(long oldMhaId, List<MhaDbMappingTbl> oldMhaDbMappingTbls, List<MhaDbMappingTbl> mhaDbMappingTbls) throws Exception {
-        deleteMqDbReplications(oldMhaId, mhaDbMappingTbls);
+    private void deleteOldMqReplication(long oldMhaId, List<MhaDbMappingTbl> oldMhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
+        deleteMqDbReplications(oldMhaId, relatedMhaDbMappingTbls);
         List<DbReplicationTbl> oldMqDbReplications = getExistMqDbReplications(oldMhaDbMappingTbls);
         if (CollectionUtils.isEmpty(oldMqDbReplications)) {
             logger.info("oldMqDbReplications are empty, delete messenger mhaId: {}", oldMhaId);
@@ -612,8 +587,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private void deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> mhaDbMappingTbls) throws Exception {
-        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).collect(Collectors.toList());
+    private void deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
+        List<MhaDbMappingTbl> srcMhaDbMappings = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).collect(Collectors.toList());
         List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(srcMhaDbMappings);
         if (CollectionUtils.isEmpty(mqDbReplications)) {
             logger.info("mqDbReplicationTbl from mhaId: {} not exist", mhaId);
@@ -633,10 +608,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private void deleteDbReplications(long srcMhaId, long dstMhaId, List<MhaDbMappingTbl> mhaDbMappingTbls) throws Exception {
+    private void deleteDbReplications(long srcMhaId, long dstMhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
         logger.info("deleteDbReplications srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
-        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhaId)).collect(Collectors.toList());
-        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaId)).collect(Collectors.toList());
+        List<MhaDbMappingTbl> srcMhaDbMappings = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(srcMhaId)).collect(Collectors.toList());
+        List<MhaDbMappingTbl> dstMhaDbMappings = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaId)).collect(Collectors.toList());
         List<DbReplicationTbl> dbReplicationTbls = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
         if (CollectionUtils.isEmpty(dbReplicationTbls)) {
             logger.info("dbReplicationTbl from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
