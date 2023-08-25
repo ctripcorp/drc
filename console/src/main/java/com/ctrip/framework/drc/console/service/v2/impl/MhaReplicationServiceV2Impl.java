@@ -30,8 +30,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -91,6 +93,9 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             //oldMha + dbs -> related dbTbls, dbMhaMapping
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
             List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
+            if (mhaTblV2 == null || CollectionUtils.isEmpty(dbTbls)) {
+                return Collections.emptyList();
+            }
             List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
             List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaId(dbIds, mhaTblV2.getId());
 
@@ -178,7 +183,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
 
             Long delay = null;
-            if (srcTime != null && dstTime != null) {
+            if (currentTime != null && srcTime != null && dstTime != null) {
                 delay = Math.max(currentTime, srcTime) - dstTime;
             }
             MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
@@ -207,7 +212,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             }
             return res;
         } catch (InterruptedException | ExecutionException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.TIMEOUT_EXCEPTION, e.getMessage());
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.TIMEOUT_EXCEPTION, e);
         }
     }
 }

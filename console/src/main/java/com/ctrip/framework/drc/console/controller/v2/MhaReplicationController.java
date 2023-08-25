@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
@@ -13,6 +14,7 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.DelayInfoVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
@@ -171,6 +173,38 @@ public class MhaReplicationController {
         } catch (Throwable e) {
             logger.error(String.format("getMhaDelay error: %s->%s", srcMha, dstMha), e);
             return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("relatedReplicationDelay")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaReplicationDto>> queryDetail(@RequestParam(name = "mha1") String mha1,
+                                                    @RequestParam(name = "mha2") String mha2,
+                                                    @RequestParam(name = "dbs") List<String> dbs) {
+        if (StringUtils.isBlank(mha1) || StringUtils.isBlank(mha2) || CollectionUtils.isEmpty(dbs)) {
+            return ApiResult.getSuccessInstance(Collections.emptyList());
+        }
+        try {
+            List<MhaReplicationDto> res = Lists.newArrayList();
+            res.addAll(mhaReplicationServiceV2.queryRelatedReplications(mha1, dbs));
+            res.addAll(mhaReplicationServiceV2.queryRelatedReplications(mha2, dbs));
+            res = res.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
+            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(res);
+            Map<String, Long> delayMap = mhaReplicationDelays.stream().filter(e -> e.getDelay() != null).collect(Collectors.toMap(
+                    e -> e.getSrcMha() + "-" + e.getDstMha(),
+                    MhaDelayInfoDto::getDelay,
+                    (e1, e2) -> e1)
+            );
+            res.forEach(e -> {
+                String key = e.getSrcMha().getName() + "-" + e.getDstMha().getName();
+                e.setDelay(delayMap.get(key));
+            });
+            return ApiResult.getSuccessInstance(res);
+
+        } catch (Throwable e) {
+            logger.error("queryByPage error", e);
+            throw e;
+//            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 

@@ -36,6 +36,11 @@
         </Row>
         <br>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="migrationTasks" >
+          <template slot-scope="{ row, index }" slot="action">
+            <Button type="success" size="small" style="margin-right: 5px" @click="getDetail(row, index)">
+              查看
+            </Button>
+          </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
           <Page
@@ -50,35 +55,9 @@
             @on-change="getMigrationTasks"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
-        <Drawer title="Basic Drawer" width="80" :closable="true" v-model="replicationDetail.show">
-          <template #header>
-            查看详情
-            <div style="float:right;margin-right: 100px">
-              自动换行
-              <i-switch v-model="replicationDetail.lineWrap"/>
-              黑夜模式
-              <i-switch v-model="replicationDetail.darkMode"
-                        on-change="(status)=>{this.$Message.info('开关状态：'+status)}"/>
-            </div>
-          </template>
-          <div id="xmlCode">
-            <codemirror
-              v-model="replicationDetail.data"
-              class="code"
-              :options="{
-                  mode: 'xml',
-                  theme: replicationDetail.darkMode? 'monokai':'default',
-                  autofocus: true,
-                  lineWrapping: replicationDetail.lineWrap,
-                  readOnly: true,
-                  lineNumbers: true,
-                  foldGutter: true,
-                  styleActiveLine: true,
-                  gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
-            }">
-            </codemirror>
-          </div>
-        </Drawer>
+        <Modal v-model="replicationDetail.show" title="相关 DRC 延迟" width="1200px">
+          <Table stripe :loading="dataLoading" :columns="detailColumn" :data="replicationDetail.data" border></Table>
+        </Modal>
       </div>
     </Content>
   </base-component>
@@ -97,6 +76,69 @@ export default {
   name: 'Application',
   data () {
     return {
+      detailColumn: [
+        {
+          title: '状态',
+          key: 'status',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const color = row.status === 1 ? 'blue' : 'volcano'
+            const text = row.status === 1 ? '已接入' : '未接入'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
+          title: 'id',
+          width: 80,
+          key: 'id',
+          render: (h, params) => {
+            return h('p', params.row.replicationId)
+          }
+        },
+        {
+          title: 'srcMha',
+          width: 150,
+          key: 'id',
+          render: (h, params) => {
+            return h('p', params.row.srcMha.name)
+          }
+        },
+        {
+          title: 'dstMha',
+          width: 150,
+          key: 'id',
+          render: (h, params) => {
+            return h('p', params.row.dstMha.name)
+          }
+        },
+        {
+          title: 'dbs',
+          key: 'dbs',
+          render: (h, params) => {
+            return h('p', params.row.dbs.join(','))
+          }
+        },
+        {
+          title: 'delay',
+          key: 'delay',
+          render: (h, params) => {
+            const delay = params.row.delay
+            const color = delay && delay < 10000 ? 'blue' : 'volcano'
+            const text = delay ? delay + 'ms' : '查询失败'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        }
+      ],
       columns: [
         {
           title: '状态',
@@ -149,6 +191,11 @@ export default {
           render: (h, params) => {
             return h('p', params.row.operator)
           }
+        },
+        {
+          title: '操作',
+          slot: 'action',
+          align: 'center'
         }
       ],
       // page
@@ -171,7 +218,7 @@ export default {
       // for detail show
       replicationDetail: {
         show: false,
-        data: null,
+        data: [],
         darkMode: true,
         lineWrap: false,
         row: {}
@@ -250,37 +297,28 @@ export default {
         this.getMigrationTasks()
       })
     },
-    handleBeforeChange () {
-      console.log('handleBeforeChange:', this.switchOneInfo)
-      return new Promise((resolve) => {
-        this.$Modal.confirm({
-          title: '切换确认',
-          content: '您确认要切换开关状态吗？',
-          onOk: () => {
-            resolve()
-          }
-        })
-      })
-    },
-    switchMonitor (mhaName, status) {
-      // 求反
-      const switchStatus = status === 0 ? 'on' : 'off'
-      this.doSwitchMonitor(mhaName, switchStatus)
-    },
-    doSwitchMonitor (mhaName, status) {
-      console.log(mhaName)
-      this.axios.post('/api/drc/v1/monitor/switch/' + mhaName + '/' + status).then(res => {
-        if (res.data.status === 0) {
-          console.log(status)
-          if (status === 'on') {
-            this.$Message.info('监控开启成功')
-          } else {
-            this.$Message.info('监控关闭成功')
-          }
-        } else {
-          this.$Message.info('监控操作失败')
+    getDetail (row, index) {
+      this.dataLoading = true
+      this.replicationDetail.data = []
+      this.axios.get('/api/drc/v2/replication/relatedReplicationDelay', {
+        params: {
+          mha1: row.oldMha,
+          mha2: row.newMha,
+          dbs: row.dbs.join(',')
         }
-        this.getMigrationTasks()
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.warning('查询异常: ' + response.data.message)
+          return
+        }
+        this.replicationDetail.data = response.data.data
+        console.log(this.replicationDetail.data)
+        this.replicationDetail.show = true
+        this.replicationDetail.row = row
+      }).catch(message => {
+        this.$Message.error('查询异常: ' + message)
+      }).finally(() => {
+        this.dataLoading = false
       })
     }
   },
