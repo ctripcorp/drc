@@ -782,9 +782,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
 
             List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
-            logger.info("task({}) delay info: {}", taskId, delayInfos);
+            logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, delayInfos);
+            if (delayInfos.size() != all.size()) {
+                throw new ConsoleException("query delay fail[1]");
+            }
             if (delayInfos.stream().anyMatch(e -> e.getDelay() == null)) {
-                throw new ConsoleException("query delay fail");
+                throw new ConsoleException("query delay fail[2]");
             }
 
             // 2. ready condition: all related mha delay < 10s (given by DBA)
