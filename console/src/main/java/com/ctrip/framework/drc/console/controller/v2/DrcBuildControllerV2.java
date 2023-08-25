@@ -43,6 +43,21 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @PostMapping("messengerMha")
+    public ApiResult<Boolean> buildMessengerMha(@RequestBody MessengerMhaBuildParam param) {
+        logger.info("buildMessengerMha: {}", param);
+        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+            return ApiResult.getFailInstance(false, "not allowed");
+        }
+        try {
+            drcBuildServiceV2.buildMessengerMha(param);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("buildMessengerMha exception. req: " + param, e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @PostMapping("")
     public String buildDrc(@RequestBody DrcBuildParam param) {
         if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {

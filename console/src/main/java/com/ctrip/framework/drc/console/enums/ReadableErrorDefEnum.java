@@ -8,6 +8,7 @@ package com.ctrip.framework.drc.console.enums;
 public enum ReadableErrorDefEnum implements IErrorDef {
 
     REQUEST_PARAM_INVALID("REQUEST_PARAM_INVALID", "invalid param! "),
+    FORBIDDEN_OPERATION("FORBIDDEN_OPERATION", "forbidden operation"),
     DELETE_TBL_CHECK_FAIL_EXCEPTION("DELETE_TBL_CHECK_FAIL_EXCEPTION", "delete exception, please contact devops"),
 
     /**
@@ -35,6 +36,9 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
 
 
+    TIMEOUT_EXCEPTION("TIMEOUT_EXCEPTION", "timeout"),
+
+    UNKNOWN_EXCEPTION("UNKNOWN_EXCEPTION", "unknown exception, please contact devops"),
     ;
 
 

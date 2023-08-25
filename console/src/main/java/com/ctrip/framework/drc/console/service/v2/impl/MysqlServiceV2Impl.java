@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -62,13 +63,23 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/lastUpdateTime")
-    public Long getDelayUpdateTime(String mha, String srcMha) {
+    public Long getDelayUpdateTime(String srcMha, String mha) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
         if (endpoint == null) {
             logger.warn("[[tag=delayQuery]] delayQuery from mha {},machine not exist", mha);
             return null;
         }
         return MySqlUtils.getDelayUpdateTime(endpoint, srcMha);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/currentTime")
+    public Long getCurrentTime(String mhaName) {
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint == null) {
+            throw new IllegalArgumentException("no machine find for" + mhaName);
+        }
+        return MySqlUtils.getCurrentTime(mySqlEndpoint);
     }
 
     @Override
@@ -120,6 +131,21 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.GET_MYSQL_ENDPOINT_NULL, "no machine find for: " + mhaName);
         }
         return MySqlUtils.getTablesAfterRegexFilter(mySqlEndpoint, new AviatorRegexFilter(nameFilter));
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/getAnyMatchTable", responseType = TableSchemaListApiResult.class)
+    public List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, String nameFilters) {
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mhaName);
+        if (mySqlEndpoint == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.GET_MYSQL_ENDPOINT_NULL, "no machine find for: " + mhaName);
+        }
+        List<String> nameFiltersList = Lists.newArrayList(nameFilters.split(","));
+        if (CollectionUtils.isEmpty(nameFiltersList)) {
+            return Collections.emptyList();
+        }
+        List<AviatorRegexFilter> filterList = nameFiltersList.stream().distinct().map(AviatorRegexFilter::new).collect(Collectors.toUnmodifiableList());
+        return MySqlUtils.getTablesMatchAnyRegexFilter(mySqlEndpoint, filterList);
     }
 
     @Override

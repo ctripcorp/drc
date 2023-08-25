@@ -94,6 +94,7 @@ public class MySqlUtils {
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE JSON_EXTRACT(dest_ip, \"$.m\") = '%s'";
+    private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
@@ -179,6 +180,20 @@ public class MySqlUtils {
                 collect(Collectors.toList());
     }
 
+    public static List<TableSchemaName> getTablesMatchAnyRegexFilter(Endpoint endpoint, List<AviatorRegexFilter> aviatorRegexFilters) {
+        List<TableSchemaName> tables = getDefaultTables(endpoint);
+        return tables.stream()
+                .filter(tableSchemaName -> !DRC_MONITOR_DB.equals(tableSchemaName.getSchema()))
+                .filter(tableSchemaName -> {
+                    for (AviatorRegexFilter aviatorRegexFilter : aviatorRegexFilters) {
+                        if (aviatorRegexFilter.filter(tableSchemaName.getDirectSchemaTableName())) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.toList());
+    }
+
     /**
      * @param endpoint
      * @return key: database.table, value: DelayMonitorConfig objects
@@ -208,17 +223,32 @@ public class MySqlUtils {
 
     public static Long getDelayUpdateTime(Endpoint endpoint, String mha) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        SimpleDateFormat formatter = dateFormatThreadLocal.get();
         String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha);
         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
-                return formatter.parse(datachangeLasttimeStr).getTime();
+                return dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime();
             }
         } catch (Throwable e) {
             logger.error("[[endpoint={}:{}]] getDelay({}) error: ", endpoint.getHost(), endpoint.getPort(), sql, e);
+            removeSqlOperator(endpoint);
+        }
+        return null;
+    }
+
+    public static Long getCurrentTime(Endpoint endpoint) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        GeneralSingleExecution execution = new GeneralSingleExecution(SELECT_CURRENT_TIMESTAMP);
+        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            ResultSet rs = readResource.getResultSet();
+            if (rs.next()) {
+                String nowTime = rs.getString(1);
+                return dateFormatThreadLocal.get().parse(nowTime).getTime();
+            }
+        } catch (Throwable e) {
+            logger.error("[[endpoint={}:{}]] getCurrentTime({}) error: ", endpoint.getHost(), endpoint.getPort(), SELECT_CURRENT_TIMESTAMP, e);
             removeSqlOperator(endpoint);
         }
         return null;
@@ -398,7 +428,7 @@ public class MySqlUtils {
         }
         return tablesWithoutOnUpdate;
     }
-    
+
     @Deprecated
     public static List<String> checkOnUpdateKey(Endpoint endpoint) {
         List<TableSchemaName> tableSchemaNames = getDefaultTables(endpoint);
@@ -810,5 +840,17 @@ public class MySqlUtils {
             return String.format("%s.%s", schema, name);
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof TableSchemaName)) return false;
+            TableSchemaName that = (TableSchemaName) o;
+            return Objects.equals(schema, that.schema) && Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(schema, name);
+        }
     }
 }

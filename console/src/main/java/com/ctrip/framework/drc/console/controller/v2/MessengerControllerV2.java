@@ -64,6 +64,22 @@ public class MessengerControllerV2 {
         }
     }
 
+    @DeleteMapping("deleteMha")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName) {
+        try {
+            if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
+                return ApiResult.getFailInstance(false, "not allowed");
+            }
+            logger.info("removeMessengerGroupInMha in mha:{}", mhaName);
+            messengerService.removeMessengerGroup(mhaName);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Throwable e) {
+            logger.error("removeMessengerGroupInMha in mha:" + mhaName, e);
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("queryConfigs")
     @SuppressWarnings("unchecked")
     public ApiResult<List<MqConfigVo>> getAllMqConfigsByMhaName(@RequestParam(name = "mhaName") String mhaName) {

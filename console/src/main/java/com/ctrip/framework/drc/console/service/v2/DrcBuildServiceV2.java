@@ -16,6 +16,8 @@ public interface DrcBuildServiceV2 {
 
     void buildMha(DrcMhaBuildParam param) throws Exception;
 
+    void buildMessengerMha(MessengerMhaBuildParam param) throws Exception;
+
     String buildDrc(DrcBuildParam param) throws Exception;
 
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;

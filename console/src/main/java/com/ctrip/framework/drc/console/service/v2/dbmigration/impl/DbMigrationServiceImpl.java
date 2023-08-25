@@ -6,6 +6,8 @@ import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -15,10 +17,12 @@ import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
+import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -41,6 +45,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -90,6 +95,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private DcTblDao dcTblDao;
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
+    @Autowired
+    MhaReplicationServiceV2 mhaReplicationServiceV2;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -439,18 +446,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return mhaTblV2Dao.queryByIds(anotherMhaDbMappingTblsInSrc.stream().map(MhaDbMappingTbl::getMhaId)
                         .collect(Collectors.toList()));
     }
-    
-    @Override
-    public PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query) {
-        try {
-            List<MigrationTaskTbl> data = migrationTaskTblDao.queryByPage(query);
-            int count = migrationTaskTblDao.count(query);
-            return PageResult.newInstance(data, query.getPageIndex(), query.getPageSize(), count);
-        } catch (SQLException e) {
-            logger.error("queryByPage error", e);
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }
-    }
 
     @Override
     public void offlineOldDrcConfig(long taskId) throws Exception {
@@ -740,4 +735,70 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         PreconditionUtils.checkArgument(dbMigrationRequest.getNewMha().getMasterPort() != 0, "newMha masterPort is 0");
     }
 
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public String getAndUpdateTaskStatus(Long taskId) {
+        try {
+            MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
+            if (migrationTaskTbl == null) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "task not exist: " + taskId);
+            }
+            // not STARTING or READY_TO_SWITCH_DAL status, return
+            List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+            if (!statusList.contains(migrationTaskTbl.getStatus())) {
+                return migrationTaskTbl.getStatus();
+            }
+
+            List<String> dbNames = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class);
+            String oldMha = migrationTaskTbl.getOldMha();
+            String newMha = migrationTaskTbl.getNewMha();
+
+            // 1. get mha delay info
+            List<MhaReplicationDto> all = Lists.newArrayList();
+            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames));
+            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames));
+            all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
+
+            List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
+            logger.info("task({}) delay info: {}", taskId, delayInfos);
+            if (delayInfos.stream().anyMatch(e -> e.getDelay() == null)) {
+                throw new ConsoleException("query delay fail");
+            }
+
+            // 2. ready condition: all related mha delay < 10s (given by DBA)
+            List<MhaDelayInfoDto> notReadyList = delayInfos.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
+            boolean allReady = CollectionUtils.isEmpty(notReadyList);
+
+            String currStatus = migrationTaskTbl.getStatus();
+            String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
+            boolean needUpdate = !targetStatus.equals(currStatus);
+            if (needUpdate) {
+                migrationTaskTbl.setStatus(targetStatus);
+                migrationTaskTblDao.update(migrationTaskTbl);
+            }
+            return targetStatus;
+        } catch (SQLException e) {
+            logger.error("queryAndPushToReadyIfPossible error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        } catch (Throwable e) {
+            logger.error("queryAndPushToReadyIfPossible error", e);
+            if (e instanceof ConsoleException) {
+                throw e;
+            }
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public PageResult<MigrationTaskTbl> queryByPage(MigrationTaskQuery query) {
+        try {
+            List<MigrationTaskTbl> data = migrationTaskTblDao.queryByPage(query);
+            int count = migrationTaskTblDao.count(query);
+            return PageResult.newInstance(data, query.getPageIndex(), query.getPageSize(), count);
+        } catch (SQLException e) {
+            logger.error("queryByPage error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
 }

@@ -1,36 +1,42 @@
 package com.ctrip.framework.drc.console.vo.display.v2;
 
-import com.ctrip.framework.drc.console.dto.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 
 public class DelayInfoVo {
 
-    private Long srcLastUpdateTime;
-    private Long dstLastUpdateTime;
-    private Long nowTime;
-    private Long value;
+    String srcMha;
+    String dstMha;
+    private Long delay;
 
-    public Long getSrcLastUpdateTime() {
-        return srcLastUpdateTime;
+    public String getSrcMha() {
+        return srcMha;
     }
 
-    public Long getDstLastUpdateTime() {
-        return dstLastUpdateTime;
+    public void setSrcMha(String srcMha) {
+        this.srcMha = srcMha;
     }
 
-    public Long getValue() {
-        return value;
+    public String getDstMha() {
+        return dstMha;
     }
 
-    public Long getNowTime() {
-        return nowTime;
+    public void setDstMha(String dstMha) {
+        this.dstMha = dstMha;
     }
 
-    public static DelayInfoVo from(MhaDelayInfoDto mhaReplicationDelay) {
+    public Long getDelay() {
+        return delay;
+    }
+
+    public void setDelay(Long delay) {
+        this.delay = delay;
+    }
+
+    public static DelayInfoVo from(MhaDelayInfoDto dto) {
         DelayInfoVo vo = new DelayInfoVo();
-        vo.srcLastUpdateTime = mhaReplicationDelay.getSrcLastUpdateTime();
-        vo.dstLastUpdateTime = mhaReplicationDelay.getDstLastUpdateTime();
-        vo.value = mhaReplicationDelay.getValue();
-        vo.nowTime = mhaReplicationDelay.getNowTime();
+        vo.setDelay(dto.getDelay());
+        vo.setDstMha(dto.getDstMha());
+        vo.setSrcMha(dto.getSrcMha());
         return vo;
     }
 }

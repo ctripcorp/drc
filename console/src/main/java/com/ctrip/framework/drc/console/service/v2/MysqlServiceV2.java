@@ -19,7 +19,7 @@ public interface MysqlServiceV2 {
     String getMhaPurgedGtid(String mha);
 
     // query (sourceMhaName) delay monitor info in (mha)
-    Long getDelayUpdateTime(String mhaName, String sourceMhaName);
+    Long getDelayUpdateTime(String sourceMhaName, String mhaName);
 
     // route By mha
     Map<String, Object> preCheckMySqlConfig(String mha) ;
@@ -28,6 +28,9 @@ public interface MysqlServiceV2 {
     List<TableCheckVo> preCheckMySqlTables(String mha, String nameFilter);
 
     List<MySqlUtils.TableSchemaName> getMatchTable(String mhaName,String nameFilter);
+
+    // nameFilters: split with ','
+    List<MySqlUtils.TableSchemaName> getAnyMatchTable(String mhaName, String nameFilters);
 
     // route By mha
     List<String> queryDbsWithNameFilter(String mha, String nameFilter);
@@ -39,4 +42,6 @@ public interface MysqlServiceV2 {
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
+
+    Long getCurrentTime(String srcMha);
 }

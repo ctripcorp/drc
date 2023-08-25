@@ -131,18 +131,52 @@ public class MysqlController {
         }
     }
 
+    @GetMapping("getAnyMatchTable")
+    public ApiResult getAnyMatchTable(@RequestParam String mhaName,
+                                      @RequestParam String nameFilters) {
+        try {
+            List<MySqlUtils.TableSchemaName> matchTables = mysqlServiceV2.getAnyMatchTable(mhaName, nameFilters);
+            return ApiResult.getSuccessInstance(matchTables);
+        } catch (Exception e) {
+            logger.warn("[[tag=matchTable]] error when get {} from {}", nameFilters, mhaName, e);
+            if (e instanceof CompileExpressionErrorException) {
+                return ApiResult.getFailInstance("expression error");
+            } else if (e instanceof IllegalArgumentException) {
+                return ApiResult.getFailInstance("no machine find for " + mhaName);
+            } else {
+                return ApiResult.getFailInstance("other error see log");
+            }
+        }
+    }
+
     @GetMapping("lastUpdateTime")
     @SuppressWarnings("unchecked")
-    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String mha, @RequestParam String srcMha) {
+    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha) {
         logger.info("getMhaLastUpdateTime: {} for {}", srcMha, mha);
         try {
             if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha)) {
                 return ApiResult.getFailInstance(null, "mha name should not be blank!");
             }
-            Long time = mysqlServiceV2.getDelayUpdateTime(mha.trim(), srcMha.trim());
+            Long time = mysqlServiceV2.getDelayUpdateTime(srcMha.trim(), mha.trim());
             return ApiResult.getSuccessInstance(time);
         } catch (Throwable e) {
             logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("currentTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Long> getMhaCurrentTime(@RequestParam String mha) {
+        logger.info("getMhaLastUpdateTime: {}", mha);
+        try {
+            if (StringUtils.isBlank(mha)) {
+                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            }
+            Long time = mysqlServiceV2.getCurrentTime(mha.trim());
+            return ApiResult.getSuccessInstance(time);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaLastUpdateTime error: %s", mha), e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }

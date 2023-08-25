@@ -683,8 +683,8 @@ export default {
     getTableData: function (response) {
       return response.map(item => {
         return {
-          directSchemaTableName: item.schema + '.' + item.table,
-          name: item.table,
+          directSchemaTableName: item.directSchemaTableName,
+          name: item.name,
           schema: item.schema
         }
       })
@@ -697,9 +697,9 @@ export default {
         return
       }
       this.checkDbTableLoading = true
-      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables', {
+      this.axios.get('/api/drc/v2/mysql/getMatchTable', {
         params: {
-          mha: this.drc.mhaName,
+          mhaName: this.drc.mhaName,
           nameFilter:
             this.topic.db + '.' + this.topic.table
         }
