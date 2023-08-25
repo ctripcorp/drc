@@ -765,6 +765,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             if (migrationTaskTbl == null) {
                 throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "task not exist: " + taskId);
             }
+            // not STARTING or READY_TO_SWITCH_DAL status, return
             List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
             if (!statusList.contains(migrationTaskTbl.getStatus())) {
                 return migrationTaskTbl.getStatus();
@@ -774,14 +775,19 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String oldMha = migrationTaskTbl.getOldMha();
             String newMha = migrationTaskTbl.getNewMha();
 
+            // 1. get mha delay info
             List<MhaReplicationDto> all = Lists.newArrayList();
             all.addAll(mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames));
             all.addAll(mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames));
             all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
 
-            // query delay
             List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("task({}) delay info: {}", taskId, delayInfos);
+            if (delayInfos.stream().anyMatch(e -> e.getDelay() == null)) {
+                throw new ConsoleException("query delay fail");
+            }
+
+            // 2. ready condition: all related mha delay < 10s (given by DBA)
             List<MhaDelayInfoDto> notReadyList = delayInfos.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             boolean allReady = CollectionUtils.isEmpty(notReadyList);
 
@@ -796,8 +802,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         } catch (SQLException e) {
             logger.error("queryAndPushToReadyIfPossible error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        }catch (Throwable e){
+        } catch (Throwable e) {
             logger.error("queryAndPushToReadyIfPossible error", e);
+            if (e instanceof ConsoleException) {
+                throw e;
+            }
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
         }
     }
