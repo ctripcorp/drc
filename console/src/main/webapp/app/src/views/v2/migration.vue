@@ -126,7 +126,7 @@ export default {
           title: 'DB',
           key: 'srcMhaName',
           render: (h, params) => {
-            return h('p', params.row.dbs)
+            return h('p', params.row.dbs.join(','))
           }
         },
         {
@@ -157,6 +157,7 @@ export default {
       size: 10,
       // query param
       queryParam: {
+        dbName: '',
         oldMha: '',
         newMha: '',
         status: '',

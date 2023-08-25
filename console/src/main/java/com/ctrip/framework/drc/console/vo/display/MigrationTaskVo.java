@@ -2,10 +2,13 @@ package com.ctrip.framework.drc.console.vo.display;
 
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+
+import java.util.List;
 
 public class MigrationTaskVo {
     private Long id;
-    private String dbs;
+    private List<String> dbs;
     private String oldMha;
     private String newMha;
     private String oldMhaDba;
@@ -51,11 +54,11 @@ public class MigrationTaskVo {
         this.id = id;
     }
 
-    public String getDbs() {
+    public List<String> getDbs() {
         return dbs;
     }
 
-    public void setDbs(String dbs) {
+    public void setDbs(List<String> dbs) {
         this.dbs = dbs;
     }
 
@@ -94,7 +97,7 @@ public class MigrationTaskVo {
     public static MigrationTaskVo from(MigrationTaskTbl tbl) {
         MigrationTaskVo vo = new MigrationTaskVo();
         vo.setId(tbl.getId());
-        vo.setDbs(tbl.getDbs());
+        vo.setDbs(JsonUtils.fromJsonToList(tbl.getDbs(), String.class));
         vo.setOldMha(tbl.getOldMha());
         vo.setNewMha(tbl.getNewMha());
         vo.setStatus(tbl.getStatus());
