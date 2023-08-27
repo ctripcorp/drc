@@ -22,7 +22,7 @@ public class MhaReplicationDto {
      */
     private Integer status;
 
-    private Long delay;
+    private MhaDelayInfoDto delayInfoDto;
 
     public static MhaReplicationDto from(MhaReplicationTbl e, Map<Long, MhaTblV2> mhaMap) {
         MhaReplicationDto dto = new MhaReplicationDto();
@@ -120,12 +120,12 @@ public class MhaReplicationDto {
         this.status = status;
     }
 
-    public Long getDelay() {
-        return delay;
+    public MhaDelayInfoDto getDelayInfoDto() {
+        return delayInfoDto;
     }
 
-    public void setDelay(Long delay) {
-        this.delay = delay;
+    public void setDelayInfoDto(MhaDelayInfoDto delayInfoDto) {
+        this.delayInfoDto = delayInfoDto;
     }
 
     @Override

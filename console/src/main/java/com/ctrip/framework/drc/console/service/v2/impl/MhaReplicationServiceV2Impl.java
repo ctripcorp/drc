@@ -16,7 +16,6 @@ import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
-import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
@@ -98,18 +97,17 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             }
             List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
             List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaId(dbIds, mhaTblV2.getId());
+            if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+                return Collections.emptyList();
+            }
 
             //dbReplications, mhaReplications
             List<Long> mappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
-            List<DbReplicationTbl> srcReplication = dbReplicationTblDao.queryBySrcMappingIds(mappingIds, ReplicationTypeEnum.DB_TO_DB.getType())
+            List<DbReplicationTbl> relatedDbReplications = dbReplicationTblDao.queryByRelatedMappingIds(mappingIds, ReplicationTypeEnum.DB_TO_DB.getType())
                     .stream().filter(StreamUtils.distinctByKey(p -> p.getSrcMhaDbMappingId() + "," + p.getDstMhaDbMappingId())).collect(Collectors.toList());
-            List<DbReplicationTbl> dstReplication = dbReplicationTblDao.queryByDestMappingIds(mappingIds, ReplicationTypeEnum.DB_TO_DB.getType())
-                    .stream().filter(StreamUtils.distinctByKey(p -> p.getSrcMhaDbMappingId() + "," + p.getDstMhaDbMappingId())).collect(Collectors.toList());
-
 
             List<MhaReplicationDto> replicationDtoList = Lists.newArrayList();
-            replicationDtoList.addAll(this.queryMhaReplicationFromDbReplication(srcReplication));
-            replicationDtoList.addAll(this.queryMhaReplicationFromDbReplication(dstReplication));
+            replicationDtoList.addAll(this.queryMhaReplicationFromDbReplication(relatedDbReplications));
 
             // build mha dto
             List<MhaDto> mhaDtoList = Lists.newArrayList();
@@ -131,14 +129,18 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
     }
 
     private List<MhaReplicationDto> queryMhaReplicationFromDbReplication(List<DbReplicationTbl> dbReplication) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplication)) {
+            return Collections.emptyList();
+        }
         List<Long> allMappingIds = Lists.newArrayList();
         allMappingIds.addAll(dbReplication.stream().map(DbReplicationTbl::getSrcMhaDbMappingId).collect(Collectors.toList()));
         allMappingIds.addAll(dbReplication.stream().map(DbReplicationTbl::getDstMhaDbMappingId).collect(Collectors.toList()));
+        allMappingIds = allMappingIds.stream().distinct().collect(Collectors.toList());
 
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByIds(allMappingIds);
-        List<Long> dbIds = mhaDbMappingTbls.stream().map(e -> e.getDbId()).collect(Collectors.toList());
+        List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryByIds(dbIds);
-        Map<Long, DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, e -> e));
+        Map<Long, DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, Function.identity()));
         Map<Long, MhaDbMappingTbl> mappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
         Map<String, MhaReplicationDto> mhaReplicationMap = Maps.newHashMap();
         for (DbReplicationTbl dbReplicationTbl : dbReplication) {
@@ -163,37 +165,27 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     @Override
     public MhaDelayInfoDto getMhaReplicationDelay(String srcMha, String dstMha) {
-        try {
-            // check
-            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(srcMha, dstMha), BooleanEnum.FALSE.getCode());
-            MhaTblV2 srcMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(srcMha)).findAny()
-                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + srcMha));
-            MhaTblV2 dstMhaTbl = mhaTblV2List.stream().filter(e -> e.getMhaName().equals(dstMha)).findAny()
-                    .orElseThrow(() -> ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "mha not found: " + dstMha));
+        MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
+        delayInfoDto.setDstMha(dstMha);
+        delayInfoDto.setSrcMha(srcMha);
 
-            // query dst first, result could be larger than original
-            long start = System.currentTimeMillis();
-            Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
-            logger.info("[delay query] dstMha:{}, dstTime:{}, cost:{}", dstMha, dstTime, System.currentTimeMillis() - start);
+        // query dst first, result could be larger than original
+        long start = System.currentTimeMillis();
+        Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
+        logger.info("[delay query] dstMha:{}, dstTime:{}, cost:{}", dstMha, dstTime, System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
 
-            start = System.currentTimeMillis();
-            Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
-            logger.info("[delay query] srcMha:{}, srcTime:{}, cost:{}", srcMha, srcTime, System.currentTimeMillis() - start);
+        Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
+        logger.info("[delay query] srcMha:{}, srcTime:{}, cost:{}", srcMha, srcTime, System.currentTimeMillis() - start);
+        Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
 
-            Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
-
-            Long delay = null;
-            if (currentTime != null && srcTime != null && dstTime != null) {
-                delay = Math.max(currentTime, srcTime) - dstTime;
-            }
-            MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
-            delayInfoDto.setSrcMha(srcMha);
-            delayInfoDto.setDstMha(dstMha);
-            delayInfoDto.setDelay(delay);
-            return delayInfoDto;
-        } catch (SQLException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        if (currentTime != null && srcTime != null) {
+            srcTime = Math.max(srcTime, currentTime);
         }
+
+        delayInfoDto.setSrcTime(srcTime);
+        delayInfoDto.setDstTime(dstTime);
+        return delayInfoDto;
     }
 
 

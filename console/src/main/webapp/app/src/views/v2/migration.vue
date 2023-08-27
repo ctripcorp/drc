@@ -118,24 +118,49 @@ export default {
           }
         },
         {
+          title: 'delay',
+          key: 'delay',
+          render: (h, params) => {
+            const delayInfo = params.row.delayInfoDto
+            const delay = delayInfo.delay
+            let color
+            let text
+            let extraInfo
+            if (delay != null) {
+              if (delay < 10000) {
+                color = 'blue'
+                text = delay + 'ms'
+              } else {
+                color = 'volcano'
+                text = delay + 'ms'
+                const srcTime = new Date(delayInfo.srcTime)
+                const dstTime = new Date(delayInfo.dstTime)
+                extraInfo = '源集群: ' + srcTime.toLocaleDateString() + ' ' + srcTime.toLocaleTimeString() + '\n' +
+                  '端集群: ' + dstTime.toLocaleDateString() + ' ' + dstTime.toLocaleTimeString()
+              }
+            } else {
+              color = 'volcano'
+              text = '查询失败'
+            }
+            return h('div', [
+              h('Tag', {
+                props: {
+                  color: color
+                }
+              }, text),
+              h('div', {
+                style: {
+                  'white-space': 'pre-wrap'
+                }
+              }, extraInfo)
+            ])
+          }
+        },
+        {
           title: 'dbs',
           key: 'dbs',
           render: (h, params) => {
             return h('p', params.row.dbs.join(','))
-          }
-        },
-        {
-          title: 'delay',
-          key: 'delay',
-          render: (h, params) => {
-            const delay = params.row.delay
-            const color = delay && delay < 10000 ? 'blue' : 'volcano'
-            const text = delay ? delay + 'ms' : '查询失败'
-            return h('Tag', {
-              props: {
-                color: color
-              }
-            }, text)
           }
         }
       ],

@@ -190,14 +190,14 @@ public class MhaReplicationController {
             res.addAll(mhaReplicationServiceV2.queryRelatedReplications(mha2, dbs));
             res = res.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(res);
-            Map<String, Long> delayMap = mhaReplicationDelays.stream().filter(e -> e.getDelay() != null).collect(Collectors.toMap(
+            Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(e -> e.getDelay() != null).collect(Collectors.toMap(
                     e -> e.getSrcMha() + "-" + e.getDstMha(),
-                    MhaDelayInfoDto::getDelay,
+                    Function.identity(),
                     (e1, e2) -> e1)
             );
             res.forEach(e -> {
                 String key = e.getSrcMha().getName() + "-" + e.getDstMha().getName();
-                e.setDelay(delayMap.get(key));
+                e.setDelayInfoDto(delayMap.get(key));
             });
             return ApiResult.getSuccessInstance(res);
 
