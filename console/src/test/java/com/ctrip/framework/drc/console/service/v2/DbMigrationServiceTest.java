@@ -267,7 +267,9 @@ public class DbMigrationServiceTest {
             MhaDelayInfoDto dto = new MhaDelayInfoDto();
             dto.setSrcMha(e.getSrcMha().getName());
             dto.setDstMha(e.getDstMha().getName());
-            dto.setDelay((long) new Random().nextInt((int) TimeUnit.SECONDS.toMillis(10)));
+            long delay = new Random().nextInt((int) TimeUnit.SECONDS.toMillis(10));
+            dto.setSrcTime(new Date().getTime());
+            dto.setDstTime(dto.getSrcTime() + delay);
             return dto;
         }).collect(Collectors.toList());
     }
@@ -277,7 +279,9 @@ public class DbMigrationServiceTest {
             MhaDelayInfoDto dto = new MhaDelayInfoDto();
             dto.setSrcMha(e.getSrcMha().getName());
             dto.setDstMha(e.getDstMha().getName());
-            dto.setDelay(TimeUnit.SECONDS.toMillis(20));
+            long delay = TimeUnit.SECONDS.toMillis(20);
+            dto.setSrcTime(new Date().getTime());
+            dto.setDstTime(dto.getSrcTime() + delay);
             return dto;
         }).collect(Collectors.toList());
     }

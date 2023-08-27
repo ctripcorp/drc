@@ -321,6 +321,13 @@ public class CommonDataInit {
             return dbReplicationTbls.stream().filter(e -> dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId()) && replicationType.equals(e.getReplicationType()))
                     .collect(Collectors.toList());
         });
+        when(dbReplicationTblDao.queryByRelatedMappingIds(anyList(), anyInt())).thenAnswer(i -> {
+            List relatedIds = i.getArgument(0, List.class);
+            Integer replicationType = i.getArgument(1, Integer.class);
+            return dbReplicationTbls.stream().filter(e -> (relatedIds.contains(e.getSrcMhaDbMappingId()) || relatedIds.contains(e.getDstMhaDbMappingId()))
+                            && replicationType.equals(e.getReplicationType()))
+                    .collect(Collectors.toList());
+        });
         when(dbReplicationTblDao.queryByMappingIds(anyList(), anyList(), anyInt())).thenAnswer(i -> {
             List srcMhaDbMappingIds = i.getArgument(0, List.class);
             List dstMhaDbMappingIds = i.getArgument(1, List.class);
