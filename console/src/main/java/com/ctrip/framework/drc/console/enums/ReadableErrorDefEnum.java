@@ -20,6 +20,9 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     GET_MYSQL_ENDPOINT_NULL("GET_MYSQL_ENDPOINT_NULL", "mysql endpoint null"),
 
 
+    QUERY_MHA_DELAY_FAIL("QUERY_MHA_DELAY_FAIL", "query delay fail"),
+
+
     /**
      * common dao exception
      */

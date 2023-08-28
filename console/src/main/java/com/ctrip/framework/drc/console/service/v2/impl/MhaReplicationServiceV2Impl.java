@@ -169,20 +169,20 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         delayInfoDto.setDstMha(dstMha);
         delayInfoDto.setSrcMha(srcMha);
 
-        // query dst first, result could be larger than original
-        long start = System.currentTimeMillis();
+        // query dst first (result could be larger than querying src first)
         Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
-        logger.info("[delay query] dstMha:{}, dstTime:{}, cost:{}", dstMha, dstTime, System.currentTimeMillis() - start);
-        start = System.currentTimeMillis();
-
-        Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
-        logger.info("[delay query] srcMha:{}, srcTime:{}, cost:{}", srcMha, srcTime, System.currentTimeMillis() - start);
-        Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
-
-        if (currentTime != null && srcTime != null) {
-            srcTime = Math.max(srcTime, currentTime);
+        if (dstTime == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query dstTime fail: %s->%s", srcMha, dstMha));
         }
-
+        Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
+        if (srcTime == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query srcTime fail: %s->%s", srcMha, dstMha));
+        }
+        Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
+        if (currentTime == null) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query currentTime fail: %s->%s", srcMha, dstMha));
+        }
+        srcTime = Math.max(srcTime, currentTime);
         delayInfoDto.setSrcTime(srcTime);
         delayInfoDto.setDstTime(dstTime);
         return delayInfoDto;
@@ -198,13 +198,13 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
         try {
             List<MhaDelayInfoDto> res = Lists.newArrayList();
-            List<Future<MhaDelayInfoDto>> futures = executorService.invokeAll(list, 3, TimeUnit.SECONDS);
+            List<Future<MhaDelayInfoDto>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
             for (Future<MhaDelayInfoDto> future : futures) {
                 res.add(future.get());
             }
             return res;
         } catch (InterruptedException | ExecutionException e) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.TIMEOUT_EXCEPTION, e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
         }
     }
 }
