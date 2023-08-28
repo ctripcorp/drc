@@ -327,8 +327,7 @@ export default {
       this.replicationDetail.data = []
       this.axios.get('/api/drc/v2/replication/relatedReplicationDelay', {
         params: {
-          mha1: row.oldMha,
-          mha2: row.newMha,
+          mhas: [row.oldMha, row.newMha].join(','),
           dbs: row.dbs.join(',')
         }
       }).then(response => {

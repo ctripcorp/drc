@@ -178,14 +178,13 @@ public class MhaReplicationController {
 
     @GetMapping("relatedReplicationDelay")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<MhaReplicationDto>> queryDetail(@RequestParam(name = "mha1") String mha1,
-                                                    @RequestParam(name = "mha2") String mha2,
-                                                    @RequestParam(name = "dbs") List<String> dbs) {
-        if (StringUtils.isBlank(mha1) || StringUtils.isBlank(mha2) || CollectionUtils.isEmpty(dbs)) {
+    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestParam(name = "mhas") List<String> mhas,
+                                                                           @RequestParam(name = "dbs") List<String> dbs) {
+        if (CollectionUtils.isEmpty(mhas) || CollectionUtils.isEmpty(dbs)) {
             return ApiResult.getSuccessInstance(Collections.emptyList());
         }
         try {
-            List<MhaReplicationDto> res = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mha1, mha2), dbs);
+            List<MhaReplicationDto> res = mhaReplicationServiceV2.queryRelatedReplications(mhas, dbs);
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(res);
             Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(e -> e.getDelay() != null).collect(Collectors.toMap(
                     e -> e.getSrcMha() + "-" + e.getDstMha(),
@@ -199,9 +198,8 @@ public class MhaReplicationController {
             return ApiResult.getSuccessInstance(res);
 
         } catch (Throwable e) {
-            logger.error("queryByPage error", e);
-            throw e;
-//            return ApiResult.getFailInstance(null, e.getMessage());
+            logger.error("queryRelatedReplicationDelay error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 
