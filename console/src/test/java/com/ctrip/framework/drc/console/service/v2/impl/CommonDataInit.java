@@ -234,7 +234,6 @@ public class CommonDataInit {
         });
 
 
-
         // messengerGroupTbl
         List<MessengerGroupTbl> messengerGroupTbls = this.getData("MessengerGroupTbl.json", MessengerGroupTbl.class);
         when(messengerGroupTblDao.queryBy(any())).thenReturn(messengerGroupTbls);
@@ -246,6 +245,11 @@ public class CommonDataInit {
             Long mhaId = i.getArgument(0, Long.class);
             Integer deleted = i.getArgument(1, Integer.class);
             return messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId) && e.getDeleted().equals(deleted)).findFirst().orElse(null);
+        });
+        when(messengerGroupTblDao.queryByMhaIds(anyList(), anyInt())).thenAnswer(i -> {
+            List<Long> mhaIds = i.getArgument(0, List.class);
+            Integer deleted = i.getArgument(1, Integer.class);
+            return messengerGroupTbls.stream().filter(e -> mhaIds.contains(e.getMhaId()) && e.getDeleted().equals(deleted)).collect(Collectors.toList());
         });
         when(messengerGroupTblDao.queryByPk(anyLong())).thenAnswer(i -> {
             Long id = i.getArgument(0, Long.class);
@@ -277,7 +281,6 @@ public class CommonDataInit {
             return mhaTblV2List.stream().filter(e -> mhaNames.contains(e.getMhaName()) && deleted.equals(e.getDeleted()))
                     .collect(Collectors.toList());
         });
-
 
 
         // MhaDbMappingTbl

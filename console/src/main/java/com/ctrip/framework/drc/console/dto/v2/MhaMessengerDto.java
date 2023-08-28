@@ -52,4 +52,24 @@ public class MhaMessengerDto {
         dto.dbs = new HashSet<>();
         return dto;
     }
+
+    public static MhaMessengerDto from(String srcMhaName) {
+        MhaMessengerDto dto = new MhaMessengerDto();
+
+        MhaDto srcMha = new MhaDto();
+        srcMha.setName(srcMhaName);
+        dto.setSrcMha(srcMha);
+        dto.setDbs(new HashSet<>());
+        return dto;
+    }
+
+    @Override
+    public String toString() {
+        return "MhaMessengerDto{" +
+                "messengerGroupId=" + messengerGroupId +
+                ", srcMha=" + srcMha +
+                ", dbs=" + dbs +
+                ", delayInfoDto=" + delayInfoDto +
+                '}';
+    }
 }

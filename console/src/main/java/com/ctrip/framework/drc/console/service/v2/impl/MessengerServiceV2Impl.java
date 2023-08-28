@@ -207,7 +207,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
         }
     }
 
-    public MhaDelayInfoDto getMhaMessengerDelay(String mha, HickWallMessengerDelayEntity delayEntity) {
+    private MhaDelayInfoDto getMhaMessengerDelay(String mha, HickWallMessengerDelayEntity delayEntity) {
         MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
         delayInfoDto.setSrcMha(mha);
 

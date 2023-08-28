@@ -68,7 +68,7 @@
 
 <script>
 // eslint-disable-next-line no-unused-vars
-import MhaGraph from '@/views/v2/mhaReplicationDetails.vue'
+import prettyMilliseconds from 'pretty-ms'
 import 'codemirror/theme/monokai.css'
 import 'codemirror/mode/xml/xml.js'
 
@@ -88,11 +88,11 @@ export default {
         let extraInfo = ''
         if (delay != null && delay < 10000) {
           color = 'blue'
-          text = delay + 'ms'
+          text = prettyMilliseconds(delay)
         } else {
           color = 'volcano'
           if (delay) {
-            text = delay + 'ms'
+            text = prettyMilliseconds(delay)
           } else if (srcMhaMonitorSwitch === 0) {
             text = '查询失败, 未打开延迟监控'
           } else {

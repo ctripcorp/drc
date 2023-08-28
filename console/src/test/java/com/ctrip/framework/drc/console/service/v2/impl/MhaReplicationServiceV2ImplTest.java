@@ -83,7 +83,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
     }
 
     @Test
-    public void testGetMhaReplicationSingleDelays() {
+    public void testGetMhaReplicationDelays() {
         String mha1 = "mha1";
         String mha2 = "mha2";
         String mha3 = "mha3";
