@@ -228,7 +228,7 @@ public class DbMigrationServiceTest {
             tbl.setStatus(status);
             Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
             List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
-            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyString(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
             String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
             Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
@@ -249,7 +249,7 @@ public class DbMigrationServiceTest {
             tbl.setStatus(status);
             Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
             List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
-            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyString(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
             String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
             Assert.assertEquals(MigrationStatusEnum.STARTING.getStatus(), currentStatus);
@@ -267,9 +267,9 @@ public class DbMigrationServiceTest {
             MhaDelayInfoDto dto = new MhaDelayInfoDto();
             dto.setSrcMha(e.getSrcMha().getName());
             dto.setDstMha(e.getDstMha().getName());
-            long delay = new Random().nextInt((int) TimeUnit.SECONDS.toMillis(10));
-            dto.setSrcTime(new Date().getTime());
-            dto.setDstTime(dto.getSrcTime() + delay);
+            long delay = new Random().nextInt((int) TimeUnit.SECONDS.toMillis(5));
+            dto.setDstTime(new Date().getTime());
+            dto.setSrcTime(dto.getDstTime() + delay);
             return dto;
         }).collect(Collectors.toList());
     }
@@ -280,8 +280,8 @@ public class DbMigrationServiceTest {
             dto.setSrcMha(e.getSrcMha().getName());
             dto.setDstMha(e.getDstMha().getName());
             long delay = TimeUnit.SECONDS.toMillis(20);
-            dto.setSrcTime(new Date().getTime());
-            dto.setDstTime(dto.getSrcTime() + delay);
+            dto.setDstTime(new Date().getTime());
+            dto.setSrcTime(dto.getDstTime() + delay);
             return dto;
         }).collect(Collectors.toList());
     }

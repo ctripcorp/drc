@@ -776,10 +776,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String newMha = migrationTaskTbl.getNewMha();
 
             // 1. get mha delay info
-            List<MhaReplicationDto> all = Lists.newArrayList();
-            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames));
-            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames));
-            all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
+            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
 
             List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, delayInfos);

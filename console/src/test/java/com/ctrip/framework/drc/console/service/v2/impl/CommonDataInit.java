@@ -298,11 +298,13 @@ public class CommonDataInit {
             Long mhaDbMappingId = i.getArgument(0, Long.class);
             return mhaDbMappingTbls.stream().filter(e -> mhaDbMappingId.equals(e.getId())).findFirst().orElse(null);
         });
-        when(mhaDbMappingTblDao.queryByDbIdsAndMhaId(anyList(), anyLong())).thenAnswer(i -> {
+
+
+        when(mhaDbMappingTblDao.queryByDbIdsAndMhaIds(anyList(), anyList())).thenAnswer(i -> {
             List<Long> dbIds = i.getArgument(0, List.class);
-            Long mhaId = i.getArgument(1, Long.class);
+            List<Long> mhaId = i.getArgument(1, List.class);
             return mhaDbMappingTbls.stream().filter(e -> {
-                return dbIds.contains(e.getDbId()) && mhaId.equals(e.getMhaId());
+                return dbIds.contains(e.getDbId()) && mhaId.contains(e.getMhaId());
             }).collect(Collectors.toList());
         });
 

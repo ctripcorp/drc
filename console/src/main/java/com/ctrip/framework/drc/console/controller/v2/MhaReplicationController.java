@@ -185,10 +185,7 @@ public class MhaReplicationController {
             return ApiResult.getSuccessInstance(Collections.emptyList());
         }
         try {
-            List<MhaReplicationDto> res = Lists.newArrayList();
-            res.addAll(mhaReplicationServiceV2.queryRelatedReplications(mha1, dbs));
-            res.addAll(mhaReplicationServiceV2.queryRelatedReplications(mha2, dbs));
-            res = res.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
+            List<MhaReplicationDto> res = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(mha1, mha2), dbs);
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(res);
             Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(e -> e.getDelay() != null).collect(Collectors.toMap(
                     e -> e.getSrcMha() + "-" + e.getDstMha(),

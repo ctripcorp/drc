@@ -85,18 +85,18 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
-
     @Override
-    public List<MhaReplicationDto> queryRelatedReplications(String mhaName, List<String> dbNames) {
+    public List<MhaReplicationDto> queryRelatedReplications(List<String> mhaNames, List<String> dbNames) {
         try {
             //oldMha + dbs -> related dbTbls, dbMhaMapping
-            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+            List<MhaTblV2> mhaTblV2 = mhaTblV2Dao.queryByMhaNames(mhaNames, BooleanEnum.FALSE.getCode());
             List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbNames);
-            if (mhaTblV2 == null || CollectionUtils.isEmpty(dbTbls)) {
+            if (CollectionUtils.isEmpty(mhaTblV2) || CollectionUtils.isEmpty(dbTbls)) {
                 return Collections.emptyList();
             }
             List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
-            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaId(dbIds, mhaTblV2.getId());
+            List<Long> mhaIds = mhaTblV2.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, mhaIds);
             if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
                 return Collections.emptyList();
             }
@@ -113,8 +113,9 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
             List<MhaDto> mhaDtoList = Lists.newArrayList();
             mhaDtoList.addAll(replicationDtoList.stream().map(MhaReplicationDto::getSrcMha).collect(Collectors.toList()));
             mhaDtoList.addAll(replicationDtoList.stream().map(MhaReplicationDto::getDstMha).collect(Collectors.toList()));
-            List<Long> mhaIds = mhaDtoList.stream().map(MhaDto::getId).collect(Collectors.toList());
-            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByIds(mhaIds);
+
+            List<Long> allMhaIds = mhaDtoList.stream().map(MhaDto::getId).collect(Collectors.toList());
+            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByIds(allMhaIds);
             Map<Long, MhaTblV2> mhaMap = mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
             mhaDtoList.forEach(e -> {
                 MhaTblV2 tbl = mhaMap.get(e.getId());
