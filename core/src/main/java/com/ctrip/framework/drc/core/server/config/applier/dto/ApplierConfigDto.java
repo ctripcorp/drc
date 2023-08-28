@@ -183,6 +183,33 @@ public class ApplierConfigDto extends ApplierMeta {
                 Objects.equals(properties, that.properties);
     }
 
+    public boolean equalsIgnoreProperties(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ApplierConfigDto)) return false;
+        if (!super.equals(o)) return false;
+        ApplierConfigDto that = (ApplierConfigDto) o;
+        if (StringUtils.isBlank(gtidExecuted) && StringUtils.isNotBlank(that.gtidExecuted)) return false;
+        return gaqSize == that.gaqSize &&
+                workerCount == that.workerCount &&
+                workerSize == that.workerSize &&
+                Objects.equals(replicator.ip, that.replicator.ip) &&
+                replicator.port == that.replicator.port &&
+                Objects.equals(target.ip, that.target.ip) &&
+                Objects.equals(includedDbs, that.includedDbs) &&
+                Objects.equals(nameFilter, that.nameFilter) &&
+                Objects.equals(nameMapping, that.nameMapping) &&
+                Objects.equals(routeInfo, that.routeInfo) &&
+                target.port == that.target.port &&
+                applyMode == that.applyMode &&
+                Objects.equals(properties, that.properties);
+    }
+
+    public boolean equalsProperties(Object o) {
+        ApplierConfigDto that = (ApplierConfigDto) o;
+        return Objects.equals(nameFilter, that.nameFilter) &&
+                Objects.equals(properties, that.properties);
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), gaqSize, workerCount, workerSize, replicator.ip, replicator.port, target.ip, includedDbs, nameFilter, nameMapping, routeInfo, target.port, applyMode, properties);

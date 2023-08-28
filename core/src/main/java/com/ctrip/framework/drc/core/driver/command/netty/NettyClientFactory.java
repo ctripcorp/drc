@@ -35,7 +35,7 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
 
     private NioEventLoopGroup eventLoopGroup;
 
-    protected Bootstrap b = new Bootstrap();
+    protected Bootstrap b;
 
     private String threadName;
 
@@ -51,6 +51,7 @@ public class NettyClientFactory extends AbstractStartStoppable implements Pooled
 
     @Override
     protected void doStart() throws Exception {
+        b = new Bootstrap();
         eventLoopGroup = new NioEventLoopGroup(1, XpipeThreadFactory.create(threadName));
         initBootstrap();
     }
