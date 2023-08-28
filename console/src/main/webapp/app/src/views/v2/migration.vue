@@ -29,7 +29,7 @@
               </Row>
             </Card>
           </Col>
-          <Col span="3">
+          <Col span="1">
             <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getMigrationTasks">查询</Button>
             <Button icon="md-refresh" @click="resetParam" :loading="dataLoading" style="margin-top: 20px">重置</Button>
           </Col>
@@ -200,7 +200,7 @@ export default {
         {
           title: '状态',
           key: 'status',
-          width: 100,
+          width: 150,
           align: 'center',
           render: (h, params) => {
             const row = params.row
