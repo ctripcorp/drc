@@ -55,8 +55,11 @@
             @on-change="getMigrationTasks"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
-        <Modal v-model="replicationDetail.show" title="相关 DRC 延迟" width="1200px">
-          <Table stripe :loading="dataLoading" :columns="detailColumn" :data="replicationDetail.data" border></Table>
+        <Modal v-model="replicationDetail.show"  width="1200px">
+          <Divider orientation="left">相关 DRC 延迟</Divider>
+          <Table stripe :loading="replicationDetail.mhaReplicationDataLoading" :columns="detailColumn" :data="replicationDetail.data" border></Table>
+          <Divider orientation="left">相关 Messenger 延迟</Divider>
+          <Table stripe :loading="replicationDetail.messengerDataLoading" :columns="messengerDetailColumn" :data="replicationDetail.messengerData" border></Table>
         </Modal>
       </div>
     </Content>
@@ -75,6 +78,52 @@ import 'codemirror/addon/fold/foldgutter.js'
 export default {
   name: 'Application',
   data () {
+    function renderDelay () {
+      return (h, params) => {
+        const delayInfo = params.row.delayInfoDto
+        const delay = delayInfo.delay
+        let color
+        let text
+        let extraInfo = ''
+        if (delay != null && delay < 10000) {
+          color = 'blue'
+          text = delay + 'ms'
+        } else {
+          color = 'volcano'
+          if (delay) {
+            text = delay + 'ms'
+          } else {
+            text = '查询失败'
+          }
+          if (delayInfo.srcTime) {
+            const srcTime = new Date(delayInfo.srcTime)
+            extraInfo += '源集群: ' + srcTime.toLocaleDateString() + ' ' + srcTime.toLocaleTimeString() + '\n'
+          }
+          if (delayInfo.dstTime) {
+            const dstTime = new Date(delayInfo.dstTime)
+            if (delayInfo.dstMha) {
+              extraInfo += '端集群: '
+            } else {
+              extraInfo += 'Messenger: '
+            }
+            extraInfo += dstTime.toLocaleDateString() + ' ' + dstTime.toLocaleTimeString()
+          }
+        }
+        return h('div', [
+          h('Tag', {
+            props: {
+              color: color
+            }
+          }, text),
+          h('div', {
+            style: {
+              'white-space': 'pre-wrap'
+            }
+          }, extraInfo)
+        ])
+      }
+    }
+
     return {
       detailColumn: [
         {
@@ -91,14 +140,6 @@ export default {
                 color: color
               }
             }, text)
-          }
-        },
-        {
-          title: 'id',
-          width: 80,
-          key: 'id',
-          render: (h, params) => {
-            return h('p', params.row.replicationId)
           }
         },
         {
@@ -120,41 +161,29 @@ export default {
         {
           title: 'delay',
           key: 'delay',
+          render: renderDelay()
+        },
+        {
+          title: 'dbs',
+          key: 'dbs',
           render: (h, params) => {
-            const delayInfo = params.row.delayInfoDto
-            const delay = delayInfo.delay
-            let color
-            let text
-            let extraInfo
-            if (delay != null) {
-              if (delay < 10000) {
-                color = 'blue'
-                text = delay + 'ms'
-              } else {
-                color = 'volcano'
-                text = delay + 'ms'
-                const srcTime = new Date(delayInfo.srcTime)
-                const dstTime = new Date(delayInfo.dstTime)
-                extraInfo = '源集群: ' + srcTime.toLocaleDateString() + ' ' + srcTime.toLocaleTimeString() + '\n' +
-                  '端集群: ' + dstTime.toLocaleDateString() + ' ' + dstTime.toLocaleTimeString()
-              }
-            } else {
-              color = 'volcano'
-              text = '查询失败'
-            }
-            return h('div', [
-              h('Tag', {
-                props: {
-                  color: color
-                }
-              }, text),
-              h('div', {
-                style: {
-                  'white-space': 'pre-wrap'
-                }
-              }, extraInfo)
-            ])
+            return h('p', params.row.dbs.join(','))
           }
+        }
+      ],
+      messengerDetailColumn: [
+        {
+          title: 'mha',
+          width: 150,
+          key: 'id',
+          render: (h, params) => {
+            return h('p', params.row.mha.name)
+          }
+        },
+        {
+          title: 'delay',
+          key: 'delay',
+          render: renderDelay()
         },
         {
           title: 'dbs',
@@ -243,10 +272,11 @@ export default {
       // for detail show
       replicationDetail: {
         show: false,
+        row: {},
+        mhaReplicationDataLoading: false,
         data: [],
-        darkMode: true,
-        lineWrap: false,
-        row: {}
+        messengerDataLoading: false,
+        messengerData: []
       },
       dataLoading: true
     }
@@ -322,8 +352,8 @@ export default {
         this.getMigrationTasks()
       })
     },
-    getDetail (row, index) {
-      this.dataLoading = true
+    getMhaReplicationDetail: function (row) {
+      this.replicationDetail.mhaReplicationDataLoading = true
       this.replicationDetail.data = []
       this.axios.get('/api/drc/v2/replication/relatedReplicationDelay', {
         params: {
@@ -342,8 +372,35 @@ export default {
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
-        this.dataLoading = false
+        this.replicationDetail.mhaReplicationDataLoading = false
       })
+    },
+    getMhaMessengerDetail: function (row) {
+      this.replicationDetail.messengerDataLoading = true
+      this.replicationDetail.messengerData = []
+      this.axios.get('/api/drc/v2/messenger/delay', {
+        params: {
+          mhas: [row.oldMha, row.newMha].join(','),
+          dbs: row.dbs.join(',')
+        }
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.warning('查询异常: ' + response.data.message)
+          return
+        }
+        this.replicationDetail.messengerData = response.data.data
+        console.log(this.replicationDetail.messengerData)
+      }).catch(message => {
+        this.$Message.error('查询异常: ' + message)
+      }).finally(() => {
+        this.replicationDetail.messengerDataLoading = false
+      })
+    },
+    getDetail (row, index) {
+      this.replicationDetail.show = true
+      this.replicationDetail.row = row
+      this.getMhaReplicationDetail(row)
+      this.getMhaMessengerDetail(row)
     }
   },
   created () {

@@ -172,18 +172,12 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
         // query dst first (result could be larger than querying src first)
         Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
-        if (dstTime == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query dstTime fail: %s->%s", srcMha, dstMha));
-        }
         Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
-        if (srcTime == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query srcTime fail: %s->%s", srcMha, dstMha));
-        }
         Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
-        if (currentTime == null) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, String.format("query currentTime fail: %s->%s", srcMha, dstMha));
+
+        if (currentTime != null && srcTime != null) {
+            srcTime = Math.max(srcTime, currentTime);
         }
-        srcTime = Math.max(srcTime, currentTime);
         delayInfoDto.setSrcTime(srcTime);
         delayInfoDto.setDstTime(dstTime);
         return delayInfoDto;
