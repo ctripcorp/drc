@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
@@ -72,6 +73,8 @@ public class DbMigrationServiceTest {
     private RegionConfig regionConfig;
     @Mock
     private MhaReplicationServiceV2Impl mhaReplicationServiceV2;
+    @Mock
+    private MessengerServiceV2 messengerServiceV2;
 
     @Before
     public void setUp() throws Exception {
@@ -230,6 +233,8 @@ public class DbMigrationServiceTest {
             List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
             Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
             String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
             Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
         }
@@ -251,6 +256,8 @@ public class DbMigrationServiceTest {
             List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
             Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
             String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
             Assert.assertEquals(MigrationStatusEnum.STARTING.getStatus(), currentStatus);
         }
