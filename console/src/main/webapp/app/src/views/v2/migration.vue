@@ -81,6 +81,7 @@ export default {
     function renderDelay () {
       return (h, params) => {
         const delayInfo = params.row.delayInfoDto
+        const srcMhaMonitorSwitch = params.row.srcMha.monitorSwitch
         const delay = delayInfo.delay
         let color
         let text
@@ -92,6 +93,8 @@ export default {
           color = 'volcano'
           if (delay) {
             text = delay + 'ms'
+          } else if (srcMhaMonitorSwitch === 0) {
+            text = '查询失败, 未打开延迟监控'
           } else {
             text = '查询失败'
           }
@@ -173,11 +176,11 @@ export default {
       ],
       messengerDetailColumn: [
         {
-          title: 'mha',
+          title: 'srcMha',
           width: 150,
           key: 'id',
           render: (h, params) => {
-            return h('p', params.row.mha.name)
+            return h('p', params.row.srcMha.name)
           }
         },
         {

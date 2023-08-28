@@ -177,7 +177,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     public List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList) {
 
         List<Callable<MhaDelayInfoDto>> list = Lists.newArrayList();
-        List<String> mhaNames = messengerDtoList.stream().map(e -> e.getMha().getName()).collect(Collectors.toList());
+        List<String> mhaNames = messengerDtoList.stream().map(e -> e.getSrcMha().getName()).collect(Collectors.toList());
 
         try {
             String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
@@ -190,7 +190,7 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
             Map<String, HickWallMessengerDelayEntity> hickWallMap = messengerDelayFromHickWall.stream().collect(Collectors.toMap(HickWallMessengerDelayEntity::getMha, e -> e));
             for (MhaMessengerDto dto : messengerDtoList) {
                 list.add(() -> {
-                    String mhaName = dto.getMha().getName();
+                    String mhaName = dto.getSrcMha().getName();
                     HickWallMessengerDelayEntity delayEntity = hickWallMap.get(mhaName);
                     return this.getMhaMessengerDelay(mhaName, delayEntity);
                 });

@@ -9,7 +9,7 @@ import java.util.Set;
 public class MhaMessengerDto {
 
     private Long messengerGroupId;
-    private MhaDto mha;
+    private MhaDto srcMha;
     private Set<String> dbs;
     private MhaDelayInfoDto delayInfoDto;
 
@@ -21,12 +21,12 @@ public class MhaMessengerDto {
         this.messengerGroupId = messengerGroupId;
     }
 
-    public MhaDto getMha() {
-        return mha;
+    public MhaDto getSrcMha() {
+        return srcMha;
     }
 
-    public void setMha(MhaDto mha) {
-        this.mha = mha;
+    public void setSrcMha(MhaDto srcMha) {
+        this.srcMha = srcMha;
     }
 
     public Set<String> getDbs() {
@@ -47,7 +47,7 @@ public class MhaMessengerDto {
 
     public static MhaMessengerDto from(MhaTblV2 mhaTblV2, MessengerGroupTbl messengerGroupTbl) {
         MhaMessengerDto dto = new MhaMessengerDto();
-        dto.mha = MhaDto.from(mhaTblV2);
+        dto.srcMha = MhaDto.from(mhaTblV2);
         dto.messengerGroupId = messengerGroupTbl.getId();
         dto.dbs = new HashSet<>();
         return dto;
