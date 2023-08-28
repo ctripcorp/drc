@@ -372,10 +372,10 @@ export default {
         console.log(this.replicationDetail.data)
         this.replicationDetail.show = true
         this.replicationDetail.row = row
+        this.replicationDetail.mhaReplicationDataLoading = false
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
-        this.replicationDetail.mhaReplicationDataLoading = false
       })
     },
     getMhaMessengerDetail: function (row) {
@@ -393,10 +393,10 @@ export default {
         }
         this.replicationDetail.messengerData = response.data.data
         console.log(this.replicationDetail.messengerData)
+        this.replicationDetail.messengerDataLoading = false
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
-        this.replicationDetail.messengerDataLoading = false
       })
     },
     getDetail (row, index) {

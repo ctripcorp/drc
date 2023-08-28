@@ -49,7 +49,6 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
-import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -779,9 +778,33 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String oldMha = migrationTaskTbl.getOldMha();
             String newMha = migrationTaskTbl.getNewMha();
 
-            // 1. get mha replication delay info
-            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
+            // all related mha delay < 10s
+            boolean allReady = this.isRelatedDelaySmall(dbNames, oldMha, newMha);
 
+            String currStatus = migrationTaskTbl.getStatus();
+            String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
+            boolean needUpdate = !targetStatus.equals(currStatus);
+            if (needUpdate) {
+                migrationTaskTbl.setStatus(targetStatus);
+                migrationTaskTblDao.update(migrationTaskTbl);
+            }
+            return targetStatus;
+        } catch (SQLException e) {
+            logger.error("queryAndPushToReadyIfPossible error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        } catch (Throwable e) {
+            logger.error("queryAndPushToReadyIfPossible error", e);
+            if (e instanceof ConsoleException) {
+                throw e;
+            }
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
+        }
+    }
+
+    private boolean isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
+        // 1. get mha replication delay info
+        try {
+            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
             if (mhaReplicationDelays.size() != all.size()) {
@@ -804,25 +827,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             // 3. ready condition: all related mha delay < 10s (given by DBA)
             List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
-            boolean allReady = CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
-
-            String currStatus = migrationTaskTbl.getStatus();
-            String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
-            boolean needUpdate = !targetStatus.equals(currStatus);
-            if (needUpdate) {
-                migrationTaskTbl.setStatus(targetStatus);
-                migrationTaskTblDao.update(migrationTaskTbl);
-            }
-            return targetStatus;
-        } catch (SQLException e) {
-            logger.error("queryAndPushToReadyIfPossible error", e);
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
-        } catch (Throwable e) {
-            logger.error("queryAndPushToReadyIfPossible error", e);
-            if (e instanceof ConsoleException) {
-                throw e;
-            }
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
+            return CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
+        } catch (ConsoleException e) {
+            logger.error("isRelatedDelaySmall exception: " + e.getMessage(), e);
+            return false;
         }
     }
 
