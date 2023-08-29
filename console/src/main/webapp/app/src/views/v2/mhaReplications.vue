@@ -71,7 +71,7 @@
         <br>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId)">
               查看
             </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
@@ -448,13 +448,12 @@ export default {
         this.getReplications()
       })
     },
-    checkConfig (row, index) {
-      console.log(row.srcMha.name + '->' + row.dstMha.name)
+    checkConfig (replicationId) {
       this.dataLoading = true
       this.replicationDetail.data = null
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
         params: {
-          replicationId: row.replicationId
+          replicationId: replicationId
         }
       }).then(response => {
         if (response.data.status === 1) {
@@ -463,7 +462,6 @@ export default {
         }
         this.replicationDetail.data = response.data.data
         this.replicationDetail.show = true
-        this.replicationDetail.row = row
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
@@ -492,7 +490,44 @@ export default {
             h('div', '点击可加载关联节点'),
             h(MhaGraph, {
               props: {
-                mhaIdList: [row.srcMha.id, row.dstMha.id]
+                mhaIdList: [row.srcMha.id, row.dstMha.id],
+                operations: [
+                  {
+                    text: '查询',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('查询中...')
+                      this.$Modal.remove()
+                      this.srcMha.name = srcName
+                      this.dstMha.name = dstName
+                      this.getReplications()
+                    }
+                  },
+                  {
+                    text: '查看',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('查询中...')
+                      this.$Modal.remove()
+                      this.checkConfig(replicationId)
+                    }
+                  },
+                  {
+                    text: '修改',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('跳转中...')
+                      this.$Modal.remove()
+                      console.log(srcName, dstName)
+                      this.$forceUpdate()
+                      this.$router.push({
+                        path: '/drcV2',
+                        query: {
+                          step: 3,
+                          srcMhaName: srcName,
+                          dstMhaName: dstName
+                        }
+                      })
+                    }
+                  }
+                ]
               }
             })
           ])

@@ -10,12 +10,10 @@ import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.TransmissionTypeEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.DelayInfoVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
@@ -159,17 +157,18 @@ public class MhaReplicationController {
      */
     @GetMapping("delay")
     @SuppressWarnings("unchecked")
-    public ApiResult<DelayInfoVo> getMhaReplicationDelay(@RequestParam String srcMha, @RequestParam String dstMha) {
-        logger.info("getMhaDelay: {} -> {}", srcMha, dstMha);
+    public ApiResult<DelayInfoVo> getMhaReplicationDelay(@RequestParam(name = "replicationIds") List<Long> replicationIds) {
         try {
-            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(dstMha)) {
-                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            if (CollectionUtils.isEmpty(replicationIds)) {
+                return ApiResult.getSuccessInstance(Collections.emptyList());
             }
 
-            MhaDelayInfoDto mhaReplicationDelay = mhaReplicationServiceV2.getMhaReplicationDelay(srcMha.trim(), dstMha.trim());
-            return ApiResult.getSuccessInstance(DelayInfoVo.from(mhaReplicationDelay));
+            List<MhaReplicationDto> mhaReplicationDtos = mhaReplicationServiceV2.queryReplicationByIds(replicationIds);
+            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(mhaReplicationDtos);
+            List<DelayInfoVo> res = mhaReplicationDelays.stream().map(DelayInfoVo::from).collect(Collectors.toList());
+            return ApiResult.getSuccessInstance(res);
         } catch (Throwable e) {
-            logger.error(String.format("getMhaDelay error: %s->%s", srcMha, dstMha), e);
+            logger.error(String.format("getMhaReplicationDelay error: %s", replicationIds), e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
