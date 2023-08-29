@@ -73,9 +73,12 @@ public class ApplierComparator extends AbstractMetaComparator<Applier, ApplierCh
             if(current.equals(future)){
                 continue;
             }
-            InstanceComparator instanceComparator = new InstanceComparator(current, future);
-            instanceComparator.compare();
-            modified.add(instanceComparator);  // targetIdc change
+//            InstanceComparator instanceComparator = new InstanceComparator(current, future);
+//            instanceComparator.compare();
+//            modified.add(instanceComparator);  // targetIdc change
+            ApplierPropertyComparator applierPropertyComparator = new ApplierPropertyComparator(current, future);
+            applierPropertyComparator.compare();
+            modified.add(applierPropertyComparator);
         }
 
     }

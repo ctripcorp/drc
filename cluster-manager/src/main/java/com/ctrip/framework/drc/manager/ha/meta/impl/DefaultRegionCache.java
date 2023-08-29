@@ -66,6 +66,13 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
     }
 
     @Override
+    public void refresh(String clusterId) {
+        for (DefaultDcCache dcCache : dcCaches) {
+            dcCache.refresh(clusterId);
+        }
+    }
+
+    @Override
     public Set<String> getClusters() {
         return dcCaches.stream().flatMap(dcCache -> dcCache.getClusters().stream()).collect(Collectors.toSet());
     }

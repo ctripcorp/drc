@@ -28,4 +28,6 @@ public interface DcCache extends Observable {
     void clusterModified(DbCluster dbCluster);
 
     void clusterDeleted(String registryKey);
+
+    void refresh(String clusterId);
 }

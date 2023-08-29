@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.DbCluster;
+import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierComparator;
+import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierPropertyComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
@@ -11,6 +13,7 @@ import com.ctrip.xpipe.api.lifecycle.TopElement;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author limingdong
@@ -76,12 +79,22 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
 
         @Override
         public void visitModified(@SuppressWarnings("rawtypes") MetaComparator comparator) {
-            InstanceComparator instanceComparator = (InstanceComparator) comparator;
-            Applier current = (Applier) instanceComparator.getCurrent();
-            Applier future = (Applier) instanceComparator.getFuture();
-            logger.info("[visitModified][modify shard]{} to {}", current, future);
+            ApplierPropertyComparator propertyComparator = (ApplierPropertyComparator) comparator;
+            Applier current = (Applier) propertyComparator.getCurrent();
+            Applier future = (Applier) propertyComparator.getFuture();
+            logger.info("[visitModified][applierPropertyChange]{} to {}", current, future);
+            Set<Applier> appliers = propertyComparator.getAdded();
+            if (appliers.isEmpty()) {
+                logger.info("[visitModified][applierPropertyChange] do nothing");
+                return;
+            }
 
-
+            for (Applier modified : appliers) {
+                String backupClusterId = RegistryKey.from(modified.getTargetName(), modified.getTargetMhaName());
+                Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
+                logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}", clusterId, backupClusterId);
+                instanceStateController.applierPropertyChange(clusterId, activeApplier);
+            }
         }
 
         @Override

@@ -221,6 +221,22 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         return body;
     }
 
+    @Override
+    public DbCluster applierPropertyChange(String clusterId, Applier applier) {
+        ApplierNotifier applierNotifier = ApplierNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshApplier(clusterId, applier);
+        String targetMhaName = applier.getTargetMhaName();
+        String newClusterId = RegistryKey.from(clusterId, targetMhaName);
+        STATE_LOGGER.info("[applierPropertyChange] for {},{}", newClusterId, body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty][applierPropertyChange] replicators and do nothing for {}", clusterId);
+            return body;
+        }
+        applierNotifier.notifyAdd(newClusterId, body);
+        return body;
+    }
+
     /**
      * notify replicator and applier to pull binlog from new mysql master
      * @param clusterId

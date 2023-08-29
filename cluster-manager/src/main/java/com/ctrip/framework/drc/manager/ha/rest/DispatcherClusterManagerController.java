@@ -5,8 +5,10 @@ import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.cluster.META_SERVER_SERVICE;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.RemoteClusterManager;
+import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
@@ -26,25 +28,34 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     @Resource(name = AbstractSpringConfigContext.GLOBAL_EXECUTOR)
     private ExecutorService executors;
 
+    @Autowired
+    private RegionCache regionCache;
+
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestBody DbCluster clusterMeta,
+    public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestParam String operator, @RequestBody DbCluster clusterMeta,
                              @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
-        clusterManager.clusterAdded(dcId, clusterMeta, forwardInfo.clone());
+//        clusterManager.clusterAdded(dcId, clusterMeta, forwardInfo.clone());
+        logger.info("[clusterchange] add for clusterId: {}, dcId: {}, forward: {}, operator: {}", clusterId, dcId, forwardInfo, operator);
+        regionCache.refresh(clusterId);
     }
 
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public void clusterModified(@PathVariable String clusterId, @RequestBody DbCluster clusterMeta,
+    public void clusterModified(@PathVariable String clusterId, @RequestParam String operator, @RequestBody DbCluster clusterMeta,
                                 @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager metaServer) {
 
-        metaServer.clusterModified(clusterMeta, forwardInfo.clone());
+//        metaServer.clusterModified(clusterMeta, forwardInfo.clone());
+        logger.info("[clusterchange] delete for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
+        regionCache.refresh(clusterId);
     }
 
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.DELETE)
-    public void clusterDeleted(@PathVariable String clusterId,
+    public void clusterDeleted(@PathVariable String clusterId, @RequestParam String operator,
                                @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager metaServer) {
 
-        metaServer.clusterDeleted(clusterId, forwardInfo.clone());
+//        metaServer.clusterDeleted(clusterId, forwardInfo.clone());
+        logger.info("[clusterchange] delete for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
+        regionCache.refresh(clusterId);
     }
 
     /**

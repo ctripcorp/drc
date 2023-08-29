@@ -37,5 +37,7 @@ public interface InstanceStateController extends Lifecycle {
 
     DbCluster applierMasterChange(String clusterId, Pair<String, Integer> newMaster, Applier applier);
 
+    DbCluster applierPropertyChange(String clusterId, Applier applier);
+
     List<DbCluster> mysqlMasterChanged(String clusterId, Endpoint endpoint, List<Applier> activeApplier, Replicator replicator);
 }
