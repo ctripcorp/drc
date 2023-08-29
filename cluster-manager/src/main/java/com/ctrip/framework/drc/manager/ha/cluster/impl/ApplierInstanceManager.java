@@ -93,7 +93,7 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
                 String backupClusterId = RegistryKey.from(modified.getTargetName(), modified.getTargetMhaName());
                 Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
                 logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}", clusterId, backupClusterId);
-//                instanceStateController.applierPropertyChange(clusterId, activeApplier);
+                instanceStateController.applierPropertyChange(clusterId, activeApplier);
             }
         }
 
