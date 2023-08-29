@@ -100,7 +100,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
-    private static final String BASE_API_URL = "/api/drc/v2/clusterchange/clusterId?operator={operator}";
+    private static final String BASE_API_URL = "/api/meta/clusterchange/clusterId?dcId={dcId}&operator={operator}";
 
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
@@ -523,23 +523,27 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
         mhaIds.add(mhaId);
-//        pushConfigToCM(mhaIds, operator);
+        pushConfigToCM(mhaIds, operator);
     }
 
     private void pushConfigToCM(List<Long> mhaIds, String operator) throws Exception {
         Drc drc = metaGeneratorV3.getDrc();
         Map<String, String> cmRegionUrls = regionConfig.getCMRegionUrls();
-        Map<String, String> paramMap = new HashMap<>();
-        paramMap.put("operator", operator);
 
         for (long mhaId : mhaIds) {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
             DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
             DbCluster dbCluster = findDbCluster(drc, mhaTblV2, dcTbl.getDcName());
             String url = cmRegionUrls.get(dcTbl.getRegionName()) + BASE_API_URL;
-            logger.info("pushConfigToCM url: {}", url);
+
+            Map<String, String> paramMap = new HashMap<>();
+            paramMap.put("operator", operator);
+            paramMap.put("dcId", dcTbl.getDcName());
+            Map<String, String> headerMap = new HashMap<>();
+            headerMap.put("forward", "{\"type\": 1}");
+
             try {
-                HttpUtils.post(url, dbCluster, ApiResult.class, paramMap);
+                HttpUtils.post(url, dbCluster, headerMap, ApiResult.class, paramMap);
             } catch (Exception e) {
                 logger.error("pushConfigToCM fail: {}", e);
             }
@@ -550,12 +554,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         Dc dc = drc.findDc(dcName);
         String dbClusterId = mhaTblV2.getClusterName() + "." + mhaTblV2.getMhaName();
         return dc.findDbCluster(dbClusterId);
-    }
-
-    private void deleteMqbReplicationForRollback(long newMhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
-        logger.info("deleteMqbReplicationForRollback mhaId: {}", newMhaId);
-        deleteMqDbReplications(newMhaId, relatedMhaDbMappingTbls);
-        deleteMessengers(newMhaId);
     }
 
     private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> mhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
