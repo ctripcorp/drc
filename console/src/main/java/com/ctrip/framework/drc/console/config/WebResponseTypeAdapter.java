@@ -1,8 +1,12 @@
 package com.ctrip.framework.drc.console.config;
 
+import java.util.Collections;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.util.List;
@@ -20,5 +24,11 @@ public class WebResponseTypeAdapter extends WebMvcConfigurerAdapter {
     public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         // 从converters中移除xml的converter
         converters.removeIf(converter -> converter instanceof MappingJackson2XmlHttpMessageConverter);
+        for (HttpMessageConverter<?> converter : converters) {
+            if (converter instanceof MappingJackson2HttpMessageConverter) {
+                List<MediaType> supportedMediaTypes = converter.getSupportedMediaTypes();
+                ((MappingJackson2HttpMessageConverter) converter).setSupportedMediaTypes(Collections.singletonList(MediaType.ALL));
+            }
+        }
     }
 }

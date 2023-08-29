@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
+import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,7 +171,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception {
+    public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws SQLException {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             logger.info("mha: {} not exist", mhaName);
@@ -187,7 +188,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws Exception {
+    public List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException {
         List<ResourceView> resultViews = new ArrayList<>();
         List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType());
         if (CollectionUtils.isEmpty(resourceViews)) {
@@ -219,7 +220,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws Exception {
+    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws SQLException {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
 

@@ -294,4 +294,22 @@ public class DrcBuildServiceV2Test {
         param.setDc("dc");
         drcBuildServiceV2.buildMessengerMha(param);
     }
+
+    @Test
+    public void testSyncMhaInfoFormDbaApi() {
+        // test drcBuildServiceV2Impl.syncMhaInfoFormDbaApi("mhaName");
+        
+    }
+
+    @Test
+    public void testAutoConfigReplicatorsWithRealTimeGtid() {
+    }
+
+    @Test
+    public void testAutoConfigAppliersWithRealTimeGtid() {
+    }
+
+    @Test
+    public void testAutoConfigMessengersWithRealTimeGtid() {
+    }
 }
