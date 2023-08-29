@@ -7,11 +7,12 @@ public class MhaDelayInfoDto implements Serializable {
 
     private String srcMha;
     private String dstMha;
-    private Long delay;
+    private Long srcTime;
+    private Long dstTime;
 
     @Override
     public String toString() {
-        return String.format("%s->%s: %dms", srcMha, dstMha, delay);
+        return String.format("%s->%s: %dms", srcMha, dstMha, this.getDelay());
     }
 
     public String getSrcMha() {
@@ -31,10 +32,26 @@ public class MhaDelayInfoDto implements Serializable {
     }
 
     public Long getDelay() {
-        return delay;
+        if (srcTime != null && dstTime != null) {
+            return srcTime - dstTime;
+        } else {
+            return null;
+        }
     }
 
-    public void setDelay(Long delay) {
-        this.delay = delay;
+    public Long getSrcTime() {
+        return srcTime;
+    }
+
+    public void setSrcTime(Long srcTime) {
+        this.srcTime = srcTime;
+    }
+
+    public Long getDstTime() {
+        return dstTime;
+    }
+
+    public void setDstTime(Long dstTime) {
+        this.dstTime = dstTime;
     }
 }

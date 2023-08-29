@@ -234,7 +234,6 @@ public class CommonDataInit {
         });
 
 
-
         // messengerGroupTbl
         List<MessengerGroupTbl> messengerGroupTbls = this.getData("MessengerGroupTbl.json", MessengerGroupTbl.class);
         when(messengerGroupTblDao.queryBy(any())).thenReturn(messengerGroupTbls);
@@ -246,6 +245,11 @@ public class CommonDataInit {
             Long mhaId = i.getArgument(0, Long.class);
             Integer deleted = i.getArgument(1, Integer.class);
             return messengerGroupTbls.stream().filter(e -> e.getMhaId().equals(mhaId) && e.getDeleted().equals(deleted)).findFirst().orElse(null);
+        });
+        when(messengerGroupTblDao.queryByMhaIds(anyList(), anyInt())).thenAnswer(i -> {
+            List<Long> mhaIds = i.getArgument(0, List.class);
+            Integer deleted = i.getArgument(1, Integer.class);
+            return messengerGroupTbls.stream().filter(e -> mhaIds.contains(e.getMhaId()) && e.getDeleted().equals(deleted)).collect(Collectors.toList());
         });
         when(messengerGroupTblDao.queryByPk(anyLong())).thenAnswer(i -> {
             Long id = i.getArgument(0, Long.class);
@@ -279,7 +283,6 @@ public class CommonDataInit {
         });
 
 
-
         // MhaDbMappingTbl
         List<MhaDbMappingTbl> mhaDbMappingTbls = this.getData("MhaDbMappingTbl.json", MhaDbMappingTbl.class);
         when(mhaDbMappingTblDao.queryByMhaId(anyLong())).thenAnswer(i -> {
@@ -298,11 +301,13 @@ public class CommonDataInit {
             Long mhaDbMappingId = i.getArgument(0, Long.class);
             return mhaDbMappingTbls.stream().filter(e -> mhaDbMappingId.equals(e.getId())).findFirst().orElse(null);
         });
-        when(mhaDbMappingTblDao.queryByDbIdsAndMhaId(anyList(), anyLong())).thenAnswer(i -> {
+
+
+        when(mhaDbMappingTblDao.queryByDbIdsAndMhaIds(anyList(), anyList())).thenAnswer(i -> {
             List<Long> dbIds = i.getArgument(0, List.class);
-            Long mhaId = i.getArgument(1, Long.class);
+            List<Long> mhaId = i.getArgument(1, List.class);
             return mhaDbMappingTbls.stream().filter(e -> {
-                return dbIds.contains(e.getDbId()) && mhaId.equals(e.getMhaId());
+                return dbIds.contains(e.getDbId()) && mhaId.contains(e.getMhaId());
             }).collect(Collectors.toList());
         });
 
@@ -319,6 +324,13 @@ public class CommonDataInit {
             List dstMhaDbMappingIds = i.getArgument(0, List.class);
             Integer replicationType = i.getArgument(1, Integer.class);
             return dbReplicationTbls.stream().filter(e -> dstMhaDbMappingIds.contains(e.getDstMhaDbMappingId()) && replicationType.equals(e.getReplicationType()))
+                    .collect(Collectors.toList());
+        });
+        when(dbReplicationTblDao.queryByRelatedMappingIds(anyList(), anyInt())).thenAnswer(i -> {
+            List relatedIds = i.getArgument(0, List.class);
+            Integer replicationType = i.getArgument(1, Integer.class);
+            return dbReplicationTbls.stream().filter(e -> (relatedIds.contains(e.getSrcMhaDbMappingId()) || relatedIds.contains(e.getDstMhaDbMappingId()))
+                            && replicationType.equals(e.getReplicationType()))
                     .collect(Collectors.toList());
         });
         when(dbReplicationTblDao.queryByMappingIds(anyList(), anyList(), anyInt())).thenAnswer(i -> {

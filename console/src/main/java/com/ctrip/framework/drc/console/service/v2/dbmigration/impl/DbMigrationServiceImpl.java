@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
@@ -15,6 +16,7 @@ import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
@@ -22,7 +24,6 @@ import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
-import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -96,7 +97,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Autowired
     private MhaDbMappingService mhaDbMappingService;
     @Autowired
-    MhaReplicationServiceV2 mhaReplicationServiceV2;
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
+    @Autowired
+    private MessengerServiceV2 messengerServiceV2;
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
@@ -760,21 +763,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String oldMha = migrationTaskTbl.getOldMha();
             String newMha = migrationTaskTbl.getNewMha();
 
-            // 1. get mha delay info
-            List<MhaReplicationDto> all = Lists.newArrayList();
-            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(oldMha, dbNames));
-            all.addAll(mhaReplicationServiceV2.queryRelatedReplications(newMha, dbNames));
-            all = all.stream().filter(StreamUtils.distinctByKey(MhaReplicationDto::getReplicationId)).collect(Collectors.toList());
-
-            List<MhaDelayInfoDto> delayInfos = mhaReplicationServiceV2.getMhaReplicationDelays(all);
-            logger.info("task({}) delay info: {}", taskId, delayInfos);
-            if (delayInfos.stream().anyMatch(e -> e.getDelay() == null)) {
-                throw new ConsoleException("query delay fail");
-            }
-
-            // 2. ready condition: all related mha delay < 10s (given by DBA)
-            List<MhaDelayInfoDto> notReadyList = delayInfos.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
-            boolean allReady = CollectionUtils.isEmpty(notReadyList);
+            // all related mha delay < 10s
+            boolean allReady = this.isRelatedDelaySmall(dbNames, oldMha, newMha);
 
             String currStatus = migrationTaskTbl.getStatus();
             String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
@@ -793,6 +783,39 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 throw e;
             }
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.UNKNOWN_EXCEPTION, e);
+        }
+    }
+
+    private boolean isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
+        // 1. get mha replication delay info
+        try {
+            List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
+            List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
+            logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
+            if (mhaReplicationDelays.size() != all.size()) {
+                throw new ConsoleException("query delay fail[1]");
+            }
+            if (mhaReplicationDelays.stream().anyMatch(e -> e.getDelay() == null)) {
+                throw new ConsoleException("query delay fail[2]");
+            }
+            // 2. get mha messenger delay info
+            List<MhaMessengerDto> messengerDtoList = messengerServiceV2.getRelatedMhaMessenger(Lists.newArrayList(oldMha, newMha), dbNames);
+            List<MhaDelayInfoDto> messengerDelays = messengerServiceV2.getMhaMessengerDelays(messengerDtoList);
+            logger.info("messenger oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, messengerDelays);
+            if (messengerDelays.size() != messengerDtoList.size()) {
+                throw new ConsoleException("query delay fail[3]");
+            }
+            if (messengerDelays.stream().anyMatch(e -> e.getDelay() == null)) {
+                throw new ConsoleException("query delay fail[4]");
+            }
+
+            // 3. ready condition: all related mha delay < 10s (given by DBA)
+            List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
+            List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
+            return CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
+        } catch (ConsoleException e) {
+            logger.error("isRelatedDelaySmall exception: " + e.getMessage(), e);
+            return false;
         }
     }
 

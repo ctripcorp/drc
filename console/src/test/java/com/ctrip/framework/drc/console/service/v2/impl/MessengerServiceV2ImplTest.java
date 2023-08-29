@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
@@ -16,6 +18,9 @@ import com.ctrip.framework.drc.console.vo.response.QmqBuList;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
+import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,7 +32,9 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
@@ -37,6 +44,8 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
 
     @Mock
     DbClusterApiService dbClusterService;
+    @Mock
+    OPSApiService opsApiServiceImpl;
 
     @Before
     public void setUp() throws IOException, SQLException {
@@ -440,4 +449,53 @@ public class MessengerServiceV2ImplTest extends CommonDataInit {
         verify(replicatorTblDao, times(1)).batchInsert(any());
     }
 
+
+    @Test
+    public void testGetRelatedMessengerDtos() {
+        List<String> mhas = Lists.newArrayList("mha1", "mha2", "notExistMha");
+        List<String> dbs = Lists.newArrayList("db1", "db2", "notExistDb");
+        List<MhaMessengerDto> relatedMhaMessenger = messengerServiceV2Impl.getRelatedMhaMessenger(mhas, dbs);
+
+        Assert.assertEquals(2, relatedMhaMessenger.size());
+        Assert.assertEquals(2,relatedMhaMessenger.get(0).getDbs().size());
+        System.out.println(relatedMhaMessenger);
+    }
+
+    @Test
+    public void testGetMhaReplicationDelays() throws IOException {
+        String mha1 = "mha1";
+        String mha2 = "mha2";
+        long srcNowTime = 205L;
+        long mha2UpdateTime = 50L;
+        long mha1UpdateTime = 500L;
+        List<MhaMessengerDto> list = new ArrayList<>();
+
+
+        when(mysqlServiceV2.getCurrentTime(mha1)).thenReturn(srcNowTime);
+        when(mysqlServiceV2.getCurrentTime(mha2)).thenReturn(srcNowTime);
+        when(mysqlServiceV2.getDelayUpdateTime(mha1, mha1)).thenReturn(mha1UpdateTime);
+        when(mysqlServiceV2.getDelayUpdateTime(mha2, mha2)).thenReturn(mha2UpdateTime);
+
+        list.add(MhaMessengerDto.from("mha1"));
+        list.add(MhaMessengerDto.from("mha2"));
+
+        List<HickWallMessengerDelayEntity> delays = this.getDelays();
+        Map<String, HickWallMessengerDelayEntity> map = delays.stream().collect(Collectors.toMap(HickWallMessengerDelayEntity::getMha, e -> e));
+        when(opsApiServiceImpl.getMessengerDelayFromHickWall(any(), any(), anyList())).thenReturn(delays);
+        List<MhaDelayInfoDto> delay = messengerServiceV2Impl.getMhaMessengerDelays(list);
+
+        for (MhaDelayInfoDto infoDTO : delay) {
+            String srcMha = infoDTO.getSrcMha();
+            HickWallMessengerDelayEntity hickWallMessengerDelayEntity = map.get(srcMha);
+            Assert.assertEquals(hickWallMessengerDelayEntity.getDelay(), infoDTO.getDelay());
+        }
+        Assert.assertNotNull(delay);
+        Assert.assertEquals(list.size(), delay.size());
+        System.out.println(delay);
+    }
+
+    private List<HickWallMessengerDelayEntity> getDelays() {
+        String json = "[{\"metric\":{\"mhaName\":\"mha1\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]},{\"metric\":{\"mhaName\":\"mha2\"},\"values\":[[1693216955,\"132.358004355\"],[1693217015,\"131.2824921131\"]]}]";
+        return JsonUtils.fromJsonToList(json, HickWallMessengerDelayEntity.class);
+    }
 }

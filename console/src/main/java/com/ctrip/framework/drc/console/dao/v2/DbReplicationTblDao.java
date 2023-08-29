@@ -56,6 +56,22 @@ public class DbReplicationTblDao extends AbstractDao<DbReplicationTbl> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<DbReplicationTbl> queryByRelatedMappingIds(List<Long> srcOrDestMappingIds, int replicationType) throws SQLException {
+        if (CollectionUtils.isEmpty(srcOrDestMappingIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll()
+                .leftBracket()
+                .in(SRC_MHA_DB_MAPPING_ID, srcOrDestMappingIds, Types.BIGINT)
+                .or()
+                .in(DST_MHA_DB_MAPPING_ID, srcOrDestMappingIds, Types.BIGINT)
+                .rightBracket()
+                .and().equal(REPLICATION_TYPE, replicationType, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public List<DbReplicationTbl> queryMappingIds(List<Long> mappingIds) throws SQLException {
         if (CollectionUtils.isEmpty(mappingIds)) {
             return new ArrayList<>();

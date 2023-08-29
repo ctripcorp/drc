@@ -22,6 +22,8 @@ public class MhaReplicationDto {
      */
     private Integer status;
 
+    private MhaDelayInfoDto delayInfoDto;
+
     public static MhaReplicationDto from(MhaReplicationTbl e, Map<Long, MhaTblV2> mhaMap) {
         MhaReplicationDto dto = new MhaReplicationDto();
         dto.setReplicationId(e.getId());
@@ -116,6 +118,14 @@ public class MhaReplicationDto {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public MhaDelayInfoDto getDelayInfoDto() {
+        return delayInfoDto;
+    }
+
+    public void setDelayInfoDto(MhaDelayInfoDto delayInfoDto) {
+        this.delayInfoDto = delayInfoDto;
     }
 
     @Override

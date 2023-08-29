@@ -11,6 +11,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,7 +22,10 @@ import java.util.List;
  */
 @Repository
 public class MessengerGroupTblDao extends AbstractDao<MessengerGroupTbl> {
-    
+
+    private static final String MHA_ID = "mha_id";
+    private static final String DELETED = "deleted";
+
     public MessengerGroupTblDao() throws SQLException {
         super(MessengerGroupTbl.class);
     }
@@ -36,6 +40,17 @@ public class MessengerGroupTblDao extends AbstractDao<MessengerGroupTbl> {
         sample.setDeleted(deleted);
         List<MessengerGroupTbl> messengerGroupTbls = queryBy(sample);
         return CollectionUtils.isEmpty(messengerGroupTbls) ? null : messengerGroupTbls.get(0);
+    }
+
+    public List<MessengerGroupTbl> queryByMhaIds(List<Long> mhaIds,Integer deleted) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyList();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll()
+                .in(MHA_ID, mhaIds, Types.BIGINT).and()
+                .equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return client.query(sqlBuilder, new DalHints());
     }
 
     // srcReplicatorGroupId current is useless

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.alibaba.fastjson.JSON;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
@@ -7,9 +8,13 @@ import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
+import com.ctrip.framework.drc.console.service.v2.impl.MhaReplicationServiceV2Impl;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -18,14 +23,14 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
@@ -66,6 +71,10 @@ public class DbMigrationServiceTest {
     private MigrationTaskTblDao migrationTaskTblDao;
     @Mock
     private RegionConfig regionConfig;
+    @Mock
+    private MhaReplicationServiceV2Impl mhaReplicationServiceV2;
+    @Mock
+    private MessengerServiceV2 messengerServiceV2;
 
     @Before
     public void setUp() throws Exception {
@@ -194,4 +203,94 @@ public class DbMigrationServiceTest {
         return tbl;
     }
 
+
+    @Test
+    public void testGetAndUpdateTaskStatusDirectlyReturn() throws SQLException {
+        MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setDbs(JsonUtils.toJson(Lists.newArrayList("db1")));
+        List<String> possibleUpdateStatus = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+        for (MigrationStatusEnum value : MigrationStatusEnum.values()) {
+            tbl.setStatus(value.getStatus());
+            Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
+            if (!possibleUpdateStatus.contains(value.getStatus())) {
+                String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+                Assert.assertEquals(value.getStatus(), currentStatus);
+            }
+        }
+    }
+
+    @Test
+    public void testGetAndUPdateTaskStatusUpdateToReady() throws SQLException {
+        MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setDbs(JsonUtils.toJson(Lists.newArrayList("db1")));
+        tbl.setNewMha("mha1");
+        tbl.setOldMha("mha2");
+
+
+        List<String> possibleUpdateStatus = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+        for (String status : possibleUpdateStatus) {
+            tbl.setStatus(status);
+            Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
+            List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+            Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
+        }
+        Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
+    }
+
+    @Test
+    public void testGetAndUPdateTaskStatusUpdateToStartting() throws SQLException {
+        MigrationTaskTbl tbl = new MigrationTaskTbl();
+        tbl.setDbs(JsonUtils.toJson(Lists.newArrayList("db1")));
+        tbl.setNewMha("mha1");
+        tbl.setOldMha("mha2");
+
+
+        List<String> possibleUpdateStatus = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
+        for (String status : possibleUpdateStatus) {
+            tbl.setStatus(status);
+            Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
+            List<MhaReplicationDto> mhaReplication = this.getMhaReplication();
+            Mockito.when(mhaReplicationServiceV2.queryRelatedReplications(Mockito.anyList(), Mockito.anyList())).thenReturn(mhaReplication);
+            Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
+            Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
+            Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+            Assert.assertEquals(MigrationStatusEnum.STARTING.getStatus(), currentStatus);
+        }
+        Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
+    }
+
+    private List<MhaReplicationDto> getMhaReplication() {
+        String json = "[{\"replicationId\":1,\"srcMha\":{\"name\":\"mha1\",\"id\":1},\"dstMha\":{\"name\":\"mha2\",\"id\":2},\"dbs\":[\"db1\",\"db2\"],\"status\":1}]";
+        return JSON.parseArray(json, MhaReplicationDto.class);
+    }
+
+    private List<MhaDelayInfoDto> getSmallDelay(List<MhaReplicationDto> mhaReplicationDtos){
+        return mhaReplicationDtos.stream().map(e->{
+            MhaDelayInfoDto dto = new MhaDelayInfoDto();
+            dto.setSrcMha(e.getSrcMha().getName());
+            dto.setDstMha(e.getDstMha().getName());
+            long delay = new Random().nextInt((int) TimeUnit.SECONDS.toMillis(5));
+            dto.setDstTime(new Date().getTime());
+            dto.setSrcTime(dto.getDstTime() + delay);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private List<MhaDelayInfoDto> getLargeDelay(List<MhaReplicationDto> mhaReplicationDtos){
+        return mhaReplicationDtos.stream().map(e->{
+            MhaDelayInfoDto dto = new MhaDelayInfoDto();
+            dto.setSrcMha(e.getSrcMha().getName());
+            dto.setDstMha(e.getDstMha().getName());
+            long delay = TimeUnit.SECONDS.toMillis(20);
+            dto.setDstTime(new Date().getTime());
+            dto.setSrcTime(dto.getDstTime() + delay);
+            return dto;
+        }).collect(Collectors.toList());
+    }
 }

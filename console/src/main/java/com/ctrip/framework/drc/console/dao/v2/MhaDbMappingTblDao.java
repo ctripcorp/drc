@@ -11,6 +11,7 @@ import org.springframework.util.CollectionUtils;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -59,13 +60,13 @@ public class MhaDbMappingTblDao extends AbstractDao<MhaDbMappingTbl> {
         return CollectionUtils.isEmpty(query) ? null : query.get(0);
     }
 
-    public List<MhaDbMappingTbl> queryByDbIdsAndMhaId(List<Long> dbIds, Long mhaId) throws SQLException {
-        if (CollectionUtils.isEmpty(dbIds) || mhaId == null || mhaId == 0L) {
-            throw new IllegalArgumentException("dbIds is empty or mhaId is null or 0");
+    public List<MhaDbMappingTbl> queryByDbIdsAndMhaIds(List<Long> dbIds, List<Long> mhaIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbIds) || CollectionUtils.isEmpty(mhaIds)) {
+            return Collections.emptyList();
         }
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().
-                and().equal(MHA_ID, mhaId, Types.BIGINT).
+                and().in(MHA_ID, mhaIds, Types.BIGINT).
                 and().in(DB_ID, dbIds, Types.BIGINT);
         return client.query(sqlBuilder, new DalHints());
     }

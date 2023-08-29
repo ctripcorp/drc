@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,5 +41,8 @@ public class BlankOPSApiServiceImpl implements OPSApiService {
         return 1;
     }
 
-    
+    @Override
+    public List<HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha) {
+        return null;
+    }
 }

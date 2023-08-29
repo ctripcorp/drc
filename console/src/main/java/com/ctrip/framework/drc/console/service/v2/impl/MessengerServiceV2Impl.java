@@ -6,9 +6,14 @@ import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
+import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
@@ -22,7 +27,9 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.RowsFilterServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigConflictTable;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
@@ -40,7 +47,10 @@ import com.ctrip.framework.drc.core.monitor.reporter.TransactionMonitor;
 import com.ctrip.framework.drc.core.mq.MessengerProperties;
 import com.ctrip.framework.drc.core.mq.MqType;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
+import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.utils.Constants;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
@@ -55,8 +65,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.ctrip.framework.drc.core.service.utils.Constants.DRC;
@@ -71,6 +84,8 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private static final Logger logger = LoggerFactory.getLogger(MessengerServiceImpl.class);
     private final TransactionMonitor transactionMonitor = DefaultTransactionMonitorHolder.getInstance();
     private DbClusterApiService dbClusterService = ApiContainer.getDbClusterApiServiceImpl();
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "mhaReplicationService");
+    private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
 
     @Autowired
     private RowsFilterServiceV2 rowsFilterService;
@@ -104,6 +119,113 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
     private MetaInfoServiceV2 metaInfoServiceV2;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+
+    @Override
+    public List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs) {
+        try {
+            // only consider mha with messenger group and
+            List<MhaTblV2> mhaTblV2 = mhaTblV2Dao.queryByMhaNames(mhas, BooleanEnum.FALSE.getCode());
+            List<DbTbl> dbTbls = dbTblDao.queryByDbNames(dbs);
+            if (CollectionUtils.isEmpty(mhaTblV2) || CollectionUtils.isEmpty(dbTbls)) {
+                return Collections.emptyList();
+            }
+
+            List<Long> mhaIds = mhaTblV2.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+            List<MessengerGroupTbl> messengerGroupTbls = messengerGroupTblDao.queryByMhaIds(mhaIds, BooleanEnum.FALSE.getCode());
+            mhaIds = messengerGroupTbls.stream().map(MessengerGroupTbl::getMhaId).collect(Collectors.toList());
+
+            List<Long> dbIds = dbTbls.stream().map(DbTbl::getId).collect(Collectors.toList());
+            List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(dbIds, mhaIds);
+            if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+                return Collections.emptyList();
+            }
+
+
+            // messenger dbReplications
+            List<Long> mappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
+            List<DbReplicationTbl> relatedDbReplications = dbReplicationTblDao.queryByRelatedMappingIds(mappingIds, ReplicationTypeEnum.DB_TO_MQ.getType())
+                    .stream().filter(StreamUtils.distinctByKey(DbReplicationTbl::getSrcMhaDbMappingId)).collect(Collectors.toList());
+
+            Map<Long, MhaDbMappingTbl> mappingTblMap = mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getId, Function.identity()));
+            Map<Long, MhaTblV2> mhaMap = mhaTblV2.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
+            Map<Long, MessengerGroupTbl> messengerGroupTblMap = messengerGroupTbls.stream().collect(Collectors.toMap(MessengerGroupTbl::getMhaId, e -> e));
+            Map<Long, DbTbl> dbMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, Function.identity()));
+            Map<Long, MhaMessengerDto> map = Maps.newHashMap();
+            for (DbReplicationTbl dbReplicationTbl : relatedDbReplications) {
+                MhaDbMappingTbl srcMapping = mappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
+                Long mhaId = srcMapping.getMhaId();
+                MhaMessengerDto dto = map.get(mhaId);
+                if (dto == null) {
+                    MhaTblV2 mhaTbl = mhaMap.get(mhaId);
+                    MessengerGroupTbl messengerGroupTbl = messengerGroupTblMap.get(mhaId);
+                    dto = MhaMessengerDto.from(mhaTbl, messengerGroupTbl);
+                    map.put(mhaId, dto);
+                }
+                DbTbl dbTbl = dbMap.get(srcMapping.getDbId());
+                if (dbTbl != null) {
+                    dto.getDbs().add(dbTbl.getDbName());
+                }
+            }
+            return Lists.newArrayList(map.values());
+        } catch (SQLException e) {
+            logger.error("getRelatedMhaMessenger error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList) {
+
+        List<Callable<MhaDelayInfoDto>> list = Lists.newArrayList();
+        List<String> mhaNames = messengerDtoList.stream().map(e -> e.getSrcMha().getName()).collect(Collectors.toList());
+
+        try {
+            String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
+            String opsAccessToken = domainConfig.getOpsAccessToken();
+            if (EnvUtils.fat()) {
+                trafficFromHickWall = domainConfig.getTrafficFromHickWallFat();
+                opsAccessToken = domainConfig.getOpsAccessTokenFat();
+            }
+            List<HickWallMessengerDelayEntity> messengerDelayFromHickWall = opsApiServiceImpl.getMessengerDelayFromHickWall(trafficFromHickWall, opsAccessToken, mhaNames);
+            Map<String, HickWallMessengerDelayEntity> hickWallMap = messengerDelayFromHickWall.stream().collect(Collectors.toMap(HickWallMessengerDelayEntity::getMha, e -> e));
+            for (MhaMessengerDto dto : messengerDtoList) {
+                list.add(() -> {
+                    String mhaName = dto.getSrcMha().getName();
+                    HickWallMessengerDelayEntity delayEntity = hickWallMap.get(mhaName);
+                    return this.getMhaMessengerDelay(mhaName, delayEntity);
+                });
+            }
+
+            List<MhaDelayInfoDto> res = Lists.newArrayList();
+            List<Future<MhaDelayInfoDto>> futures = executorService.invokeAll(list, 5, TimeUnit.SECONDS);
+            for (Future<MhaDelayInfoDto> future : futures) {
+                res.add(future.get());
+            }
+            return res;
+        } catch (InterruptedException | ExecutionException | IOException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_MHA_DELAY_FAIL, e);
+        }
+    }
+
+    private MhaDelayInfoDto getMhaMessengerDelay(String mha, HickWallMessengerDelayEntity delayEntity) {
+        MhaDelayInfoDto delayInfoDto = new MhaDelayInfoDto();
+        delayInfoDto.setSrcMha(mha);
+
+        // query receive time
+        Long updateTime = mysqlServiceV2.getDelayUpdateTime(mha, mha);
+        Long currentTime = mysqlServiceV2.getCurrentTime(mha);
+        if (updateTime != null) {
+            if (currentTime != null) {
+                updateTime = Math.max(updateTime, currentTime);
+            }
+            delayInfoDto.setSrcTime(updateTime);
+            if (delayEntity != null) {
+                Long delay = delayEntity.getDelay();
+                delayInfoDto.setDstTime(updateTime - delay);
+            }
+        }
+        return delayInfoDto;
+    }
 
     @Override
     public List<MhaTblV2> getAllMessengerMhaTbls() {

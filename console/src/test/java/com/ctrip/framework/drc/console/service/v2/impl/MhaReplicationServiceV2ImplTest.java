@@ -53,7 +53,8 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
 
         List<String> dbNames = Lists.newArrayList("db1", "db2");
         String mhaName = "mha1";
-        List<MhaReplicationDto> mhaReplicationDtos = mhaReplicationServiceV2.queryRelatedReplications(mhaName, dbNames);
+        List<String> mhaNames = Lists.newArrayList(mhaName);
+        List<MhaReplicationDto> mhaReplicationDtos = mhaReplicationServiceV2.queryRelatedReplications(mhaNames, dbNames);
 
         Assert.assertEquals(3, mhaReplicationDtos.size());
         for (MhaReplicationDto replicationDto : mhaReplicationDtos) {
@@ -82,7 +83,7 @@ public class MhaReplicationServiceV2ImplTest extends CommonDataInit {
     }
 
     @Test
-    public void testGetMhaReplicationSingleDelays() {
+    public void testGetMhaReplicationDelays() {
         String mha1 = "mha1";
         String mha2 = "mha2";
         String mha3 = "mha3";

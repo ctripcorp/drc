@@ -43,5 +43,5 @@ public interface MysqlServiceV2 {
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
 
-    Long getCurrentTime(String srcMha);
+    Long getCurrentTime(String mha);
 }

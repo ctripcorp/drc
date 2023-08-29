@@ -14,7 +14,7 @@ public interface MhaReplicationServiceV2 {
 
     List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 
-    List<MhaReplicationDto> queryRelatedReplications(String mhaName, List<String> dbNames);
+    List<MhaReplicationDto> queryRelatedReplications(List<String> mhaNames, List<String> dbNames);
 
     /**
      * 获取 srcMha -> dstMha 该同步链路延迟
