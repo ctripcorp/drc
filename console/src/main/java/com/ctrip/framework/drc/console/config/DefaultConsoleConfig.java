@@ -105,6 +105,9 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     private static String META_GENERATOR_V3_SWITCH = "meta.generator.v3.switch";
     private static String META_REALTIME_SWITCH = "meta.realtime";
 
+    private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
+    private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
+
     // only for test
     protected DefaultConsoleConfig(Config config) {
         super(config);
@@ -415,6 +418,12 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         }
         return mhasIdNameMap;
 
+    }
+
+    public Map<String, String> getDbaDc2DrcDcMap() {
+        String dbaDc2DrcDcMapString = getProperty(DBA_DC_2_DRC_DC_MAP, DEFAULT_DBA_DC_2_DRC_DC_MAP);
+        logger.info("dbaDc2DrcDcMapString: {}", dbaDc2DrcDcMapString);
+        return JsonCodec.INSTANCE.decode(dbaDc2DrcDcMapString, new GenericTypeReference<Map<String, String>>() {});
     }
 
     public List<String> getVpcMhaNames() {

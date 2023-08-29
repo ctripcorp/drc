@@ -55,8 +55,10 @@ public class MessengerGroupTblDao extends AbstractDao<MessengerGroupTbl> {
 
     // srcReplicatorGroupId current is useless
     public Long upsertIfNotExist(Long mhaId,Long srcReplicatorGroupId,String gtidExecuted) throws SQLException {
-        MessengerGroupTbl mGroupTbl =
-                queryByMhaId(mhaId,BooleanEnum.FALSE.getCode());
+        if (null == mhaId) {
+            throw new IllegalArgumentException("upsertIfNotExist MessengerGroupTbl but mhaId is null");
+        }
+        MessengerGroupTbl mGroupTbl = queryByMhaId(mhaId,BooleanEnum.FALSE.getCode());
         if (mGroupTbl != null) {
             if(StringUtils.isNotBlank(gtidExecuted)) {
                 mGroupTbl.setGtidExecuted(gtidExecuted);
@@ -64,21 +66,18 @@ public class MessengerGroupTblDao extends AbstractDao<MessengerGroupTbl> {
             }
             return mGroupTbl.getId();
         } else {
-            MessengerGroupTbl mGroupTblDeleted =
-                    queryByMhaId(mhaId, BooleanEnum.TRUE.getCode());
+            MessengerGroupTbl mGroupTblDeleted = queryByMhaId(mhaId, BooleanEnum.TRUE.getCode());
             if (mGroupTblDeleted != null) {
                 mGroupTblDeleted.setDeleted(BooleanEnum.FALSE.getCode());
-                mGroupTblDeleted.setGtidExecuted(gtidExecuted);
+                mGroupTblDeleted.setGtidExecuted(StringUtils.isBlank(gtidExecuted) ? mGroupTblDeleted.getGtidExecuted() : gtidExecuted);
                 update(mGroupTblDeleted);
                 return mGroupTblDeleted.getId();
             } else {
-                KeyHolder keyHolder = new KeyHolder();
                 MessengerGroupTbl messengerGroupTbl = new MessengerGroupTbl();
                 messengerGroupTbl.setMhaId(mhaId);
                 messengerGroupTbl.setReplicatorGroupId(srcReplicatorGroupId);
                 messengerGroupTbl.setGtidExecuted(gtidExecuted);
-                insert(new DalHints(), keyHolder, messengerGroupTbl);
-                return (Long) keyHolder.getKey();
+                return insertWithReturnId(messengerGroupTbl);
             }
         }
     }

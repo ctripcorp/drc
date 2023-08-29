@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.RegionTbl;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.core.entity.Drc;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public interface MetaInfoServiceV2 {
@@ -21,7 +22,7 @@ public interface MetaInfoServiceV2 {
 
     List<DcDo> queryAllDcWithCache();
 
-    Integer findAvailableApplierPort(String ip) throws Exception;
+    Integer findAvailableApplierPort(String ip) throws SQLException;
 
     Drc getDrcReplicationConfig(Long replicationId);
     Drc getDrcReplicationConfig(String srcMhaName, String dstMhaName);

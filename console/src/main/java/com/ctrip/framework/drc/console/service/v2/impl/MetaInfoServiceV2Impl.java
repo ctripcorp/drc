@@ -383,7 +383,7 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
         }
     }
 
-    public Integer findAvailableApplierPort(String ip) throws Exception {
+    public Integer findAvailableApplierPort(String ip) throws SQLException {
         ResourceTbl resourceTbl = resourceTblDao.queryAll().stream().filter(predicate -> (predicate.getDeleted().equals(BooleanEnum.FALSE.getCode()) && predicate.getIp().equalsIgnoreCase(ip))).findFirst().get();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryAll().stream().filter(r -> r.getDeleted().equals(BooleanEnum.FALSE.getCode()) && r.getResourceId().equals(resourceTbl.getId())).collect(Collectors.toList());
         if (replicatorTbls.size() == 0) {

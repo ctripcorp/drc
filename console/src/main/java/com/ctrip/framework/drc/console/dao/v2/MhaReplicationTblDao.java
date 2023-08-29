@@ -73,6 +73,28 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 
+    public Long insertOrReCover(Long srcMhaId, Long dstMhaId) throws SQLException {
+        if (srcMhaId == null || dstMhaId == null) {
+            throw new IllegalArgumentException("insertOrReCover mhaReplication, srcMhaId or dstMhaId is null");
+        }
+        MhaReplicationTbl mhaReplicationTbl = queryByMhaId(srcMhaId, dstMhaId);
+        if (mhaReplicationTbl != null) {
+            if (mhaReplicationTbl.getDeleted() == 0) {
+                return mhaReplicationTbl.getId();
+            }
+            mhaReplicationTbl.setDeleted(0);
+            update(new DalHints(), mhaReplicationTbl);
+            return mhaReplicationTbl.getId();
+        } else {
+            mhaReplicationTbl = new MhaReplicationTbl();
+            mhaReplicationTbl.setSrcMhaId(srcMhaId);
+            mhaReplicationTbl.setDstMhaId(dstMhaId);
+            mhaReplicationTbl.setDrcStatus(0);
+            mhaReplicationTbl.setDeleted(0);
+            return insertWithReturnId(mhaReplicationTbl);
+        }
+    }
+    
     public Long insertWithReturnId(MhaReplicationTbl mhaReplicationTbl) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insert(new DalHints(), keyHolder, mhaReplicationTbl);

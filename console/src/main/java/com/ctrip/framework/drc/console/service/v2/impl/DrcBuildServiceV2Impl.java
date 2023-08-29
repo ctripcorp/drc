@@ -1,16 +1,23 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.enums.*;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.MemberInfo;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
@@ -18,9 +25,11 @@ import com.ctrip.framework.drc.console.utils.XmlUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.meta.RowsFilterConfig;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.server.common.filter.row.UserFilterMode;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.config.applier.dto.ApplyMode;
@@ -30,6 +39,7 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
+import java.util.Arrays;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -104,6 +114,17 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MetaProviderV2 metaProviderV2;
     @Autowired
     private MessengerServiceV2 messengerServiceV2;
+    @Autowired
+    private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private ResourceService resourceService;
+    @Autowired
+    private DbaApiService dbaApiService;
+    @Autowired
+    private MachineTblDao machineTblDao;
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
+    
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
@@ -458,6 +479,167 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.error("metaProviderV2.scheduledTask error. req: " + dto, e);
         }
         return XmlUtils.formatXML(drcMessengerConfig.toString());
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException { 
+        MhaTblV2 existMha = mhaTblDao.queryByMhaName(mhaName);
+        if (existMha != null) {
+            throw ConsoleExceptionUtils.message("mhaName already exist!");
+        }
+        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
+        List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
+        String dcInDbaSystem = memberlist.stream().findFirst().map(MemberInfo::getMachine_located_short).get();
+        Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
+        String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(),null);
+        DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
+        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L);
+        mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
+        Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
+        logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
+        
+        List<MachineTbl> machinesToBeInsert = new ArrayList<>();
+        for (MemberInfo memberInfo : memberlist) {
+            machinesToBeInsert.add(extractFrom(memberInfo,mhaId));
+        }
+        int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
+        logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName,Arrays.stream(ints).sum());
+        
+        mhaTblV2.setId(mhaId);
+        return mhaTblV2;
+    }
+    
+    private MachineTbl extractFrom(MemberInfo memberInfo,Long mhaId) {
+        String serviceIp = memberInfo.getService_ip();
+        int dnsPort = memberInfo.getDns_port();
+        String dcInDbaSystem = memberInfo.getMachine_located_short();
+        boolean isMaster = memberInfo.getRole().toLowerCase().contains("master");
+        String uuid = null;
+        try {
+            uuid = MySqlUtils.getUuid(serviceIp, dnsPort,monitorTableSourceProvider.getMonitorUserVal(),
+                    monitorTableSourceProvider.getMonitorPasswordVal(),isMaster);
+        } catch (Exception e) {
+            logger.warn("getUuid failed, serviceIp:{}, dnsPort:{}, dcInDbaSystem:{}, isMaster:{}, e:{}",
+                    serviceIp, dnsPort, dcInDbaSystem, isMaster, e.getMessage());
+        }
+        MachineTbl machineTbl = new MachineTbl();
+        machineTbl.setMhaId(mhaId);
+        machineTbl.setMaster(isMaster ? BooleanEnum.TRUE.getCode() : BooleanEnum.FALSE.getCode());
+        machineTbl.setIp(serviceIp);
+        machineTbl.setPort(dnsPort);
+        machineTbl.setUuid(uuid);
+        return machineTbl;
+    }
+
+    @Override
+    public void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException {
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
+        Long rGroupId = replicatorGroupTbl.getId();
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(rGroupId), BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(replicatorTbls)) {
+            logger.warn("[[mha={}]] replicator exist,do nothing", mhaTbl.getMhaName());
+        } else {
+            ResourceSelectParam selectParam = new ResourceSelectParam();
+            selectParam.setType(ModuleEnum.REPLICATOR.getCode());
+            selectParam.setMhaName(mhaTbl.getMhaName());
+            List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+            if (CollectionUtils.isEmpty(resourceViews)) {
+                logger.error("[[mha={}]] autoConfigureResource failed", mhaTbl.getMhaName());
+                throw new ConsoleException("autoConfigReplicators failed!");
+            } else {
+                List<ReplicatorTbl> insertReplicators = Lists.newArrayList();
+                String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
+                for (ResourceView resourceView : resourceViews) {
+                    ReplicatorTbl replicatorTbl = new ReplicatorTbl();
+                    replicatorTbl.setRelicatorGroupId(rGroupId);
+                    replicatorTbl.setGtidInit(mhaExecutedGtid);
+                    replicatorTbl.setResourceId(resourceView.getResourceId());
+                    replicatorTbl.setPort(ConsoleConfig.DEFAULT_REPLICATOR_PORT);
+                    replicatorTbl.setApplierPort(metaInfoService.findAvailableApplierPort(resourceView.getIp()));
+                    replicatorTbl.setMaster(BooleanEnum.FALSE.getCode());
+                    replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                    insertReplicators.add(replicatorTbl);
+                }
+                replicatorTblDao.batchInsert(insertReplicators);
+            }
+        }
+    }
+
+    @Override
+    public void autoConfigAppliersWithRealTimeGtid(
+            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, 
+            MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+            throw new ConsoleException("getMhaExecutedGtid failed!");
+        }
+        applierGroup.setGtidInit(mhaExecutedGtid);
+        applierGroupTblDao.update(applierGroup);
+        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
+
+        mhaReplicationTbl.setDrcStatus(1);
+        mhaReplicationTblDao.update(mhaReplicationTbl);
+        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+        
+        
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(destMhaTbl.getMhaName());
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            logger.error("[[mha={}]] autoConfigAppliers failed", destMhaTbl.getMhaName());
+            throw new ConsoleException("autoConfigAppliers failed!");
+        } else {
+            List<ApplierTblV2> insertAppliers = Lists.newArrayList();
+            for (ResourceView resourceView : resourceViews) {
+                ApplierTblV2 applierTbl = new ApplierTblV2();
+                applierTbl.setApplierGroupId(applierGroup.getId());
+                applierTbl.setResourceId(resourceView.getResourceId());
+                applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+                applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+                applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                insertAppliers.add(applierTbl);
+            }
+            applierTblDao.batchInsert(insertAppliers);
+            logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
+        }
+    }
+
+    @Override
+    public void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException {
+        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(mhaTbl.getMhaName());
+        if (StringUtils.isBlank(mhaExecutedGtid)) {
+            logger.error("[[mha={}]] getMhaExecutedGtid failed", mhaTbl.getMhaName());
+            throw new ConsoleException("getMhaExecutedGtid failed!");
+        }
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaTbl.getId(),BooleanEnum.FALSE.getCode());
+        messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
+        messengerGroupTblDao.update(messengerGroupTbl);
+        logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
+        
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(mhaTbl.getMhaName());
+        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            logger.error("[[mha={}]] autoConfigMessengers failed", mhaTbl.getMhaName());
+            throw new ConsoleException("autoConfigMessengers failed!");
+        } else {
+            List<MessengerTbl> insertMessengers = Lists.newArrayList();
+            for (ResourceView resourceView : resourceViews) {
+                MessengerTbl messengerTbl = new MessengerTbl();
+                messengerTbl.setMessengerGroupId(messengerGroupTbl.getId());
+                messengerTbl.setResourceId(resourceView.getResourceId());
+                messengerTbl.setPort(DEFAULT_APPLIER_PORT);
+                messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
+                insertMessengers.add(messengerTbl);
+            }
+            messengerTblDao.batchInsert(insertMessengers);
+            logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
+        }
+        
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
