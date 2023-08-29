@@ -103,7 +103,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
-    private static final String BASE_API_URL = "/api/meta/clusterchange/clusterId?dcId={dcId}&operator={operator}";
+    private static final String BASE_API_URL = "/api/meta/clusterchange/%s/?operator={operator}";
 
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
@@ -536,17 +536,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         for (long mhaId : mhaIds) {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
             DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
-            DbCluster dbCluster = findDbCluster(drc, mhaTblV2, dcTbl.getDcName());
-            String url = cmRegionUrls.get(dcTbl.getRegionName()) + BASE_API_URL;
+            String dbClusterId = mhaTblV2.getClusterName() + "." + mhaTblV2.getMhaName();
+            String url = cmRegionUrls.get(dcTbl.getRegionName()) + String.format(BASE_API_URL, dbClusterId);
 
             Map<String, String> paramMap = new HashMap<>();
             paramMap.put("operator", operator);
-            paramMap.put("dcId", dcTbl.getDcName());
-            Map<String, String> headerMap = new HashMap<>();
-            headerMap.put("forward", "{\"type\": 1}");
-
             try {
-                HttpUtils.post(url, dbCluster, headerMap, ApiResult.class, paramMap);
+                HttpUtils.post(url, null, ApiResult.class, paramMap);
             } catch (Exception e) {
                 logger.error("pushConfigToCM fail: {}", e);
             }
