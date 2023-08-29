@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by dengquanliang
@@ -87,13 +88,43 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
+    // todo by yongnian: 2023/8/29 测试 
     @Override
-    public List<MhaReplicationDto> queryRelatedReplicationList(List<String> mhaNames) {
+    public List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId, boolean queryAll) {
         try {
-            List<MhaTblV2> mhaTblV2 = mhaTblV2Dao.queryByMhaNames(mhaNames, BooleanEnum.FALSE.getCode());
-            Map<Long, MhaTblV2> mhaMap = mhaTblV2.stream().collect(Collectors.toMap(MhaTblV2::getId, e -> e));
-            List<MhaReplicationTbl> mhaReplicationTbls = this.queryRelatedReplications(Lists.newArrayList(mhaMap.keySet()));
-            return mhaReplicationTbls.stream().map(e -> MhaReplicationDto.from(e, mhaMap)).collect(Collectors.toList());
+
+            Set<Long> seenReplicationIds = Sets.newHashSet();
+            Set<Long> seenMhaIds = Sets.newHashSet();
+            List<MhaReplicationTbl> res = Lists.newArrayList();
+            Set<Long> newMhaIds = Sets.newHashSet(relatedMhaId);
+            do {
+                List<MhaReplicationTbl> newTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(newMhaIds)).stream()
+                        .filter(e -> !seenReplicationIds.contains(e.getId()))
+                        .collect(Collectors.toList());
+                res.addAll(newTbls);
+
+                // update cache
+                seenReplicationIds.addAll(newTbls.stream().map(MhaReplicationTbl::getId).collect(Collectors.toSet()));
+                newMhaIds = newTbls.stream()
+                        .flatMap(e -> Stream.of(e.getSrcMhaId(), e.getDstMhaId()))
+                        .filter(e -> !seenMhaIds.contains(e))
+                        .collect(Collectors.toSet());
+                seenMhaIds.addAll(newMhaIds);
+            } while (queryAll && !newMhaIds.isEmpty());
+
+            return res;
+        } catch (SQLException e) {
+            logger.error("queryRelatedReplications error", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
+    }
+
+    @Override
+    public List<MhaReplicationTbl> queryRelatedReplicationByName(List<String> mhaNames, boolean queryAll) {
+        try {
+            List<MhaTblV2> mhaTblV2List = mhaTblV2Dao.queryByMhaNames(mhaNames, 0);
+            List<Long> mhaIds = mhaTblV2List.stream().map(MhaTblV2::getId).collect(Collectors.toList());
+            return queryRelatedReplications(mhaIds, queryAll);
         } catch (SQLException e) {
             logger.error("queryRelatedReplications error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);

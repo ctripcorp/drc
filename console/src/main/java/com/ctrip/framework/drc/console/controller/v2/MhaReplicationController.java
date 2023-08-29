@@ -83,6 +83,37 @@ public class MhaReplicationController {
         }
     }
 
+    @GetMapping("queryMhaRelatedByNames")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaReplicationVo>> queryMhaReplicationByNames(@RequestParam(name = "relatedMhaNames") List<String> mhaNames,
+                                                                        @RequestParam(name = "queryAll", required = false) Boolean queryAll) {
+        logger.info("[meta] queryMhaReplications:{}", mhaNames);
+        try {
+            if (CollectionUtils.isEmpty(mhaNames)) {
+                throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "Invalid input, contact devops!");
+            }
+
+            // query related replications
+            List<MhaReplicationTbl> replicationTbls = mhaReplicationServiceV2.queryRelatedReplicationByName(mhaNames, Boolean.TRUE.equals(queryAll));
+            replicationTbls = replicationTbls.stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(replicationTbls)) {
+                return ApiResult.getSuccessInstance(Collections.emptyList());
+            }
+
+            // query mha detail
+            Set<Long> mhaIdSet = Sets.newHashSet();
+            mhaIdSet.addAll(replicationTbls.stream().map(MhaReplicationTbl::getSrcMhaId).collect(Collectors.toSet()));
+            mhaIdSet.addAll(replicationTbls.stream().map(MhaReplicationTbl::getDstMhaId).collect(Collectors.toSet()));
+            Map<Long, MhaTblV2> mhaTblMap = mhaServiceV2.queryMhaByIds(Lists.newArrayList(mhaIdSet));
+
+            // fill
+            return ApiResult.getSuccessInstance(this.buildVo(replicationTbls, mhaTblMap));
+        } catch (Exception e) {
+            logger.error("queryMhaReplications error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
     @GetMapping("query")
     @SuppressWarnings("unchecked")
     public ApiResult<PageResult<MhaReplicationVo>> queryMhaReplicationsByPage(MhaReplicationQueryDto queryDto) {

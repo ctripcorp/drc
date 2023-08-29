@@ -14,7 +14,9 @@ public interface MhaReplicationServiceV2 {
 
     List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 
-    List<MhaReplicationDto> queryRelatedReplicationList(List<String> mhaNames);
+    List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId, boolean queryAll);
+
+    List<MhaReplicationTbl> queryRelatedReplicationByName(List<String> mhaNames, boolean queryAll);
     List<MhaReplicationDto> queryRelatedReplications(List<String> mhaNames, List<String> dbNames);
     List<MhaReplicationDto> queryReplicationByIds(List<Long> replicationIds);
 

@@ -487,10 +487,10 @@ export default {
         closable: true,
         render: (h) => {
           return h('div', [
-            h('div', '点击可加载关联节点'),
             h(MhaGraph, {
               props: {
                 mhaIdList: [row.srcMha.id, row.dstMha.id],
+                mhaNameList: [row.srcMha.name, row.dstMha.name],
                 operations: [
                   {
                     text: '查询',

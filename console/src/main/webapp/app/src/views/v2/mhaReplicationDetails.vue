@@ -1,5 +1,19 @@
 <template>
   <div>
+
+    <Row :gutter=10>
+      <Col span="10">
+        <Input prefix="ios-search" v-model="queryParam.mhaNames" placeholder="集群名"
+               @on-enter="showMore([queryParam.mhaNames], queryParam.queryAll)">
+        </Input>
+      </Col>
+      <Col span="5">
+        <div>
+          全部加载
+          <i-switch v-model="queryParam.queryAll"/>
+        </div>
+      </Col>
+    </Row>
     <div ref="myPage" style="height:calc(100vh - 35vh);" @click="graphData.isShowNodeMenuPanel = false">
       <RelationGraph
         ref="seeksRelationGraph"
@@ -28,6 +42,7 @@ export default {
   components: {},
   props: {
     mhaIdList: Array,
+    mhaNameList: Array,
     operations: Array
   },
   data () {
@@ -37,8 +52,8 @@ export default {
         graphInit: false,
         graph: null,
         currentLink: null,
-        mhaIdRequested: new Set(),
-        mhaIdShown: new Set(),
+        mhaNameRequested: new Set(),
+        mhaNameShown: new Set(),
         replicationIdShown: new Set(),
         isShowNodeMenuPanel: false,
         nodeMenuPanelPosition: { x: 0, y: 0 },
@@ -55,15 +70,26 @@ export default {
           this.nodes = []
           this.lines = []
         },
+        reset: function () {
+          this.graphInit = false
+          this.mhaNameRequested.clear()
+          this.mhaNameShown.clear()
+          this.replicationIdShown.clear()
+          this.nodes = []
+          this.lines = []
+        },
         isEmpty: function () {
           return this.nodes == null || this.lines == null || this.nodes.length === 0 || this.lines.length === 0
         },
         appendNode: function (mha) {
-          if (!this.mhaIdShown.has(mha.id + '')) {
-            this.mhaIdShown.add(mha.id + '')
+          if (!this.mhaNameShown.has(mha.name + '')) {
+            this.mhaNameShown.add(mha.name + '')
             this.nodes.push({
               id: mha.id + '',
               text: mha.name,
+              data: {
+                mha: mha
+              },
               styleClass: 'c-g-center'
             })
           }
@@ -82,14 +108,14 @@ export default {
             })
           }
         },
-        appendDataToGraph () {
+        appendDataToGraph (queryAll) {
           const graph = this.graph
           // eslint-disable-next-line camelcase
           if (!this.graphInit) {
             this.graphInit = true
             graph.setJsonData(this, (graphInstance) => {
               // 这些写上当图谱初始化完成后需要执行的代码
-              this.deepenClickedNode()
+              this.deepenClickedNode(null, queryAll)
               console.log('init graph success')
             })
           } else {
@@ -99,22 +125,22 @@ export default {
             })
           }
         },
-        hasShow (mhaId) {
-          if (this.mhaIdRequested.has(mhaId)) {
+        hasShow (mhaName) {
+          if (this.mhaNameRequested.has(mhaName)) {
             return true
           } else {
-            this.mhaIdRequested.add(mhaId)
+            this.mhaNameRequested.add(mhaName)
             return false
           }
         },
-        deepenClickedNode (nodeObject) {
+        deepenClickedNode (nodeObject, queryAll) {
           if (nodeObject != null) {
             nodeObject.color = 'rgb(0,166,81)'
           } else {
             // refresh all
             const nodes = this.graph.getNodes()
             nodes.forEach(e => {
-              if (this.mhaIdRequested.has(e.id)) {
+              if (queryAll || this.mhaNameRequested.has(e.data.mha.name)) {
                 e.color = 'rgb(0,166,81)'
               }
             })
@@ -144,28 +170,38 @@ export default {
         srcMha: '',
         dstMha: '',
         replicationId: 0
+      },
+      queryParam: {
+        mhaNames: ''
       }
     }
   },
   mounted () {
     const mhaIdList = this.mhaIdList
+    const mhaNameList = this.mhaNameList
     console.log('mount mhaId: ' + mhaIdList)
     this.graphData.graph = this.$refs.seeksRelationGraph
     this.graphData.rootId = mhaIdList[0]
-    this.showMore(mhaIdList)
+    this.showMore(mhaNameList, this.queryParam.queryAll)
   },
   methods: {
-    showMore (mhaIdList) {
-      const filteredIdList = mhaIdList.filter(mhaId => {
-        return !this.graphData.hasShow(mhaId + '')
+    showMore (mhaNameList, queryAll) {
+      if (queryAll) {
+        this.graphData.reset()
+      } else {
+        this.graphData.clear()
+      }
+      const filteredNameList = mhaNameList.filter(mhaName => {
+        return !this.graphData.hasShow(mhaName)
       })
-      if (filteredIdList == null || filteredIdList.length === 0) {
+      if (filteredNameList == null || filteredNameList.length === 0) {
         return
       }
       const reqParam = {
-        relatedMhaId: filteredIdList.join(',')
+        relatedMhaNames: filteredNameList.join(','),
+        queryAll: queryAll
       }
-      this.axios.get('/api/drc/v2/replication/queryMhaRelated', { params: reqParam })
+      this.axios.get('/api/drc/v2/replication/queryMhaRelatedByNames', { params: reqParam })
         .then(response => {
           const replications = response.data.data
           const emptyResult = replications == null || !Array.isArray(replications) || replications.length === 0
@@ -173,8 +209,6 @@ export default {
             this.$Message.error('结果为空')
             return
           }
-          // append graph data
-          this.graphData.clear()
           replications.forEach((replication) => {
             this.graphData.appendNode(replication.srcMha)
             this.graphData.appendNode(replication.dstMha)
@@ -185,7 +219,7 @@ export default {
             return
           }
           // refresh graph
-          this.graphData.appendDataToGraph()
+          this.graphData.appendDataToGraph(queryAll)
           this.getDelay(replications)
         })
         .catch(message => {
@@ -241,9 +275,9 @@ export default {
         })
     },
     onNodeClick (nodeObject, $event) {
-      console.log('onNodeClick:', nodeObject.id, $event)
+      console.log('onNodeClick:', nodeObject, $event)
       this.dataLoading = true
-      this.showMore([nodeObject.id])
+      this.showMore([nodeObject.data.mha.name], this.queryParam.queryAll)
       this.graphData.deepenClickedNode(nodeObject)
       this.$copyText(nodeObject.text).then(e => {
         this.$Message.success('已复制: ' + e.text)
