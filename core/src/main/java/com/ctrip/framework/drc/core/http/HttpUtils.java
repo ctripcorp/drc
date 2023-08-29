@@ -104,6 +104,18 @@ public class HttpUtils {
         return response.getBody();
     }
 
+    public static <T> T post(String url, Object body, Map<String, String> headerMap, Class<T> clazz, Map<String, ?> urlVariables) {
+        init();
+        if (headerMap != null && headerMap.size() > 0) {
+            headerMap.forEach((key, value) -> {
+                headers.add(key, value);
+            });
+        }
+
+        HttpEntity<Object> entity = new HttpEntity<Object>(body, headers);
+        ResponseEntity<T> response = restTemplate.exchange(url, HttpMethod.POST, entity, clazz,urlVariables);
+        return response.getBody();
+    }
 
     public static <T> T delete(String url, Class<T> clazz) {
         init();

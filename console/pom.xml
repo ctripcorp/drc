@@ -164,7 +164,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>com.ctrip.platform</groupId>
-                    <artifactId>ctrip-datasource</artifactId>
+                    <artifactId>ctrip-datasource</artifactId>g
                 </exclusion>
             </exclusions>
             <version>${dal.version}</version>

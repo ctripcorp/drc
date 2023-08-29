@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.console;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.ops.AppClusterResult;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
 import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
@@ -18,6 +19,7 @@ import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -120,6 +122,33 @@ public class OPSApiServiceImpl implements OPSApiService {
         List<HickWallTrafficEntity> costs= JsonUtils.fromJsonToList(result, HickWallTrafficEntity.class);
         logger.info("[cost] get_cost_from_hick_wall(size:{})", costs.size());
         return costs;
+    }
+
+    @Override
+    public List<HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha) throws IOException {
+
+        Map<String, Object> requestBody = Maps.newLinkedHashMap();
+        requestBody.put("access_token", accessToken);
+        requestBody.put("request_body", null);
+        String formatUrl = getAllClusterUrl + "?query=fx.drc.messenger.delay_mean&step=30&db=APM-FX";
+
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, JsonUtils.toJson(requestBody));
+        Request request = new Request.Builder()
+                .url(formatUrl)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String responseStr;
+        try (Response response = client.newCall(request).execute()) {
+            responseStr = response.body().string();
+        }
+        JsonObject jsonObject = JsonUtils.fromJson(responseStr, JsonObject.class);
+        JsonObject data = jsonObject.get("data").getAsJsonObject();
+        String result = JsonUtils.toJson(data.get("result"));
+
+        return JsonUtils.fromJsonToList(result, HickWallMessengerDelayEntity.class);
     }
 
     @Override

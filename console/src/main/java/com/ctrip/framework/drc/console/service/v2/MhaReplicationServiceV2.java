@@ -14,17 +14,20 @@ public interface MhaReplicationServiceV2 {
 
     List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 
-    List<MhaReplicationDto> queryRelatedReplications(String mhaName, List<String> dbNames);
+    List<MhaReplicationDto> queryRelatedReplications(List<String> mhaNames, List<String> dbNames);
 
     /**
      * 获取 srcMha -> dstMha 该同步链路延迟
      * <p>
-     * 该延迟非精准实时延迟，误差1s
+     * 用于判断DB是否可搬迁，非精准实时延迟，误差1s。通过直连DB查询。
      *
      * @see PeriodicalUpdateDbTask#scheduledTask()
      * @see com.ctrip.framework.drc.console.monitor.delay.server.StaticDelayMonitorServer
      */
     MhaDelayInfoDto getMhaReplicationDelay(String srcMha, String dstMha);
 
+    /**
+     * 批量获取延迟
+     */
     List<MhaDelayInfoDto> getMhaReplicationDelays(List<MhaReplicationDto> mhaReplicationDtoList);
 }

@@ -43,6 +43,14 @@ public class MhaTblV2Dao extends AbstractDao<MhaTblV2> {
         return client.query(sqlBuilder, new DalHints());
     }
 
+    public List<MhaTblV2> queryByMhaNames(List<String> mhaNames, int deleted) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll()
+                .equal(DELETED, deleted, Types.TINYINT).and()
+                .in(MHA_NAME, mhaNames, Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
+    }
+
     public MhaTblV2 queryByMhaName(String mhaName, int deleted) throws SQLException {
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().equal(DELETED, deleted, Types.TINYINT).and().equal(MHA_NAME, mhaName, Types.VARCHAR);

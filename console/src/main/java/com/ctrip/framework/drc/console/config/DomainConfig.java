@@ -61,7 +61,9 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CMS_GET_SERVER_URL ="cms.get.server";
     private static final String DEFAULT_CMS_GET_SERVER_URL ="http://localhost:8080/ops/getFATServers";
     private static final String OPS_ACCESS_TOKEN = "ops.access.token";
+    private static final String OPS_ACCESS_TOKEN_FAT = "ops.access.token.fat";
     private static final String DEFAULT_OPS_ACCESS_TOKEN = "";
+    private static final String DEFAULT_OPS_ACCESS_FAT_TOKEN = "";
 
     private static final String CMS_GET_DB_INFO_URL = "cms.get.db.info.url";
     private static final String DEFAULT_CMS_GET_DB_INFO_URL = "http://localhost:8080/cms/getAllDbInfo";
@@ -70,8 +72,10 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String CMS_ACCESS_TOKEN = "cms.access.token";
 
     private static final String TRAFFIC_FROM_HICK_WALL_URL = "traffic.from.hick.wall.url";
+    private static final String TRAFFIC_FROM_HICK_WALL_FAT_URL = "traffic.from.hick.wall.fat.url";
     private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_URL = "http://osg.ops.ctripcorp.com/api/22853";
-    
+    private static final String DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL = "http://uat.osg.ops.qa.nt.ctripcorp.com/api/19049";
+
     private static final String QMQ_APPLICATION_URL = "qmq.application.url";
     private static final String TOPIC_SUFFIX = "/api/subject/save";
     private static final String PRODUCER_SUFFIX = "/api/producer/save";
@@ -136,6 +140,10 @@ public class DomainConfig extends AbstractConfigBean {
         return getProperty(OPS_ACCESS_TOKEN,DEFAULT_OPS_ACCESS_TOKEN);
     }
 
+    public String getOpsAccessTokenFat() {
+        return getProperty(OPS_ACCESS_TOKEN_FAT, DEFAULT_OPS_ACCESS_FAT_TOKEN);
+    }
+
     public String getCmsGetDbInfoUrl() {
         return getProperty(CMS_GET_DB_INFO_URL,DEFAULT_CMS_GET_DB_INFO_URL);
     }
@@ -150,6 +158,9 @@ public class DomainConfig extends AbstractConfigBean {
 
     public String getTrafficFromHickWall() {
         return getProperty(TRAFFIC_FROM_HICK_WALL_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_URL);
+    }
+    public String getTrafficFromHickWallFat() {
+        return getProperty(TRAFFIC_FROM_HICK_WALL_FAT_URL, DEFAULT_TRAFFIC_FROM_HICK_WALL_FAT_URL);
     }
 
     public String getQmqBuListUrl() {

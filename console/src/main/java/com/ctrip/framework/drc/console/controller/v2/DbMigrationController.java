@@ -3,15 +3,19 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
+import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +40,8 @@ public class DbMigrationController {
     private static final Logger logger = LoggerFactory.getLogger(DbMigrationController.class);
     @Autowired
     private DbMigrationService dbMigrationService;
+    @Autowired
+    private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
 
     @PutMapping("check")
@@ -91,15 +98,15 @@ public class DbMigrationController {
     
 
     @GetMapping("status")
-    public ApiResult<Integer> queryStatusAndPushToReadyIfPossible(@RequestParam(name = "taskId") Long taskId) {
+    public ApiResult<String> getTaskStatus(@RequestParam(name = "taskId") Long taskId) {
         try {
-            MigrationTaskTbl taskTbl = dbMigrationService.queryAndPushToReadyIfPossible(taskId);
-            if (taskTbl == null) {
+            String status = dbMigrationService.getAndUpdateTaskStatus(taskId);
+            if (StringUtils.isEmpty(status)) {
                 return ApiResult.getFailInstance(null, "task not exist: " + taskId);
             }
-            return ApiResult.getSuccessInstance(taskTbl.getStatus());
+            return ApiResult.getSuccessInstance(status);
         } catch (Throwable e) {
-            logger.error("queryStatusAndPushToReadyIfPossible", e);
+            logger.error("getTaskStatus", e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -137,5 +144,25 @@ public class DbMigrationController {
                 .collect(Collectors.toList());
 
         return ApiResult.getSuccessInstance(statusList);
+    }
+
+    @PostMapping("afterDalSwtich/commit")
+    public ApiResult<String> offlineOldDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationService.offlineOldDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+    }
+
+    @PostMapping("afterDalSwtich/rollback")
+    public ApiResult<String> rollBackNewDrcConfig(@RequestParam long taskId) {
+        try {
+            dbMigrationService.rollBackNewDrcConfig(taskId);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
     }
 }

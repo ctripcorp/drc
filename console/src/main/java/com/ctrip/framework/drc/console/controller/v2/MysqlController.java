@@ -151,13 +151,13 @@ public class MysqlController {
 
     @GetMapping("lastUpdateTime")
     @SuppressWarnings("unchecked")
-    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String mha, @RequestParam String srcMha) {
+    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha) {
         logger.info("getMhaLastUpdateTime: {} for {}", srcMha, mha);
         try {
             if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha)) {
                 return ApiResult.getFailInstance(null, "mha name should not be blank!");
             }
-            Long time = mysqlServiceV2.getDelayUpdateTime(mha.trim(), srcMha.trim());
+            Long time = mysqlServiceV2.getDelayUpdateTime(srcMha.trim(), mha.trim());
             return ApiResult.getSuccessInstance(time);
         } catch (Throwable e) {
             logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);

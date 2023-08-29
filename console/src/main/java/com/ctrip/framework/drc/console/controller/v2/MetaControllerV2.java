@@ -53,7 +53,7 @@ public class MetaControllerV2 {
             return drc.toString();
         } catch (Exception e) {
             logger.error("get drc fail", e);
-            return "get drc fail";
+            return null;
         }
     }
 

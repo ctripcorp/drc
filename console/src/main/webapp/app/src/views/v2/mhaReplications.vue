@@ -293,7 +293,7 @@ export default {
               },
               on: {
                 'on-change': () => {
-                  this.switchMonitor(row.dstMha.mame, row.dstMha.monitorSwitch)
+                  this.switchMonitor(row.dstMha.name, row.dstMha.monitorSwitch)
                 }
               },
               nativeOn: {
