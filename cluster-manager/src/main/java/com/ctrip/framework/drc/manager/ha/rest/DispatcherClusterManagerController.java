@@ -32,7 +32,7 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     private RegionCache regionCache;
 
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestParam String operator, @RequestBody DbCluster clusterMeta,
+    public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestParam String operator, @RequestBody(required = false) DbCluster clusterMeta,
                              @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
 //        clusterManager.clusterAdded(dcId, clusterMeta, forwardInfo.clone());
@@ -40,12 +40,12 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
         regionCache.refresh(clusterId);
     }
 
-    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public void clusterModified(@PathVariable String clusterId, @RequestParam String operator, @RequestBody DbCluster clusterMeta,
+    @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void clusterModified(@PathVariable String clusterId, @RequestParam String operator, @RequestBody(required = false) DbCluster clusterMeta,
                                 @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager metaServer) {
 
 //        metaServer.clusterModified(clusterMeta, forwardInfo.clone());
-        logger.info("[clusterchange] delete for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
+        logger.info("[clusterchange] update for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
         regionCache.refresh(clusterId);
     }
 

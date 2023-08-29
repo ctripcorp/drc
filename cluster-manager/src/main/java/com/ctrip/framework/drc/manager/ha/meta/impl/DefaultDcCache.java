@@ -115,6 +115,7 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     @Override
     public void refresh(String clusterId) {
         if (getCluster(clusterId) != null) {
+            logger.info("refresh for: {}", clusterId);
             scheduled.schedule(this, 0, TimeUnit.SECONDS);
         }
     }

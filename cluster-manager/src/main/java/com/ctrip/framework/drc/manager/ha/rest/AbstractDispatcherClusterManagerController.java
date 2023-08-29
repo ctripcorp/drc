@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * @Author limingdong
@@ -72,7 +74,15 @@ public class AbstractDispatcherClusterManagerController extends AbstractControll
             throw new IllegalStateException("clusterId:" + clusterId + ", unfound server");
         }
 
-        if (service.getForwardType() == ForwardType.FORWARD) {
+        if(service.getForwardType() == ForwardType.MULTICASTING){
+
+            logger.info("[getMetaServer][multi casting]{}, {}, {}", clusterId, forwardInfo, uri);
+            Set<ClusterManager> allServers =  servers.allClusterServers();
+            ClusterManager current = servers.getClusterServer(serverId);
+            allServers.remove(current);
+
+            return MultiMetaServer.newProxy(current, new LinkedList<>(allServers));
+        } else if (service.getForwardType() == ForwardType.FORWARD) {
 
             return servers.getClusterServer(serverId);
         } else {

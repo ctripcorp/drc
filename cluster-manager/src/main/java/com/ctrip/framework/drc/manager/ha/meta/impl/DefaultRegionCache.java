@@ -67,9 +67,11 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
 
     @Override
     public void refresh(String clusterId) {
-        for (DefaultDcCache dcCache : dcCaches) {
-            dcCache.refresh(clusterId);
-        }
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst();
+        defaultDcCache.ifPresentOrElse(dcCache -> dcCache.refresh(clusterId), () -> {
+            logger.error("refresh cluster:{} error, cluster doesn't in current region:{}",clusterId, currentRegion);
+            throw new IllegalArgumentException(String.format("change cluster:%s error, cluster doesn't in current region:%s", clusterId, currentRegion));
+        });
     }
 
     @Override
