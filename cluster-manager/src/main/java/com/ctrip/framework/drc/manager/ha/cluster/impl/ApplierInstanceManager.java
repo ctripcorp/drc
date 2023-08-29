@@ -92,8 +92,12 @@ public class ApplierInstanceManager extends AbstractInstanceManager implements T
             for (Applier modified : appliers) {
                 String backupClusterId = RegistryKey.from(modified.getTargetName(), modified.getTargetMhaName());
                 Applier activeApplier = currentMetaManager.getActiveApplier(clusterId, backupClusterId);
-                logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}", clusterId, backupClusterId);
-                instanceStateController.applierPropertyChange(clusterId, activeApplier);
+                if (modified.equalsWithIpPort(activeApplier)) {
+                    activeApplier.setNameFilter(modified.getNameFilter());
+                    activeApplier.setProperties(modified.getProperties());
+                    logger.info("[visitModified][applierPropertyChange] clusterId: {}, backupClusterId: {}, activeApplier: {}", clusterId, backupClusterId, activeApplier);
+                    instanceStateController.applierPropertyChange(clusterId, activeApplier);
+                }
             }
         }
 
