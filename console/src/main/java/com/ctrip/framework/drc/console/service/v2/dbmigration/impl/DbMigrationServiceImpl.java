@@ -145,6 +145,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
         // meta info check and init
+        // todo check task mha already exist or not?
+        
         checkDbMigrationParam(dbMigrationRequest);
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
@@ -179,7 +181,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         // check case2:newMha and oldMha have common mha in Replication is not allowed;
         List<MhaReplicationTbl> oldMhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(oldMhaTblV2.getId()));
         List<MhaReplicationTbl> newMhaReplications = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(newMhaTblV2.getId()));
-        // todo mhaReplication drc_status should be 1?
+        oldMhaReplications = oldMhaReplications.stream().filter(mhaReplicationTbl -> mhaReplicationTbl.getDrcStatus() == 1).collect(Collectors.toList());
+        newMhaReplications = newMhaReplications.stream().filter(mhaReplicationTbl -> mhaReplicationTbl.getDrcStatus() == 1).collect(Collectors.toList());
         
         if (!CollectionUtils.isEmpty(oldMhaReplications) && !CollectionUtils.isEmpty(newMhaReplications)) {
             Set<Long> anotherMhaIdsInOld = getAnotherMhaIds(oldMhaReplications, oldMhaTblV2.getId());
@@ -203,15 +206,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setOperator(dbMigrationRequest.getOperator());
         return migrationTaskTblDao.insertWithReturnId(migrationTaskTbl);
     }
-
-    // 1. check status can exStart? todo
-    // 2. check mha config newMhaConfig should equal newMhaTbl todo
-    // 3. for each db
-    // 3.1 find dbReplications and mqReplications in oldMha 
-    // 3.2 init dbMhaMappingTbls, copy dbReplications and mqReplications to newMha
-    // 3.3 init mhaReplicationTbls,replicatorGroups,applierGroupTbls,messengerGroupTbls
-    // 3.4 auto chose replicators
-    // 4. update task status
+    
     @Override
     public boolean exStartDbMigrationTask(Long taskId) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
@@ -233,7 +228,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         Map<String, Object> configInNewMha = mysqlServiceV2.preCheckMySqlConfig(newMha);
 
         MapDifference<String, Object> configsDiff = Maps.difference(configInOldMha,configInNewMha);
-        if (!configsDiff.areEqual()) {
+        if (!configsDiff.areEqual()) { // todo  添加一个开关？
             Map<String, ValueDifference<Object>> valueDiff = configsDiff.entriesDiffering();
             String diff = valueDiff.entrySet().stream().map(
                     entry -> "config:" + entry.getKey() + 
@@ -276,7 +271,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         try {
             pushConfigToCM(Lists.newArrayList(newMhaTbl.getId()),migrationTaskTbl.getOperator());
         } catch (Exception e) {
-            logger.info("[[migration=exStarting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId,e);
+            logger.warn("[[migration=exStarting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId,e);
         }
         // todo optimize: migrationTaskManager schedule check replicator slave delay to update status
         migrationTaskTbl.setStatus(MigrationStatusEnum.EX_STARTED.getStatus());
@@ -284,12 +279,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         logger.info("[[migration=exStarting,newMha={}]] task:{} exStarting!", newMhaTbl.getMhaName(),taskId);
         return true;
     }
-
-    // 1. check task status todo
-    // 2. get applierGroup,messengerGroup should start todo 
-    // 3. auto chose applier,messenger todo
-    // 4. generate dbClusters to CM todo
-    // 5. update task status todo 
+    
     @Override
     public boolean startDbMigrationTask(Long taskId) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
@@ -349,7 +339,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
         migrationTaskTblDao.update(migrationTaskTbl);
         logger.info("[[migration=starting,newMha={}]] task:{} starting!", newMhaTbl.getMhaName(),taskId);
-
         return true;
     }
     
@@ -735,10 +724,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             logger.info("mhaReplication from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
             return;
         }
+        mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
         if (deleted) {
             mhaReplicationTbl.setDeleted(BooleanEnum.TRUE.getCode());
-        } else {
-            mhaReplicationTbl.setDrcStatus(BooleanEnum.FALSE.getCode());
         }
 
         logger.info("update mhaReplication: {}", mhaReplicationTbl);
@@ -790,6 +778,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private Map<String, List<MhaTblV2>> groupByRegion(List<MhaTblV2> mhaTblV2s) {
+        mhaTblV2s = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, mhaTblV2 -> mhaTblV2, (m1, m2) -> m1))
+                .values().stream().collect(Collectors.toList());
         Map<String, List<MhaTblV2>> mhaTblV2sByRegion = Maps.newHashMap();
         Map<Long, String> dcId2RegionNameMap = metaInfoServiceV2.queryAllDcWithCache().stream().collect(Collectors.toMap(
                 DcDo::getDcId, DcDo::getRegionName));

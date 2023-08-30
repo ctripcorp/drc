@@ -561,7 +561,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                     replicatorTbl.setDeleted(BooleanEnum.FALSE.getCode());
                     insertReplicators.add(replicatorTbl);
                 }
-                replicatorTblDao.batchInsert(insertReplicators);
+                int[] ints = replicatorTblDao.batchInsert(insertReplicators);
+                logger.info("[[mha={}]] autoConfigReplicatorsWithRealTimeGtid ,excepted:{},actual:{}", 
+                        mhaTbl.getMhaName(), insertReplicators.size(), Arrays.stream(ints).sum());
             }
         }
     }
@@ -583,7 +585,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaReplicationTblDao.update(mhaReplicationTbl);
         logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
         
-        
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(destMhaTbl.getMhaName());
@@ -602,7 +603,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
                 insertAppliers.add(applierTbl);
             }
-            applierTblDao.batchInsert(insertAppliers);
+            int[] ints = applierTblDao.batchInsert(insertAppliers);
             logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
         }
     }
@@ -636,7 +637,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 messengerTbl.setDeleted(BooleanEnum.FALSE.getCode());
                 insertMessengers.add(messengerTbl);
             }
-            messengerTblDao.batchInsert(insertMessengers);
+            int[] ints = messengerTblDao.batchInsert(insertMessengers);
             logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
         
