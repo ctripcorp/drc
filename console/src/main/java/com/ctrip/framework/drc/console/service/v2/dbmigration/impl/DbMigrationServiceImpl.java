@@ -611,7 +611,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Map<String, String> paramMap = new HashMap<>();
             paramMap.put("operator", operator);
             try {
-                HttpUtils.post(url, null, ApiResult.class, paramMap);
+                HttpUtils.put(url, null, ApiResult.class, paramMap);
             } catch (Exception e) {
                 logger.error("pushConfigToCM fail: {}", e);
             }
