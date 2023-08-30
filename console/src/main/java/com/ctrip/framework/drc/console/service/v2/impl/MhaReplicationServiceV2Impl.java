@@ -88,7 +88,6 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
-    // todo by yongnian: 2023/8/29 测试 
     @Override
     public List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId, boolean queryAll) {
         try {
@@ -209,7 +208,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         for (DbReplicationTbl dbReplicationTbl : dbReplication) {
             MhaDbMappingTbl srcMapping = mappingTblMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
             MhaDbMappingTbl dstMapping = mappingTblMap.get(dbReplicationTbl.getDstMhaDbMappingId());
-            // todo by yongnian: 2023/8/23 不要数据库循环查
+            // todo by yongnian: 2023/8/23 优化点
             String key = srcMapping.getMhaId() + "-" + dstMapping.getMhaId();
             MhaReplicationDto dto = mhaReplicationMap.get(key);
             if (dto == null) {
