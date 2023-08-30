@@ -3,31 +3,45 @@
 
     <Row :gutter=10>
       <Col span="10">
-        <Input prefix="ios-search" v-model="queryParam.mhaNames" placeholder="集群名"
-               @on-enter="showMore([queryParam.mhaNames], queryParam.queryAll)">
+        <Input prefix="ios-search" v-model="queryParam.mhaNames" placeholder="请输入集群名"
+               @on-enter="showMore([queryParam.mhaNames], true)">
         </Input>
       </Col>
-      <Col span="5">
-        <div>
-          全部加载
-          <i-switch v-model="queryParam.queryAll"/>
-        </div>
+      <Col span="10">
+        <Col span="3">
+          <Button type="primary" icon="ios-search" :loading="dataLoading" @click="showMore([queryParam.mhaNames], true)">查询所有</Button>
+        </Col>
       </Col>
     </Row>
-    <div ref="myPage" style="height:calc(100vh - 35vh);" @click="graphData.isShowNodeMenuPanel = false">
+    <div ref="myPage" style="height:calc(100vh - 35vh);width: calc(100vw - 20vw)" @click="graphData.isShowNodeMenuPanel = false; graphData.isShowNodeTipsPanel = false; graphData.nodeMenuPanelPosition.fixed = false">
       <RelationGraph
         ref="seeksRelationGraph"
         :options="graphOptions"
         :on-node-click="onNodeClick"
         :on-line-click="onLineClick"
-      />
+      >
+        <div slot="node" slot-scope="{node}">
+<!--          <div style="color: #ffffff;font-size: 16px;position: absolute;width: auto;height:25px;line-height: 25px;margin-top:5px;margin-left:0px;text-align: center;background-color: rgb(0,80,41);">-->
+<!--            {{ node.data.mha.regionName }}-->
+<!--          </div>-->
+          <Tag  color="success" style="position: absolute;width: auto;height:25px;margin-top:-10px;margin-left:15px;text-align: center;font-size: 15px">{{ node.data.mha.regionName }}</Tag>
+          <div style=" font-weight:bold; position: absolute;width: auto;height:auto;left:50%;top:50%;-webkit-transform: translate(-50%, -50%);transform: translate(-50%, -50%);text-align: center;">{{ node.data.mha.name }}</div>
+        </div>
+      </RelationGraph>
     </div>
-    <div v-show="graphData.isShowNodeMenuPanel" :style="{left: graphData.nodeMenuPanelPosition.x + 'px', top: graphData.nodeMenuPanelPosition.y + 'px' }" style="z-index: 999;padding:10px;background-color: #ffffff;border:#eeeeee solid 1px;box-shadow: 0px 0px 8px #cccccc;position: absolute;">
-      <div style="line-height: 25px;padding-left: 10px;color: #888888;font-size: 12px;">同步链路:</div>
-      <div style="line-height: 25px;padding-left: 10px;color: #888888;font-size: 12px;">{{current.srcMha.name +' -> '+current.dstMha.name}}</div>
+
+    <div v-if="graphData.isShowNodeTipsPanel" :style="{left: graphData.nodeMenuPanelPosition.x + 'px', top: graphData.nodeMenuPanelPosition.y + 'px' }" style="z-index: 999;padding:10px;background-color: #ffffff;border:#eeeeee solid 1px;box-shadow: 0px 0px 8px #cccccc;position: absolute;">
+      <div class="c-node-menu-item">名称: {{current.node.mha.name}}</div>
+      <div class="c-node-menu-item">部门: {{current.node.mha.buName}}</div>
+      <div class="c-node-menu-item">地域: {{current.node.mha.regionName}}</div>
+    </div>
+
+    <div v-show="graphData.isShowNodeMenuPanel" :style="{left: graphData.linkMenuPanelPosition.x + 'px', top: graphData.linkMenuPanelPosition.y + 'px' }" style="z-index: 999;padding:10px;background-color: #ffffff;border:#eeeeee solid 1px;box-shadow: 0px 0px 8px #cccccc;position: absolute;">
+      <div style="line-height: 25px;padding-left: 10px;color: #888888;font-size: 12px;">{{current.link.srcMha.name +' -> '+current.link.dstMha.name}}</div>
+      <div style="line-height: 25px;padding-left: 10px;color: #888888;font-size: 12px;">操作:</div>
       <div id="operationsDiv">
         <div v-for="(item, index) in operations" :key="index">
-          <div class="c-node-menu-item" @click.stop="item.method(current.srcMha.name, current.dstMha.name, current.replicationId)">{{ item.text }}</div>
+          <div class="c-node-menu-item" @click.stop="item.method(current.link.srcMha.name, current.link.dstMha.name, current.link.replicationId)">{{ item.text }}</div>
         </div>
       </div>
     </div>
@@ -56,7 +70,9 @@ export default {
         mhaNameShown: new Set(),
         replicationIdShown: new Set(),
         isShowNodeMenuPanel: false,
-        nodeMenuPanelPosition: { x: 0, y: 0 },
+        isShowNodeTipsPanel: false,
+        nodeMenuPanelPosition: { x: 0, y: 0, fixed: false },
+        linkMenuPanelPosition: { x: 0, y: 0 },
         rootId: '',
         nodes: [
           // { id: '3365', text: '节点-1', myicon: 'el-icon-star-on' },
@@ -86,10 +102,12 @@ export default {
             this.mhaNameShown.add(mha.name + '')
             this.nodes.push({
               id: mha.id + '',
-              text: mha.name,
+              text: mha.name + '\n' + mha.regionName,
               data: {
                 mha: mha
               },
+              width: 100,
+              height: 100,
               styleClass: 'c-g-center'
             })
           }
@@ -100,6 +118,7 @@ export default {
             this.lines.push({
               from: replication.srcMha.id + '',
               to: replication.dstMha.id + '',
+              selected: true,
               color: '#2c2c2c',
               styleClass: 'node-line',
               data: {
@@ -134,14 +153,15 @@ export default {
           }
         },
         deepenClickedNode (nodeObject, queryAll) {
+          const color = 'rgb(0,166,81)'
           if (nodeObject != null) {
-            nodeObject.color = 'rgb(0,166,81)'
+            nodeObject.color = color
           } else {
             // refresh all
             const nodes = this.graph.getNodes()
             nodes.forEach(e => {
               if (queryAll || this.mhaNameRequested.has(e.data.mha.name)) {
-                e.color = 'rgb(0,166,81)'
+                e.color = color
               }
             })
           }
@@ -150,12 +170,16 @@ export default {
       graphOptions: {
         defaultLineColor: '#333333',
         defaultLineWidth: 1,
-        defaultNodeBorderWidth: 0,
-        defaultNodeBorderColor: 'rgb(152,213,244)',
-        defaultNodeColor: 'rgb(66,66,66)',
+        defaultNodeBorderWidth: 1,
+        defaultNodeShape: 0,
+        defaultNodeBorderColor: 'rgb(194,194,194)',
+        defaultNodeColor: 'rgba(66,66,66)',
         allowSwitchLineShape: true,
+        allowSwitchNodeShape: true,
         checkedLineColor: 'rgba(30, 144, 255, 1)', // 当线条被选中时的颜色
         defaultLineShape: 1,
+        moveToCenterWhenRefresh: true,
+        useAnimationWhenRefresh: true,
         layouts: [
           {
             label: '自动布局',
@@ -167,9 +191,14 @@ export default {
         // 这里可以参考"Graph 图谱"中的参数进行设置
       },
       current: {
-        srcMha: '',
-        dstMha: '',
-        replicationId: 0
+        node: {
+          mha: {}
+        },
+        link: {
+          srcMha: {},
+          dstMha: {},
+          replicationId: 0
+        }
       },
       queryParam: {
         mhaNames: ''
@@ -182,7 +211,7 @@ export default {
     console.log('mount mhaId: ' + mhaIdList)
     this.graphData.graph = this.$refs.seeksRelationGraph
     this.graphData.rootId = mhaIdList[0]
-    this.showMore(mhaNameList, this.queryParam.queryAll)
+    this.showMore(mhaNameList, false)
   },
   methods: {
     showMore (mhaNameList, queryAll) {
@@ -201,12 +230,13 @@ export default {
         relatedMhaNames: filteredNameList.join(','),
         queryAll: queryAll
       }
+      this.dataLoading = true
       this.axios.get('/api/drc/v2/replication/queryMhaRelatedByNames', { params: reqParam })
         .then(response => {
           const replications = response.data.data
           const emptyResult = replications == null || !Array.isArray(replications) || replications.length === 0
           if (emptyResult) {
-            this.$Message.error('结果为空')
+            this.$Message.info('结果为空')
             return
           }
           replications.forEach((replication) => {
@@ -214,12 +244,15 @@ export default {
             this.graphData.appendNode(replication.dstMha)
             this.graphData.appendLine(replication)
           })
-          // 加深
           if (this.graphData.isEmpty()) {
             return
           }
+          if (queryAll) {
+            this.$Message.success('查询成功')
+          }
           // refresh graph
           this.graphData.appendDataToGraph(queryAll)
+          // query delay
           this.getDelay(replications)
         })
         .catch(message => {
@@ -259,7 +292,7 @@ export default {
                 text = prettyMilliseconds(delay, {
                   compact: true
                 })
-                if (delay > 60000) {
+                if (delay > 10000) {
                   lineColor = 'rgb(238,0,0)'
                 }
                 line.text = text
@@ -276,18 +309,20 @@ export default {
     },
     onNodeClick (nodeObject, $event) {
       console.log('onNodeClick:', nodeObject, $event)
-      this.dataLoading = true
-      this.showMore([nodeObject.data.mha.name], this.queryParam.queryAll)
+      this.showMore([nodeObject.data.mha.name], false)
       this.graphData.deepenClickedNode(nodeObject)
-      this.$copyText(nodeObject.text).then(e => {
-        this.$Message.success('已复制: ' + e.text)
+      const mhaName = nodeObject.data.mha.name
+      this.$copyText(mhaName).then(e => {
+        this.$Message.success('已复制 mha 名称: ' + e.text)
         console.log(e)
       })
+      this.showNodeTips(nodeObject, $event)
+      this.graphData.nodeMenuPanelPosition.fixed = true
     },
     onLineClick (lineObject, linkObject, $event) {
       console.log(lineObject)
       const replication = lineObject.data.replication
-      this.current = {
+      this.current.link = {
         srcMha: replication.srcMha,
         dstMha: replication.dstMha,
         replicationId: replication.replicationId
@@ -299,12 +334,27 @@ export default {
         return
       }
       const basePosition = this.$refs.myPage.getBoundingClientRect()
-      this.graphData.nodeMenuPanelPosition.x = $event.clientX - basePosition.x
-      this.graphData.nodeMenuPanelPosition.y = $event.clientY - basePosition.y + 20
+      this.graphData.linkMenuPanelPosition.x = $event.clientX - basePosition.x
+      this.graphData.linkMenuPanelPosition.y = $event.clientY - basePosition.y + 30
       console.log('showLineMenus:', $event, basePosition)
       setTimeout(() => {
         this.graphData.isShowNodeMenuPanel = true
       }, 10)
+    },
+    showNodeTips (nodeObject, $event) {
+      console.log('showNodeMenus:', nodeObject, $event)
+      this.current.node.mha = nodeObject.data.mha
+      const basePosition = this.$refs.myPage.getBoundingClientRect()
+      this.graphData.isShowNodeTipsPanel = true
+      this.graphData.nodeMenuPanelPosition.x = $event.clientX - basePosition.x
+      this.graphData.nodeMenuPanelPosition.y = $event.clientY - basePosition.y + 30
+    },
+    hideNodeTips (nodeObject, $event) {
+      console.log('hideNodeTips:', nodeObject, $event)
+      if (this.graphData.nodeMenuPanelPosition.fixed) {
+        return
+      }
+      this.graphData.isShowNodeTipsPanel = false
     }
   }
 }

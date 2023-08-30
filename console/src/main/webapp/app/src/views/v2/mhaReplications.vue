@@ -483,7 +483,7 @@ export default {
       console.log('show modal')
       this.$Modal.success({
         title: '节点拓扑信息',
-        width: '1000',
+        width: '85vw',
         closable: true,
         render: (h) => {
           return h('div', [
@@ -503,7 +503,7 @@ export default {
                     }
                   },
                   {
-                    text: '查看',
+                    text: '查看xml详情',
                     method: (srcName, dstName, replicationId) => {
                       this.$Message.info('查询中...')
                       this.$Modal.remove()
@@ -511,7 +511,7 @@ export default {
                     }
                   },
                   {
-                    text: '修改',
+                    text: '跳转修改',
                     method: (srcName, dstName, replicationId) => {
                       this.$Message.info('跳转中...')
                       this.$Modal.remove()
@@ -525,6 +525,16 @@ export default {
                           dstMhaName: dstName
                         }
                       })
+                    }
+                  },
+                  {
+                    text: '延迟(hickwall)',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('跳转中...')
+                      this.$Modal.remove()
+                      console.log(srcName, dstName)
+                      this.$forceUpdate()
+                      this.goToHickwallMonitorPage(srcName, dstName)
                     }
                   }
                 ]
@@ -580,6 +590,11 @@ export default {
       } else if (column.key === 'dstMhaName') {
         return [row.dstMha.rowSpan, row.dstMha.colSpan]
       }
+    },
+    goToHickwallMonitorPage (srcName, dstName) {
+      const url = 'http://hickwall.ctripcorp.com/grafanav2/d/vWeGmjFVk/drc-mha?from=now-1h&to=now&var-mha=' + srcName +
+        '&var-auto_gen_other_mha=' + dstName
+      window.open(url, '_blank')
     }
   },
   created () {
