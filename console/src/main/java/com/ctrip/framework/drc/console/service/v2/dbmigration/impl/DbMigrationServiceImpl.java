@@ -145,8 +145,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
         // meta info check and init
-        // todo check task mha already exist or not?
-        
         checkDbMigrationParam(dbMigrationRequest);
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
