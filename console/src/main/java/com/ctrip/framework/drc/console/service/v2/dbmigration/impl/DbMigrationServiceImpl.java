@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
@@ -240,7 +241,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         
         // generate newMha dbcluster and push to clusterManager
         try {
-            pushConfigToCM(Lists.newArrayList(newMhaTbl.getId()),migrationTaskTbl.getOperator());
+            pushConfigToCM(Lists.newArrayList(newMhaTbl.getId()),migrationTaskTbl.getOperator(),HttpRequestEnum.POST);
         } catch (Exception e) {
             logger.warn("[[migration=exStarting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId,e);
         }
@@ -301,7 +302,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<Long> mhaIdsStartRelated = Lists.newArrayList(newMhaTbl.getId());
             mhaIdsStartRelated.addAll(otherMhaTblsInSrc.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
             mhaIdsStartRelated.addAll(otherMhaTblsInDest.stream().map(MhaTblV2::getId).collect(Collectors.toList()));
-            pushConfigToCM(mhaIdsStartRelated,migrationTaskTbl.getOperator());
+            pushConfigToCM(mhaIdsStartRelated,migrationTaskTbl.getOperator(),HttpRequestEnum.PUT);
         } catch (Exception e) {
             logger.warn("[[migration=starting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId);
         }
@@ -580,13 +581,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         try {
             List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
             mhaIds.add(mhaId);
-            pushConfigToCM(mhaIds, operator);
+            pushConfigToCM(mhaIds, operator, HttpRequestEnum.PUT);
         } catch (Exception e) {
             logger.warn("pushConfigToCM failed, mhaIds: {}", relatedMhaIds, e);
         }
     }
 
-    private void pushConfigToCM(List<Long> mhaIds, String operator) throws Exception {
+    private void pushConfigToCM(List<Long> mhaIds, String operator, HttpRequestEnum httpRequestEnum) throws Exception {
         Map<String, String> cmRegionUrls = regionConfig.getCMRegionUrls();
 
         for (long mhaId : mhaIds) {
@@ -598,7 +599,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Map<String, String> paramMap = new HashMap<>();
             paramMap.put("operator", operator);
             try {
-                HttpUtils.put(url, null, ApiResult.class, paramMap);
+                if (httpRequestEnum.equals(HttpRequestEnum.POST)) {
+                    HttpUtils.post(url, null, ApiResult.class, paramMap);
+                } else if (httpRequestEnum.equals(HttpRequestEnum.PUT)) {
+                    HttpUtils.put(url, null, ApiResult.class, paramMap);
+                }
             } catch (Exception e) {
                 logger.error("pushConfigToCM fail: {}", e);
             }
