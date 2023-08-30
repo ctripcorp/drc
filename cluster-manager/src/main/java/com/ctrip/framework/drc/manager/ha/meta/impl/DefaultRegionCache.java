@@ -118,25 +118,25 @@ public class DefaultRegionCache extends AbstractLifecycleObservable implements R
     }
 
     @Override
-    public void clusterAdded(DbCluster dbCluster) {
+    public void clusterAdded(String clusterId) {
         throw new UnsupportedOperationException("can not support cluster add, need input dc");
     }
 
     @Override
-    public void clusterAdded(String dcId, DbCluster dbCluster) {
+    public void clusterAdded(String dcId, String dbCluster) {
         Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcId.equalsIgnoreCase(dcCache.getCurrentDc())).findFirst();
         defaultDcCache.ifPresentOrElse(dcCache -> dcCache.clusterAdded(dbCluster), () -> {
-            logger.error("add cluster:{} error, input dcId:{} doesn't in current region:{}", dbCluster.getId(), dcId, currentRegion);
-            throw new IllegalArgumentException(String.format("add cluster:%s error, input dcId:%s doesn't in current region:%s", dbCluster.getId(), dcId, currentRegion));
+            logger.error("add cluster:{} error, input dcId:{} doesn't in current region:{}", dbCluster, dcId, currentRegion);
+            throw new IllegalArgumentException(String.format("add cluster:%s error, input dcId:%s doesn't in current region:%s", dbCluster, dcId, currentRegion));
         });
     }
 
     @Override
-    public void clusterModified(DbCluster dbCluster) {
-        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(dbCluster.getId()) != null).findFirst();
-        defaultDcCache.ifPresentOrElse(dcCache -> dcCache.clusterModified(dbCluster), () -> {
-            logger.error("modify cluster:{} error, cluster doesn't in current region:{}", dbCluster.getId(), currentRegion);
-            throw new IllegalArgumentException(String.format("modify cluster:%s error, cluster doesn't in current region:%s", dbCluster.getId(), currentRegion));
+    public void clusterModified(String clusterId) {
+        Optional<DefaultDcCache> defaultDcCache = dcCaches.stream().filter(dcCache -> dcCache.getCluster(clusterId) != null).findFirst();
+        defaultDcCache.ifPresentOrElse(dcCache -> dcCache.clusterModified(clusterId), () -> {
+            logger.error("modify cluster:{} error, cluster doesn't in current region:{}", clusterId, currentRegion);
+            throw new IllegalArgumentException(String.format("modify cluster:%s error, cluster doesn't in current region:%s", clusterId, currentRegion));
         });
     }
 

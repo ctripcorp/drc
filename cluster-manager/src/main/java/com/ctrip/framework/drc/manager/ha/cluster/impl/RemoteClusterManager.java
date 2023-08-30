@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Replicator;
-import com.ctrip.framework.drc.core.server.config.RegistryKey;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterServerInfo;
 import com.ctrip.framework.drc.manager.ha.cluster.META_SERVER_SERVICE;
@@ -13,10 +12,8 @@ import com.ctrip.framework.drc.manager.ha.rest.ForwardInfo;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.rest.ForwardType;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import com.google.common.collect.Lists;
+import org.springframework.http.*;
 
 /**
  * @Author limingdong
@@ -45,42 +42,46 @@ public class RemoteClusterManager extends AbstractRemoteClusterManager implement
         }
     }
 
-    private String appendDcId(String uriPath, String dcId) {
-        return uriPath + "?dcId=" + dcId;
+    private String appendDcIdAndOperator(String uriPath, String dcId, String operator) {
+        return uriPath + "?dcId=" + dcId + "&operator=" + operator;
     }
 
     @Override
-    public void clusterAdded(String dcId, DbCluster dbCluster, ForwardInfo forwardInfo) {
+    public void clusterAdded(String dcId, String clusterId, ForwardInfo forwardInfo, String operator) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
-        String key = RegistryKey.from(dbCluster.getName(), dbCluster.getMhaName());
-        logger.info("[clusterAdded][forward]{},{}--> {}", key, forwardInfo, this);
+        logger.info("[clusterAdded][forward]{},{}--> {}", clusterId, forwardInfo, this);
 
-        HttpEntity<DbCluster> entity = new HttpEntity<>(dbCluster, headers);
-        restTemplate.exchange(appendDcId(changeClusterPath, dcId), HttpMethod.POST, entity, String.class, key);
+        HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
+        restTemplate.exchange(appendDcIdAndOperator(changeClusterPath, dcId, operator), HttpMethod.POST, entity, String.class, clusterId);
 
     }
 
     @Override
-    public void clusterModified(DbCluster dbCluster, ForwardInfo forwardInfo) {
+    public void clusterModified(String clusterId, ForwardInfo forwardInfo, String operator) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
-        String key = RegistryKey.from(dbCluster.getName(), dbCluster.getMhaName());
-        logger.info("[clusterModified][forward]{},{} --> {}", key, forwardInfo, this);
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
+        logger.info("[clusterModified][forward]{},{} --> {}", clusterId, forwardInfo, this);
 
-        HttpEntity<DbCluster> entity = new HttpEntity<>(dbCluster, headers);
-        restTemplate.exchange(changeClusterPath, HttpMethod.PUT, entity, String.class, key);
+        HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
+        restTemplate.exchange(appendOperator(operator), HttpMethod.PUT, entity, String.class, clusterId);
 
     }
 
     @Override
-    public void clusterDeleted(String clusterId, ForwardInfo forwardInfo) {
+    public void clusterDeleted(String clusterId, ForwardInfo forwardInfo, String operator) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
         logger.info("[clusterDeleted][forward]{},{} --> {}", clusterId, forwardInfo, this);
 
         HttpEntity<DbCluster> entity = new HttpEntity<>(headers);
-        restTemplate.exchange(changeClusterPath, HttpMethod.DELETE, entity, String.class, clusterId);
+        restTemplate.exchange(appendOperator(operator), HttpMethod.DELETE, entity, String.class, clusterId);
+    }
+
+    private String appendOperator(String operator) {
+        return changeClusterPath + "?operator=" + operator;
     }
 
     @Override

@@ -249,24 +249,18 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     }
 
     @Override
-    public void clusterAdded(DbCluster clusterMeta) {
+    public void clusterAdded(String dbCluster) {
 
-        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("add:%s", clusterMeta.getId()));
+        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("add:%s", dbCluster));
 
-        clusterModified(clusterMeta);
+        clusterModified(dbCluster);
     }
 
     @Override
-    public void clusterModified(DbCluster dbCluster) {
+    public void clusterModified(String clusterId) {
+        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("mod:%s", clusterId));
 
-        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("mod:%s", dbCluster.getId()));
-
-        DbCluster current = dcMetaManager.get().getCluster(dbCluster.getId());
-        dcMetaManager.get().update(dbCluster);
-
-        logger.info("[clusterModified]{}, {}", current, dbCluster);
-        DcComparator dcMetaComparator = DcComparator.buildClusterChanged(current, dbCluster);
-        notifyObservers(dcMetaComparator);
+        refresh(clusterId);
     }
 
     @Override
@@ -274,10 +268,7 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
         EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("del:%s", registryKey));
 
-        DbCluster clusterMeta = dcMetaManager.get().removeCluster(registryKey);
-        logger.info("[clusterDeleted]{}", clusterMeta);
-        DcComparator dcMetaComparator = DcComparator.buildClusterRemoved(clusterMeta);
-        notifyObservers(dcMetaComparator);
+        refresh(registryKey);
     }
 
     @Override
