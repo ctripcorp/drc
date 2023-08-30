@@ -1,35 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2.dbmigration.impl;
 
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
-import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
-
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.MachineTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaDbMappingTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
-import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
-import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.DbReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
-import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.dao.v2.MigrationTaskTblDao;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam.MigrateMhaInfo;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
@@ -42,12 +16,7 @@ import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
-import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
-import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -67,6 +36,13 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -75,12 +51,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
+
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
+import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
 
 /**
  * @ClassName DbMigrationServiceImpl
@@ -140,7 +113,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     private RegionConfig regionConfig = RegionConfig.getInstance();
 
-    private static final String BASE_API_URL = "/api/meta/clusterchange/clusterId?dcId={dcId}&operator={operator}";
+    private static final String BASE_API_URL = "/api/meta/clusterchange/%s/?operator={operator}";
 
     @Override
     public Long dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
@@ -614,23 +587,18 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private void pushConfigToCM(List<Long> mhaIds, String operator) throws Exception {
-        Drc drc = metaGeneratorV3.getDrc();
         Map<String, String> cmRegionUrls = regionConfig.getCMRegionUrls();
 
         for (long mhaId : mhaIds) {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
             DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
-            DbCluster dbCluster = findDbCluster(drc, mhaTblV2, dcTbl.getDcName());
-            String url = cmRegionUrls.get(dcTbl.getRegionName()) + BASE_API_URL;
+            String dbClusterId = mhaTblV2.getClusterName() + "." + mhaTblV2.getMhaName();
+            String url = cmRegionUrls.get(dcTbl.getRegionName()) + String.format(BASE_API_URL, dbClusterId);
 
             Map<String, String> paramMap = new HashMap<>();
             paramMap.put("operator", operator);
-            paramMap.put("dcId", dcTbl.getDcName());
-            Map<String, String> headerMap = new HashMap<>();
-            headerMap.put("forward", "{\"type\": 1}");
-
             try {
-                HttpUtils.post(url, dbCluster, headerMap, ApiResult.class, paramMap);
+                HttpUtils.put(url, null, ApiResult.class, paramMap);
             } catch (Exception e) {
                 logger.error("pushConfigToCM fail: {}", e);
             }

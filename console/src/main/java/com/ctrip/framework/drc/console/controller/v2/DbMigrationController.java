@@ -3,28 +3,23 @@ package com.ctrip.framework.drc.console.controller.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MigrationTaskTbl;
 import com.ctrip.framework.drc.console.dto.v2.DbMigrationParam;
-import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
-import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.MigrationTaskQuery;
 import com.ctrip.framework.drc.console.service.v2.MhaReplicationServiceV2;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.DbMigrationService;
-import com.ctrip.framework.drc.console.utils.StreamUtils;
 import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
-import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
-import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
