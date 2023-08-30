@@ -226,6 +226,9 @@ public class MySqlUtils {
         String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha);
         GeneralSingleExecution execution = new GeneralSingleExecution(sql);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            if (readResource == null) {
+                return null;
+            }
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
@@ -242,6 +245,9 @@ public class MySqlUtils {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         GeneralSingleExecution execution = new GeneralSingleExecution(SELECT_CURRENT_TIMESTAMP);
         try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
+            if (readResource == null) {
+                return null;
+            }
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 String nowTime = rs.getString(1);
