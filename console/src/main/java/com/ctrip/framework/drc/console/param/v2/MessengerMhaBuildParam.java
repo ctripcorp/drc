@@ -8,14 +8,24 @@ public class MessengerMhaBuildParam {
     private String mhaName;
     private String dc;
     private String buName;
+    private String tag;
 
     @Override
     public String toString() {
         return "MessengerMhaBuildParam{" +
                 "mhaName='" + mhaName + '\'' +
-                ", dcName='" + dc + '\'' +
+                ", dc='" + dc + '\'' +
                 ", buName='" + buName + '\'' +
+                ", tag='" + tag + '\'' +
                 '}';
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public String getMhaName() {

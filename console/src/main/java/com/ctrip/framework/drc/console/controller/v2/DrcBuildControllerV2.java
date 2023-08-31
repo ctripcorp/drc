@@ -27,14 +27,8 @@ public class DrcBuildControllerV2 {
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
 
-    @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
-
     @PostMapping("mha")
     public ApiResult<Boolean> buildMha(@RequestBody DrcMhaBuildParam param) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.buildMha(param);
             return ApiResult.getSuccessInstance(true);
@@ -46,9 +40,6 @@ public class DrcBuildControllerV2 {
     @PostMapping("messengerMha")
     public ApiResult<Boolean> buildMessengerMha(@RequestBody MessengerMhaBuildParam param) {
         logger.info("buildMessengerMha: {}", param);
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.buildMessengerMha(param);
             return ApiResult.getSuccessInstance(true);
@@ -60,9 +51,6 @@ public class DrcBuildControllerV2 {
 
     @PostMapping("")
     public String buildDrc(@RequestBody DrcBuildParam param) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return "not allowed";
-        }
         try {
             return drcBuildServiceV2.buildDrc(param);
         } catch (Exception e) {
@@ -90,9 +78,6 @@ public class DrcBuildControllerV2 {
 
     @PostMapping("dbReplication")
     public ApiResult<List<Long>> configureDbReplications(@RequestBody DbReplicationBuildParam param) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             return ApiResult.getSuccessInstance(drcBuildServiceV2.configureDbReplications(param));
         } catch (Exception e) {
@@ -111,9 +96,6 @@ public class DrcBuildControllerV2 {
 
     @DeleteMapping("dbReplication")
     public ApiResult<Boolean> deleteDbReplications(@RequestParam long dbReplicationId) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.deleteDbReplications(dbReplicationId);
             return ApiResult.getSuccessInstance(true);
@@ -124,9 +106,6 @@ public class DrcBuildControllerV2 {
 
     @PostMapping("columnsFilter")
     public ApiResult<Boolean> buildColumnsFilter(@RequestBody ColumnsFilterCreateParam param) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.buildColumnsFilter(param);
             return ApiResult.getSuccessInstance(true);
@@ -146,9 +125,6 @@ public class DrcBuildControllerV2 {
 
     @DeleteMapping("columnsFilter")
     public ApiResult<Boolean> deleteColumnsFilter(@RequestBody List<Long> dbReplicationIds) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.deleteColumnsFilter(dbReplicationIds);
             return ApiResult.getSuccessInstance(true);
@@ -168,9 +144,6 @@ public class DrcBuildControllerV2 {
 
     @PostMapping("rowsFilter")
     public ApiResult<Boolean> buildRowsFilter(@RequestBody RowsFilterCreateParam param) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.buildRowsFilter(param);
             return ApiResult.getSuccessInstance(true);
@@ -181,9 +154,6 @@ public class DrcBuildControllerV2 {
 
     @DeleteMapping("rowsFilter")
     public ApiResult<Boolean> deleteRowsFilter(@RequestBody List<Long> dbReplicationIds) {
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(false, "not allowed");
-        }
         try {
             drcBuildServiceV2.deleteRowsFilter(dbReplicationIds);
             return ApiResult.getSuccessInstance(true);
@@ -196,9 +166,6 @@ public class DrcBuildControllerV2 {
     @PostMapping("messenger/submitConfig")
     public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
         logger.info("[meta] submit meta config for {}", dto);
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(null, "not allowed");
-        }
         try {
             String xml = drcBuildServiceV2.buildMessengerDrc(dto);
             return ApiResult.getSuccessInstance(xml);

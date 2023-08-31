@@ -53,9 +53,17 @@ const dcList = [
     label: 'sinaws'
   }
 ]
+const tagList = [
+  'COMMON',
+  'FLT',
+  'HTL',
+  'OI',
+  'TEST'
+]
 export default {
   name: 'constant',
-  dcList
+  dcList,
+  tagList
 }
 </script>
 

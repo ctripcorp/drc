@@ -6,23 +6,33 @@
     </Alert>
     <Form ref="build" :model="build" :rules="ruleBuild" :label-width="250" style="margin-top: 50px">
       <FormItem label="源Mha集群名" prop="srcMhaName" style="width: 600px">
-        <Input v-model="build.srcMhaName" @input="changeSrcMha" placeholder="请输入源集群名" />
+        <Input v-model="build.srcMhaName" @input="changeSrcMha" placeholder="请输入源集群名"/>
       </FormItem>
       <FormItem label="源集群机房区域" prop="srcDc">
-        <Select v-model="build.srcDc" style="width: 200px"  placeholder="选择机房区域" @input="changeSrcDc">
+        <Select v-model="build.srcDc" style="width: 200px" placeholder="选择机房区域" @input="changeSrcDc">
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
-      <FormItem label="新Mha集群名" prop="dstMhaName" style="width: 600px">
-        <Input v-model="build.dstMhaName" @input="changeDstMha" placeholder="请输入新集群名" />
+      <FormItem label="源Mha tag" prop="srcDc">
+        <Select v-model="build.srcTag" style="width: 200px" placeholder="选择tag">
+          <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
+        </Select>
       </FormItem>
-      <FormItem label="新集群机房区域" prop="dstDc">
-        <Select v-model="build.dstDc" style="width: 200px"  placeholder="选择机房区域" @input="changeDstDc">
+      <FormItem label="目标Mha集群名" prop="dstMhaName" style="width: 600px">
+        <Input v-model="build.dstMhaName" @input="changeDstMha" placeholder="请输入目标集群名"/>
+      </FormItem>
+      <FormItem label="目标集群机房区域" prop="dstDc">
+        <Select v-model="build.dstDc" style="width: 200px" placeholder="选择机房区域" @input="changeDstDc">
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
+        </Select>
+      </FormItem>
+      <FormItem label="目标Mha tag" prop="srcDc">
+        <Select v-model="build.dstTag" style="width: 200px" placeholder="选择tag">
+          <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
         </Select>
       </FormItem>
       <FormItem label="BU名" style="width: 600px" prop="buName">
-        <Input v-model="build.buName" @input="changeBu" placeholder="请输入BU名，自动绑定route策略" />
+        <Input v-model="build.buName" @input="changeBu" placeholder="请输入BU名，自动绑定route策略"/>
       </FormItem>
       <FormItem>
         <Button @click="handleReset('build')">重置</Button>
@@ -31,7 +41,7 @@
           v-model="build.modal"
           title="创建DRC"
           @on-ok="postBuild('build')">
-          <p>确定创建新DRC "{{build.srcMhaName + build.dstMhaName}}" 吗？</p>
+          <p>确定创建新DRC "{{build.srcMhaName}}({{build.srcDc}})" -> "{{build.dstMhaName}}({{build.dstDc}})" 吗？</p>
         </Modal>
       </FormItem>
     </Form>
@@ -59,8 +69,11 @@ export default {
         buName: '',
         srcDc: this.srcDc,
         dstDc: this.dstDc,
-        drcZoneList: this.constant.dcList
+        drcZoneList: this.constant.dcList,
+        srcTag: 'COMMON',
+        dstTag: 'COMMON'
       },
+      tagList: this.constant.tagList,
       ruleBuild: {
         srcMhaName: [
           { required: true, message: '源集群名不能为空', trigger: 'blur' }
@@ -93,7 +106,9 @@ export default {
             srcMhaName: this.build.srcMhaName,
             dstMhaName: this.build.dstMhaName,
             srcDc: this.build.srcDc,
-            dstDc: this.build.dstDc
+            dstDc: this.build.dstDc,
+            srcTag: this.build.srcTag,
+            dstTag: this.build.dstTag
           }).then(response => {
             that.hasResp = true
             if (response.data.status === 0) {
