@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.manager.ha.meta.comparator.ApplierPropertyCompara
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
-import com.ctrip.framework.drc.manager.ha.meta.comparator.InstanceComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
 import org.springframework.stereotype.Component;
 
