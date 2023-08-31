@@ -39,7 +39,7 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     protected final Logger loggerER = LoggerFactory.getLogger("EVT RECV");
     protected final Accumulation accumulationGW = new Accumulation("GAQ WAIT", "ms");
 
-    protected FetcherSlaveConfig config;
+    protected volatile FetcherSlaveConfig config;
     protected FetcherSlaveServer server;
     protected NetworkContextResource context;
 
@@ -116,9 +116,9 @@ public abstract class DumpEventActivity<T> extends AbstractActivity implements T
     }
 
     public void changeProperties(ApplierConfigDto config) throws Exception {
-        nameFilter = config.getNameFilter();
-        properties = config.getProperties();
-        server.restart();
+        this.config.setNameFilter(config.getNameFilter());
+        this.config.setProperties(config.getProperties());
+        server.closeChannel();
     }
 
     @Override

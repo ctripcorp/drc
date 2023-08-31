@@ -35,6 +35,10 @@ public class FetcherSlaveServer extends AbstractMySQLSlave implements MySQLSlave
         return new FetcherConnection(mySQLSlaveConfig, eventHandler, mySQLConnector, networkContextResource, byteBufConverter);
     }
 
+    public void closeChannel() {
+        mySQLConnector.close();
+    }
+
     @Override
     protected void doStop() throws Exception {
         super.doStop();

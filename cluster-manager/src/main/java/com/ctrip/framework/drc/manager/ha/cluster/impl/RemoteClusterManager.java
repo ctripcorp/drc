@@ -53,6 +53,7 @@ public class RemoteClusterManager extends AbstractRemoteClusterManager implement
         logger.info("[clusterAdded][forward]{},{}--> {}", clusterId, forwardInfo, this);
 
         HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
+        String uri = appendDcIdAndOperator(changeClusterPath, dcId, operator);
         restTemplate.exchange(appendDcIdAndOperator(changeClusterPath, dcId, operator), HttpMethod.POST, entity, String.class, clusterId);
 
     }
