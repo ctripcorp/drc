@@ -196,12 +196,10 @@ public class ApplierConfigDto extends ApplierMeta {
                 replicator.port == that.replicator.port &&
                 Objects.equals(target.ip, that.target.ip) &&
                 Objects.equals(includedDbs, that.includedDbs) &&
-                Objects.equals(nameFilter, that.nameFilter) &&
                 Objects.equals(nameMapping, that.nameMapping) &&
                 Objects.equals(routeInfo, that.routeInfo) &&
                 target.port == that.target.port &&
-                applyMode == that.applyMode &&
-                Objects.equals(properties, that.properties);
+                applyMode == that.applyMode;
     }
 
     public boolean equalsProperties(Object o) {
