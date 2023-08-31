@@ -238,8 +238,11 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
         Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
 
+
         if (currentTime != null && srcTime != null) {
             srcTime = Math.max(srcTime, currentTime);
+        } else {
+            srcTime = null;
         }
         delayInfoDto.setSrcTime(srcTime);
         delayInfoDto.setDstTime(dstTime);
