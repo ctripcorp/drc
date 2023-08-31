@@ -131,7 +131,7 @@ public class OPSApiServiceImpl implements OPSApiService {
         requestBody.put("access_token", accessToken);
         requestBody.put("request_body", null);
         String formatUrl = getAllClusterUrl + "?query=fx.drc.messenger.delay_mean&step=30&db=APM-FX";
-
+        
         OkHttpClient client = new OkHttpClient().newBuilder().build();
         MediaType mediaType = MediaType.parse("application/json");
         RequestBody body = RequestBody.create(mediaType, JsonUtils.toJson(requestBody));

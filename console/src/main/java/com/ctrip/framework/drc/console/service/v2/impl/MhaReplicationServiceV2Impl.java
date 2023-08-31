@@ -171,9 +171,9 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         delayInfoDto.setSrcMha(srcMha);
 
         // query dst first (result could be larger than querying src first)
+        Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
         Long dstTime = mysqlServiceV2.getDelayUpdateTime(srcMha, dstMha);
         Long srcTime = mysqlServiceV2.getDelayUpdateTime(srcMha, srcMha);
-        Long currentTime = mysqlServiceV2.getCurrentTime(srcMha);
 
         if (currentTime != null && srcTime != null) {
             srcTime = Math.max(srcTime, currentTime);

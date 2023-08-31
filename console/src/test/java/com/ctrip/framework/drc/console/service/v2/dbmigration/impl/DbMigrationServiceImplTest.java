@@ -11,6 +11,8 @@ import com.ctrip.framework.drc.console.dao.MessengerTblDao;
 import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationTbl;
@@ -43,6 +45,7 @@ import com.google.common.collect.Lists;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -108,6 +111,8 @@ public class DbMigrationServiceImplTest {
     MhaReplicationTbl mhaReplication3_2 = MockEntityBuilder.buildMhaReplicationTbl(4L,mha3,mha2);
     MhaReplicationTbl mhaReplication4_1 = MockEntityBuilder.buildMhaReplicationTbl(5L,mha4,mha1);
 
+    MessengerGroupTbl mha1MessengerGroup = MockEntityBuilder.buildMessengerGroupTbl(1L, mha1.getId());
+
     DbTbl db1 = MockEntityBuilder.buildDbTbl(1L, "db1");
     DbTbl db2 = MockEntityBuilder.buildDbTbl(2L, "db2");
 
@@ -139,10 +144,11 @@ public class DbMigrationServiceImplTest {
     @Test
     public void testDbMigrationCheckAndCreateTask() throws SQLException {
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
+        Mockito.when(migrationTaskTblDao.queryByOldMha(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
         mockReplicationInfos();
-        Long aLong = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
-        Assert.assertEquals(1L,aLong.longValue());
+        Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Assert.assertEquals(1L,stringLongPair.getRight().longValue());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"));
         Mockito.verify(mhaTblV2Dao,Mockito.times(1)).queryByPk(Mockito.eq(1L));
 
@@ -151,7 +157,7 @@ public class DbMigrationServiceImplTest {
             mockDbMigrationCheckForbiddenCase1();
             dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         } catch (ConsoleException e) {
-            Assert.assertEquals("region1 effect multi mhaTbs in drcReplication, please check! mha: mha4,mha3",e.getMessage());
+            Assert.assertEquals("region1: multi mhaTbs in drcReplication, please check! mha: mha4,mha3",e.getMessage());
         }
         
         // check case2:
@@ -170,7 +176,7 @@ public class DbMigrationServiceImplTest {
         
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
-            dbMigrationService.exStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
         } catch (ConsoleException e) {
             Assert.assertEquals("task status is not INIT, can not exStart! taskId: 1",e.getMessage());
         }
@@ -178,14 +184,14 @@ public class DbMigrationServiceImplTest {
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
             mockConfigNotEqual();
-            dbMigrationService.exStartDbMigrationTask(migrationTaskTbl.getId());
+            dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId());
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("MhaConfigs not equals!"));
         }
         
         mockNormalExStart();
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
-        Assert.assertTrue(dbMigrationService.exStartDbMigrationTask(migrationTaskTbl.getId()));
+        Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
     }
     
     
@@ -193,11 +199,43 @@ public class DbMigrationServiceImplTest {
     @Test
     public void testStartDbMigrationTask() throws Exception {
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
-        migrationTaskTbl.setStatus(MigrationStatusEnum.EX_STARTED.getStatus());
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         mockNormalStartTask();
+        mockReplicationWork();
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()),Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication3_1);
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(mha3.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication1_3);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
+        MessengerTbl messengerTbl = MockEntityBuilder.buildMessengerTbl(1L, mha1MessengerGroup.getId());
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha1MessengerGroup.getId()))).thenReturn(Lists.newArrayList(messengerTbl));
+        
         Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
         Mockito.verify(drcBuildServiceV2,Mockito.times(2)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
+
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        mockReplicationNotWork();
+        Assert.assertTrue(dbMigrationService.startDbMigrationTask(migrationTaskTbl.getId()));
+        Mockito.verify(drcBuildServiceV2,Mockito.times(2)).autoConfigAppliersWithRealTimeGtid(Mockito.any(),Mockito.any(),Mockito.any(),Mockito.any());
+        Mockito.verify(drcBuildServiceV2,Mockito.times(1)).autoConfigMessengersWithRealTimeGtid(Mockito.any());
+    }
+    
+    private void mockReplicationWork() throws SQLException {
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()),Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication3_1);
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(mha3.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication1_3);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
+        MessengerTbl messengerTbl = MockEntityBuilder.buildMessengerTbl(1L, mha1MessengerGroup.getId());
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha1MessengerGroup.getId()))).thenReturn(Lists.newArrayList(messengerTbl));
+    }
+
+    private void mockReplicationNotWork() throws SQLException {
+        MhaReplicationTbl mhaReplication1_3_copy = MockEntityBuilder.buildMhaReplicationTbl(1L,mha1,mha3);
+        MhaReplicationTbl mhaReplication3_1_copy = MockEntityBuilder.buildMhaReplicationTbl(2L,mha3,mha1);
+        mhaReplication1_3_copy.setDrcStatus(0);
+        mhaReplication3_1_copy.setDrcStatus(0);
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()),Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication1_3_copy);
+        Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(mha3.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mhaReplication3_1_copy);
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.eq(mha1.getId()),Mockito.eq(BooleanEnum.FALSE.getCode()))).thenReturn(mha1MessengerGroup);
+        Mockito.when(messengerTblDao.queryByGroupId(Mockito.eq(mha1MessengerGroup.getId()))).thenReturn(Lists.newArrayList());
     }
     
     private void mockNormalStartTask() throws Exception {
@@ -221,8 +259,6 @@ public class DbMigrationServiceImplTest {
         Mockito.when(metaGeneratorV3.getDrc()).thenThrow(new Exception("mock exception"));
 
         Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
-        
-        
     }
     
     private void mockQueryTaskInfo() throws Exception {

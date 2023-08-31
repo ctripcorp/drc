@@ -93,7 +93,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         res.put("binlogMode", MySqlUtils.checkBinlogMode(endpoint));
         res.put("binlogFormat", MySqlUtils.checkBinlogFormat(endpoint));
-        res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint));
+        res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint)); //  todo 5.7 -> 8.0
         res.put("binlogTransactionDependency", MySqlUtils.checkBinlogTransactionDependency(endpoint));
         res.put("binlogTransactionDependencyHistorySize", MySqlUtils.checkBtdhs(endpoint));
         res.put("gtidMode", MySqlUtils.checkGtidMode(endpoint));
