@@ -50,11 +50,4 @@ public class FetcherSlaveServer extends AbstractMySQLSlave implements MySQLSlave
     public void setNetworkContextResource(NetworkContextResource networkContextResource) {
         this.networkContextResource = networkContextResource;
     }
-
-    public void restart() throws Exception {
-        this.stop();
-        this.dispose();
-        this.initialize();
-        this.start();
-    }
 }

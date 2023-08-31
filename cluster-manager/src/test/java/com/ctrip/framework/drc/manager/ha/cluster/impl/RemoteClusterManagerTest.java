@@ -55,31 +55,32 @@ public class RemoteClusterManagerTest extends AbstractDbClusterTest {
     //for all not throw exceptions
     @Test
     public void clusterAdded() {
-        remoteClusterManager.clusterAdded("test_dc_id", "dbCluster", forwardInfo, "test");
+        remoteClusterManager.clusterAdded("test_dc_id", CLUSTER_ID, forwardInfo, "test");
     }
 
-//    @Test
+    @Test
     public void clusterModify() {
-        int maxConnPerRoute = Integer.parseInt(System.getProperty("remoteMaxConnPerRoute", "1000"));
-        int maxConnTotal = Integer.parseInt(System.getProperty("maxConnTotal", "10000"));
-        int connectTimeout = Integer.parseInt(System.getProperty("remoteConnectTimeout", "1000"));
-        int soTimeout = Integer.parseInt(System.getProperty("remoteSoTimeout", "500000"));
-        String changeClusterPath;
-        changeClusterPath = META_SERVER_SERVICE.CLUSTER_CHANGE.getRealPath("127.0.0.1:8080");
-        RestOperations restTemplate = RestTemplateFactory.createCommonsHttpRestTemplate(maxConnPerRoute, maxConnTotal, connectTimeout, soTimeout);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
-        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
-
-        String key = RegistryKey.from("bbzdrcbenchmarkdb_dalcluster", "fat-fx-drc2");
-
-        HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
-        try {
-            restTemplate.exchange(changeClusterPath +  "?operator=wjx", HttpMethod.PUT, entity, String.class, key);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        int maxConnPerRoute = Integer.parseInt(System.getProperty("remoteMaxConnPerRoute", "1000"));
+//        int maxConnTotal = Integer.parseInt(System.getProperty("maxConnTotal", "10000"));
+//        int connectTimeout = Integer.parseInt(System.getProperty("remoteConnectTimeout", "1000"));
+//        int soTimeout = Integer.parseInt(System.getProperty("remoteSoTimeout", "500000"));
+//        String changeClusterPath;
+//        changeClusterPath = META_SERVER_SERVICE.CLUSTER_CHANGE.getRealPath("127.0.0.1:8080");
+//        RestOperations restTemplate = RestTemplateFactory.createCommonsHttpRestTemplate(maxConnPerRoute, maxConnTotal, connectTimeout, soTimeout);
+//
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+//        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
+//
+//        String key = RegistryKey.from("bbzdrcbenchmarkdb_dalcluster", "fat-fx-drc2");
+//
+//        HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
+//        try {
+//            restTemplate.exchange(changeClusterPath +  "?operator=wjx", HttpMethod.PUT, entity, String.class, key);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        remoteClusterManager.clusterModified(CLUSTER_ID, forwardInfo, "test");
     }
 
     @Test
