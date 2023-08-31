@@ -33,4 +33,6 @@ public interface DbMigrationService {
 
     void rollBackNewDrcConfig(long taskId) throws Exception;
 
+    void deleteReplicator(String mhaName) throws Exception;
+
 }

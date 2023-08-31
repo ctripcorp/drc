@@ -160,4 +160,14 @@ public class DbMigrationController {
             return ApiResult.getFailInstance("fail", e.getMessage());
         }
     }
+
+    @DeleteMapping("/mha/replicator")
+    public ApiResult<String> deleteReplicator(@RequestParam String mhaName) {
+        try {
+            dbMigrationService.deleteReplicator(mhaName);
+            return ApiResult.getSuccessInstance("success");
+        } catch (Exception e) {
+            return ApiResult.getFailInstance("fail", e.getMessage());
+        }
+    }
 }
