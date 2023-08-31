@@ -237,6 +237,21 @@ public class DefaultInstanceStateController extends AbstractLifecycle implements
         return body;
     }
 
+    @Override
+    public DbCluster messengerPropertyChange(String clusterId, Messenger messenger) {
+        MessengerNotifier messengerNotifier = MessengerNotifier.getInstance();
+        DbCluster body = getDbClusterWithRefreshMessenger(clusterId, messenger);
+        String newClusterId = RegistryKey.from(clusterId, DRC_MQ);
+        STATE_LOGGER.info("[messengerPropertyChange] for {},{}", newClusterId, body);
+        List<Replicator> replicators = body.getReplicators();
+        if (replicators == null || replicators.isEmpty()) {
+            STATE_LOGGER.warn("[Empty][messengerPropertyChange] replicators and do nothing for {}", clusterId);
+            return body;
+        }
+        messengerNotifier.notifyAdd(newClusterId, body);
+        return body;
+    }
+
     /**
      * notify replicator and applier to pull binlog from new mysql master
      * @param clusterId
