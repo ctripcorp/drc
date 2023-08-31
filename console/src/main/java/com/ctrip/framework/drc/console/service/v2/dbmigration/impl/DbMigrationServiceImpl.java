@@ -106,6 +106,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
+    private ReplicatorTblDao replicatorTblDao;
+    @Autowired
     private ApplierGroupTblV2Dao applierGroupTblV2Dao;
     @Autowired
     private ApplierTblV2Dao applierTblV2Dao;
@@ -587,6 +589,33 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         deleteDrcConfig(taskId, true);
     }
 
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteReplicator(String mhaName) throws Exception {
+        MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        if (mhaTblV2 == null) {
+            throw ConsoleExceptionUtils.message(mhaName + " not exist!");
+        }
+        if (existMhaReplication(mhaTblV2.getId())) {
+           throw ConsoleExceptionUtils.message(mhaName + " exist replication!");
+        }
+
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+        if (replicatorGroupTbl == null) {
+            logger.info("mhaName: {} not exist replicatorGroup", mhaName);
+            return;
+        }
+        replicatorGroupTbl.setDeleted(BooleanEnum.TRUE.getCode());
+        logger.info("delete replicatorGroup: {}", replicatorGroupTbl);
+        replicatorGroupTblDao.update(replicatorGroupTbl);
+
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        if (!CollectionUtils.isEmpty(replicatorTbls)) {
+            replicatorTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            replicatorTblDao.update(replicatorTbls);
+        }
+    }
+
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void deleteDrcConfig(long taskId, boolean rollBack) throws Exception {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
@@ -650,6 +679,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<MhaDbMappingTbl> deleteMhaDbMappingTbls = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).collect(Collectors.toList());
         mhaDbMappingTblDao.delete(deleteMhaDbMappingTbls);
 
+        if (!existMhaReplication(mhaId)) {
+            String mhaName = rollBack ? newMhaName : oldMhaName;
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.Empty.Replication", mhaName);
+        }
+
         try {
             List<Long> mhaIds = Lists.newArrayList(relatedMhaIds);
             mhaIds.add(mhaId);
@@ -657,6 +691,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         } catch (Exception e) {
             logger.warn("pushConfigToCM failed, mhaIds: {}", relatedMhaIds, e);
         }
+    }
+
+    private boolean existMhaReplication(long mhaId) throws Exception {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaId));
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+
+        return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null;
     }
 
     private void pushConfigToCM(List<Long> mhaIds, String operator, HttpRequestEnum httpRequestEnum) throws Exception {
@@ -681,12 +722,6 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 logger.error("pushConfigToCM fail: {}", mhaTblV2.getMhaName(),e);
             }
         }
-    }
-
-    private DbCluster findDbCluster(Drc drc, MhaTblV2 mhaTblV2, String dcName) {
-        Dc dc = drc.findDc(dcName);
-        String dbClusterId = mhaTblV2.getClusterName() + "." + mhaTblV2.getMhaName();
-        return dc.findDbCluster(dbClusterId);
     }
 
     private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> mhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {

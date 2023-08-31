@@ -14,7 +14,16 @@ public interface MhaReplicationServiceV2 {
 
     List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId);
 
+    /**
+     * @param queryAll true: query replications of all reachable mha
+     *                 <p>
+     *                 false: query replications of directly connected mha
+     */
+    List<MhaReplicationTbl> queryRelatedReplicationByName(List<String> mhaNames, boolean queryAll);
+
     List<MhaReplicationDto> queryRelatedReplications(List<String> mhaNames, List<String> dbNames);
+
+    List<MhaReplicationDto> queryReplicationByIds(List<Long> replicationIds);
 
     /**
      * 获取 srcMha -> dstMha 该同步链路延迟

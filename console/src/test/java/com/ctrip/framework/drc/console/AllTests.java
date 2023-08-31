@@ -168,6 +168,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ResourceMigrateServiceTest.class,
         ResourceServiceTest.class,
         DbMigrationServiceImplTest.class,
+        DbMigrationServiceTest.class,
 //
         // controller
         MetaControllerV2Test.class,
@@ -254,7 +255,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //integrationTest
         MigrateServiceIntegrationTest.class,
         DrcDoubleWriteServiceIntegrationTest.class
-        
+
 
 })
 public class AllTests {
