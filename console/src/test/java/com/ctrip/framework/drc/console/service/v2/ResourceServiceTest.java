@@ -175,4 +175,23 @@ public class ResourceServiceTest {
         Assert.assertEquals(result.size(), getResourceTbls().size());
     }
 
+    @Test
+    public void testHandOffResource() throws Exception {
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"), Mockito.anyInt())).thenReturn(getMhaTblV2());
+        Mockito.when(dcTblDao.queryById(Mockito.anyLong())).thenReturn(getDcTbls().get(0));
+        Mockito.when(dcTblDao.queryByRegionName(Mockito.anyString())).thenReturn(getDcTbls());
+        Mockito.when(resourceTblDao.queryByDcAndTag(Mockito.anyList(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(getResourceTbls());
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+        Mockito.when(messengerTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(new ArrayList<>());
+
+        ResourceSelectParam param = new ResourceSelectParam();
+        param.setMhaName("mha");
+        param.setType(0);
+        param.setSelectedIps(Lists.newArrayList("ip1"));
+
+        List<ResourceView> result = resourceService.handOffResource(param);
+        Assert.assertEquals(result.size(), getResourceTbls().size());
+    }
+
 }

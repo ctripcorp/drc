@@ -22,13 +22,13 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
-import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -203,6 +203,25 @@ public class ResourceServiceImpl implements ResourceService {
             }
         } else if (!CollectionUtils.isEmpty(selectedIps)) {
             resourceViews = resourceViews.stream().filter(e -> selectedIps.contains(e.getIp())).collect(Collectors.toList());
+        }
+
+        setResourceView(resultViews, resourceViews);
+        return resultViews;
+    }
+
+    @Override
+    public List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException {
+        if (CollectionUtils.isEmpty(param.getSelectedIps())) {
+            return autoConfigureResource(param);
+        }
+
+        List<ResourceView> resultViews = new ArrayList<>();
+        List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType())
+                .stream()
+                .filter(e -> !param.getSelectedIps().contains(e.getIp()))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            return resultViews;
         }
 
         setResourceView(resultViews, resourceViews);
