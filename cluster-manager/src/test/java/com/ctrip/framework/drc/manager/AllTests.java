@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.manager.ha.meta.impl.*;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceManagerTest;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceTest;
 import com.ctrip.framework.drc.manager.ha.multidc.*;
+import com.ctrip.framework.drc.manager.ha.rest.MultiMetaServerTest;
 import com.ctrip.framework.drc.manager.healthcheck.DefaultMySQLMasterManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.datasource.DataSourceManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifierTest;
@@ -69,6 +70,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
         ConsoleNotifierTest.class,
         DataCenterServiceTest.class,
+        MultiMetaServerTest.class,
 
         // for ha
         ClusterManagerLeaderElectorTest.class,

@@ -51,7 +51,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
             logger.info("applier servers contains {}", clusterKey);
             ApplierServerInCluster activeServer = servers.get(clusterKey);
             if (activeServer.config.equalsIgnoreProperties(config)) {
-                if (activeServer.config.equalsProperties(config)) {
+                if (!activeServer.config.equalsProperties(config)) {
                     ApplierServerInCluster server = servers.get(clusterKey);
                     ApplierDumpEventActivity dumpEventActivity = server.getDumpEventActivity();
                     if (dumpEventActivity != null) {
