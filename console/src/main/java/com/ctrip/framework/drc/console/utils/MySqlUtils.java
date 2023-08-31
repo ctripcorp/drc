@@ -93,6 +93,7 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
+    // TODO 8.0 测试
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE JSON_EXTRACT(dest_ip, \"$.m\") = '%s'";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";

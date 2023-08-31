@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.entity.ColumnsFilterTbl;
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
+import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
@@ -301,5 +302,13 @@ public class MockEntityBuilder {
         messengerGroupTbl.setMhaId(mhaId);
         messengerGroupTbl.setDeleted(0);
         return messengerGroupTbl;
+    }
+
+    public static MessengerTbl buildMessengerTbl(Long pk, Long mGroupId) {
+        MessengerTbl messengerTbl = new MessengerTbl();
+        messengerTbl.setId(pk);
+        messengerTbl.setMessengerGroupId(mGroupId);
+        messengerTbl.setDeleted(0);
+        return messengerTbl;
     }
 }

@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.vo.display.MigrationTaskVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.PageResult;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,15 +39,32 @@ public class DbMigrationController {
     @Autowired
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
 
+    
+    @DeleteMapping("abandon")
+    private ApiResult abandonMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+        try {
+            if (dbMigrationService.abandonTask(taskId)) {
+                return ApiResult.getInstance(null,0,"abandonMigrationTask: " + taskId + " success!");
+            } else {
+                return ApiResult.getInstance(null,1,"abandonMigrationTask: " + taskId + " fail!");
+            }
+        } catch (SQLException e) {
+            logger.error("sql error in abandonMigrationTask", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        } catch (ConsoleException e) {
+            logger.warn("abandonMigrationTask forbidden", e);
+            return ApiResult.getInstance(null,1, e.getMessage());
+        }
+    }
 
     @PutMapping("check")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
-            Long taskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
-            if (taskId == null) {
+            Pair<String, Long> tipsAndTaskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+            if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
-                return ApiResult.getInstance(taskId,0,"task create success");
+                return ApiResult.getInstance(tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
             }
         } catch (SQLException e) {
             logger.error("sql error in dbMigrationCheckAndInit", e);
@@ -57,10 +75,10 @@ public class DbMigrationController {
         }
     }
     
-    @PostMapping("exStart")
-    public ApiResult exStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
+    @PostMapping("preStart")
+    public ApiResult preStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
-            if (dbMigrationService.exStartDbMigrationTask(taskId)) {
+            if (dbMigrationService.preStartDbMigrationTask(taskId)) {
                 return ApiResult.getInstance(null,0,"exStartDbMigrationTask: " + taskId + " success!");
             } else {
                 return ApiResult.getInstance(null,1,"exStartDbMigrationTask: " + taskId + " fail!");

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
@@ -75,7 +76,7 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
 
     public Long insertOrReCover(Long srcMhaId, Long dstMhaId) throws SQLException {
         if (srcMhaId == null || dstMhaId == null) {
-            throw new IllegalArgumentException("insertOrReCover mhaReplication, srcMhaId or dstMhaId is null");
+            throw ConsoleExceptionUtils.message("insertOrReCover mhaReplication, srcMhaId or dstMhaId is null");
         }
         MhaReplicationTbl mhaReplicationTbl = queryByMhaId(srcMhaId, dstMhaId);
         if (mhaReplicationTbl != null) {
