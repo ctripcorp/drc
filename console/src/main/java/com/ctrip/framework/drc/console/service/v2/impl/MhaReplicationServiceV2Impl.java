@@ -49,6 +49,7 @@ import java.util.stream.Stream;
 @Service
 public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
+    public static final int MAX_LOOP_COUNT = 20;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "mhaReplicationService");
 
@@ -88,14 +89,14 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
         }
     }
 
-    @Override
-    public List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId, boolean queryAll) {
+    private List<MhaReplicationTbl> queryRelatedReplications(List<Long> relatedMhaId, boolean queryAll) {
         try {
 
             Set<Long> seenReplicationIds = Sets.newHashSet();
             Set<Long> seenMhaIds = Sets.newHashSet();
             List<MhaReplicationTbl> res = Lists.newArrayList();
             Set<Long> newMhaIds = Sets.newHashSet(relatedMhaId);
+            int queryCount = 0;
             do {
                 List<MhaReplicationTbl> newTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(newMhaIds)).stream()
                         .filter(e -> !seenReplicationIds.contains(e.getId()))
@@ -109,7 +110,8 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
                         .filter(e -> !seenMhaIds.contains(e))
                         .collect(Collectors.toSet());
                 seenMhaIds.addAll(newMhaIds);
-            } while (queryAll && !newMhaIds.isEmpty());
+                // MAX_LOOP_COUNT prevent infinite loop
+            } while (queryAll && !newMhaIds.isEmpty() && queryCount++ < MAX_LOOP_COUNT);
 
             return res;
         } catch (SQLException e) {
