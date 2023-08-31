@@ -17,6 +17,16 @@ public class MhaReplicationVo {
      */
     private Integer status;
 
+    private Long delay;
+
+    public Long getDelay() {
+        return delay;
+    }
+
+    public void setDelay(Long delay) {
+        this.delay = delay;
+    }
+
     public Integer getStatus() {
         return status;
     }
@@ -64,5 +74,9 @@ public class MhaReplicationVo {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getReplicationKey() {
+        return srcMha.getName() + "->" + dstMha.getName();
     }
 }

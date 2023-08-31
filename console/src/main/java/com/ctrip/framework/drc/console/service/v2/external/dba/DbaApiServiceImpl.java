@@ -5,10 +5,8 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClust
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.google.api.Http;
 import com.google.common.collect.Maps;
 import java.util.LinkedHashMap;
-import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

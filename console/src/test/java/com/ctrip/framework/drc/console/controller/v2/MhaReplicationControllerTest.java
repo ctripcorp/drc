@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -86,14 +87,14 @@ public class MhaReplicationControllerTest {
 
     @Test
     public void testQueryRelatedEmptyInput() throws Exception {
-        MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/queryMhaRelated")
-                        .param("relatedMhaId", "")
+        MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/queryMhaRelatedByNames")
+                        .param("relatedMhaNames", "mha1")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
         ApiResult<List<MhaReplicationVo>> apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
-        Assert.assertNull(apiResult.getData());
-        Assert.assertEquals(ResultCode.HANDLE_FAIL.getCode(), apiResult.getStatus().longValue());
+        Assert.assertTrue(CollectionUtils.isEmpty(apiResult.getData()));
+        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
     }
 
     @Test

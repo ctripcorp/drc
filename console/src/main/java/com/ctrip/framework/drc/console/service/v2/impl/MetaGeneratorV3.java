@@ -331,7 +331,8 @@ public class MetaGeneratorV3 {
                         .setPort(replicatorTbl.getPort())
                         .setApplierPort(replicatorTbl.getApplierPort())
                         .setExcludedTables(replicatorGroupTbl.getExcludedTables())
-                        .setGtidSkip(replicatorTbl.getGtidInit());
+                        .setGtidSkip(replicatorTbl.getGtidInit())
+                        .setMaster(replicatorTbl.getMaster() == 1);
                 dbCluster.addReplicator(replicator);
             }
         }
