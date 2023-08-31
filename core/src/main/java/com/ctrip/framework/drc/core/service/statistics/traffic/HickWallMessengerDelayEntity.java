@@ -4,9 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-/**
- * Created by jixinwang on 2022/9/9
- */
 public class HickWallMessengerDelayEntity {
 
     Metric metric;
