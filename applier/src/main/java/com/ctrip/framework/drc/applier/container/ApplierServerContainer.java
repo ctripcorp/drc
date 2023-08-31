@@ -57,6 +57,7 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
                     if (dumpEventActivity != null) {
                         dumpEventActivity.changeProperties(config);
                         logger.info("new properties received, going to reconnect, old config: {}\n new config: {}", activeServer.config, config);
+                        return true;
                     } else {
                         logger.info("new properties received, dumpEventActivity is null");
                     }
