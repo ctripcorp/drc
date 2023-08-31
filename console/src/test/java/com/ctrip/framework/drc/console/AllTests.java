@@ -166,6 +166,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaInfoServiceV2ImplTest2.class,
         ResourceMigrateServiceTest.class,
         ResourceServiceTest.class,
+        DbMigrationServiceTest.class,
 //
         // controller
         MetaControllerV2Test.class,
