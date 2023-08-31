@@ -220,14 +220,12 @@ public class MySqlUtils {
         return delayMonitorConfigs;
     }
 
-
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static Long getDelayUpdateTime(Endpoint endpoint, String mha) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha);
-        ReadResource readResource = null;
-        try {
-            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-            readResource = sqlOperatorWrapper.select(execution);
+        GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
@@ -236,20 +234,16 @@ public class MySqlUtils {
         } catch (Throwable e) {
             logger.error("[[endpoint={}:{}]] getDelay({}) error: ", endpoint.getHost(), endpoint.getPort(), sql, e);
             removeSqlOperator(endpoint);
-        } finally {
-            if (readResource != null) {
-                readResource.close();
-            }
         }
         return null;
     }
 
+
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static Long getCurrentTime(Endpoint endpoint) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        ReadResource readResource = null;
-        try {
-            GeneralSingleExecution execution = new GeneralSingleExecution(SELECT_CURRENT_TIMESTAMP);
-            readResource = sqlOperatorWrapper.select(execution);
+        GeneralSingleExecution execution = new GeneralSingleExecution(SELECT_CURRENT_TIMESTAMP);
+        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
             ResultSet rs = readResource.getResultSet();
             if (rs.next()) {
                 String nowTime = rs.getString(1);
@@ -258,10 +252,6 @@ public class MySqlUtils {
         } catch (Throwable e) {
             logger.error("[[endpoint={}:{}]] getCurrentTime({}) error: ", endpoint.getHost(), endpoint.getPort(), SELECT_CURRENT_TIMESTAMP, e);
             removeSqlOperator(endpoint);
-        } finally {
-            if (readResource != null) {
-                readResource.close();
-            }
         }
         return null;
     }
