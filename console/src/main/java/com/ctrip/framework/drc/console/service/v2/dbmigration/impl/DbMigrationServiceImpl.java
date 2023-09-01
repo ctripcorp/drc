@@ -342,18 +342,36 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private void checkRepeatedMigrationTask(DbMigrationParam dbMigrationRequest) throws SQLException{
-        //todo db校验
         List<MigrationTaskTbl> migrationTaskTbls = migrationTaskTblDao.queryByOldMha(dbMigrationRequest.getOldMha().getName());
         if (!CollectionUtils.isEmpty(migrationTaskTbls)) {
-            List<Long> taskIdsInProcessing = migrationTaskTbls.stream().filter(this::taskInProcessing).map(MigrationTaskTbl::getId).collect(Collectors.toList());
-            if (!CollectionUtils.isEmpty(taskIdsInProcessing)) {
-                throw ConsoleExceptionUtils.message("oldMha has migration task in processing, "
-                        + "can not start new migration task! taskIdsInProcessing: "
-                        + JsonUtils.toJson(taskIdsInProcessing));
+            List<Long> repeatedTask = migrationTaskTbls.stream()
+                    .filter(this::taskInProcessing)
+                    .filter(p -> dbRepeated(p,dbMigrationRequest))
+                    .map(MigrationTaskTbl::getId).collect(Collectors.toList());
+            
+            if (!CollectionUtils.isEmpty(repeatedTask)) {
+                throw ConsoleExceptionUtils.message("oldMha has repeatedTask in processing, "
+                        + "can not start new migration task! repeatedTask: "
+                        + JsonUtils.toJson(repeatedTask));
             }
         }
     }
 
+    private boolean dbRepeated(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
+        String dbs = migrationTaskTbl.getDbs();
+        Set<String> dbsInTask = JsonUtils.fromJsonToList(dbs, DbTbl.class).stream().map(DbTbl::getDbName).collect(Collectors.toSet());
+        List<String> dbsInRequest = dbMigrationRequest.getDbs();
+        for (String dbInRequest : dbsInRequest) {
+            if (dbsInTask.contains(dbInRequest)) {
+                logger.info("[[migration=starting,newMha={}]] task:{} dbRepeated!",
+                        dbMigrationRequest.getNewMha().getName(),migrationTaskTbl.getId());
+                return true;
+            }
+        }
+        return false;
+        
+    }
+    
     private boolean taskInProcessing(MigrationTaskTbl migrationTaskTbl) {
         return  MigrationStatusEnum.INIT.getStatus().equals(migrationTaskTbl.getStatus())
                 || MigrationStatusEnum.PRE_STARTING.getStatus().equals(migrationTaskTbl.getStatus())
