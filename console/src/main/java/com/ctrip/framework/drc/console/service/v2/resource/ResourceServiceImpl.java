@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -170,7 +171,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception {
+    public List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws SQLException {
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
         if (mhaTbl == null) {
             logger.info("mha: {} not exist", mhaName);
@@ -187,7 +188,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws Exception {
+    public List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException {
         List<ResourceView> resultViews = new ArrayList<>();
         List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType());
         if (CollectionUtils.isEmpty(resourceViews)) {
@@ -208,6 +209,25 @@ public class ResourceServiceImpl implements ResourceService {
         return resultViews;
     }
 
+    @Override
+    public List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException {
+        if (CollectionUtils.isEmpty(param.getSelectedIps())) {
+            return autoConfigureResource(param);
+        }
+
+        List<ResourceView> resultViews = new ArrayList<>();
+        List<ResourceView> resourceViews = getMhaAvailableResource(param.getMhaName(), param.getType())
+                .stream()
+                .filter(e -> !param.getSelectedIps().contains(e.getIp()))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(resourceViews)) {
+            return resultViews;
+        }
+
+        setResourceView(resultViews, resourceViews);
+        return resultViews;
+    }
+
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
         if (CollectionUtils.isEmpty(resultViews)) {
             resultViews.add(resourceViews.get(0));
@@ -219,7 +239,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws Exception {
+    private List<ResourceView> getResourceViews(List<Long> dcIds, int type, String tag) throws SQLException {
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByDcAndTag(dcIds, tag, type, BooleanEnum.TRUE.getCode());
         List<Long> resourceIds = resourceTbls.stream().map(ResourceTbl::getId).collect(Collectors.toList());
 

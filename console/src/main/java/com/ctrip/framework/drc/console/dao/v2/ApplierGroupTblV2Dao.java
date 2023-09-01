@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
@@ -37,4 +38,26 @@ public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
         .and().equal(DELETED, deleted, Types.BIGINT);
         return queryOne(sqlBuilder);
     }
+    
+    public Long insertOrReCover(Long mhaReplicationId, String gtidInit) throws SQLException {
+        if (mhaReplicationId == null) {
+            throw new IllegalArgumentException("insertOrReCover ApplierGroupTblV2, mhaReplicationId is null");
+        }
+        ApplierGroupTblV2 aGroup = queryByMhaReplicationId(mhaReplicationId);
+        if (aGroup != null) {
+            if (aGroup.getDeleted() == 1) {
+                aGroup.setDeleted(0);
+                aGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? aGroup.getGtidInit() : gtidInit);
+                update(aGroup);
+            }
+            return aGroup.getId();
+        } else {
+            ApplierGroupTblV2 newGroup = new ApplierGroupTblV2();
+            newGroup.setMhaReplicationId(mhaReplicationId);
+            newGroup.setGtidInit(StringUtils.isBlank(gtidInit) ? null : gtidInit);
+            return insertWithReturnId(newGroup);
+        }
+    }
+    
+    
 }

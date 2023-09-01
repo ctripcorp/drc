@@ -129,7 +129,7 @@ public class QmqDelayMessageConsumer implements DelayMessageConsumer {
                     mhaInfo.getTags(), delayTime, "fx.drc.messenger.delay");
             logger.info("[[monitor=delay,mha={}]] report messenger delay:{} ms", mhaName, delayTime);
 
-            
+
             receiveTimeMap.put(mhaInfo,receiveTime);
         } else {
             logger.info("[[monitor=delay]] discard delay monitor message which is not update");

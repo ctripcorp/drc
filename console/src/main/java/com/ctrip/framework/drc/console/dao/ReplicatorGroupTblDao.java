@@ -50,9 +50,9 @@ public class ReplicatorGroupTblDao  extends AbstractDao<ReplicatorGroupTbl> {
 	}
 
 	//mhaId which replicator fetch binlog
-	public Long upsertIfNotExist (Long mhaId) throws SQLException {
+	public Long upsertIfNotExist(Long mhaId) throws SQLException {
 		if (mhaId == null) {
-			throw new IllegalArgumentException("build sql:  upsertIfNotExist ByMhaIds, but mhaId is null.");
+			throw new IllegalArgumentException("insertOrReCover ReplicatorGroupTbl, mhaId is null");
 		}
 		SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll().equal("mha_id", mhaId, Types.BIGINT, false);

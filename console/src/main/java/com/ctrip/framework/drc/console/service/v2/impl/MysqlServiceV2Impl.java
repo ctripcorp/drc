@@ -62,6 +62,27 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/lastUpdateTime")
+    public Long getDelayUpdateTime(String srcMha, String mha) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.warn("[[tag=delayQuery]] delayQuery from mha {},machine not exist", mha);
+            return null;
+        }
+        return MySqlUtils.getDelayUpdateTime(endpoint, srcMha);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/currentTime")
+    public Long getCurrentTime(String mha) {
+        Endpoint mySqlEndpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (mySqlEndpoint == null) {
+            throw new IllegalArgumentException("no machine find for" + mha);
+        }
+        return MySqlUtils.getCurrentTime(mySqlEndpoint);
+    }
+
+    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/preCheckMySqlConfig")
     public Map<String, Object> preCheckMySqlConfig(String mha) {
         Map<String, Object> res = new HashMap<>();
@@ -72,7 +93,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         res.put("binlogMode", MySqlUtils.checkBinlogMode(endpoint));
         res.put("binlogFormat", MySqlUtils.checkBinlogFormat(endpoint));
-        res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint));
+        res.put("binlogVersion1", MySqlUtils.checkBinlogVersion(endpoint)); //  todo 5.7 -> 8.0
         res.put("binlogTransactionDependency", MySqlUtils.checkBinlogTransactionDependency(endpoint));
         res.put("binlogTransactionDependencyHistorySize", MySqlUtils.checkBtdhs(endpoint));
         res.put("gtidMode", MySqlUtils.checkGtidMode(endpoint));

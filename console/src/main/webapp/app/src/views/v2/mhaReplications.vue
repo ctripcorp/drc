@@ -71,7 +71,7 @@
         <br>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
-            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">
+            <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId)">
               查看
             </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
@@ -293,7 +293,7 @@ export default {
               },
               on: {
                 'on-change': () => {
-                  this.switchMonitor(row.dstMha.mame, row.dstMha.monitorSwitch)
+                  this.switchMonitor(row.dstMha.name, row.dstMha.monitorSwitch)
                 }
               },
               nativeOn: {
@@ -448,13 +448,12 @@ export default {
         this.getReplications()
       })
     },
-    checkConfig (row, index) {
-      console.log(row.srcMha.name + '->' + row.dstMha.name)
+    checkConfig (replicationId) {
       this.dataLoading = true
       this.replicationDetail.data = null
       this.axios.get('/api/drc/v2/meta/queryConfig/mhaReplication', {
         params: {
-          replicationId: row.replicationId
+          replicationId: replicationId
         }
       }).then(response => {
         if (response.data.status === 1) {
@@ -463,7 +462,6 @@ export default {
         }
         this.replicationDetail.data = response.data.data
         this.replicationDetail.show = true
-        this.replicationDetail.row = row
       }).catch(message => {
         this.$Message.error('查询异常: ' + message)
       }).finally(() => {
@@ -485,14 +483,61 @@ export default {
       console.log('show modal')
       this.$Modal.success({
         title: '节点拓扑信息',
-        width: '1000',
+        width: '85vw',
         closable: true,
         render: (h) => {
           return h('div', [
-            h('div', '点击可加载关联节点'),
             h(MhaGraph, {
               props: {
-                mhaIdList: [row.srcMha.id, row.dstMha.id]
+                mhaIdList: [row.srcMha.id, row.dstMha.id],
+                mhaNameList: [row.srcMha.name, row.dstMha.name],
+                operations: [
+                  {
+                    text: '查询',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('查询中...')
+                      this.$Modal.remove()
+                      this.srcMha.name = srcName
+                      this.dstMha.name = dstName
+                      this.getReplications()
+                    }
+                  },
+                  {
+                    text: '查看xml详情',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('查询中...')
+                      this.$Modal.remove()
+                      this.checkConfig(replicationId)
+                    }
+                  },
+                  {
+                    text: '跳转修改',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('跳转中...')
+                      this.$Modal.remove()
+                      console.log(srcName, dstName)
+                      this.$forceUpdate()
+                      this.$router.push({
+                        path: '/drcV2',
+                        query: {
+                          step: 3,
+                          srcMhaName: srcName,
+                          dstMhaName: dstName
+                        }
+                      })
+                    }
+                  },
+                  {
+                    text: '延迟(hickwall)',
+                    method: (srcName, dstName, replicationId) => {
+                      this.$Message.info('跳转中...')
+                      this.$Modal.remove()
+                      console.log(srcName, dstName)
+                      this.$forceUpdate()
+                      this.goToHickwallMonitorPage(srcName, dstName)
+                    }
+                  }
+                ]
               }
             })
           ])
@@ -545,6 +590,11 @@ export default {
       } else if (column.key === 'dstMhaName') {
         return [row.dstMha.rowSpan, row.dstMha.colSpan]
       }
+    },
+    goToHickwallMonitorPage (srcName, dstName) {
+      const url = 'http://hickwall.ctripcorp.com/grafanav2/d/vWeGmjFVk/drc-mha?from=now-1h&to=now&var-mha=' + srcName +
+        '&var-auto_gen_other_mha=' + dstName
+      window.open(url, '_blank')
     }
   },
   created () {

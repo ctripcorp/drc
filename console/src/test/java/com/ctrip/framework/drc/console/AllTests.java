@@ -50,6 +50,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaGrayServiceImplTest;
@@ -166,6 +167,8 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         MetaInfoServiceV2ImplTest2.class,
         ResourceMigrateServiceTest.class,
         ResourceServiceTest.class,
+        DbMigrationServiceImplTest.class,
+        DbMigrationServiceTest.class,
 //
         // controller
         MetaControllerV2Test.class,
@@ -252,6 +255,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         //integrationTest
         MigrateServiceIntegrationTest.class,
         DrcDoubleWriteServiceIntegrationTest.class
+
 
 })
 public class AllTests {

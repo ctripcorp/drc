@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
 import com.googlecode.aviator.exception.CompileExpressionErrorException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,6 +146,38 @@ public class MysqlController {
             } else {
                 return ApiResult.getFailInstance("other error see log");
             }
+        }
+    }
+
+    @GetMapping("lastUpdateTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Long> getMhaLastUpdateTime(@RequestParam String srcMha, @RequestParam String mha) {
+        logger.info("getMhaLastUpdateTime: {} for {}", srcMha, mha);
+        try {
+            if (StringUtils.isBlank(srcMha) || StringUtils.isBlank(mha)) {
+                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            }
+            Long time = mysqlServiceV2.getDelayUpdateTime(srcMha.trim(), mha.trim());
+            return ApiResult.getSuccessInstance(time);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaDelay error: %s for %s", srcMha, mha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("currentTime")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Long> getMhaCurrentTime(@RequestParam String mha) {
+        logger.info("getMhaLastUpdateTime: {}", mha);
+        try {
+            if (StringUtils.isBlank(mha)) {
+                return ApiResult.getFailInstance(null, "mha name should not be blank!");
+            }
+            Long time = mysqlServiceV2.getCurrentTime(mha.trim());
+            return ApiResult.getSuccessInstance(time);
+        } catch (Throwable e) {
+            logger.error(String.format("getMhaLastUpdateTime error: %s", mha), e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

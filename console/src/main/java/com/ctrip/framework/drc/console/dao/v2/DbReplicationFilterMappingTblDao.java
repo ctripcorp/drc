@@ -5,11 +5,13 @@ import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingT
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import com.google.common.collect.Lists;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Created by dengquanliang
@@ -34,6 +36,9 @@ public class DbReplicationFilterMappingTblDao extends AbstractDao<DbReplicationF
     }
 
     public List<DbReplicationFilterMappingTbl> queryByDbReplicationIds(List<Long> dbReplicationIds) throws SQLException {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            return Lists.newArrayList();
+        }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(DB_REPLICATION_ID, dbReplicationIds, Types.BIGINT).and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return client.query(sqlBuilder, new DalHints());
