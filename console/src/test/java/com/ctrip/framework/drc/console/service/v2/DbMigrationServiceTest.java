@@ -1,20 +1,17 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.alibaba.fastjson.JSON;
-import com.ctrip.framework.drc.console.dao.DbTblDao;
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerTblDao;
+import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
 import com.ctrip.framework.drc.console.dao.v2.*;
 import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
-import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
 import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.enums.MigrationStatusEnum;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImpl;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaReplicationServiceV2Impl;
+import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dc;
@@ -75,6 +72,10 @@ public class DbMigrationServiceTest {
     private MhaReplicationServiceV2Impl mhaReplicationServiceV2;
     @Mock
     private MessengerServiceV2 messengerServiceV2;
+    @Mock
+    private ResourceTblDao resourceTblDao;
+    @Mock
+    private ResourceService resourceService;
 
     @Before
     public void setUp() throws Exception {
