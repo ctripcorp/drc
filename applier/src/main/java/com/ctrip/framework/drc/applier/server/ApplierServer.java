@@ -67,8 +67,10 @@ public class ApplierServer extends AbstractLink {
     public ApplierDumpEventActivity getDumpEventActivity() {
         if (activities.get("ApplierDumpEventActivity") != null) {
             return (ApplierDumpEventActivity) activities.get("ApplierDumpEventActivity");
-        } else {
+        } else if (activities.get("TransactionTableApplierDumpEventActivity") != null) {
             return ((TransactionTableApplierDumpEventActivity) activities.get("TransactionTableApplierDumpEventActivity"));
+        } else {
+            return ((MqApplierDumpEventActivity) activities.get("MqApplierDumpEventActivity"));
         }
     }
 }
