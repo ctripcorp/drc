@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.manager.ha.cluster.impl;
 
 import com.ctrip.framework.drc.core.entity.*;
 import com.ctrip.framework.drc.core.server.utils.MetaClone;
+import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.RegionCache;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
@@ -41,6 +42,9 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
 
     @Mock
     private InstanceActiveElectAlgorithmManager instanceActiveElectAlgorithmManager;
+
+    @Mock
+    protected ClusterManagerConfig clusterManagerConfig;
 
 
     @Before
@@ -128,6 +132,8 @@ public class MessengerInstanceManagerTest extends AbstractDbClusterTest {
         comparator.compare();
 
         Mockito.when(currentMetaManager.getActiveMessenger(Mockito.anyString())).thenReturn(messenger);
+        Mockito.when(clusterManagerConfig.checkApplierProperty()).thenReturn(true);
+
         messengerInstanceManager.handleClusterModified(comparator);
 
         Mockito.verify(instanceStateController, times(1)).messengerPropertyChange(clusterId, messenger2);

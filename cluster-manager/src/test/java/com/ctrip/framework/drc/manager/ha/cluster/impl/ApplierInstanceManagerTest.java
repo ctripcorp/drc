@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.entity.Applier;
 import com.ctrip.framework.drc.core.entity.Db;
 import com.ctrip.framework.drc.core.entity.DbCluster;
 import com.ctrip.framework.drc.core.entity.Dbs;
+import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.CurrentMetaManager;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import org.junit.Before;
@@ -28,6 +29,9 @@ public class ApplierInstanceManagerTest {
 
     @Mock
     protected CurrentMetaManager currentMetaManager;
+
+    @Mock
+    protected ClusterManagerConfig clusterManagerConfig;
 
     @Before
     public void setUp() {
@@ -63,6 +67,8 @@ public class ApplierInstanceManagerTest {
         comparator.compare();
 
         Mockito.when(currentMetaManager.getActiveApplier(Mockito.anyString(), Mockito.anyString())).thenReturn(applier);
+        Mockito.when(clusterManagerConfig.checkApplierProperty()).thenReturn(true);
+
         applierInstanceManager.handleClusterModified(comparator);
 
         Mockito.verify(instanceStateController, times(1)).applierPropertyChange(clusterId, applier2);
