@@ -126,7 +126,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     public boolean abandonTask(Long taskId) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
         if (migrationTaskTbl == null) {
-            throw new ConsoleException("task not exist");
+            throw ConsoleExceptionUtils.message("task not exist");
         }
         migrationTaskTbl.setDeleted(BooleanEnum.TRUE.getCode());
         migrationTaskTblDao.update(migrationTaskTbl);
@@ -147,7 +147,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<String> migrateDbs = dbMigrationRequest.getDbs();
         List<DbTbl> migrateDbTbls = dbTblDao.queryByDbNames(migrateDbs);
         if (migrateDbs.size() != migrateDbTbls.size()) {
-            throw new ConsoleException("unknown db in drc, request size: " + migrateDbs.size() + " match size: " + migrateDbTbls.size());
+            throw ConsoleExceptionUtils.message("unknown db in drc, request size: " + migrateDbs.size() + " match size: " + migrateDbTbls.size());
         }
 
         // find migrateDbs drcRelated and record otherMhaTblsInDrcReplication
@@ -192,7 +192,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             if (!CollectionUtils.isEmpty(anotherMhaIdsInNew)) {
                 List<MhaTblV2> commonMhas = mhaTblV2Dao.queryByPk(Lists.newArrayList(anotherMhaIdsInNew));
                 errorInfo.append(commonMhas.stream().map(MhaTblV2::getMhaName).collect(Collectors.joining(",")));
-                throw new ConsoleException("newMha and oldMha have common mha in Replication, please check! commomMhas: " + errorInfo.toString());
+                throw ConsoleExceptionUtils.message("newMha and oldMha have common mha in Replication, please check! commomMhas: " + errorInfo.toString());
             }
         }
 
@@ -217,7 +217,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         String status = migrationTaskTbl.getStatus();
         String dbs = migrationTaskTbl.getDbs();
         if (!MigrationStatusEnum.INIT.getStatus().equals(status)) {
-            throw new ConsoleException("task status is not INIT, can not exStart! taskId: " + taskId);
+            throw ConsoleExceptionUtils.message("task status is not INIT, can not exStart! taskId: " + taskId);
         }
         MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(oldMha);
         MhaTblV2 newMhaTbl = mhaTblV2Dao.queryByMhaName(newMha);
@@ -235,7 +235,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                     entry -> "config:" + entry.getKey() +
                     ",oldMha:" + entry.getValue().leftValue() +
                     ",newMha:" + entry.getValue().rightValue()).collect(Collectors.joining(";"));
-            throw new ConsoleException("MhaConfigs not equals!" + diff);
+            throw ConsoleExceptionUtils.message("MhaConfigs not equals!" + diff);
         }
 
         ReplicationInfo replicationInfoInOldMha = getReplicationInfoInOldMha(migrateDbTbls, oldMhaTbl);
@@ -277,7 +277,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     public boolean startDbMigrationTask(Long taskId) throws SQLException {
         MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryByPk(taskId);
         if (!MigrationStatusEnum.PRE_STARTED.getStatus().equals(migrationTaskTbl.getStatus())) { // migrationTaskManager
-            throw new ConsoleException("task status is not exStarted, can not start! taskId: " + taskId);
+            throw ConsoleExceptionUtils.message("task status is not exStarted, can not start! taskId: " + taskId);
         }
 
         MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(migrationTaskTbl.getOldMha());
@@ -342,11 +342,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private void checkRepeatedMigrationTask(DbMigrationParam dbMigrationRequest) throws SQLException{
+        //todo db校验
         List<MigrationTaskTbl> migrationTaskTbls = migrationTaskTblDao.queryByOldMha(dbMigrationRequest.getOldMha().getName());
         if (!CollectionUtils.isEmpty(migrationTaskTbls)) {
             List<Long> taskIdsInProcessing = migrationTaskTbls.stream().filter(this::taskInProcessing).map(MigrationTaskTbl::getId).collect(Collectors.toList());
             if (!CollectionUtils.isEmpty(taskIdsInProcessing)) {
-                throw new ConsoleException("oldMha has migration task in processing, "
+                throw ConsoleExceptionUtils.message("oldMha has migration task in processing, "
                         + "can not start new migration task! taskIdsInProcessing: "
                         + JsonUtils.toJson(taskIdsInProcessing));
             }
@@ -644,7 +645,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 deleteMhaReplication(mhaId, relateMhaId, deleted);
             } else if (dbReplicationDeleted) {
                 logger.info("dbReplication exist, handOff applier, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
-                handOffApplier(mhaId, relateMhaId);
+                switchApplier(mhaId, relateMhaId);
             }
 
             if (CollectionUtils.isEmpty(oppositeExistDbReplications)) {
@@ -652,7 +653,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 deleteMhaReplication(relateMhaId, mhaId, deleted);
             } else if (oppositeDbReplicationDeleted) {
                 logger.info("dbReplication exist, handOff applier, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
-                handOffApplier(relateMhaId, mhaId);
+                switchApplier(relateMhaId, mhaId);
             }
         }
 
@@ -673,7 +674,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private void handOffApplier(long srcMhaId, long dstMhaId) throws Exception {
+    private void switchApplier(long srcMhaId, long dstMhaId) throws Exception {
         MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaId, dstMhaId, BooleanEnum.FALSE.getCode());
         if (mhaReplicationTbl == null) {
             logger.info("mhaReplication from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
@@ -810,7 +811,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<MhaDbMappingTbl> dstMhaDbMappings = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(dstMhaId)).collect(Collectors.toList());
         List<DbReplicationTbl> dbReplicationTbls = getExistDbReplications(srcMhaDbMappings, dstMhaDbMappings);
         if (CollectionUtils.isEmpty(dbReplicationTbls)) {
-            logger.info("dbReplicationTbl from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
+            logger.warn("dbReplicationTbl from srcMhaId: {} to dstMhaId: {} not exist", srcMhaId, dstMhaId);
             return false;
         }
 
@@ -987,20 +988,20 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
             if (mhaReplicationDelays.size() != all.size()) {
-                throw new ConsoleException("query delay fail[1]");
+                throw ConsoleExceptionUtils.message("query delay fail[1]");
             }
             if (mhaReplicationDelays.stream().anyMatch(e -> e.getDelay() == null)) {
-                throw new ConsoleException("query delay fail[2]");
+                throw ConsoleExceptionUtils.message("query delay fail[2]");
             }
             // 2. get mha messenger delay info
             List<MhaMessengerDto> messengerDtoList = messengerServiceV2.getRelatedMhaMessenger(Lists.newArrayList(oldMha, newMha), dbNames);
             List<MhaDelayInfoDto> messengerDelays = messengerServiceV2.getMhaMessengerDelays(messengerDtoList);
             logger.info("messenger oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, messengerDelays);
             if (messengerDelays.size() != messengerDtoList.size()) {
-                throw new ConsoleException("query delay fail[3]");
+                throw ConsoleExceptionUtils.message("query delay fail[3]");
             }
             if (messengerDelays.stream().anyMatch(e -> e.getDelay() == null)) {
-                throw new ConsoleException("query delay fail[4]");
+                throw ConsoleExceptionUtils.message("query delay fail[4]");
             }
 
             // 3. ready condition: all related mha delay < 10s (given by DBA)
