@@ -200,21 +200,55 @@ export default {
         {
           title: '状态',
           key: 'status',
-          width: 150,
+          width: 200,
           align: 'center',
           render: (h, params) => {
             const row = params.row
-            const color = 'blue'
             const text = row.status
-            return h('Tag', {
-              props: {
-                color: color
-              }
-            }, text)
+            let needRefreshButton = false
+            let color
+            if (['Starting', 'ReadyToSwitchDal'].includes(text)) {
+              needRefreshButton = true
+            }
+            switch (row.status) {
+              case 'Success':
+                color = 'success'
+                break
+              case 'Fail':
+                color = 'error'
+                break
+              default:
+                color = 'blue'
+                break
+            }
+            row.dataLoading = false
+            return h('div', [
+              h('Tag', {
+                props: {
+                  color: color
+                }
+              }, text),
+              needRefreshButton && h('Button', {
+                on: {
+                  click: async () => {
+                    this.dataLoading = true
+                    await this.getTaskStatus(row, null)
+                    this.dataLoading = false
+                  }
+                },
+                props: {
+                  loading: this.dataLoading,
+                  size: 'small',
+                  shape: 'circle',
+                  type: 'default',
+                  icon: 'md-refresh'
+                }
+              })
+            ])
           }
         },
         {
-          title: 'ID',
+          title: '任务ID',
           width: 80,
           key: 'id',
           render: (h, params) => {
@@ -404,6 +438,32 @@ export default {
       this.replicationDetail.row = row
       this.getMhaReplicationDetail(row)
       this.getMhaMessengerDetail(row)
+    },
+    async getTaskStatus (row, index) {
+      await this.axios.get('/api/drc/v2/migration/status', {
+        params: {
+          taskId: row.id
+        }
+      }).then(response => {
+        if (response.data.status === 1) {
+          this.$Message.warning('查询异常: ' + response.data.message)
+          return
+        }
+        const newStatus = response.data.data
+        const oldStatus = row.status
+        if (oldStatus === newStatus) {
+          this.$Message.success('状态不变')
+        } else {
+          row.status = newStatus
+          this.$Message.info({
+            content: '刷新成功：' + oldStatus + '->' + newStatus,
+            duration: 10
+          })
+        }
+      }).catch(message => {
+        this.$Message.error('查询异常: ' + message)
+      }).finally(() => {
+      })
     }
   },
   created () {
