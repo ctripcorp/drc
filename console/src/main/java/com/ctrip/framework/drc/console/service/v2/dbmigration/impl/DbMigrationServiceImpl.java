@@ -669,7 +669,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
                 deleteMhaReplication(mhaId, relateMhaId, deleted);
             } else if (dbReplicationDeleted) {
-                logger.info("dbReplication exist, handOff applier, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
+                logger.info("dbReplication exist, switch applier, srcMhaId: {}, dstMhaId: {}", mhaId, relateMhaId);
                 switchApplier(mhaId, relateMhaId);
             }
 
@@ -677,7 +677,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 logger.info("dbReplication is empty, delete mhaReplication, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
                 deleteMhaReplication(relateMhaId, mhaId, deleted);
             } else if (oppositeDbReplicationDeleted) {
-                logger.info("dbReplication exist, handOff applier, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
+                logger.info("dbReplication exist, switch applier, srcMhaId: {}, dstMhaId: {}", relateMhaId, mhaId);
                 switchApplier(relateMhaId, mhaId);
             }
         }
@@ -718,15 +718,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         MhaTblV2 dstMha = mhaTblV2Dao.queryById(dstMhaId);
         List<Long> resourceIds = applierTblV2s.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
-        List<String> ips = resourceTblDao.queryByIds(resourceIds).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
-        ResourceSelectParam selectParam = new ResourceSelectParam();
-        selectParam.setType(ModuleEnum.APPLIER.getCode());
-        selectParam.setMhaName(dstMha.getMhaName());
-        selectParam.setSelectedIps(ips);
-        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
+        List<ResourceView> resourceViews = autoSwitchAppliers(resourceIds, dstMha.getMhaName());
         if (resourceViews.size() != applierTblV2s.size()) {
-            logger.warn("handOffApplier fail, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
-            DefaultEventMonitorHolder.getInstance().logEvent("handOffApplierFail", String.valueOf(mhaReplicationTbl.getId()));
+            logger.warn("switchApplier fail, srcMhaId: {}, dstMhaId: {}", srcMhaId, dstMhaId);
+            DefaultEventMonitorHolder.getInstance().logEvent("switchApplierFail", String.valueOf(mhaReplicationTbl.getId()));
         } else {
             applierTblV2s.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
             logger.info("delete applierTblV2s: {}", applierTblV2s);
@@ -734,6 +729,43 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
             insertNewAppliers(resourceViews, applierGroupTblV2.getId());
         }
+    }
+
+    private void switchMessenger(long mhaId) throws Exception {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (messengerGroupTbl == null) {
+            logger.info("deleteMessengers messengerGroupTbl not exist, mhaId: {}", mhaId);
+            return;
+        }
+
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return;
+        }
+
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryById(mhaId);
+        List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+        List<ResourceView> resourceViews = autoSwitchAppliers(resourceIds, mhaTbl.getMhaName());
+        if (resourceViews.size() != messengerTbls.size()) {
+            logger.warn("switchMessenger fail, mhaId: {}", mhaId);
+            DefaultEventMonitorHolder.getInstance().logEvent("switchMessengerFail", mhaTbl.getMhaName());
+        } else {
+            messengerTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+            logger.info("delete messengerTbls: {}", messengerTbls);
+            messengerTblDao.update(messengerTbls);
+
+            insertNewMessengers(resourceViews, messengerGroupTbl.getId());
+        }
+    }
+
+    private List<ResourceView> autoSwitchAppliers(List<Long> resourceIds, String mhaName) throws Exception{
+        List<String> ips = resourceTblDao.queryByIds(resourceIds).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+        ResourceSelectParam selectParam = new ResourceSelectParam();
+        selectParam.setType(ModuleEnum.APPLIER.getCode());
+        selectParam.setMhaName(mhaName);
+        selectParam.setSelectedIps(ips);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
+        return resourceViews;
     }
 
     private void insertNewAppliers(List<ResourceView> resourceViews, long applierGroupId) throws Exception {
@@ -749,6 +781,20 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
         applierTblV2Dao.batchInsert(insertAppliers);
         logger.info("insertNewAppliers success, applierGroupId: {}", applierGroupId);
+    }
+
+    private void insertNewMessengers(List<ResourceView> resourceViews, long messengerGroupId) throws Exception {
+        List<MessengerTbl> insertMessengers = Lists.newArrayList();
+        for (ResourceView resourceView : resourceViews) {
+            MessengerTbl messenger = new MessengerTbl();
+            messenger.setMessengerGroupId(messengerGroupId);
+            messenger.setResourceId(resourceView.getResourceId());
+            messenger.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+            messenger.setDeleted(BooleanEnum.FALSE.getCode());
+            insertMessengers.add(messenger);
+        }
+        messengerTblDao.batchInsert(insertMessengers);
+        logger.info("insertNewMessengers success, messengerGroupId: {}", messengerGroupId);
     }
 
     private boolean existMhaReplication(long mhaId) throws Exception {
@@ -783,11 +829,14 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private void deleteMqReplication(long mhaId, List<MhaDbMappingTbl> mhaDbMappingTbls, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
-        deleteMqDbReplications(mhaId, relatedMhaDbMappingTbls);
+        boolean deleted = deleteMqDbReplications(mhaId, relatedMhaDbMappingTbls);
         List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(mhaDbMappingTbls);
         if (CollectionUtils.isEmpty(mqDbReplications)) {
             logger.info("oldMqDbReplications are empty, delete messenger mhaId: {}", mhaId);
             deleteMessengers(mhaId);
+        } else if (deleted) {
+            logger.info("switch messenger: {}", mhaId);
+            switchMessenger(mhaId);
         }
     }
 
@@ -809,12 +858,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private void deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
+    private boolean deleteMqDbReplications(long mhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {
         List<MhaDbMappingTbl> srcMhaDbMappings = relatedMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(mhaId)).collect(Collectors.toList());
         List<DbReplicationTbl> mqDbReplications = getExistMqDbReplications(srcMhaDbMappings);
         if (CollectionUtils.isEmpty(mqDbReplications)) {
-            logger.info("mqDbReplicationTbl from mhaId: {} not exist", mhaId);
-            return;
+            logger.warn("mqDbReplicationTbl from mhaId: {} not exist", mhaId);
+            return false;
         }
         List<Long> mqDbReplicationIds = mqDbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
         mqDbReplications.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
@@ -828,6 +877,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             logger.info("delete dbFilterMappingIds: {}", dbFilterMappingIds);
             dbReplicationFilterMappingTblDao.update(dbReplicationFilterMappingTbls);
         }
+        return true;
     }
 
     private boolean deleteDbReplications(long srcMhaId, long dstMhaId, List<MhaDbMappingTbl> relatedMhaDbMappingTbls) throws Exception {

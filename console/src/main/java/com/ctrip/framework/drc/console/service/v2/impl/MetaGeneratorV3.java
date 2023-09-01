@@ -560,6 +560,9 @@ public class MetaGeneratorV3 {
     private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
         MessengerProperties messengerProperties = new MessengerProperties();
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(mhaId);
+        if (mhaDbMappingTbls == null) {
+            logger.error("mha{} mhaDbMappingTbls is null", mhaId);
+        }
         List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
 
