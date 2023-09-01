@@ -102,7 +102,7 @@ public enum META_SERVER_SERVICE {
         public static final String GET_ACTIVE_MYSQL = "/getactivemysql/" + CLUSTER_ID_PATH_VARIABLE + "/";
 
         //console
-        public static final String PATH_CLUSTER_CHANGE = "/clusterchange/" + CLUSTER_ID_PATH_VARIABLE;
+        public static final String PATH_CLUSTER_CHANGE = "/clusterchange/" + CLUSTER_ID_PATH_VARIABLE + "/";
 
         //multi dc
         public static final String PATH_UPSTREAM_CHANGE = "/upstreamchange/" + BACKUP_CLUSTER_ID_PATH_VARIABLE + "/" + CLUSTER_ID_PATH_VARIABLE + "/{ip}/{port}";  //src clusterId, dst clusterId

@@ -61,6 +61,8 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     private AtomicLong metaModifyTime = new AtomicLong(System.currentTimeMillis());
 
+    private long lastRefreshTime;
+
     public DefaultDcCache(ClusterManagerConfig config, SourceProvider sourceProvider, String idc) {
         this.config = config;
         this.sourceProvider = sourceProvider;
@@ -113,6 +115,17 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     }
 
     @Override
+    public void refresh(String clusterId) {
+        if (getCluster(clusterId) != null) {
+            logger.info("refresh for: {}", clusterId);
+            scheduled.schedule(() -> {
+                refresh();
+                lastRefreshTime = System.currentTimeMillis();
+            }, 0, TimeUnit.SECONDS);
+        }
+    }
+
+    @Override
     protected void doStop() throws Exception {
 
         future.cancel(true);
@@ -121,7 +134,16 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     @Override
     public void run() {
+        long currentTime = System.currentTimeMillis();
+        long refreshGapTime = (currentTime - lastRefreshTime) / 1000;
+        if (refreshGapTime > config.getClusterRefreshMilli() / 1000) {
+            refresh();
+        } else {
+            logger.info("[refresh] skip for gap time : {}s, less than {}s", refreshGapTime, config.getClusterRefreshMilli() / 1000);
+        }
+    }
 
+    private void refresh() {
         try {
             if (sourceProvider != null) {
                 long metaLoadTime = System.currentTimeMillis();
@@ -241,24 +263,18 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     }
 
     @Override
-    public void clusterAdded(DbCluster clusterMeta) {
+    public void clusterAdded(String dbCluster) {
 
-        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("add:%s", clusterMeta.getId()));
+        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("add:%s", dbCluster));
 
-        clusterModified(clusterMeta);
+        clusterModified(dbCluster);
     }
 
     @Override
-    public void clusterModified(DbCluster dbCluster) {
+    public void clusterModified(String clusterId) {
+        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("mod:%s", clusterId));
 
-        EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("mod:%s", dbCluster.getId()));
-
-        DbCluster current = dcMetaManager.get().getCluster(dbCluster.getId());
-        dcMetaManager.get().update(dbCluster);
-
-        logger.info("[clusterModified]{}, {}", current, dbCluster);
-        DcComparator dcMetaComparator = DcComparator.buildClusterChanged(current, dbCluster);
-        notifyObservers(dcMetaComparator);
+        refresh(clusterId);
     }
 
     @Override
@@ -266,10 +282,7 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
         EventMonitor.DEFAULT.logEvent(META_CHANGE_TYPE, String.format("del:%s", registryKey));
 
-        DbCluster clusterMeta = dcMetaManager.get().removeCluster(registryKey);
-        logger.info("[clusterDeleted]{}", clusterMeta);
-        DcComparator dcMetaComparator = DcComparator.buildClusterRemoved(clusterMeta);
-        notifyObservers(dcMetaComparator);
+        refresh(registryKey);
     }
 
     @Override

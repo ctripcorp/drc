@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.manager.ha.meta.impl.*;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceManagerTest;
 import com.ctrip.framework.drc.manager.ha.meta.server.impl.DefaultClusterManagerMultiDcServiceTest;
 import com.ctrip.framework.drc.manager.ha.multidc.*;
+import com.ctrip.framework.drc.manager.ha.rest.MultiMetaServerTest;
 import com.ctrip.framework.drc.manager.healthcheck.DefaultMySQLMasterManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.datasource.DataSourceManagerTest;
 import com.ctrip.framework.drc.manager.healthcheck.notifier.ApplierNotifierTest;
@@ -69,6 +70,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
         ConsoleNotifierTest.class,
         DataCenterServiceTest.class,
+        MultiMetaServerTest.class,
 
         // for ha
         ClusterManagerLeaderElectorTest.class,
@@ -108,7 +110,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
         MessengerInstanceElectorManagerTest.class,
         ClusterComparatorTest.class,
         ReplicatorComparatorTest.class,
-        MessengerComparatorTest.class
+        MessengerComparatorTest.class,
+        ApplierInstanceManagerTest.class
 })
 public class AllTests {
 
@@ -190,9 +193,9 @@ public class AllTests {
             wireMockServer.stubFor(put(urlPathMatching("/replicators")).withId(ID_PUT).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));
             wireMockServer.stubFor(post(urlPathMatching("/appliers")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(true)))));
             wireMockServer.stubFor(put(urlPathMatching("/appliers")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(true)))));
-            wireMockServer.stubFor(post(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
-            wireMockServer.stubFor(put(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
-            wireMockServer.stubFor(delete(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
+            wireMockServer.stubFor(post(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc/")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
+            wireMockServer.stubFor(put(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc/")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
+            wireMockServer.stubFor(delete(urlPathMatching("/api/meta/clusterchange/integration-test.fxdrc/")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
             wireMockServer.stubFor(post(urlPathMatching("/api/clustermanager/addslot/1")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
             wireMockServer.stubFor(post(urlPathMatching("/api/clustermanager/deleteslot/1")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc
             wireMockServer.stubFor(post(urlPathMatching("/api/clustermanager/importslot/1")).willReturn(okJson(Codec.DEFAULT.encode(ApiResult.getSuccessInstance(false)))));  //http://127.0.0.1:8080/api/meta/clusterchange/integration-test.fxdrc

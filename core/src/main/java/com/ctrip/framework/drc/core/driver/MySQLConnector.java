@@ -27,4 +27,7 @@ public interface MySQLConnector extends Lifecycle, ModuleName, ConnectionObserva
     ListenableFuture<SimpleObjectPool<NettyClient>> getConnectPool();
 
     boolean autoRead();
+
+    default void close() {
+    }
 }

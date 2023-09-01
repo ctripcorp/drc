@@ -38,6 +38,10 @@ public interface ClusterManagerConfig extends ZkConfig {
 
     boolean getRealtimeMetaInfo();
 
+    boolean checkApplierProperty();
+
+    boolean refreshWhenConsoleInvoke();
+
     Pair<String, Integer> getApplierMaster(String key);
 
     int getWaitforOffsetMilli();
