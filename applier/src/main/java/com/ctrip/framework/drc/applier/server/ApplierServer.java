@@ -16,10 +16,6 @@ import com.ctrip.framework.drc.fetcher.resource.context.LinkContextResource;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import com.ctrip.framework.drc.fetcher.resource.transformer.TransformerContextResource;
 import com.ctrip.framework.drc.fetcher.system.AbstractLink;
-import com.ctrip.framework.drc.fetcher.system.Activity;
-import com.ctrip.framework.drc.fetcher.system.SystemStatus;
-
-import java.util.Map;
 
 /**
  * @Author Slight
@@ -28,24 +24,24 @@ import java.util.Map;
 public class ApplierServer extends AbstractLink {
 
     public void define() throws Exception {
-            source(ApplierDumpEventActivity.class)
-                    .with(ExecutorResource.class)
-                    .with(LinkContextResource.class)
-                    .with(DataSourceResource.class)
-                    .with(LWMResource.class)
-                    .with(ProgressResource.class)
-                    .with(CapacityResource.class)
-                    .with(ListenableDirectMemoryResource.class)
-                    .with(TransformerContextResource.class)
-                    .with(MetricsActivity.class)
-                    .with(ReportConflictActivity.class)
-                    .with(LoadEventActivity.class)
-                    .link(InvolveActivity.class)
-                    .link(ApplierGroupActivity.class)
-                    .link(DispatchActivity.class)
-                    .link(ApplyActivity.class, 100)
-                    .link(CommitActivity.class);
-            check();
+        source(ApplierDumpEventActivity.class)
+                .with(ExecutorResource.class)
+                .with(LinkContextResource.class)
+                .with(DataSourceResource.class)
+                .with(LWMResource.class)
+                .with(ProgressResource.class)
+                .with(CapacityResource.class)
+                .with(ListenableDirectMemoryResource.class)
+                .with(TransformerContextResource.class)
+                .with(MetricsActivity.class)
+                .with(ReportConflictActivity.class)
+                .with(LoadEventActivity.class)
+                .link(InvolveActivity.class)
+                .link(ApplierGroupActivity.class)
+                .link(DispatchActivity.class)
+                .link(ApplyActivity.class, 100)
+                .link(CommitActivity.class);
+        check();
     }
 
     public long getLWM() {
@@ -66,5 +62,15 @@ public class ApplierServer extends AbstractLink {
 
     public MqPositionResource getMqPositionResource() {
         return ((MqPositionResource) resources.get("MqPosition"));
+    }
+
+    public ApplierDumpEventActivity getDumpEventActivity() {
+        if (activities.get("ApplierDumpEventActivity") != null) {
+            return (ApplierDumpEventActivity) activities.get("ApplierDumpEventActivity");
+        } else if (activities.get("TransactionTableApplierDumpEventActivity") != null) {
+            return ((TransactionTableApplierDumpEventActivity) activities.get("TransactionTableApplierDumpEventActivity"));
+        } else {
+            return ((MqApplierDumpEventActivity) activities.get("MqApplierDumpEventActivity"));
+        }
     }
 }
