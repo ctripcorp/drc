@@ -111,13 +111,16 @@ public class DbMigrationController {
     
 
     @GetMapping("status")
+    @SuppressWarnings("unchecked")
     public ApiResult<String> getTaskStatus(@RequestParam(name = "taskId") Long taskId) {
         try {
-            String status = dbMigrationService.getAndUpdateTaskStatus(taskId);
+            Pair<String, String> statusAndTips = dbMigrationService.getAndUpdateTaskStatus(taskId);
+            String tip = statusAndTips.getLeft();
+            String status = statusAndTips.getRight();
             if (StringUtils.isEmpty(status)) {
                 return ApiResult.getFailInstance(null, "task not exist: " + taskId);
             }
-            return ApiResult.getSuccessInstance(status);
+            return StringUtils.isEmpty(tip) ? ApiResult.getSuccessInstance(status) : ApiResult.getSuccessInstance(status, tip);
         } catch (Throwable e) {
             logger.error("getTaskStatus", e);
             return ApiResult.getFailInstance(null, e.getMessage());

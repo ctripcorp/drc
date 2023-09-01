@@ -12,6 +12,9 @@ public class MhaDelayInfoDto implements Serializable {
 
     @Override
     public String toString() {
+        if (dstMha == null) {
+            return String.format("%s: %dms", srcMha, this.getDelay());
+        }
         return String.format("%s->%s: %dms", srcMha, dstMha, this.getDelay());
     }
 
