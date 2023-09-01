@@ -50,10 +50,11 @@ public class RemoteClusterManager extends AbstractRemoteClusterManager implement
     public void clusterAdded(String dcId, String clusterId, ForwardInfo forwardInfo, String operator) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
         logger.info("[clusterAdded][forward]{},{}--> {}", clusterId, forwardInfo, this);
 
         HttpEntity<DbCluster> entity = new HttpEntity<>(null, headers);
-        String uri = appendDcIdAndOperator(changeClusterPath, dcId, operator);
         restTemplate.exchange(appendDcIdAndOperator(changeClusterPath, dcId, operator), HttpMethod.POST, entity, String.class, clusterId);
 
     }
@@ -75,6 +76,8 @@ public class RemoteClusterManager extends AbstractRemoteClusterManager implement
     public void clusterDeleted(String clusterId, ForwardInfo forwardInfo, String operator) {
 
         HttpHeaders headers = checkCircularAndGetHttpHeaders(forwardInfo, META_SERVER_SERVICE.CLUSTER_CHANGE.getForwardType());
+        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON_UTF8));
         logger.info("[clusterDeleted][forward]{},{} --> {}", clusterId, forwardInfo, this);
 
         HttpEntity<DbCluster> entity = new HttpEntity<>(headers);

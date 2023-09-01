@@ -61,6 +61,8 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     private AtomicLong metaModifyTime = new AtomicLong(System.currentTimeMillis());
 
+    private long lastRefreshTime;
+
     public DefaultDcCache(ClusterManagerConfig config, SourceProvider sourceProvider, String idc) {
         this.config = config;
         this.sourceProvider = sourceProvider;
@@ -116,7 +118,10 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     public void refresh(String clusterId) {
         if (getCluster(clusterId) != null) {
             logger.info("refresh for: {}", clusterId);
-            scheduled.schedule(this, 0, TimeUnit.SECONDS);
+            scheduled.schedule(() -> {
+                refresh();
+                lastRefreshTime = System.currentTimeMillis();
+            }, 0, TimeUnit.SECONDS);
         }
     }
 
@@ -129,7 +134,16 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
 
     @Override
     public void run() {
+        long currentTime = System.currentTimeMillis();
+        long refreshGapTime = (currentTime - lastRefreshTime) / 1000;
+        if (refreshGapTime > config.getClusterRefreshMilli()) {
+            refresh();
+        } else {
+            logger.info("[refresh] skip for gap time : {}s, less than {}s", refreshGapTime, config.getClusterRefreshMilli());
+        }
+    }
 
+    private void refresh() {
         try {
             if (sourceProvider != null) {
                 long metaLoadTime = System.currentTimeMillis();

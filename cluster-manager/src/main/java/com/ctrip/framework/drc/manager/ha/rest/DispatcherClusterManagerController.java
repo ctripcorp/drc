@@ -5,8 +5,10 @@ import com.ctrip.framework.drc.core.entity.Replicator;
 import com.ctrip.framework.drc.manager.ha.cluster.ClusterManager;
 import com.ctrip.framework.drc.manager.ha.cluster.META_SERVER_SERVICE;
 import com.ctrip.framework.drc.manager.ha.cluster.impl.RemoteClusterManager;
+import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.ctrip.xpipe.spring.AbstractSpringConfigContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
@@ -26,11 +28,20 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
     @Resource(name = AbstractSpringConfigContext.GLOBAL_EXECUTOR)
     private ExecutorService executors;
 
+    @Autowired
+    private ClusterManagerConfig clusterManagerConfig;
+
+
     @RequestMapping(path = META_SERVER_SERVICE.PATH.PATH_CLUSTER_CHANGE, method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public void clusterAdded(@PathVariable String clusterId, @RequestParam String dcId, @RequestParam String operator, @RequestBody(required = false) DbCluster clusterMeta,
                              @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
         logger.info("[clusterchange] add for clusterId: {}, dcId: {}, forward: {}, operator: {}", clusterId, dcId, forwardInfo, operator);
+        if (!clusterManagerConfig.refreshWhenConsoleInvoke()) {
+            logger.info("[clusterchange] add for clusterId: {} ignore", clusterId);
+            return;
+        }
+
         clusterManager.clusterAdded(dcId, clusterId, forwardInfo.clone(), operator);
     }
 
@@ -39,6 +50,11 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
                                 @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
         logger.info("[clusterchange] update for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
+        if (!clusterManagerConfig.refreshWhenConsoleInvoke()) {
+            logger.info("[clusterchange] update for clusterId: {} ignore", clusterId);
+            return;
+        }
+
         clusterManager.clusterModified(clusterId, forwardInfo.clone(), operator);
     }
 
@@ -47,6 +63,11 @@ public class DispatcherClusterManagerController extends AbstractDispatcherCluste
                                @ModelAttribute ForwardInfo forwardInfo, @ModelAttribute(MODEL_META_SERVER) ClusterManager clusterManager) {
 
         logger.info("[clusterchange] delete for clusterId: {}, forward: {}, operator: {}", clusterId, forwardInfo, operator);
+        if (!clusterManagerConfig.refreshWhenConsoleInvoke()) {
+            logger.info("[clusterchange] delete for clusterId: {} ignore", clusterId);
+            return;
+        }
+
         clusterManager.clusterDeleted(clusterId, forwardInfo.clone(), operator);
     }
 

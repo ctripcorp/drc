@@ -5,10 +5,12 @@ import com.ctrip.framework.drc.core.entity.Messenger;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparator;
 import com.ctrip.framework.drc.core.meta.comparator.MetaComparatorVisitor;
 import com.ctrip.framework.drc.core.server.config.RegistryKey;
+import com.ctrip.framework.drc.manager.ha.config.ClusterManagerConfig;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.ClusterComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerComparator;
 import com.ctrip.framework.drc.manager.ha.meta.comparator.MessengerPropertyComparator;
 import com.ctrip.xpipe.api.lifecycle.TopElement;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,6 +23,9 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DRC_MQ;
  */
 @Component
 public class MessengerInstanceManager extends AbstractInstanceManager implements TopElement {
+
+    @Autowired
+    private ClusterManagerConfig clusterManagerConfig;
 
     @Override
     protected void handleClusterModified(ClusterComparator comparator) {
@@ -81,6 +86,11 @@ public class MessengerInstanceManager extends AbstractInstanceManager implements
 
         @Override
         public void visitModified(@SuppressWarnings("rawtypes") MetaComparator comparator) {
+            if (!clusterManagerConfig.checkApplierProperty()) {
+                logger.info("[visitModified][messengerPropertyChange] ignore ");
+                return;
+            }
+
             MessengerPropertyComparator propertyComparator = (MessengerPropertyComparator) comparator;
             Messenger current = (Messenger) propertyComparator.getCurrent();
             Messenger future = (Messenger) propertyComparator.getFuture();
