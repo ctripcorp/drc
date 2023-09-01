@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.dbmigration.impl;
 import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_DB;
 import static com.ctrip.framework.drc.console.enums.ReplicationTypeEnum.DB_TO_MQ;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.MachineTblDao;
@@ -98,6 +99,9 @@ public class DbMigrationServiceImplTest {
     private MysqlServiceV2 mysqlServiceV2;
     @Mock
     private RegionConfig regionConfig;
+    @Mock
+    private DefaultConsoleConfig consoleConfig;
+
 
     // init tblEntity  mhaTbls & mhaReplicationTbls & dbTbls & mhaDbMappingTbls & dbReplicationTbls & filterMapping
     MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L,"mha1",1L);
@@ -173,6 +177,7 @@ public class DbMigrationServiceImplTest {
     @Test
     public void testExStartDbMigrationTask() throws Exception {
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
+        Mockito.when(consoleConfig.getConfgiCheckSwitch()).thenReturn(true);
         
         try {
             migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());

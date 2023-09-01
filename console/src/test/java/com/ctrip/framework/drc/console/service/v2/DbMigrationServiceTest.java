@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DbTblDao;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.MessengerGroupTblDao;

@@ -57,14 +57,14 @@ public class DbMigrationController {
         }
     }
 
-    @PutMapping("check")
+    @PutMapping("checkAndCreateTask")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
             Pair<String, Long> tipsAndTaskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
-                return ApiResult.getInstance(tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
+                return ApiResult.getInstance("taskInit success" + tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
             }
         } catch (SQLException e) {
             logger.error("sql error in dbMigrationCheckAndInit", e);

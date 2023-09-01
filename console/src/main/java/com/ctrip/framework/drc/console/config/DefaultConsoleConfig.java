@@ -477,4 +477,8 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     public String getMetaRealtimeSwitch() {
         return getProperty(META_REALTIME_SWITCH, SWITCH_OFF);
     }
+
+    public boolean getConfgiCheckSwitch() {
+        return getBooleanProperty("config.check.switch", true);
+    }
 }

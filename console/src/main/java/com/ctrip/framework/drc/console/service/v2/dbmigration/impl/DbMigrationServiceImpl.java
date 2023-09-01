@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.dbmigration.impl;
 
 import com.ctrip.framework.drc.console.config.ConsoleConfig;
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.*;
@@ -111,6 +112,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @Autowired
     private ResourceService resourceService;
 
+    @Autowired
+    private DefaultConsoleConfig consoleConfig;
 
     @Autowired
     private MhaReplicationServiceV2 mhaReplicationServiceV2;
@@ -158,7 +161,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         otherMhaTbls.addAll(replicationInfoInOldMha.otherMhaTblsInDest);
 
         if (CollectionUtils.isEmpty(migrateDbTblsDrcRelated)) {
-            return null;
+            logger.info("migrate dbs not related to drc, migrate dbs: {}", migrateDbs);
+            return Pair.of(null,null);
         } else {
             if (migrateDbTblsDrcRelated.size() != migrateDbTbls.size()) {
                 List<DbTbl> dbDrcNotRelated = Lists.newArrayList(migrateDbTbls);
@@ -229,7 +233,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         Map<String, Object> configInNewMha = mysqlServiceV2.preCheckMySqlConfig(newMha);
 
         MapDifference<String, Object> configsDiff = Maps.difference(configInOldMha,configInNewMha);
-        if (!configsDiff.areEqual()) {
+        if (consoleConfig.getConfgiCheckSwitch() && !configsDiff.areEqual()) {
             Map<String, ValueDifference<Object>> valueDiff = configsDiff.entriesDiffering();
             String diff = valueDiff.entrySet().stream().map(
                     entry -> "config:" + entry.getKey() +
@@ -495,14 +499,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private void initDbReplicationsAndConfigsTbls(MhaTblV2 newMhaTbl, Map<Long,MhaDbMappingTbl> dbId2mhaDbMappingMapInNewMha,
             List<Pair<MhaDbMappingTbl,List<DbReplicationTbl>>> dbReplicationTblsInOldMhaPairs,boolean isInSrc) throws SQLException {
         
-        if (!CollectionUtils.isEmpty(dbReplicationTblsInOldMhaPairs)) { // todo if 挪出来
+        if (!CollectionUtils.isEmpty(dbReplicationTblsInOldMhaPairs)) { 
             for (Pair<MhaDbMappingTbl, List<DbReplicationTbl>> dbReplicationTblsInOldMhaPair : dbReplicationTblsInOldMhaPairs) { // every db
                 MhaDbMappingTbl dbMappingTblInOldMha = dbReplicationTblsInOldMhaPair.getLeft();
                 List<DbReplicationTbl> dbReplicationTblsInOldMha = dbReplicationTblsInOldMhaPair.getRight();
                 Long dbId = dbMappingTblInOldMha.getDbId();
                 MhaDbMappingTbl mhaDbMappingTblInNewMha = dbId2mhaDbMappingMapInNewMha.get(dbId);
                 if (mhaDbMappingTblInNewMha == null) {
-                    // todo 异常收集后，统一处理
                     throw ConsoleExceptionUtils.message("dbId:" + dbId + " not in newMha drcMetaDB,please contact drcTeam!");
                 }
 
@@ -516,9 +519,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                     // copy dbReplicationTbl and insert
                     DbReplicationTbl dbReplicationTbl = copyDbReplicationTbl(dbReplicationTblInOldMha,mhaDbMappingTblInNewMha.getId(),isInSrc);
                     Long dbReplicationId = dbReplicationTblDao.insertWithReturnId(dbReplicationTbl);
-
+                    logger.info("[[migration=exStarting,newMha={}]] copyDbReplication:{}", newMhaTbl.getMhaName(),
+                            dbReplicationTbl);
                     // copy DbReplicationFilterMappingTbl and insert
                     DbReplicationFilterMappingTbl dbReplicationFilterMappingTbl = dbReplicaId2FilterMappingMap.get(dbReplicationTblInOldMha.getId());
+                    if (dbReplicationFilterMappingTbl == null) {
+                        continue;
+                    }
                     DbReplicationFilterMappingTbl copyFilter = copyDbReplicationFilterMappingTbl(
                             dbReplicationFilterMappingTbl, dbReplicationId);
                     Long filterMappingId = dbReplicationFilterMappingTblDao.insertWithReturnId(copyFilter);
