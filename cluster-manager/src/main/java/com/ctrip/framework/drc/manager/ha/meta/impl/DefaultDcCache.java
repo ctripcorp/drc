@@ -136,10 +136,10 @@ public class DefaultDcCache extends AbstractLifecycleObservable implements DcCac
     public void run() {
         long currentTime = System.currentTimeMillis();
         long refreshGapTime = (currentTime - lastRefreshTime) / 1000;
-        if (refreshGapTime > config.getClusterRefreshMilli()) {
+        if (refreshGapTime > config.getClusterRefreshMilli() / 1000) {
             refresh();
         } else {
-            logger.info("[refresh] skip for gap time : {}s, less than {}s", refreshGapTime, config.getClusterRefreshMilli());
+            logger.info("[refresh] skip for gap time : {}s, less than {}s", refreshGapTime, config.getClusterRefreshMilli() / 1000);
         }
     }
 
