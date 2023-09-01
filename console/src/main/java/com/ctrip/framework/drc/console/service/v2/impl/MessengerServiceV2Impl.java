@@ -175,7 +175,9 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
 
     @Override
     public List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList) {
-
+        if (CollectionUtils.isEmpty(messengerDtoList)) {
+            return Collections.emptyList();
+        }
         List<Callable<MhaDelayInfoDto>> list = Lists.newArrayList();
         List<String> mhaNames = messengerDtoList.stream().map(e -> e.getSrcMha().getName()).collect(Collectors.toList());
 

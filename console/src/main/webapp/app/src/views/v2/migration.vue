@@ -201,7 +201,7 @@ export default {
           title: '状态',
           key: 'status',
           width: 200,
-          align: 'center',
+          align: 'left',
           render: (h, params) => {
             const row = params.row
             const text = row.status
@@ -354,12 +354,16 @@ export default {
     },
     resetParam () {
       this.queryParam = {}
+      this.current = 1
       this.getMigrationTasks()
     },
     getMigrationTasks () {
       const that = this
 
       const reqParam = this.flattenObj(this.queryParam)
+      reqParam.pageIndex = this.current
+      reqParam.pageSize = this.size
+
       that.dataLoading = true
       that.axios.get('/api/drc/v2/migration/query', { params: reqParam })
         .then(response => {

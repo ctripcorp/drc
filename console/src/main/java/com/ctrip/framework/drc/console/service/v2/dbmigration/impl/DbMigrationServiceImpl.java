@@ -342,18 +342,36 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private void checkRepeatedMigrationTask(DbMigrationParam dbMigrationRequest) throws SQLException{
-        //todo db校验
         List<MigrationTaskTbl> migrationTaskTbls = migrationTaskTblDao.queryByOldMha(dbMigrationRequest.getOldMha().getName());
         if (!CollectionUtils.isEmpty(migrationTaskTbls)) {
-            List<Long> taskIdsInProcessing = migrationTaskTbls.stream().filter(this::taskInProcessing).map(MigrationTaskTbl::getId).collect(Collectors.toList());
-            if (!CollectionUtils.isEmpty(taskIdsInProcessing)) {
-                throw ConsoleExceptionUtils.message("oldMha has migration task in processing, "
-                        + "can not start new migration task! taskIdsInProcessing: "
-                        + JsonUtils.toJson(taskIdsInProcessing));
+            List<Long> repeatedTask = migrationTaskTbls.stream()
+                    .filter(this::taskInProcessing)
+                    .filter(p -> dbRepeated(p,dbMigrationRequest))
+                    .map(MigrationTaskTbl::getId).collect(Collectors.toList());
+            
+            if (!CollectionUtils.isEmpty(repeatedTask)) {
+                throw ConsoleExceptionUtils.message("oldMha has repeatedTask in processing, "
+                        + "can not start new migration task! repeatedTask: "
+                        + JsonUtils.toJson(repeatedTask));
             }
         }
     }
 
+    private boolean dbRepeated(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
+        String dbs = migrationTaskTbl.getDbs();
+        Set<String> dbsInTask = JsonUtils.fromJsonToList(dbs, DbTbl.class).stream().map(DbTbl::getDbName).collect(Collectors.toSet());
+        List<String> dbsInRequest = dbMigrationRequest.getDbs();
+        for (String dbInRequest : dbsInRequest) {
+            if (dbsInTask.contains(dbInRequest)) {
+                logger.info("[[migration=starting,newMha={}]] task:{} dbRepeated!",
+                        dbMigrationRequest.getNewMha().getName(),migrationTaskTbl.getId());
+                return true;
+            }
+        }
+        return false;
+        
+    }
+    
     private boolean taskInProcessing(MigrationTaskTbl migrationTaskTbl) {
         return  MigrationStatusEnum.INIT.getStatus().equals(migrationTaskTbl.getStatus())
                 || MigrationStatusEnum.PRE_STARTING.getStatus().equals(migrationTaskTbl.getStatus())
@@ -991,7 +1009,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public String getAndUpdateTaskStatus(Long taskId) {
+    public Pair<String,String> getAndUpdateTaskStatus(Long taskId) {
         try {
             MigrationTaskTbl migrationTaskTbl = migrationTaskTblDao.queryById(taskId);
             if (migrationTaskTbl == null) {
@@ -1000,7 +1018,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             // not STARTING or READY_TO_SWITCH_DAL status, return
             List<String> statusList = Lists.newArrayList(MigrationStatusEnum.STARTING.getStatus(), MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus());
             if (!statusList.contains(migrationTaskTbl.getStatus())) {
-                return migrationTaskTbl.getStatus();
+                return Pair.of(null, migrationTaskTbl.getStatus());
             }
 
             List<String> dbNames = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class);
@@ -1008,9 +1026,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String newMha = migrationTaskTbl.getNewMha();
 
             // all related mha delay < 10s
-            boolean allReady = this.isRelatedDelaySmall(dbNames, oldMha, newMha);
+            Pair<String, Boolean> res = this.isRelatedDelaySmall(dbNames, oldMha, newMha);
+            String message = res.getLeft();
+            Boolean allReady = res.getRight();
 
-            // TOdo 前端 实时
             String currStatus = migrationTaskTbl.getStatus();
             String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
             boolean needUpdate = !targetStatus.equals(currStatus);
@@ -1018,7 +1037,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 migrationTaskTbl.setStatus(targetStatus);
                 migrationTaskTblDao.update(migrationTaskTbl);
             }
-            return targetStatus;
+            return Pair.of(message, targetStatus);
         } catch (SQLException e) {
             logger.error("queryAndPushToReadyIfPossible error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
@@ -1031,7 +1050,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private boolean isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
+    private Pair<String, Boolean> isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
         // 1. get mha replication delay info
         try {
             List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
@@ -1057,11 +1076,31 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             // 3. ready condition: all related mha delay < 10s (given by DBA)
             List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
-            return CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
+            boolean allReady = CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
+            String message = this.buildMessage(messengerDelays, mhaReplicationNotReadyList);
+            return Pair.of(message, allReady);
         } catch (ConsoleException e) {
             logger.error("isRelatedDelaySmall exception: " + e.getMessage(), e);
-            return false;
+            return Pair.of(e.getMessage(), false);
         }
+    }
+
+    private String buildMessage(List<MhaDelayInfoDto> messengerDelays, List<MhaDelayInfoDto> mhaReplicationNotReadyList) {
+        // build message
+        StringBuilder sb = new StringBuilder();
+        if (!CollectionUtils.isEmpty(mhaReplicationNotReadyList)) {
+            sb.append("drc not ready: ");
+            for (MhaDelayInfoDto delayInfoDto : mhaReplicationNotReadyList) {
+                sb.append(delayInfoDto.toString()).append('\n');
+            }
+        }
+        if (!CollectionUtils.isEmpty(messengerDelays)) {
+            sb.append("drc messenger not ready: \n");
+            for (MhaDelayInfoDto delayInfoDto : mhaReplicationNotReadyList) {
+                sb.append(delayInfoDto.toString()).append('\n');
+            }
+        }
+        return sb.toString();
     }
 
     @Override

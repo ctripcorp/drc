@@ -214,7 +214,7 @@ public class DbMigrationServiceTest {
             tbl.setStatus(value.getStatus());
             Mockito.when(migrationTaskTblDao.queryById(1L)).thenReturn(tbl);
             if (!possibleUpdateStatus.contains(value.getStatus())) {
-                String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+                String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
                 Assert.assertEquals(value.getStatus(), currentStatus);
             }
         }
@@ -237,7 +237,7 @@ public class DbMigrationServiceTest {
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getSmallDelay(mhaReplication));
             Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
             Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
-            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
             Assert.assertEquals(MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus(), currentStatus);
         }
         Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
@@ -260,7 +260,7 @@ public class DbMigrationServiceTest {
             Mockito.when(mhaReplicationServiceV2.getMhaReplicationDelays(Mockito.anyList())).thenReturn(this.getLargeDelay(mhaReplication));
             Mockito.when(messengerServiceV2.getRelatedMhaMessenger(Mockito.anyList(), Mockito.anyList())).thenReturn(Lists.newArrayList());
             Mockito.when(messengerServiceV2.getMhaMessengerDelays(Mockito.anyList())).thenReturn(Lists.newArrayList());
-            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L);
+            String currentStatus = dbMigrateService.getAndUpdateTaskStatus(1L).getRight();
             Assert.assertEquals(MigrationStatusEnum.STARTING.getStatus(), currentStatus);
         }
         Mockito.verify(migrationTaskTblDao, Mockito.times(1)).update(Mockito.any(MigrationTaskTbl.class));
