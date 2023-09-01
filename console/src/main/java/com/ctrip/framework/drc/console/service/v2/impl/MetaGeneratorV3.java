@@ -365,8 +365,8 @@ public class MetaGeneratorV3 {
         if (CollectionUtils.isEmpty(curMhaAppliers)) {
             return;
         }
-        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(srcMhatbl.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(dstMhaTbl.getId());
+        List<MhaDbMappingTbl> srcMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.getOrDefault(srcMhatbl.getId(), Collections.emptyList());
+        List<MhaDbMappingTbl> dstMhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.getOrDefault(dstMhaTbl.getId(), Collections.emptyList());
 
         Set<Long> srcMhaDbMappingIds = srcMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
         Set<Long> dstMhaDbMappingIds = dstMhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toSet());
@@ -560,6 +560,10 @@ public class MetaGeneratorV3 {
     private MessengerProperties getMessengerProperties(Long mhaId) throws SQLException {
         MessengerProperties messengerProperties = new MessengerProperties();
         List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblsByMhaIdMap.get(mhaId);
+        if (CollectionUtils.isEmpty(mhaDbMappingTbls)) {
+            logger.warn("mhaDbMappingTbls is empty, mhaId: {}", mhaId);
+            return messengerProperties;
+        }
         List<Long> dbIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<Long> mhaDbMappingIds = mhaDbMappingTbls.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList());
 
@@ -574,6 +578,9 @@ public class MetaGeneratorV3 {
 
         for (DbReplicationTbl dbReplicationTbl : dbReplicationTbls) {
             List<DbReplicationFilterMappingTbl> dbReplicationFilterMappings = dbReplicationFilterMappingTblsByDbRplicationIdMap.get(dbReplicationTbl.getId());
+            if (CollectionUtils.isEmpty(dbReplicationFilterMappings)) {
+                continue;
+            }
             Long messengerFilterId = dbReplicationFilterMappings.stream()
                     .map(DbReplicationFilterMappingTbl::getMessengerFilterId)
                     .filter(e -> e != null && e > 0L).findFirst().orElse(null);
