@@ -141,7 +141,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     public Pair<String,Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
         // meta info check and init
         checkDbMigrationParam(dbMigrationRequest);
-        checkRepeatedMigrationTask(dbMigrationRequest);
+        List<MigrationTaskTbl> migrationTasks = migrationTaskTblDao.queryByOldMhaDBA(dbMigrationRequest.getOldMha().getName());
+        MigrationTaskTbl sameTask = findSameTask(dbMigrationRequest, migrationTasks);
+        if (sameTask != null) {
+            return Pair.of("Repeated task, status is " + sameTask.getStatus(), sameTask.getId());
+        }
+        checkDbRepeatedMigrationTask(dbMigrationRequest, migrationTasks);
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
         StringBuilder tips = new StringBuilder();
@@ -201,7 +206,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
 
         MigrationTaskTbl migrationTaskTbl = new MigrationTaskTbl();
-        migrationTaskTbl.setDbs(JsonUtils.toJson(dbMigrationRequest.getDbs()));
+        migrationTaskTbl.setDbs(JsonUtils.toJson(dbMigrationRequest.getDbs().stream().map(String::toLowerCase).collect(Collectors.toList())));
         migrationTaskTbl.setOldMha(oldMhaTblV2.getMhaName());
         migrationTaskTbl.setNewMha(newMhaTblV2.getMhaName());
         migrationTaskTbl.setOldMhaDba(dbMigrationRequest.getOldMha().getName());
@@ -209,6 +214,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         migrationTaskTbl.setOperator(dbMigrationRequest.getOperator());
         Long taskId = migrationTaskTblDao.insertWithReturnId(migrationTaskTbl);
+        tips.insert(0, "task init success! ");
         return Pair.of(tips.toString(), taskId);
     }
 
@@ -220,7 +226,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         String newMha = migrationTaskTbl.getNewMha();
         String status = migrationTaskTbl.getStatus();
         String dbs = migrationTaskTbl.getDbs();
-        if (!MigrationStatusEnum.INIT.getStatus().equals(status)) {
+        if (MigrationStatusEnum.PRE_STARTING.getStatus().equals(status) || MigrationStatusEnum.STARTING.getStatus().equals(status)) { 
+           return true;
+        }
+        if (!MigrationStatusEnum.INIT.getStatus().equals(status)) { // todo DBA是否会重复调用接口？ 再哪个阶段失败了会重试？
             throw ConsoleExceptionUtils.message("task status is not INIT, can not exStart! taskId: " + taskId);
         }
         MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(oldMha);
@@ -345,20 +354,34 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return true;
     }
 
-    private void checkRepeatedMigrationTask(DbMigrationParam dbMigrationRequest) throws SQLException{
-        List<MigrationTaskTbl> migrationTaskTbls = migrationTaskTblDao.queryByOldMha(dbMigrationRequest.getOldMha().getName());
-        if (!CollectionUtils.isEmpty(migrationTaskTbls)) {
-            List<Long> repeatedTask = migrationTaskTbls.stream()
-                    .filter(this::taskInProcessing)
-                    .filter(p -> dbRepeated(p,dbMigrationRequest))
-                    .map(MigrationTaskTbl::getId).collect(Collectors.toList());
-            
-            if (!CollectionUtils.isEmpty(repeatedTask)) {
-                throw ConsoleExceptionUtils.message("oldMha has repeatedTask in processing, "
-                        + "can not start new migration task! repeatedTask: "
-                        + JsonUtils.toJson(repeatedTask));
-            }
+    private void checkDbRepeatedMigrationTask(DbMigrationParam dbMigrationRequest,List<MigrationTaskTbl> tasksByOldMha) {
+        List<Long> repeatedDbTask = tasksByOldMha.stream()
+                .filter(this::taskInProcessing)
+                .filter(p -> dbRepeated(p,dbMigrationRequest))
+                .map(MigrationTaskTbl::getId).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(repeatedDbTask)) {
+            throw ConsoleExceptionUtils.message("oldMha has dbRepeated in processing, "
+                    + "can not start new migration task! repeatedTask: "
+                    + JsonUtils.toJson(repeatedDbTask));
         }
+    }
+    
+    private MigrationTaskTbl findSameTask(DbMigrationParam dbMigrationRequest,List<MigrationTaskTbl> tasksByOldMha) {
+        return tasksByOldMha.stream()
+                .filter(this::taskInProcessing)
+                .filter(task -> sameTask(task, dbMigrationRequest))
+                .findFirst().orElse(null);
+    }
+    
+    private boolean sameTask(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
+        List<String> dbsInTsk = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class)
+                .stream().map(String::toLowerCase).sorted().collect(Collectors.toList());
+        List<String> dbsInRequest = dbMigrationRequest.getDbs().stream().map(String::toLowerCase).sorted()
+                .collect(Collectors.toList());
+        return migrationTaskTbl.getOldMhaDba().equals(dbMigrationRequest.getOldMha().getName())
+                && migrationTaskTbl.getNewMhaDba().equals(dbMigrationRequest.getNewMha().getName())
+                && migrationTaskTbl.getOperator().equals(dbMigrationRequest.getOperator())
+                && dbsInTsk.equals(dbsInRequest);
     }
 
     private boolean dbRepeated(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
@@ -377,11 +400,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
     
     private boolean taskInProcessing(MigrationTaskTbl migrationTaskTbl) {
-        return  MigrationStatusEnum.INIT.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.PRE_STARTING.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.PRE_STARTED.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.STARTING.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus().equals(migrationTaskTbl.getStatus());
+        return  (!migrationTaskTbl.getStatus().equals(MigrationStatusEnum.SUCCESS.getStatus())
+                && !migrationTaskTbl.getStatus().equals(MigrationStatusEnum.FAIL.getStatus()));
     }
     
     private ReplicationInfo getReplicationInfoInOldMha(List<DbTbl> migrateDbTbls, MhaTblV2 oldMhaTbl) throws SQLException{
