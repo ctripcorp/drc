@@ -45,10 +45,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -820,6 +817,18 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     private boolean existMhaReplication(long mhaId) throws Exception {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaId));
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+
+        List<MhaReplicationTbl> existReplicationTbls = mhaReplicationTbls.stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+        List<MessengerTbl> messengerTbls = new ArrayList<>();
+        if (messengerGroupTbl != null) {
+            messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        }
+
+        if (CollectionUtils.isEmpty(existReplicationTbls) && CollectionUtils.isEmpty(messengerTbls)) {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+            mhaTblV2.setMonitorSwitch(BooleanEnum.FALSE.getCode());
+            mhaTblV2Dao.update(mhaTblV2);
+        }
 
         return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null;
     }
