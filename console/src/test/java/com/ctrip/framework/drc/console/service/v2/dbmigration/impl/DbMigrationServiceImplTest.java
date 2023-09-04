@@ -148,7 +148,16 @@ public class DbMigrationServiceImplTest {
     @Test
     public void testDbMigrationCheckAndCreateTask() throws SQLException {
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
-        Mockito.when(migrationTaskTblDao.queryByOldMha(Mockito.anyString())).thenReturn(Lists.newArrayList());
+        MigrationTaskTbl existedTask = MockEntityBuilder.buildMigrationTaskTbl(1L, "mha1", "mha2",
+                "[\"db1\",\"db2\"]", "operator");
+        existedTask.setOldMhaDba("mha1");
+        existedTask.setNewMhaDba("mha2");
+        existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
+        Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
+        Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
+
+        Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
         mockReplicationInfos();
         Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
