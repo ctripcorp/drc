@@ -1058,9 +1058,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private Pair<String, Boolean> isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
-        // 1. get mha replication delay info
         try {
+            // 1. get mha replication delay info
             List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
+            // only concern active mha replication
+            all = all.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getStatus())).collect(Collectors.toList());
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
             if (mhaReplicationDelays.size() != all.size()) {
