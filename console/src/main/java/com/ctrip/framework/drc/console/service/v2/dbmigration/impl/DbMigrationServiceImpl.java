@@ -223,10 +223,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         String newMha = migrationTaskTbl.getNewMha();
         String status = migrationTaskTbl.getStatus();
         String dbs = migrationTaskTbl.getDbs();
-        if (MigrationStatusEnum.PRE_STARTING.getStatus().equals(status) || MigrationStatusEnum.STARTING.getStatus().equals(status)) { 
+        if (MigrationStatusEnum.PRE_STARTING.getStatus().equals(status) || MigrationStatusEnum.PRE_STARTED.getStatus().equals(status)) { 
            return true;
         }
-        if (!MigrationStatusEnum.INIT.getStatus().equals(status)) { // todo DBA是否会重复调用接口？ 再哪个阶段失败了会重试？
+        if (!MigrationStatusEnum.INIT.getStatus().equals(status)) {
             throw ConsoleExceptionUtils.message("task status is not INIT, can not exStart! taskId: " + taskId);
         }
         MhaTblV2 oldMhaTbl = mhaTblV2Dao.queryByMhaName(oldMha);
