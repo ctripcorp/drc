@@ -14,7 +14,7 @@
         </Select>
       </FormItem>
       <FormItem label="Mha tag" prop="srcDc">
-        <Select v-model="mhaInfo.tag" style="width: 200px" placeholder="选择tag">
+        <Select v-model="mhaInfo.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
           <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
         </Select>
       </FormItem>
@@ -126,8 +126,10 @@ export default {
         }
       })
     }
+  },
+  handleCreateTag (val) {
+    this.constant.tagList.push(val)
   }
-
 }
 </script>
 

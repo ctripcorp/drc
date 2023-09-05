@@ -2,8 +2,10 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
+import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;
@@ -27,6 +29,7 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
     private static final String TAG = "tag";
     private static final String ACTIVE = "active";
     private static final String DELETED = "deleted";
+    private static final String ID = "id";
 
     public ResourceTblDao() throws SQLException {
         super(ResourceTbl.class);
@@ -76,7 +79,7 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         param.getPageReq().setTotalCount(count);
 
         sqlbuilder = buildSqlBuild(param);
-        sqlbuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize());
+        sqlbuilder.selectAll().atPage(param.getPageReq().getPageIndex(), param.getPageReq().getPageSize()).orderBy(ID, false);
         return queryList(sqlbuilder);
     }
 
@@ -99,13 +102,13 @@ public class ResourceTblDao extends AbstractDao<ResourceTbl> {
         }
         if (param.getType() != null && param.getType() > -1) {
             sqlBuilder.and().equal(TYPE, param.getType(), Types.TINYINT);
+        } else {
+            sqlBuilder.and().in(TYPE, Lists.newArrayList(ModuleEnum.APPLIER.getCode(), ModuleEnum.REPLICATOR.getCode()), Types.TINYINT);
         }
         if (StringUtils.isNotBlank(param.getTag())) {
             sqlBuilder.and().equal(TAG, param.getTag(), Types.VARCHAR);
         }
-        if (param.getDcId() != null && param.getDcId() > 0L) {
-            sqlBuilder.and().equal(DC_ID, param.getDcId(), Types.BIGINT);
-        }
+        sqlBuilder.and().inNullable(DC_ID, param.getDcIds(), Types.BIGINT);
         if (param.getActive() != null && param.getActive() > -1) {
             sqlBuilder.and().equal(ACTIVE, param.getActive(), Types.TINYINT);
         }

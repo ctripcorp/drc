@@ -13,8 +13,8 @@
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
-      <FormItem label="源Mha tag" prop="srcDc">
-        <Select v-model="build.srcTag" style="width: 200px" placeholder="选择tag">
+      <FormItem label="源Mha tag" prop="srcTag">
+        <Select v-model="build.srcTag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
           <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
         </Select>
       </FormItem>
@@ -26,8 +26,8 @@
           <Option v-for="item in build.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
-      <FormItem label="目标Mha tag" prop="srcDc">
-        <Select v-model="build.dstTag" style="width: 200px" placeholder="选择tag">
+      <FormItem label="目标Mha tag" prop="dstTag">
+        <Select v-model="build.dstTag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
           <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
         </Select>
       </FormItem>
@@ -150,6 +150,9 @@ export default {
           this.build.modal = true
         }
       })
+    },
+    handleCreateTag (val) {
+      this.constant.tagList.push(val)
     }
   }
 }

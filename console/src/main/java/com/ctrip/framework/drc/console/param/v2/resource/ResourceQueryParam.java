@@ -2,6 +2,8 @@ package com.ctrip.framework.drc.console.param.v2.resource;
 
 import com.ctrip.framework.drc.core.http.PageReq;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/8/3 17:35
@@ -9,9 +11,10 @@ import com.ctrip.framework.drc.core.http.PageReq;
 public class ResourceQueryParam {
     private String ip;
     private Integer type;
-    private Long dcId;
     private String tag;
     private Integer active;
+    private String region;
+    private List<Long> dcIds;
     private PageReq pageReq;
 
     public String getIp() {
@@ -28,14 +31,6 @@ public class ResourceQueryParam {
 
     public void setType(Integer type) {
         this.type = type;
-    }
-
-    public Long getDcId() {
-        return dcId;
-    }
-
-    public void setDcId(Long dcId) {
-        this.dcId = dcId;
     }
 
     public String getTag() {
@@ -62,14 +57,31 @@ public class ResourceQueryParam {
         this.pageReq = pageReq;
     }
 
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public List<Long> getDcIds() {
+        return dcIds;
+    }
+
+    public void setDcIds(List<Long> dcIds) {
+        this.dcIds = dcIds;
+    }
+
     @Override
     public String toString() {
         return "ResourceQueryParam{" +
                 "ip='" + ip + '\'' +
                 ", type=" + type +
-                ", dcId=" + dcId +
                 ", tag='" + tag + '\'' +
                 ", active=" + active +
+                ", region='" + region + '\'' +
+                ", dcIds=" + dcIds +
                 ", pageReq=" + pageReq +
                 '}';
     }

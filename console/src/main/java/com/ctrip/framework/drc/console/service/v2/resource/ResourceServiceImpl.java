@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.utils.PreconditionUtils;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,6 +152,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception {
         logger.info("getResourceView queryParam: {}", param);
+        if (StringUtils.isNotBlank(param.getRegion())) {
+            List<Long> dcIds = dcTblDao.queryByRegionName(param.getRegion()).stream().map(DcTbl::getId).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(dcIds)) {
+                return new ArrayList<>();
+            }
+            param.setDcIds(dcIds);
+        }
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(resourceTbls)) {
             return new ArrayList<>();
@@ -252,6 +260,7 @@ public class ResourceServiceImpl implements ResourceService {
             target.setActive(source.getActive());
             target.setAz(source.getAz());
             target.setType(source.getType());
+            target.setTag(source.getTag());
             if (source.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
                 target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
             } else if (source.getType().equals(ModuleEnum.APPLIER.getCode())) {

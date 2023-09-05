@@ -1018,6 +1018,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkNotNull(param);
         PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
+        PreconditionUtils.checkArgument(!param.getSrcMhaName().equals(param.getDstMhaName()), "srcMha and dstMha cannot be same!");
         PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
         PreconditionUtils.checkString(param.getSrcDc(), "srcDc requires not null!");
         PreconditionUtils.checkString(param.getDstDc(), "dstDcId requires not null!");

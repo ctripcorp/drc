@@ -141,6 +141,10 @@ public class ResourceServiceTest {
 
         List<ResourceView> result = resourceService.getResourceView(param);
         Assert.assertEquals(result.size(), getResourceTbls().size());
+
+        param.setRegion("region");
+        result = resourceService.getResourceView(param);
+        Assert.assertEquals(result.size(), 0);
     }
 
     @Test

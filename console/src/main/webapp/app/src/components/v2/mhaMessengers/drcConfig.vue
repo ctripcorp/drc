@@ -11,9 +11,12 @@
           </Select>
         </FormItem>
         <FormItem label="选择Messenger" prop="messenger">
-          <Select v-model="drc.messengers" multiple style="width: 200px" placeholder="选择集群Messenger">
-            <Option v-for="item in drc.messengerList" :value="item" :key="item">{{ item }}</Option>
+          <Select v-model="drc.messengers" multiple style="width: 250px" placeholder="选择集群Messenger">
+            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
+            </Option>
           </Select>
+          &nbsp;
+          <Button type="success" @click="autoConfigMessenger">自动录入</Button>
         </FormItem>
         <FormItem label="mq配置" style="width: 600px">
           <Button type="primary" ghost @click="goToMqConfigs">mq配置</Button>
@@ -167,6 +170,14 @@ export default {
     }
   },
   methods: {
+    autoConfigMessenger () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=1' + '&selectedIps=' + this.drc.messengers)
+        .then(response => {
+          console.log(response.data)
+          this.drc.messengers = []
+          response.data.data.forEach(ip => this.drc.messengers.push(ip.ip))
+        })
+    },
     getResources () {
       this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 0 } })
         .then(response => {
@@ -174,12 +185,9 @@ export default {
           this.drc.replicatorList = []
           response.data.data.forEach(ip => this.drc.replicatorList.push(ip))
         })
-      // actually , messenger is an applier
-      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 1 } })
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
         .then(response => {
-          console.log(response.data)
-          this.drc.messengerList = []
-          response.data.data.forEach(ip => this.drc.messengerList.push(ip))
+          this.drc.messengerList = response.data.data
         })
     },
     getResourcesInUse () {

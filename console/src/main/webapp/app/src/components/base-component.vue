@@ -27,36 +27,36 @@
               <span>Messenger配置</span>
             </MenuItem>
           </Submenu>
-<!--          <Submenu name="0">-->
-<!--            <template slot="title">-->
-<!--              <Icon type="ios-apps"></Icon>-->
-<!--              集群管理-->
-<!--            </template>-->
-<!--            <MenuItem name="/clusters" to="/clusters">-->
-<!--              <span>MHA集群</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/drcclusters" to="/drcclusters">-->
-<!--              <span>DRC集群</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/deletedDrcClusters" to="/deletedDrcClusters">-->
-<!--              <span>DRC回滚</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/apply" to="/apply">-->
-<!--              <span>DAL集群</span>-->
-<!--            </MenuItem>-->
-<!--            &lt;!&ndash;            <MenuItem name="/access" to="/access">&ndash;&gt;-->
-<!--            &lt;!&ndash;              <span>搭建DRC</span>&ndash;&gt;-->
-<!--            &lt;!&ndash;            </MenuItem>&ndash;&gt;-->
-<!--            <MenuItem name="/accessV2" to="/accessV2">-->
-<!--              <span>DRC配置</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/messengers" to="/messengers">-->
-<!--              <span>Messenger集群</span>-->
-<!--            </MenuItem>-->
-<!--            <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">-->
-<!--              <span>Messenger配置</span>-->
-<!--            </MenuItem>-->
-<!--          </Submenu>-->
+          <!--          <Submenu name="0">-->
+          <!--            <template slot="title">-->
+          <!--              <Icon type="ios-apps"></Icon>-->
+          <!--              集群管理-->
+          <!--            </template>-->
+          <!--            <MenuItem name="/clusters" to="/clusters">-->
+          <!--              <span>MHA集群</span>-->
+          <!--            </MenuItem>-->
+          <!--            <MenuItem name="/drcclusters" to="/drcclusters">-->
+          <!--              <span>DRC集群</span>-->
+          <!--            </MenuItem>-->
+          <!--            <MenuItem name="/deletedDrcClusters" to="/deletedDrcClusters">-->
+          <!--              <span>DRC回滚</span>-->
+          <!--            </MenuItem>-->
+          <!--            <MenuItem name="/apply" to="/apply">-->
+          <!--              <span>DAL集群</span>-->
+          <!--            </MenuItem>-->
+          <!--            &lt;!&ndash;            <MenuItem name="/access" to="/access">&ndash;&gt;-->
+          <!--            &lt;!&ndash;              <span>搭建DRC</span>&ndash;&gt;-->
+          <!--            &lt;!&ndash;            </MenuItem>&ndash;&gt;-->
+          <!--            <MenuItem name="/accessV2" to="/accessV2">-->
+          <!--              <span>DRC配置</span>-->
+          <!--            </MenuItem>-->
+          <!--            <MenuItem name="/messengers" to="/messengers">-->
+          <!--              <span>Messenger集群</span>-->
+          <!--            </MenuItem>-->
+          <!--            <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">-->
+          <!--              <span>Messenger配置</span>-->
+          <!--            </MenuItem>-->
+          <!--          </Submenu>-->
           <Submenu name="1">
             <template slot="title">
               <Icon type="ios-analytics"></Icon>
@@ -80,17 +80,20 @@
               <Icon type="ios-paper"></Icon>
               资源管理
             </template>
+            <MenuItem name="/v2/resourceV2" to="/v2/resourceV2">
+              <span>DRC资源</span>
+            </MenuItem>
+            <MenuItem name="/drcResource" to="/drcResource">
+              <span>DRC资源录入</span>
+            </MenuItem>
+            <MenuItem name="/proxyResource" to="/proxyResource">
+              <span>Proxy资源</span>
+            </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
             </MenuItem>
             <MenuItem name="/metaMessage" to="/metaMessage">
               <span>行过滤元信息配置</span>
-            </MenuItem>
-            <MenuItem name="/drcResource" to="/drcResource">
-              <span>DRC资源</span>
-            </MenuItem>
-            <MenuItem name="/proxyResource" to="/proxyResource">
-              <span>Proxy资源</span>
             </MenuItem>
           </Submenu>
           <MenuItem name="/manage" to="/manage">
@@ -191,6 +194,7 @@ export default {
       case '/drcResource':
       case '/metaMessage':
       case '/proxyResource':
+      case '/v2/resourceV2':
       case '/proxyRouteCluster':
         this.openNames = ['2']
         break
