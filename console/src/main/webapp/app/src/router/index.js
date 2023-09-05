@@ -213,6 +213,11 @@ const routes = [
     component: () => import('../views/v2/drcConfig/mqConfigs.vue')
   },
   {
+    path: '/v2/resourceV2',
+    name: 'v2/resourceV2',
+    component: () => import('../views/v2/resourceV2.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

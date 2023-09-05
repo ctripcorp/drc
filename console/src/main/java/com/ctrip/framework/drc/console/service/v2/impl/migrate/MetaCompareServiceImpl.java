@@ -47,7 +47,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
     @Autowired private DefaultConsoleConfig consoleConfig;
 
     private final ExecutorService comparators = ThreadUtils.newCachedThreadPool("metaCompare");
-    private volatile Boolean consistent;
+    private volatile Boolean consistent = true;
 
 
     @Override
@@ -60,29 +60,7 @@ public class MetaCompareServiceImpl extends AbstractLeaderAwareMonitor implement
 
     @Override
     public void scheduledTask() {
-        if (consoleConfig.getMetaCompareSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return;
-        }
-        try {
-            if (!isRegionLeader) {
-                logger.info("[[task=MetaCompare]]not a leader start compare");
-                if (consoleConfig.getPublicCloudRegion().contains(consoleConfig.getRegion())) {
-                    consistent = true;
-                    logger.info("[[task=MetaCompare]]public cloud console, do nothing");
-                } else {
-                    String res = compareDrcMeta();
-                    consistent = this.isConsistent(res);
-                    logger.info("[[task=MetaCompare]] compare consistent :{}",consistent);
-                    DefaultEventMonitorHolder.getInstance().logEvent("console.metaCompare",String.valueOf(consistent));
-                }
-            } else {
-                consistent = true;
-                logger.info("[[task=MetaCompare]]is leader do nothing");
-            }
-        } catch (Throwable t) {
-            consistent = false;
-            logger.error("[[task=MetaCompare]] scheduledTask error,set consistent to false", t);
-        }
+        return;
     }
     @Override
     public boolean isConsistent(String res) {

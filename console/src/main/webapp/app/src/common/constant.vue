@@ -53,9 +53,32 @@ const dcList = [
     label: 'sinaws'
   }
 ]
+const tagList = [
+  'COMMON',
+  'FLT',
+  'HTL',
+  'OI',
+  'TEST'
+]
+const azList = [
+  'SHARB',
+  'SHAXY',
+  'SIN-AWS-B',
+  'SIN-AWS-C',
+  'SIN-VPC',
+  'FRA-AWS-A',
+  'FRA-AWS-B',
+  'FRA-AWS-C',
+  'SHA-ALI-B',
+  'SHA-ALI-G',
+  'ALI-VPC',
+  'NTGXH'
+]
 export default {
   name: 'constant',
-  dcList
+  dcList,
+  tagList,
+  azList
 }
 </script>
 

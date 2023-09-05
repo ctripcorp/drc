@@ -3,7 +3,8 @@
     <Layout>
       <Sider class="sider" breakpoint="md">
         <img src="../assets/ctrip.png" @click="linkHome" alt="logo" class="layout-logo" to="/home">
-        <Menu :active-name="isFather?fatherMenu:activeName" :open-names="isFather?subMenuName:openNames" theme="dark" width="auto" :style="{margin: '60px 0 0 0'}">
+        <Menu :active-name="isFather?fatherMenu:activeName" :open-names="isFather?subMenuName:openNames" theme="dark"
+              width="auto" :style="{margin: '60px 0 0 0'}">
           <MenuItem name="/home" to="/home">
             <Icon type="ios-navigate"></Icon>
             <span>监控大盘</span>
@@ -52,17 +53,20 @@
               <Icon type="ios-paper"></Icon>
               资源管理
             </template>
+            <MenuItem name="/v2/resourceV2" to="/v2/resourceV2">
+              <span>DRC资源</span>
+            </MenuItem>
+            <MenuItem name="/drcResource" to="/drcResource">
+              <span>DRC资源录入</span>
+            </MenuItem>
+            <MenuItem name="/proxyResource" to="/proxyResource">
+              <span>Proxy资源</span>
+            </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
             </MenuItem>
             <MenuItem name="/metaMessage" to="/metaMessage">
               <span>行过滤元信息配置</span>
-            </MenuItem>
-            <MenuItem name="/drcResource" to="/drcResource">
-              <span>DRC资源</span>
-            </MenuItem>
-            <MenuItem name="/proxyResource" to="/proxyResource">
-              <span>Proxy资源</span>
             </MenuItem>
           </Submenu>
           <MenuItem name="/manage" to="/manage">
@@ -139,8 +143,9 @@ export default {
       case '/v2/mhaReplications':
       case '/drcV2':
       case '/v2/buildMessengerV2':
-      case '/v2/migration':
-      case '/v2/messengersV2':this.openNames = ['v2-0']; break
+      case '/v2/messengersV2':
+        this.openNames = ['v2-0']
+        break
       case '/apply':
       case '/clusters':
       case '/drcclusters':
@@ -162,6 +167,7 @@ export default {
       case '/drcResource':
       case '/metaMessage':
       case '/proxyResource':
+      case '/v2/resourceV2':
       case '/proxyRouteCluster':
         this.openNames = ['2']
         break
@@ -199,68 +205,80 @@ export default {
   },
   computed: {
     userName: function () {
-      if (!sessionStorage.getItem('userName')) { return this.userNameFirstLogin }
+      if (!sessionStorage.getItem('userName')) {
+        return this.userNameFirstLogin
+      }
       return sessionStorage.getItem('userName')
     },
     logoutUrl: function () {
-      if (!sessionStorage.getItem('logoutUrl')) { return this.logoutUrlFirstLogin }
+      if (!sessionStorage.getItem('logoutUrl')) {
+        return this.logoutUrlFirstLogin
+      }
       return sessionStorage.getItem('logoutUrl')
     }
   }
 }</script>
 <style scoped>
-  .layout{
-    border: 1px solid #d7dde4;
-    background: #f5f7f9;
-    position: relative;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .layout-logo{
-    width: 100px;
-    height: 30px;
-    background: #5b6270;
-    border-radius: 3px;
-    float: left;
-    position: relative;
-    top: 15px;
-    cursor: pointer;
-    z-index: 4;
-    margin-left: 50px;
-  }
-  .layout-header-bar{
-    background: #fff;
-    box-shadow: 0 1px 1px rgba(0,0,0,.1);
-  }
-  .menu-item span{
-    display: inline-block;
-    overflow: hidden;
-    width: 69px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: bottom;
-    transition: width .2s ease .2s;
-  }
-  .menu-item i{
-    transform: translateX(0px);
-    transition: font-size .2s ease, transform .2s ease;
-    vertical-align: middle;
-    font-size: 16px;
-  }
-  .collapsed-menu span{
-    width: 0px;
-    transition: width .2s ease;
-  }
-  .collapsed-menu i{
-    transform: translateX(5px);
-    transition: font-size .2s ease .2s, transform .2s ease .2s;
-    vertical-align: middle;
-    font-size: 22px;
-  }
-  .sider{
-    z-index: 3;
-  }
-  .header{
-    z-index: 2;
-  }
+.layout {
+  border: 1px solid #d7dde4;
+  background: #f5f7f9;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.layout-logo {
+  width: 100px;
+  height: 30px;
+  background: #5b6270;
+  border-radius: 3px;
+  float: left;
+  position: relative;
+  top: 15px;
+  cursor: pointer;
+  z-index: 4;
+  margin-left: 50px;
+}
+
+.layout-header-bar {
+  background: #fff;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+}
+
+.menu-item span {
+  display: inline-block;
+  overflow: hidden;
+  width: 69px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  transition: width .2s ease .2s;
+}
+
+.menu-item i {
+  transform: translateX(0px);
+  transition: font-size .2s ease, transform .2s ease;
+  vertical-align: middle;
+  font-size: 16px;
+}
+
+.collapsed-menu span {
+  width: 0px;
+  transition: width .2s ease;
+}
+
+.collapsed-menu i {
+  transform: translateX(5px);
+  transition: font-size .2s ease .2s, transform .2s ease .2s;
+  vertical-align: middle;
+  font-size: 22px;
+}
+
+.sider {
+  z-index: 3;
+}
+
+.header {
+  z-index: 2;
+}
 </style>

@@ -237,7 +237,7 @@ export default {
                 }
               }
               this.rowsFilterConfig.mode = res.mode
-              this.rowsFilterConfig.columns = res.columns
+              this.rowsFilterConfig.columns = res.columns === null ? [] : res.columns
               if (res.udlColumns.length !== 0) {
                 this.rowsFilterConfig.udlColumns = res.udlColumns
               }

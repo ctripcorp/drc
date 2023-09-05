@@ -10,14 +10,17 @@ public class DrcMhaBuildParam {
     private String srcDc;
     private String dstDc;
     private String buName;
+    private String srcTag;
+    private String dstTag;
 
-
-    public DrcMhaBuildParam(String srcMhaName, String dstMhaName, String srcDc, String dstDc, String buName) {
+    public DrcMhaBuildParam(String srcMhaName, String dstMhaName, String srcDc, String dstDc, String buName, String srcTag, String dstTag) {
         this.srcMhaName = srcMhaName;
         this.dstMhaName = dstMhaName;
         this.srcDc = srcDc;
         this.dstDc = dstDc;
         this.buName = buName;
+        this.srcTag = srcTag;
+        this.dstTag = dstTag;
     }
 
     public DrcMhaBuildParam() {
@@ -31,7 +34,25 @@ public class DrcMhaBuildParam {
                 ", srcDc='" + srcDc + '\'' +
                 ", dstDc='" + dstDc + '\'' +
                 ", buName='" + buName + '\'' +
+                ", srcTag='" + srcTag + '\'' +
+                ", dstTag='" + dstTag + '\'' +
                 '}';
+    }
+
+    public String getSrcTag() {
+        return srcTag;
+    }
+
+    public void setSrcTag(String srcTag) {
+        this.srcTag = srcTag;
+    }
+
+    public String getDstTag() {
+        return dstTag;
+    }
+
+    public void setDstTag(String dstTag) {
+        this.dstTag = dstTag;
     }
 
     public String getBuName() {

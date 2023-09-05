@@ -13,6 +13,11 @@
           <Option v-for="item in mhaInfo.drcZoneList" :value="item.value" :key="item.value">{{ item.label }}</Option>
         </Select>
       </FormItem>
+      <FormItem label="Mha tag" prop="srcDc">
+        <Select v-model="mhaInfo.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
+          <Option v-for="item in tagList" :value="item" :key="item">{{ item }}</Option>
+        </Select>
+      </FormItem>
       <FormItem label="BU名" style="width: 600px" prop="buName">
         <Input v-model="mhaInfo.buName"  placeholder="请输入BU名，自动绑定route策略" />
       </FormItem>
@@ -48,8 +53,10 @@ export default {
         dc: '',
         buName: '',
         modal: false,
+        tag: 'COMMON',
         drcZoneList: this.constant.dcList
       },
+      tagList: this.constant.tagList,
       status: '',
       dataLoading: false,
       title: '',
@@ -80,7 +87,8 @@ export default {
           that.axios.post('/api/drc/v2/config/messengerMha', {
             mhaName: this.mhaInfo.mhaName,
             dc: this.mhaInfo.dc,
-            buName: this.mhaInfo.buName
+            buName: this.mhaInfo.buName,
+            tag: this.mhaInfo.tag
           }).then(response => {
             that.hasResp = true
             if (response.data.status === 0) {
@@ -118,8 +126,10 @@ export default {
         }
       })
     }
+  },
+  handleCreateTag (val) {
+    this.constant.tagList.push(val)
   }
-
 }
 </script>
 

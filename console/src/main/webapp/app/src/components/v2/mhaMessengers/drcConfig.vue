@@ -6,14 +6,20 @@
           <Input v-model="drc.mhaName" readonly placeholder="请输入集群名"/>
         </FormItem>
         <FormItem label="选择Replicator" prop="replicator">
-          <Select v-model="drc.replicators" multiple style="width: 200px" placeholder="选择集群Replicator">
-            <Option v-for="item in drc.replicatorList" :value="item" :key="item">{{ item }}</Option>
+          <Select v-model="drc.replicators" multiple style="width: 250px" placeholder="选择Replicator">
+            <Option v-for="item in drc.replicatorList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az}}
+            </Option>
           </Select>
+          &nbsp;
+          <Button type="success" @click="autoConfigReplicator">自动录入</Button>
         </FormItem>
         <FormItem label="选择Messenger" prop="messenger">
-          <Select v-model="drc.messengers" multiple style="width: 200px" placeholder="选择集群Messenger">
-            <Option v-for="item in drc.messengerList" :value="item" :key="item">{{ item }}</Option>
+          <Select v-model="drc.messengers" multiple style="width: 250px" placeholder="选择集群Messenger">
+            <Option v-for="item in drc.messengerList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az }}
+            </Option>
           </Select>
+          &nbsp;
+          <Button type="success" @click="autoConfigMessenger">自动录入</Button>
         </FormItem>
         <FormItem label="mq配置" style="width: 600px">
           <Button type="primary" ghost @click="goToMqConfigs">mq配置</Button>
@@ -167,19 +173,31 @@ export default {
     }
   },
   methods: {
-    getResources () {
-      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 0 } })
+    autoConfigReplicator () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=0' + '&selectedIps=' + this.drc.replicators)
         .then(response => {
           console.log(response.data)
-          this.drc.replicatorList = []
-          response.data.data.forEach(ip => this.drc.replicatorList.push(ip))
+          this.drc.replicators = []
+          response.data.data.forEach(ip => this.drc.replicators.push(ip.ip))
         })
-      // actually , messenger is an applier
-      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 1 } })
+    },
+    autoConfigMessenger () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=1' + '&selectedIps=' + this.drc.messengers)
         .then(response => {
           console.log(response.data)
-          this.drc.messengerList = []
-          response.data.data.forEach(ip => this.drc.messengerList.push(ip))
+          this.drc.messengers = []
+          response.data.data.forEach(ip => this.drc.messengers.push(ip.ip))
+        })
+    },
+    getResources () {
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=0')
+        .then(response => {
+          console.log(response.data)
+          this.drc.replicatorList = response.data.data
+        })
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
+        .then(response => {
+          this.drc.messengerList = response.data.data
         })
     },
     getResourcesInUse () {
