@@ -1117,7 +1117,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             boolean allReady = CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
-            String message = this.buildMessage(messengerDelays, mhaReplicationNotReadyList);
+            String message = this.buildMessage(messengerNotReadyList, mhaReplicationNotReadyList);
             return Pair.of(message, allReady);
         } catch (ConsoleException e) {
             logger.error("isRelatedDelaySmall exception: " + e.getMessage(), e);
@@ -1125,7 +1125,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private String buildMessage(List<MhaDelayInfoDto> messengerDelays, List<MhaDelayInfoDto> mhaReplicationNotReadyList) {
+    private String buildMessage(List<MhaDelayInfoDto> messengerNotReadyList, List<MhaDelayInfoDto> mhaReplicationNotReadyList) {
         // build message
         StringBuilder sb = new StringBuilder();
         if (!CollectionUtils.isEmpty(mhaReplicationNotReadyList)) {
@@ -1134,9 +1134,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 sb.append(delayInfoDto.toString()).append('\n');
             }
         }
-        if (!CollectionUtils.isEmpty(messengerDelays)) {
+        if (!CollectionUtils.isEmpty(messengerNotReadyList)) {
             sb.append("drc messenger not ready: \n");
-            for (MhaDelayInfoDto delayInfoDto : mhaReplicationNotReadyList) {
+            for (MhaDelayInfoDto delayInfoDto : messengerNotReadyList) {
                 sb.append(delayInfoDto.toString()).append('\n');
             }
         }
