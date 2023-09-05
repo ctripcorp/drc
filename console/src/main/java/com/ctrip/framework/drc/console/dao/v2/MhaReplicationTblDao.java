@@ -38,7 +38,12 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
                 .orderBy(DATA_CHANGE_LAST_TIME, DESCENDING)
                 .and()
                 .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
+                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT).and()
+                .leftBracket()
+                .inNullable(SRC_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT).or()
+                .inNullable(DST_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT)
+                .rightBracket()
+        ;
 
         return client.query(sqlBuilder, new DalHints());
     }
@@ -47,7 +52,11 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.selectCount().and()
                 .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
+                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT).and()
+                .leftBracket()
+                .inNullable(SRC_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT).or()
+                .inNullable(DST_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT)
+                .rightBracket();
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
     public List<MhaReplicationTbl> queryByRelatedMhaId(List<Long> relatedMhaId) throws SQLException {

@@ -140,6 +140,14 @@ public class MhaReplicationController {
                 }
                 query.setDstMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
+            MhaQueryDto relatedMha = queryDto.getRelatedMha();
+            if (relatedMha != null && relatedMha.isConditionalQuery()) {
+                Map<Long, MhaTblV2> mhaTblV2Map = mhaServiceV2.query(StringUtils.trim(relatedMha.getName()), relatedMha.getBuId(), relatedMha.getRegionId());
+                if (CollectionUtils.isEmpty(mhaTblV2Map)) {
+                    return ApiResult.getSuccessInstance(PageResult.emptyResult());
+                }
+                query.setRelatedMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
+            }
 
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);

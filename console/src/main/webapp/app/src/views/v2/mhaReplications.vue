@@ -7,65 +7,109 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px ">
         <Row :gutter=10 align="middle">
-          <Col span="10">
-            <Card :padding=5>
-              <template #title>源 MHA</template>
-              <Row :gutter=10>
-                <Col span="10">
-                  <Input prefix="ios-search" v-model="srcMha.name" placeholder="集群名"
-                         @on-enter="getReplications">
-                  </Input>
-                </Col>
-                <Col span="7">
-                  <Select filterable prefix="ios-home" clearable v-model="srcMha.buId" placeholder="部门"
-                          @on-change="getReplications">
-                    <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
-                  </Select>
-                </Col>
-                <Col span="7">
-                  <Select filterable prefix="ios-pin" clearable v-model="srcMha.regionId" placeholder="地域"
-                          @on-change="getReplications">
-                    <Option v-for="item in regions" :value="item.id" :key="item.regionName">
-                      {{ item.regionName }}
-                    </Option>
-                  </Select>
-                </Col>
-              </Row>
-            </Card>
+          <Col span="20">
+            <Row :gutter=10 align="middle" v-show="preciseSearchMode">
+              <Col span="12">
+                <Card :padding=5>
+                  <template #title>源 MHA</template>
+                  <Row :gutter=10>
+                    <Col span="10">
+                      <Input prefix="ios-search" v-model="srcMha.name" placeholder="集群名↵"
+                             @on-enter="getReplications">
+                      </Input>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-home" clearable v-model="srcMha.buId" placeholder="部门"
+                              @on-change="getReplications">
+                        <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
+                      </Select>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-pin" clearable v-model="srcMha.regionId" placeholder="地域"
+                              @on-change="getReplications">
+                        <Option v-for="item in regions" :value="item.id" :key="item.regionName">
+                          {{ item.regionName }}
+                        </Option>
+                      </Select>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+              <Col span="12">
+                <Card :padding=5>
+                  <template #title>目标 MHA</template>
+                  <Row :gutter=10>
+                    <Col span="10">
+                      <Input prefix="ios-search" v-model="dstMha.name" placeholder="集群名↵"
+                             @on-enter="getReplications">
+                      </Input>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-home" clearable v-model="dstMha.buId" placeholder="部门"
+                              @on-change="getReplications">
+                        <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
+                      </Select>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-pin" clearable v-model="dstMha.regionId"
+                              placeholder="地域"
+                              @on-change="getReplications">
+                        <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
+                            item.regionName
+                          }}
+                        </Option>
+                      </Select>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+            <Row :gutter=10 align="middle" v-show="!preciseSearchMode">
+              <Col span="24">
+                <Card :padding=5>
+                  <template #title>相关 MHA</template>
+                  <Row :gutter=10>
+                    <Col span="10">
+                      <Input prefix="ios-search" v-model="relatedMha.name" placeholder="集群名↵"
+                             @on-enter="getReplications">
+                      </Input>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-home" clearable v-model="relatedMha.buId" placeholder="部门"
+                              @on-change="getReplications">
+                        <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
+                      </Select>
+                    </Col>
+                    <Col span="7">
+                      <Select filterable prefix="ios-pin" clearable v-model="relatedMha.regionId"
+                              placeholder="地域"
+                              @on-change="getReplications">
+                        <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
+                            item.regionName
+                          }}
+                        </Option>
+                      </Select>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
           </Col>
-          <Col span="10">
-            <Card :padding=5>
-              <template #title>目标 MHA</template>
-              <Row :gutter=10>
-                <Col span="10">
-                  <Input prefix="ios-search" v-model="dstMha.name" placeholder="集群名"
-                         @on-enter="getReplications">
-                  </Input>
-                </Col>
-                <Col span="7">
-                  <Select filterable prefix="ios-home" clearable v-model="dstMha.buId" placeholder="部门"
-                          @on-change="getReplications">
-                    <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
-                  </Select>
-                </Col>
-                <Col span="7">
-                  <Select filterable prefix="ios-pin" clearable v-model="dstMha.regionId"
-                          placeholder="地域"
-                          @on-change="getReplications">
-                    <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
-                        item.regionName
-                      }}
-                    </Option>
-                  </Select>
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-          <Col span="3">
-            <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications">查询</Button>
-          </Col>
-          <Col span="3" style="margin-top: 20px">
-            <Button icon="md-refresh" @click="resetParam" :loading="dataLoading">重置</Button>
+          <Col span="4">
+            <Row :gutter=10 align="middle">
+              <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications">查询</Button>
+              <i-switch v-model="preciseSearchMode" size="large" style="margin-left: 10px">进阶
+                <template #open>
+                  <span>进阶</span>
+                </template>
+                <template #close>
+                  <span>进阶</span>
+                </template>
+              </i-switch>
+            </Row>
+            <Row :gutter=10 align="middle" style="margin-top: 20px">
+              <Button icon="md-refresh" @click="resetParam" :loading="dataLoading">重置</Button>
+            </Row>
           </Col>
         </Row>
         <br>
@@ -76,9 +120,6 @@
             </Button>
             <Button type="primary" size="small" style="margin-right: 5px" @click="goToLink(row, index)">
               修改
-            </Button>
-            <Button disabled type="error" size="small" style="margin-right: 5px">
-              删除
             </Button>
           </template>
         </Table>
@@ -137,6 +178,7 @@ import 'codemirror/mode/xml/xml.js'
 
 import 'codemirror/addon/fold/foldgutter.css'
 import 'codemirror/addon/fold/foldgutter.js'
+import prettyMilliseconds from 'pretty-ms'
 
 export default {
   name: 'Application',
@@ -201,8 +243,23 @@ export default {
           align: 'center',
           render: (h, params) => {
             const row = params.row
-            const color = row.status === 1 ? 'blue' : 'volcano'
-            const text = row.status === 1 ? '已接入' : '未接入'
+            let color, text
+            if (row.status === 1) {
+              if (row.delay != null) {
+                text = prettyMilliseconds(row.delay, { compact: true })
+                if (row.delay > 10000) {
+                  color = 'warning'
+                } else {
+                  color = 'success'
+                }
+              } else {
+                text = '已接入'
+                color = 'blue'
+              }
+            } else {
+              text = '未接入'
+              color = 'default'
+            }
             return h('Tag', {
               props: {
                 color: color
@@ -319,6 +376,8 @@ export default {
       // query param
       srcMha: {},
       dstMha: {},
+      relatedMha: {},
+      preciseSearchMode: false,
       // get from backend
       replications: [],
       bus: [],
@@ -373,20 +432,26 @@ export default {
         buName: null,
         regionName: null
       }
+      this.relatedMha = {
+        name: null,
+        buName: null,
+        regionName: null
+      }
       this.getReplications()
     },
-    getReplications () {
+    async getReplications () {
       const that = this
       const params = {
         srcMha: this.srcMha,
         dstMha: this.dstMha,
+        relatedMha: this.relatedMha,
         pageIndex: this.current,
         pageSize: this.size
       }
 
       const reqParam = this.flattenObj(params)
       that.dataLoading = true
-      that.axios.get('/api/drc/v2/replication/query', { params: reqParam })
+      await that.axios.get('/api/drc/v2/replication/query', { params: reqParam })
         .then(response => {
           const pageResult = response.data.data
           if (!pageResult || pageResult.totalCount === 0) {
@@ -400,6 +465,7 @@ export default {
             that.calTableSpan(pageResult.data)
             that.replications = pageResult.data
             that.$Message.success('查询成功')
+            this.getDelay()
           }
         })
         .catch(message => {
@@ -407,6 +473,32 @@ export default {
         })
         .finally(() => {
           that.dataLoading = false
+        })
+    },
+    getDelay () {
+      const param = {
+        replicationIds: this.replications.map(item =>
+          item.replicationId
+        ).join(',')
+      }
+      if (param.replicationIds.size === 0) {
+        return
+      }
+      this.axios.get('/api/drc/v2/replication/delay', { params: param })
+        .then(response => {
+          const delays = response.data.data
+          const emptyResult = delays == null || !Array.isArray(delays) || delays.length === 0
+          if (emptyResult) {
+            return
+          }
+          const dataMap = new Map(delays.map(e => [e.srcMha + '->' + e.dstMha, e.delay]))
+          this.replications.forEach(line => {
+            line.delay = dataMap.get(line.srcMha.name + '->' + line.dstMha.name)
+          })
+        })
+        .catch(message => {
+          console.log(message)
+          this.$Message.error('查询延迟异常: ' + message)
         })
     },
     handleChangeSize (val) {
