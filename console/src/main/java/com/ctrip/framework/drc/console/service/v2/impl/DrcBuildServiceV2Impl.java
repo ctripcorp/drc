@@ -494,7 +494,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(),null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
-        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L);
+        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
