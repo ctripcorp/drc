@@ -169,7 +169,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             if (migrateDbTblsDrcRelated.size() != migrateDbTbls.size()) {
                 List<DbTbl> dbDrcNotRelated = Lists.newArrayList(migrateDbTbls);
                 dbDrcNotRelated.removeAll(migrateDbTblsDrcRelated);
-                tips.append(dbDrcNotRelated.stream().map(DbTbl::getDbName).collect(Collectors.joining(",")));
+                tips.append("drc not related dbs is: ").append(dbDrcNotRelated.stream().map(DbTbl::getDbName).collect(Collectors.joining(",")));
             }
         }
 
@@ -464,9 +464,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs) throws SQLException {
         Long replicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(newMhaTbl.getId());
         if (!CollectionUtils.isEmpty(db2MqReplicationTblsInOldMhaPairs)) {
-            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(replicatorGroupId, newMhaTbl.getId(), null);
+            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(newMhaTbl.getId(),replicatorGroupId, "");
             logger.info("[[migration=exStarting,newMha={}]] initReplicatorGroup:{},initMessengerGroup:{}", newMhaTbl.getMhaName(),
                     replicatorGroupId,mGroupId);
+            
         }
     }
 
@@ -488,7 +489,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     // return map of dbId and mhaDbMappingTbl
     private Map<Long,MhaDbMappingTbl> initMhaDbMappingTblsInNewMha(MhaTblV2 newMhaTbl,List<DbTbl> migrateDbTblsDrcRelated) throws SQLException {
         mhaDbMappingService.buildMhaDbMappings(newMhaTbl.getMhaName(),migrateDbTblsDrcRelated.stream().map(DbTbl::getDbName).collect(Collectors.toList()));
-        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(migrateDbTblsDrcRelated.stream().map(DbTbl::getId).collect(Collectors.toList()),
+                Lists.newArrayList(newMhaTbl.getId()));
         return  mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, Function.identity()));
     }
 
