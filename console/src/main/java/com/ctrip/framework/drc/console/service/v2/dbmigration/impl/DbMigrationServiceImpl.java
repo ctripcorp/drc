@@ -45,10 +45,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -141,7 +138,12 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     public Pair<String,Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
         // meta info check and init
         checkDbMigrationParam(dbMigrationRequest);
-        checkRepeatedMigrationTask(dbMigrationRequest);
+        List<MigrationTaskTbl> migrationTasks = migrationTaskTblDao.queryByOldMhaDBA(dbMigrationRequest.getOldMha().getName());
+        MigrationTaskTbl sameTask = findSameTask(dbMigrationRequest, migrationTasks);
+        if (sameTask != null) {
+            return Pair.of("Repeated task, status is " + sameTask.getStatus(), sameTask.getId());
+        }
+        checkDbRepeatedMigrationTask(dbMigrationRequest, migrationTasks);
         MhaTblV2 oldMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getOldMha());
         MhaTblV2 newMhaTblV2 = checkAndInitMhaInfo(dbMigrationRequest.getNewMha());
         StringBuilder tips = new StringBuilder();
@@ -167,7 +169,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             if (migrateDbTblsDrcRelated.size() != migrateDbTbls.size()) {
                 List<DbTbl> dbDrcNotRelated = Lists.newArrayList(migrateDbTbls);
                 dbDrcNotRelated.removeAll(migrateDbTblsDrcRelated);
-                tips.append(dbDrcNotRelated.stream().map(DbTbl::getDbName).collect(Collectors.joining(",")));
+                tips.append("drc not related dbs is: ").append(dbDrcNotRelated.stream().map(DbTbl::getDbName).collect(Collectors.joining(",")));
             }
         }
 
@@ -201,7 +203,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
 
         MigrationTaskTbl migrationTaskTbl = new MigrationTaskTbl();
-        migrationTaskTbl.setDbs(JsonUtils.toJson(dbMigrationRequest.getDbs()));
+        migrationTaskTbl.setDbs(JsonUtils.toJson(dbMigrationRequest.getDbs().stream().map(String::toLowerCase).collect(Collectors.toList())));
         migrationTaskTbl.setOldMha(oldMhaTblV2.getMhaName());
         migrationTaskTbl.setNewMha(newMhaTblV2.getMhaName());
         migrationTaskTbl.setOldMhaDba(dbMigrationRequest.getOldMha().getName());
@@ -209,6 +211,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         migrationTaskTbl.setOperator(dbMigrationRequest.getOperator());
         Long taskId = migrationTaskTblDao.insertWithReturnId(migrationTaskTbl);
+        tips.insert(0, "task init success! ");
         return Pair.of(tips.toString(), taskId);
     }
 
@@ -220,6 +223,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         String newMha = migrationTaskTbl.getNewMha();
         String status = migrationTaskTbl.getStatus();
         String dbs = migrationTaskTbl.getDbs();
+        if (MigrationStatusEnum.PRE_STARTING.getStatus().equals(status) || MigrationStatusEnum.PRE_STARTED.getStatus().equals(status)) { 
+           return true;
+        }
         if (!MigrationStatusEnum.INIT.getStatus().equals(status)) {
             throw ConsoleExceptionUtils.message("task status is not INIT, can not exStart! taskId: " + taskId);
         }
@@ -345,20 +351,34 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         return true;
     }
 
-    private void checkRepeatedMigrationTask(DbMigrationParam dbMigrationRequest) throws SQLException{
-        List<MigrationTaskTbl> migrationTaskTbls = migrationTaskTblDao.queryByOldMha(dbMigrationRequest.getOldMha().getName());
-        if (!CollectionUtils.isEmpty(migrationTaskTbls)) {
-            List<Long> repeatedTask = migrationTaskTbls.stream()
-                    .filter(this::taskInProcessing)
-                    .filter(p -> dbRepeated(p,dbMigrationRequest))
-                    .map(MigrationTaskTbl::getId).collect(Collectors.toList());
-            
-            if (!CollectionUtils.isEmpty(repeatedTask)) {
-                throw ConsoleExceptionUtils.message("oldMha has repeatedTask in processing, "
-                        + "can not start new migration task! repeatedTask: "
-                        + JsonUtils.toJson(repeatedTask));
-            }
+    private void checkDbRepeatedMigrationTask(DbMigrationParam dbMigrationRequest,List<MigrationTaskTbl> tasksByOldMha) {
+        List<Long> repeatedDbTask = tasksByOldMha.stream()
+                .filter(this::taskInProcessing)
+                .filter(p -> dbRepeated(p,dbMigrationRequest))
+                .map(MigrationTaskTbl::getId).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(repeatedDbTask)) {
+            throw ConsoleExceptionUtils.message("oldMha has dbRepeated in processing, "
+                    + "can not start new migration task! repeatedTask: "
+                    + JsonUtils.toJson(repeatedDbTask));
         }
+    }
+    
+    private MigrationTaskTbl findSameTask(DbMigrationParam dbMigrationRequest,List<MigrationTaskTbl> tasksByOldMha) {
+        return tasksByOldMha.stream()
+                .filter(this::taskInProcessing)
+                .filter(task -> sameTask(task, dbMigrationRequest))
+                .findFirst().orElse(null);
+    }
+    
+    private boolean sameTask(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
+        List<String> dbsInTsk = JsonUtils.fromJsonToList(migrationTaskTbl.getDbs(), String.class)
+                .stream().map(String::toLowerCase).sorted().collect(Collectors.toList());
+        List<String> dbsInRequest = dbMigrationRequest.getDbs().stream().map(String::toLowerCase).sorted()
+                .collect(Collectors.toList());
+        return migrationTaskTbl.getOldMhaDba().equals(dbMigrationRequest.getOldMha().getName())
+                && migrationTaskTbl.getNewMhaDba().equals(dbMigrationRequest.getNewMha().getName())
+                && migrationTaskTbl.getOperator().equals(dbMigrationRequest.getOperator())
+                && dbsInTsk.equals(dbsInRequest);
     }
 
     private boolean dbRepeated(MigrationTaskTbl migrationTaskTbl,DbMigrationParam dbMigrationRequest) {
@@ -377,11 +397,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
     
     private boolean taskInProcessing(MigrationTaskTbl migrationTaskTbl) {
-        return  MigrationStatusEnum.INIT.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.PRE_STARTING.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.PRE_STARTED.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.STARTING.getStatus().equals(migrationTaskTbl.getStatus())
-                || MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus().equals(migrationTaskTbl.getStatus());
+        return  (!migrationTaskTbl.getStatus().equals(MigrationStatusEnum.SUCCESS.getStatus())
+                && !migrationTaskTbl.getStatus().equals(MigrationStatusEnum.FAIL.getStatus()));
     }
     
     private ReplicationInfo getReplicationInfoInOldMha(List<DbTbl> migrateDbTbls, MhaTblV2 oldMhaTbl) throws SQLException{
@@ -447,9 +464,10 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<Pair<MhaDbMappingTbl, List<DbReplicationTbl>>> db2MqReplicationTblsInOldMhaPairs) throws SQLException {
         Long replicatorGroupId = replicatorGroupTblDao.upsertIfNotExist(newMhaTbl.getId());
         if (!CollectionUtils.isEmpty(db2MqReplicationTblsInOldMhaPairs)) {
-            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(replicatorGroupId, newMhaTbl.getId(), null);
+            Long mGroupId = messengerGroupTblDao.upsertIfNotExist(newMhaTbl.getId(),replicatorGroupId, "");
             logger.info("[[migration=exStarting,newMha={}]] initReplicatorGroup:{},initMessengerGroup:{}", newMhaTbl.getMhaName(),
                     replicatorGroupId,mGroupId);
+            
         }
     }
 
@@ -471,7 +489,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     // return map of dbId and mhaDbMappingTbl
     private Map<Long,MhaDbMappingTbl> initMhaDbMappingTblsInNewMha(MhaTblV2 newMhaTbl,List<DbTbl> migrateDbTblsDrcRelated) throws SQLException {
         mhaDbMappingService.buildMhaDbMappings(newMhaTbl.getMhaName(),migrateDbTblsDrcRelated.stream().map(DbTbl::getDbName).collect(Collectors.toList()));
-        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
+        List<MhaDbMappingTbl> mhaDbMappingTbls = mhaDbMappingTblDao.queryByDbIdsAndMhaIds(migrateDbTblsDrcRelated.stream().map(DbTbl::getId).collect(Collectors.toList()),
+                Lists.newArrayList(newMhaTbl.getId()));
         return  mhaDbMappingTbls.stream().collect(Collectors.toMap(MhaDbMappingTbl::getDbId, Function.identity()));
     }
 
@@ -801,6 +820,18 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByRelatedMhaId(Lists.newArrayList(mhaId));
         MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
 
+        List<MhaReplicationTbl> existReplicationTbls = mhaReplicationTbls.stream().filter(e -> e.getDrcStatus().equals(BooleanEnum.TRUE.getCode())).collect(Collectors.toList());
+        List<MessengerTbl> messengerTbls = new ArrayList<>();
+        if (messengerGroupTbl != null) {
+            messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        }
+
+        if (CollectionUtils.isEmpty(existReplicationTbls) && CollectionUtils.isEmpty(messengerTbls)) {
+            MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryById(mhaId);
+            mhaTblV2.setMonitorSwitch(BooleanEnum.FALSE.getCode());
+            mhaTblV2Dao.update(mhaTblV2);
+        }
+
         return !CollectionUtils.isEmpty(mhaReplicationTbls) || messengerGroupTbl != null;
     }
 
@@ -1058,9 +1089,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     }
 
     private Pair<String, Boolean> isRelatedDelaySmall(List<String> dbNames, String oldMha, String newMha) {
-        // 1. get mha replication delay info
         try {
+            // 1. get mha replication delay info
             List<MhaReplicationDto> all = mhaReplicationServiceV2.queryRelatedReplications(Lists.newArrayList(oldMha, newMha), dbNames);
+            // only concern active mha replication
+            all = all.stream().filter(e -> BooleanEnum.TRUE.getCode().equals(e.getStatus())).collect(Collectors.toList());
             List<MhaDelayInfoDto> mhaReplicationDelays = mhaReplicationServiceV2.getMhaReplicationDelays(all);
             logger.info("oldMha:{}, newMha:{}, db:{}, delay info: {}", oldMha, newMha, dbNames, mhaReplicationDelays);
             if (mhaReplicationDelays.size() != all.size()) {
@@ -1084,7 +1117,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             List<MhaDelayInfoDto> mhaReplicationNotReadyList = mhaReplicationDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             List<MhaDelayInfoDto> messengerNotReadyList = messengerDelays.stream().filter(e -> e.getDelay() > TimeUnit.SECONDS.toMillis(10)).collect(Collectors.toList());
             boolean allReady = CollectionUtils.isEmpty(mhaReplicationNotReadyList) && CollectionUtils.isEmpty(messengerNotReadyList);
-            String message = this.buildMessage(messengerDelays, mhaReplicationNotReadyList);
+            String message = this.buildMessage(messengerNotReadyList, mhaReplicationNotReadyList);
             return Pair.of(message, allReady);
         } catch (ConsoleException e) {
             logger.error("isRelatedDelaySmall exception: " + e.getMessage(), e);
@@ -1092,7 +1125,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         }
     }
 
-    private String buildMessage(List<MhaDelayInfoDto> messengerDelays, List<MhaDelayInfoDto> mhaReplicationNotReadyList) {
+    private String buildMessage(List<MhaDelayInfoDto> messengerNotReadyList, List<MhaDelayInfoDto> mhaReplicationNotReadyList) {
         // build message
         StringBuilder sb = new StringBuilder();
         if (!CollectionUtils.isEmpty(mhaReplicationNotReadyList)) {
@@ -1101,9 +1134,9 @@ public class DbMigrationServiceImpl implements DbMigrationService {
                 sb.append(delayInfoDto.toString()).append('\n');
             }
         }
-        if (!CollectionUtils.isEmpty(messengerDelays)) {
+        if (!CollectionUtils.isEmpty(messengerNotReadyList)) {
             sb.append("drc messenger not ready: \n");
-            for (MhaDelayInfoDto delayInfoDto : mhaReplicationNotReadyList) {
+            for (MhaDelayInfoDto delayInfoDto : messengerNotReadyList) {
                 sb.append(delayInfoDto.toString()).append('\n');
             }
         }

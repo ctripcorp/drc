@@ -3,7 +3,9 @@ package com.ctrip.framework.drc.console.dto.v2;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class MhaReplicationDto {
     private Long replicationId;
@@ -139,5 +141,13 @@ public class MhaReplicationDto {
                 ", datachangeLasttime=" + datachangeLasttime +
                 ", status=" + status +
                 '}';
+    }
+
+    public int getSortPriority() {
+        int priority = 0;
+        if (status != null) {
+            priority += 1000 * status;
+        }
+        return priority;
     }
 }
