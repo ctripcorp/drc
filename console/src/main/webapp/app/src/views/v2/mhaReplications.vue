@@ -223,20 +223,6 @@ export default {
           }
         },
         {
-          title: '源集群名',
-          key: 'srcMhaName',
-          render: (h, params) => {
-            return h('p', params.row.srcMha.name)
-          }
-        },
-        {
-          title: '目标集群名',
-          key: 'dstMhaName',
-          render: (h, params) => {
-            return h('p', params.row.dstMha.name)
-          }
-        },
-        {
           title: '同步延迟',
           key: 'status',
           width: 100,
@@ -265,6 +251,20 @@ export default {
                 color: color
               }
             }, text)
+          }
+        },
+        {
+          title: '源集群名',
+          key: 'srcMhaName',
+          render: (h, params) => {
+            return h('p', params.row.srcMha.name)
+          }
+        },
+        {
+          title: '目标集群名',
+          key: 'dstMhaName',
+          render: (h, params) => {
+            return h('p', params.row.dstMha.name)
           }
         },
         {
@@ -442,11 +442,14 @@ export default {
     async getReplications () {
       const that = this
       const params = {
-        srcMha: this.srcMha,
-        dstMha: this.dstMha,
-        relatedMha: this.relatedMha,
         pageIndex: this.current,
         pageSize: this.size
+      }
+      if (this.preciseSearchMode) {
+        params.srcMha = this.srcMha
+        params.dstMha = this.dstMha
+      } else {
+        params.relatedMha = this.relatedMha
       }
 
       const reqParam = this.flattenObj(params)
