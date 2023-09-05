@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.console.service.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.vo.check.v2.MqConfigCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MqConfigVo;
@@ -37,4 +40,9 @@ public interface MessengerServiceV2 {
     void processDeleteMqConfig(MqConfigDeleteRequestDto requestDto) throws Exception;
 
     String getMessengerGtidExecuted(String mhaName);
+
+    List<MhaMessengerDto> getRelatedMhaMessenger(List<String> mhas, List<String> dbs);
+
+    List<MhaDelayInfoDto> getMhaMessengerDelays(List<MhaMessengerDto> messengerDtoList);
+
 }

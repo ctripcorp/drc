@@ -20,6 +20,9 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     GET_MYSQL_ENDPOINT_NULL("GET_MYSQL_ENDPOINT_NULL", "mysql endpoint null"),
 
 
+    QUERY_MHA_DELAY_FAIL("QUERY_MHA_DELAY_FAIL", "query delay fail"),
+
+
     /**
      * common dao exception
      */
@@ -36,6 +39,9 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
 
 
+    TIMEOUT_EXCEPTION("TIMEOUT_EXCEPTION", "timeout"),
+
+    UNKNOWN_EXCEPTION("UNKNOWN_EXCEPTION", "unknown exception, please contact devops"),
     ;
 
 

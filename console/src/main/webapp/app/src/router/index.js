@@ -189,6 +189,10 @@ const routes = [
     component: () => import('../views/v2/mhaBuild.vue')
   },
   {
+    path: '/v2/migration',
+    component: () => import('../views/v2/migration.vue')
+  },
+  {
     path: '/drcV2',
     name: 'drcV2',
     component: () => import('../views/v2/drcV2.vue')

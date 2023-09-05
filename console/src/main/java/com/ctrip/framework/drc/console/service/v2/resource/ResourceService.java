@@ -5,6 +5,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -26,6 +27,9 @@ public interface ResourceService {
     List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception;
 
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
+    
+    List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
 
-    List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws Exception;
+    List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException;
+    
 }

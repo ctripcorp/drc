@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.dao.v2;
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.param.v2.MhaReplicationQuery;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
@@ -73,6 +74,28 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         return client.queryFirst(sqlBuilder, new DalHints());
     }
 
+    public Long insertOrReCover(Long srcMhaId, Long dstMhaId) throws SQLException {
+        if (srcMhaId == null || dstMhaId == null) {
+            throw ConsoleExceptionUtils.message("insertOrReCover mhaReplication, srcMhaId or dstMhaId is null");
+        }
+        MhaReplicationTbl mhaReplicationTbl = queryByMhaId(srcMhaId, dstMhaId);
+        if (mhaReplicationTbl != null) {
+            if (mhaReplicationTbl.getDeleted() == 0) {
+                return mhaReplicationTbl.getId();
+            }
+            mhaReplicationTbl.setDeleted(0);
+            update(new DalHints(), mhaReplicationTbl);
+            return mhaReplicationTbl.getId();
+        } else {
+            mhaReplicationTbl = new MhaReplicationTbl();
+            mhaReplicationTbl.setSrcMhaId(srcMhaId);
+            mhaReplicationTbl.setDstMhaId(dstMhaId);
+            mhaReplicationTbl.setDrcStatus(0);
+            mhaReplicationTbl.setDeleted(0);
+            return insertWithReturnId(mhaReplicationTbl);
+        }
+    }
+    
     public Long insertWithReturnId(MhaReplicationTbl mhaReplicationTbl) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insert(new DalHints(), keyHolder, mhaReplicationTbl);

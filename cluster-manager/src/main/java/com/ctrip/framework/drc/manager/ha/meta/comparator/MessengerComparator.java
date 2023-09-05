@@ -70,9 +70,9 @@ public class MessengerComparator extends AbstractMetaComparator<Messenger, Messe
             if(current.equals(future)){
                 continue;
             }
-            InstanceComparator instanceComparator = new InstanceComparator(current, future);
-            instanceComparator.compare();
-            modified.add(instanceComparator);
+            MessengerPropertyComparator messengerPropertyComparator = new MessengerPropertyComparator(current, future);
+            messengerPropertyComparator.compare();
+            modified.add(messengerPropertyComparator);
         }
 
     }

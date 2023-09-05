@@ -32,6 +32,8 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     public static String KEY_MIGRATION_IDC = "drc.migration.idcs";
     public static String KEY_MIGRATION_BLACK_IPS = "drc.migration.black.ips";
     public static String KEY_REALTIME_META_INFO = "drc.realtime.meta.info";
+    public static String KEY_CHECK_APPLIER_PROPERTY = "check.applier.property";
+    public static String KEY_REFRESH_WHEN_CONSOLE_INVOKE = "refresh.when.console.invoke";
 
 
 
@@ -126,6 +128,16 @@ public class DefaultClusterManagerConfig extends AbstractZookeeperConfig impleme
     @Override
     public boolean getRealtimeMetaInfo() {
         return getBooleanProperty(KEY_REALTIME_META_INFO, false);
+    }
+
+    @Override
+    public boolean checkApplierProperty() {
+        return getBooleanProperty(KEY_CHECK_APPLIER_PROPERTY, false);
+    }
+
+    @Override
+    public boolean refreshWhenConsoleInvoke() {
+        return getBooleanProperty(KEY_REFRESH_WHEN_CONSOLE_INVOKE, false);
     }
 
     @Override

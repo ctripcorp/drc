@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.mq.DelayMessageConsumer;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.xpipe.api.cluster.LeaderAware;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +41,8 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
 
     private static final Logger logger = LoggerFactory.getLogger("delayMonitorLogger");
     
+    private volatile boolean isLeader = false;
+    
     @Override
     public void afterPropertiesSet() throws Exception {
         logger.info("[[monitor=delay]] mq consumer starting");
@@ -54,7 +57,7 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     public void monitorMessengerChange() {
         try {
-            Set<String> mhas = dbClusterSource.getAllMhaWithMessengerInLocalRegion();
+            Set<String> mhas = isLeader ? dbClusterSource.getAllMhaWithMessengerInLocalRegion() : Sets.newHashSet();
             consumer.mhasRefresh(mhas);
         } catch (Throwable t) {
             logger.error("[[monitor=delay]] monitorMessengerChange fail",t);
@@ -63,6 +66,7 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
 
     @Override
     public void isleader() {
+        isLeader = true;
         if ("on".equalsIgnoreCase(monitorProvider.getMqDelayMonitorSwitch())) {
             boolean b = consumer.resumeListen();
             logger.info("[[monitor=delay]] is leader,going to monitor messenger delayTime,result:{}",b);
@@ -71,6 +75,7 @@ public class MqDelayMonitorServer implements LeaderAware, InitializingBean {
     
     @Override
     public void notLeader() {
+        isLeader = false;
         boolean b = consumer.stopListen();
         logger.info("[[monitor=delay]] not leader,stop monitor messenger delayTime,result:{}",b);
     }

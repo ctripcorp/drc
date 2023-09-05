@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.container;
 
+import com.ctrip.framework.drc.applier.activity.event.ApplierDumpEventActivity;
 import com.ctrip.framework.drc.applier.mq.MqPositionResource;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSourceResource;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTableResource;
@@ -33,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * Nov 07, 2019
  */
 @Component
-public class ApplierServerContainer extends AbstractResourceManager implements ApplicationRunner{
+public class ApplierServerContainer extends AbstractResourceManager implements ApplicationRunner {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -49,9 +50,21 @@ public class ApplierServerContainer extends AbstractResourceManager implements A
         if (servers.containsKey(clusterKey)) {
             logger.info("applier servers contains {}", clusterKey);
             ApplierServerInCluster activeServer = servers.get(clusterKey);
-            if (activeServer.config.equals(config)) {
-                logger.info("old config equals new config: {}", config);
-                return false;
+            if (activeServer.config.equalsIgnoreProperties(config)) {
+                if (!activeServer.config.equalsProperties(config)) {
+                    ApplierServerInCluster server = servers.get(clusterKey);
+                    ApplierDumpEventActivity dumpEventActivity = server.getDumpEventActivity();
+                    if (dumpEventActivity != null) {
+                        dumpEventActivity.changeProperties(config);
+                        logger.info("new properties received, going to reconnect, old config: {}\n new config: {}", activeServer.config, config);
+                        return true;
+                    } else {
+                        logger.info("new properties received, dumpEventActivity is null");
+                    }
+                } else {
+                    logger.info("old config equals new config: {}", config);
+                    return false;
+                }
             } else {
                 logger.info("same cluster, new config received, going to stop & dispose old applier server: " +
                         "\n" + activeServer.config + "\n" + config);

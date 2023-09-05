@@ -26,37 +26,10 @@
             <MenuItem name="/v2/buildMessengerV2" to="/v2/buildMessengerV2">
               <span>Messenger配置</span>
             </MenuItem>
+            <MenuItem name="/v2/migration" to="/v2/migration">
+              <span>DB 搬迁任务</span>
+            </MenuItem>
           </Submenu>
-          <!--          <Submenu name="0">-->
-          <!--            <template slot="title">-->
-          <!--              <Icon type="ios-apps"></Icon>-->
-          <!--              集群管理-->
-          <!--            </template>-->
-          <!--            <MenuItem name="/clusters" to="/clusters">-->
-          <!--              <span>MHA集群</span>-->
-          <!--            </MenuItem>-->
-          <!--            <MenuItem name="/drcclusters" to="/drcclusters">-->
-          <!--              <span>DRC集群</span>-->
-          <!--            </MenuItem>-->
-          <!--            <MenuItem name="/deletedDrcClusters" to="/deletedDrcClusters">-->
-          <!--              <span>DRC回滚</span>-->
-          <!--            </MenuItem>-->
-          <!--            <MenuItem name="/apply" to="/apply">-->
-          <!--              <span>DAL集群</span>-->
-          <!--            </MenuItem>-->
-          <!--            &lt;!&ndash;            <MenuItem name="/access" to="/access">&ndash;&gt;-->
-          <!--            &lt;!&ndash;              <span>搭建DRC</span>&ndash;&gt;-->
-          <!--            &lt;!&ndash;            </MenuItem>&ndash;&gt;-->
-          <!--            <MenuItem name="/accessV2" to="/accessV2">-->
-          <!--              <span>DRC配置</span>-->
-          <!--            </MenuItem>-->
-          <!--            <MenuItem name="/messengers" to="/messengers">-->
-          <!--              <span>Messenger集群</span>-->
-          <!--            </MenuItem>-->
-          <!--            <MenuItem name="/buildMhaMessenger" to="/buildMhaMessenger">-->
-          <!--              <span>Messenger配置</span>-->
-          <!--            </MenuItem>-->
-          <!--          </Submenu>-->
           <Submenu name="1">
             <template slot="title">
               <Icon type="ios-analytics"></Icon>

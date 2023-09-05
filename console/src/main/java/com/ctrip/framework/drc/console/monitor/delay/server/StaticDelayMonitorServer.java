@@ -264,28 +264,23 @@ public class StaticDelayMonitorServer extends AbstractMySQLSlave implements MySQ
                     log(" CLOSE DEBUG, version" + '(' + formatter.format(System.currentTimeMillis()) + ')', DEBUG, null);
                     long curTime = System.currentTimeMillis();
 
-                    Iterator<Map.Entry<String, Long>> iterator = receiveTimeMap.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, Long> entry = iterator.next();
+                    for (Map.Entry<String, Long> entry : receiveTimeMap.entrySet()) {
                         String mhaName = entry.getKey();
                         if (!periodicalUpdateDbTask.getMhasRelated().contains(mhaName)) {
-                            UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
-                            DefaultReporterHolder.getInstance().removeHistogramDelay(unidirectionalEntity,config.getMeasurement());
-                            iterator.remove();
-                            logger.info("mha:{} -> mha:{} delayMonitor monitor remove ",mhaName,config.getDestMha());
                             continue;
                         }
                         Long receiveTime = entry.getValue();
                         long timeDiff = curTime - receiveTime;
-                        if(timeDiff > toleranceTime) {
+                        if (timeDiff > toleranceTime) {
                             UnidirectionalEntity unidirectionalEntity = getUnidirectionalEntity(mhaName);
-                            DefaultReporterHolder.getInstance().reportDelay(unidirectionalEntity, HUGE_VAL, config.getMeasurement());
+                            DefaultReporterHolder.getInstance()
+                                    .reportDelay(unidirectionalEntity, HUGE_VAL, config.getMeasurement());
                             DefaultEventMonitorHolder.getInstance().logEvent(
-                                    "DRC." + config.getMeasurement(), 
-                                    unidirectionalEntity.getMhaName()+'.'+ unidirectionalEntity.getDestMhaName());
-                            log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, " 
-                                    + "Last receive time : " + formatter.format(receiveTime)+ 
-                                    " and current time: " + formatter.format(curTime) + "," 
+                                    "DRC." + config.getMeasurement(),
+                                    unidirectionalEntity.getMhaName() + '.' + unidirectionalEntity.getDestMhaName());
+                            log("[Report huge] Console not receive timestamp for " + timeDiff + "ms, "
+                                    + "Last receive time : " + formatter.format(receiveTime) +
+                                    " and current time: " + formatter.format(curTime) + ","
                                     + " report a huge number to trigger the alert.", INFO, null);
                         }
                     }

@@ -3,6 +3,9 @@ package com.ctrip.framework.drc.console.controller.v2;
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.entity.BuTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dto.v2.MhaDelayInfoDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaMessengerDto;
+import com.ctrip.framework.drc.console.dto.v2.MhaReplicationDto;
 import com.ctrip.framework.drc.console.dto.v2.MqConfigDto;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
@@ -18,8 +21,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -158,6 +163,33 @@ public class MessengerControllerV2 {
         } catch (Exception e) {
             logger.error("[[tag=messenger]] fail in getMessengerExecutedGtid for mha: {} ", mhaName, e);
             return ApiResult.getSuccessInstance(null);
+        }
+    }
+
+    @GetMapping("delay")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaReplicationDto>> queryRelatedReplicationDelay(@RequestParam(name = "mhas") List<String> mhas,
+                                                                           @RequestParam(name = "dbs") List<String> dbs) {
+        if (CollectionUtils.isEmpty(mhas) || CollectionUtils.isEmpty(dbs)) {
+            return ApiResult.getSuccessInstance(Collections.emptyList());
+        }
+        try {
+            List<MhaMessengerDto> res = messengerService.getRelatedMhaMessenger(mhas, dbs);
+            List<MhaDelayInfoDto> mhaReplicationDelays = messengerService.getMhaMessengerDelays(res);
+            Map<String, MhaDelayInfoDto> delayMap = mhaReplicationDelays.stream().filter(Objects::nonNull).collect(Collectors.toMap(
+                            MhaDelayInfoDto::getSrcMha,
+                            Function.identity()
+                    )
+            );
+            res.forEach(e -> {
+                String key = e.getSrcMha().getName();
+                e.setDelayInfoDto(delayMap.get(key));
+            });
+            return ApiResult.getSuccessInstance(res);
+
+        } catch (Throwable e) {
+            logger.error("queryRelatedReplicationDelay error", e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }

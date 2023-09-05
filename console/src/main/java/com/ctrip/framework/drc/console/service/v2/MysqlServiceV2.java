@@ -18,6 +18,9 @@ public interface MysqlServiceV2 {
     // forward by mha
     String getMhaPurgedGtid(String mha);
 
+    // query (sourceMhaName) delay monitor info in (mha)
+    Long getDelayUpdateTime(String sourceMhaName, String mhaName);
+
     // route By mha
     Map<String, Object> preCheckMySqlConfig(String mha) ;
 
@@ -39,4 +42,6 @@ public interface MysqlServiceV2 {
     Set<String> getCommonColumnIn(String mhaName, String namespace, String name);
 
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
+
+    Long getCurrentTime(String mha);
 }

@@ -110,4 +110,24 @@ public class ApplierConfigDtoTest {
             config.setSkipEvent("true");
         });
     }
+
+    @Test
+    public void equalsIgnoreProperties() {
+        ApplierConfigDto oldConfig = new ApplierConfigDto();
+        setApplierConfigDto(oldConfig);
+        oldConfig.setIncludedDbs(null);
+        oldConfig.setRouteInfo(null);
+
+        ApplierConfigDto newConfig = new ApplierConfigDto();
+        setApplierConfigDto(newConfig);
+        newConfig.setIncludedDbs(null);
+        newConfig.setRouteInfo(null);
+        newConfig.setProperties("test_property");
+
+        boolean ret1 = oldConfig.equalsIgnoreProperties(newConfig);
+        Assert.assertTrue(ret1);
+
+        boolean ret2 = oldConfig.equalsProperties(newConfig);
+        Assert.assertFalse(ret2);
+    }
 }

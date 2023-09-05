@@ -1,8 +1,10 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.dto.MhaMachineDto;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
@@ -30,6 +32,8 @@ public class MhaControllerV2 {
     private MhaServiceV2 mhaServiceV2;
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
+    @Autowired
+    private DrcBuildServiceV2 drcBuildServiceV2;
 
     @GetMapping("replicator")
     public ApiResult<List<String>> getMhaReplicators(@RequestParam String mhaName) {
@@ -149,6 +153,18 @@ public class MhaControllerV2 {
             return ApiResult.getSuccessInstance(mhaServiceV2.getMhaDc(mhaName));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+    
+    @PostMapping("membersSync")
+    public ApiResult syncMhaMembersInfo(@RequestParam String mhaName) {
+        logger.info("[meta] syncMhaMembersInfo for  {}", mhaName);
+        try {
+            drcBuildServiceV2.syncMhaInfoFormDbaApi(mhaName);
+            return ApiResult.getSuccessInstance(null,"syncMhaMembersInfo success!");
+        } catch (Exception e) {
+            logger.error("[meta] syncMhaMembersInfo for {}", mhaName, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
 }
