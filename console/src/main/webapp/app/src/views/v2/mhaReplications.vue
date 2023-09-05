@@ -237,7 +237,7 @@ export default {
           }
         },
         {
-          title: '状态',
+          title: '同步延迟',
           key: 'status',
           width: 100,
           align: 'center',
