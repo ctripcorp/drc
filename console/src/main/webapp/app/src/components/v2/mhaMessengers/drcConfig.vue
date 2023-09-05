@@ -6,9 +6,12 @@
           <Input v-model="drc.mhaName" readonly placeholder="请输入集群名"/>
         </FormItem>
         <FormItem label="选择Replicator" prop="replicator">
-          <Select v-model="drc.replicators" multiple style="width: 200px" placeholder="选择集群Replicator">
-            <Option v-for="item in drc.replicatorList" :value="item" :key="item">{{ item }}</Option>
+          <Select v-model="drc.replicators" multiple style="width: 250px" placeholder="选择Replicator">
+            <Option v-for="item in drc.replicatorList" :value="item.ip" :key="item.ip">{{ item.ip }} —— {{ item.az}}
+            </Option>
           </Select>
+          &nbsp;
+          <Button type="success" @click="autoConfigReplicator">自动录入</Button>
         </FormItem>
         <FormItem label="选择Messenger" prop="messenger">
           <Select v-model="drc.messengers" multiple style="width: 250px" placeholder="选择集群Messenger">
@@ -170,6 +173,14 @@ export default {
     }
   },
   methods: {
+    autoConfigReplicator () {
+      this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=0' + '&selectedIps=' + this.drc.replicators)
+        .then(response => {
+          console.log(response.data)
+          this.drc.replicators = []
+          response.data.data.forEach(ip => this.drc.replicators.push(ip.ip))
+        })
+    },
     autoConfigMessenger () {
       this.axios.get('/api/drc/v2/resource/mha/auto?mhaName=' + this.drc.mhaName + '&type=1' + '&selectedIps=' + this.drc.messengers)
         .then(response => {
@@ -179,11 +190,10 @@ export default {
         })
     },
     getResources () {
-      this.axios.get('/api/drc/v2/mha/resources', { params: { mhaName: this.drc.mhaName, type: 0 } })
+      this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=0')
         .then(response => {
           console.log(response.data)
-          this.drc.replicatorList = []
-          response.data.data.forEach(ip => this.drc.replicatorList.push(ip))
+          this.drc.replicatorList = response.data.data
         })
       this.axios.get('/api/drc/v2/resource/mha/all?mhaName=' + this.drc.mhaName + '&type=1')
         .then(response => {

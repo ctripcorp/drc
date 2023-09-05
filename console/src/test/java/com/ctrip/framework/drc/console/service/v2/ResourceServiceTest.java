@@ -1,19 +1,19 @@
 package com.ctrip.framework.drc.console.service.v2;
 
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
+import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
 import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceServiceImpl;
+import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.PageReq;
 import com.google.common.collect.Lists;
@@ -50,6 +50,12 @@ public class ResourceServiceTest {
     private MhaTblV2Dao mhaTblV2Dao;
     @Mock
     private MessengerTblDao messengerTblDao;
+    @Mock
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Mock
+    private ApplierGroupTblV2Dao applierGroupTblDao;
+    @Mock
+    private MhaReplicationTblDao mhaReplicationTblDao;
     
     @Before
     public void setUp() {
@@ -196,6 +202,28 @@ public class ResourceServiceTest {
 
         List<ResourceView> result = resourceService.handOffResource(param);
         Assert.assertEquals(result.size(), getResourceTbls().size());
+    }
+
+    @Test
+    public void testQueryMhaByReplicator () throws Exception {
+        Mockito.when(replicatorTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getReplicatorTbls());
+        Mockito.when(replicatorGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getReplicatorGroupTbls());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
+
+        List<String> result = resourceService.queryMhaByReplicator(1L);
+        Assert.assertEquals(result.size(), getMhaTblV2s().size());
+    }
+
+    @Test
+    public void testQueryMhaReplicationByApplier () throws Exception {
+        Mockito.when(applierTblDao.queryByResourceIds(Mockito.anyList())).thenReturn(getApplierTblV2s());
+        Mockito.when(applierGroupTblDao.queryByIds(Mockito.anyList())).thenReturn(getApplierGroupTblV2s());
+        Mockito.when(mhaTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(getMhaTblV2s());
+        Mockito.when(mhaReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getMhaReplicationTbls());
+        Mockito.when(dcTblDao.queryAllExist()).thenReturn(getDcTbls());
+
+        List<MhaReplicationView> result = resourceService.queryMhaReplicationByApplier(1L);
+        Assert.assertEquals(result.size(), getMhaReplicationTbls().size());
     }
 
 }

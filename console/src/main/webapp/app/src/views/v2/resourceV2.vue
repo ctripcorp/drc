@@ -72,6 +72,22 @@
           <p>ip: "{{deleteResourceInfo.ip}}" ,tag: "{{deleteResourceInfo.tag}}" az: "{{deleteResourceInfo.az}}"</p>
           <p><span>部署实例数量: </span><span style="color: red;font-size: 20px">{{deleteResourceInfo.instanceNum}}</span></p>
         </Modal>
+        <Modal
+          v-model="showMha"
+          title="关联mha">
+          <List>
+            <ListItem v-for="item in mhaInfo" :value="item" :key="item">{{ item }}</ListItem>
+          </List>
+        </Modal>
+        <Modal
+          v-model="showMhaReplication"
+          title="关联mha复制链路">
+          <List>
+            <ListItem v-for="item in mhaReplicationInfo" :value="item" :key="item">
+              {{item.srcMhaName}}({{item.srcDcName}}) ==> {{item.dstMhaName}}({{item.dstDcName}})
+            </ListItem>
+          </List>
+        </Modal>
       </div>
     </Content>
   </base-component>
@@ -91,28 +107,65 @@ export default {
   data () {
     return {
       columns: [
+        // {
+        //   title: '类型',
+        //   key: 'type',
+        //   width: 80,
+        //   render: (h, params) => {
+        //     const row = params.row
+        //     const color = row.type === 1 ? '#19be6b' : '#2db7f5'
+        //     let text = 'none'
+        //     switch (row.type) {
+        //       case 0:
+        //         text = 'R'
+        //         break
+        //       case 1:
+        //         text = 'A'
+        //         break
+        //       default:
+        //         text = '无'
+        //         break
+        //     }
+        //     return h('Tag', {
+        //       props: {
+        //         color: color
+        //       }
+        //     }, text)
+        //   }
+        // },
         {
           title: '类型',
           key: 'type',
           width: 80,
           render: (h, params) => {
             const row = params.row
-            const color = row.type === 1 ? '#19be6b' : '#2db7f5'
             let text = 'none'
+            let type = 'error'
+            let disabled = false
             switch (row.type) {
               case 0:
                 text = 'R'
+                type = 'info'
                 break
               case 1:
                 text = 'A'
+                type = 'success'
                 break
               default:
                 text = '无'
+                disabled = true
                 break
             }
-            return h('Tag', {
+            return h('Button', {
               props: {
-                color: color
+                type: type,
+                size: 'small',
+                disabled: disabled
+              },
+              on: {
+                click: () => {
+                  this.showModal(row)
+                }
               }
             }, text)
           }
@@ -195,6 +248,10 @@ export default {
       regions: [],
       tagList: this.constant.tagList,
       deleteResourceModal: false,
+      showMha: false,
+      showMhaReplication: false,
+      mhaInfo: [],
+      mhaReplicationInfo: [],
       deleteResourceInfo: {
         resourceId: null,
         ip: '',
@@ -226,6 +283,13 @@ export default {
   },
   computed: {},
   methods: {
+    showModal (row) {
+      if (row.type === 0) {
+        this.getRelatedMha(row)
+      } else if (row.type === 1) {
+        this.getRelatedMhaReplication(row)
+      }
+    },
     getRegions () {
       this.axios.get('/api/drc/v2/meta/regions/all')
         .then(response => {
@@ -245,6 +309,26 @@ export default {
         }
       }
       this.getResources()
+    },
+    getRelatedMha (row) {
+      this.axios.get('/api/drc/v2/resource/mha?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.mhaInfo = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.showMha = true
+    },
+    getRelatedMhaReplication (row) {
+      this.axios.get('/api/drc/v2/resource/mhaReplication?resourceId=' + row.resourceId).then(res => {
+        if (res.data.status === 0) {
+          this.mhaReplicationInfo = res.data.data
+        } else {
+          this.$Message.warning('查询异常')
+        }
+      })
+      this.showMhaReplication = true
     },
     getResources () {
       const that = this
