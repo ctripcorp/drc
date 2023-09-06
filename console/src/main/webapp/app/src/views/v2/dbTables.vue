@@ -11,16 +11,19 @@
           dstDc: this.initInfo.dstDc,
           order: this.initInfo.order
         }
-      }">DRC配置V2</BreadcrumbItem>
-      <BreadcrumbItem >同步表</BreadcrumbItem>
+      }">DRC配置V2
+      </BreadcrumbItem>
+      <BreadcrumbItem>同步表</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
         <Col span="20">
-          <span style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
+          <span
+            style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加</Button>
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加
+          </Button>
         </Col>
       </Row>
       <Modal
@@ -42,13 +45,27 @@
         <template>
           <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border>
             <template slot-scope="{ row, index }" slot="action">
-              <Button type="success" size="small" style="margin-right: 5px" @click="goToShowConfig(row, index)">查看</Button>
-              <Button type="primary" size="small" style="margin-right: 5px" @click="goToUpdateConfig(row, index)">修改</Button>
-              <Button type="error" size="small" style="margin-right: 10px" @click="goToDeleteConfig(row, index)">删除</Button>
+              <Button type="success" size="small" style="margin-right: 5px" @click="goToShowConfig(row, index)">查看
+              </Button>
+              <Button type="primary" size="small" style="margin-right: 5px" @click="goToUpdateConfig(row, index)">修改
+              </Button>
+              <Button type="error" size="small" style="margin-right: 10px" @click="preDeleteDbReplication(row, index)">
+                删除
+              </Button>
             </template>
           </Table>
         </template>
       </div>
+      <Modal
+        v-model="deleteModal"
+        title="确认删除以下同步表"
+        @on-ok="deleteDbReplication"
+        @on-cancel="clearDeleteDbReplication">
+        <p>
+          <span>db: </span><span style="color: red;font-size: 16px">{{deleteDbReplicationInfo.dbName}}</span>
+          <span> ,table: </span><span style="color: red;font-size: 20px">{{deleteDbReplicationInfo.logicTableName}}</span>
+        </p>
+      </Modal>
     </Content>
   </base-component>
 </template>
@@ -66,6 +83,12 @@ export default {
         srcDc: '',
         dstDc: '',
         order: true
+      },
+      deleteModal: false,
+      deleteDbReplicationInfo: {
+        dbReplicationId: 0,
+        dbName: '',
+        logicTableName: ''
       },
       columns: [
         {
@@ -155,14 +178,28 @@ export default {
         }
       })
     },
-    goToDeleteConfig (row, index) {
-      // todo, json确认弹窗
-      console.log(row)
-      this.axios.delete('/api/drc/v2/config/dbReplication?dbReplicationId=' + row.dbReplicationId).then(response => {
-        if (response.data.status === 1) {
-          window.alert('删除失败!')
+    preDeleteDbReplication (row, index) {
+      this.deleteDbReplicationInfo = {
+        dbReplicationId: row.dbReplicationId,
+        dbName: row.dbName,
+        logicTableName: row.logicTableName
+      }
+      this.deleteModal = true
+    },
+    clearDeleteDbReplication (row, index) {
+      this.deleteDbReplicationInfo = {
+        dbReplicationId: 0,
+        dbName: '',
+        logicTableName: ''
+      }
+      this.deleteModal = false
+    },
+    deleteDbReplication () {
+      this.axios.delete('/api/drc/v2/config/dbReplication?dbReplicationId=' + this.deleteDbReplicationInfo.dbReplicationId).then(res => {
+        if (res.data.status === 1) {
+          this.$Message.warning('删除失败!' + res.data.message)
         } else {
-          window.alert('删除成功!')
+          this.$Message.success('删除成功!')
           this.getDbReplications()
         }
       })

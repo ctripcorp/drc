@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.resource;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
+import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 
 import java.sql.SQLException;
@@ -31,5 +32,9 @@ public interface ResourceService {
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
 
     List<ResourceView> handOffResource(ResourceSelectParam param) throws SQLException;
+
+    List<String> queryMhaByReplicator(long resourceId) throws Exception;
+
+    List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception;
     
 }

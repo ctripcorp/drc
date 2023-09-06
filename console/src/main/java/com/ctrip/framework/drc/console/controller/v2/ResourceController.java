@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.v2.resource.ResourceBuildParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
+import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -90,6 +91,24 @@ public class ResourceController {
         try {
             resourceService.recoverResource(resourceId);
             return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("mha")
+    public ApiResult<List<String>> queryMhaByReplicator(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryMhaByReplicator(resourceId));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
+    @GetMapping("mhaReplication")
+    public ApiResult<List<MhaReplicationView>> queryMhaReplicationByApplier(@RequestParam long resourceId) {
+        try {
+            return ApiResult.getSuccessInstance(resourceService.queryMhaReplicationByApplier(resourceId));
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }

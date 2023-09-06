@@ -232,6 +232,7 @@ public class MhaReplicationController {
                 String key = e.getSrcMha().getName() + "-" + e.getDstMha().getName();
                 e.setDelayInfoDto(delayMap.get(key));
             });
+            res.sort(Comparator.comparing(MhaReplicationDto::getSortPriority).reversed());
             return ApiResult.getSuccessInstance(res);
 
         } catch (Throwable e) {

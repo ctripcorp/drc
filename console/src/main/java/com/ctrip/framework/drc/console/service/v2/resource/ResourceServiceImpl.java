@@ -1,16 +1,14 @@
 package com.ctrip.framework.drc.console.service.v2.resource;
 
-import com.ctrip.framework.drc.console.dao.DcTblDao;
-import com.ctrip.framework.drc.console.dao.MessengerTblDao;
-import com.ctrip.framework.drc.console.dao.ReplicatorTblDao;
-import com.ctrip.framework.drc.console.dao.ResourceTblDao;
-import com.ctrip.framework.drc.console.dao.entity.DcTbl;
-import com.ctrip.framework.drc.console.dao.entity.MessengerTbl;
-import com.ctrip.framework.drc.console.dao.entity.ReplicatorTbl;
-import com.ctrip.framework.drc.console.dao.entity.ResourceTbl;
+import com.ctrip.framework.drc.console.dao.*;
+import com.ctrip.framework.drc.console.dao.entity.*;
+import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.framework.drc.console.dao.entity.v2.ApplierTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.ApplierTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
@@ -19,9 +17,11 @@ import com.ctrip.framework.drc.console.param.v2.resource.ResourceQueryParam;
 import com.ctrip.framework.drc.console.param.v2.resource.ResourceSelectParam;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.PreconditionUtils;
+import com.ctrip.framework.drc.console.vo.v2.MhaReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.ResourceView;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +30,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -54,6 +55,12 @@ public class ResourceServiceImpl implements ResourceService {
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
     private MessengerTblDao messengerTblDao;
+    @Autowired
+    private ReplicatorGroupTblDao replicatorGroupTblDao;
+    @Autowired
+    private ApplierGroupTblV2Dao applierGroupTblDao;
+    @Autowired
+    private MhaReplicationTblDao mhaReplicationTblDao;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -152,6 +159,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     public List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception {
         logger.info("getResourceView queryParam: {}", param);
+        if (StringUtils.isNotBlank(param.getRegion())) {
+            List<Long> dcIds = dcTblDao.queryByRegionName(param.getRegion()).stream().map(DcTbl::getId).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(dcIds)) {
+                return new ArrayList<>();
+            }
+            param.setDcIds(dcIds);
+        }
         List<ResourceTbl> resourceTbls = resourceTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(resourceTbls)) {
             return new ArrayList<>();
@@ -228,6 +242,57 @@ public class ResourceServiceImpl implements ResourceService {
         return resultViews;
     }
 
+    @Override
+    public List<String> queryMhaByReplicator(long resourceId) throws Exception {
+        List<ReplicatorTbl> replicators = replicatorTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+        if (CollectionUtils.isEmpty(replicators)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> replicatorGroupIds = replicators.stream().map(ReplicatorTbl::getRelicatorGroupId).distinct().collect(Collectors.toList());
+        List<ReplicatorGroupTbl> replicatorGroupTbls = replicatorGroupTblDao.queryByIds(replicatorGroupIds);
+        List<Long> mhaIds = replicatorGroupTbls.stream().map(ReplicatorGroupTbl::getMhaId).collect(Collectors.toList());
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
+        List<String> mhaNames = mhaTblV2s.stream().map(MhaTblV2::getMhaName).collect(Collectors.toList());
+        return mhaNames;
+    }
+
+    @Override
+    public List<MhaReplicationView> queryMhaReplicationByApplier(long resourceId) throws Exception {
+        List<ApplierTblV2> applierTblV2s = applierTblDao.queryByResourceIds(Lists.newArrayList(resourceId));
+        if (CollectionUtils.isEmpty(applierTblV2s)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> applierGroupIds = applierTblV2s.stream().map(ApplierTblV2::getApplierGroupId).distinct().collect(Collectors.toList());
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryByIds(applierGroupIds);
+        List<Long> mhaReplicationIds = applierGroupTblV2s.stream().map(ApplierGroupTblV2::getMhaReplicationId).collect(Collectors.toList());
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByIds(mhaReplicationIds);
+
+        List<Long> mhaIds = new ArrayList<>();
+        for (MhaReplicationTbl mhaReplicationTbl : mhaReplicationTbls) {
+            mhaIds.add(mhaReplicationTbl.getSrcMhaId());
+            mhaIds.add(mhaReplicationTbl.getDstMhaId());
+        }
+
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByIds(mhaIds);
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        Map<Long, MhaTblV2> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getId, Function.identity()));
+        Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
+
+        List<MhaReplicationView> views = mhaReplicationTbls.stream().map(mhaReplicationTbl -> {
+            MhaReplicationView view = new MhaReplicationView();
+            MhaTblV2 srcMha = mhaMap.get(mhaReplicationTbl.getSrcMhaId());
+            MhaTblV2 dstMha = mhaMap.get(mhaReplicationTbl.getDstMhaId());
+            view.setSrcMhaName(srcMha.getMhaName());
+            view.setSrcDcName(dcMap.get(srcMha.getDcId()));
+            view.setDstMhaName(dstMha.getMhaName());
+            view.setDstDcName(dcMap.get(dstMha.getDcId()));
+            return view;
+        }).collect(Collectors.toList());
+        return views;
+    }
+
     private void setResourceView(List<ResourceView> resultViews, List<ResourceView> resourceViews) {
         if (CollectionUtils.isEmpty(resultViews)) {
             resultViews.add(resourceViews.get(0));
@@ -272,6 +337,7 @@ public class ResourceServiceImpl implements ResourceService {
             target.setActive(source.getActive());
             target.setAz(source.getAz());
             target.setType(source.getType());
+            target.setTag(source.getTag());
             if (source.getType().equals(ModuleEnum.REPLICATOR.getCode())) {
                 target.setInstanceNum(replicatorMap.getOrDefault(source.getId(), 0L));
             } else if (source.getType().equals(ModuleEnum.APPLIER.getCode())) {

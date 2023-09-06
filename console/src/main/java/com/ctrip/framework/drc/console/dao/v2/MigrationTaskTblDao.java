@@ -30,7 +30,9 @@ public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
     public static final String OPERATOR = "operator";
     public static final String STATUS = "status";
     public static final String OLD_MHA = "old_mha";
+    public static final String OLD_MHA_DBA = "old_mha_dba";
     public static final String NEW_MHA = "new_mha";
+    public static final String NEW_MHA_DBA = "new_mha_dba";
 
     public MigrationTaskTblDao() throws SQLException {
         super(MigrationTaskTbl.class);
@@ -65,9 +67,9 @@ public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
         return client.count(sqlBuilder, new DalHints()).intValue();
     }
 
-    public List<MigrationTaskTbl> queryByOldMha(String oldMha) throws SQLException {
+    public List<MigrationTaskTbl> queryByOldMhaDBA(String oldMhaDBA) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.selectAll().and().equal(OLD_MHA, oldMha, Types.VARCHAR);
+        sqlBuilder.selectAll().and().equal(OLD_MHA_DBA, oldMhaDBA, Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
     }
     

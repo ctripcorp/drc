@@ -57,14 +57,14 @@ public class DbMigrationController {
         }
     }
 
-    @PutMapping("checkAndCreateTask")
+    @PutMapping("beforeDataMigration/checkAndCreateTask")
     public ApiResult dbMigrationCheckAndInit(@RequestBody DbMigrationParam dbMigrationParam) {
         try {
             Pair<String, Long> tipsAndTaskId = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
             if (tipsAndTaskId.getRight() == null) {
                 return ApiResult.getInstance(null,2,"no dbDrcRelated");
             } else {
-                return ApiResult.getInstance("taskInit success" + tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
+                return ApiResult.getInstance(tipsAndTaskId.getRight(),0,tipsAndTaskId.getLeft());
             }
         } catch (SQLException e) {
             logger.error("sql error in dbMigrationCheckAndInit", e);
@@ -75,7 +75,7 @@ public class DbMigrationController {
         }
     }
     
-    @PostMapping("preStart")
+    @PostMapping("afterDataMigration/preStart")
     public ApiResult preStartDbMigrationTask(@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.preStartDbMigrationTask(taskId)) {
@@ -92,7 +92,7 @@ public class DbMigrationController {
         }
     }
     
-    @PostMapping("start")
+    @PostMapping("beforeDalSwtich/start")
     public ApiResult startDbMigrationTask (@RequestParam(name = "taskId") Long taskId) {
         try {
             if (dbMigrationService.startDbMigrationTask(taskId)) {

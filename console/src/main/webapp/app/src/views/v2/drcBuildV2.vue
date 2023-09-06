@@ -80,10 +80,10 @@
             <Row>
               <Col span="12">
                 <Button @click="queryDstMhaMachineGtid">查询mha位点</Button>
-                <span v-if="hasTest1">
-                  <Icon :type="testSuccess1 ? 'ios-checkmark-circle' : 'ios-close-circle'"
-                        :color="testSuccess1 ? 'green' : 'red'"/>
-                    {{ testSuccess1 ? '查询实时位点成功' : '连接查询失败' }}
+                <span v-if="hasTest2">
+                  <Icon :type="testSuccess2 ? 'ios-checkmark-circle' : 'ios-close-circle'"
+                        :color="testSuccess2 ? 'green' : 'red'"/>
+                    {{ testSuccess2 ? '查询实时位点成功' : '连接查询失败' }}
                 </span>
               </Col>
               <Col span="12">
@@ -212,10 +212,6 @@ export default {
       testSuccess1: false,
       hasTest2: false,
       testSuccess2: false,
-      hasTest3: false,
-      testSuccess3: false,
-      hasTest4: false,
-      testSuccess4: false,
       reviewModal: false,
       resultModal: false,
       replicatorList: {

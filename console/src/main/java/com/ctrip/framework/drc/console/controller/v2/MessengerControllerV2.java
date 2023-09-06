@@ -38,9 +38,6 @@ public class MessengerControllerV2 {
     MessengerServiceV2 messengerService;
     @Autowired
     MetaInfoServiceV2 metaInfoServiceV2;
-    @Autowired
-    private DefaultConsoleConfig defaultConsoleConfig;
-
 
     @GetMapping("all")
     @SuppressWarnings("unchecked")
@@ -73,9 +70,6 @@ public class MessengerControllerV2 {
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> removeMessengerGroupInMha(@RequestParam String mhaName) {
         try {
-            if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-                return ApiResult.getFailInstance(false, "not allowed");
-            }
             logger.info("removeMessengerGroupInMha in mha:{}", mhaName);
             messengerService.removeMessengerGroup(mhaName);
             return ApiResult.getSuccessInstance(true);
@@ -128,9 +122,6 @@ public class MessengerControllerV2 {
     @SuppressWarnings("unchecked")
     public ApiResult<Boolean> submitConfig(@RequestBody MqConfigDto dto) {
         logger.info("[[tag=mqConfig]] record mqConfig:{}", dto);
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(null, "not allowed");
-        }
         try {
             if (dto.isInsertRequest()) {
                 messengerService.processAddMqConfig(dto);
@@ -148,9 +139,6 @@ public class MessengerControllerV2 {
     @SuppressWarnings("unchecked")
     public ApiResult<Void> deleteMqConfig(@RequestBody MqConfigDeleteRequestDto requestDto) {
         logger.info("deleteMqConfig: {}", requestDto);
-        if (defaultConsoleConfig.getNewDrcConfigSwitch().equals(DefaultConsoleConfig.SWITCH_OFF)) {
-            return ApiResult.getFailInstance(null, "not allowed");
-        }
         try {
             if (requestDto == null || CollectionUtils.isEmpty(requestDto.getDbReplicationIdList())
                     || StringUtils.isBlank(requestDto.getMhaName())) {

@@ -93,11 +93,11 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
-    // TODO 8.0 测试
-    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE JSON_EXTRACT(dest_ip, \"$.m\") = '%s'";
+    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = '%s';";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
+    private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
@@ -331,18 +331,13 @@ public class MySqlUtils {
         ReadResource readResource = null;
         for(TableSchemaName table : tables) {
             try {
-                String sql = String.format(GET_ALL_COLUMN_PREFIX, table.getSchema(),table.getName());
+                String sql = String.format(GET_ALL_COLUMN_SQL, table.getSchema(),table.getName());
                 GeneralSingleExecution execution = new GeneralSingleExecution(sql);
                 readResource = sqlOperatorWrapper.select(execution);
                 ResultSet rs = readResource.getResultSet();
-                int index = 1;
                 HashSet<String> columns = Sets.newHashSet();
-                if (rs.next()) {
-                    final String[] columnNames = rs.getString(1).split(",");
-                    for (String columnName : columnNames) {
-                        // column case insensitive
-                        columns.add(columnName.toLowerCase());
-                    }
+                while (rs.next()) {
+                    columns.add(rs.getString(1).toLowerCase());
                 }
                 table2ColumnsMap.put(table.getDirectSchemaTableName(),columns);
             } catch (Throwable t) {

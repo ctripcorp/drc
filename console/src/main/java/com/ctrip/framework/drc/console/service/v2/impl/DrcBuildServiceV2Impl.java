@@ -142,8 +142,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(String.format("srcDc: %s or dstDc: %s not exist", param.getSrcDc(), param.getDstDc()));
         }
 
-        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId);
-        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId);
+        MhaTblV2 srcMha = buildMhaTbl(param.getSrcMhaName(), srcDcTbl.getId(), buId, param.getSrcTag());
+        MhaTblV2 dstMha = buildMhaTbl(param.getDstMhaName(), dstDcTbl.getId(), buId, param.getDstTag());
 
         long srcMhaId = insertMha(srcMha);
         long dstMhaId = insertMha(dstMha);
@@ -162,7 +162,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.REQUEST_PARAM_INVALID, "dc not exist: " + param.getDc());
         }
 
-        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId);
+        MhaTblV2 mhaTbl = buildMhaTbl(param.getMhaName().trim(), dcTbl.getId(), buId, param.getTag());
         long mhaId = insertMha(mhaTbl);
 
         // messengerGroup
@@ -494,7 +494,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         String dcInDrc = dbaDc2DrcDcMap.getOrDefault(dcInDbaSystem.toLowerCase(),null);
         DcTbl dcTbl = dcTblDao.queryByDcName(dcInDrc);
-        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L);
+        MhaTblV2 mhaTblV2 = buildMhaTbl(mhaName, dcTbl.getId(), 1L, ResourceTagEnum.COMMON.getName());
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
@@ -1167,7 +1167,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return buTblDao.insertWithReturnId(buTbl);
     }
 
-    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId) {
+    private MhaTblV2 buildMhaTbl(String mhaName, long dcId, long buId, String tag) {
         String clusterName = mhaName + CLUSTER_NAME_SUFFIX;
         MhaTblV2 mhaTblV2 = new MhaTblV2();
         mhaTblV2.setMhaName(mhaName);
@@ -1178,6 +1178,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setClusterName(clusterName);
         mhaTblV2.setAppId(-1L);
         mhaTblV2.setDeleted(BooleanEnum.FALSE.getCode());
+        mhaTblV2.setTag(tag);
 
         mhaTblV2.setReadUser(monitorTableSourceProvider.getReadUserVal());
         mhaTblV2.setReadPassword(monitorTableSourceProvider.getReadPasswordVal());
@@ -1200,6 +1201,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         PreconditionUtils.checkNotNull(param);
         PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
+        PreconditionUtils.checkArgument(!param.getSrcMhaName().equals(param.getDstMhaName()), "srcMha and dstMha cannot be same!");
         PreconditionUtils.checkString(param.getBuName(), "buName requires not null!");
         PreconditionUtils.checkString(param.getSrcDc(), "srcDc requires not null!");
         PreconditionUtils.checkString(param.getDstDc(), "dstDcId requires not null!");

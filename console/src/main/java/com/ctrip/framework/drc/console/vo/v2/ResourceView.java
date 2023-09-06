@@ -13,6 +13,15 @@ public class ResourceView implements Comparable<ResourceView> {
     private String az;
     private Integer type;
     private Long instanceNum;
+    private String tag;
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
 
     public Integer getType() {
         return type;
