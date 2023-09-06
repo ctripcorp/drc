@@ -19,8 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -93,7 +96,7 @@ public class MySqlUtils {
     private static final String UNIQUE_KEY = "unique key";
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
-    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = '%s';";
+    private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
@@ -224,16 +227,17 @@ public class MySqlUtils {
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public static Long getDelayUpdateTime(Endpoint endpoint, String mha) {
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
-        String sql = String.format(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME, mha);
-        GeneralSingleExecution execution = new GeneralSingleExecution(sql);
-        try (ReadResource readResource = sqlOperatorWrapper.select(execution)) {
-            ResultSet rs = readResource.getResultSet();
-            if (rs.next()) {
-                String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
-                return dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime();
+        try (Connection connection = sqlOperatorWrapper.getDataSource().getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL)) {
+                statement.setString(1, mha);
+                ResultSet rs = statement.executeQuery();
+                if (rs.next()) {
+                    String datachangeLasttimeStr = rs.getString(DATACHANGE_LASTTIME_INDEX);
+                    return dateFormatThreadLocal.get().parse(datachangeLasttimeStr).getTime();
+                }
             }
-        } catch (Throwable e) {
-            logger.error("[[endpoint={}:{}]] getDelay({}) error: ", endpoint.getHost(), endpoint.getPort(), sql, e);
+        } catch (SQLException | ParseException e) {
+            logger.error("[[endpoint={}:{}]] getDelay({}) error: {}", endpoint.getHost(), endpoint.getPort(), mha, e);
             removeSqlOperator(endpoint);
         }
         return null;

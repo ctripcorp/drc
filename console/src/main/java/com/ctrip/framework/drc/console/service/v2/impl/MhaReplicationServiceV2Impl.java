@@ -51,7 +51,7 @@ public class MhaReplicationServiceV2Impl implements MhaReplicationServiceV2 {
 
     public static final int MAX_LOOP_COUNT = 20;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "mhaReplicationService");
+    private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(10, "mhaReplicationService");
 
     @Autowired
     private MysqlServiceV2 mysqlServiceV2;
