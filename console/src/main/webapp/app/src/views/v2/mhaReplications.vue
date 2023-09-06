@@ -69,23 +69,33 @@
                 <Card :padding=5>
                   <template #title>相关 MHA</template>
                   <Row :gutter=10>
-                    <Col span="10">
+                    <Col span="9">
                       <Input prefix="ios-search" v-model="relatedMha.name" placeholder="集群名↵"
                              @on-enter="getReplications">
                       </Input>
                     </Col>
-                    <Col span="7">
+                    <Col span="5">
                       <Select filterable prefix="ios-home" clearable v-model="relatedMha.buId" placeholder="部门"
                               @on-change="getReplications">
                         <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
                       </Select>
                     </Col>
-                    <Col span="7">
+                    <Col span="5">
                       <Select filterable prefix="ios-pin" clearable v-model="relatedMha.regionId"
                               placeholder="地域"
                               @on-change="getReplications">
                         <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
                             item.regionName
+                          }}
+                        </Option>
+                      </Select>
+                    </Col>
+                    <Col span="5">
+                      <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
+                              placeholder="状态"
+                              @on-change="getReplications">
+                        <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
+                            item.status
                           }}
                         </Option>
                       </Select>
@@ -377,11 +387,22 @@ export default {
       srcMha: {},
       dstMha: {},
       relatedMha: {},
+      drcStatus: null,
       preciseSearchMode: false,
       // get from backend
       replications: [],
       bus: [],
       regions: [],
+      drcStatusList: [
+        {
+          status: '未接入',
+          value: 0
+        },
+        {
+          status: '已接入',
+          value: 1
+        }
+      ],
       // for detail show
       replicationDetail: {
         show: false,
@@ -437,6 +458,7 @@ export default {
         buName: null,
         regionName: null
       }
+      this.drcStatus = null
       this.getReplications()
     },
     async getReplications () {
@@ -450,6 +472,7 @@ export default {
         params.dstMha = this.dstMha
       } else {
         params.relatedMha = this.relatedMha
+        params.drcStatus = this.drcStatus
       }
 
       const reqParam = this.flattenObj(params)

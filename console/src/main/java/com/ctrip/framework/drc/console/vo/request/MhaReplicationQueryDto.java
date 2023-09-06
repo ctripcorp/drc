@@ -9,6 +9,15 @@ public class MhaReplicationQueryDto extends PageReq implements Serializable {
     private MhaQueryDto srcMha;
     private MhaQueryDto dstMha;
     private MhaQueryDto relatedMha;
+    private Integer drcStatus;
+
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
 
     public MhaQueryDto getRelatedMha() {
         return relatedMha;

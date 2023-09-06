@@ -149,6 +149,7 @@ public class MhaReplicationController {
                 query.setRelatedMhaIdList(Lists.newArrayList(mhaTblV2Map.keySet()));
             }
 
+            query.setDrcStatus(queryDto.getDrcStatus());
             // query replication
             PageResult<MhaReplicationTbl> tblPageResult = mhaReplicationServiceV2.queryByPage(query);
             List<MhaReplicationTbl> data = tblPageResult.getData();
