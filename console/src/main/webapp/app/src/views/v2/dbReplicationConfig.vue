@@ -62,7 +62,8 @@
                 </div>
                 <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
                   <FormItem prop="dbName" label="库名" style="width: 350px">
-                    <Input type="text" v-model="commonInfo.dbName" placeholder="请输入库名（支持正则）"/>
+                    <Input type="text" v-model="commonInfo.dbName" :disabled=update placeholder="请输入库名（支持正则）"/>
+<!--                    <Input v-model="commonInfo.dbName" style="width:200px"  disabled/>-->
                   </FormItem>
                   <FormItem prop="tableName" label="表名" style="width: 350px">
                     <Input type="text" v-model="commonInfo.tableName" placeholder="请输入表名（支持正则）">
@@ -71,10 +72,10 @@
                   <FormItem>
                     <Row>
                       <Col span="10">
-                        <Button type="success" @click="checkMysqlTablesInSrcMha"  style="margin-left: 10px">校验</Button>
+                        <Button type="success" :loading="dataLoading" @click="checkMysqlTablesInSrcMha"  style="margin-left: 10px">校验</Button>
                       </Col>
                       <Col span="8">
-                        <Button type="primary" @click="submitConfig">保存</Button>
+                        <Button type="primary" :loading="dataLoading" @click="submitConfig">保存</Button>
                       </Col>
                     </Row>
                   </FormItem>
@@ -117,7 +118,8 @@ export default {
   data () {
     return {
       currentStep: 0,
-      update: 1,
+      dataLoading: false,
+      update: false,
       commonInfo: {
         srcMhaName: '',
         srcMhaId: 0,
@@ -200,28 +202,36 @@ export default {
         // insert
         this.submitConfig()
       } else {
-        // update
         this.submitConfig()
       }
     },
     submitConfig () {
       console.log(this.commonInfo)
+      this.dataLoading = true
       this.axios.post('/api/drc/v2/config/dbReplication', {
         srcMhaName: this.commonInfo.srcMhaName,
         dstMhaName: this.commonInfo.dstMhaName,
         dbName: this.commonInfo.dbName,
-        tableName: this.commonInfo.tableName
-      }).then(response => {
-        if (response.data.status === 1) {
-          alert('提交失败!')
+        tableName: this.commonInfo.tableName,
+        dbReplicationIds: this.commonInfo.dbReplicationIds
+      }).then(res => {
+        if (res.data.status === 1) {
+          // alert('提交失败!' + res.data.message)
+          this.$Message.error({
+            content: '提交失败! ' + res.data.message,
+            duration: 2
+          })
         } else {
-          this.commonInfo.dbReplicationIds = response.data.data
-          alert('提交成功！')
+          this.commonInfo.dbReplicationIds = res.data.data
+          this.$Message.success('提交成功！')
         }
       })
+      this.dataLoading = false
     },
     checkMysqlTablesInSrcMha () {
+      this.dataLoading = true
       this.checkMySqlTables(this.commonInfo.srcMhaName, this.commonInfo.dbName + '\\.' + this.commonInfo.tableName)
+      this.dataLoading = false
     },
     checkMySqlTables (mha, nameFilter) {
       console.log('nameFilter:' + nameFilter)
@@ -280,11 +290,12 @@ export default {
       dbName: this.$route.query.dbName,
       tableName: this.$route.query.tableName,
       dbReplicationId: this.$route.query.dbReplicationId,
-      dbReplicationIds: [],
+      dbReplicationIds: this.$route.query.dbReplicationIds,
       tableData: []
     }
+    this.update = this.$route.query.update
     // alert('ok')
-    this.commonInfo.dbReplicationIds.push(this.$route.query.dbReplicationId)
+    // this.commonInfo.dbReplicationIds.push(this.$route.query.dbReplicationId)
     // alert(this.commonInfo.dbReplicationIds)
     if (this.commonInfo.dbName !== '' && this.commonInfo.tableName !== '') {
       this.checkMysqlTablesInSrcMha()

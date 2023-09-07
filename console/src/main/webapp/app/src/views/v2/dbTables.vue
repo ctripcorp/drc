@@ -63,7 +63,8 @@
         @on-cancel="clearDeleteDbReplication">
         <p>
           <span>db: </span><span style="color: red;font-size: 16px">{{deleteDbReplicationInfo.dbName}}</span>
-          <span> ,table: </span><span style="color: red;font-size: 20px">{{deleteDbReplicationInfo.logicTableName}}</span>
+          <span> ,table: </span><span
+          style="color: red;font-size: 20px">{{deleteDbReplicationInfo.logicTableName}}</span>
         </p>
       </Modal>
     </Content>
@@ -174,7 +175,8 @@ export default {
           dbName: row.dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
-          update: 0
+          dbReplicationIds: [row.dbReplicationId],
+          update: true
         }
       })
     },

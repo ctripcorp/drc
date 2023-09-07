@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaDbMappingTblDao;
 import com.ctrip.framework.drc.console.service.v2.impl.MhaDbMappingServiceImpl;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,20 +49,18 @@ public class MhaDbMappingServiceTest {
     }
 
     @Test
-    public void testBuildMhaDbMappings() throws Exception{
+    public void testInitMhaDbMappings() throws Exception{
         List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
 
         Mockito.when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(new ArrayList<>());
-        List<String> result = mhaDbMappingService.buildMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1");
-        Assert.assertEquals(result.size(), 1);
-
-        Mockito.when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList("mha1", "mha2"));
-        result = mhaDbMappingService.buildMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1\\..*");
-        Assert.assertEquals(result.size(), 1);
+        Pair<List<String>, List<String>> result = mhaDbMappingService.initMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1");
+        Assert.assertEquals(result.getLeft().size(), 1);
+        Assert.assertEquals(result.getRight().size(), 1);
 
         Mockito.when(defaultConsoleConfig.getVpcMhaNames()).thenReturn(Lists.newArrayList("mha1"));
-        result = mhaDbMappingService.buildMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1\\..*");
-        Assert.assertEquals(result.size(), 1);
+        result = mhaDbMappingService.initMhaDbMappings(mhaTblV2s.get(0), mhaTblV2s.get(1), "db1\\..*");
+        Assert.assertEquals(result.getLeft().size(), 1);
+        Assert.assertEquals(result.getRight().size(), 1);
     }
 
     private static List<DbTbl> getDbTbls() {

@@ -22,6 +22,7 @@ import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
 import com.ctrip.framework.drc.core.entity.Drc;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,7 +98,7 @@ public class DrcBuildServiceV2Test {
     private DefaultConsoleConfig consoleConfig;
     @Mock
     private MessengerTblDao messengerTblDao;
-    
+
 
     @Before
     public void setUp() {
@@ -179,7 +180,9 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("srcMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
         Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("dstMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
 
-        Mockito.when(mhaDbMappingService.buildMhaDbMappings(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(Lists.newArrayList("db200"));
+        List<String> dbList = Lists.newArrayList("db200");
+        List<String> tableList = Lists.newArrayList("db200.table");
+        Mockito.when(mhaDbMappingService.initMhaDbMappings(Mockito.any(), Mockito.any(), Mockito.anyString())).thenReturn(Pair.of(dbList, tableList));
 
         Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(getMhaDbMappingTbls1());
         Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
@@ -315,17 +318,17 @@ public class DrcBuildServiceV2Test {
         param.setDc("dc");
         drcBuildServiceV2.buildMessengerMha(param);
     }
-    
+
 
     @Test
     public void testAutoConfigReplicatorsWithRealTimeGtid() throws Exception {
-        Mockito.when(replicatorGroupTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(MockEntityBuilder.buildReplicatorGroupTbl(1L,1L));
-        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(),Mockito.eq(0))).thenReturn(Lists.newArrayList());
+        Mockito.when(replicatorGroupTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(MockEntityBuilder.buildReplicatorGroupTbl(1L, 1L));
+        Mockito.when(replicatorTblDao.queryByRGroupIds(Mockito.anyList(), Mockito.eq(0))).thenReturn(Lists.newArrayList());
         List<ResourceView> resourceViews = MockEntityBuilder.buildResourceViews(2, ModuleEnum.REPLICATOR.getCode());
         Mockito.when(resourceService.autoConfigureResource(Mockito.any(ResourceSelectParam.class))).thenReturn(resourceViews);
         Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
         Mockito.when(metaInfoService.findAvailableApplierPort(Mockito.anyString())).thenReturn(8383);
-        Mockito.when(replicatorTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[] {1,1});
+        Mockito.when(replicatorTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigReplicatorsWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
 
@@ -336,24 +339,24 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mhaReplicationTblDao.update(Mockito.any(MhaReplicationTbl.class))).thenReturn(1);
         Mockito.when(resourceService.autoConfigureResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
-        Mockito.when(applierTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[] {1,1});
+        Mockito.when(applierTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         MhaTblV2 mha1 = MockEntityBuilder.buildMhaTblV2(1L, "mha1", 1L);
         MhaTblV2 mha2 = MockEntityBuilder.buildMhaTblV2(2L, "mha2", 2L);
         MhaReplicationTbl mhaReplicationTbl = MockEntityBuilder.buildMhaReplicationTbl(1L, mha1, mha2);
         ApplierGroupTblV2 applierGroupTblV2 = MockEntityBuilder.buildApplierGroupTbl(1L, mhaReplicationTbl);
-        drcBuildServiceV2.autoConfigAppliersWithRealTimeGtid(mhaReplicationTbl,applierGroupTblV2, mha1,mha2);
+        drcBuildServiceV2.autoConfigAppliersWithRealTimeGtid(mhaReplicationTbl, applierGroupTblV2, mha1, mha2);
     }
 
     @Test
     public void testAutoConfigMessengersWithRealTimeGtid() throws Exception {
         Mockito.when(mysqlServiceV2.getMhaExecutedGtid(Mockito.anyString())).thenReturn("gtid");
-        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(),Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L,1L));
+        Mockito.when(messengerGroupTblDao.queryByMhaId(Mockito.anyLong(), Mockito.eq(0))).thenReturn(MockEntityBuilder.buildMessengerGroupTbl(1L, 1L));
         Mockito.when(messengerGroupTblDao.update(Mockito.any(MessengerGroupTbl.class))).thenReturn(1);
         Mockito.when(resourceService.autoConfigureResource(Mockito.any(ResourceSelectParam.class))).thenReturn(MockEntityBuilder.buildResourceViews(2,
                 ModuleEnum.APPLIER.getCode()));
-        Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[] {1,1});
+        Mockito.when(messengerTblDao.batchInsert(Mockito.anyList())).thenReturn(new int[]{1, 1});
         drcBuildServiceV2.autoConfigMessengersWithRealTimeGtid(MockEntityBuilder.buildMhaTblV2());
     }
-    
-    
+
+
 }
