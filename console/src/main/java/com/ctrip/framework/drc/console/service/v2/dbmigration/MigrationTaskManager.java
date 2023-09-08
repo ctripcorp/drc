@@ -47,13 +47,13 @@ public class MigrationTaskManager extends AbstractLeaderAwareMonitor {
     @Override
     public void scheduledTask() throws Throwable {
         try {
-//            if (isRegionLeader && consoleConfig.isCenterRegion()) {
+            if (isRegionLeader && consoleConfig.isCenterRegion()) {
                 logger.info("[[tag=MigrationTaskManager]] start to check tasks in pre-starting");
                 List<MigrationTaskTbl> tasksInPreStarting = migrationTaskTblDao.queryByStatus(MigrationStatusEnum.PRE_STARTING.getStatus());
                 tasksPreStartCheck(tasksInPreStarting);
-//            } else {
-//                logger.info("[[migrate=preStartCheck]] not leader, do nothing");
-//            }
+            } else {
+                logger.info("[[migrate=preStartCheck]] not leader, do nothing");
+            }
         } catch (Exception e) {
             logger.error("[[migrate=preStartCheck]] error when check tasks in pre-starting", e);
         }

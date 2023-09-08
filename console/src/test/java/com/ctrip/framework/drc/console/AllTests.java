@@ -50,6 +50,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
 import com.ctrip.framework.drc.console.service.v2.impl.migrate.MetaCompareServiceImplTest;
@@ -169,6 +170,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         ResourceServiceTest.class,
         DbMigrationServiceImplTest.class,
         DbMigrationServiceTest.class,
+        MigrationTaskManagerTest.class,
 //
         // controller
         MetaControllerV2Test.class,
