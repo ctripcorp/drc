@@ -39,7 +39,7 @@
               <div slot="title">
                 <span>相关表</span>
               </div>
-              <Table stripe :columns="nameFilterCheck.columns" :data="dataWithPage" border></Table>
+              <Table stripe :columns="nameFilterCheck.columns" :data="dataWithPage" :loading="tableLoading"></Table>
               <div >
                 <Page
                   :transfer="true"
@@ -119,6 +119,7 @@ export default {
     return {
       currentStep: 0,
       dataLoading: false,
+      tableLoading: false,
       update: false,
       commonInfo: {
         srcMhaName: '',
@@ -238,28 +239,13 @@ export default {
       if (nameFilter == null) {
         nameFilter = ''
       }
-      this.$Spin.show({
-        render: (h) => {
-          return h('div', [
-            h('Icon', {
-              class: 'demo-spin-icon-load',
-              props: {
-                size: 18
-              }
-            }),
-            h('div', '检测中，请稍等...')
-          ])
-        }
-      })
-      setTimeout(() => {
-        this.$Spin.hide()
-      }, 80000)
+      this.tableLoading = true
       this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables?mha=' + mha +
         '&' + 'nameFilter=' + nameFilter)
         .then(response => {
           this.commonInfo.tableData = response.data.data
-          this.$Spin.hide()
         })
+      this.tableLoading = false
     },
     handleChangeSize (val) {
       this.size = val

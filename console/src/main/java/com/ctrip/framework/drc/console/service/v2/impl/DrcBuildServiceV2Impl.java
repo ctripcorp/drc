@@ -999,7 +999,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             List<String> existTableList = tableList.stream().filter(allTableList::contains).collect(Collectors.toList());
 
             if (!CollectionUtils.isEmpty(existTableList)) {
-                throw ConsoleExceptionUtils.message(String.format("tables: %s already exist", existTableList));
+                throw ConsoleExceptionUtils.message(String.format("tables: %s has already been configured", existTableList));
             }
         }
     }
@@ -1009,7 +1009,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         int size = dbReplicationTbls.size();
         for (int i = 0; i < size; i++) {
             DbReplicationTbl dbReplicationTbl = dbReplicationTbls.get(i);
-            long dbId = mhaDbMappingMap.get(dbReplicationTbl.getId());
+            long dbId = mhaDbMappingMap.get(dbReplicationTbl.getSrcMhaDbMappingId());
             String dbName = dbMap.get(dbId);
             String nameFilter = dbName + "\\." + dbReplicationTbl.getSrcLogicTableName();
             nameFilterBuilder.append(nameFilter);

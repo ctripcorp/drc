@@ -17,12 +17,16 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
-        <Col span="20">
+        <Col span="16">
           <span
             style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
         </Col>
         <Col span="2">
           <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加
+          </Button>
+        </Col>
+        <Col span="2">
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToUpdate()">修改
           </Button>
         </Col>
       </Row>
@@ -43,7 +47,8 @@
       </Modal>
       <div :style="{padding: '1px 1px',height: '100%'}">
         <template>
-          <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border>
+          <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border ref="multipleTable"
+                 @on-selection-change="changeSelection">
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="goToShowConfig(row, index)">查看
               </Button>
@@ -81,6 +86,7 @@ export default {
         srcMhaId: 0,
         dstMhaName: '',
         dbReplicationId: 0,
+        multiData: [],
         srcDc: '',
         dstDc: '',
         order: true
@@ -93,10 +99,15 @@ export default {
       },
       columns: [
         {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+        {
           title: '序号',
           width: 75,
           align: 'center',
-          fixed: 'left',
+          // fixed: 'left',
           render: (h, params) => {
             return h(
               'span',
@@ -135,6 +146,10 @@ export default {
     }
   },
   methods: {
+    changeSelection (val) {
+      this.initInfo.multiData = val
+      console.log(this.initInfo.multiData)
+    },
     getDbReplications () {
       this.axios.get('/api/drc/v2/config/dbReplication?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
         .then(response => {
@@ -162,6 +177,29 @@ export default {
     },
     goToShowConfig (row, index) {
       // todo 展示json
+    },
+    goToUpdate () {
+      // alert(this.initInfo.multiData[0].dbName + ':' + this.initInfo.multiData[0].logicTableName)
+      const multiData = this.initInfo.multiData
+      const row = multiData[0]
+      const dbReplicationIds = []
+      multiData.forEach(data => dbReplicationIds.push(data.dbReplicationId))
+      console.log(dbReplicationIds)
+      this.$router.push({
+        path: '/dbReplicationConfig',
+        query: {
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          srcDc: this.initInfo.srcDc,
+          dstDc: this.initInfo.dstDc,
+          order: this.initInfo.order,
+          dbName: row.dbName,
+          tableName: row.logicTableName,
+          dbReplicationId: row.dbReplicationId,
+          dbReplicationIds: dbReplicationIds,
+          update: true
+        }
+      })
     },
     goToUpdateConfig (row, index) {
       this.$router.push({
