@@ -152,6 +152,10 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         return  regionsInfo.get(region);
     }
     
+    public boolean isCenterRegion() {
+        return getCenterRegion().equals(getRegion());
+    }
+    
     public String getCenterRegionUrl() {
         Map<String, String> consoleRegionUrls = getConsoleRegionUrls();
         return consoleRegionUrls.get(getCenterRegion());

@@ -36,6 +36,7 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.time.LocalDateTime;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +122,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
     private static final String PUT_BASE_API_URL = "/api/meta/clusterchange/%s/?operator={operator}";
     private static final String POST_BASE_API_URL = "/api/meta/clusterchange/%s/?operator={operator}&dcId={dcId}";
+    private static final String OPERATE_LOG = "Operate: %s,Operator: %s,Time: %s";
+    private static final String SEMICOLON = ";";
 
     @Override
     public boolean abandonTask(Long taskId) throws SQLException {
@@ -137,10 +140,13 @@ public class DbMigrationServiceImpl implements DbMigrationService {
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public Pair<String,Long> dbMigrationCheckAndCreateTask(DbMigrationParam dbMigrationRequest) throws SQLException {
         // meta info check and init
+        logger.info("dbMigrationCheckAndCreateTask start, request: {}", JsonUtils.toJson(dbMigrationRequest));
         checkDbMigrationParam(dbMigrationRequest);
         List<MigrationTaskTbl> migrationTasks = migrationTaskTblDao.queryByOldMhaDBA(dbMigrationRequest.getOldMha().getName());
         MigrationTaskTbl sameTask = findSameTask(dbMigrationRequest, migrationTasks);
         if (sameTask != null) {
+            sameTask.setLog(sameTask.getLog() + SEMICOLON + String.format(OPERATE_LOG,"Repeat init task!", dbMigrationRequest.getOperator(), LocalDateTime.now()));
+            migrationTaskTblDao.update(sameTask);
             return Pair.of("Repeated task, status is " + sameTask.getStatus(), sameTask.getId());
         }
         checkDbRepeatedMigrationTask(dbMigrationRequest, migrationTasks);
@@ -210,6 +216,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         migrationTaskTbl.setNewMhaDba(dbMigrationRequest.getNewMha().getName());
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         migrationTaskTbl.setOperator(dbMigrationRequest.getOperator());
+        migrationTaskTbl.setLog(String.format(OPERATE_LOG,"Init task!",dbMigrationRequest.getOperator(),LocalDateTime.now()));
         Long taskId = migrationTaskTblDao.insertWithReturnId(migrationTaskTbl);
         tips.insert(0, "task init success! ");
         return Pair.of(tips.toString(), taskId);
@@ -275,8 +282,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         } catch (Exception e) {
             logger.warn("[[migration=exStarting,newMha={}]] task:{} pushConfigToCM fail!", newMhaTbl.getMhaName(),taskId,e);
         }
-        // todo optimize: migrationTaskManager schedule check replicator slave delay to update status
-        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
+        migrationTaskTbl.setStatus(MigrationStatusEnum.PRE_STARTING.getStatus());
+        migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,"PreStart task!",migrationTaskTbl.getOperator(),LocalDateTime.now()));
         migrationTaskTblDao.update(migrationTaskTbl);
         logger.info("[[migration=exStarting,newMha={}]] task:{} exStarting!", newMhaTbl.getMhaName(),taskId);
         return true;
@@ -346,6 +353,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         // update task status
         migrationTaskTbl.setStatus(MigrationStatusEnum.STARTING.getStatus());
+        migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,"Start task!",migrationTaskTbl.getOperator(),LocalDateTime.now()));
         migrationTaskTblDao.update(migrationTaskTbl);
         logger.info("[[migration=starting,newMha={}]] task:{} starting!", newMhaTbl.getMhaName(),taskId);
         return true;
@@ -649,6 +657,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         String status = rollBack ? MigrationStatusEnum.FAIL.getStatus() : MigrationStatusEnum.SUCCESS.getStatus();
         migrationTaskTbl.setStatus(status);
+        migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,rollBack ? "RollBack" : "Commit", migrationTaskTbl.getOperator(),LocalDateTime.now()));
         migrationTaskTblDao.update(migrationTaskTbl);
 
         String oldMhaName = migrationTaskTbl.getOldMha();
@@ -1021,6 +1030,11 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             Long mhaId = mhaMaterNode.getMhaId();
             mhaTblV2 = mhaTblV2Dao.queryByPk(mhaId);
             String newMhaNameInDrc = mhaTblV2.getMhaName();
+            if (mhaTblV2.getMonitorSwitch().equals(0)) {
+                mhaTblV2.setMonitorSwitch(1);
+                mhaTblV2Dao.update(mhaTblV2);
+                logger.info("mha:{} monitorSwitch is 0,update to 1", mhaTblV2.getMhaName());
+            }
             if (!newMhaNameInDrc.equals(mhaInfo.getName())) {
                 logger.warn("drcMha:{},dbRequestMha:{},mhaName not match....", newMhaNameInDrc, mhaInfo.getName());
             }
@@ -1072,6 +1086,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
             String targetStatus = allReady ? MigrationStatusEnum.READY_TO_SWITCH_DAL.getStatus() : MigrationStatusEnum.STARTING.getStatus();
             boolean needUpdate = !targetStatus.equals(currStatus);
             if (needUpdate) {
+                migrationTaskTbl.setLog(migrationTaskTbl.getLog() + SEMICOLON + String.format(OPERATE_LOG,
+                        "GetAndUpdateTaskStatus,res: " + targetStatus,migrationTaskTbl.getOperator(),LocalDateTime.now()));
                 migrationTaskTbl.setStatus(targetStatus);
                 migrationTaskTblDao.update(migrationTaskTbl);
             }

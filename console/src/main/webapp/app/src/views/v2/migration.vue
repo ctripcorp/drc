@@ -1,3 +1,12 @@
+<!--<style scoped>-->
+<!--.time{-->
+<!--  font-size: 14px;-->
+<!--  font-weight: bold;-->
+<!--}-->
+<!--.content{-->
+<!--  padding-left: 0;-->
+<!--}-->
+<!--</style>-->
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
@@ -40,6 +49,9 @@
             <Button type="success" size="small" style="margin-right: 5px" @click="getDetail(row, index)">
               查看
             </Button>
+            <Button type="info" size="small" @click="getHistoryLog(row, index)">
+              日志
+            </Button>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -60,6 +72,17 @@
           <Table stripe :loading="replicationDetail.mhaReplicationDataLoading" :columns="detailColumn" :data="replicationDetail.data" border></Table>
           <Divider orientation="left">相关 Messenger 延迟</Divider>
           <Table stripe :loading="replicationDetail.messengerDataLoading" :columns="messengerDetailColumn" :data="replicationDetail.messengerData" border></Table>
+        </Modal>
+        <Modal v-model="logDetail.show"  width="400px">
+          <Timeline>
+            <TimelineItem v-for="item in logDetail.splitLog" :key="item.time">
+              <span class="time" :style="{'font-size': '14px','font-weight': 'bold'}">{{item.time}}</span>
+              <br/>
+              <span class="content" :style="{'margin-left': '0px', 'margin-top': '0px'}">操作: {{item.operate}}</span>
+              <br/>
+              <span class="content" :style="{'margin-left': '0px', 'margin-top': '0px'}">操作人：{{item.operator}}</span>
+            </TimelineItem>
+          </Timeline>
         </Modal>
       </div>
     </Content>
@@ -315,6 +338,10 @@ export default {
         messengerDataLoading: false,
         messengerData: []
       },
+      logDetail: {
+        show: false,
+        splitLog: []
+      },
       dataLoading: true
     }
   },
@@ -442,6 +469,24 @@ export default {
       this.replicationDetail.row = row
       this.getMhaReplicationDetail(row)
       this.getMhaMessengerDetail(row)
+    },
+    getHistoryLog (row, index) {
+      this.parseLog(row)
+      this.logDetail.show = true
+    },
+    parseLog (row) {
+      this.logDetail.splitLog = []
+      const text = row.log // "Operate: %s,Operator: %s,Time: %s";
+      // const text = 'Operate: Init,Operator: phd,Time: 2019-11-26T13:57:57.440;Operate: Init1,Operator: phd,Time: 2019-11-26T13:57:57.440;Operate: Init2,Operator: phd,Time: 2019-11-26T13:57:57.440;Operate: Init3,Operator: phd,Time: 2019-11-26T13:57:57.440'
+      const myArray = text.split(';')
+      for (let i = 0; i < myArray.length; i++) {
+        const log = myArray[i].split(',')
+        const logObj = {}
+        logObj.operate = log[0].substring(9, log[0].length)
+        logObj.operator = log[1].substring(10, log[1].length)
+        logObj.time = log[2].substring(6, log[2].length)
+        this.logDetail.splitLog.push(logObj)
+      }
     },
     async getTaskStatus (row, index) {
       await this.axios.get('/api/drc/v2/migration/status', {

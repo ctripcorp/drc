@@ -538,6 +538,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         Long rGroupId = replicatorGroupTbl.getId();
         List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(rGroupId), BooleanEnum.FALSE.getCode());
         if (!CollectionUtils.isEmpty(replicatorTbls)) {
+            
             logger.warn("[[mha={}]] replicator exist,do nothing", mhaTbl.getMhaName());
         } else {
             ResourceSelectParam selectParam = new ResourceSelectParam();
