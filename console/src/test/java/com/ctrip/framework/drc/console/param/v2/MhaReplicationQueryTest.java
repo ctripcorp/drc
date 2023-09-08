@@ -1,18 +1,13 @@
 package com.ctrip.framework.drc.console.param.v2;
 
 import com.google.common.collect.Lists;
-
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
 
 public class MhaReplicationQueryTest {
     @Before
