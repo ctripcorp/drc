@@ -128,6 +128,32 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     }
 
     @Override
+    public void mhaInstancesChange(List<MachineTbl> machinesInDba, MhaTblV2 mhaTblV2) throws Exception {
+        String mhaName = mhaTblV2.getMhaName();
+        List<MachineTbl> machinesInMetaDb = machineTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+        // change targets
+        final List<MachineTbl> insertMachines = Lists.newArrayList();
+        final List<MachineTbl> updateMachines = Lists.newArrayList();
+        final List<MachineTbl> deleteMachines = Lists.newArrayList();
+        this.checkChange(machinesInDba, machinesInMetaDb, mhaTblV2, insertMachines, updateMachines, deleteMachines);
+
+        String type = "DRC.syncMhaFromDba";
+        if (!CollectionUtils.isEmpty(insertMachines)) {
+            this.beforeInsert(insertMachines, mhaTblV2);
+            int[] ints = machineTblDao.batchInsert(insertMachines);
+            loggingAction(mhaName, ints, "Insert", type);
+        }
+        if (!CollectionUtils.isEmpty(updateMachines)) {
+            int[] updates = machineTblDao.batchUpdate(updateMachines);
+            loggingAction(mhaName, updates, "Update", type);
+        }
+        if (!CollectionUtils.isEmpty(deleteMachines)) {
+            int[] deletes = machineTblDao.batchLogicalDelete(deleteMachines);
+            loggingAction(mhaName, deletes, "Delete", type);
+        }
+    }
+
+    @Override
     public ApiResult mhaMasterDbChange(String mhaName, String ip, int port) {
         try {
             MhaTblV2 mhaTblV2 = mhaTblV2Dao.queryByMhaName(mhaName);
@@ -177,6 +203,11 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
         DefaultEventMonitorHolder.getInstance().logEvent("DRC.syncMhaFromDal." + mha,action,affectRows);
     }
 
+    private void loggingAction(String mha, int[] effects, String action, String type) {
+        int affectRows = Arrays.stream(effects).sum();
+        DefaultEventMonitorHolder.getInstance().logEvent(String.join(type, mha), action, affectRows);
+    }
+
 
     private void beforeInsert(List<MachineTbl> insertMachines,MhaTblV2 mhaTblV2) throws Exception{
         String mhaName = mhaTblV2.getMhaName();
@@ -203,6 +234,16 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
         this.getInsertMachines(machinesInDal,machinesInMetaDb,insertMachines,mhaTblV2);
         this.getDeleteMachines(machinesInDal,machinesInMetaDb,deleteMachines,mhaTblV2);
         this.getUpdateMachines(machinesInDal,machinesInMetaDb,updateMachines,mhaTblV2);
+
+    }
+
+    @VisibleForTesting
+    protected void checkChange(final List<MachineTbl> machinesInDba, final List<MachineTbl> machinesInMetaDb,
+                               final MhaTblV2 mhaTblV2, final List<MachineTbl> insertMachines,
+                               final List<MachineTbl> updateMachines, final List<MachineTbl> deleteMachines) {
+        this.getInsertMachines(machinesInDba,machinesInMetaDb,insertMachines,mhaTblV2);
+        this.getDeleteMachines(machinesInDba,machinesInMetaDb,deleteMachines,mhaTblV2);
+        this.getUpdateMachines(machinesInDba,machinesInMetaDb,updateMachines,mhaTblV2);
 
     }
 

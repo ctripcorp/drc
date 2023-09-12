@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -49,10 +50,15 @@ public interface DrcBuildServiceV2 {
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
     
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
-    
+
+    void syncMhaDbInfoFormDbaApi(MhaTblV2 existMha) throws Exception;
+
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
-    
-    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl,ApplierGroupTblV2 applierGroup,MhaTblV2 srcMhaTbl,MhaTblV2 destMhaTbl) throws SQLException;
+
+
+    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException;
+
+    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
     
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 }

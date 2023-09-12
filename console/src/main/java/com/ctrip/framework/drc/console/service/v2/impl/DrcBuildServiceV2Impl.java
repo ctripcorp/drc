@@ -124,6 +124,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MachineTblDao machineTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DbMetaCorrectService dbMetaCorrectService;
     
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
@@ -509,6 +511,22 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
     }
+
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void syncMhaDbInfoFormDbaApi(MhaTblV2 existMha) throws Exception {
+        Long mhaId = existMha.getId();
+        String mhaName = existMha.getMhaName();
+
+        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
+        List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
+        List<MachineTbl> machineFromDba = memberlist.stream()
+                .map(memberInfo -> extractFrom(memberInfo, mhaId))
+                .collect(Collectors.toList());
+
+        dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
+    }
     
     private MachineTbl extractFrom(MemberInfo memberInfo,Long mhaId) {
         String serviceIp = memberInfo.getService_ip();
@@ -568,23 +586,41 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
+
+    @Override
+    public void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId(), BooleanEnum.FALSE.getCode());
+        if (mhaReplicationTbl == null) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, mha replication not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+        if(applierGroupTblV2 == null) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+        autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, updateGtidToRealTime);
+    }
+
     @Override
     public void autoConfigAppliersWithRealTimeGtid(
             MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, 
             MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
-        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
-        if (StringUtils.isBlank(mhaExecutedGtid)) {
-            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
-            throw new ConsoleException("getMhaExecutedGtid failed!");
-        }
-        applierGroup.setGtidInit(mhaExecutedGtid);
-        applierGroupTblDao.update(applierGroup);
-        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
+        autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, true);
+    }
 
+    private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+        if (updateGtidToRealTime) {
+            String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+            if (StringUtils.isBlank(mhaExecutedGtid)) {
+                logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+                throw new ConsoleException("getMhaExecutedGtid failed!");
+            }
+            applierGroup.setGtidInit(mhaExecutedGtid);
+            applierGroupTblDao.update(applierGroup);
+            logger.info("[[mha={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
+        }
         mhaReplicationTbl.setDrcStatus(1);
         mhaReplicationTblDao.update(mhaReplicationTbl);
-        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
-        
+        logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(destMhaTbl.getMhaName());

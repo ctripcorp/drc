@@ -29,6 +29,9 @@
             <MenuItem name="/v2/migration" to="/v2/migration">
               <span>DB 搬迁任务</span>
             </MenuItem>
+            <MenuItem name="/v2/dbDrcBuild" to="/v2/dbDrcBuild">
+              <span>DB维度配置</span>
+            </MenuItem>
           </Submenu>
           <Submenu name="1">
             <template slot="title">
