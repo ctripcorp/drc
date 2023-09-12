@@ -4,24 +4,12 @@ import java.util.List;
 
 /**
  * Created by dengquanliang
- * 2023/7/31 16:02
+ * 2023/9/6 14:42
  */
-public class DbReplicationBuildParam {
+public class DbReplicationUpdateParam {
     private List<Long> dbReplicationIds;
-    private String srcMhaName;
-    private String dstMhaName;
     private String dbName;
     private String tableName;
-
-    public DbReplicationBuildParam(String srcMhaName, String dstMhaName, String dbName, String tableName) {
-        this.srcMhaName = srcMhaName;
-        this.dstMhaName = dstMhaName;
-        this.dbName = dbName;
-        this.tableName = tableName;
-    }
-
-    public DbReplicationBuildParam() {
-    }
 
     public List<Long> getDbReplicationIds() {
         return dbReplicationIds;
@@ -29,22 +17,6 @@ public class DbReplicationBuildParam {
 
     public void setDbReplicationIds(List<Long> dbReplicationIds) {
         this.dbReplicationIds = dbReplicationIds;
-    }
-
-    public String getSrcMhaName() {
-        return srcMhaName;
-    }
-
-    public void setSrcMhaName(String srcMhaName) {
-        this.srcMhaName = srcMhaName;
-    }
-
-    public String getDstMhaName() {
-        return dstMhaName;
-    }
-
-    public void setDstMhaName(String dstMhaName) {
-        this.dstMhaName = dstMhaName;
     }
 
     public String getDbName() {
@@ -65,10 +37,8 @@ public class DbReplicationBuildParam {
 
     @Override
     public String toString() {
-        return "DbReplicationBuildParam{" +
+        return "DbReplicationUpdateParam{" +
                 "dbReplicationIds=" + dbReplicationIds +
-                ", srcMhaName='" + srcMhaName + '\'' +
-                ", dstMhaName='" + dstMhaName + '\'' +
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
                 '}';
