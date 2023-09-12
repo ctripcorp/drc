@@ -31,4 +31,13 @@ public class DbaDbClusterInfoResponseV2 {
     public void setSuccess(Boolean success) {
         this.success = success;
     }
+
+    @Override
+    public String toString() {
+        return "DbaDbClusterInfoResponseV2{" +
+                "message='" + message + '\'' +
+                ", data=" + data +
+                ", success=" + success +
+                '}';
+    }
 }

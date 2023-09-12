@@ -7,6 +7,11 @@ public class DbClusterInfoDto {
     private String dbName;
     private List<ClusterInfoDto> clusterList;
 
+    public DbClusterInfoDto(String dbName, List<ClusterInfoDto> clusterList) {
+        this.dbName = dbName;
+        this.clusterList = clusterList;
+    }
+
     public String getDbName() {
         return dbName;
     }

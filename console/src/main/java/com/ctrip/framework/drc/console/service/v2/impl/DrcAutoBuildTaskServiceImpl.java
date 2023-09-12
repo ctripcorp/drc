@@ -1,32 +1,39 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
-import com.ctrip.framework.drc.console.dao.*;
-import com.ctrip.framework.drc.console.dao.entity.DbTbl;
+import com.ctrip.framework.drc.console.dao.DbTblDao;
+import com.ctrip.framework.drc.console.dao.ReplicatorGroupTblDao;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
-import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dao.v2.ApplierGroupTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
+import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
-import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
-import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
-import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
+import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
+import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
+import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
+import com.ctrip.framework.drc.console.param.v2.DrcMhaBuildParam;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
-import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildTaskService;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
-import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -51,11 +54,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private MonitorTableSourceProvider monitorTableSourceProvider;
-    @Autowired
     private MetaInfoServiceV2 metaInfoService;
-    @Autowired
-    private MhaDbMappingService mhaDbMappingService;
     @Autowired
     private MhaTblV2Dao mhaTblDao;
     @Autowired
@@ -63,47 +62,13 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
     @Autowired
     private ReplicatorGroupTblDao replicatorGroupTblDao;
     @Autowired
-    private ReplicatorTblDao replicatorTblDao;
-    @Autowired
     private ApplierGroupTblV2Dao applierGroupTblDao;
-    @Autowired
-    private ApplierTblV2Dao applierTblDao;
-    @Autowired
-    private ResourceTblDao resourceTblDao;
     @Autowired
     private DbTblDao dbTblDao;
     @Autowired
-    private MhaDbMappingTblDao mhaDbMappingTblDao;
-    @Autowired
-    private DbReplicationTblDao dbReplicationTblDao;
-    @Autowired
-    private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
-    @Autowired
-    private ColumnsFilterTblV2Dao columnFilterTblV2Dao;
-    @Autowired
-    private RowsFilterTblV2Dao rowsFilterTblV2Dao;
-    @Autowired
-    private BuTblDao buTblDao;
-    @Autowired
-    private DcTblDao dcTblDao;
-    @Autowired
-    private CacheMetaService cacheMetaService;
-    @Autowired
-    private MessengerGroupTblDao messengerGroupTblDao;
-    @Autowired
-    private MessengerTblDao messengerTblDao;
-    @Autowired
-    private MetaProviderV2 metaProviderV2;
-    @Autowired
-    private MessengerServiceV2 messengerServiceV2;
-    @Autowired
     private MysqlServiceV2 mysqlServiceV2;
     @Autowired
-    private ResourceService resourceService;
-    @Autowired
     private DbaApiService dbaApiService;
-    @Autowired
-    private MachineTblDao machineTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
     @Autowired
@@ -111,15 +76,55 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
 
     @Override
-    public List<MhaReplicationPreviewDto> previewAutoBuildOptions(String dalClusterName, String srcRegionName, String dstRegionName) {
-        List<DbClusterInfoDto> databaseClusterInfoList = dbaApiService.getDatabaseClusterInfoList(dalClusterName);
+    public List<MhaReplicationPreviewDto> previewAutoBuildOptions(DrcAutoBuildReq req) {
+        List<DbClusterInfoDto> list = this.getDbClusterInfoDtos(req);
+        return getMhaReplicationPreviewDtos(req.getSrcRegionName(), req.getDstRegionName(), list);
+    }
 
+    @Override
+    public List<String> getRegionOptions(DrcAutoBuildReq req) {
+        List<DbClusterInfoDto> list = this.getDbClusterInfoDtos(req);
+        return getRegionNameOptions(list);
+    }
+
+    private List<DbClusterInfoDto> getDbClusterInfoDtos(DrcAutoBuildReq req) {
+        DrcAutoBuildReq.BuildMode modeEnum = req.getModeEnum();
+        List<DbClusterInfoDto> list;
+        if (modeEnum == DrcAutoBuildReq.BuildMode.SINGLE_DB_NAME) {
+            String dbName = req.getDbName();
+            List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(dbName);
+            list = Collections.singletonList(new DbClusterInfoDto(dbName, clusterInfoDtoList));
+        } else {
+            list = dbaApiService.getDatabaseClusterInfoList(req.getDalClusterName());
+        }
+        return list;
+    }
+
+    private List<String> getRegionNameOptions(List<DbClusterInfoDto> databaseClusterInfoList) {
+        Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
+        List<DcDo> dcDos = metaInfoService.queryAllDcWithCache();
+        Map<String, DcDo> dcMap = dcDos.stream().collect(Collectors.toMap(DcDo::getDcName, e -> e));
+
+        Set<String> regions = dcDos.stream().map(DcDo::getRegionName).collect(Collectors.toSet());
+        for (DbClusterInfoDto dbClusterInfoDto : databaseClusterInfoList) {
+            List<ClusterInfoDto> clusterList = dbClusterInfoDto.getClusterList();
+            Set<String> regionNames = Sets.newHashSet();
+            for (ClusterInfoDto clusterInfoDto : clusterList) {
+                String dcName = dbaDc2DrcDcMap.get(clusterInfoDto.getZoneId().toLowerCase());
+                DcDo dcDo = dcMap.get(dcName);
+                regionNames.add(dcDo.getRegionName());
+            }
+            regions.retainAll(regionNames);
+        }
+        return Lists.newArrayList(regions);
+    }
+
+    private List<MhaReplicationPreviewDto> getMhaReplicationPreviewDtos(String srcRegionName, String dstRegionName, List<DbClusterInfoDto> databaseClusterInfoList) {
         Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
         List<DcDo> dcDos = metaInfoService.queryAllDcWithCache();
         Map<String, DcDo> dcMap = dcDos.stream().collect(Collectors.toMap(DcDo::getDcName, e -> e));
 
         List<MhaReplicationPreviewDto> list = Lists.newArrayList();
-
         for (DbClusterInfoDto dbClusterInfoDto : databaseClusterInfoList) {
             String dbName = dbClusterInfoDto.getDbName();
             MhaReplicationPreviewDto mhaReplicationPreviewDto = new MhaReplicationPreviewDto();
@@ -138,12 +143,12 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
                 String regionName = dcDo.getRegionName();
 
                 if (srcRegionName.equals(regionName)) {
-                    MhaDto vo = buildMhaDto(clusterInfoDto, dcDo);
-                    srcOptionalList.add(vo);
+                    MhaDto dto = buildMhaDto(clusterInfoDto, dcDo);
+                    srcOptionalList.add(dto);
                 }
                 if (dstRegionName.equals(regionName)) {
-                    MhaDto vo = buildMhaDto(clusterInfoDto, dcDo);
-                    dstOptionalList.add(vo);
+                    MhaDto dto = buildMhaDto(clusterInfoDto, dcDo);
+                    dstOptionalList.add(dto);
                 }
             }
             list.add(mhaReplicationPreviewDto);
@@ -151,78 +156,112 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         return list;
     }
 
-    private static MhaDto buildMhaDto(ClusterInfoDto clusterInfoDto, DcDo dcDo) {
-        MhaDto mhaDto = new MhaDto();
-        mhaDto.setName(clusterInfoDto.getClusterName());
-        mhaDto.setDcId(dcDo.getDcId());
-        mhaDto.setDcName(dcDo.getDcName());
-        mhaDto.setRegionName(dcDo.getRegionName());
-        return mhaDto;
-    }
-
-
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoBuildDrc(DrcAutoBuildReq req) throws Exception {
         this.validateReq(req);
-
-        List<DrcAutoBuildParam> params;
-        boolean shardedBaseDb = this.isShardedBaseDb(req.getDbName());
-        if (shardedBaseDb) {
-            params = this.buildParamsFromBaseDb(req);
-        } else {
-            params = Collections.singletonList(this.buildParamFromSingleDb(req));
-        }
-
+        List<DrcAutoBuildParam> params = this.getDrcBuildParam(req);
+        logger.info("autoBuildDrc params: {}", params);
         for (DrcAutoBuildParam param : params) {
-            this.autoBuildDrcByDb(param);
+            this.autoBuildDrc(param);
         }
     }
 
-    private void validateReq(DrcAutoBuildReq req) throws SQLException {
-        if (StringUtils.isBlank(req.getBuName())) {
-            throw ConsoleExceptionUtils.message("buName is required");
-        }
-        if (StringUtils.isBlank(req.getDbName())) {
-            throw ConsoleExceptionUtils.message("dbName is required");
-        }
-        if (StringUtils.isBlank(req.getSrcMhaName())) {
-            throw ConsoleExceptionUtils.message("srcMhaName is required");
-        }
-        if (StringUtils.isBlank(req.getDstMhaName())) {
-            throw ConsoleExceptionUtils.message("dstMhaName is required");
-        }
-        if (req.getTblsFilterDetail() == null || StringUtils.isBlank(req.getTblsFilterDetail().getTableNames())) {
-            throw ConsoleExceptionUtils.message("tableFilter is required");
-        }
+    @Override
+    public List<DrcAutoBuildParam> getDrcBuildParam(DrcAutoBuildReq req) {
 
-        if (this.isShardedDb(req.getDbName())) {
-            throw ConsoleExceptionUtils.message("sharded db name not supported. enter base db instead");
-        }
-        DbTbl dbTbl = dbTblDao.queryByDbName(req.getDbName());
-        if (dbTbl == null) {
-            throw ConsoleExceptionUtils.message("db not found! ");
+        DrcAutoBuildReq.BuildMode modeEnum = req.getModeEnum();
+        if (modeEnum == DrcAutoBuildReq.BuildMode.DAL_CLUSTER_NAME) {
+            return this.buildParamFromDalCluster(req);
+        } else if (modeEnum == DrcAutoBuildReq.BuildMode.SINGLE_DB_NAME) {
+            return Collections.singletonList(this.buildParamFromSingleDb(req));
+        } else {
+            throw new IllegalArgumentException("req is not DrcAutoBuildByDalClusterNameReq or DrcAutoBuildBySingleDbNameReq");
         }
     }
 
-    private DrcAutoBuildParam buildParamFromSingleDb(DrcAutoBuildReq req) {
+    private void validateReq(DrcAutoBuildReq req) {
+        req.validAndTrim();
+        List<DcDo> dcDos = metaInfoService.queryAllDcWithCache();
+        Set<String> regionSet = dcDos.stream().map(DcDo::getRegionName).collect(Collectors.toSet());
+        if (req.getSrcRegionName().equals(req.getDstRegionName())) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_SAME_REGION_NOT_SUPPORTED);
+        }
+        if (!regionSet.contains(req.getSrcRegionName())) {
+            throw new IllegalArgumentException("srcRegionName is not in dcDos: " + req.getSrcRegionName());
+        }
+        if (!regionSet.contains(req.getDstRegionName())) {
+            throw new IllegalArgumentException("dstRegionName is not in dcDos: " + req.getDstRegionName());
+        }
+    }
+
+    public DrcAutoBuildParam buildParamFromSingleDb(DrcAutoBuildReq req) {
         List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(req.getDbName());
-        Set<String> mhaSet = clusterInfoDtoList.stream().map(ClusterInfoDto::getClusterName).collect(Collectors.toSet());
-        if (!mhaSet.contains(req.getSrcMhaName()) || !mhaSet.contains(req.getDstMhaName())) {
-            throw ConsoleExceptionUtils.message(String.format("mha not found: %s -> %s", req.getSrcMhaName(), req.getDstMhaName()));
-        }
 
-        String srcMhaName = req.getSrcMhaName();
-        String dstMhaName = req.getDstMhaName();
+        DbClusterInfoDto dbClusterInfoDto = new DbClusterInfoDto(req.getDbName(), clusterInfoDtoList);
+        List<MhaReplicationPreviewDto> mhaReplicationPreviewDtos = this.getMhaReplicationPreviewDtos(req.getSrcRegionName(), req.getDstRegionName(), Collections.singletonList(dbClusterInfoDto));
+        if (CollectionUtils.isEmpty(mhaReplicationPreviewDtos) || mhaReplicationPreviewDtos.size() != 1) {
+            throw new ConsoleException("unexpected mhaReplicationPreviewDtos: " + mhaReplicationPreviewDtos);
+        }
+        MhaReplicationPreviewDto previewDto = mhaReplicationPreviewDtos.get(0);
+        if (!previewDto.normalCase()) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_MULTI_MHA_OPTIONS_IN_SAME_REGION_NOT_SUPPORTED, this.buildErrorMessage(Collections.singletonList(previewDto)));
+        }
+        MhaDto srcMha = previewDto.getSrcMha();
+        MhaDto dstMha = previewDto.getDstMha();
+
         DrcAutoBuildParam drcAutoBuildParam = new DrcAutoBuildParam();
-        drcAutoBuildParam.setSrcMhaName(srcMhaName);
-        drcAutoBuildParam.setDstMhaName(dstMhaName);
+        drcAutoBuildParam.setSrcMhaName(srcMha.getName());
+        drcAutoBuildParam.setDstMhaName(dstMha.getName());
+        drcAutoBuildParam.setSrcDcName(srcMha.getDcName());
+        drcAutoBuildParam.setDstDcName(dstMha.getDcName());
         drcAutoBuildParam.setBuName(req.getBuName());
         drcAutoBuildParam.setDbName(Sets.newHashSet(req.getBuName()));
         drcAutoBuildParam.setTableFilter(req.getTblsFilterDetail().getTableNames());
-        drcAutoBuildParam.setSrcDcName(req.getSrcMhaName());
-        drcAutoBuildParam.setDstDcName(req.getDstMhaName());
         return drcAutoBuildParam;
+    }
+
+    public List<DrcAutoBuildParam> buildParamFromDalCluster(DrcAutoBuildReq req) {
+        List<MhaReplicationPreviewDto> mhaReplicationPreviewDtos = this.previewAutoBuildOptions(req);
+        List<MhaReplicationPreviewDto> multiMhaOptions = mhaReplicationPreviewDtos.stream().filter(e -> !e.normalCase()).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(multiMhaOptions)) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_MULTI_MHA_OPTIONS_IN_SAME_REGION_NOT_SUPPORTED, this.buildErrorMessage(multiMhaOptions));
+        }
+
+        List<DrcAutoBuildParam> list = new ArrayList<>();
+        // grouping by mha replication
+        Map<MultiKey, List<MhaReplicationPreviewDto>> map = mhaReplicationPreviewDtos.stream().collect(Collectors.groupingBy(e -> new MultiKey(e.getSrcMha().getName(), e.getDstMha().getName())));
+        for (List<MhaReplicationPreviewDto> replicationPreviewDtoList : map.values()) {
+            MhaDto srcMha = replicationPreviewDtoList.get(0).getSrcMha();
+            MhaDto dstMha = replicationPreviewDtoList.get(0).getDstMha();
+
+            Set<String> dbNames = replicationPreviewDtoList.stream().map(MhaReplicationPreviewDto::getDbName).collect(Collectors.toCollection(TreeSet::new));
+            DrcAutoBuildParam param = new DrcAutoBuildParam();
+            param.setSrcMhaName(srcMha.getName());
+            param.setDstMhaName(dstMha.getName());
+            param.setSrcDcName(srcMha.getDcName());
+            param.setDstDcName(dstMha.getDcName());
+            param.setDbName(dbNames);
+
+            param.setBuName(req.getBuName());
+            param.setTableFilter(req.getTblsFilterDetail().getTableNames());
+            param.setTag(null);
+            list.add(param);
+        }
+        return list;
+    }
+
+    private String buildErrorMessage(List<MhaReplicationPreviewDto> notValidDB) {
+        StringBuilder sb = new StringBuilder();
+        for (MhaReplicationPreviewDto previewDto : notValidDB) {
+            if (!CollectionUtils.isEmpty(previewDto.getSrcOptionalMha()) && previewDto.getSrcOptionalMha().size() > 2) {
+                sb.append("multi options: src mha: ").append(previewDto.getSrcOptionalMha()).append(" in region ").append(previewDto.getSrcRegionName());
+            }
+
+            if (!CollectionUtils.isEmpty(previewDto.getDstOptionalMha()) && previewDto.getDstOptionalMha().size() > 2) {
+                sb.append("multi options: src mha: ").append(previewDto.getDstOptionalMha()).append(" in region ").append(previewDto.getDstRegionName());
+            }
+        }
+        return sb.toString();
     }
 
     private Set<String> getMhaName(List<ClusterInfoDto> clusterInfoDtoList) {
@@ -242,16 +281,8 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         return regionToMhaMap;
     }
 
-    private List<DrcAutoBuildParam> buildParamsFromBaseDb(DrcAutoBuildReq req) {
-        return Collections.emptyList();
-    }
 
-    private boolean isShardedDb(String dbName) {
-        return false;
-    }
-
-
-    private void autoBuildDrcByDb(DrcAutoBuildParam param) throws Exception {
+    private void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
 
         String tag = !StringUtils.isBlank(param.getTag()) ? param.getTag() : this.getTagByBuName(param.getBuName());
 
@@ -284,6 +315,8 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         dbReplicationBuildParam.setDstMhaName(dstMhaTbl.getMhaName());
         dbReplicationBuildParam.setDbName("(" + String.join(",", param.getDbName()) + ")");
         dbReplicationBuildParam.setTableName(param.getTableFilter());
+        // todo by yongnian: 2023/9/13 check conflicts with exist
+        // todo by yongnian: 2023/9/13 test
         this.checkTableFilter(dbReplicationBuildParam);
         drcBuildService.configureDbReplications(dbReplicationBuildParam);
         // 3.2 filters
@@ -316,24 +349,17 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
     }
 
-    private DrcBuildBaseParam buildParam(MhaTblV2 mhaTblV2) throws SQLException {
-        DrcBuildBaseParam drcBuildBaseParam = new DrcBuildBaseParam();
-        drcBuildBaseParam.setMhaName(mhaTblV2.getClusterName());
-
-        drcBuildBaseParam.setReplicatorIps(Collections.emptyList());
-        drcBuildBaseParam.setApplierIps(Collections.emptyList());
-        drcBuildBaseParam.setReplicatorInitGtid(null);
-        drcBuildBaseParam.setApplierInitGtid(null);
-        return drcBuildBaseParam;
+    private static MhaDto buildMhaDto(ClusterInfoDto clusterInfoDto, DcDo dcDo) {
+        MhaDto mhaDto = new MhaDto();
+        mhaDto.setName(clusterInfoDto.getClusterName());
+        mhaDto.setDcId(dcDo.getDcId());
+        mhaDto.setDcName(dcDo.getDcName());
+        mhaDto.setRegionName(dcDo.getRegionName());
+        return mhaDto;
     }
 
     private String getTagByBuName(String buName) {
         Map<String, String> bu2TagMap = consoleConfig.getBu2TagMap();
         return bu2TagMap.getOrDefault(buName, ResourceTagEnum.COMMON.getName());
-    }
-
-
-    private boolean isShardedBaseDb(String dbName) {
-        return false;
     }
 }

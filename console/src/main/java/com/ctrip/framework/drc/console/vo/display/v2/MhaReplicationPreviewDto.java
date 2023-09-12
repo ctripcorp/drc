@@ -76,4 +76,15 @@ public class MhaReplicationPreviewDto {
     public void setDbName(String dbName) {
         this.dbName = dbName;
     }
+
+    @Override
+    public String toString() {
+        return "MhaReplicationPreviewDto{" +
+                "dbName='" + dbName + '\'' +
+                ", srcRegionName='" + srcRegionName + '\'' +
+                ", dstRegionName='" + dstRegionName + '\'' +
+                ", srcOptionalMha=" + srcOptionalMha +
+                ", dstOptionalMha=" + dstOptionalMha +
+                '}';
+    }
 }
