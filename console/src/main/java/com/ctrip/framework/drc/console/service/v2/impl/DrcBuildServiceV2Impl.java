@@ -39,9 +39,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
-
-import java.util.*;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -51,6 +48,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -123,7 +121,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MachineTblDao machineTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
-    
+
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
@@ -277,7 +275,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         String nameFilter = param.getDbName() + "\\." + param.getTableName();
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
-        checkExistDbReplication(srcMha, tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
+        checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
 
         dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
         dbReplicationTblDao.update(dbReplicationTbls);
@@ -527,7 +525,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException { 
+    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException {
         MhaTblV2 existMha = mhaTblDao.queryByMhaName(mhaName);
         if (existMha != null) {
             throw ConsoleExceptionUtils.message("mhaName already exist!");
@@ -542,18 +540,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
-        
+
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
             machinesToBeInsert.add(extractFrom(memberInfo,mhaId));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName,Arrays.stream(ints).sum());
-        
+
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
     }
-    
+
     @Override
     public void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
@@ -584,7 +582,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                     insertReplicators.add(replicatorTbl);
                 }
                 int[] ints = replicatorTblDao.batchInsert(insertReplicators);
-                logger.info("[[mha={}]] autoConfigReplicatorsWithRealTimeGtid ,excepted:{},actual:{}", 
+                logger.info("[[mha={}]] autoConfigReplicatorsWithRealTimeGtid ,excepted:{},actual:{}",
                         mhaTbl.getMhaName(), insertReplicators.size(), Arrays.stream(ints).sum());
             }
         }
@@ -592,7 +590,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     public void autoConfigAppliersWithRealTimeGtid(
-            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, 
+            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
             MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
         String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
         if (StringUtils.isBlank(mhaExecutedGtid)) {
@@ -606,7 +604,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaReplicationTbl.setDrcStatus(1);
         mhaReplicationTblDao.update(mhaReplicationTbl);
         logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
-        
+
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(destMhaTbl.getMhaName());
@@ -641,7 +639,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
         messengerGroupTblDao.update(messengerGroupTbl);
         logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
-        
+
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(mhaTbl.getMhaName());
@@ -662,7 +660,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             int[] ints = messengerTblDao.batchInsert(insertMessengers);
             logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
-        
+
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -973,15 +971,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             dbReplicationTbls.addAll(buildDbReplications(dbNames, dbMap, srcMhaDbMappingMap, dstMhaDbMappingMap, srcTableName));
         }
 
-        checkExistDbReplication(srcMha, tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
+        checkExistDbReplication(tableList, new ArrayList<>(), srcMhaDbMappings, dstMhaDbMappings);
 
         dbReplicationTblDao.batchInsertWithReturnId(dbReplicationTbls);
         logger.info("insertDbReplications size: {}, dbReplicationTbls: {}", dbReplicationTbls.size(), dbReplicationTbls);
         return dbReplicationTbls;
     }
 
-    private void checkExistDbReplication(MhaTblV2 srcMha,
-                                         List<String> tableList,
+    private void checkExistDbReplication(List<String> tableList,
                                          List<Long> excludeDbReplicationIds,
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
@@ -995,8 +992,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                 .collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(existDbReplications)) {   //check contain same table
             String allNameFilter = buildNameFilterByDbReplications(existDbReplications, srcDbMappingMap, srcDbMap);
-            List<String> allTableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), allNameFilter);
-            List<String> existTableList = tableList.stream().filter(allTableList::contains).collect(Collectors.toList());
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(allNameFilter);
+            List<String> existTableList = tableList.stream().filter(aviatorRegexFilter::filter).collect(Collectors.toList());
 
             if (!CollectionUtils.isEmpty(existTableList)) {
                 throw ConsoleExceptionUtils.message(String.format("tables: %s has already been configured", existTableList));
