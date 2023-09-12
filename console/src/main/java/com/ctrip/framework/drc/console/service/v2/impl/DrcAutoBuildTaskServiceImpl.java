@@ -6,21 +6,26 @@ import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.*;
+import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ResourceTagEnum;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.monitor.delay.config.v2.MetaProviderV2;
 import com.ctrip.framework.drc.console.param.v2.*;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.*;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.resource.ResourceService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -106,6 +111,57 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
 
     @Override
+    public List<MhaReplicationPreviewDto> previewAutoBuildOptions(String dalClusterName, String srcRegionName, String dstRegionName) {
+        List<DbClusterInfoDto> databaseClusterInfoList = dbaApiService.getDatabaseClusterInfoList(dalClusterName);
+
+        Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
+        List<DcDo> dcDos = metaInfoService.queryAllDcWithCache();
+        Map<String, DcDo> dcMap = dcDos.stream().collect(Collectors.toMap(DcDo::getDcName, e -> e));
+
+        List<MhaReplicationPreviewDto> list = Lists.newArrayList();
+
+        for (DbClusterInfoDto dbClusterInfoDto : databaseClusterInfoList) {
+            String dbName = dbClusterInfoDto.getDbName();
+            MhaReplicationPreviewDto mhaReplicationPreviewDto = new MhaReplicationPreviewDto();
+            mhaReplicationPreviewDto.setSrcRegionName(srcRegionName);
+            mhaReplicationPreviewDto.setDstRegionName(dstRegionName);
+            List<MhaDto> srcOptionalList = Lists.newArrayList();
+            List<MhaDto> dstOptionalList = Lists.newArrayList();
+            mhaReplicationPreviewDto.setSrcOptionalMha(srcOptionalList);
+            mhaReplicationPreviewDto.setDstOptionalMha(dstOptionalList);
+
+            mhaReplicationPreviewDto.setDbName(dbName);
+            List<ClusterInfoDto> clusterList = dbClusterInfoDto.getClusterList();
+            for (ClusterInfoDto clusterInfoDto : clusterList) {
+                String dcName = dbaDc2DrcDcMap.get(clusterInfoDto.getZoneId().toLowerCase());
+                DcDo dcDo = dcMap.get(dcName);
+                String regionName = dcDo.getRegionName();
+
+                if (srcRegionName.equals(regionName)) {
+                    MhaDto vo = buildMhaDto(clusterInfoDto, dcDo);
+                    srcOptionalList.add(vo);
+                }
+                if (dstRegionName.equals(regionName)) {
+                    MhaDto vo = buildMhaDto(clusterInfoDto, dcDo);
+                    dstOptionalList.add(vo);
+                }
+            }
+            list.add(mhaReplicationPreviewDto);
+        }
+        return list;
+    }
+
+    private static MhaDto buildMhaDto(ClusterInfoDto clusterInfoDto, DcDo dcDo) {
+        MhaDto mhaDto = new MhaDto();
+        mhaDto.setName(clusterInfoDto.getClusterName());
+        mhaDto.setDcId(dcDo.getDcId());
+        mhaDto.setDcName(dcDo.getDcName());
+        mhaDto.setRegionName(dcDo.getRegionName());
+        return mhaDto;
+    }
+
+
+    @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoBuildDrc(DrcAutoBuildReq req) throws Exception {
         this.validateReq(req);
@@ -131,10 +187,10 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
             throw ConsoleExceptionUtils.message("dbName is required");
         }
         if (StringUtils.isBlank(req.getSrcMhaName())) {
-            throw ConsoleExceptionUtils.message("srcRegionName is required");
+            throw ConsoleExceptionUtils.message("srcMhaName is required");
         }
         if (StringUtils.isBlank(req.getDstMhaName())) {
-            throw ConsoleExceptionUtils.message("dstRegionName is required");
+            throw ConsoleExceptionUtils.message("dstMhaName is required");
         }
         if (req.getTblsFilterDetail() == null || StringUtils.isBlank(req.getTblsFilterDetail().getTableNames())) {
             throw ConsoleExceptionUtils.message("tableFilter is required");
@@ -152,7 +208,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
     private DrcAutoBuildParam buildParamFromSingleDb(DrcAutoBuildReq req) {
         List<ClusterInfoDto> clusterInfoDtoList = dbaApiService.getDatabaseClusterInfo(req.getDbName());
         Set<String> mhaSet = clusterInfoDtoList.stream().map(ClusterInfoDto::getClusterName).collect(Collectors.toSet());
-        if(!mhaSet.contains(req.getSrcMhaName()) || !mhaSet.contains(req.getDstMhaName())) {
+        if (!mhaSet.contains(req.getSrcMhaName()) || !mhaSet.contains(req.getDstMhaName())) {
             throw ConsoleExceptionUtils.message(String.format("mha not found: %s -> %s", req.getSrcMhaName(), req.getDstMhaName()));
         }
 
@@ -169,7 +225,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         return drcAutoBuildParam;
     }
 
-    private Set<String> getMhaName(List<ClusterInfoDto> clusterInfoDtoList ){
+    private Set<String> getMhaName(List<ClusterInfoDto> clusterInfoDtoList) {
         return clusterInfoDtoList.stream().map(ClusterInfoDto::getClusterName).collect(Collectors.toSet());
     }
 

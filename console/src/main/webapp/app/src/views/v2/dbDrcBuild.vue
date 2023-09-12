@@ -5,60 +5,115 @@
       <BreadcrumbItem to="/v2/mhaReplications">建立 DRC 同步</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1'}">
-      <Form :model="formItem" :label-width="100">
-        <FormItem label="数据库" :required=true>
-          <Select
-            v-model="formItem.dbName"
-            filterable
-            allow-create
-            placeholder="请搜索数据库信息"
-            @on-change="selectDb"
-            :remote-method="getExistDb"
-            :loading="dataLoading">
-            <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index" >{{option.dbName}}</Option>
+      <Form :model="formItem" :label-width="100" style="margin-right: 100px;margin-top: 10px">
+        <FormItem label="配置模式" :required=true>
+          <Select clearable v-model="formItem.buildMode" placeholder="模式">
+            <Option :value=0>单DB配置</Option>
+            <Option :value=1>dalCluster维度配置</Option>
           </Select>
         </FormItem>
+        <div v-if="formItem.buildMode === 0">
+          <FormItem label="数据库" :required=true>
+            <Select
+              v-model="formItem.dbModeOption.dbName"
+              filterable
+              allow-create
+              placeholder="请搜索数据库信息"
+              @on-change="selectDb"
+              :remote-method="getExistDb"
+              :loading="dataLoading">
+              <Option v-for="(option, index) in meta.dbOptions" :value="option.dbName" :key="index">
+                {{ option.dbName }}
+              </Option>
+            </Select>
+          </FormItem>
+          <FormItem label="同步方向" :required=true>
+            <Row>
+              <Col span="8">
+                <Card :bordered="true">
+                  <template #title>
+                    <Icon type="ios-pin"/>
+                    源集群
+                  </template>
+                  <FormItem>
+                    <Select filterable clearable v-model="formItem.dbModeOption.srcMhaName" placeholder="地域">
+                      <Option v-for="mha in dbClusterInfoList" :value="mha.name" :key="mha.name" :label="mha.name">
+                        {{ mha.name }}
+                        <span style="float:right;color:#ccc"> {{ mha.regionName }} ({{ mha.dcName }})</span>
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </Card>
+              </Col>
+              <Col span="1" style="text-align: center">-></Col>
+              <Col span="8">
+                <Card :bordered="true">
+                  <template #title>
+                    <Icon type="ios-pin"/>
+                    目标集群
+                  </template>
+                  <FormItem>
+                    <Select filterable clearable v-model="formItem.dbModeOption.dstMhaName" placeholder="地域">
+                      <Option v-for="mha in dbClusterInfoList" :value="mha.name" :key="mha.name" :label="mha.name">
+                        {{ mha.name }}
+                        <span style="float:right;color:#ccc"> {{ mha.regionName }} ({{ mha.dcName }})</span>
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </Card>
+              </Col>
+            </Row>
+          </FormItem>
+        </div>
+        <div v-if="formItem.buildMode === 1">
+          <FormItem label="dalcluster" :required=true>
+            <Input v-model="formItem.dalClusterModeOption.dalClusterName" placeholder="请输入 dalCluster 名称" />
+          </FormItem>
+          <FormItem label="同步方向" :required=true>
+            <Row>
+              <Col span="8">
+                <Card :bordered="true">
+                  <template #title>
+                    <Icon type="ios-pin"/>
+                    源 region
+                  </template>
+                  <FormItem>
+                    <Select filterable clearable v-model="formItem.dalClusterModeOption.srcRegionName" placeholder="地域">
+                      <Option v-for="region in meta.dalClusterRegions" :value="region.regionName" :key="region.regionName" :label="region.regionName">
+                        {{ region.regionName }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </Card>
+              </Col>
+              <Col span="1" style="text-align: center">-></Col>
+              <Col span="8">
+                <Card :bordered="true">
+                  <template #title>
+                    <Icon type="ios-pin"/>
+                    目标 region
+                  </template>
+                  <FormItem>
+                    <Select filterable clearable v-model="formItem.dalClusterModeOption.dstRegionName" placeholder="地域">
+                      <Option v-for="region in meta.dalClusterRegions" :value="region.regionName" :key="region.regionName" :label="region.regionName">
+                        {{ region.regionName }}
+                      </Option>
+                    </Select>
+                  </FormItem>
+                </Card>
+              </Col>
+            </Row>
+          </FormItem>
+          <FormItem label="确认详情" :required=true>
+            <Table size="small" :loading="dataLoading" stripe :columns="formItem.dalClusterModeOption.columns" :data="previewDataList" border></Table>
+          </FormItem>
+        </div>
+        <!--        todo by yongnian: 同步表过滤使用选择       -->
         <FormItem label="业务部门" :required=true>
           <Select filterable prefix="ios-home" clearable v-model="formItem.buName" placeholder="部门">
             <Option v-for="item in meta.bus" :value="item.buName" :key="item.buName">{{ item.buName }}</Option>
           </Select>
         </FormItem>
-        <FormItem label="同步方向" :required=true>
-          <Row>
-            <Col span="8">
-              <Card :bordered="true">
-                <template #title>                  <Icon type="ios-pin"/>
-                  源集群</template>
-                <FormItem>
-                  <Select filterable clearable v-model="formItem.srcRegionName" placeholder="地域">
-                    <Option v-for="mha in dbClusterInfoList" :value="mha.name" :key="mha.name" :label="mha.name">
-                      {{ mha.name }}
-                      <span style="float:right;color:#ccc"> {{ mha.regionName }} ({{ mha.dcName }})</span>
-                    </Option>
-                  </Select>
-                </FormItem>
-              </Card>
-            </Col>
-            <Col span="1" style="text-align: center">-></Col>
-            <Col span="8">
-              <Card :bordered="true">
-                <template #title>
-                  <Icon type="ios-pin"/>
-                  目标集群
-                </template>
-                <FormItem>
-                  <Select filterable clearable v-model="formItem.dstRegionName" placeholder="地域">
-                    <Option v-for="mha in dbClusterInfoList" :value="mha.name" :key="mha.name" :label="mha.name">
-                      {{ mha.name }}
-                      <span style="float:right;color:#ccc"> {{ mha.regionName }} ({{ mha.dcName }})</span>
-                    </Option>
-                  </Select>
-                </FormItem>
-              </Card>
-            </Col>
-          </Row>
-        </FormItem>
-        <!--        todo by yongnian: 同步表过滤使用选择       -->
         <FormItem label="同步表" :required=true>
           <Input v-model="formItem.tableName" placeholder="请输入正则表达式"></Input>
         </FormItem>
@@ -126,7 +181,7 @@
         <FormItem>
           <Button type="primary" :loading="dataLoading" @click="submitAll">Submit</Button>
           <Button style="margin-left: 8px">Cancel</Button>
-          <Button style="margin-left: 8px" type="primary" :loading="dataLoading" @click="getDbInfo">getDbInfo</Button>
+          <Button style="margin-left: 8px" type="primary" :loading="dataLoading" @click="getDalInfo">getDalInfo</Button>
         </FormItem>
       </Form>
     </Content>
@@ -138,11 +193,65 @@ export default {
   data () {
     return {
       formItem: {
-        dbName: null,
+        buildMode: 1,
+        dbModeOption: {
+          dbName: null,
+          srcMhaName: null,
+          dstMhaName: null
+        },
+        dalClusterModeOption: {
+          dalClusterName: 'bbzaccountsshardbasedb_dalcluster',
+          srcRegionName: 'sha',
+          dstRegionName: 'sin',
+          columns: [
+            {
+              title: 'DB名',
+              key: 'dbName'
+            },
+            {
+              title: '源集群',
+              key: 'srcMhaName',
+              render: (h, params) => {
+                const row = params.row
+                const mha = row.srcMha
+                if (mha != null) {
+                  return h('div', [
+                    h('span', mha.name),
+                    h('span', {
+                      style:
+                        {
+                          float: 'right',
+                          color: '#ababab'
+                        }
+                    }, mha.regionName + '(' + mha.dcName + ')')
+                  ])
+                }
+              }
+            },
+            {
+              title: '目标集群',
+              key: 'dstMhaName',
+              render: (h, params) => {
+                const row = params.row
+                const mha = row.dstMha
+                if (mha != null) {
+                  return h('div', [
+                    h('span', mha.name),
+                    h('span', {
+                      style:
+                        {
+                          float: 'right',
+                          color: '#ababab'
+                        }
+                    }, mha.regionName + '(' + mha.dcName + ')')
+                  ])
+                }
+              }
+            }
+          ]
+        },
         buName: null,
         tableName: null,
-        srcRegionName: null,
-        dstRegionName: null,
         rowsFilterDetail: {
           mode: 'trip-uld',
           row: null
@@ -160,10 +269,12 @@ export default {
       meta: {
         bus: [],
         regions: [],
+        dalClusterRegions: [],
         dbOptions: [],
         selectedDb: {}
       },
       dbClusterInfoList: [],
+      previewDataList: [],
       dataLoading: false
     }
   },
@@ -178,17 +289,23 @@ export default {
       this.axios.get('/api/drc/v2/meta/regions/all')
         .then(response => {
           this.meta.regions = response.data.data
+          this.meta.dalClusterRegions = response.data.data
         })
     },
     getParams: function () {
-      const param = {
-        dbName: this.formItem.dbName,
-        buName: this.formItem.buName,
-        srcRegionName: this.formItem.srcRegionName,
-        dstRegionName: this.formItem.dstRegionName,
-        tblsFilterDetail: {
+      const param = {}
+      param.buName = this.formItem.buName
+      if (this.formItem.buildMode === 0) {
+        param.dbName = this.formItem.dbModeOption.dbName
+        param.srcMhaName = this.formItem.dbModeOption.srcMhaName
+        param.dstMhaName = this.formItem.dbModeOption.dstMhaName
+        param.tblsFilterDetail = {
           tableNames: this.formItem.tableName
         }
+      } else if (this.formItem.buildMode === 1) {
+        param.dalClusterName = this.formItem.dalClusterModeOption.dalClusterName
+        param.srcRegionName = this.formItem.dalClusterModeOption.srcRegionName
+        param.dstRegionName = this.formItem.dalClusterModeOption.dstRegionName
       }
       if (this.formItem.switch.rowsFilter) {
         param.rowsFilterDetail = this.formItem.rowsFilterDetail
@@ -221,7 +338,8 @@ export default {
         })
     },
     async selectDb () {
-      const dbName = this.formItem.dbName
+      const dbName = this.formItem.dbModeOption.dbName
+      console.log(dbName)
       this.meta.selectedDb = this.meta.dbOptions.filter((item) => item.dbName === dbName)[0]
       console.log('selected', this.meta.selectedDb)
       this.formItem.buName = this.meta.selectedDb.buCode
@@ -232,8 +350,8 @@ export default {
       const that = this
       that.dataLoading = true
       that.dbClusterInfoList = []
-      that.formItem.srcRegionName = null
-      that.formItem.dstRegionName = null
+      that.formItem.dbModeOption.srcMhaName = null
+      that.formItem.dbModeOption.dstMhaName = null
       const params = this.getParams()
       await that.axios.get('/api/drc/v2/autoconfig/getDbClusterInfo', {
         params: {
@@ -252,6 +370,35 @@ export default {
         })
         .catch(message => {
           that.$Message.error('查询DB异常: ' + message)
+        })
+        .finally(() => {
+          that.dataLoading = false
+        })
+    },
+    async getDalInfo () {
+      const that = this
+      that.dataLoading = true
+      that.previewDataList = []
+      const params = this.getParams()
+      await that.axios.get('/api/drc/v2/autoconfig/autoBuildDrcOptions', {
+        params: {
+          dalClusterName: params.dalClusterName,
+          srcRegionName: params.srcRegionName,
+          dstRegionName: params.dstRegionName
+        }
+      })
+        .then(response => {
+          const data = response.data.data
+          if (data) {
+            that.previewDataList = data
+            console.log('total: ' + that.previewDataList.length)
+            that.$Message.success('查询dalCluster成功, 共 ' + data.length + ' 个集群')
+          } else {
+            that.$Message.warning('查询dalCluster失败')
+          }
+        })
+        .catch(message => {
+          that.$Message.error('查询dalcluster异常: ' + message)
         })
         .finally(() => {
           that.dataLoading = false

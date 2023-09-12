@@ -10,8 +10,10 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -44,19 +47,6 @@ public class DbDrcBuildControllerV2 {
 
     @Autowired
     private MetaInfoServiceV2 metaInfoService;
-
-    @PostMapping("submit")
-    @SuppressWarnings("unchecked")
-    public ApiResult<Void> autoBuildAll(@RequestBody DrcAutoBuildReq req) {
-        logger.info("[meta] auto build drc, req: {}", req);
-        try {
-            drcAutoBuildTaskService.autoBuildDrc(req);
-            return ApiResult.getSuccessInstance(null);
-        } catch (Throwable e) {
-            logger.error("[meta] auto build drc, req {}", req, e);
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
 
 
     @GetMapping("getDbClusterInfo")
@@ -102,5 +92,45 @@ public class DbDrcBuildControllerV2 {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @PostMapping("submit")
+    @SuppressWarnings("unchecked")
+    public ApiResult<Void> autoBuildAll(@RequestBody DrcAutoBuildReq req) {
+        logger.info("[meta] auto build drc, req: {}", req);
+        try {
+            drcAutoBuildTaskService.autoBuildDrc(req);
+            return ApiResult.getSuccessInstance(null);
+        } catch (Throwable e) {
+            logger.error("[meta] auto build drc, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("autoBuildDrcOptions")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<MhaReplicationPreviewDto>> getAllDbClusterInfo(@RequestParam("dalClusterName") String dalClusterName,
+                                                                         @RequestParam("srcRegionName") String srcRegionName,
+                                                                         @RequestParam("dstRegionName") String dstRegionName) {
+        logger.info("[meta] getClusterInfo, dalClusterName: {}", dalClusterName);
+        try {
+            if (StringUtils.isEmpty(dalClusterName)) {
+                return ApiResult.getFailInstance(null, "dalClusterName is empty");
+            }
+            List<DcDo> dcDos = metaInfoService.queryAllDcWithCache();
+            Set<String> regionSet = dcDos.stream().map(DcDo::getRegionName).collect(Collectors.toSet());
+            if (!regionSet.contains(srcRegionName)) {
+                throw new IllegalArgumentException("srcRegionName is not in dcDos: " + srcRegionName);
+            }
+            if (!regionSet.contains(dstRegionName)) {
+                throw new IllegalArgumentException("dstRegionName is not in dcDos: " + dstRegionName);
+            }
+            List<MhaReplicationPreviewDto> list = drcAutoBuildTaskService.previewAutoBuildOptions(dalClusterName, srcRegionName, dstRegionName);
+            return ApiResult.getSuccessInstance(list);
+        } catch (Throwable e) {
+            logger.error("[meta] getClusterInfo, dbName {}", dalClusterName, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
 
 }

@@ -1,9 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.external.dba;
 
 import com.ctrip.framework.drc.console.config.DomainConfig;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaClusterInfoResponse;
-import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbaDbClusterInfoResponse;
+import com.ctrip.framework.drc.console.service.v2.external.dba.response.*;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
@@ -31,6 +29,7 @@ public class DbaApiServiceImpl implements DbaApiService {
     private static final String GET_CLUSTER_NODE_INFO = "/clusterapi/getmemberinfo";
     private static final String GET_DATABASE_CLUSTER_INFO = "/database/getdatabaseclusterinfo";
     private static final String GET_CLUSTER_NODE_INFO_CLOUD = "/clusterapi/getmemberinfo4cloud";
+    private static final String GET_DB_CLUSTER_NODE_INFO_CLOUD_V2 = "/todobyyongnian";
 
     @Autowired
     private DomainConfig domainConfig;
@@ -76,10 +75,34 @@ public class DbaApiServiceImpl implements DbaApiService {
         }
         if (CollectionUtils.isEmpty(response.getData())) {
             throw ConsoleExceptionUtils.message(dbName + " empty result ");
-
         }
 
         return response.getData();
+    }
 
+    @Override
+    public List<DbClusterInfoDto> getDatabaseClusterInfoList(String dalClusterName) {
+        LinkedHashMap<String, Object> requestBody = Maps.newLinkedHashMap();
+        requestBody.put("dalClusterName", dalClusterName);
+        String mysqlApiUrl = domainConfig.getMysqlApiUrl();
+
+        String responseString;
+        if (dalClusterName.equals("bbzaccountsshardbasedb_dalcluster")) {
+            // todo by yongnian: 2023/9/12 去掉
+            responseString = "{\"success\":true,\"message\":\"ok\",\"data\":[{\"dbName\":\"bbzaccountsshard01db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard02db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard03db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard04db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard05db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard06db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard07db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]},{\"dbName\":\"bbzaccountsshard08db\",\"clusterList\":[{\"clusterName\":\"bbzaccountsshard01os7new\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"SHAXY\",\"role\":\"master\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHARB\",\"role\":\"slave\",\"ipBusiness\":\"localhost\"},{\"instancePort\":55944,\"instanceZoneId\":\"SHA-ALI\",\"role\":\"slave-dr\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"SHAXY\"},{\"clusterName\":\"frabbzmembersaccountshard\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"fra-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"fra-aws\"},{\"clusterName\":\"sinbbzmemberpub\",\"nodes\":[{\"instancePort\":55944,\"instanceZoneId\":\"sin-aws\",\"role\":\"master\",\"ipBusiness\":\"localhost\"}],\"env\":\"pro\",\"zoneId\":\"sin-aws\"}]}]}";
+        } else {
+            responseString = HttpUtils.post(mysqlApiUrl + GET_DB_CLUSTER_NODE_INFO_CLOUD_V2, requestBody, String.class);
+        }
+        logger.info("req: {}, resp: {}", requestBody, responseString);
+
+        DbaDbClusterInfoResponseV2 response = JsonUtils.fromJson(responseString, DbaDbClusterInfoResponseV2.class);
+        if (response == null || !response.getSuccess()) {
+            throw ConsoleExceptionUtils.message(dalClusterName + " getDatabaseClusterInfoList failed! Response: " + response);
+        }
+        if (CollectionUtils.isEmpty(response.getData())) {
+            throw ConsoleExceptionUtils.message(dalClusterName + " empty result ");
+        }
+
+        return response.getData();
     }
 }

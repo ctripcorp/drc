@@ -3,12 +3,7 @@ package com.ctrip.framework.drc.console.service.v2.external.dba.response;
 
 import java.util.List;
 
-/**
- * @ClassName ClusterApiResponse
- * @Author haodongPan
- * @Date 2023/8/25 10:19
- * @Version: $
- */
+
 public class DbaDbClusterInfoResponse {
     private String message;
     private List<ClusterInfoDto> data;

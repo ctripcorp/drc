@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.core.service.dal.DalClusterTypeEnum;
 import com.ctrip.framework.drc.core.service.dal.DbClusterApiService;
 import com.ctrip.framework.drc.core.service.enums.InitDalGoalEnum;
 import com.ctrip.framework.drc.core.service.utils.JacksonUtils;
+import com.ctrip.framework.drc.service.console.dbcluster.DbInfoDetail;
 import com.ctrip.framework.drc.service.console.dbcluster.DbInfosResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.CollectionUtils;
 
 import static com.ctrip.framework.drc.core.service.utils.Constants.MHA_INSTANCES_GROUP_LIST;
 
@@ -127,18 +129,22 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
         }
         return result;
     }
-    
 
     @Override
     public String getDalClusterName(String dalClusterUrl, String dbName) {
-        String URL = dalClusterUrl + GET_DB_INFO_BY_DBS +  dbName ;
+        String URL = dalClusterUrl + GET_DB_INFO_BY_DBS + dbName;
         DbInfosResponse dbInfosResponse = HttpUtils.get(URL, DbInfosResponse.class, Maps.newHashMap());
-        if (dbInfosResponse.getStatus().equals(200)) {
-            return dbInfosResponse.getResult().get(0).getDbNameBase() + "_dalcluster";
-        } else {
-            logger.error("getDalClusterName for dbName: {},error",dbName);
+        if (!dbInfosResponse.getStatus().equals(200)) {
+            logger.error("getDalClusterName for dbName: {},error", dbName);
             throw new RuntimeException("fail getDalClusterName for" + dbName);
         }
+
+        List<DbInfoDetail> result = dbInfosResponse.getResult();
+        if (CollectionUtils.isEmpty(result)) {
+            throw new RuntimeException("fail(result empty) getDalClusterName for" + dbName);
+        }
+
+        return result.get(0).getDbNameBase() + "_dalcluster";
     }
 
     @Override
