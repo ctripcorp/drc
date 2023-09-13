@@ -229,6 +229,24 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception {
+        List<Long> dbReplicationIds = configureDbReplications(param);
+
+        RowsFilterCreateParam rowsFilterCreateParam = param.getRowsFilterCreateParam();
+        ColumnsFilterCreateParam columnsFilterCreateParam = param.getColumnsFilterCreateParam();
+        if (rowsFilterCreateParam != null) {
+            rowsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
+            buildRowsFilter(rowsFilterCreateParam);
+        }
+
+        if (columnsFilterCreateParam != null) {
+            columnsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
+            buildColumnsFilter(columnsFilterCreateParam);
+        }
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
         logger.info("configureDbReplications param: {}", param);
         checkDbReplicationBuildParam(param);

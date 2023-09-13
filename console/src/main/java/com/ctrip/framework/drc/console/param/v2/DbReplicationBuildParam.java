@@ -12,6 +12,8 @@ public class DbReplicationBuildParam {
     private String dstMhaName;
     private String dbName;
     private String tableName;
+    private RowsFilterCreateParam rowsFilterCreateParam;
+    private ColumnsFilterCreateParam columnsFilterCreateParam;
 
     public DbReplicationBuildParam(String srcMhaName, String dstMhaName, String dbName, String tableName) {
         this.srcMhaName = srcMhaName;
@@ -21,6 +23,22 @@ public class DbReplicationBuildParam {
     }
 
     public DbReplicationBuildParam() {
+    }
+
+    public RowsFilterCreateParam getRowsFilterCreateParam() {
+        return rowsFilterCreateParam;
+    }
+
+    public void setRowsFilterCreateParam(RowsFilterCreateParam rowsFilterCreateParam) {
+        this.rowsFilterCreateParam = rowsFilterCreateParam;
+    }
+
+    public ColumnsFilterCreateParam getColumnsFilterCreateParam() {
+        return columnsFilterCreateParam;
+    }
+
+    public void setColumnsFilterCreateParam(ColumnsFilterCreateParam columnsFilterCreateParam) {
+        this.columnsFilterCreateParam = columnsFilterCreateParam;
     }
 
     public List<Long> getDbReplicationIds() {

@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
-import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dto.MessengerMetaDto;
 import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
@@ -80,6 +79,16 @@ public class DrcBuildControllerV2 {
     public ApiResult<List<Long>> configureDbReplications(@RequestBody DbReplicationBuildParam param) {
         try {
             return ApiResult.getSuccessInstance(drcBuildServiceV2.configureDbReplications(param));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("dbReplications")
+    public ApiResult<Boolean> configureDbReplication(@RequestBody DbReplicationBuildParam param) {
+        try {
+            drcBuildServiceV2.buildDbReplicationConfig(param);
+            return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
