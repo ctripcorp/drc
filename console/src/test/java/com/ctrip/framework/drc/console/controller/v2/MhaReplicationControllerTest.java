@@ -156,4 +156,20 @@ public class MhaReplicationControllerTest {
         Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
     }
 
+    @Test
+    public void testQueryPageNormalInput2() throws Exception {
+        MvcResult relatedMhaId = mvc.perform(MockMvcRequestBuilders.get("/api/drc/v2/replication/query")
+                        .param("pageIndex", "1")
+                        .param("pageSize", "20")
+                        .param("relatedMha.name", "mha3")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+        ApiResult apiResult = JSON.parseObject(relatedMhaId.getResponse().getContentAsString(), ApiResult.class);
+        PageResult pageResult = ((JSONObject) apiResult.getData()).toJavaObject(PageResult.class);
+
+        Assert.assertEquals(0, pageResult.getData().size());
+        Assert.assertEquals(ResultCode.HANDLE_SUCCESS.getCode(), apiResult.getStatus().longValue());
+    }
+
 }

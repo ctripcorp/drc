@@ -3,12 +3,29 @@ package com.ctrip.framework.drc.console.vo.request;
 import com.ctrip.framework.drc.core.http.PageReq;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 
 public class MhaReplicationQueryDto extends PageReq implements Serializable {
     private MhaQueryDto srcMha;
     private MhaQueryDto dstMha;
+    private MhaQueryDto relatedMha;
+    private Integer drcStatus;
+
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
+
+    public MhaQueryDto getRelatedMha() {
+        return relatedMha;
+    }
+
+    public void setRelatedMha(MhaQueryDto relatedMha) {
+        this.relatedMha = relatedMha;
+    }
 
     public MhaQueryDto getSrcMha() {
         return srcMha;
@@ -31,20 +48,7 @@ public class MhaReplicationQueryDto extends PageReq implements Serializable {
         return "MhaReplicationQueryDto{" +
                 "srcMha=" + srcMha +
                 ", dstMha=" + dstMha +
+                ", relatedMha=" + relatedMha +
                 "} " + super.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MhaReplicationQueryDto)) return false;
-        if (!super.equals(o)) return false;
-        MhaReplicationQueryDto that = (MhaReplicationQueryDto) o;
-        return Objects.equals(srcMha, that.srcMha) && Objects.equals(dstMha, that.dstMha);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), srcMha, dstMha);
     }
 }
