@@ -208,6 +208,16 @@ const routes = [
     component: () => import('../views/v2/dbReplicationConfig.vue')
   },
   {
+    path: '/dbReplicationConfigV2',
+    name: 'dbReplicationConfigV2',
+    component: () => import('../views/v2/dbReplicationConfigV2.vue')
+  },
+  {
+    path: '/test',
+    name: 'test',
+    component: () => import('../views/v2/test.vue')
+  },
+  {
     path: '/v2/mqConfigs',
     name: 'v2/mqConfigs',
     component: () => import('../views/v2/drcConfig/mqConfigs.vue')

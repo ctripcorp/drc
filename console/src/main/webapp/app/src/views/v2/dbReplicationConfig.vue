@@ -61,11 +61,11 @@
                   <span>库表配置</span>
                 </div>
                 <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
-                  <FormItem prop="dbName" label="库名" style="width: 350px">
-                    <Input type="text" v-model="commonInfo.dbName" :disabled=update placeholder="请输入库名（支持正则）"/>
+                  <FormItem prop="dbName" label="库名" style="width: 400px">
+                    <Input type="text" v-model="commonInfo.dbName" :autosize="true" :disabled=update placeholder="请输入库名（支持正则）"/>
 <!--                    <Input v-model="commonInfo.dbName" style="width:200px"  disabled/>-->
                   </FormItem>
-                  <FormItem prop="tableName" label="表名" style="width: 350px">
+                  <FormItem prop="tableName" label="表名" style="width: 400px">
                     <Input type="text" v-model="commonInfo.tableName" placeholder="请输入表名（支持正则）">
                     </Input>
                   </FormItem>

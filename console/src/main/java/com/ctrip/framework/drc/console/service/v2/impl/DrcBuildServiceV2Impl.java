@@ -982,6 +982,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                                          List<Long> excludeDbReplicationIds,
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
+        if (CollectionUtils.isEmpty(tableList)) {
+            throw ConsoleExceptionUtils.message("cannot match any tables!");
+        }
+
         List<Long> srcDbIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> srcDbTbls = dbTblDao.queryByIds(srcDbIds);
         Map<Long, String> srcDbMap = srcDbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
@@ -1301,6 +1305,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void checkDrcMhaBuildParam(DrcMhaBuildParam param) {
+        param.getSrcMhaName().trim();
         PreconditionUtils.checkNotNull(param);
         PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");

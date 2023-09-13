@@ -22,11 +22,11 @@
             style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfigV2">添加
           </Button>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToUpdate()">修改
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToUpdate()">批量修改
           </Button>
         </Col>
       </Row>
@@ -67,9 +67,11 @@
         @on-ok="deleteDbReplication"
         @on-cancel="clearDeleteDbReplication">
         <p>
-          <span>db: </span><span style="color: red;font-size: 16px">{{deleteDbReplicationInfo.dbName}}</span>
-          <span> ,table: </span><span
-          style="color: red;font-size: 20px">{{deleteDbReplicationInfo.logicTableName}}</span>
+          <span>db: </span><span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.dbName}}</span>
+        </p>
+        <p>
+          <span>table: </span><span
+          style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.logicTableName}}</span>
         </p>
       </Modal>
     </Content>
@@ -160,33 +162,21 @@ export default {
           }
         })
     },
-    goTodbReplicationConfig () {
+    goTodbReplicationConfigV2 () {
       this.$router.push({
-        path: '/dbReplicationConfig',
+        path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
-          srcMhaId: this.initInfo.srcMhaId,
+          // srcMhaId: this.initInfo.srcMhaId,
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
-          dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
-          dbName: '',
-          tableName: ''
+          dstDc: this.initInfo.dstDc
         }
       })
     },
     goToShowConfig (row, index) {
-      // todo 展示json
-    },
-    goToUpdate () {
-      // alert(this.initInfo.multiData[0].dbName + ':' + this.initInfo.multiData[0].logicTableName)
-      const multiData = this.initInfo.multiData
-      const row = multiData[0]
-      const dbReplicationIds = []
-      multiData.forEach(data => dbReplicationIds.push(data.dbReplicationId))
-      console.log(dbReplicationIds)
       this.$router.push({
-        path: '/dbReplicationConfig',
+        path: '/test',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
           dstMhaName: this.initInfo.dstMhaName,
@@ -196,6 +186,41 @@ export default {
           dbName: row.dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
+          dbReplicationIds: [row.dbReplicationId],
+          update: true
+        }
+      })
+    },
+    goToUpdate () {
+      const multiData = this.initInfo.multiData
+      if (multiData === null || multiData.length === 0) {
+        this.$Message.warning('请选择')
+      }
+      const row = multiData[0]
+      const dbReplicationIds = []
+      multiData.forEach(data => dbReplicationIds.push(data.dbReplicationId))
+      let dbName = ''
+      if (multiData.length > 1) {
+        dbName = '(' + row.dbName
+        for (var i = 1; i < multiData.length; i++) {
+          dbName += '|' + multiData[i].dbName
+        }
+        dbName += ')'
+      } else {
+        dbName = row.dbName
+      }
+      console.log(dbReplicationIds)
+      this.$router.push({
+        path: '/dbReplicationConfigV2',
+        query: {
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          srcDc: this.initInfo.srcDc,
+          dstDc: this.initInfo.dstDc,
+          order: this.initInfo.order,
+          dbName: dbName,
+          tableName: row.logicTableName,
+          dbReplicationId: row.dbReplicationId,
           dbReplicationIds: dbReplicationIds,
           update: true
         }
@@ -203,7 +228,7 @@ export default {
     },
     goToUpdateConfig (row, index) {
       this.$router.push({
-        path: '/dbReplicationConfig',
+        path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
           dstMhaName: this.initInfo.dstMhaName,
