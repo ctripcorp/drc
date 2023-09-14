@@ -31,10 +31,11 @@ import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.collections.keyvalue.MultiKey;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -157,6 +158,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void autoBuildDrc(DrcAutoBuildReq req) throws Exception {
         this.validateReq(req);
         List<DrcAutoBuildParam> params = this.getDrcBuildParam(req);
@@ -229,7 +231,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
         List<DrcAutoBuildParam> list = new ArrayList<>();
         // grouping by mha replication
-        Map<MultiKey, List<MhaReplicationPreviewDto>> map = mhaReplicationPreviewDtos.stream().collect(Collectors.groupingBy(e -> new MultiKey(e.getSrcMha().getName(), e.getDstMha().getName())));
+        Map<Pair<String, String>, List<MhaReplicationPreviewDto>> map = mhaReplicationPreviewDtos.stream().collect(Collectors.groupingBy(e -> Pair.of(e.getSrcMha().getName(), e.getDstMha().getName())));
         for (List<MhaReplicationPreviewDto> replicationPreviewDtoList : map.values()) {
             MhaDto srcMha = replicationPreviewDtoList.get(0).getSrcMha();
             MhaDto dstMha = replicationPreviewDtoList.get(0).getDstMha();
@@ -289,7 +291,9 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         // 1.(if needed) build mha, mha replication
         DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), tag, tag);
         drcBuildService.buildMha(mhaBuildParam);
-
+        if (param.getSrcMhaName().equals(param.getDstMhaName())) {
+            throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_MHA_NOT_SUPPORTED, String.format("src: %s, dst: %s", param.getSrcMhaName(), param.getDstMhaName()));
+        }
         MhaTblV2 srcMhaTbl = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMhaTbl = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
 
