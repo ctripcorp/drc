@@ -134,7 +134,7 @@
           </FormItem>
         </Card>
         <FormItem label="字段过滤">
-          <i-switch v-model="formItem.switch.columnsFilter" size="large">
+          <i-switch v-model="formItem.switch.columnsFilter" :disabled="show" size="large">
             <template #open>
               <span>On</span>
             </template>
@@ -614,7 +614,8 @@ export default {
     }
     this.update = this.$route.query.update
     this.show = this.$route.query.show
-    if (this.commonInfo.dbName !== '' && this.commonInfo.tableName !== '') {
+    const queryMysqlTable = this.commonInfo.dbName !== undefined && this.commonInfo.tableName !== undefined
+    if (queryMysqlTable) {
       this.checkMysqlTablesInSrcMha()
     }
     console.log('commonInfo')

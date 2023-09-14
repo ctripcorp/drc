@@ -204,8 +204,8 @@ export default {
     },
     goToUpdate () {
       const multiData = this.initInfo.multiData
-      if (multiData === null || multiData.length === 0) {
-        this.$Message.warning('请选择')
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
       }
       const row = multiData[0]
       const dbReplicationIds = []
@@ -214,6 +214,10 @@ export default {
       if (multiData.length > 1) {
         dbName = '(' + row.dbName
         for (var i = 1; i < multiData.length; i++) {
+          if (multiData[i].logicTableName !== row.logicTableName) {
+            this.$Message.warning('表名不一样不能勾选')
+            return
+          }
           dbName += '|' + multiData[i].dbName
         }
         dbName += ')'
@@ -221,10 +225,6 @@ export default {
         dbName = row.dbName
       }
       console.log(dbReplicationIds)
-      const str = JSON.stringify(dbReplicationIds)
-      const dbReplicationIds1 = JSON.parse(str)
-      console.log('after:' + dbReplicationIds1)
-      console.log('dbName:' + dbName)
       this.$router.push({
         path: '/dbReplicationConfigV2',
         query: {

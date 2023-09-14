@@ -75,15 +75,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @PostMapping("dbReplication")
-    public ApiResult<List<Long>> configureDbReplications(@RequestBody DbReplicationBuildParam param) {
-        try {
-            return ApiResult.getSuccessInstance(drcBuildServiceV2.configureDbReplications(param));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(null, e.getMessage());
-        }
-    }
-
     @PostMapping("dbReplications")
     public ApiResult<Boolean> configureDbReplication(@RequestBody DbReplicationBuildParam param) {
         try {
@@ -132,16 +123,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @DeleteMapping("columnsFilter")
-    public ApiResult<Boolean> deleteColumnsFilter(@RequestBody List<Long> dbReplicationIds) {
-        try {
-            drcBuildServiceV2.deleteColumnsFilter(dbReplicationIds);
-            return ApiResult.getSuccessInstance(true);
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
     @GetMapping("rowsFilter")
     public ApiResult<RowsFilterConfigView> getRowsConfigView(@RequestParam long dbReplicationId) {
         try {
@@ -160,17 +141,6 @@ public class DrcBuildControllerV2 {
             return ApiResult.getFailInstance(false, e.getMessage());
         }
     }
-
-    @DeleteMapping("rowsFilter")
-    public ApiResult<Boolean> deleteRowsFilter(@RequestBody List<Long> dbReplicationIds) {
-        try {
-            drcBuildServiceV2.deleteRowsFilter(dbReplicationIds);
-            return ApiResult.getSuccessInstance(true);
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
 
     @PostMapping("messenger/submitConfig")
     public ApiResult<Void> submitConfig(@RequestBody MessengerMetaDto dto) {
