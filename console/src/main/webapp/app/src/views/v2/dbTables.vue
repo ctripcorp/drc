@@ -33,25 +33,14 @@
           </Button>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goToUpdate()">批量修改
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="batchUpdate()">批量修改
+          </Button>
+        </Col>
+        <Col span="2">
+          <Button style="margin-top: 10px;text-align: right" type="error" ghost @click="batchDelete()">批量删除
           </Button>
         </Col>
       </Row>
-      <Modal
-        v-model="display.showPropertiesJson"
-        title="Applier properties"
-        width="800px"
-      >
-        <json-viewer
-          :value="propertiesJson"
-          :expand-depth=5
-          copyable>
-          <template v-slot:copy="{copied}">
-            <span v-if="copied">复制成功</span>
-            <span v-else>复制</span>
-          </template>
-        </json-viewer>
-      </Modal>
       <div :style="{padding: '1px 1px',height: '100%'}">
         <template>
           <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border ref="multipleTable"
@@ -82,6 +71,24 @@
           style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.logicTableName}}</span>
         </p>
       </Modal>
+      <Modal
+        v-model="batchDeleteModal"
+        title="确认删除以下同步表"
+        width="1200px"
+        @on-ok="deleteDbReplication"
+        @on-cancel="clearDeleteDbReplication">
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <p>
+            <span>一共 </span><span
+            style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{this.deleteData.length}}</span>
+            <span> 行</span>
+          </p>
+          <template>
+            <Table style="margin-top: 20px" stripe :columns="deleteColumns" :data="deleteData" border>
+            </Table>
+          </template>
+        </div>
+      </Modal>
     </Content>
   </base-component>
 </template>
@@ -103,11 +110,13 @@ export default {
         order: true
       },
       deleteModal: false,
+      batchDeleteModal: false,
       deleteDbReplicationInfo: {
         dbReplicationId: 0,
         dbName: '',
         logicTableName: ''
       },
+      deleteData: [],
       columns: [
         {
           type: 'selection',
@@ -146,9 +155,28 @@ export default {
           fixed: 'right'
         }
       ],
-      display: {
-        showPropertiesJson: false
-      },
+      deleteColumns: [
+        {
+          title: '序号',
+          width: 75,
+          align: 'center',
+          // fixed: 'left',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
+        },
+        {
+          title: '库名',
+          key: 'dbName'
+        },
+        {
+          title: '表名',
+          key: 'logicTableName'
+        }
+      ],
       propertiesJson: {},
       tableData: [],
       total: 0,
@@ -202,7 +230,11 @@ export default {
         }
       })
     },
-    goToUpdate () {
+    batchDelete () {
+      this.batchDeleteModal = true
+      this.deleteData = this.initInfo.multiData
+    },
+    batchUpdate () {
       const multiData = this.initInfo.multiData
       if (multiData === undefined || multiData === null || multiData.length === 0) {
         this.$Message.warning('请勾选！')
@@ -236,7 +268,8 @@ export default {
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
           dbReplicationIds: JSON.stringify(dbReplicationIds),
-          update: true
+          update: true,
+          batchUpdate: true
         }
       })
     },
@@ -260,12 +293,15 @@ export default {
       })
     },
     preDeleteDbReplication (row, index) {
-      this.deleteDbReplicationInfo = {
-        dbReplicationId: row.dbReplicationId,
-        dbName: row.dbName,
-        logicTableName: row.logicTableName
-      }
-      this.deleteModal = true
+      this.deleteData = []
+      this.deleteData.push(row)
+      this.batchDeleteModal = true
+      // this.deleteDbReplicationInfo = {
+      //   dbReplicationId: row.dbReplicationId,
+      //   dbName: row.dbName,
+      //   logicTableName: row.logicTableName
+      // }
+      // this.deleteModal = true
     },
     clearDeleteDbReplication (row, index) {
       this.deleteDbReplicationInfo = {

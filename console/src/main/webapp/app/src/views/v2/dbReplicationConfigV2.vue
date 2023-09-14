@@ -33,7 +33,7 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <span
-        style="margin-top: 10px;color:#464c5b;font-weight:600">{{commonInfo.srcMhaName}}({{commonInfo.srcDc}})==>{{commonInfo.dstMhaName}}}({{commonInfo.dstDc}})</span><br><br>
+        style="margin-top: 10px;color:#464c5b;font-weight:600">{{commonInfo.srcMhaName}}({{commonInfo.srcDc}}) ==> {{commonInfo.dstMhaName}}({{commonInfo.dstDc}})</span><br><br>
       <Alert type="warning" show-icon v-if="showMsg" closable>
         {{title}}
         <template #desc>{{message}}</template>
@@ -178,6 +178,7 @@ export default {
       dataLoading: false,
       tableLoading: false,
       update: false,
+      batchUpdate: false,
       show: false,
       message: '',
       showMsg: false,
@@ -578,7 +579,13 @@ export default {
       }
       this.columnsForChose.push(val)
     },
+    notice () {
+      if (this.batchUpdate && this.commonInfo.dbReplicationIds !== undefined) {
+        this.$Message.info('共选中' + this.commonInfo.dbReplicationIds.length + '行')
+      }
+    },
     init () {
+      this.notice()
       if (this.commonInfo.dbReplicationId !== undefined) {
         this.getRowsFilterConfig()
         this.getColumnsFilterConfig()
@@ -613,6 +620,7 @@ export default {
       tableData: []
     }
     this.update = this.$route.query.update
+    this.batchUpdate = this.$route.query.batchUpdate
     this.show = this.$route.query.show
     const queryMysqlTable = this.commonInfo.dbName !== undefined && this.commonInfo.tableName !== undefined
     if (queryMysqlTable) {
