@@ -93,8 +93,6 @@ export default {
         }
       })
     },
-    deleteConfig () {
-    },
     getConfig () {
       console.log(this.dbReplicationId)
       this.axios.get('/api/drc/v2/config/columnsFilter?dbReplicationId=' + this.dbReplicationId)

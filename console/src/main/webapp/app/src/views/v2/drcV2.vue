@@ -1,7 +1,14 @@
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: '/v2/mhaReplications',query :{
+          srcMhaName: this.clusterPair.srcMhaName,
+          dstMhaName: this.clusterPair.dstMhaName,
+          preciseSearchMode: true
+        }
+      }">首页
+      </BreadcrumbItem>
       <BreadcrumbItem to="/drcV2">DRC配置V2</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">

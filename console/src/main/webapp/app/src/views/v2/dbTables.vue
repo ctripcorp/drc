@@ -1,7 +1,14 @@
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: '/v2/mhaReplications',query :{
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          preciseSearchMode: true
+        }
+      }">首页
+      </BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/drcV2',query :{
           step: 3,
@@ -67,7 +74,8 @@
         @on-ok="deleteDbReplication"
         @on-cancel="clearDeleteDbReplication">
         <p>
-          <span>db: </span><span style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.dbName}}</span>
+          <span>db: </span><span
+          style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.dbName}}</span>
         </p>
         <p>
           <span>table: </span><span
@@ -83,6 +91,7 @@ export default {
   name: 'tables',
   data () {
     return {
+      dbReplicationIds: [],
       initInfo: {
         srcMhaName: '',
         srcMhaId: 0,
@@ -167,27 +176,29 @@ export default {
         path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
-          // srcMhaId: this.initInfo.srcMhaId,
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
-          dstDc: this.initInfo.dstDc
+          dstDc: this.initInfo.dstDc,
+          update: false
         }
       })
     },
     goToShowConfig (row, index) {
+      const dbReplicationIds = []
+      dbReplicationIds.push(row.dbReplicationId)
       this.$router.push({
-        path: '/test',
+        path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
           dbName: row.dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
-          dbReplicationIds: [row.dbReplicationId],
-          update: true
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
+          update: true,
+          show: true
         }
       })
     },
@@ -210,6 +221,10 @@ export default {
         dbName = row.dbName
       }
       console.log(dbReplicationIds)
+      const str = JSON.stringify(dbReplicationIds)
+      const dbReplicationIds1 = JSON.parse(str)
+      console.log('after:' + dbReplicationIds1)
+      console.log('dbName:' + dbName)
       this.$router.push({
         path: '/dbReplicationConfigV2',
         query: {
@@ -217,16 +232,18 @@ export default {
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
           dbName: dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
-          dbReplicationIds: dbReplicationIds,
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
           update: true
         }
       })
     },
     goToUpdateConfig (row, index) {
+      // this.dbReplicationIds.push(row.dbReplicationId)
+      const dbReplicationIds = []
+      dbReplicationIds.push(row.dbReplicationId)
       this.$router.push({
         path: '/dbReplicationConfigV2',
         query: {
@@ -234,11 +251,10 @@ export default {
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
           dbName: row.dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
-          dbReplicationIds: [row.dbReplicationId],
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
           update: true
         }
       })

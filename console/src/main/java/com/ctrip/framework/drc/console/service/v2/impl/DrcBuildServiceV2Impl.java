@@ -237,16 +237,19 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         if (rowsFilterCreateParam != null) {
             rowsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
             buildRowsFilter(rowsFilterCreateParam);
+        } else {
+            deleteRowsFilter(dbReplicationIds);
         }
 
         if (columnsFilterCreateParam != null) {
             columnsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
             buildColumnsFilter(columnsFilterCreateParam);
+        } else {
+            deleteColumnsFilter(dbReplicationIds);
         }
     }
 
     @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
         logger.info("configureDbReplications param: {}", param);
         checkDbReplicationBuildParam(param);
@@ -269,7 +272,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationIds;
     }
 
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public List<Long> updateDbReplications(DbReplicationBuildParam param) throws Exception {
         List<Long> dbReplicationIds = param.getDbReplicationIds();
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
@@ -282,10 +284,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message("dbReplications contains different tables");
         }
 
-        if (param.getTableName().equals(srcLogicTableNames.get(0))) {
-            throw ConsoleExceptionUtils.message("Do not submit repeatedly!");
-        }
-
         MhaTblV2 srcMha = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMha = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
         List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
@@ -295,9 +293,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
         checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
 
-        dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
-        dbReplicationTblDao.update(dbReplicationTbls);
-        logger.info("update dbReplicationTbls: {}", dbReplicationTbls);
+        if (!param.getTableName().equals(srcLogicTableNames.get(0))) {
+            dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
+            dbReplicationTblDao.update(dbReplicationTbls);
+            logger.info("update dbReplicationTbls: {}", dbReplicationTbls);
+        }
+
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
             return dbReplicationIds;
@@ -426,6 +427,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception {
         List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+        if (CollectionUtils.isEmpty(existFilterMappings)) {
+            logger.info("deleteColumnsFilter filterMapping is empty, dbReplicationIds: {}");
+            return;
+        }
 
         existFilterMappings.forEach(e -> {
             if (e.getRowsFilterId() != -1L) {
@@ -465,6 +470,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception {
         List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+        if (CollectionUtils.isEmpty(existFilterMappings)) {
+            logger.info("deleteColumnsFilter filterMapping is empty, dbReplicationIds: {}");
+            return;
+        }
 
         existFilterMappings.forEach(e -> {
             if (e.getColumnsFilterId() != -1L) {
@@ -887,10 +896,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         List<DbReplicationFilterMappingTbl> existFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
-        if (CollectionUtils.isEmpty(existFilterMappings)) {
-            logger.error("dbReplicationFilterMapping not exist, dbReplicationIds: {}", dbReplicationIds);
-            throw ConsoleExceptionUtils.message("dbReplicationFilterMapping not exist!");
-        }
         return existFilterMappings;
     }
 

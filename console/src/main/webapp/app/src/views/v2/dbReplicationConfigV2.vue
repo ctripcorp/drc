@@ -1,7 +1,14 @@
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: '/v2/mhaReplications',query :{
+          srcMhaName: this.commonInfo.srcMhaName,
+          dstMhaName: this.commonInfo.dstMhaName,
+          preciseSearchMode: true
+        }
+      }">首页
+      </BreadcrumbItem>
       <BreadcrumbItem :to="{
           path: '/drcV2',query :{
           step: 3,
@@ -27,19 +34,24 @@
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <span
         style="margin-top: 10px;color:#464c5b;font-weight:600">{{commonInfo.srcMhaName}}({{commonInfo.srcDc}})==>{{commonInfo.dstMhaName}}}({{commonInfo.dstDc}})</span><br><br>
+      <Alert type="warning" show-icon v-if="showMsg" closable>
+        {{title}}
+        <template #desc>{{message}}</template>
+      </Alert>
       <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
         <FormItem prop="dbName" label="库名" :required=true>
           <Input type="text" v-model="commonInfo.dbName" :readonly=update placeholder="请输入库名（支持正则）"/>
         </FormItem>
         <FormItem prop="tableName" label="表名" :required=true>
-          <Input type="text" v-model="commonInfo.tableName" placeholder="请输入表名（支持正则）">
+          <Input type="text" v-model="commonInfo.tableName" :readonly=show placeholder="请输入表名（支持正则）">
           </Input>
         </FormItem>
         <FormItem>
-          <Button type="primary" :loading="dataLoading" @click="checkMysqlTablesInSrcMha">校验</Button>
+          <Button type="primary" :loading="tableLoading" @click="checkMysqlTablesInSrcMha">校验</Button>
         </FormItem>
         <FormItem label="相关表" required="true">
-          <Table stripe size="small" :columns="nameFilterCheck.columns" :data="dataWithPage" :loading="tableLoading" border></Table>
+          <Table stripe size="small" :columns="nameFilterCheck.columns" :data="dataWithPage" :loading="tableLoading"
+                 border></Table>
           <div>
             <Page
               :transfer="true"
@@ -54,7 +66,7 @@
           </div>
         </FormItem>
         <FormItem label="行过滤">
-          <i-switch v-model="formItem.switch.rowsFilter" size="large">
+          <i-switch v-model="formItem.switch.rowsFilter" :disabled="show"  size="large">
             <template #open>
               <span>On</span>
             </template>
@@ -77,7 +89,7 @@
           </FormItem>
           <FormItem label="规则内容" v-if="rowsFilterConfig.mode !== 1 || rowsFilterConfig.fetchMode === 0">
             <Input v-if="rowsFilterConfig.mode !== 1" type="textarea" v-model="rowsFilterConfig.context"
-                   style="width: 250px" placeholder="请输入行过滤内容"/>
+                   style="width: 250px"  placeholder="请输入行过滤内容"/>
             <Select v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.fetchMode === 0"
                     v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
               <Option v-for="item in rowsFilterConfig.regionsForChose" :value="item" :key="item">{{ item }}</Option>
@@ -89,13 +101,13 @@
           <Divider v-if="rowsFilterConfig.mode === 1">UDL配置</Divider>
           <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 1">
             <Select v-model="rowsFilterConfig.udlColumns" filterable allow-create multiple style="width: 200px"
-                    placeholder="不选默认则无UDL配置">
+                     @on-create="handleCreateUDLColumn" placeholder="不选默认则无UDL配置">
               <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
             </Select>
           </FormItem>
           <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.udlColumns.length !== 0">
             <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create style="width: 200px"
-                    placeholder="请选择ucs策略id">
+                     placeholder="请选择ucs策略id">
               <Option v-for="item in rowsFilterConfig.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}
               </Option>
             </Select>
@@ -103,25 +115,25 @@
           <Divider v-if="rowsFilterConfig.mode === 1">UID配置</Divider>
           <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 1">
             <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                    placeholder="选择相关字段">
+                    @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
               <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
             </Select>
           </FormItem>
           <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 1">
             <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                    placeholder="不选默认则无UID配置">
+                    @on-create="handleCreateUDLColumn" placeholder="不选默认则无UID配置">
               <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
             </Select>
           </FormItem>
           <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 1">
-            <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择"
+            <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px"  placeholder="选择"
                     @on-change="fetchModeChange()">
               <Option v-for="item in rowsFilterConfig.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}
               </Option>
             </Select>
           </FormItem>
         </Card>
-        <FormItem label="列过滤">
+        <FormItem label="字段过滤">
           <i-switch v-model="formItem.switch.columnsFilter" size="large">
             <template #open>
               <span>On</span>
@@ -144,16 +156,14 @@
           </FormItem>
           <FormItem label="字段">
             <Select v-model="columnsFilterConfig.columns" filterable allow-create
-                    @on-create="handleCreateColumn" multiple style="width: 200px" placeholder="选择相关的字段">
+                    @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="选择相关的字段">
               <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
             </Select>
           </FormItem>
         </Card>
-        <FormItem>
-          <Button type="primary" :loading="dataLoading" @click="submitAll">Submit</Button>
-          <Button style="margin-left: 8px">Cancel</Button>
-          <Button style="margin-left: 8px" type="primary" :loading="dataLoading" @click="getDalInfo">getDalInfo
-          </Button>
+        <br>
+        <FormItem v-if="!show">
+          <Button type="primary" :loading="dataLoading" @click="submitAll">提交</Button>
         </FormItem>
       </Form>
     </Content>
@@ -168,6 +178,10 @@ export default {
       dataLoading: false,
       tableLoading: false,
       update: false,
+      show: false,
+      message: '',
+      showMsg: false,
+      title: '',
       rowsFilterConfig: {
         mode: 1,
         drcStrategyId: 0,
@@ -222,6 +236,7 @@ export default {
           }
         ]
       },
+      columnsForChose: [],
       configInTripUid: {
         regionsChosen: []
       },
@@ -241,8 +256,7 @@ export default {
             name: 'regex',
             mode: 2
           }
-        ],
-        columnsForChose: []
+        ]
       },
       formItem: {
         switch: {
@@ -257,6 +271,7 @@ export default {
         srcDc: '',
         dstDc: '',
         order: true,
+        testIds: [],
         dbReplicationIds: [],
         dbReplicationId: 0,
         dbName: '',
@@ -330,50 +345,37 @@ export default {
     }
   },
   methods: {
-    jumpTo (n) {
-      this.currentStep = n
-    },
-    next () {
-      this.currentStep = this.currentStep + 1
-    },
-    prev () {
-      this.currentStep = this.currentStep - 1
-    },
-    handleSubmit () {
-      if (this.commonInfo.dataMediaId === 0) {
-        // insert
-        this.submitConfig()
-      } else {
-        this.submitConfig()
-      }
-    },
-    submitConfig () {
-      console.log(this.commonInfo)
+    submitAll () {
+      console.log('dbReplicationId: ' + this.commonInfo.dbReplicationId)
+      console.log('dbReplicationIds: ' + this.commonInfo.dbReplicationIds)
+      console.log('testIds: ' + this.commonInfo.testIds)
       this.dataLoading = true
-      this.axios.post('/api/drc/v2/config/dbReplication', {
+      const rowsFilterParam = this.getRowsFilterParam()
+      const columnsFilterParam = this.getColumnsFilterParam()
+      const requestParam = {
+        dbReplicationIds: this.commonInfo.dbReplicationIds,
         srcMhaName: this.commonInfo.srcMhaName,
         dstMhaName: this.commonInfo.dstMhaName,
         dbName: this.commonInfo.dbName,
         tableName: this.commonInfo.tableName,
-        dbReplicationIds: this.commonInfo.dbReplicationIds
-      }).then(res => {
+        rowsFilterCreateParam: rowsFilterParam,
+        columnsFilterCreateParam: columnsFilterParam
+      }
+      this.axios.post('/api/drc/v2/config/dbReplications', requestParam).then(res => {
+        this.dataLoading = false
         if (res.data.status === 1) {
-          // alert('提交失败!' + res.data.message)
           this.$Message.error({
             content: '提交失败! ' + res.data.message,
             duration: 2
           })
         } else {
-          this.commonInfo.dbReplicationIds = res.data.data
           this.$Message.success('提交成功！')
         }
       })
-      this.dataLoading = false
     },
     checkMysqlTablesInSrcMha () {
-      this.dataLoading = true
+      this.getCommonColumns()
       this.checkMySqlTables(this.commonInfo.srcMhaName, this.commonInfo.dbName + '\\.' + this.commonInfo.tableName)
-      this.dataLoading = false
     },
     checkMySqlTables (mha, nameFilter) {
       console.log('nameFilter:' + nameFilter)
@@ -384,78 +386,69 @@ export default {
       this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables?mha=' + mha +
         '&' + 'nameFilter=' + nameFilter)
         .then(response => {
+          this.tableLoading = false
           this.commonInfo.tableData = response.data.data
         })
-      this.tableLoading = false
     },
     handleChangeSize (val) {
-      this.size = val
+      this.nameFilterCheck.size = val
     },
-    submitRowsFilterConfig () {
-      // if (!this.update) {
-      //   alert('查看状态不能修改')
-      // }
-      console.log(this.rowsFilterConfig)
-      if (this.rowsFilterConfig.mode === 1) {
-        if (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0) {
-          alert('uid 与 uld字段不能同时为空！')
-          return
-        }
-        if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
-          this.rowsFilterConfig.context = '//filter by config'
-        } else {
-          this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
-        }
-        if (this.rowsFilterConfig.fetchMode === 0 &&
-          (
-            this.rowsFilterConfig.context === '' ||
-            this.rowsFilterConfig.context === undefined ||
-            this.rowsFilterConfig.context === '//filter by config'
-          )
-        ) {
-          alert('context 不能为空！')
-          return
-        }
-      }
-      // alert('after')
-      if (this.rowsFilterConfig.mode === '' || this.rowsFilterConfig.mode === undefined || (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0)) {
-        alert('缺少行过滤配置 禁止提交')
-      } else {
-        // alert('requestParam')
-        const requestParam = {
-          dbReplicationIds: this.dbReplicationIds,
-          dbName: this.dbName,
-          tableName: this.tableName,
-          mode: this.rowsFilterConfig.mode,
-          columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
-          udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.udlColumns,
-          drcStrategyId: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.drcStrategyId,
-          routeStrategyId: this.rowsFilterConfig.routeStrategyId,
-          illegalArgument: this.rowsFilterConfig.illegalArgument,
-          fetchMode: this.rowsFilterConfig.fetchMode,
-          context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
-        }
-        this.axios.post('/api/drc/v2/config/rowsFilter', requestParam).then(response => {
-          if (response.data.status === 1) {
-            window.alert('提交失败!')
-          } else {
-            window.alert('提交成功!')
-            this.getConfig()
+    getRowsFilterParam () {
+      if (this.formItem.switch.rowsFilter) {
+        if (this.rowsFilterConfig.mode === 1) {
+          if (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0) {
+            this.$Message.warning('uid 与 uld字段不能同时为空！')
+            return
           }
-        })
+          if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
+            this.rowsFilterConfig.context = '//filter by config'
+          } else {
+            this.rowsFilterConfig.context = this.configInTripUid.regionsChosen.join(',')
+          }
+          if (this.rowsFilterConfig.fetchMode === 0 &&
+            (
+              this.rowsFilterConfig.context === '' ||
+              this.rowsFilterConfig.context === undefined ||
+              this.rowsFilterConfig.context === '//filter by config'
+            )
+          ) {
+            this.$Message.warning('context 不能为空！')
+            return
+          }
+        }
+        if (this.rowsFilterConfig.mode === '' || this.rowsFilterConfig.mode === undefined || (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0)) {
+          this.$Message.warning('缺少行过滤配置 禁止提交')
+        } else {
+          // alert('requestParam')
+          const requestParam = {
+            dbName: this.dbName,
+            tableName: this.tableName,
+            mode: this.rowsFilterConfig.mode,
+            columns: this.rowsFilterConfig.columns.length === 0 ? null : this.rowsFilterConfig.columns,
+            udlColumns: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.udlColumns,
+            drcStrategyId: this.rowsFilterConfig.udlColumns.length === 0 ? null : this.rowsFilterConfig.drcStrategyId,
+            routeStrategyId: this.rowsFilterConfig.routeStrategyId,
+            illegalArgument: this.rowsFilterConfig.illegalArgument,
+            fetchMode: this.rowsFilterConfig.fetchMode,
+            context: this.rowsFilterConfig.context === '' ? null : this.rowsFilterConfig.context
+          }
+          return requestParam
+        }
+      } else {
+        return null
       }
     },
     getRowsFilterConfig () {
-      console.log(this.dbReplicationId)
-      this.axios.get('/api/drc/v2/config/rowsFilter?dbReplicationId=' + this.dbReplicationId)
+      this.axios.get('/api/drc/v2/config/rowsFilter?dbReplicationId=' + this.commonInfo.dbReplicationId)
         .then(response => {
           if (response.data.status === 1) {
-            alert('查询行过滤配置失败!')
+            this.$Message.error('查询行过滤配置失败!')
           } else {
             const res = response.data.data
             if (res == null) {
               // empty config
             } else {
+              this.formItem.switch.rowsFilter = true
               // rowsFilterConfig.context和onfigInTripUid.regionsChosen要放在前面
               // 不然会失效
               this.rowsFilterConfig.context = res.context
@@ -475,32 +468,24 @@ export default {
               this.rowsFilterConfig.routeStrategyId = res.routeStrategyId
               this.rowsFilterConfig.illegalArgument = res.illegalArgument
               this.rowsFilterConfig.fetchMode = res.fetchMode
-              // if (res.mode === 1) {
-              //   alert('ok')
-              //   this.configInTripUid.regionsChosen = res.context.split(',')
-              // } else {
-              //   this.configInTripUid = {
-              //     regionsChosen: []
-              //   }
-              // }
             }
           }
         })
     },
     getCommonColumns () {
       this.axios.get('/api/drc/v2/mysql/commonColumns?' +
-        '&mhaName=' + this.srcMhaName +
-        '&namespace=' + this.dbName +
-        '&name=' + this.tableName)
+        '&mhaName=' + this.commonInfo.srcMhaName +
+        '&namespace=' + this.commonInfo.dbName +
+        '&name=' + this.commonInfo.tableName)
         .then(response => {
           if (response.data.status === 1) {
-            alert('查询公共列名失败，请手动添加！')
+            this.$Message.error('查询公共列名失败，请手动添加！')
             this.columnsForChose = []
           } else {
             console.log(response.data.data)
             this.columnsForChose = response.data.data
             if (this.columnsForChose.length === 0) {
-              alert('查询无公共字段！')
+              this.$Message.warning('查询无公共字段！')
             }
           }
         })
@@ -510,6 +495,93 @@ export default {
         this.rowsFilterConfig.illegalArgument = true
       } else {
         this.rowsFilterConfig.illegalArgument = false
+      }
+    },
+    getColumnsFilterParam () {
+      if (this.formItem.switch.columnsFilter) {
+        const columnsFilterParam = {
+          mode: this.columnsFilterConfig.mode,
+          columns: this.columnsFilterConfig.columns
+        }
+        return columnsFilterParam
+      } else {
+        return null
+      }
+    },
+    getColumnsFilterConfig () {
+      // console.log(this.dbReplicationId)
+      this.axios.get('/api/drc/v2/config/columnsFilter?dbReplicationId=' + this.commonInfo.dbReplicationId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询字段过滤配置失败!')
+          } else {
+            const res = response.data.data
+            if (res == null) {
+              // empty config
+            } else {
+              this.columnsFilterConfig.mode = res.mode
+              this.columnsFilterConfig.columns = res.columns
+              this.formItem.switch.columnsFilter = true
+            }
+          }
+        })
+    },
+    contains (a, obj) {
+      var i = a.length
+      while (i--) {
+        if (a[i] === obj) {
+          return true
+        }
+      }
+      return false
+    },
+    handleCreateUDLColumn (val) {
+      this.showMsg = false
+      if (val === '无UDL' || this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      this.axios.get(
+        '/api/drc/v2/mysql//columnCheck?' +
+        'mhaName=' + this.commonInfo.srcMhaName +
+        '&namespace=' + this.commonInfo.dbName +
+        '&name=' + this.commonInfo.tableName +
+        '&column=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询字段:' + val + '失败！' + response.data.data)
+            this.columnsForChose.push(val)
+          } else {
+            const tablesWithoutColumn = response.data.data
+            if (tablesWithoutColumn.length !== 0) {
+              this.showMsg = true
+              this.title = '以下表无字段' + val
+              this.message = tablesWithoutColumn
+              // alert('以下表无字段' + val + '如下:' + tablesWithoutColumn)
+            }
+            this.columnsForChose.push(val)
+          }
+        })
+    },
+    handleCreateColumn (val) {
+      if (this.contains(this.columnsForChose, val)) {
+        alert('已有项禁止创建')
+        return
+      }
+      if (val === '' || val === undefined || val === null) {
+        alert('字段不能为空')
+        return
+      }
+      this.columnsForChose.push(val)
+    },
+    init () {
+      if (this.commonInfo.dbReplicationId !== undefined) {
+        this.getRowsFilterConfig()
+        this.getColumnsFilterConfig()
       }
     }
   },
@@ -522,34 +594,32 @@ export default {
     }
   },
   created () {
-    const curStep = this.$route.query.step
-    if (curStep == null) {
-      console.log('curStep is null, do nothing')
-    } else {
-      this.jumpTo(Number(curStep))
+    let dbReplicationIds = []
+    if (this.$route.query.dbReplicationIds !== undefined) {
+      dbReplicationIds = JSON.parse(this.$route.query.dbReplicationIds)
     }
+    // this.$route.query.dbReplicationIds.forEach(e => dbReplicationIds.push(e))
+    console.log('dbReplicationIds:' + dbReplicationIds)
     this.commonInfo = {
       srcMhaName: this.$route.query.srcMhaName,
       srcMhaId: this.$route.query.srcMhaId,
       dstMhaName: this.$route.query.dstMhaName,
       srcDc: this.$route.query.srcDc,
       dstDc: this.$route.query.dstDc,
-      order: this.$route.query.order,
       dbName: this.$route.query.dbName,
       tableName: this.$route.query.tableName,
       dbReplicationId: this.$route.query.dbReplicationId,
-      dbReplicationIds: this.$route.query.dbReplicationIds,
+      dbReplicationIds: dbReplicationIds,
       tableData: []
     }
     this.update = this.$route.query.update
-    // alert('ok')
-    // this.commonInfo.dbReplicationIds.push(this.$route.query.dbReplicationId)
-    // alert(this.commonInfo.dbReplicationIds)
+    this.show = this.$route.query.show
     if (this.commonInfo.dbName !== '' && this.commonInfo.tableName !== '') {
       this.checkMysqlTablesInSrcMha()
     }
     console.log('commonInfo')
     console.log(this.commonInfo)
+    this.init()
   }
 }
 </script>
