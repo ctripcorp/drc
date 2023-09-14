@@ -46,7 +46,7 @@ import mhaBuild from './mhaBuild.vue'
 import mhaConfigV2 from './mhaConfigV2.vue'
 import preCheckV2 from './preCheckV2.vue'
 import drcBuildV2 from './drcBuildV2.vue'
-import complete from '../../components/access/complete.vue'
+import complete from './complete.vue'
 export default {
   components: {
     mhaBuild,
