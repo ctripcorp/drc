@@ -27,14 +27,12 @@ import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.DbClusterInfoDto;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +43,6 @@ import org.springframework.util.CollectionUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Created by dengquanliang
- * 2023/7/27 15:43
- */
 @Service
 public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
@@ -217,8 +211,11 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         drcAutoBuildParam.setSrcDcName(srcMha.getDcName());
         drcAutoBuildParam.setDstDcName(dstMha.getDcName());
         drcAutoBuildParam.setBuName(req.getBuName());
-        drcAutoBuildParam.setDbName(Sets.newHashSet(req.getBuName()));
+        drcAutoBuildParam.setDbName(Sets.newHashSet(req.getDbName()));
         drcAutoBuildParam.setTableFilter(req.getTblsFilterDetail().getTableNames());
+        String tag = this.getTagByBuName(req.getBuName());
+        drcAutoBuildParam.setTag(tag);
+
         return drcAutoBuildParam;
     }
 
@@ -246,7 +243,7 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
 
             param.setBuName(req.getBuName());
             param.setTableFilter(req.getTblsFilterDetail().getTableNames());
-            param.setTag(null);
+            param.setTag(this.getTagByBuName(req.getBuName()));
             list.add(param);
         }
         return list;
@@ -266,30 +263,9 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         return sb.toString();
     }
 
-    private Set<String> getMhaName(List<ClusterInfoDto> clusterInfoDtoList) {
-        return clusterInfoDtoList.stream().map(ClusterInfoDto::getClusterName).collect(Collectors.toSet());
-    }
-
-    private Map<String, String> getDcToMhaNameMap(List<ClusterInfoDto> clusterInfoDtoList) {
-        clusterInfoDtoList = clusterInfoDtoList.stream().filter(e -> EnvUtils.getEnvStr().equals(e.getEnv())).collect(Collectors.toList());
-        Map<String, String> dbaDc2DrcDcMap = consoleConfig.getDbaDc2DrcDcMap();
-        Map<String, String> regionToMhaMap = clusterInfoDtoList.stream().collect(Collectors.toMap(e -> {
-            String dcName = dbaDc2DrcDcMap.get(e.getZoneId().toLowerCase());
-            if (dcName == null) {
-                throw ConsoleExceptionUtils.message("zoneId not found: " + e.getZoneId());
-            }
-            return dcName;
-        }, ClusterInfoDto::getClusterName));
-        return regionToMhaMap;
-    }
-
-
     private void autoBuildDrc(DrcAutoBuildParam param) throws Exception {
-
-        String tag = !StringUtils.isBlank(param.getTag()) ? param.getTag() : this.getTagByBuName(param.getBuName());
-
         // 1.(if needed) build mha, mha replication
-        DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), tag, tag);
+        DrcMhaBuildParam mhaBuildParam = new DrcMhaBuildParam(param.getSrcMhaName(), param.getDstMhaName(), param.getSrcDcName(), param.getDstDcName(), param.getBuName(), param.getTag(), param.getTag());
         drcBuildService.buildMha(mhaBuildParam);
         if (param.getSrcMhaName().equals(param.getDstMhaName())) {
             throw ConsoleExceptionUtils.message(AutoBuildErrorEnum.DRC_MHA_NOT_SUPPORTED, String.format("src: %s, dst: %s", param.getSrcMhaName(), param.getDstMhaName()));
@@ -317,11 +293,10 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         DbReplicationBuildParam dbReplicationBuildParam = new DbReplicationBuildParam();
         dbReplicationBuildParam.setSrcMhaName(srcMhaTbl.getMhaName());
         dbReplicationBuildParam.setDstMhaName(dstMhaTbl.getMhaName());
-        dbReplicationBuildParam.setDbName("(" + String.join(",", param.getDbName()) + ")");
+        dbReplicationBuildParam.setDbName("(" + String.join("|", param.getDbName()) + ")");
         dbReplicationBuildParam.setTableName(param.getTableFilter());
         // todo by yongnian: 2023/9/13 check conflicts with exist
         // todo by yongnian: 2023/9/13 test
-        this.checkTableFilter(dbReplicationBuildParam);
         drcBuildService.configureDbReplications(dbReplicationBuildParam);
         // 3.2 filters
 
@@ -336,21 +311,6 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         boolean updateApplierGtid = CollectionUtils.isEmpty(existDbReplication);
         drcBuildService.autoConfigAppliers(srcMhaTbl, dstMhaTbl, updateApplierGtid);
         // 6. end
-    }
-
-    private void checkTableFilter(DbReplicationBuildParam dbReplicationBuildParam) {
-        String nameFilter = dbReplicationBuildParam.getDbName() + "\\." + dbReplicationBuildParam.getTableName();
-        String srcMhaName = dbReplicationBuildParam.getSrcMhaName();
-        String dstMhaName = dbReplicationBuildParam.getDstMhaName();
-        Set<MySqlUtils.TableSchemaName> srcMatchTables = Sets.newHashSet(mysqlServiceV2.getMatchTable(srcMhaName, nameFilter));
-        Set<MySqlUtils.TableSchemaName> dstMatchTables = Sets.newHashSet(mysqlServiceV2.getMatchTable(dstMhaName, nameFilter));
-        if (CollectionUtils.isEmpty(srcMatchTables) || CollectionUtils.isEmpty(dstMatchTables)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DRC_TABLE_EMPTY, String.format("src num: %d, dst num: %d", srcMatchTables.size(), dstMatchTables.size()));
-        }
-        if (!srcMatchTables.equals(dstMatchTables)) {
-            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.DRC_TABLE_NOT_MATCH_BETWEEN_SRC_AND_DST, String.format("src: %s, dst: %s, nameFilter: %s", srcMhaName, dstMhaName, nameFilter));
-        }
-
     }
 
     private static MhaDto buildMhaDto(ClusterInfoDto clusterInfoDto, DcDo dcDo) {

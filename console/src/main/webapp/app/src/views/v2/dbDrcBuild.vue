@@ -174,7 +174,7 @@ export default {
         dstRegionName: null,
         dbName: null,
         dalClusterModeOption: {
-          dalClusterName: 'bbzaccountsshardbasedb_dalcluster',
+          dalClusterName: 'fnctradeordershardbasedb_dalcluster',
           columns: [
             {
               title: 'DB名',
@@ -223,7 +223,7 @@ export default {
           ]
         },
         buName: null,
-        tableName: null,
+        tableName: 'entrust_trade',
         rowsFilterDetail: {
           mode: 'trip-uld',
           row: null

@@ -17,10 +17,6 @@ public class DrcAutoBuildReq {
 
     public void validAndTrim() {
         BuildMode modeEnum = getModeEnum();
-
-        if (StringUtils.isBlank(dalClusterName)) {
-            throw new IllegalArgumentException("dalClusterName should not be blank!");
-        }
         if (StringUtils.isBlank(srcRegionName)) {
             throw new IllegalArgumentException("srcRegionName should not be blank!");
         }

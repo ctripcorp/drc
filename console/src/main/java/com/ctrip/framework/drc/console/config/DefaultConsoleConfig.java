@@ -428,7 +428,7 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
     }
 
     public Map<String, String> getBu2TagMap() {
-        String bu2Tag = getProperty(BU_2_TAG_MAP, "");
+        String bu2Tag = getProperty(BU_2_TAG_MAP, "{}");
         logger.info("bu2Tag: {}", bu2Tag);
         return JsonCodec.INSTANCE.decode(bu2Tag, new GenericTypeReference<Map<String, String>>() {});
     }

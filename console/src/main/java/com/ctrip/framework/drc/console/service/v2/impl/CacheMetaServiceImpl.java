@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.console.pojo.MetaKey;
 import com.ctrip.framework.drc.console.pojo.MonitorMetaInfo;
 import com.ctrip.framework.drc.console.pojo.ReplicatorWrapper;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
+import com.ctrip.framework.drc.console.service.v2.MachineService;
 import com.ctrip.framework.drc.console.service.v2.MonitorServiceV2;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.DefaultEndPoint;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
@@ -49,6 +50,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
     @Autowired private DefaultConsoleConfig consoleConfig;
 
     @Autowired private MonitorServiceV2 monitorServiceV2;
+    @Autowired private MachineService machineService;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -190,7 +192,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 return getMaster(dbCluster);
             }
         }
-        return null;
+        return machineService.getMasterEndpoint(mha);
     }
 
     @Override

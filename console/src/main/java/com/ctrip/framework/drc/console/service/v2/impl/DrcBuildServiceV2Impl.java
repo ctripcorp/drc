@@ -39,7 +39,6 @@ import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
-import java.util.Arrays;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -50,6 +49,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -126,7 +126,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private DefaultConsoleConfig consoleConfig;
     @Autowired
     private DbMetaCorrectService dbMetaCorrectService;
-    
+
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
     private static final String CLUSTER_NAME_SUFFIX = "_dalcluster";
@@ -485,7 +485,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException { 
+    public MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException {
         MhaTblV2 existMha = mhaTblDao.queryByMhaName(mhaName);
         if (existMha != null) {
             throw ConsoleExceptionUtils.message("mhaName already exist!");
@@ -500,14 +500,14 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         mhaTblV2.setMonitorSwitch(BooleanEnum.TRUE.getCode());
         Long mhaId = mhaTblDao.insertWithReturnId(mhaTblV2);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi mhaTbl affect mhaId:{}", mhaName, mhaId);
-        
+
         List<MachineTbl> machinesToBeInsert = new ArrayList<>();
         for (MemberInfo memberInfo : memberlist) {
             machinesToBeInsert.add(extractFrom(memberInfo,mhaId));
         }
         int[] ints = machineTblDao.batchInsert(machinesToBeInsert);
         logger.info("[[mha={}]] syncMhaInfoFormDbaApi machineTbl affect rows:{}", mhaName,Arrays.stream(ints).sum());
-        
+
         mhaTblV2.setId(mhaId);
         return mhaTblV2;
     }
@@ -527,7 +527,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
         dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
     }
-    
+
     private MachineTbl extractFrom(MemberInfo memberInfo,Long mhaId) {
         String serviceIp = memberInfo.getService_ip();
         int dnsPort = memberInfo.getDns_port();
@@ -580,7 +580,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                     insertReplicators.add(replicatorTbl);
                 }
                 int[] ints = replicatorTblDao.batchInsert(insertReplicators);
-                logger.info("[[mha={}]] autoConfigReplicatorsWithRealTimeGtid ,excepted:{},actual:{}", 
+                logger.info("[[mha={}]] autoConfigReplicatorsWithRealTimeGtid ,excepted:{},actual:{}",
                         mhaTbl.getMhaName(), insertReplicators.size(), Arrays.stream(ints).sum());
             }
         }
@@ -602,12 +602,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     public void autoConfigAppliersWithRealTimeGtid(
-            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, 
+            MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
             MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
         autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, true);
     }
 
     private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+        // applier group
         if (updateGtidToRealTime) {
             String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
             if (StringUtils.isBlank(mhaExecutedGtid)) {
@@ -618,30 +619,52 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             applierGroupTblDao.update(applierGroup);
             logger.info("[[mha={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
         }
+        // mha replication
         mhaReplicationTbl.setDrcStatus(1);
         mhaReplicationTblDao.update(mhaReplicationTbl);
         logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+
+        // appliers
+        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
+        List<Long> inUseResourceId = existAppliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
+
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(destMhaTbl.getMhaName());
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
         if (CollectionUtils.isEmpty(resourceViews)) {
             logger.error("[[mha={}]] autoConfigAppliers failed", destMhaTbl.getMhaName());
             throw new ConsoleException("autoConfigAppliers failed!");
-        } else {
-            List<ApplierTblV2> insertAppliers = Lists.newArrayList();
-            for (ResourceView resourceView : resourceViews) {
-                ApplierTblV2 applierTbl = new ApplierTblV2();
-                applierTbl.setApplierGroupId(applierGroup.getId());
-                applierTbl.setResourceId(resourceView.getResourceId());
-                applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
-                applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-                applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                insertAppliers.add(applierTbl);
-            }
-            int[] ints = applierTblDao.batchInsert(insertAppliers);
-            logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
         }
+
+        // insert new appliers
+        List<ApplierTblV2> insertAppliers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildApplierTbl(applierGroup, e))
+                .collect(Collectors.toList());
+
+        // delete old appliers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<ApplierTblV2> deleteAppliers = existAppliers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        applierTblDao.batchInsert(insertAppliers);
+        applierTblDao.batchUpdate(deleteAppliers);
+        logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
+    }
+
+    private static ApplierTblV2 buildApplierTbl(ApplierGroupTblV2 applierGroup, ResourceView resourceView) {
+        ApplierTblV2 applierTbl = new ApplierTblV2();
+        applierTbl.setApplierGroupId(applierGroup.getId());
+        applierTbl.setResourceId(resourceView.getResourceId());
+        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return applierTbl;
     }
 
     @Override
@@ -655,7 +678,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         messengerGroupTbl.setGtidExecuted(mhaExecutedGtid);
         messengerGroupTblDao.update(messengerGroupTbl);
         logger.info("[[mha={}]] autoConfigMessengersWithRealTimeGtid with gtid:{}", mhaTbl.getMhaName(), mhaExecutedGtid);
-        
+
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(mhaTbl.getMhaName());
@@ -676,7 +699,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             int[] ints = messengerTblDao.batchInsert(insertMessengers);
             logger.info("[[mha={}]] autoConfigMessengers success", mhaTbl.getMhaName());
         }
-        
+
     }
 
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
