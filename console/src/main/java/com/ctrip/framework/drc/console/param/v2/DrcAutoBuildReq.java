@@ -14,6 +14,10 @@ public class DrcAutoBuildReq {
     private String dstRegionName;
     private String buName;
     private TblsFilterDetail tblsFilterDetail;
+    private Boolean openRowsFilterConfig;
+    private RowsFilterCreateParam rowsFilterDetail;
+    private Boolean openColsFilterConfig;
+    private ColumnsFilterCreateParam colsFilterDetail;
 
     public void validAndTrim() {
         BuildMode modeEnum = getModeEnum();
@@ -79,12 +83,31 @@ public class DrcAutoBuildReq {
     }
 
     public BuildMode getModeEnum() {
+        if (this.mode == null) {
+            return null;
+        }
         for (BuildMode mode : BuildMode.values()) {
             if (mode.getValue() == this.mode) {
                 return mode;
             }
         }
         return null;
+    }
+
+    public Boolean getOpenColsFilterConfig() {
+        return openColsFilterConfig;
+    }
+
+    public void setOpenColsFilterConfig(Boolean openColsFilterConfig) {
+        this.openColsFilterConfig = openColsFilterConfig;
+    }
+
+    public ColumnsFilterCreateParam getColsFilterDetail() {
+        return colsFilterDetail;
+    }
+
+    public void setColsFilterDetail(ColumnsFilterCreateParam colsFilterDetail) {
+        this.colsFilterDetail = colsFilterDetail;
     }
 
     public Integer getMode() {
@@ -143,4 +166,19 @@ public class DrcAutoBuildReq {
         return tblsFilterDetail;
     }
 
+    public RowsFilterCreateParam getRowsFilterDetail() {
+        return rowsFilterDetail;
+    }
+
+    public void setRowsFilterDetail(RowsFilterCreateParam rowsFilterDetail) {
+        this.rowsFilterDetail = rowsFilterDetail;
+    }
+
+    public Boolean getOpenRowsFilterConfig() {
+        return openRowsFilterConfig;
+    }
+
+    public void setOpenRowsFilterConfig(Boolean openRowsFilterConfig) {
+        this.openRowsFilterConfig = openRowsFilterConfig;
+    }
 }

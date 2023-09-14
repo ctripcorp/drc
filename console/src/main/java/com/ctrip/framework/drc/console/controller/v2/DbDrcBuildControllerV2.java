@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcAutoBuildTaskService;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiService;
 import com.ctrip.framework.drc.console.service.v2.external.dba.response.ClusterInfoDto;
+import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import com.ctrip.framework.drc.console.vo.display.v2.MhaVo;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -93,7 +94,7 @@ public class DbDrcBuildControllerV2 {
     public ApiResult<List<MhaReplicationPreviewDto>> preCheck(DrcAutoBuildReq req) {
         logger.info("[meta] preCheck, req: {}", req);
         try {
-            List<MhaReplicationPreviewDto> list = drcAutoBuildTaskService.previewAutoBuildOptions(req);
+            List<MhaReplicationPreviewDto> list = drcAutoBuildTaskService.preCheckMhaReplication(req);
             return ApiResult.getSuccessInstance(list);
         } catch (Throwable e) {
             logger.error("[meta] preCheck, req {}", req, e);
@@ -101,15 +102,15 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
-    @GetMapping("preCheckBuildParam")
+    @GetMapping("preCheckTable")
     @SuppressWarnings("unchecked")
-    public ApiResult<List<DrcAutoBuildParam>> preCheckBuildParam(DrcAutoBuildReq req) {
-        logger.info("[meta] preCheckBuildParam, req: {}", req);
+    public ApiResult<List<TableCheckVo>> preCheckTable(DrcAutoBuildReq req) {
+        logger.info("[meta] preCheck, req: {}", req);
         try {
-            List<DrcAutoBuildParam> drcAutoBuildParams = drcAutoBuildTaskService.getDrcBuildParam(req);
-            return ApiResult.getSuccessInstance(drcAutoBuildParams);
+            List<TableCheckVo> list = drcAutoBuildTaskService.preCheckMysqlTables(req);
+            return ApiResult.getSuccessInstance(list);
         } catch (Throwable e) {
-            logger.error("[meta] preCheckBuildParam, req {}", req, e);
+            logger.error("[meta] preCheck, req {}", req, e);
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
@@ -127,6 +128,32 @@ public class DbDrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("commonColumns")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<String>> getCommonColumns(DrcAutoBuildReq req) {
+        logger.info("[meta] commonColumns, req: {}", req);
+        try {
+            List<String> list = drcAutoBuildTaskService.getCommonColumn(req);
+            return ApiResult.getSuccessInstance(list);
+        } catch (Throwable e) {
+            logger.error("[meta] commonColumns, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+
+    @PostMapping("preCheckBuildParam")
+    @SuppressWarnings("unchecked")
+    public ApiResult<List<DrcAutoBuildParam>> preCheckBuildParam(@RequestBody DrcAutoBuildReq req) {
+        logger.info("[meta] preCheckBuildParam, req: {}", req);
+        try {
+            List<DrcAutoBuildParam> drcAutoBuildParams = drcAutoBuildTaskService.getDrcBuildParam(req);
+            return ApiResult.getSuccessInstance(drcAutoBuildParams);
+        } catch (Throwable e) {
+            logger.error("[meta] preCheckBuildParam, req {}", req, e);
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 
     @PostMapping("submit")
     @SuppressWarnings("unchecked")

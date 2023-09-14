@@ -13,6 +13,25 @@ public class DrcAutoBuildParam {
     private Set<String> dbName;
     private String tableFilter;
 
+    private RowsFilterCreateParam rowsFilterCreateParam;
+    private ColumnsFilterCreateParam columnsFilterCreateParam;
+
+    public ColumnsFilterCreateParam getColumnsFilterCreateParam() {
+        return columnsFilterCreateParam;
+    }
+
+    public void setColumnsFilterCreateParam(ColumnsFilterCreateParam columnsFilterCreateParam) {
+        this.columnsFilterCreateParam = columnsFilterCreateParam;
+    }
+
+    public RowsFilterCreateParam getRowsFilterCreateParam() {
+        return rowsFilterCreateParam;
+    }
+
+    public void setRowsFilterCreateParam(RowsFilterCreateParam rowsFilterCreateParam) {
+        this.rowsFilterCreateParam = rowsFilterCreateParam;
+    }
+
     public String getTag() {
         return tag;
     }
@@ -47,6 +66,13 @@ public class DrcAutoBuildParam {
 
     public Set<String> getDbName() {
         return dbName;
+    }
+
+    public String getDbNameFilter() {
+        if (dbName == null || dbName.isEmpty()) {
+            return "";
+        }
+        return "(" + String.join("|", dbName) + ")";
     }
 
     public void setDbName(Set<String> dbName) {

@@ -192,7 +192,7 @@ public class CacheMetaServiceImpl implements CacheMetaService {
                 return getMaster(dbCluster);
             }
         }
-        return machineService.getMasterEndpoint(mha);
+        return machineService.getMasterEndpointCached(mha);
     }
 
     @Override

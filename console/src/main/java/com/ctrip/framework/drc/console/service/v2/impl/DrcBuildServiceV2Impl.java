@@ -557,9 +557,15 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void syncMhaDbInfoFormDbaApi(MhaTblV2 existMha) throws Exception {
+    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws Exception {
         Long mhaId = existMha.getId();
         String mhaName = existMha.getMhaName();
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        boolean synced = machineTbls.stream().anyMatch(e -> e.getMaster().equals(BooleanEnum.TRUE.getCode()));
+        if (synced) {
+            logger.info("{} is already synced", mhaName);
+            return;
+        }
 
         DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
         List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();

@@ -8,7 +8,6 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
-import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -51,7 +50,7 @@ public interface DrcBuildServiceV2 {
     
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
 
-    void syncMhaDbInfoFormDbaApi(MhaTblV2 existMha) throws Exception;
+    void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws Exception;
 
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 
