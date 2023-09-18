@@ -44,6 +44,21 @@
           </Col>
         </Row>
         <br>
+        <Row  style="background: #f8f8f9; border-top: 1px solid #e8eaec;">
+          <Col span="3" style="display: flex;float: right;margin: 5px" >
+            <Dropdown style="display: flex;float: right" >
+              <Button type="primary" icon="ios-hammer">
+                操作
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+              <template #list>
+                <DropdownMenu >
+                  <DropdownItem @click.native="() => {$router.push({path: '/drcResource'})}">录入</DropdownItem>
+                </DropdownMenu>
+              </template>
+            </Dropdown>
+          </Col>
+        </Row>
         <Table stripe border :columns="columns" :data="resources">
           <template slot-scope="{ row, index }" slot="action">
             <Button type="error" size="small" style="margin-right: 5px" @click="preDeleteResource(row, index)">

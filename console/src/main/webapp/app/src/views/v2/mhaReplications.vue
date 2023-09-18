@@ -123,6 +123,22 @@
           </Col>
         </Row>
         <br>
+        <Row  style="background: #f8f8f9; border-top: 1px solid #e8eaec;">
+          <Col span="3" style="display: flex;float: right;margin: 5px" >
+              <Dropdown style="display: flex;float: right" >
+                <Button type="primary" icon="ios-hammer">
+                  操作
+                  <Icon type="ios-arrow-down"></Icon>
+                </Button>
+                <template #list>
+                  <DropdownMenu >
+                    <DropdownItem @click.native="() => {$router.push({path: '/drcV2'})}">新建DRC配置（MHA）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuild'})}">新建DRC配置（DB维度）</DropdownItem>
+                  </DropdownMenu>
+                </template>
+              </Dropdown>
+          </Col>
+        </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId)">
@@ -384,11 +400,23 @@ export default {
       current: 1,
       size: 10,
       // query param
-      srcMha: {},
-      dstMha: {},
-      relatedMha: {},
+      srcMha: {
+        name: this.$route.query.srcMhaName,
+        buName: this.$route.query.srcBuName,
+        regionName: this.$route.query.srcRegionName
+      },
+      dstMha: {
+        name: this.$route.query.dstMhaName,
+        buName: this.$route.query.dstBuName,
+        regionName: this.$route.query.dstRegionName
+      },
+      relatedMha: {
+        name: this.$route.query.mhaName,
+        buName: this.$route.query.buName,
+        regionName: this.$route.query.regionName
+      },
       drcStatus: null,
-      preciseSearchMode: false,
+      preciseSearchMode: this.$route.query.preciseSearchMode,
       // get from backend
       replications: [],
       bus: [],
@@ -462,6 +490,7 @@ export default {
       this.getReplications()
     },
     async getReplications () {
+      this.resetPath()
       const that = this
       const params = {
         pageIndex: this.current,
@@ -597,6 +626,11 @@ export default {
         }
       })
     },
+    goToDrcLink () {
+      this.$router.push({
+        path: '/drcV2'
+      })
+    },
     showModal (row) {
       console.log('show modal')
       this.$Modal.success({
@@ -713,6 +747,30 @@ export default {
       const url = 'http://hickwall.ctripcorp.com/grafanav2/d/vWeGmjFVk/drc-mha?from=now-1h&to=now&var-mha=' + srcName +
         '&var-auto_gen_other_mha=' + dstName
       window.open(url, '_blank')
+    },
+    resetPath () {
+      if (this.preciseSearchMode) {
+        this.$router.replace({
+          query: {
+            srcMhaName: this.srcMha.name,
+            srcBuName: this.srcMha.buName,
+            srcRegionName: this.srcMha.regionName,
+            dstMhaName: this.dstMha.name,
+            dstBuName: this.dstMha.buName,
+            dstRegionName: this.dstMha.regionName,
+            preciseSearchMode: this.preciseSearchMode
+          }
+        })
+      } else {
+        this.$router.replace({
+          query: {
+            mhaName: this.relatedMha.name,
+            buName: this.relatedMha.buName,
+            regionName: this.relatedMha.regionName,
+            preciseSearchMode: this.preciseSearchMode
+          }
+        })
+      }
     }
   },
   created () {

@@ -2,7 +2,7 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/mhaReplications">建立 DRC 同步</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/dbDrcBuild">建立 DRC 同步</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
       <Row :gutter=10 align="middle">

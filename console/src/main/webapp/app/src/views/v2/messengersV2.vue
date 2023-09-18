@@ -7,6 +7,21 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
+          <Row  style="background: #f8f8f9; border-top: 1px solid #e8eaec;">
+            <Col span="3" style="display: flex;float: right;margin: 5px" >
+              <Dropdown style="display: flex;float: right" >
+                <Button type="primary" icon="ios-hammer">
+                  操作
+                  <Icon type="ios-arrow-down"></Icon>
+                </Button>
+                <template #list>
+                  <DropdownMenu >
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">新建Messenger配置</DropdownItem>
+                  </DropdownMenu>
+                </template>
+              </Dropdown>
+            </Col>
+          </Row>
           <Table :loading="dataLoading" stripe :columns="columns" :data="dataWithPage" border>
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看
