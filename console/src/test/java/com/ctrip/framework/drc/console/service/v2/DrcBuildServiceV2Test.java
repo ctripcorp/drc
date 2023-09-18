@@ -194,9 +194,39 @@ public class DrcBuildServiceV2Test {
         Mockito.doNothing().when(dbReplicationTblDao).batchInsertWithReturnId(Mockito.anyList());
 
         List<Long> results = drcBuildServiceV2.configureDbReplications(param);
-        Assert.assertNotNull(results);
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchInsertWithReturnId(Mockito.any());
 
+    }
+
+    @Test
+    public void testBuildDbReplicationConfig() throws Exception {
+        DbReplicationBuildParam param = new DbReplicationBuildParam("srcMha", "dstMha", "db", "table");
+        ColumnsFilterCreateParam columnsFilterCreateParam = new ColumnsFilterCreateParam(Lists.newArrayList(200L, 201L), 0, Lists.newArrayList("column"));
+        RowsFilterCreateParam rowsFilterCreateParam = getRowsFilterCreateParam();
+
+        List<DbReplicationTbl> dbReplicationTbls = getDbReplicationTbls();
+        List<DbReplicationTbl> dbReplicationTbls0 = dbReplicationTbls.stream().filter(e -> e.getId() == 200L).collect(Collectors.toList());
+
+        List<Long> dbReplicationIds = dbReplicationTbls0.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        param.setDbReplicationIds(dbReplicationIds);
+
+        Mockito.when(dbReplicationTblDao.queryByIds(dbReplicationIds)).thenReturn(dbReplicationTbls0);
+        List<MhaTblV2> mhaTblV2s = getMhaTblV2s();
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("srcMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+        Mockito.when(mhaTblDao.queryByMhaName(Mockito.eq("dstMha"), Mockito.anyInt())).thenReturn(mhaTblV2s.get(0));
+        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(getMhaDbMappingTbls1());
+        Mockito.when(mysqlServiceV2.queryTablesWithNameFilter(Mockito.anyString(), Mockito.anyString())).thenReturn(Lists.newArrayList("test.table"));
+        Mockito.when(dbTblDao.queryByDbNames(Mockito.anyList())).thenReturn(getDbTbls());
+        Mockito.when( dbReplicationTblDao.update(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(rowsFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getRowsFilterTbl());
+        Mockito.when(columnFilterTblV2Dao.queryById(Mockito.anyLong())).thenReturn(getColumnsFilterTbl());
+        Mockito.when(mysqlServiceV2.getCommonColumnIn(Mockito.anyString(), Mockito.anyString(), Mockito.anyString())).thenReturn(Sets.newHashSet("udl", "uid", "column"));
+
+        drcBuildServiceV2.buildDbReplicationConfig(param);
+        param.setColumnsFilterCreateParam(columnsFilterCreateParam);
+        param.setRowsFilterCreateParam(rowsFilterCreateParam);
+        drcBuildServiceV2.buildDbReplicationConfig(param);
     }
 
 

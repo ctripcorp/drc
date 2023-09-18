@@ -104,16 +104,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @PostMapping("columnsFilter")
-    public ApiResult<Boolean> buildColumnsFilter(@RequestBody ColumnsFilterCreateParam param) {
-        try {
-            drcBuildServiceV2.buildColumnsFilter(param);
-            return ApiResult.getSuccessInstance(true);
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
     @GetMapping("columnsFilter")
     public ApiResult<ColumnsConfigView> getColumnsConfigView(@RequestParam long dbReplicationId) {
         try {
@@ -127,16 +117,6 @@ public class DrcBuildControllerV2 {
     public ApiResult<RowsFilterConfigView> getRowsConfigView(@RequestParam long dbReplicationId) {
         try {
             return ApiResult.getSuccessInstance(drcBuildServiceV2.getRowsConfigView(dbReplicationId));
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
-    @PostMapping("rowsFilter")
-    public ApiResult<Boolean> buildRowsFilter(@RequestBody RowsFilterCreateParam param) {
-        try {
-            drcBuildServiceV2.buildRowsFilter(param);
-            return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(false, e.getMessage());
         }

@@ -1327,7 +1327,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void checkDrcMhaBuildParam(DrcMhaBuildParam param) {
-        param.getSrcMhaName().trim();
+        param.setSrcMhaName(param.getSrcMhaName().trim());
+        param.setDstMhaName(param.getDstMhaName().trim());
         PreconditionUtils.checkNotNull(param);
         PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
