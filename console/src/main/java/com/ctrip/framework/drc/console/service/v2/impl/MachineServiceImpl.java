@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Nonnull;
+import javax.validation.constraints.NotNull;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -44,7 +44,7 @@ public class MachineServiceImpl implements MachineService {
             .expireAfterAccess(1, TimeUnit.MINUTES)
             .build(new CacheLoader<>() {
                 @Override
-                public Endpoint load(@Nonnull String mha) throws Exception {
+                public Endpoint load(@NotNull String mha) throws Exception {
                     return getMasterEndpoint(mha);
                 }
             });
@@ -111,7 +111,7 @@ public class MachineServiceImpl implements MachineService {
 
     public Endpoint getMaster(MhaTblV2 mhaTblV2, List<MachineTbl> machineInfo) {
         for (MachineTbl machineTbl : machineInfo) {
-            if (machineTbl.getMaster().equals(BooleanEnum.FALSE.getCode())) {
+            if (machineTbl.getMaster().equals(BooleanEnum.TRUE.getCode())) {
                 return new MySqlEndpoint(machineTbl.getIp(), machineTbl.getPort(), mhaTblV2.getMonitorUser(), mhaTblV2.getMonitorPassword(), BooleanEnum.TRUE.isValue());
             }
         }
