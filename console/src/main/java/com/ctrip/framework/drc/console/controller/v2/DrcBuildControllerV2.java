@@ -104,6 +104,16 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @DeleteMapping("dbReplications")
+    public ApiResult<Boolean> deleteDbReplications(@RequestParam List<Long> dbReplicationIds) {
+        try {
+            drcBuildServiceV2.deleteDbReplications(dbReplicationIds);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @PostMapping("columnsFilter")
     public ApiResult<Boolean> buildColumnsFilter(@RequestBody ColumnsFilterCreateParam param) {
         try {

@@ -37,7 +37,7 @@
           </Button>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="error" ghost @click="batchDelete()">批量删除
+          <Button style="margin-top: 10px;text-align: right" type="error" ghost @click="preBatchDelete()">批量删除
           </Button>
         </Col>
       </Row>
@@ -57,20 +57,6 @@
           </Table>
         </template>
       </div>
-      <Modal
-        v-model="deleteModal"
-        title="确认删除以下同步表"
-        @on-ok="deleteDbReplication"
-        @on-cancel="clearDeleteDbReplication">
-        <p>
-          <span>db: </span><span
-          style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.dbName}}</span>
-        </p>
-        <p>
-          <span>table: </span><span
-          style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{deleteDbReplicationInfo.logicTableName}}</span>
-        </p>
-      </Modal>
       <Modal
         v-model="batchDeleteModal"
         title="确认删除以下同步表"
@@ -98,7 +84,6 @@ export default {
   name: 'tables',
   data () {
     return {
-      dbReplicationIds: [],
       initInfo: {
         srcMhaName: '',
         srcMhaId: 0,
@@ -109,13 +94,7 @@ export default {
         dstDc: '',
         order: true
       },
-      deleteModal: false,
       batchDeleteModal: false,
-      deleteDbReplicationInfo: {
-        dbReplicationId: 0,
-        dbName: '',
-        logicTableName: ''
-      },
       deleteData: [],
       columns: [
         {
@@ -135,10 +114,6 @@ export default {
             )
           }
         },
-        // {
-        //   title: 'id',
-        //   key: 'dbReplicationId'
-        // },
         {
           title: '库名',
           key: 'dbName'
@@ -230,7 +205,12 @@ export default {
         }
       })
     },
-    batchDelete () {
+    preBatchDelete () {
+      const multiData = this.initInfo.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
       this.batchDeleteModal = true
       this.deleteData = this.initInfo.multiData
     },
@@ -238,6 +218,7 @@ export default {
       const multiData = this.initInfo.multiData
       if (multiData === undefined || multiData === null || multiData.length === 0) {
         this.$Message.warning('请勾选！')
+        return
       }
       const row = multiData[0]
       const dbReplicationIds = []
@@ -274,7 +255,6 @@ export default {
       })
     },
     goToUpdateConfig (row, index) {
-      // this.dbReplicationIds.push(row.dbReplicationId)
       const dbReplicationIds = []
       dbReplicationIds.push(row.dbReplicationId)
       this.$router.push({
@@ -296,28 +276,21 @@ export default {
       this.deleteData = []
       this.deleteData.push(row)
       this.batchDeleteModal = true
-      // this.deleteDbReplicationInfo = {
-      //   dbReplicationId: row.dbReplicationId,
-      //   dbName: row.dbName,
-      //   logicTableName: row.logicTableName
-      // }
-      // this.deleteModal = true
     },
     clearDeleteDbReplication (row, index) {
-      this.deleteDbReplicationInfo = {
-        dbReplicationId: 0,
-        dbName: '',
-        logicTableName: ''
-      }
-      this.deleteModal = false
+      this.deleteData = []
+      this.batchDeleteModal = false
     },
     deleteDbReplication () {
-      this.axios.delete('/api/drc/v2/config/dbReplication?dbReplicationId=' + this.deleteDbReplicationInfo.dbReplicationId).then(res => {
+      const deleteDbReplicationIds = []
+      this.deleteData.forEach(e => deleteDbReplicationIds.push(e.dbReplicationId))
+      this.axios.delete('/api/drc/v2/config/dbReplications?dbReplicationIds=' + deleteDbReplicationIds).then(res => {
         if (res.data.status === 1) {
-          this.$Message.warning('删除失败!' + res.data.message)
+          this.$Message.error('删除失败!' + res.data.message)
         } else {
           this.$Message.success('删除成功!')
           this.getDbReplications()
+          this.initInfo.multiData = []
         }
       })
     }

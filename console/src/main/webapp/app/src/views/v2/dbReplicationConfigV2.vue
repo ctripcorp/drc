@@ -38,19 +38,124 @@
         {{title}}
         <template #desc>{{message}}</template>
       </Alert>
-      <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
-        <FormItem prop="dbName" label="库名" :required=true>
-          <Input type="text" v-model="commonInfo.dbName" :readonly=update placeholder="请输入库名（支持正则）"/>
-        </FormItem>
-        <FormItem prop="tableName" label="表名" :required=true>
-          <Input type="text" v-model="commonInfo.tableName" :readonly=show placeholder="请输入表名（支持正则）">
-          </Input>
-        </FormItem>
-        <FormItem>
-          <Button type="primary" :loading="tableLoading" @click="checkMysqlTablesInSrcMha">校验</Button>
-        </FormItem>
-        <FormItem label="相关表" required="true">
-          <Table stripe size="small" :columns="nameFilterCheck.columns" :data="dataWithPage" :loading="tableLoading"
+      <Row :gutter=10 align="middle">
+        <Col span="13">
+          <Form ref="commonInfo" :model="commonInfo" :rules="ruleInline" :label-width="100">
+            <FormItem prop="dbName" label="库名" :required=true>
+              <Input type="text" v-model="commonInfo.dbName" :readonly=update placeholder="请输入库名（支持正则）"/>
+            </FormItem>
+            <FormItem prop="tableName" label="表名" :required=true>
+              <Input type="text" v-model="commonInfo.tableName" :readonly=show placeholder="请输入表名（支持正则）">
+              </Input>
+            </FormItem>
+            <FormItem label="行过滤">
+              <i-switch v-model="formItem.switch.rowsFilter" :disabled="show" size="large">
+                <template #open>
+                  <span>On</span>
+                </template>
+                <template #close>
+                  <span>Off</span>
+                </template>
+              </i-switch>
+            </FormItem>
+            <Card v-if="formItem.switch.rowsFilter" style="margin-left: 100px">
+              <template #title>
+                <Icon type="md-settings"/>
+                行过滤配置
+              </template>
+              <FormItem label="模式">
+                <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
+                  <Option v-for="item in rowsFilterConfig.modes" :value="item.mode" :key="item.mode">{{ item.name
+                    }}
+                  </Option>
+                </Select>
+              </FormItem>
+              <FormItem label="规则内容" v-if="rowsFilterConfig.mode !== 1 || rowsFilterConfig.fetchMode === 0">
+                <Input v-if="rowsFilterConfig.mode !== 1" type="textarea" v-model="rowsFilterConfig.context"
+                       style="width: 250px" placeholder="请输入行过滤内容"/>
+                <Select v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.fetchMode === 0"
+                        v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
+                  <Option v-for="item in rowsFilterConfig.regionsForChose" :value="item" :key="item">{{ item }}</Option>
+                </Select>
+              </FormItem>
+              <FormItem v-if="rowsFilterConfig.mode === 1" label="空处理">
+                <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
+              </FormItem>
+              <Divider v-if="rowsFilterConfig.mode === 1">UDL配置</Divider>
+              <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 1">
+                <Select v-model="rowsFilterConfig.udlColumns" filterable allow-create multiple style="width: 200px"
+                        @on-create="handleCreateUDLColumn" placeholder="不选默认则无UDL配置">
+                  <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                </Select>
+              </FormItem>
+              <FormItem label="DRC UDL策略id"
+                        v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.udlColumns.length !== 0">
+                <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create style="width: 200px"
+                        placeholder="请选择ucs策略id">
+                  <Option v-for="item in rowsFilterConfig.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}
+                  </Option>
+                </Select>
+              </FormItem>
+              <Divider v-if="rowsFilterConfig.mode === 1">UID配置</Divider>
+              <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 1">
+                <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
+                        @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
+                  <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
+                </Select>
+              </FormItem>
+              <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 1">
+                <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
+                        @on-create="handleCreateUDLColumn" placeholder="不选默认则无UID配置">
+                  <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                </Select>
+              </FormItem>
+              <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 1">
+                <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px" placeholder="选择"
+                        @on-change="fetchModeChange()">
+                  <Option v-for="item in rowsFilterConfig.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}
+                  </Option>
+                </Select>
+              </FormItem>
+            </Card>
+            <FormItem label="字段过滤">
+              <i-switch v-model="formItem.switch.columnsFilter" :disabled="show" size="large">
+                <template #open>
+                  <span>On</span>
+                </template>
+                <template #close>
+                  <span>Off</span>
+                </template>
+              </i-switch>
+            </FormItem>
+            <Card v-if="formItem.switch.columnsFilter" style="margin-left: 100px">
+              <template #title>
+                <Icon type="md-settings"/>
+                字段过滤配置
+              </template>
+              <FormItem label="模式">
+                <Select v-model="columnsFilterConfig.mode" style="width: 200px" placeholder="选择字段过滤模式">
+                  <Option v-for="item in columnsFilterConfig.modes" :value="item.mode" :key="item.mode">{{ item.name }}
+                  </Option>
+                </Select>
+              </FormItem>
+              <FormItem label="字段">
+                <Select v-model="columnsFilterConfig.columns" filterable allow-create
+                        @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="选择相关的字段">
+                  <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
+                </Select>
+              </FormItem>
+            </Card>
+            <br>
+            <FormItem v-if="!show">
+              <Button type="primary" :loading="dataLoading" @click="submitAll">提交</Button>
+            </FormItem>
+          </Form>
+        </Col>
+        <Col span="11">
+          <Divider style="margin-top: 1px">预览：同步表</Divider>
+          <Button type="primary" :loading="tableLoading" @click="checkMysqlTablesInSrcMha">检查同步表</Button>
+          <Table size="small" :height="tableHeight" :loading="tableLoading" stripe :columns="nameFilterCheck.columns"
+                 :data="dataWithPage"
                  border></Table>
           <div>
             <Page
@@ -64,108 +169,8 @@
               show-elevator
               @on-page-size-change="handleChangeSize"></Page>
           </div>
-        </FormItem>
-        <FormItem label="行过滤">
-          <i-switch v-model="formItem.switch.rowsFilter" :disabled="show"  size="large">
-            <template #open>
-              <span>On</span>
-            </template>
-            <template #close>
-              <span>Off</span>
-            </template>
-          </i-switch>
-        </FormItem>
-        <Card v-if="formItem.switch.rowsFilter" style="margin-left: 100px">
-          <template #title>
-            <Icon type="md-settings"/>
-            行过滤配置
-          </template>
-          <FormItem label="模式">
-            <Select v-model="rowsFilterConfig.mode" style="width: 200px" placeholder="选择行过滤模式">
-              <Option v-for="item in rowsFilterConfig.modes" :value="item.mode" :key="item.mode">{{ item.name
-                }}
-              </Option>
-            </Select>
-          </FormItem>
-          <FormItem label="规则内容" v-if="rowsFilterConfig.mode !== 1 || rowsFilterConfig.fetchMode === 0">
-            <Input v-if="rowsFilterConfig.mode !== 1" type="textarea" v-model="rowsFilterConfig.context"
-                   style="width: 250px"  placeholder="请输入行过滤内容"/>
-            <Select v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.fetchMode === 0"
-                    v-model="configInTripUid.regionsChosen" multiple style="width: 200px" placeholder="Region 选择">
-              <Option v-for="item in rowsFilterConfig.regionsForChose" :value="item" :key="item">{{ item }}</Option>
-            </Select>
-          </FormItem>
-          <FormItem v-if="rowsFilterConfig.mode === 1" label="空处理">
-            <Checkbox v-model="rowsFilterConfig.illegalArgument">【字段为空时】同步</Checkbox>
-          </FormItem>
-          <Divider v-if="rowsFilterConfig.mode === 1">UDL配置</Divider>
-          <FormItem label="UDL字段" v-if="rowsFilterConfig.mode === 1">
-            <Select v-model="rowsFilterConfig.udlColumns" filterable allow-create multiple style="width: 200px"
-                     @on-create="handleCreateUDLColumn" placeholder="不选默认则无UDL配置">
-              <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-            </Select>
-          </FormItem>
-          <FormItem label="DRC UDL策略id" v-if="rowsFilterConfig.mode === 1 && rowsFilterConfig.udlColumns.length !== 0">
-            <Select v-model="rowsFilterConfig.drcStrategyId" filterable allow-create style="width: 200px"
-                     placeholder="请选择ucs策略id">
-              <Option v-for="item in rowsFilterConfig.drcStrategyIdsForChose" :value="item" :key="item">{{ item }}
-              </Option>
-            </Select>
-          </FormItem>
-          <Divider v-if="rowsFilterConfig.mode === 1">UID配置</Divider>
-          <FormItem label="相关字段" v-if="rowsFilterConfig.mode !== 1">
-            <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                    @on-create="handleCreateUDLColumn" placeholder="选择相关字段">
-              <Option v-for="item in columnsForChose" :value="item" :key="item" :lable="item"></Option>
-            </Select>
-          </FormItem>
-          <FormItem label="UID字段" v-if="rowsFilterConfig.mode === 1">
-            <Select v-model="rowsFilterConfig.columns" filterable allow-create multiple style="width: 200px"
-                    @on-create="handleCreateUDLColumn" placeholder="不选默认则无UID配置">
-              <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-            </Select>
-          </FormItem>
-          <FormItem label="fetchMode" v-if="rowsFilterConfig.mode === 1">
-            <Select v-model="rowsFilterConfig.fetchMode" style="width: 200px"  placeholder="选择"
-                    @on-change="fetchModeChange()">
-              <Option v-for="item in rowsFilterConfig.fetchModeForChose" :value="item.v" :key="item.k">{{ item.k }}
-              </Option>
-            </Select>
-          </FormItem>
-        </Card>
-        <FormItem label="字段过滤">
-          <i-switch v-model="formItem.switch.columnsFilter" :disabled="show" size="large">
-            <template #open>
-              <span>On</span>
-            </template>
-            <template #close>
-              <span>Off</span>
-            </template>
-          </i-switch>
-        </FormItem>
-        <Card v-if="formItem.switch.columnsFilter" style="margin-left: 100px">
-          <template #title>
-            <Icon type="md-settings"/>
-            字段过滤配置
-          </template>
-          <FormItem label="模式">
-            <Select v-model="columnsFilterConfig.mode" style="width: 200px" placeholder="选择字段过滤模式">
-              <Option v-for="item in columnsFilterConfig.modes" :value="item.mode" :key="item.mode">{{ item.name }}
-              </Option>
-            </Select>
-          </FormItem>
-          <FormItem label="字段">
-            <Select v-model="columnsFilterConfig.columns" filterable allow-create
-                    @on-create="handleCreateUDLColumn" multiple style="width: 200px" placeholder="选择相关的字段">
-              <Option v-for="item in columnsForChose" :value="item" :key="item">{{ item }}</Option>
-            </Select>
-          </FormItem>
-        </Card>
-        <br>
-        <FormItem v-if="!show">
-          <Button type="primary" :loading="dataLoading" @click="submitAll">提交</Button>
-        </FormItem>
-      </Form>
+        </Col>
+      </Row>
     </Content>
   </base-component>
 </template>
@@ -183,6 +188,7 @@ export default {
       message: '',
       showMsg: false,
       title: '',
+      tableHeight: 80,
       rowsFilterConfig: {
         mode: 1,
         drcStrategyId: 0,
@@ -340,8 +346,8 @@ export default {
         ],
         total: 0,
         current: 1,
-        size: 5,
-        pageSizeOpts: [5, 10, 20, 100]
+        size: 10,
+        pageSizeOpts: [10, 20, 50, 100]
       }
     }
   },
@@ -370,11 +376,14 @@ export default {
             duration: 2
           })
         } else {
+          this.update = true
+          this.show = true
           this.$Message.success('提交成功！')
         }
       })
     },
     checkMysqlTablesInSrcMha () {
+      this.nameFilterCheck.current = 1
       this.getCommonColumns()
       this.checkMySqlTables(this.commonInfo.srcMhaName, this.commonInfo.dbName + '\\.' + this.commonInfo.tableName)
     },
@@ -389,6 +398,11 @@ export default {
         .then(response => {
           this.tableLoading = false
           this.commonInfo.tableData = response.data.data
+          if (this.commonInfo.tableData.length < 10) {
+            this.tableHeight = (this.commonInfo.tableData.length + 1) * 40
+          } else {
+            this.tableHeight = 440
+          }
         })
     },
     handleChangeSize (val) {

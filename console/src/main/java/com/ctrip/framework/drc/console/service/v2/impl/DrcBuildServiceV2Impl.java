@@ -398,6 +398,29 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void deleteDbReplications(List<Long> dbReplicationIds) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            throw ConsoleExceptionUtils.message("dbReplicationIds require not empty");
+        }
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationTbls)) {
+            logger.info("dbReplicationTbls not exist");
+            return;
+        }
+        dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        dbReplicationTblDao.batchUpdate(dbReplicationTbls);
+
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
+            logger.info("dbReplicationFilterMappingTbls not exist");
+            return;
+        }
+        dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+        dbReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
+    }
+
+    @Override
     public void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception {
         checkColumnsFilterCreateParam(param);
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(param.getDbReplicationIds());

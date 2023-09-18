@@ -32,6 +32,8 @@ public interface DrcBuildServiceV2 {
 
     void deleteDbReplications(long dbReplicationId) throws Exception;
 
+    void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
+
     void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception;
 
     ColumnsConfigView getColumnsConfigView(long dbReplicationId) throws Exception;
