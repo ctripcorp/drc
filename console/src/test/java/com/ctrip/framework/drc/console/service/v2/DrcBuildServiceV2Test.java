@@ -244,10 +244,10 @@ public class DrcBuildServiceV2Test {
     public void testDeleteDbReplications() throws Exception {
         Mockito.when(dbReplicationTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbReplicationTbls());
         Mockito.when(dbReplicationTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
-        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationId(Mockito.anyLong())).thenReturn(new ArrayList<>());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(new ArrayList<>());
         Mockito.when(dbReplicationFilterMappingTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[1]);
 
-        drcBuildServiceV2.deleteDbReplications(200L);
+        drcBuildServiceV2.deleteDbReplications(Lists.newArrayList(200L, 201L));
         Mockito.verify(dbReplicationTblDao, Mockito.times(1)).batchUpdate(Mockito.any());
         Mockito.verify(dbReplicationFilterMappingTblDao, Mockito.never()).batchUpdate(Mockito.any());
     }

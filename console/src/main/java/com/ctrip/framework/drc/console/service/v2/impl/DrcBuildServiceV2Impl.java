@@ -376,37 +376,13 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbReplications(long dbReplicationId) throws Exception {
-        if (dbReplicationId == 0L) {
-            throw ConsoleExceptionUtils.message("delete dbReplications are empty!");
-        }
-        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(Lists.newArrayList(dbReplicationId));
-        if (CollectionUtils.isEmpty(dbReplicationTbls)) {
-            logger.info("dbReplicationTbls not exist");
-            return;
-        }
-        dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-        dbReplicationTblDao.batchUpdate(dbReplicationTbls);
-
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationId);
-        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
-            logger.info("dbReplicationFilterMappingTbls not exist");
-            return;
-        }
-        dbReplicationFilterMappingTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
-        dbReplicationFilterMappingTblDao.batchUpdate(dbReplicationFilterMappingTbls);
-    }
-
-    @Override
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public void deleteDbReplications(List<Long> dbReplicationIds) throws Exception {
         if (CollectionUtils.isEmpty(dbReplicationIds)) {
             throw ConsoleExceptionUtils.message("dbReplicationIds require not empty");
         }
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
-        if (CollectionUtils.isEmpty(dbReplicationTbls)) {
-            logger.info("dbReplicationTbls not exist");
-            return;
+        if (CollectionUtils.isEmpty(dbReplicationTbls) || dbReplicationTbls.size() != dbReplicationIds.size()) {
+            throw ConsoleExceptionUtils.message("dbReplications not exist");
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);

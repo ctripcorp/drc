@@ -30,8 +30,6 @@ public interface DrcBuildServiceV2 {
 
     List<DbReplicationView> getDbReplicationView(String srcMhaName, String dstMhaName) throws Exception;
 
-    void deleteDbReplications(long dbReplicationId) throws Exception;
-
     void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
 
     void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception;

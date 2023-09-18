@@ -94,16 +94,6 @@ public class DrcBuildControllerV2 {
         }
     }
 
-    @DeleteMapping("dbReplication")
-    public ApiResult<Boolean> deleteDbReplications(@RequestParam long dbReplicationId) {
-        try {
-            drcBuildServiceV2.deleteDbReplications(dbReplicationId);
-            return ApiResult.getSuccessInstance(true);
-        } catch (Exception e) {
-            return ApiResult.getFailInstance(false, e.getMessage());
-        }
-    }
-
     @DeleteMapping("dbReplications")
     public ApiResult<Boolean> deleteDbReplications(@RequestParam List<Long> dbReplicationIds) {
         try {
