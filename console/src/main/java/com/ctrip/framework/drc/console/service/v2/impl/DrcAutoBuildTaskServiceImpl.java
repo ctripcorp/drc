@@ -354,7 +354,6 @@ public class DrcAutoBuildTaskServiceImpl implements DrcAutoBuildTaskService {
         dbReplicationBuildParam.setTableName(param.getTableFilter());
         List<Long> replicationIds = drcBuildService.configureDbReplications(dbReplicationBuildParam);
         // 3.2 filters
-        // todo by yongnian: 2023/9/15 测试
         if (param.getRowsFilterCreateParam() != null) {
             param.getRowsFilterCreateParam().setDbReplicationIds(replicationIds);
             drcBuildService.buildRowsFilter(param.getRowsFilterCreateParam());

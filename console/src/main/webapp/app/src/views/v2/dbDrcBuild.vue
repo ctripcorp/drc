@@ -19,7 +19,6 @@
                 <Select
                   v-model="formItem.dbName"
                   filterable
-                  allow-create
                   placeholder="请搜索数据库信息"
                   @on-change="selectDb"
                   :remote-method="getExistDb"
@@ -52,7 +51,9 @@
                     </FormItem>
                   </Card>
                 </Col>
-                <Col span="2" style="text-align: center">-></Col>
+                <Col span="2" style="text-align: center">
+                  <Button size="small" shape="circle" type="default" :loading="dataLoading" @click="getRegionOptions">-></Button>
+                </Col>
                 <Col span="11">
                   <Card :bordered="true">
                     <template #title>
@@ -87,7 +88,7 @@
               <template #title>
                 <Icon type="md-settings"/>
                 行过滤配置
-                <Button icon="ios-refresh" size="small" type="primary" :loading="dataLoading" @click="getCommonColumns" style="margin-left: 50px">获取公共字段</Button>
+                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading" @click="getCommonColumns" style="margin-left: 50px">获取公共字段</Button>
               </template>
               <FormItem label="模式">
                 <Select v-model="formItem.rowsFilterDetail.mode" style="width: 200px" placeholder="选择行过滤模式" >
@@ -145,7 +146,8 @@
             <Card v-if="formItem.switch.colsFilter" style="margin-left: 100px">
               <template #title>
                 <Icon type="md-settings"/>
-                行过滤配置
+                列过滤配置
+                <Button icon="ios-refresh" size="small" type="primary" :loading="commonColumnLoading" @click="getCommonColumns" style="margin-left: 50px">获取公共字段</Button>
               </template>
               <FormItem label="模式">
                 <Select v-model="formItem.colsFilterDetail.mode" style="width: 200px" placeholder="选择字段过滤模式">
@@ -498,7 +500,8 @@ export default {
           pageSizeOpts: [5, 10, 20, 100]
         }
       },
-      dataLoading: false
+      dataLoading: false,
+      commonColumnLoading: false
     }
   },
   methods: {
@@ -605,12 +608,13 @@ export default {
       })
         .then(response => {
           const data = response.data.data
-          if (data) {
+          const success = data && response.data.status === 0
+          if (success) {
             that.previewDataList = data
             console.log('total: ' + that.previewDataList.length)
-            that.$Message.success('预检测成功, 共找到 ' + data.length + ' 个DB')
+            that.$Message.success('同步集群检测成功, 共找到 ' + data.length + ' 个DB')
           } else {
-            that.$Message.warning('预检测失败')
+            that.$Message.warning('同步集群检测失败：' + response.data.message)
           }
         })
         .catch(message => {
@@ -660,9 +664,9 @@ export default {
           if (data) {
             that.checkTableDataList = data
             console.log('total: ' + that.checkTableDataList.length)
-            that.$Message.success('预检测成功, 共找到 ' + data.length + ' 个DB')
+            that.$Message.success('同步表检测成功, 共找到 ' + data.length + ' 个表')
           } else {
-            that.$Message.warning('预检测失败')
+            that.$Message.warning('同步表检测失败：' + response.data.message)
           }
         })
         .catch(message => {
@@ -722,7 +726,8 @@ export default {
       })
         .then(response => {
           const data = response.data.data
-          if (data) {
+          const success = data && response.data.status === 0
+          if (success) {
             that.meta.regionOptions = data
             if (data.indexOf(that.formItem.srcRegionName) === -1) {
               that.formItem.srcRegionName = null
@@ -730,6 +735,7 @@ export default {
             if (data.indexOf(that.formItem.dstRegionName) === -1) {
               that.formItem.dstRegionName = null
             }
+            that.$Message.success('查询到 ' + that.meta.regionOptions.length + ' 个可选区域')
             console.log('total selectable region: ' + that.meta.regionOptions.length)
           } else {
             that.formItem.srcRegionName = null
@@ -781,6 +787,7 @@ export default {
       const params = this.getParams()
       console.log(params)
       this.formItem.constants.columnsForChose = []
+      this.commonColumnLoading = true
       this.axios.get('/api/drc/v2/autoconfig/commonColumns', {
         params: this.flattenObj(params)
       }).then(response => {
@@ -793,6 +800,8 @@ export default {
         }
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
+      }).finally(() => {
+        this.commonColumnLoading = true
       })
     },
     handleCreateColumn (val) {
