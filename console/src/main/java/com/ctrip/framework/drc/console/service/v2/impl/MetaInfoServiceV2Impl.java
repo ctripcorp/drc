@@ -17,7 +17,6 @@ import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.convert.TableNameBuilder;
 import com.ctrip.framework.drc.core.entity.*;
-import com.ctrip.framework.drc.core.http.PageResult;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.base.Supplier;

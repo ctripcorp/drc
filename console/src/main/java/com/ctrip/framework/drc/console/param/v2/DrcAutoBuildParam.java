@@ -102,4 +102,20 @@ public class DrcAutoBuildParam {
     public void setDstDcName(String dstDcName) {
         this.dstDcName = dstDcName;
     }
+
+    @Override
+    public String toString() {
+        return "DrcAutoBuildParam{" +
+                "srcMhaName='" + srcMhaName + '\'' +
+                ", dstMhaName='" + dstMhaName + '\'' +
+                ", srcDcName='" + srcDcName + '\'' +
+                ", dstDcName='" + dstDcName + '\'' +
+                ", buName='" + buName + '\'' +
+                ", tag='" + tag + '\'' +
+                ", dbName=" + dbName +
+                ", tableFilter='" + tableFilter + '\'' +
+                ", rowsFilterCreateParam=" + rowsFilterCreateParam +
+                ", columnsFilterCreateParam=" + columnsFilterCreateParam +
+                '}';
+    }
 }

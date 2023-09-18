@@ -44,7 +44,7 @@ public class MachineServiceImpl implements MachineService {
             .expireAfterAccess(1, TimeUnit.MINUTES)
             .build(new CacheLoader<>() {
                 @Override
-                public Endpoint load(@NotNull String mha) throws Exception {
+                public Endpoint load(@NotNull String mha) {
                     return getMasterEndpoint(mha);
                 }
             });

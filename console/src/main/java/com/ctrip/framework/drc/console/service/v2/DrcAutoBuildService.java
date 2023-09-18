@@ -8,7 +8,7 @@ import com.ctrip.framework.drc.console.vo.display.v2.MhaReplicationPreviewDto;
 import java.util.List;
 
 
-public interface DrcAutoBuildTaskService {
+public interface DrcAutoBuildService {
     List<MhaReplicationPreviewDto> preCheckMhaReplication(DrcAutoBuildReq req);
     List<TableCheckVo> preCheckMysqlTables(DrcAutoBuildReq req);
 

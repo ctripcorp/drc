@@ -4,7 +4,7 @@
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
       <BreadcrumbItem to="/v2/mhaReplications">建立 DRC 同步</BreadcrumbItem>
     </Breadcrumb>
-    <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1'}">
+    <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 111px 185px', zIndex: '1'}">
       <Row :gutter=10 align="middle">
         <Col span="13">
           <Form :model="formItem" :label-width="100" style="margin-right: 20px;margin-top: 10px">
@@ -166,7 +166,11 @@
                 <Option v-for="item in meta.bus" :value="item.buName" :key="item.buName">{{ item.buName }}</Option>
               </Select>
             </FormItem>
-
+            <FormItem label="Tag" prop="dstTag" :required=true>
+              <Select v-model="formItem.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
+                <Option v-for="item in meta.tags" :value="item" :key="item">{{ item }}</Option>
+              </Select>
+            </FormItem>
             <FormItem>
               <Button type="primary" :loading="dataLoading" :disabled="previewDataList.length === 0 || !formItem.tableName" @click="beforeSubmit">提交</Button>
             </FormItem>
@@ -235,6 +239,7 @@ export default {
           dalClusterName: null
         },
         buName: null,
+        tag: null,
         tableName: null,
         rowsFilterDetail: {
           mode: 1,
@@ -330,6 +335,7 @@ export default {
         regions: [],
         regionOptions: [],
         dbOptions: [],
+        tags: this.constant.tagList,
         selectedDb: {}
       },
       drawer: {
@@ -521,6 +527,7 @@ export default {
     getParams: function () {
       const param = {}
       param.buName = this.formItem.buName
+      param.tag = this.formItem.tag
       param.mode = this.formItem.buildMode
       param.srcRegionName = this.formItem.srcRegionName
       param.dstRegionName = this.formItem.dstRegionName
@@ -581,6 +588,7 @@ export default {
       const params = this.getParams()
       const that = this
       that.previewDataList = []
+      that.table.dbMhaTablePage.current = 1
       if (params.mode === 0) {
         if (!params.dbName) {
           this.$Message.warning('请先填写数据库')
@@ -628,6 +636,7 @@ export default {
       const params = this.getParams()
       const that = this
       that.checkTableDataList = []
+      that.table.dbTablePage.current = 1
       if (params.mode === 0) {
         if (!params.dbName) {
           this.$Message.warning('请先填写数据库')
@@ -785,6 +794,8 @@ export default {
     },
     getCommonColumns () {
       const params = this.getParams()
+      params.rowsFilterDetail.columns = []
+      params.rowsFilterDetail.udlColumns = []
       console.log(params)
       this.formItem.constants.columnsForChose = []
       this.commonColumnLoading = true
@@ -801,7 +812,7 @@ export default {
       }).catch(message => {
         this.$Message.error('查询公共列名异常: ' + message)
       }).finally(() => {
-        this.commonColumnLoading = true
+        this.commonColumnLoading = false
       })
     },
     handleCreateColumn (val) {
@@ -814,6 +825,9 @@ export default {
         return
       }
       this.formItem.constants.columnsForChose.push(val)
+    },
+    handleCreateTag (val) {
+      this.meta.tags.push(val)
     },
     flattenObj (ob) {
       const result = {}

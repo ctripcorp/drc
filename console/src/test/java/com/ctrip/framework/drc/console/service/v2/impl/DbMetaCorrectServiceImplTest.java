@@ -18,6 +18,8 @@ import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import java.sql.SQLException;
 import java.util.List;
+
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +33,7 @@ import org.mockito.MockitoAnnotations;
 public class DbMetaCorrectServiceImplTest {
 
     @InjectMocks private DbMetaCorrectServiceImpl dbMetaCorrectService;
-    
+
     @Mock private MhaTblV2Dao mhaTblV2Dao;
 
     @Mock private ReplicatorGroupTblDao rGroupTblDao;
@@ -106,7 +108,7 @@ public class DbMetaCorrectServiceImplTest {
         mhaTbl.setMhaName("mhaName");
         mhaTbl.setMonitorUser("monitorUser");
         mhaTbl.setMonitorPassword("monitorPsw");
-        
+
 
         // test
         try(MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)){
@@ -214,7 +216,7 @@ public class DbMetaCorrectServiceImplTest {
     public void testMhaMasterDbChange() throws Exception {
         MhaTblV2 mhaTblV2 = MockEntityBuilder.buildMhaTblV2();
         List<MachineTbl> machineTbls = MockEntityBuilder.buildMachineTbls();
-        
+
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("mha"))).thenReturn(mhaTblV2);
         Mockito.when(machineTblDao.queryByMhaId(Mockito.eq(1L),Mockito.eq(0))).thenReturn(machineTbls);
         Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(new int[] {1,1});
@@ -226,7 +228,97 @@ public class DbMetaCorrectServiceImplTest {
         Assert.assertEquals(0,apiResult.getData());
         apiResult = dbMetaCorrectService.mhaMasterDbChange("mha", "ip1", 1);
         Assert.assertEquals(2,apiResult.getData());
+    }
+
+    @Test
+    public void testMhaInstancesChange2() throws Exception {
+        //init Mock
+        int[] effects = new int[]{1,1};
+        Mockito.when(machineTblDao.batchUpdate(Mockito.anyList())).thenReturn(effects);
+        Mockito.when(machineTblDao.batchLogicalDelete(Mockito.anyList())).thenReturn(effects);
+        Mockito.when(machineTblDao.batchInsert(Mockito.anyList())).thenReturn(effects);
+        Mockito.when(monitorTableSourceProvider.getSwitchSyncMhaUpdateAll()).thenReturn("on");
+
+        //init dto
+
+        List<MachineTbl> machineTblFromDal = Lists.newArrayList();
+        machineTblFromDal.add(new MachineTbl("ip1",3306,1));
+        machineTblFromDal.add(new MachineTbl("ip2",3307,0));
+        machineTblFromDal.add(new MachineTbl("ip3",3308,0));
+
+        //init tbl
+        MhaTblV2 mhaTbl = new MhaTblV2();
+        mhaTbl.setId(1L);
+        mhaTbl.setMhaName("mhaName");
+        mhaTbl.setMonitorUser("monitorUser");
+        mhaTbl.setMonitorPassword("monitorPsw");
 
 
+        // test
+        try (MockedStatic<MySqlUtils> theMock = Mockito.mockStatic(MySqlUtils.class)) {
+            theMock.when(() -> MySqlUtils.getUuid(
+                    Mockito.anyString(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean())
+            ).thenReturn("uuid");
+            final List<MachineTbl> insertMachines = com.google.common.collect.Lists.newArrayList();
+            final List<MachineTbl> deleteMachines = com.google.common.collect.Lists.newArrayList();
+            final List<MachineTbl> updateMachines = com.google.common.collect.Lists.newArrayList();
+
+
+            // case1: update only
+            List<MachineTbl> machinesInMetaDb = Lists.newArrayList();
+            machinesInMetaDb.add(new MachineTbl("ip1", 3306, 0));
+            machinesInMetaDb.add(new MachineTbl("ip2", 3307, 1));
+            machinesInMetaDb.add(new MachineTbl("ip3", 3308, 0));
+            Mockito.when(machineTblDao.queryByMhaId(Mockito.eq(1L), Mockito.eq(1))).thenReturn(machinesInMetaDb);
+
+
+            dbMetaCorrectService.checkChange(machineTblFromDal, machinesInMetaDb, mhaTbl, insertMachines, updateMachines, deleteMachines);
+            Assert.assertEquals(0, insertMachines.size());
+            Assert.assertEquals(2, updateMachines.size());
+            Assert.assertEquals(0, deleteMachines.size());
+            // case2: insert
+            insertMachines.clear();
+            deleteMachines.clear();
+            updateMachines.clear();
+            machinesInMetaDb.clear();
+
+            machinesInMetaDb.add(new MachineTbl("ip1", 3306, 1));
+            dbMetaCorrectService.checkChange(machineTblFromDal, machinesInMetaDb, mhaTbl, insertMachines, updateMachines, deleteMachines);
+            Assert.assertEquals(2, insertMachines.size());
+            Assert.assertEquals(0, updateMachines.size());
+            Assert.assertEquals(0, deleteMachines.size());
+
+            // case3: delete
+            insertMachines.clear();
+            deleteMachines.clear();
+            updateMachines.clear();
+            machinesInMetaDb.clear();
+
+            machinesInMetaDb.add(new MachineTbl("ip1", 3306, 1));
+            machinesInMetaDb.add(new MachineTbl("ip2", 3307, 0));
+            machinesInMetaDb.add(new MachineTbl("ip3", 3308, 0));
+            machinesInMetaDb.add(new MachineTbl("ip4", 3309, 0));
+            dbMetaCorrectService.checkChange(machineTblFromDal, machinesInMetaDb, mhaTbl, insertMachines, updateMachines, deleteMachines);
+            Assert.assertEquals(0, insertMachines.size());
+            Assert.assertEquals(0, updateMachines.size());
+            Assert.assertEquals(1, deleteMachines.size());
+
+
+            // case4: mixed
+            insertMachines.clear();
+            deleteMachines.clear();
+            updateMachines.clear();
+            machinesInMetaDb.clear();
+
+            machinesInMetaDb.add(new MachineTbl("ip1", 3306, 0));
+            machinesInMetaDb.add(new MachineTbl("ip2", 3307, 0));
+            machinesInMetaDb.add(new MachineTbl("ip4", 3309, 1));
+            dbMetaCorrectService.checkChange(machineTblFromDal, machinesInMetaDb, mhaTbl, insertMachines, updateMachines, deleteMachines);
+            Assert.assertEquals(1, insertMachines.size());
+            Assert.assertEquals(1, updateMachines.size());
+            Assert.assertEquals(1, deleteMachines.size());
+
+            dbMetaCorrectService.mhaInstancesChange(machineTblFromDal, mhaTbl);
+        }
     }
 }

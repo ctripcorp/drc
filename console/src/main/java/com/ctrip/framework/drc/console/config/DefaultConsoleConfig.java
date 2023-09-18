@@ -107,7 +107,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
 
     private static final String DBA_DC_2_DRC_DC_MAP = "dbadc.drcdc.map";
     private static final String DEFAULT_DBA_DC_2_DRC_DC_MAP = "{}";
-    private static final String BU_2_TAG_MAP = "drc.bu.tag.map";
 
     // only for test
     protected DefaultConsoleConfig(Config config) {
@@ -425,12 +424,6 @@ public class DefaultConsoleConfig extends AbstractConfigBean {
         String dbaDc2DrcDcMapString = getProperty(DBA_DC_2_DRC_DC_MAP, DEFAULT_DBA_DC_2_DRC_DC_MAP);
         logger.info("dbaDc2DrcDcMapString: {}", dbaDc2DrcDcMapString);
         return JsonCodec.INSTANCE.decode(dbaDc2DrcDcMapString, new GenericTypeReference<Map<String, String>>() {});
-    }
-
-    public Map<String, String> getBu2TagMap() {
-        String bu2Tag = getProperty(BU_2_TAG_MAP, "{}");
-        logger.info("bu2Tag: {}", bu2Tag);
-        return JsonCodec.INSTANCE.decode(bu2Tag, new GenericTypeReference<Map<String, String>>() {});
     }
 
     public List<String> getVpcMhaNames() {

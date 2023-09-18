@@ -13,6 +13,7 @@ public class DrcAutoBuildReq {
     private String srcRegionName;
     private String dstRegionName;
     private String buName;
+    private String tag;
     private TblsFilterDetail tblsFilterDetail;
     private Boolean openRowsFilterConfig;
     private RowsFilterCreateParam rowsFilterDetail;
@@ -29,6 +30,12 @@ public class DrcAutoBuildReq {
         }
         if (StringUtils.isBlank(buName)) {
             throw new IllegalArgumentException("buName should not be blank!");
+        }
+        if (StringUtils.isBlank(tag)) {
+            throw new IllegalArgumentException("tag should not be blank!");
+        }
+        if (tblsFilterDetail == null || StringUtils.isBlank(tblsFilterDetail.tableNames)) {
+            throw new IllegalArgumentException("tableName should not be blank!");
         }
 
         if (modeEnum == null) {
@@ -52,6 +59,8 @@ public class DrcAutoBuildReq {
         srcRegionName = srcRegionName.trim();
         dstRegionName = dstRegionName.trim();
         buName = buName.trim();
+        tag = tag.trim();
+        tblsFilterDetail.tableNames = tblsFilterDetail.tableNames.trim();
     }
 
     public enum BuildMode {
@@ -180,5 +189,31 @@ public class DrcAutoBuildReq {
 
     public void setOpenRowsFilterConfig(Boolean openRowsFilterConfig) {
         this.openRowsFilterConfig = openRowsFilterConfig;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
+    @Override
+    public String toString() {
+        return "DrcAutoBuildReq{" +
+                "dbName='" + dbName + '\'' +
+                ", dalClusterName='" + dalClusterName + '\'' +
+                ", mode=" + mode +
+                ", srcRegionName='" + srcRegionName + '\'' +
+                ", dstRegionName='" + dstRegionName + '\'' +
+                ", buName='" + buName + '\'' +
+                ", tag='" + tag + '\'' +
+                ", tblsFilterDetail=" + tblsFilterDetail +
+                ", openRowsFilterConfig=" + openRowsFilterConfig +
+                ", rowsFilterDetail=" + rowsFilterDetail +
+                ", openColsFilterConfig=" + openColsFilterConfig +
+                ", colsFilterDetail=" + colsFilterDetail +
+                '}';
     }
 }

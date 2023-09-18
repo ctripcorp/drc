@@ -4,7 +4,6 @@ import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import org.unidal.tuple.Triple;
 
 import java.sql.SQLException;
 import java.util.List;

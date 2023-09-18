@@ -20,6 +20,9 @@
             <MenuItem name="/drcV2" to="/drcV2">
               <span>DRC配置</span>
             </MenuItem>
+            <MenuItem name="/v2/dbDrcBuild" to="/v2/dbDrcBuild">
+              <span>DRC配置（auto）</span>
+            </MenuItem>
             <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
               <span>Messenger集群</span>
             </MenuItem>
@@ -28,9 +31,6 @@
             </MenuItem>
             <MenuItem name="/v2/migration" to="/v2/migration">
               <span>DB 搬迁任务</span>
-            </MenuItem>
-            <MenuItem name="/v2/dbDrcBuild" to="/v2/dbDrcBuild">
-              <span>DB维度配置</span>
             </MenuItem>
           </Submenu>
           <Submenu name="1">
@@ -147,6 +147,8 @@ export default {
       case '/drcV2':
       case '/v2/buildMessengerV2':
       case '/v2/messengersV2':
+      case '/v2/dbDrcBuild':
+      case '/v2/migration':
         this.openNames = ['v2-0']
         break
       case '/apply':
