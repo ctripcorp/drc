@@ -166,7 +166,6 @@ export default {
         break
     }
     let activeName = this.$route.path
-    console.log(this.$route.path, ['/drcV2', '/v2/dbDrcBuild'], this.$route.path in ['/drcV2', '/v2/dbDrcBuild'])
     if (['/drcV2', '/v2/dbDrcBuild'].includes(this.$route.path)) {
       activeName = '/v2/mhaReplications'
     } else if (['/v2/buildMessengerV2'].includes(this.$route.path)) {
