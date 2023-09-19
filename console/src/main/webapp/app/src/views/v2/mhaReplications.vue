@@ -384,8 +384,16 @@ export default {
       current: 1,
       size: 10,
       // query param
-      srcMha: {},
-      dstMha: {},
+      srcMha: {
+        name: null,
+        buName: null,
+        regionName: null
+      },
+      dstMha: {
+        name: null,
+        buName: null,
+        regionName: null
+      },
       relatedMha: {},
       drcStatus: null,
       preciseSearchMode: false,
@@ -716,6 +724,9 @@ export default {
     }
   },
   created () {
+    this.srcMha.name = this.$route.query.srcMhaName
+    this.dstMha.name = this.$route.query.dstMhaName
+    this.preciseSearchMode = this.$route.query.preciseSearchMode
     this.getReplications()
     this.getRegions()
     this.getBus()

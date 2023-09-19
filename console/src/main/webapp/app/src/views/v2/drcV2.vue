@@ -1,7 +1,14 @@
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: '/v2/mhaReplications',query :{
+          srcMhaName: this.clusterPair.srcMhaName,
+          dstMhaName: this.clusterPair.dstMhaName,
+          preciseSearchMode: true
+        }
+      }">首页
+      </BreadcrumbItem>
       <BreadcrumbItem to="/drcV2">DRC配置V2</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#ffffff', margin: '50px 0 1px 185px', zIndex: '1', top: '500px'}">
@@ -39,7 +46,7 @@ import mhaBuild from './mhaBuild.vue'
 import mhaConfigV2 from './mhaConfigV2.vue'
 import preCheckV2 from './preCheckV2.vue'
 import drcBuildV2 from './drcBuildV2.vue'
-import complete from '../../components/access/complete.vue'
+import complete from './complete.vue'
 export default {
   components: {
     mhaBuild,

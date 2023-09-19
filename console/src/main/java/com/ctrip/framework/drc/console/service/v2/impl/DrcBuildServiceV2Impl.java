@@ -229,6 +229,27 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception {
+        List<Long> dbReplicationIds = configureDbReplications(param);
+
+        RowsFilterCreateParam rowsFilterCreateParam = param.getRowsFilterCreateParam();
+        ColumnsFilterCreateParam columnsFilterCreateParam = param.getColumnsFilterCreateParam();
+        if (rowsFilterCreateParam != null) {
+            rowsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
+            buildRowsFilter(rowsFilterCreateParam);
+        } else {
+            deleteRowsFilter(dbReplicationIds);
+        }
+
+        if (columnsFilterCreateParam != null) {
+            columnsFilterCreateParam.setDbReplicationIds(dbReplicationIds);
+            buildColumnsFilter(columnsFilterCreateParam);
+        } else {
+            deleteColumnsFilter(dbReplicationIds);
+        }
+    }
+
+    @Override
     public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
         logger.info("configureDbReplications param: {}", param);
         checkDbReplicationBuildParam(param);
@@ -251,7 +272,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return dbReplicationIds;
     }
 
-    @DalTransactional(logicDbName = "fxdrcmetadb_w")
     public List<Long> updateDbReplications(DbReplicationBuildParam param) throws Exception {
         List<Long> dbReplicationIds = param.getDbReplicationIds();
         List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
@@ -264,10 +284,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             throw ConsoleExceptionUtils.message("dbReplications contains different tables");
         }
 
-        if (param.getTableName().equals(srcLogicTableNames.get(0))) {
-            throw ConsoleExceptionUtils.message("Do not submit repeatedly!");
-        }
-
         MhaTblV2 srcMha = mhaTblDao.queryByMhaName(param.getSrcMhaName(), BooleanEnum.FALSE.getCode());
         MhaTblV2 dstMha = mhaTblDao.queryByMhaName(param.getDstMhaName(), BooleanEnum.FALSE.getCode());
         List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
@@ -277,9 +293,12 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
         checkExistDbReplication(tableList, dbReplicationIds, srcMhaDbMappings, dstMhaDbMappings);
 
-        dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
-        dbReplicationTblDao.update(dbReplicationTbls);
-        logger.info("update dbReplicationTbls: {}", dbReplicationTbls);
+        if (!param.getTableName().equals(srcLogicTableNames.get(0))) {
+            dbReplicationTbls.forEach(e -> e.setSrcLogicTableName(param.getTableName()));
+            dbReplicationTblDao.update(dbReplicationTbls);
+            logger.info("update dbReplicationTbls: {}", dbReplicationTbls);
+        }
+
         List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
             return dbReplicationIds;
@@ -357,19 +376,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void deleteDbReplications(long dbReplicationId) throws Exception {
-        if (dbReplicationId == 0L) {
-            throw ConsoleExceptionUtils.message("delete dbReplications are empty!");
+    public void deleteDbReplications(List<Long> dbReplicationIds) throws Exception {
+        if (CollectionUtils.isEmpty(dbReplicationIds)) {
+            throw ConsoleExceptionUtils.message("dbReplicationIds require not empty");
         }
-        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(Lists.newArrayList(dbReplicationId));
-        if (CollectionUtils.isEmpty(dbReplicationTbls)) {
-            logger.info("dbReplicationTbls not exist");
-            return;
+        List<DbReplicationTbl> dbReplicationTbls = dbReplicationTblDao.queryByIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationTbls) || dbReplicationTbls.size() != dbReplicationIds.size()) {
+            throw ConsoleExceptionUtils.message("dbReplications not exist");
         }
         dbReplicationTbls.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
         dbReplicationTblDao.batchUpdate(dbReplicationTbls);
 
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationId(dbReplicationId);
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
         if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
             logger.info("dbReplicationFilterMappingTbls not exist");
             return;
@@ -408,6 +426,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public void deleteColumnsFilter(List<Long> dbReplicationIds) throws Exception {
         List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+        if (CollectionUtils.isEmpty(existFilterMappings)) {
+            logger.info("deleteColumnsFilter filterMapping is empty, dbReplicationIds: {}");
+            return;
+        }
 
         existFilterMappings.forEach(e -> {
             if (e.getRowsFilterId() != -1L) {
@@ -447,6 +469,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     @Override
     public void deleteRowsFilter(List<Long> dbReplicationIds) throws Exception {
         List<DbReplicationFilterMappingTbl> existFilterMappings = getDbReplicationFilterMappings(dbReplicationIds);
+        if (CollectionUtils.isEmpty(existFilterMappings)) {
+            logger.info("deleteColumnsFilter filterMapping is empty, dbReplicationIds: {}");
+            return;
+        }
 
         existFilterMappings.forEach(e -> {
             if (e.getColumnsFilterId() != -1L) {
@@ -869,10 +895,6 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
 
         List<DbReplicationFilterMappingTbl> existFilterMappings = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
-        if (CollectionUtils.isEmpty(existFilterMappings)) {
-            logger.error("dbReplicationFilterMapping not exist, dbReplicationIds: {}", dbReplicationIds);
-            throw ConsoleExceptionUtils.message("dbReplicationFilterMapping not exist!");
-        }
         return existFilterMappings;
     }
 
@@ -982,6 +1004,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
                                          List<Long> excludeDbReplicationIds,
                                          List<MhaDbMappingTbl> srcMhaDbMappings,
                                          List<MhaDbMappingTbl> dstMhaDbMappings) throws Exception {
+        if (CollectionUtils.isEmpty(tableList)) {
+            throw ConsoleExceptionUtils.message("cannot match any tables!");
+        }
+
         List<Long> srcDbIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> srcDbTbls = dbTblDao.queryByIds(srcDbIds);
         Map<Long, String> srcDbMap = srcDbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
@@ -1301,6 +1327,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     private void checkDrcMhaBuildParam(DrcMhaBuildParam param) {
+        param.setSrcMhaName(param.getSrcMhaName().trim());
+        param.setDstMhaName(param.getDstMhaName().trim());
         PreconditionUtils.checkNotNull(param);
         PreconditionUtils.checkString(param.getSrcMhaName(), "srcMhaName requires not empty!");
         PreconditionUtils.checkString(param.getDstMhaName(), "dstMhaName requires not empty!");
