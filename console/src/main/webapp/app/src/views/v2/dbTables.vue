@@ -96,6 +96,10 @@ export default {
       },
       batchDeleteModal: false,
       deleteData: [],
+      filterMap: {
+        0: '行过滤',
+        1: '字段过滤'
+      },
       columns: [
         {
           type: 'selection',
@@ -121,6 +125,39 @@ export default {
         {
           title: '表名',
           key: 'logicTableName'
+        },
+        {
+          title: '过滤规则配置',
+          key: 'filterTypes',
+          width: 300,
+          render: (h, params) => {
+            const row = params.row
+            const filterTypes = row.filterTypes
+            let rowsFilter = false
+            let columnsFilter = false
+            if (filterTypes === null) {
+              return h('Tag', {
+                props: {
+                  color: 'red'
+                }
+              }, '无')
+            } else {
+              rowsFilter = filterTypes.includes(0)
+              columnsFilter = filterTypes.includes(1)
+              return h('div', [
+                rowsFilter && h('Tag', {
+                  props: {
+                    color: 'blue'
+                  }
+                }, '行过滤'),
+                columnsFilter && h('Tag', {
+                  props: {
+                    color: 'green'
+                  }
+                }, '字段过滤')
+              ])
+            }
+          }
         },
         {
           title: '操作',
@@ -160,6 +197,8 @@ export default {
     }
   },
   methods: {
+    getFilterText (val) {
+    },
     changeSelection (val) {
       this.initInfo.multiData = val
       console.log(this.initInfo.multiData)

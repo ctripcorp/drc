@@ -358,6 +358,10 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             return views;
         }
 
+        List<Long> dbReplicationIds = existDbReplications.stream().map(DbReplicationTbl::getId).collect(Collectors.toList());
+        List<DbReplicationFilterMappingTbl> filterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        Map<Long, DbReplicationFilterMappingTbl> filterMappingTblsMap = filterMappingTbls.stream().collect(Collectors.toMap(DbReplicationFilterMappingTbl::getDbReplicationId, Function.identity()));
+
         List<Long> srcDbIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
         List<DbTbl> dbTbls = dbTblDao.queryByIds(srcDbIds);
         Map<Long, String> dbTblMap = dbTbls.stream().collect(Collectors.toMap(DbTbl::getId, DbTbl::getDbName));
@@ -369,6 +373,18 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             target.setLogicTableName(source.getSrcLogicTableName());
             long dbId = srcMhaDbMappingMap.get(source.getSrcMhaDbMappingId());
             target.setDbName(dbTblMap.get(dbId));
+
+            DbReplicationFilterMappingTbl filterMapping = filterMappingTblsMap.get(source.getId());
+            if (filterMapping != null) {
+                List<Integer> filterTypes = new ArrayList<>();
+                if (filterMapping.getRowsFilterId() != -1L) {
+                    filterTypes.add(FilterTypeEnum.ROWS_FILTER.getCode());
+                }
+                if (filterMapping.getColumnsFilterId() != -1) {
+                    filterTypes.add(FilterTypeEnum.COLUMNS_FILTER.getCode());
+                }
+                target.setFilterTypes(filterTypes);
+            }
             return target;
         }).collect(Collectors.toList());
         return views;
