@@ -50,7 +50,7 @@ public interface DrcBuildServiceV2 {
     
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
 
-    void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws Exception;
+    void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException;
 
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 

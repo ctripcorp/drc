@@ -14,6 +14,7 @@ import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.monitor.delay.config.MonitorTableSourceProvider;
 import com.ctrip.framework.drc.console.service.v2.DbMetaCorrectService;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
@@ -128,28 +129,32 @@ public class DbMetaCorrectServiceImpl implements DbMetaCorrectService {
     }
 
     @Override
-    public void mhaInstancesChange(List<MachineTbl> machinesInDba, MhaTblV2 mhaTblV2) throws Exception {
-        String mhaName = mhaTblV2.getMhaName();
-        List<MachineTbl> machinesInMetaDb = machineTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
-        // change targets
-        final List<MachineTbl> insertMachines = Lists.newArrayList();
-        final List<MachineTbl> updateMachines = Lists.newArrayList();
-        final List<MachineTbl> deleteMachines = Lists.newArrayList();
-        this.checkChange(machinesInDba, machinesInMetaDb, mhaTblV2, insertMachines, updateMachines, deleteMachines);
+    public void mhaInstancesChange(List<MachineTbl> machinesInDba, MhaTblV2 mhaTblV2) {
+        try {
+            String mhaName = mhaTblV2.getMhaName();
+            List<MachineTbl> machinesInMetaDb = machineTblDao.queryByMhaId(mhaTblV2.getId(), BooleanEnum.FALSE.getCode());
+            // change targets
+            final List<MachineTbl> insertMachines = Lists.newArrayList();
+            final List<MachineTbl> updateMachines = Lists.newArrayList();
+            final List<MachineTbl> deleteMachines = Lists.newArrayList();
+            this.checkChange(machinesInDba, machinesInMetaDb, mhaTblV2, insertMachines, updateMachines, deleteMachines);
 
-        String type = "DRC.syncMhaFromDba";
-        if (!CollectionUtils.isEmpty(insertMachines)) {
-            this.beforeInsert(insertMachines, mhaTblV2);
-            int[] ints = machineTblDao.batchInsert(insertMachines);
-            loggingAction(mhaName, ints, "Insert", type);
-        }
-        if (!CollectionUtils.isEmpty(updateMachines)) {
-            int[] updates = machineTblDao.batchUpdate(updateMachines);
-            loggingAction(mhaName, updates, "Update", type);
-        }
-        if (!CollectionUtils.isEmpty(deleteMachines)) {
-            int[] deletes = machineTblDao.batchLogicalDelete(deleteMachines);
-            loggingAction(mhaName, deletes, "Delete", type);
+            String type = "DRC.syncMhaFromDba";
+            if (!CollectionUtils.isEmpty(insertMachines)) {
+                this.beforeInsert(insertMachines, mhaTblV2);
+                int[] ints = machineTblDao.batchInsert(insertMachines);
+                loggingAction(mhaName, ints, "Insert", type);
+            }
+            if (!CollectionUtils.isEmpty(updateMachines)) {
+                int[] updates = machineTblDao.batchUpdate(updateMachines);
+                loggingAction(mhaName, updates, "Update", type);
+            }
+            if (!CollectionUtils.isEmpty(deleteMachines)) {
+                int[] deletes = machineTblDao.batchLogicalDelete(deleteMachines);
+                loggingAction(mhaName, deletes, "Delete", type);
+            }
+        } catch (Exception e) {
+            throw new ConsoleException("mhaInstancesChange fail: " + e.getMessage(), e);
         }
     }
 

@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
+import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildParam;
 import com.ctrip.framework.drc.console.param.v2.DrcAutoBuildReq;
@@ -135,7 +136,7 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             }
             list = dbaApiService.getDatabaseClusterInfoList(req.getDalClusterName());
         } else {
-
+            throw new IllegalArgumentException("illegal build mode: " + req.getMode());
         }
         return list;
     }
@@ -198,13 +199,21 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void autoBuildDrc(DrcAutoBuildReq req) throws Exception {
+    public void autoBuildDrc(DrcAutoBuildReq req) {
         this.validateReq(req);
         List<DrcAutoBuildParam> params = this.getDrcBuildParam(req);
         logger.info("autoBuildDrc params: {}", params);
-        for (DrcAutoBuildParam param : params) {
-            DefaultTransactionMonitorHolder.getInstance()
-                    .logTransaction("DRC.auto.build", "all", () -> this.autoBuildDrc(param));
+        try {
+            for (DrcAutoBuildParam param : params) {
+                DefaultTransactionMonitorHolder.getInstance().logTransaction(
+                        "DRC.auto.build",
+                        "all",
+                        () -> this.autoBuildDrc(param)
+                );
+            }
+        } catch (Throwable e) {
+            logger.error("auto build error", e);
+            throw new ConsoleException("auto build error:" + e.getMessage(), e);
         }
     }
 

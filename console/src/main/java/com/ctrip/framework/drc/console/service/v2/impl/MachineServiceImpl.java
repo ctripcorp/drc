@@ -68,7 +68,7 @@ public class MachineServiceImpl implements MachineService {
             return cache.get(mha);
         } catch (ExecutionException e) {
             logger.error("getDrcReplicationConfig execution exception", e);
-            throw new RuntimeException(e);
+            return null;
         }
     }
 

@@ -17,5 +17,5 @@ public interface DrcAutoBuildService {
     List<String> getRegionOptions(DrcAutoBuildReq req);
     List<String> getCommonColumn(DrcAutoBuildReq req);
 
-    void autoBuildDrc(DrcAutoBuildReq req) throws Exception;
+    void autoBuildDrc(DrcAutoBuildReq req) ;
 }

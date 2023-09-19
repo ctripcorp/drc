@@ -557,7 +557,7 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
-    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws Exception {
+    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException {
         Long mhaId = existMha.getId();
         String mhaName = existMha.getMhaName();
         List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());

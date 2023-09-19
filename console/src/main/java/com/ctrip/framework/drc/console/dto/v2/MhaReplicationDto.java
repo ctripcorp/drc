@@ -38,13 +38,13 @@ public class MhaReplicationDto {
             DcDo dcDo = dcDoMap.get(srcMhaTbl.getDcId());
             dto.setSrcMha(MhaDto.from(srcMhaTbl, dcDo));
         } else {
-            dto.setSrcMha(MhaDto.from(srcMhaTbl));
+            dto.setSrcMha(new MhaDto());
         }
         if (dstMhaTbl != null) {
             DcDo dcDo = dcDoMap.get(dstMhaTbl.getDcId());
             dto.setSrcMha(MhaDto.from(dstMhaTbl, dcDo));
         } else {
-            dto.setDstMha(MhaDto.from(dstMhaTbl));
+            dto.setDstMha(new MhaDto());
         }
         return dto;
     }
