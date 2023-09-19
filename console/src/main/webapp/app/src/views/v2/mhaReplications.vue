@@ -769,7 +769,10 @@ export default {
     }
   },
   created () {
-    this.getReplications(1)
+    this.srcMha.name = this.$route.query.srcMhaName
+    this.dstMha.name = this.$route.query.dstMhaName
+    this.preciseSearchMode = this.$route.query.preciseSearchMode
+    this.getReplications()
     this.getRegions()
     this.getBus()
   }

@@ -24,11 +24,13 @@ public interface DrcBuildServiceV2 {
 
     String buildDrc(DrcBuildParam param) throws Exception;
 
+    void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception;
+
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;
 
     List<DbReplicationView> getDbReplicationView(String srcMhaName, String dstMhaName) throws Exception;
 
-    void deleteDbReplications(long dbReplicationId) throws Exception;
+    void deleteDbReplications(List<Long> dbReplicationIds) throws Exception;
 
     void buildColumnsFilter(ColumnsFilterCreateParam param) throws Exception;
 
