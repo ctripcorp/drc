@@ -346,17 +346,11 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
         dbReplicationBuildParam.setDstMhaName(dstMhaTbl.getMhaName());
         dbReplicationBuildParam.setDbName(param.getDbNameFilter());
         dbReplicationBuildParam.setTableName(param.getTableFilter());
-        List<Long> replicationIds = drcBuildService.configureDbReplications(dbReplicationBuildParam);
-        // 3.2 filters
-        if (param.getRowsFilterCreateParam() != null) {
-            param.getRowsFilterCreateParam().setDbReplicationIds(replicationIds);
-            drcBuildService.buildRowsFilter(param.getRowsFilterCreateParam());
-        }
 
-        if (param.getColumnsFilterCreateParam() != null) {
-            param.getColumnsFilterCreateParam().setDbReplicationIds(replicationIds);
-            drcBuildService.buildColumnsFilter(param.getColumnsFilterCreateParam());
-        }
+        // 3.2 filters
+        dbReplicationBuildParam.setRowsFilterCreateParam(param.getRowsFilterCreateParam());
+        dbReplicationBuildParam.setColumnsFilterCreateParam(param.getColumnsFilterCreateParam());
+        drcBuildService.buildDbReplicationConfig(dbReplicationBuildParam);
 
         // 4. auto config replicators
         replicatorGroupTblDao.upsertIfNotExist(srcMhaTbl.getId());

@@ -72,7 +72,7 @@
               </Row>
             </FormItem>
             <FormItem label="同步表" :required=true>
-              <Input @on-keydown.space.prevent v-model="formItem.tableName" placeholder="请输入正则表达式"></Input>
+              <Input @on-keydown.space.prevent v-model="formItem.tableName" placeholder="请输入正则表达式" @on-blur="afterEnterTableName"></Input>
             </FormItem>
             <FormItem label="行过滤">
               <i-switch v-model="formItem.switch.rowsFilter" size="large">
@@ -166,7 +166,7 @@
                 <Option v-for="item in meta.bus" :value="item.buName" :key="item.buName">{{ item.buName }}</Option>
               </Select>
             </FormItem>
-            <FormItem label="Tag" prop="dstTag" :required=true>
+            <FormItem label="Tag" prop="tag" :required=true>
               <Select v-model="formItem.tag" filterable allow-create style="width: 200px" placeholder="选择tag" @on-create="handleCreateTag">
                 <Option v-for="item in meta.tags" :value="item" :key="item">{{ item }}</Option>
               </Select>
@@ -178,7 +178,7 @@
         </Col>
         <Col span="11">
           <Divider>预览：同步集群</Divider>
-          <Button type="primary" :loading="table.dbMhaTableLoading"  @click="getDalInfo">检查同步集群</Button>
+          <Button type="primary" :loading="table.dbMhaTableLoading"  @click="getDalInfo" style="margin-bottom: 5px">检查同步集群</Button>
           <Table size="small" :loading="table.dbMhaTableLoading" stripe :columns="table.dbMhaTableColumn" :data="preCheckMhaReplicationPage" border></Table>
           <div >
             <Page
@@ -193,7 +193,7 @@
               @on-page-size-change="(val) => {table.dbMhaTablePage.size = val}"></Page>
           </div>
           <Divider style="margin-top: 50px">预览：同步表</Divider>
-          <Button type="primary" :loading="table.dbTableLoading"  @click="getTableInfo">检查同步表</Button>
+          <Button type="primary" :loading="table.dbTableLoading"  @click="getTableInfo" style="margin-bottom: 5px">检查同步表</Button>
           <Table size="small"  :loading="table.dbTableLoading" stripe :columns="table.dbTableColumn" :data="preCheckTablePage" border></Table>
           <div >
             <Page
@@ -215,11 +215,15 @@
         width="80"
         :mask-closable="false"
       >
+        <Alert type="warning" show-icon v-if="alertInfo.show" closable>
+          {{alertInfo.title}}
+          <template #desc>{{alertInfo.message}}</template>
+        </Alert>
         <Table size="small" :loading="dataLoading" stripe border :columns="drawer.tableColumns" :data="finalBuildParam"></Table>
         <div class="drawer-footer">
           <Divider></Divider>
-          <Button style="margin-right: 8px" @click="drawer.show = false">Cancel</Button>
-          <Button type="primary" @click="submitAll">Submit</Button>
+          <Button style="margin-right: 8px" @click="drawer.show = false">取消</Button>
+          <Button type="primary" @click="submitAll" :loading="dataLoading">提交</Button>
         </div>
       </Drawer>
     </Content>
@@ -253,7 +257,7 @@ export default {
         },
         colsFilterDetail: {
           mode: null,
-          row: null
+          columns: []
         },
         textarea: '',
         switch: {
@@ -401,6 +405,11 @@ export default {
             }
           }
         ]
+      },
+      alertInfo: {
+        show: false,
+        title: null,
+        message: null
       },
       dbClusterInfoList: [],
       finalBuildParam: [],
@@ -563,6 +572,9 @@ export default {
             that.$Message.success('提交成功')
           } else {
             that.$Message.warning('提交失败: ' + data.message)
+            that.alertInfo.show = true
+            that.alertInfo.title = '提交失败'
+            that.alertInfo.message = data.message
           }
         })
         .catch(message => {
@@ -717,6 +729,9 @@ export default {
       }
       this.getDalInfo()
     },
+    async afterEnterTableName () {
+      await this.getTableInfo()
+    },
     async afterEnterDalCluster () {
       await this.getRegionOptions()
     },
@@ -794,8 +809,13 @@ export default {
     },
     getCommonColumns () {
       const params = this.getParams()
-      params.rowsFilterDetail.columns = []
-      params.rowsFilterDetail.udlColumns = []
+      if (params.rowsFilterDetail) {
+        params.rowsFilterDetail.columns = []
+        params.rowsFilterDetail.udlColumns = []
+      }
+      if (params.colsFilterDetail) {
+        params.colsFilterDetail.columns = []
+      }
       console.log(params)
       this.formItem.constants.columnsForChose = []
       this.commonColumnLoading = true

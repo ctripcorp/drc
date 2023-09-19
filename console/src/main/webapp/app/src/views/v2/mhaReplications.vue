@@ -416,7 +416,7 @@ export default {
         regionId: null
       },
       drcStatus: null,
-      preciseSearchMode: this.$route.query.preciseSearchMode,
+      preciseSearchMode: false,
       // get from backend
       replications: [],
       bus: [],
@@ -754,25 +754,27 @@ export default {
           query: {
             srcMhaName: this.srcMha.name,
             dstMhaName: this.dstMha.name,
-            preciseSearchMode: this.preciseSearchMode
+            preciseSearchMode: true
           }
-        })
+          // eslint-disable-next-line handle-callback-err
+        }).catch(err => {})
       } else {
         this.$router.replace({
           query: {
             mhaName: this.relatedMha.name,
-            preciseSearchMode: this.preciseSearchMode
+            preciseSearchMode: false
           }
           // eslint-disable-next-line handle-callback-err
         }).catch(err => {})
       }
+      console.log('this.$route.query.preciseSearchMode', this.$route.query.preciseSearchMode, typeof this.$route.query.preciseSearchMode)
     }
   },
   created () {
     this.srcMha.name = this.$route.query.srcMhaName
     this.dstMha.name = this.$route.query.dstMhaName
-    this.preciseSearchMode = this.$route.query.preciseSearchMode
-    this.getReplications()
+    this.preciseSearchMode = this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true'
+    this.getReplications(1)
     this.getRegions()
     this.getBus()
   }
