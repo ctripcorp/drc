@@ -189,6 +189,7 @@ export default {
       showMsg: false,
       title: '',
       tableHeight: 80,
+      submit: true,
       rowsFilterConfig: {
         mode: 1,
         drcStrategyId: 0,
@@ -356,9 +357,13 @@ export default {
       console.log('dbReplicationId: ' + this.commonInfo.dbReplicationId)
       console.log('dbReplicationIds: ' + this.commonInfo.dbReplicationIds)
       console.log('testIds: ' + this.commonInfo.testIds)
-      this.dataLoading = true
+      this.submit = true
       const rowsFilterParam = this.getRowsFilterParam()
       const columnsFilterParam = this.getColumnsFilterParam()
+      if (!this.submit) {
+        return
+      }
+      this.dataLoading = true
       const requestParam = {
         dbReplicationIds: this.commonInfo.dbReplicationIds,
         srcMhaName: this.commonInfo.srcMhaName,
@@ -413,6 +418,7 @@ export default {
         if (this.rowsFilterConfig.mode === 1) {
           if (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0) {
             this.$Message.warning('uid 与 uld字段不能同时为空！')
+            this.submit = false
             return
           }
           if (this.rowsFilterConfig.fetchMode === 1 || this.rowsFilterConfig.fetchMode === 2 || this.rowsFilterConfig.fetchMode === 3) {
@@ -428,11 +434,13 @@ export default {
             )
           ) {
             this.$Message.warning('context 不能为空！')
+            this.submit = false
             return
           }
         }
         if (this.rowsFilterConfig.mode === '' || this.rowsFilterConfig.mode === undefined || (this.rowsFilterConfig.columns.length === 0 && this.rowsFilterConfig.udlColumns.length === 0)) {
           this.$Message.warning('缺少行过滤配置 禁止提交')
+          this.submit = false
         } else {
           // alert('requestParam')
           const requestParam = {
