@@ -250,6 +250,28 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     }
 
     @Override
+    public Pair<Long, Long> checkDbReplicationFilter(List<Long> dbReplicationIds) throws Exception {
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
+        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
+            return Pair.of(-1L, -1L);
+        }
+
+        if (dbReplicationFilterMappingTbls.size() != dbReplicationIds.size()) {
+            throw ConsoleExceptionUtils.message("dbReplication contains different filterMappings");
+        }
+
+        List<Long> rowsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getRowsFilterId).distinct().collect(Collectors.toList());
+        List<Long> columnsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getColumnsFilterId).distinct().collect(Collectors.toList());
+        if (rowsFilterIds.size() != 1) {
+            throw ConsoleExceptionUtils.message("dbReplication contains different rowsFilter");
+        }
+        if (columnsFilterIds.size() != 1) {
+            throw ConsoleExceptionUtils.message("dbReplication contains different columnsFilter");
+        }
+        return Pair.of(rowsFilterIds.get(0), columnsFilterIds.get(0));
+    }
+
+    @Override
     public List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception {
         logger.info("configureDbReplications param: {}", param);
         checkDbReplicationBuildParam(param);
@@ -299,23 +321,9 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
             logger.info("update dbReplicationTbls: {}", dbReplicationTbls);
         }
 
-        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(dbReplicationIds);
-        if (CollectionUtils.isEmpty(dbReplicationFilterMappingTbls)) {
-            return dbReplicationIds;
-        }
-
-        if (dbReplicationFilterMappingTbls.size() != dbReplicationIds.size()) {
-            throw ConsoleExceptionUtils.message("dbReplication contains different rowsFilter or columnsFilter");
-        }
-
-        List<Long> rowsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getRowsFilterId).distinct().collect(Collectors.toList());
-        List<Long> columnsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getColumnsFilterId).distinct().collect(Collectors.toList());
-        if (rowsFilterIds.size() != 1 || columnsFilterIds.size() != 1) {
-            throw ConsoleExceptionUtils.message("dbReplication contains different rowsFilter or columnsFilter");
-        }
-
-        long rowsFilterId = rowsFilterIds.get(0);
-        long columnsFilterId = columnsFilterIds.get(0);
+        Pair<Long, Long> filterPair = checkDbReplicationFilter(dbReplicationIds);
+        long rowsFilterId = filterPair.getLeft();
+        long columnsFilterId = filterPair.getRight();
 
         Set<String> filterColumns = new HashSet<>();
         if (rowsFilterId != -1L) {

@@ -240,7 +240,7 @@ export default {
       this.axios.get('/api/drc/v2/config/dbReplication?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
         .then(response => {
           if (response.data.status === 1) {
-            window.alert('查询相关配置表失败!')
+            this.$Message.error('查询同步表失败!')
           } else {
             this.tableData = response.data.data
           }
@@ -309,22 +309,40 @@ export default {
       } else {
         dbName = row.dbName
       }
-      console.log(dbReplicationIds)
-      this.$router.push({
-        path: '/dbReplicationConfigV2',
-        query: {
-          srcMhaName: this.initInfo.srcMhaName,
-          dstMhaName: this.initInfo.dstMhaName,
-          srcDc: this.initInfo.srcDc,
-          dstDc: this.initInfo.dstDc,
-          dbName: dbName,
-          tableName: row.logicTableName,
-          dbReplicationId: row.dbReplicationId,
-          dbReplicationIds: JSON.stringify(dbReplicationIds),
-          update: true,
-          batchUpdate: true
-        }
-      })
+      this.axios.get('/api/drc/v2/config/dbReplications/check?dbReplicationIds=' + dbReplicationIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.warning('过滤规则不一致不能勾选')
+          } else {
+            this.$router.push({
+              path: '/dbReplicationConfigV2',
+              query: {
+                srcMhaName: this.initInfo.srcMhaName,
+                dstMhaName: this.initInfo.dstMhaName,
+                srcDc: this.initInfo.srcDc,
+                dstDc: this.initInfo.dstDc,
+                dbName: dbName,
+                tableName: row.logicTableName,
+                dbReplicationId: row.dbReplicationId,
+                dbReplicationIds: JSON.stringify(dbReplicationIds),
+                update: true,
+                batchUpdate: true
+              }
+            })
+          }
+        })
+    },
+    checkBatchUpdate (val) {
+      let result = true
+      this.axios.get('/api/drc/v2/config/dbReplications/check?dbReplicationIds=' + val)
+        .then(response => {
+          if (response.data.status === 1) {
+            result = false
+            alert('re:' + result)
+            this.$Message.warning('过滤规则不一致不能勾选')
+          }
+        })
+      return result
     },
     goToUpdateConfig (row, index) {
       const dbReplicationIds = []
