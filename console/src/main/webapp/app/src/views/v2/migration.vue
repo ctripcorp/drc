@@ -73,12 +73,12 @@
           <Divider orientation="left">相关 Messenger 延迟</Divider>
           <Table stripe :loading="replicationDetail.messengerDataLoading" :columns="messengerDetailColumn" :data="replicationDetail.messengerData" border></Table>
         </Modal>
-        <Modal v-model="logDetail.show"  width="400px">
+        <Modal v-model="logDetail.show"  width="500px">
           <Timeline>
             <TimelineItem v-for="item in logDetail.splitLog" :key="item.time">
               <span class="time" :style="{'font-size': '14px','font-weight': 'bold'}">{{item.time}}</span>
               <br/>
-              <span class="content" :style="{'margin-left': '0px', 'margin-top': '0px'}">操作: {{item.operate}}</span>
+              <span class="content" :style="{'margin-left': '0px', 'margin-top': '0px','font-size': '14px','font-weight': 'bold', 'color': 'blue'}">操作: {{item.operate}}</span>
               <br/>
               <span class="content" :style="{'margin-left': '0px', 'margin-top': '0px'}">操作人：{{item.operator}}</span>
             </TimelineItem>
