@@ -59,7 +59,7 @@ public class MySQLVariablesConfiguration extends AbstractConfigBean {
 
     private void getDefaultVariables(Map<String, Object> variableMap) {
         Map<String, String> map = Maps.newHashMap();
-        map.put("sql_mode", "NO_AUTO_CREATE_USER");
+//        map.put("sql_mode", "NO_AUTO_CREATE_USER");
         variableMap.putAll(map);
     }
 }

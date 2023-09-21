@@ -22,7 +22,7 @@ import java.util.jar.JarFile;
 
 import static com.wix.mysql.EmbeddedMysql.anEmbeddedMysql;
 import static com.wix.mysql.config.DownloadConfig.aDownloadConfig;
-import static com.wix.mysql.distribution.Version.v5_7_23;
+import static com.wix.mysql.distribution.Version.v8_latest;
 
 /**
  * @Author limingdong
@@ -70,13 +70,13 @@ public class EmbeddedDb {
         initParam(db.getPort(), removeOldFile, filePath);
 
         String mysqldPath = mysqlInstanceDir(db.getName(), db.getPort());
-        MysqldConfig.Builder configBuilder = MysqldConfig.aMysqldConfig(v5_7_23)
+        MysqldConfig.Builder configBuilder = MysqldConfig.aMysqldConfig(v8_latest)
                 .withPort(port)
                 .withCharset(Charset.UTF8)
                 .withUser(user, password)
                 .withTempDir(mysqldPath)
                 .withTimeout(60, TimeUnit.SECONDS)
-                .withServerVariable("lower_case_table_names", 1)
+                .withServerVariable("lower_case_table_names", 2)
                 .withServerVariable("character_set_server", "utf8mb4")
                 .withServerVariable("collation_server", "utf8mb4_general_ci");
 

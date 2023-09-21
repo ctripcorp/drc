@@ -11,7 +11,7 @@ import ctrip.framework.drc.mysql.utils.ClassUtils;
 import de.flapdoodle.embed.process.config.IRuntimeConfig;
 
 import static com.wix.mysql.config.DownloadConfig.aDownloadConfig;
-import static com.wix.mysql.distribution.Version.v5_7_23;
+import static com.wix.mysql.distribution.Version.v8_latest;
 import static ctrip.framework.drc.mysql.EmbeddedDb.mysqlInstanceDir;
 import static ctrip.framework.drc.mysql.EmbeddedDb.src_path;
 
@@ -32,7 +32,8 @@ public class DbRestoreTask implements NamedCallable<MySQLInstance> {
 
     @Override
     public MySQLInstance call() throws Exception {
-        MysqldConfig mysqldConfig = MysqldConfig.aMysqldConfig(v5_7_23)
+        // todo by yongnian: 2023/9/21 testing
+        MysqldConfig mysqldConfig = MysqldConfig.aMysqldConfig(v8_latest)
                 .withPort(port)
                 .withCharset(Charset.UTF8)
                 .withTempDir(mysqlInstanceDir(registryKey, port)).build();
