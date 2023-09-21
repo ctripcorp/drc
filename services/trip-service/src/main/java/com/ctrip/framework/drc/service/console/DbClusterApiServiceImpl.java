@@ -141,7 +141,7 @@ public class DbClusterApiServiceImpl implements DbClusterApiService {
 
         List<DbInfoDetail> result = dbInfosResponse.getResult();
         if (CollectionUtils.isEmpty(result)) {
-            throw new RuntimeException("fail(result empty) getDalClusterName for" + dbName);
+            throw new RuntimeException("fail (result empty) getDalClusterName for" + dbName);
         }
 
         return result.get(0).getDbNameBase() + "_dalcluster";

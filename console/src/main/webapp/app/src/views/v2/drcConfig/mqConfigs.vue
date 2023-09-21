@@ -392,8 +392,14 @@ export default {
           }
         },
         {
-          title: '库表名',
-          key: 'directSchemaTableName'
+          title: '库名',
+          key: 'schema',
+          resizable: true
+        },
+        {
+          title: '表名',
+          key: 'table',
+          resizable: true
         }
       ],
       tableData: [],
@@ -683,8 +689,8 @@ export default {
     getTableData: function (response) {
       return response.map(item => {
         return {
-          directSchemaTableName: item.directSchemaTableName,
-          name: item.name,
+          directSchemaTableName: item.fullName,
+          table: item.table,
           schema: item.schema
         }
       })
@@ -697,11 +703,11 @@ export default {
         return
       }
       this.checkDbTableLoading = true
-      this.axios.get('/api/drc/v2/mysql/getMatchTable', {
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables', {
         params: {
-          mhaName: this.drc.mhaName,
+          mha: this.drc.mhaName,
           nameFilter:
-            this.topic.db + '.' + this.topic.table
+            this.topic.db + '\\.' + this.topic.table
         }
       }).then(response => {
         if (response.data.status === 1) {
