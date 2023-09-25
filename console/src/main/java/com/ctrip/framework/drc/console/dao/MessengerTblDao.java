@@ -23,6 +23,7 @@ import java.util.List;
 public class MessengerTblDao extends AbstractDao<MessengerTbl> {
 
     private static final String RESOURCE_ID = "resource_id";
+    private static final String GROUP_ID = "group_id";
     private static final String DELETED = "deleted";
 
     public MessengerTblDao() throws SQLException {
@@ -55,6 +56,17 @@ public class MessengerTblDao extends AbstractDao<MessengerTbl> {
         }
         SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
         sqlBuilder.selectAll().in(RESOURCE_ID, resourceIds, Types.BIGINT)
+                .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
+        return queryList(sqlBuilder);
+    }
+
+
+    public List<MessengerTbl> queryByGroupIds(List<Long> groupIds) throws SQLException {
+        if (CollectionUtils.isEmpty(groupIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().in(GROUP_ID, groupIds, Types.BIGINT)
                 .and().equal(DELETED, BooleanEnum.FALSE.getCode(), Types.TINYINT);
         return queryList(sqlBuilder);
     }
