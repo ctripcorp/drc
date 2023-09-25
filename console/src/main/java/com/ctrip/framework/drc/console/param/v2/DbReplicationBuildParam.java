@@ -1,14 +1,19 @@
 package com.ctrip.framework.drc.console.param.v2;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/7/31 16:02
  */
 public class DbReplicationBuildParam {
+    private List<Long> dbReplicationIds;
     private String srcMhaName;
     private String dstMhaName;
     private String dbName;
     private String tableName;
+    private RowsFilterCreateParam rowsFilterCreateParam;
+    private ColumnsFilterCreateParam columnsFilterCreateParam;
 
     public DbReplicationBuildParam(String srcMhaName, String dstMhaName, String dbName, String tableName) {
         this.srcMhaName = srcMhaName;
@@ -18,6 +23,30 @@ public class DbReplicationBuildParam {
     }
 
     public DbReplicationBuildParam() {
+    }
+
+    public RowsFilterCreateParam getRowsFilterCreateParam() {
+        return rowsFilterCreateParam;
+    }
+
+    public void setRowsFilterCreateParam(RowsFilterCreateParam rowsFilterCreateParam) {
+        this.rowsFilterCreateParam = rowsFilterCreateParam;
+    }
+
+    public ColumnsFilterCreateParam getColumnsFilterCreateParam() {
+        return columnsFilterCreateParam;
+    }
+
+    public void setColumnsFilterCreateParam(ColumnsFilterCreateParam columnsFilterCreateParam) {
+        this.columnsFilterCreateParam = columnsFilterCreateParam;
+    }
+
+    public List<Long> getDbReplicationIds() {
+        return dbReplicationIds;
+    }
+
+    public void setDbReplicationIds(List<Long> dbReplicationIds) {
+        this.dbReplicationIds = dbReplicationIds;
     }
 
     public String getSrcMhaName() {
@@ -55,8 +84,9 @@ public class DbReplicationBuildParam {
     @Override
     public String toString() {
         return "DbReplicationBuildParam{" +
-                "srcMhaName='" + srcMhaName + '\'' +
-                ", dstName='" + dstMhaName + '\'' +
+                "dbReplicationIds=" + dbReplicationIds +
+                ", srcMhaName='" + srcMhaName + '\'' +
+                ", dstMhaName='" + dstMhaName + '\'' +
                 ", dbName='" + dbName + '\'' +
                 ", tableName='" + tableName + '\'' +
                 '}';

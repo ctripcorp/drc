@@ -13,6 +13,7 @@ import com.ctrip.framework.drc.console.controller.v2.MessengerControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MetaControllerV2Test;
 import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTest;
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
+import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
 import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
@@ -40,6 +41,7 @@ import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTa
 import com.ctrip.framework.drc.console.monitor.increment.task.CheckIncrementIdTaskTest2;
 import com.ctrip.framework.drc.console.monitor.table.task.CheckTableConsistencyTaskTest;
 import com.ctrip.framework.drc.console.monitor.unit.UnitVerificationManagerTest;
+import com.ctrip.framework.drc.console.param.v2.MhaReplicationQueryTest;
 import com.ctrip.framework.drc.console.pojo.TableConfigsTest;
 import com.ctrip.framework.drc.console.schedule.ClearConflictLogTest;
 import com.ctrip.framework.drc.console.service.checker.ConflictLogCheckerTest;
@@ -253,12 +255,12 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         RowsFilterConfigDtoTest.class,
         RowsFilterMappingVoTest.class,
         SimplexDrcBuildVoTest.class,
+        MhaReplicationQueryTest.class,
 
         //integrationTest
         MigrateServiceIntegrationTest.class,
-        DrcDoubleWriteServiceIntegrationTest.class
-
-
+        DrcDoubleWriteServiceIntegrationTest.class,
+        MhaReplicationTblDaoTest.class
 })
 public class AllTests {
 

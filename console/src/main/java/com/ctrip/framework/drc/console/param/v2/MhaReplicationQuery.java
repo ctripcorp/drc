@@ -8,6 +8,24 @@ import java.util.Objects;
 public class MhaReplicationQuery extends PageReq {
     private List<Long> srcMhaIdList;
     private List<Long> dstMhaIdList;
+    private List<Long> relatedMhaIdList;
+    private Integer drcStatus;
+
+    public Integer getDrcStatus() {
+        return drcStatus;
+    }
+
+    public void setDrcStatus(Integer drcStatus) {
+        this.drcStatus = drcStatus;
+    }
+
+    public List<Long> getRelatedMhaIdList() {
+        return relatedMhaIdList;
+    }
+
+    public void setRelatedMhaIdList(List<Long> relatedMhaIdList) {
+        this.relatedMhaIdList = relatedMhaIdList;
+    }
 
     public List<Long> getDstMhaIdList() {
         return dstMhaIdList;

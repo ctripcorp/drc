@@ -1,7 +1,14 @@
 <template>
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
-      <BreadcrumbItem to="/home">首页</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: '/v2/mhaReplications',query :{
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          preciseSearchMode: true
+        }
+      }">首页
+      </BreadcrumbItem>
       <BreadcrumbItem :to="{
         path: '/drcV2',query :{
           step: 3,
@@ -17,33 +24,27 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
-        <Col span="20">
+        <Col span="16">
           <span
             style="margin-top: 10px;color:#464c5b;font-weight:600">{{initInfo.srcMhaName}}({{initInfo.srcDc}})==>{{initInfo.dstMhaName}}({{initInfo.dstDc}})</span>
         </Col>
         <Col span="2">
-          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfig">添加
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="goTodbReplicationConfigV2">添加
+          </Button>
+        </Col>
+        <Col span="2">
+          <Button style="margin-top: 10px;text-align: right" type="primary" ghost @click="batchUpdate()">批量修改
+          </Button>
+        </Col>
+        <Col span="2">
+          <Button style="margin-top: 10px;text-align: right" type="error" ghost @click="preBatchDelete()">批量删除
           </Button>
         </Col>
       </Row>
-      <Modal
-        v-model="display.showPropertiesJson"
-        title="Applier properties"
-        width="800px"
-      >
-        <json-viewer
-          :value="propertiesJson"
-          :expand-depth=5
-          copyable>
-          <template v-slot:copy="{copied}">
-            <span v-if="copied">复制成功</span>
-            <span v-else>复制</span>
-          </template>
-        </json-viewer>
-      </Modal>
       <div :style="{padding: '1px 1px',height: '100%'}">
         <template>
-          <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border>
+          <Table style="margin-top: 20px" stripe :columns="columns" :data="tableData" border ref="multipleTable"
+                 @on-selection-change="changeSelection">
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="goToShowConfig(row, index)">查看
               </Button>
@@ -57,14 +58,22 @@
         </template>
       </div>
       <Modal
-        v-model="deleteModal"
+        v-model="batchDeleteModal"
         title="确认删除以下同步表"
+        width="1200px"
         @on-ok="deleteDbReplication"
         @on-cancel="clearDeleteDbReplication">
-        <p>
-          <span>db: </span><span style="color: red;font-size: 16px">{{deleteDbReplicationInfo.dbName}}</span>
-          <span> ,table: </span><span style="color: red;font-size: 20px">{{deleteDbReplicationInfo.logicTableName}}</span>
-        </p>
+        <div :style="{padding: '1px 1px',height: '100%'}">
+          <p>
+            <span>一共 </span><span
+            style="color: red;font-size: 16px; word-break: break-all; word-wrap: break-word">{{this.deleteData.length}}</span>
+            <span> 行</span>
+          </p>
+          <template>
+            <Table style="margin-top: 20px" stripe :columns="deleteColumns" :data="deleteData" border>
+            </Table>
+          </template>
+        </div>
       </Modal>
     </Content>
   </base-component>
@@ -80,22 +89,24 @@ export default {
         srcMhaId: 0,
         dstMhaName: '',
         dbReplicationId: 0,
+        multiData: [],
         srcDc: '',
         dstDc: '',
         order: true
       },
-      deleteModal: false,
-      deleteDbReplicationInfo: {
-        dbReplicationId: 0,
-        dbName: '',
-        logicTableName: ''
-      },
+      batchDeleteModal: false,
+      deleteData: [],
       columns: [
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
         {
           title: '序号',
           width: 75,
           align: 'center',
-          fixed: 'left',
+          // fixed: 'left',
           render: (h, params) => {
             return h(
               'span',
@@ -103,10 +114,6 @@ export default {
             )
           }
         },
-        // {
-        //   title: 'id',
-        //   key: 'dbReplicationId'
-        // },
         {
           title: '库名',
           key: 'dbName'
@@ -123,9 +130,28 @@ export default {
           fixed: 'right'
         }
       ],
-      display: {
-        showPropertiesJson: false
-      },
+      deleteColumns: [
+        {
+          title: '序号',
+          width: 75,
+          align: 'center',
+          // fixed: 'left',
+          render: (h, params) => {
+            return h(
+              'span',
+              params.index + 1
+            )
+          }
+        },
+        {
+          title: '库名',
+          key: 'dbName'
+        },
+        {
+          title: '表名',
+          key: 'logicTableName'
+        }
+      ],
       propertiesJson: {},
       tableData: [],
       total: 0,
@@ -134,6 +160,10 @@ export default {
     }
   },
   methods: {
+    changeSelection (val) {
+      this.initInfo.multiData = val
+      console.log(this.initInfo.multiData)
+    },
     getDbReplications () {
       this.axios.get('/api/drc/v2/config/dbReplication?srcMhaName=' + this.initInfo.srcMhaName + '&dstMhaName=' + this.initInfo.dstMhaName)
         .then(response => {
@@ -144,63 +174,123 @@ export default {
           }
         })
     },
-    goTodbReplicationConfig () {
+    goTodbReplicationConfigV2 () {
       this.$router.push({
-        path: '/dbReplicationConfig',
+        path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
-          srcMhaId: this.initInfo.srcMhaId,
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
-          dbName: '',
-          tableName: ''
+          update: false
         }
       })
     },
     goToShowConfig (row, index) {
-      // todo 展示json
-    },
-    goToUpdateConfig (row, index) {
+      const dbReplicationIds = []
+      dbReplicationIds.push(row.dbReplicationId)
       this.$router.push({
-        path: '/dbReplicationConfig',
+        path: '/dbReplicationConfigV2',
         query: {
           srcMhaName: this.initInfo.srcMhaName,
           dstMhaName: this.initInfo.dstMhaName,
           srcDc: this.initInfo.srcDc,
           dstDc: this.initInfo.dstDc,
-          order: this.initInfo.order,
           dbName: row.dbName,
           tableName: row.logicTableName,
           dbReplicationId: row.dbReplicationId,
-          update: 0
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
+          update: true,
+          show: true
+        }
+      })
+    },
+    preBatchDelete () {
+      const multiData = this.initInfo.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      this.batchDeleteModal = true
+      this.deleteData = this.initInfo.multiData
+    },
+    batchUpdate () {
+      const multiData = this.initInfo.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const row = multiData[0]
+      const dbReplicationIds = []
+      multiData.forEach(data => dbReplicationIds.push(data.dbReplicationId))
+      let dbName = ''
+      if (multiData.length > 1) {
+        dbName = '(' + row.dbName
+        for (var i = 1; i < multiData.length; i++) {
+          if (multiData[i].logicTableName !== row.logicTableName) {
+            this.$Message.warning('表名不一样不能勾选')
+            return
+          }
+          dbName += '|' + multiData[i].dbName
+        }
+        dbName += ')'
+      } else {
+        dbName = row.dbName
+      }
+      console.log(dbReplicationIds)
+      this.$router.push({
+        path: '/dbReplicationConfigV2',
+        query: {
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          srcDc: this.initInfo.srcDc,
+          dstDc: this.initInfo.dstDc,
+          dbName: dbName,
+          tableName: row.logicTableName,
+          dbReplicationId: row.dbReplicationId,
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
+          update: true,
+          batchUpdate: true
+        }
+      })
+    },
+    goToUpdateConfig (row, index) {
+      const dbReplicationIds = []
+      dbReplicationIds.push(row.dbReplicationId)
+      this.$router.push({
+        path: '/dbReplicationConfigV2',
+        query: {
+          srcMhaName: this.initInfo.srcMhaName,
+          dstMhaName: this.initInfo.dstMhaName,
+          srcDc: this.initInfo.srcDc,
+          dstDc: this.initInfo.dstDc,
+          dbName: row.dbName,
+          tableName: row.logicTableName,
+          dbReplicationId: row.dbReplicationId,
+          dbReplicationIds: JSON.stringify(dbReplicationIds),
+          update: true
         }
       })
     },
     preDeleteDbReplication (row, index) {
-      this.deleteDbReplicationInfo = {
-        dbReplicationId: row.dbReplicationId,
-        dbName: row.dbName,
-        logicTableName: row.logicTableName
-      }
-      this.deleteModal = true
+      this.deleteData = []
+      this.deleteData.push(row)
+      this.batchDeleteModal = true
     },
     clearDeleteDbReplication (row, index) {
-      this.deleteDbReplicationInfo = {
-        dbReplicationId: 0,
-        dbName: '',
-        logicTableName: ''
-      }
-      this.deleteModal = false
+      this.deleteData = []
+      this.batchDeleteModal = false
     },
     deleteDbReplication () {
-      this.axios.delete('/api/drc/v2/config/dbReplication?dbReplicationId=' + this.deleteDbReplicationInfo.dbReplicationId).then(res => {
+      const deleteDbReplicationIds = []
+      this.deleteData.forEach(e => deleteDbReplicationIds.push(e.dbReplicationId))
+      this.axios.delete('/api/drc/v2/config/dbReplications?dbReplicationIds=' + deleteDbReplicationIds).then(res => {
         if (res.data.status === 1) {
-          this.$Message.warning('删除失败!' + res.data.message)
+          this.$Message.error('删除失败!' + res.data.message)
         } else {
           this.$Message.success('删除成功!')
           this.getDbReplications()
+          this.initInfo.multiData = []
         }
       })
     }

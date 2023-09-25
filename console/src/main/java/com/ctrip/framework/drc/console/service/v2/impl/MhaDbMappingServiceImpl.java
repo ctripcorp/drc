@@ -10,6 +10,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.service.utils.Constants;
@@ -17,6 +18,8 @@ import com.google.common.collect.Lists;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Set;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,12 +55,12 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
     private static final String DRC = "drc";
 
     @Override
-    public List<String> buildMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
-        logger.info("buildMhaDbMappings, srcMha: {}, dstMha: {}, nameFilter: {}", srcMha.getMhaName(), dstMha.getMhaName(), nameFilter);
+    public Pair<List<String>, List<String>> initMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
+        logger.info("initMhaDbMappings, srcMha: {}, dstMha: {}, nameFilter: {}", srcMha.getMhaName(), dstMha.getMhaName(), nameFilter);
         List<String> vpcMhaNames = defaultConsoleConfig.getVpcMhaNames();
         if (vpcMhaNames.contains(srcMha.getMhaName()) && vpcMhaNames.contains(dstMha.getMhaName())) {
             logger.info("srcMha: {}, dstMha: {} are vpcMha", srcMha.getMhaName(), dstMha.getMhaName());
-            return getVpcMhaDbs(srcMha, dstMha, nameFilter);
+            throw ConsoleExceptionUtils.message("not support srcMha and dstMha are both IBU_VPC");
         }
         if (vpcMhaNames.contains(srcMha.getMhaName()) || vpcMhaNames.contains(dstMha.getMhaName())) {
             return insertVpcMhaDbMappings(srcMha, dstMha, vpcMhaNames, nameFilter);
@@ -75,63 +78,13 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         insertMhaDbMappings(mhaTbl.getId(), dbList);
     }
 
-    @Override
-    public void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException {
-        List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
-        List<MhaDbMappingTbl> toBeInsert = Lists.newArrayList();
-        Set<Long> existedDb = exist.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
-        List<MhaDbMappingTbl> copies = copyFrom(newMhaTbl, mhaDbMappingInOldMha);
-        copies.forEach(mhaDbMappingTbl -> {
-            if (!existedDb.contains(mhaDbMappingTbl.getDbId())) {
-                toBeInsert.add(mhaDbMappingTbl);
-            }
-        });
-        if (!CollectionUtils.isEmpty(toBeInsert)) {
-            int[] ints = mhaDbMappingTblDao.batchInsert(toBeInsert);
-            logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
-                    newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
-        }
-    }
-    
-    private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {
-        List<MhaDbMappingTbl> res = Lists.newArrayList();
-        for (MhaDbMappingTbl mhaDbMappingTbl : mhaDbMappingInOldMha) {
-            MhaDbMappingTbl copy = new MhaDbMappingTbl();
-            copy.setMhaId(newMhaTbl.getId());
-            copy.setDbId(mhaDbMappingTbl.getDbId());
-            copy.setDeleted(BooleanEnum.FALSE.getCode());
-            res.add(copy);
-        }
-        return res;
-    }
+    private Pair<List<String>, List<String>> insertMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception{
+        List<String> srcTableList = mysqlServiceV2.queryTablesWithNameFilter(srcMha.getMhaName(), nameFilter);
+        List<String> dstTableList = mysqlServiceV2.queryTablesWithNameFilter(dstMha.getMhaName(), nameFilter);
+        List<String> srcDbList = extractDbs(srcTableList);
+        List<String> dstDbList = extractDbs(dstTableList);
 
-    private List<String> getVpcMhaDbs(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception {
-        List<MhaDbMappingTbl> srcMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
-        List<MhaDbMappingTbl> dstMhaDbMappings = mhaDbMappingTblDao.queryByMhaId(dstMha.getId());
-        List<Long> srcDbIds = srcMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
-        List<Long> dstDbIds = dstMhaDbMappings.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toList());
-
-        String dbFilter = nameFilter.split(Constants.ESCAPE_CHARACTER_DOT_REGEX)[0];
-        AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(dbFilter);
-        List<String> srcDbList = dbTblDao.queryByIds(srcDbIds).stream()
-                .map(DbTbl::getDbName)
-                .filter(e -> aviatorRegexFilter.filter(e))
-                .collect(Collectors.toList());
-        List<String> dstDbList = dbTblDao.queryByIds(dstDbIds).stream().map(DbTbl::getDbName)
-                .filter(e -> aviatorRegexFilter.filter(e))
-                .collect(Collectors.toList());
-
-        if (!checkDbIsSame(srcDbList, dstDbList)) {
-            logger.error("srcMha: {} and dstMha: {} contain different db, srcDbList: {}, dstDbList: {}", srcMha.getMhaName(), dstMha.getMhaName(), srcDbList, dstDbList);
-            throw ConsoleExceptionUtils.message("srcMha and dstMha contain different db");
-        }
-        return srcDbList;
-    }
-
-    private List<String> insertMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, String nameFilter) throws Exception{
-        List<String> srcDbList = queryDbs(srcMha.getMhaName(), nameFilter);
-        List<String> dstDbList = queryDbs(dstMha.getMhaName(), nameFilter);
-        if (!checkDbIsSame(srcDbList, dstDbList)) {
+        if (!CommonUtils.isSameList(srcDbList, dstDbList)) {
             logger.error("insertMhaDbMappings srcDb dstDb is not same, srcDbList: {}, dstDbList: {}", srcDbList, dstDbList);
             throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");
         }
@@ -141,32 +94,20 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         insertMhaDbMappings(srcMha.getId(), srcDbList);
         insertMhaDbMappings(dstMha.getId(), dstDbList);
 
-        return srcDbList;
+        return Pair.of(srcDbList, srcTableList);
     }
 
-    private boolean checkDbIsSame(List<String> srcDbList, List<String> dstDbList) {
-        if (CollectionUtils.isEmpty(srcDbList) || CollectionUtils.isEmpty(dstDbList)) {
-            return false;
-        }
-        if (srcDbList.size() != dstDbList.size()) {
-            return false;
-        }
-        Collections.sort(srcDbList);
-        Collections.sort(dstDbList);
-        return srcDbList.equals(dstDbList);
-    }
-
-
-    private List<String> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
+    private Pair<List<String>, List<String>> insertVpcMhaDbMappings(MhaTblV2 srcMha, MhaTblV2 dstMha, List<String> vpcMhaNames, String nameFilter) throws Exception {
         String mhaName = vpcMhaNames.contains(srcMha.getMhaName()) ? dstMha.getMhaName() : srcMha.getMhaName();
-        List<String> dbList = queryDbs(mhaName, nameFilter);
+        List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
+        List<String> dbList = extractDbs(tableList);
         insertDbs(dbList);
 
         //insertMhaDbMappings
         insertMhaDbMappings(srcMha.getId(), dbList);
         insertMhaDbMappings(dstMha.getId(), dbList);
 
-        return dbList;
+        return Pair.of(dbList, tableList);
     }
 
     private void insertDbs(List<String> dbList) throws SQLException {
@@ -195,11 +136,9 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         dbTblDao.batchInsert(insertTbls);
     }
 
-    private List<String> queryDbs(String mhaName, String nameFilter) {
-        List<String> tableList = mysqlServiceV2.queryTablesWithNameFilter(mhaName, nameFilter);
+    private List<String> extractDbs(List<String> tableList) {
         List<String> dbList = new ArrayList<>();
         if (CollectionUtils.isEmpty(tableList)) {
-            logger.info("mha: {} query db empty, nameFilter: {}", mhaName, nameFilter);
             return dbList;
         }
         for (String table : tableList) {
@@ -238,5 +177,35 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
 
         logger.info("insertDbMappingTbls: {}", insertDbMappingTbls);
         mhaDbMappingTblDao.batchInsert(insertDbMappingTbls);
+    }
+
+    @Override
+    public void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException {
+        List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
+        List<MhaDbMappingTbl> toBeInsert = Lists.newArrayList();
+        Set<Long> existedDb = exist.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
+        List<MhaDbMappingTbl> copies = copyFrom(newMhaTbl, mhaDbMappingInOldMha);
+        copies.forEach(mhaDbMappingTbl -> {
+            if (!existedDb.contains(mhaDbMappingTbl.getDbId())) {
+                toBeInsert.add(mhaDbMappingTbl);
+            }
+        });
+        if (!CollectionUtils.isEmpty(toBeInsert)) {
+            int[] ints = mhaDbMappingTblDao.batchInsert(toBeInsert);
+            logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
+                    newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
+        }
+    }
+
+    private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {
+        List<MhaDbMappingTbl> res = Lists.newArrayList();
+        for (MhaDbMappingTbl mhaDbMappingTbl : mhaDbMappingInOldMha) {
+            MhaDbMappingTbl copy = new MhaDbMappingTbl();
+            copy.setMhaId(newMhaTbl.getId());
+            copy.setDbId(mhaDbMappingTbl.getDbId());
+            copy.setDeleted(BooleanEnum.FALSE.getCode());
+            res.add(copy);
+        }
+        return res;
     }
 }

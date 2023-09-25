@@ -26,29 +26,35 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
     private static final String DATA_CHANGE_LAST_TIME = "datachange_lasttime";
 
     private static final boolean DESCENDING = false;
+    public static final String DRC_STATUS = "drc_status";
 
     public MhaReplicationTblDao() throws SQLException {
         super(MhaReplicationTbl.class);
     }
 
     public List<MhaReplicationTbl> queryByPage(MhaReplicationQuery query) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.atPage(query.getPageIndex(), query.getPageSize())
+        SelectSqlBuilder sqlBuilder = initSqlBuilder().atPage(query.getPageIndex(), query.getPageSize())
                 .orderBy(SRC_MHA_ID, DESCENDING)
-                .orderBy(DATA_CHANGE_LAST_TIME, DESCENDING)
-                .and()
-                .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
-
+                .orderBy(DATA_CHANGE_LAST_TIME, DESCENDING);
+        this.buildQueryCondition(sqlBuilder, query);
         return client.query(sqlBuilder, new DalHints());
     }
 
     public int count(MhaReplicationQuery query) throws SQLException {
-        SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.selectCount().and()
-                .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
-                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT);
+        SelectSqlBuilder sqlBuilder = initSqlBuilder().selectCount();
+        this.buildQueryCondition(sqlBuilder, query);
         return client.count(sqlBuilder, new DalHints()).intValue();
+    }
+
+    private void buildQueryCondition(SelectSqlBuilder sqlBuilder, MhaReplicationQuery query) throws SQLException {
+        sqlBuilder.and()
+                .inNullable(SRC_MHA_ID, query.getSrcMhaIdList(), Types.BIGINT).and()
+                .inNullable(DST_MHA_ID, query.getDstMhaIdList(), Types.BIGINT).and()
+                .equalNullable(DRC_STATUS, query.getDrcStatus(), Types.TINYINT).and()
+                .leftBracket()
+                .inNullable(SRC_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT).or()
+                .inNullable(DST_MHA_ID, query.getRelatedMhaIdList(), Types.BIGINT)
+                .rightBracket();
     }
     public List<MhaReplicationTbl> queryByRelatedMhaId(List<Long> relatedMhaId) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
