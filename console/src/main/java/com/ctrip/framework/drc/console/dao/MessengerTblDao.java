@@ -23,7 +23,7 @@ import java.util.List;
 public class MessengerTblDao extends AbstractDao<MessengerTbl> {
 
     private static final String RESOURCE_ID = "resource_id";
-    private static final String GROUP_ID = "group_id";
+    private static final String GROUP_ID = "messenger_group_id";
     private static final String DELETED = "deleted";
 
     public MessengerTblDao() throws SQLException {
