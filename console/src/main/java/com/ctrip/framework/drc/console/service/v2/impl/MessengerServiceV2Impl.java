@@ -166,7 +166,15 @@ public class MessengerServiceV2Impl implements MessengerServiceV2 {
                     dto.getDbs().add(dbTbl.getDbName());
                 }
             }
-            return Lists.newArrayList(map.values());
+
+            // set drc status: active if it has messenger
+            List<MhaMessengerDto> mhaMessengerDtos = Lists.newArrayList(map.values());
+            List<Long> groupIds = mhaMessengerDtos.stream().map(MhaMessengerDto::getMessengerGroupId).collect(Collectors.toList());
+            List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupIds(groupIds);
+            Set<Long> activeGroupIdSet = messengerTbls.stream().map(MessengerTbl::getMessengerGroupId).collect(Collectors.toSet());
+            mhaMessengerDtos.forEach(e -> e.setStatus(activeGroupIdSet.contains(e.getMessengerGroupId()) ? BooleanEnum.TRUE.getCode() : BooleanEnum.FALSE.getCode()));
+
+            return mhaMessengerDtos;
         } catch (SQLException e) {
             logger.error("getRelatedMhaMessenger error", e);
             throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
