@@ -349,7 +349,7 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
                 trafficFromHickWall, opsAccessToken);
         return mhaReplicationDelay.stream().filter(entity -> mhas.contains(entity.getSrcMha()))
                 .collect(Collectors.toMap(
-                        HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay));
+                        HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay,(e1, e2) -> e1));
     }
     
 }

@@ -43,6 +43,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -166,6 +167,7 @@ public class DbMigrationServiceImplTest {
         existedTask.setNewMhaDba("mha2");
         existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet());
         Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
 
