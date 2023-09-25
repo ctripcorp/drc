@@ -396,6 +396,7 @@ public class DbMigrationServiceImplTest {
         // check and init mha info
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
         MachineTbl machineTbl1 = MockEntityBuilder.buildMachineTbl();
+        mha1.setMonitorSwitch(0);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip1"), Mockito.eq(3306))).thenReturn(machineTbl1);
         Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(1L))).thenReturn(mha1);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip2"), Mockito.eq(3306))).thenReturn(null);

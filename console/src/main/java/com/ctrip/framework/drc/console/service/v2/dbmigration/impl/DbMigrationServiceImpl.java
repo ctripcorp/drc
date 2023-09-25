@@ -462,7 +462,7 @@ public class DbMigrationServiceImpl implements DbMigrationService {
         
         // DB_TO_DB Replication OldMha In Dest
         for (MhaTblV2 srcMha : migrateDbsReplicationInfo.otherMhaTblsInSrc) {
-            List<MhaDbMappingTbl> mhaDbMappingsInSrc = mhaDbMappingTblDao.queryByMhaId(srcMha.getId()); // todo if null?
+            List<MhaDbMappingTbl> mhaDbMappingsInSrc = mhaDbMappingTblDao.queryByMhaId(srcMha.getId());
             List<DbReplicationTbl> dbReplicationsOldMhaInDest = dbReplicationTblDao.queryByMappingIds(
                     mhaDbMappingsInSrc.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),
                     mhaDbMappingsInOldMha.stream().map(MhaDbMappingTbl::getId).collect(Collectors.toList()),

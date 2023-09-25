@@ -77,7 +77,7 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
 
     @Override
     public void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException {
-        List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId()); // 没查到时返回空集合还是null?
+        List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
         List<MhaDbMappingTbl> toBeInsert = Lists.newArrayList();
         Set<Long> existedDb = exist.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
         List<MhaDbMappingTbl> copies = copyFrom(newMhaTbl, mhaDbMappingInOldMha);
