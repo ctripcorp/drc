@@ -199,6 +199,22 @@ export default {
       ],
       messengerDetailColumn: [
         {
+          title: '状态',
+          key: 'status',
+          width: 100,
+          align: 'center',
+          render: (h, params) => {
+            const row = params.row
+            const color = row.status === 1 ? 'blue' : 'volcano'
+            const text = row.status === 1 ? '已接入' : '未接入'
+            return h('Tag', {
+              props: {
+                color: color
+              }
+            }, text)
+          }
+        },
+        {
           title: 'srcMha',
           width: 150,
           key: 'id',
