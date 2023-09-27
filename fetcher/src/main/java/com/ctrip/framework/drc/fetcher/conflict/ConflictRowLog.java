@@ -6,7 +6,7 @@ package com.ctrip.framework.drc.fetcher.conflict;
  * @Date 2023/9/25 19:40
  * @Version: $
  */
-public class ConflictRowLog {
+public class ConflictRowLog implements Comparable<ConflictRowLog> {
     private String db;
     private String table;
     private String rawSql;
@@ -14,6 +14,20 @@ public class ConflictRowLog {
     private String dstRecord;
     private String handleSql;
     private String handleSqlRes;
+    private int rowRes; // 0-commit 1-rollback
+    
+    // console not related
+    private long rowId;
+    
+    @Override
+    public int compareTo(ConflictRowLog another) {
+        // compare rowRes first, then rowId ,rollback > commit
+        if (this.rowRes == another.rowRes) {
+            return (int) (this.rowId - another.getRowId());
+        } else {
+            return another.getRowRes() - this.rowRes;
+        }
+    }
 
     public String getDb() {
         return db;
@@ -69,5 +83,21 @@ public class ConflictRowLog {
 
     public void setHandleSqlRes(String handleSqlRes) {
         this.handleSqlRes = handleSqlRes;
+    }
+
+    public int getRowRes() {
+        return rowRes;
+    }
+
+    public void setRowRes(int rowRes) {
+        this.rowRes = rowRes;
+    }
+
+    public long getRowId() {
+        return rowId;
+    }
+
+    public void setRowId(long rowId) {
+        this.rowId = rowId;
     }
 }

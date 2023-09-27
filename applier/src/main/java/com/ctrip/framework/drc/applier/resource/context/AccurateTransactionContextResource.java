@@ -44,7 +44,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             }
             return error();
         }
-        if (getOverwriteMap().contains(false)) {
+        if (everRollback()) {
             DefaultEventMonitorHolder.getInstance().logBatchEvent("context", "conflict & rollback", 1, 0);
             rollback();
             if (applyMode == 0) {
@@ -59,7 +59,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             }
             return conflictAndRollback();
         }
-        if (getConflictMap().contains(true)) {
+        if (everConflict()) {
             DefaultEventMonitorHolder.getInstance().logBatchEvent("context", "conflict", 1, 0);
             commit();
             return conflictAndCommit();

@@ -15,10 +15,11 @@ public class ConflictTransactionLog {
     private String gtid;
     private Long trxRowsNum;
     private Long cflRowsNum;
-    private Integer trxRes; // 0-commit 1-rollback
     private Long handleTime;
     private List<ConflictRowLog> cflLogs;
-
+    private Integer trxRes; // 0-commit 1-rollback
+    
+    
     public String getSrcMha() {
         return srcMha;
     }

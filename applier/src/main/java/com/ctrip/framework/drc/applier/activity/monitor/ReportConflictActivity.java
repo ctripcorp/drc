@@ -1,16 +1,13 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
-import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
-import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.google.common.collect.Lists;
 import org.springframework.http.*;
 import org.springframework.web.client.RestOperations;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,10 +42,9 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
         if ("on".equals(conflictLogUploadSwitch)) {
-            conflictTransactionLog.setSrcMhaName(srcMhaName);
-            conflictTransactionLog.setDestMhaName(destMhaName);
-            conflictTransactionLog.setClusterName(cluster);
-            conflictTransactionLog.setConflictHandleTime(System.currentTimeMillis());
+            conflictTransactionLog.setSrcMha(srcMhaName);
+            conflictTransactionLog.setDstMha(destMhaName);
+            conflictTransactionLog.setHandleTime(System.currentTimeMillis());
             return trySubmit(conflictTransactionLog);
         }
         return true;

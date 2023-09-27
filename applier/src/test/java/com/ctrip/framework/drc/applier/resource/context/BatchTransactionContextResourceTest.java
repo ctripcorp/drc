@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
+import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,17 +91,27 @@ public class BatchTransactionContextResourceTest {
     @Test
     public void testConflict() throws Exception {
         TransactionContextResource context = getTransactionContextResource();
+        context.RECORD_SIZE = 4;
         doConflict(context);
-        assertResult(context, buildArray(true, true, true, true), 4);
+        assertResult(context, 4,4,0,4);
         context.dispose();
     }
 
     @Test
     public void testLimitedSizeConflict() throws Exception {
         TransactionContextResource context = getTransactionContextResource();
-        context.CONFLICT_SIZE = 3;
+        context.RECORD_SIZE = 3;
         doConflict(context);
-        assertResult(context, buildArray(true, true, true, true), context.CONFLICT_SIZE - 1);  //will not limit overwriteMap and conflictMap
+        assertResult(context, 4,4,0,3);
+        context.dispose();
+    }
+
+    @Test
+    public void testLimitedSizeConflictWithRollback() throws Exception {
+        TransactionContextResource context = getTransactionContextResource();
+        context.RECORD_SIZE = 3;
+        doConflictWithRollback(context);
+        assertResult(context, 4,4,4,3);
         context.dispose();
     }
 
@@ -166,14 +177,11 @@ public class BatchTransactionContextResourceTest {
         Assert.assertEquals(context.getResult().type, StatementExecutorResult.TYPE.UPDATE_COUNT_EQUALS_ONE);
     }
 
-    private void assertResult(TransactionContextResource context, List<Boolean> expected, int size){
-        assertEquals(expected, context.getConflictMap());
-        assertEquals(expected, context.getOverwriteMap());
-        assertEquals(size, context.conflictTransactionLog.getRawSqlList().size());
-        assertEquals(size, context.conflictTransactionLog.getRawSqlExecutedResultList().size());
-        assertEquals(size, context.conflictTransactionLog.getDestCurrentRecordList().size());
-        assertEquals(size, context.conflictTransactionLog.getConflictHandleSqlList().size());
-        assertEquals(size, context.conflictTransactionLog.getConflictHandleSqlExecutedResultList().size());
+    private void assertResult(TransactionContextResource context, long trxRowNum,long conflictRowNum, long rollbackRowNum,long recordNum){
+        assertEquals(trxRowNum, context.trxRowNum);
+        assertEquals(conflictRowNum, context.conflictRowNum);
+        assertEquals(rollbackRowNum, context.rollbackRowNum);
+        assertEquals(recordNum, context.cflRowLogsQueue.size());
     }
 
     private void doConflict(TransactionContextResource context) throws Exception {
@@ -181,6 +189,36 @@ public class BatchTransactionContextResourceTest {
         Mockito.when(dataSource.getConnection()).thenReturn(connection);
         Mockito.when(preparedStatement.getUpdateCount()).thenReturn(0);
         Mockito.when(insertPreparedStatement.getUpdateCount()).thenReturn(1);
+        Mockito.when(connection.prepareStatement(Mockito.contains("UPDATE"))).thenReturn(preparedStatement);
+        Mockito.when(connection.prepareStatement(Mockito.contains("INSERT"))).thenReturn(insertPreparedStatement);
+        Mockito.when(connection.unwrap(PooledConnection.class)).thenReturn(pooledConnection);
+        context.initialize();
+        context.setTableKey(TableKey.from("prod", "monitor"));
+        context.begin();
+        context.update(
+                buildArray(
+                        buildArray(4, "sharb", "sharb", "none", "none2", "2019-12-09 00:31:59.000"),
+                        buildArray(5, "sharb", "sharb", "none", "none2", "2019-12-09 00:31:59.000"),
+                        buildArray(6, "sharb", "sharb", "none", "none2", "2019-12-09 00:31:59.000"),
+                        buildArray(7, "sharb", "sharb", "none", "none2", "2019-12-09 00:31:59.000")
+                ),
+                Bitmap.from(true, true, true, true, true, true),
+                buildArray(
+                        buildArray(4, "sharb", "sharb", "none", "none2", "2019-12-09 00:32:00.000"),
+                        buildArray(5, "sharb", "sharb", "none", "none2", "2019-12-09 00:32:00.000"),
+                        buildArray(6, "sharb", "sharb", "none", "none2", "2019-12-09 00:32:00.000"),
+                        buildArray(7, "sharb", "sharb", "none", "none2", "2019-12-09 00:32:00.000")
+                ),
+                Bitmap.from(true, true, true, true, true, true),
+                columns()
+        );
+    }
+
+    private void doConflictWithRollback(TransactionContextResource context) throws Exception {
+        context.dataSource = this.dataSource;
+        Mockito.when(dataSource.getConnection()).thenReturn(connection);
+        Mockito.when(preparedStatement.getUpdateCount()).thenReturn(0);
+        Mockito.when(insertPreparedStatement.getUpdateCount()).thenThrow(new MySQLIntegrityConstraintViolationException("Duplicate entry '4' for key 'PRIMARY'"));
         Mockito.when(connection.prepareStatement(Mockito.contains("UPDATE"))).thenReturn(preparedStatement);
         Mockito.when(connection.prepareStatement(Mockito.contains("INSERT"))).thenReturn(insertPreparedStatement);
         Mockito.when(connection.unwrap(PooledConnection.class)).thenReturn(pooledConnection);

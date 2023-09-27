@@ -23,8 +23,8 @@ public interface TransactionContext extends BaseTransactionContext {
 
     void recordTransactionTable(String gtid);
 
-    List<Boolean> getConflictMap();
-    List<Boolean> getOverwriteMap();
+    boolean everConflict();
+    boolean everRollback();
     Queue<String> getLogs();
     Throwable getLastUnbearable();
 }

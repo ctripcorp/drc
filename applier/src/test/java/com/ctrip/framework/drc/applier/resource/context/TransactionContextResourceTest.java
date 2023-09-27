@@ -63,8 +63,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true),
                 columns0()
                 );
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -95,8 +95,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true),
                 columns0()
                 );
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(1, context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
@@ -114,8 +114,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 buildArray(buildArray(1, "Mi", "2019-12-09 16:00:00.000")), Bitmap.from(true, true, true),
                 buildArray(buildArray(1, "Phy", "2019-12-09 16:00:00.001")), Bitmap.from(true, true, true),
                 columns0());
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -145,8 +145,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 buildArray(buildArray(1, "Phy", "2019-12-09 16:00:00.001")),
                 Bitmap.from(true, true, true),
                 columns0());
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
+        assertEquals(1,context.conflictRowNum);
+        assertEquals(0,context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -176,8 +176,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 buildArray(buildArray(1, "Phy", "2019-12-09 16:00:00.001")),
                 Bitmap.from(true, true, true),
                 columns0());
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
+        assertEquals(1,context.conflictRowNum);
+        assertEquals(1,context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
@@ -195,8 +195,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, false, true),
                 columns0()
         );
-        assertEquals(Lists.newArrayList(true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(true), context.getOverwriteMap());
+        assertEquals(1,context.conflictRowNum);
+        assertEquals(0,context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -237,8 +237,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true),
                 columns0()
                 );
-        assertEquals(Lists.newArrayList(false, true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(false), context.getOverwriteMap());
+        assertEquals(2, context.trxRowNum);
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(1, context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Rollback));
         assertEquals(1L,count.longValue());
@@ -275,8 +276,8 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true, true),
                 columns4()
         );
-        assertEquals(buildArray(true), context.getConflictMap());
-        assertEquals(buildArray(true), context.getOverwriteMap());
+        assertEquals(1,context.conflictRowNum);
+        assertEquals(0,context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -322,8 +323,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true, true),
                 columns4()
         );
-        assertEquals(buildArray(false), context.getConflictMap());
-        assertEquals(buildArray(), context.getOverwriteMap());
+        assertEquals(1, context.trxRowNum);
+        assertEquals(0, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
         assertEquals(0,context.conflictTableRowsCount.size());
         context.commit();
     }
@@ -387,8 +389,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 columns5());
         context.commit();
         assertNull(context.getLastUnbearable());
-        assertEquals(buildArray(true, false), context.getConflictMap());
-        assertEquals(buildArray(true), context.getOverwriteMap());
+        assertEquals(2, context.trxRowNum);
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
         assertEquals(1L,count.longValue());
@@ -412,8 +415,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 columns6());
         context.commit();
         assertNull(context.getLastUnbearable());
-        assertEquals(buildArray(true, false), context.getConflictMap());
-        assertEquals(buildArray(true), context.getOverwriteMap());
+        assertEquals(2, context.trxRowNum);
+        assertEquals(1, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
 
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
@@ -443,8 +447,9 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         );
         context.commit();
         assertNull(context.getLastUnbearable());
-        assertEquals(buildArray(true, true), context.getConflictMap());
-        assertEquals(buildArray(true, true), context.getOverwriteMap());
+        assertEquals(2, context.trxRowNum);
+        assertEquals(2, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
 
         assertEquals(1,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "monitor", ConflictType.Commit));
@@ -554,10 +559,10 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
                 Bitmap.from(true, true, true, true),
                 columns4()
         );
-        
-        
-        assertEquals(Lists.newArrayList(false, true,true,true), context.getConflictMap());
-        assertEquals(Lists.newArrayList(true,true,true), context.getOverwriteMap());
+
+        assertEquals(4, context.trxRowNum);
+        assertEquals(3, context.conflictRowNum);
+        assertEquals(0, context.rollbackRowNum);
         assertEquals(2,context.conflictTableRowsCount.size());
         Long count = context.conflictTableRowsCount.get(new ConflictTable("prod", "hello1", ConflictType.Commit));
         assertEquals(1L,count.longValue());
