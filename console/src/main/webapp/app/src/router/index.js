@@ -176,6 +176,16 @@ const routes = [
     component: () => import('../views/v2/resourceV2.vue')
   },
   {
+    path: '/conflictLog',
+    name: 'conflictLog',
+    component: () => import('../views/log/conflictLog.vue')
+  },
+  {
+    path: '/conflictRowsLog',
+    name: 'conflictRowsLog',
+    component: () => import('../views/log/conflictRowsLog.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }
