@@ -32,8 +32,8 @@ public class ApplierXidEventTest {
         doReturn("GTID").when(context).fetchGtid();
         doReturn(10L).when(context).fetchSequenceNumber();
         doReturn(1L).when(context).fetchDelayMS();
-        doReturn(Lists.newArrayList(true, true, true)).when(context).getConflictMap();
-        doReturn(Lists.newArrayList(false, true, false)).when(context).getOverwriteMap();
+        doReturn(true).when(context).everConflict();
+        doReturn(true).when(context).everRollback();
         doReturn(Queues.newPriorityQueue()).when(context).getLogs();
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.apply(context);
@@ -57,8 +57,8 @@ public class ApplierXidEventTest {
         doReturn("GTID").when(context).fetchGtid();
         doReturn(10L).when(context).fetchSequenceNumber();
         doReturn(1L).when(context).fetchDelayMS();
-        doReturn(Lists.newArrayList(true, true, true)).when(context).getConflictMap();
-        doReturn(Lists.newArrayList(true, true, true)).when(context).getOverwriteMap();
+        doReturn(true).when(context).everConflict();
+        doReturn(false).when(context).everRollback();
         doReturn(Queues.newPriorityQueue()).when(context).getLogs();
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.apply(context);
@@ -79,8 +79,8 @@ public class ApplierXidEventTest {
         doReturn("GTID").when(context).fetchGtid();
         doReturn(10L).when(context).fetchSequenceNumber();
         doReturn(1L).when(context).fetchDelayMS();
-        doReturn(Lists.newArrayList(false, false, false)).when(context).getConflictMap();
-        doReturn(Lists.newArrayList()).when(context).getOverwriteMap();
+        doReturn(false).when(context).everConflict();
+        doReturn(false).when(context).everRollback();
         doReturn(Queues.newPriorityQueue()).when(context).getLogs();
         testEvent.setDirectMemory(mock(DirectMemory.class));
         testEvent.apply(context);

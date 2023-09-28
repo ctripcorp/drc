@@ -102,7 +102,7 @@ public class BatchTransactionContextResource extends TransactionContextResource 
             }
         }
         commit();
-        if (getConflictMap().contains(true)) {
+        if (everConflict()) {
             conflictAndCommit();
         }
         if (getLastUnbearable() != null) {

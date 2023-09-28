@@ -3,7 +3,7 @@ package com.ctrip.framework.drc.applier.activity.monitor.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.CONFLICT_SIZE;
+import static com.ctrip.framework.drc.applier.resource.context.TransactionContextResource.RECORD_SIZE;
 
 /**
  * Created by jixinwang on 2020/10/16
@@ -31,11 +31,11 @@ public class ConflictTransactionLog {
     private String lastResult;
 
     public ConflictTransactionLog() {
-        this.rawSqlList = new ArrayList<>(CONFLICT_SIZE);
-        this.rawSqlExecutedResultList = new ArrayList<>(CONFLICT_SIZE);
-        this.destCurrentRecordList = new ArrayList<>(CONFLICT_SIZE);
-        this.conflictHandleSqlList = new ArrayList<>(CONFLICT_SIZE);
-        this.conflictHandleSqlExecutedResultList = new ArrayList<>(CONFLICT_SIZE);
+        this.rawSqlList = new ArrayList<>(RECORD_SIZE);
+        this.rawSqlExecutedResultList = new ArrayList<>(RECORD_SIZE);
+        this.destCurrentRecordList = new ArrayList<>(RECORD_SIZE);
+        this.conflictHandleSqlList = new ArrayList<>(RECORD_SIZE);
+        this.conflictHandleSqlExecutedResultList = new ArrayList<>(RECORD_SIZE);
     }
 
     public String getSrcMhaName() {

@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
-import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
+
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.resource.thread.ExecutorResource;
 import org.junit.Assert;
 import org.junit.Test;
