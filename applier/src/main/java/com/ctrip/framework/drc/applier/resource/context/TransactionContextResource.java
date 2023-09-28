@@ -204,11 +204,11 @@ public class TransactionContextResource extends AbstractContext
                     cflTrxLog.setTrxRes(ConflictResult.ROLLBACK.getValue());
                 }
                 cflTrxLog.setGtid(gtid);
-                List<ConflictRowLog> logs = new ArrayList<>(cflRowLogsQueue.size());
+                List<ConflictRowLog> cflLogs = new ArrayList<>(cflRowLogsQueue.size());
                 while (cflRowLogsQueue.size() > 0) {
-                    logs.add(0,cflRowLogsQueue.poll());
+                    cflLogs.add(0,cflRowLogsQueue.poll());
                 }
-                cflTrxLog.setCflLogs(logs);
+                cflTrxLog.setCflLogs(cflLogs);
                 if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
