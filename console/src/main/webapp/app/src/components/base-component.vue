@@ -35,6 +35,9 @@
               <Icon type="ios-analytics"></Icon>
               自助运维
             </template>
+            <MenuItem name="/conflictLog" to="/conflictLog">
+              <span>冲突处理V2</span>
+            </MenuItem>
             <MenuItem name="/monitor" to="/monitor">
               <span>冲突处理</span>
             </MenuItem>
@@ -161,6 +164,7 @@ export default {
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
+      case '/conflictLog':
       case '/monitor':
         this.openNames = ['1']
         break
