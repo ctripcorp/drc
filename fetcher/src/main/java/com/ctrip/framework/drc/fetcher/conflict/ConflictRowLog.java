@@ -29,6 +29,21 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
         }
     }
 
+    @Override
+    public String toString() {
+        return "ConflictRowLog{" +
+                "db='" + db + '\'' +
+                ", table='" + table + '\'' +
+                ", rawSql='" + rawSql + '\'' +
+                ", rawRes='" + rawRes + '\'' +
+                ", dstRecord='" + dstRecord + '\'' +
+                ", handleSql='" + handleSql + '\'' +
+                ", handleSqlRes='" + handleSqlRes + '\'' +
+                ", rowRes=" + rowRes +
+                ", rowId=" + rowId +
+                '}';
+    }
+
     public String getDb() {
         return db;
     }

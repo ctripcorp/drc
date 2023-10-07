@@ -161,6 +161,8 @@ public class TransactionContextResource extends AbstractContext
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
             String gtid = fetchGtid();
+            // test todo
+            loggerSC.info("dispose trx:{},conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",gtid,conflictRowNum,rollbackRowNum,curCflRowLog);
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
@@ -870,6 +872,8 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
         curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
         recordCflRowLogIfNecessary();
+        // test todo
+        loggerSC.info("recordCflRowLogIfNecessary,conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",conflictRowNum,rollbackRowNum,curCflRowLog);
         // for hickWall report
         ConflictTable thisRow = isOverwrite ? new ConflictTable(db, table, ConflictType.Commit) : new ConflictTable(db, table, ConflictType.Rollback);;
         Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);

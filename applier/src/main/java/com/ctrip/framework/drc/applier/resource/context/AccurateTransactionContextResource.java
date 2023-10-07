@@ -45,6 +45,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             return error();
         }
         if (everRollback()) {
+            loggerSC.info("trx rollback,gtid:{}",fetchGtid());
             DefaultEventMonitorHolder.getInstance().logBatchEvent("context", "conflict & rollback", 1, 0);
             rollback();
             if (applyMode == 0) {
@@ -60,6 +61,7 @@ public class AccurateTransactionContextResource extends TransactionContextResour
             return conflictAndRollback();
         }
         if (everConflict()) {
+            loggerSC.info("trx conflict,gtid:{}",fetchGtid());
             DefaultEventMonitorHolder.getInstance().logBatchEvent("context", "conflict", 1, 0);
             commit();
             return conflictAndCommit();
