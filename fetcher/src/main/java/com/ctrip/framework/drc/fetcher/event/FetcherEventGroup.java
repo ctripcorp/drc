@@ -18,7 +18,8 @@ public class FetcherEventGroup implements EventGroup, AutoCloseable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final int CAPACITY = BigTransactionThreshold.getInstance().getThreshold();
+    // test todo
+    public static final int CAPACITY = 2;
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition notEmpty = lock.newCondition();
     private final Condition notFull= lock.newCondition();

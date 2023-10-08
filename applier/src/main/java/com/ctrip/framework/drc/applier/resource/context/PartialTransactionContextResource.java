@@ -24,6 +24,7 @@ public class PartialTransactionContextResource extends TransactionContextResourc
     public void doInitialize() {
         this.keyValues = parent.getKeyValues();
         this.conflictTableRowsCount = parent.conflictTableRowsCount;
+        this.cflRowLogsQueue = parent.cflRowLogsQueue;
         this.logs = parent.logs;
         this.cflTrxLog = parent.cflTrxLog;
         this.trxRowNum = parent.trxRowNum;
