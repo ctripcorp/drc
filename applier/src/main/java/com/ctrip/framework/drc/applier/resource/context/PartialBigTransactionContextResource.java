@@ -74,6 +74,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.delete(beforeRows, beforeBitmap, columns);
+            trxRowNum.subtract(beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -105,7 +106,6 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     private TransactionData.ApplyResult conflictHandling(String savepointIdentifier) throws SQLException {
         savepointExecutor.rollbackToSavepoint(savepointIdentifier);
         loggerBatch.info("[Savepoint] rollback for {}", savepointIdentifier);
-        // todo trxRowsCount should be decrease
         writeEventWrappers.forEach(Runnable::run);
         boolean handleResult = everWrong();
         loggerBatch.info("[conflictHandling] {} for {} and lastUnbearable is {}", handleResult, fetchGtid(), getLastUnbearable());

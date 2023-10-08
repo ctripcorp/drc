@@ -163,7 +163,7 @@ public class TransactionContextResource extends AbstractContext
             long delayMs = fetchDelayMS();
             String gtid = fetchGtid();
             // test todo
-            loggerSC.info("dispose trx:{},conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",gtid,conflictRowNum,rollbackRowNum,curCflRowLog);
+            loggerSC.info("dispose trx:{},rows:{},conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",gtid,trxRowNum,conflictRowNum,rollbackRowNum,curCflRowLog);
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
@@ -208,6 +208,7 @@ public class TransactionContextResource extends AbstractContext
                 }
                 cflTrxLog.setGtid(gtid);
                 List<ConflictRowLog> cflLogs = new ArrayList<>(cflRowLogsQueue.size());
+                loggerSC.info("trx:{},cflRowLogsQueue.size:{}",gtid,cflRowLogsQueue.size());
                 while (cflRowLogsQueue.size() > 0) {
                     cflLogs.add(0,cflRowLogsQueue.poll());
                 }
