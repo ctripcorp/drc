@@ -36,16 +36,7 @@ public class DbTblDao extends AbstractDao<DbTbl> {
 		return client.query(builder,new DalHints());
     }
 
-	public DbTbl queryByDbName(String dbName) throws SQLException {
-		if (StringUtils.isEmpty(dbName)) {
-			throw new IllegalArgumentException("dbName is blank");
-		}
-		SelectSqlBuilder builder = new SelectSqlBuilder();
-		builder.selectAll().equal("db_name", dbName, Types.VARCHAR, false);
-		return client.queryFirst(builder, new DalHints());
-	}
-
-    public List<DbTbl> queryByPage(DbQuery query) throws SQLException {
+	public List<DbTbl> queryByPage(DbQuery query) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder().atPage(query.getPageIndex(), query.getPageSize())
                 .orderBy(ID, false);
         sqlBuilder.and().likeNullable("db_name", query.getLikeByDbNameFromBeginning(),  MatchPattern.BEGIN_WITH,Types.VARCHAR);
