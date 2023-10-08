@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -25,6 +26,8 @@ public interface DrcBuildServiceV2 {
     String buildDrc(DrcBuildParam param) throws Exception;
 
     void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception;
+
+    Pair<Long, Long> checkDbReplicationFilter(List<Long> dbReplicationIds) throws Exception;
 
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;
 

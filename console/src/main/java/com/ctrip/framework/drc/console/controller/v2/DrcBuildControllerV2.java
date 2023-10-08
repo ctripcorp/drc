@@ -104,6 +104,16 @@ public class DrcBuildControllerV2 {
         }
     }
 
+    @GetMapping("dbReplications/check")
+    public ApiResult<Boolean> checkDbReplicationFilter(@RequestParam List<Long> dbReplicationIds) {
+        try {
+            drcBuildServiceV2.checkDbReplicationFilter(dbReplicationIds);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(false, e.getMessage());
+        }
+    }
+
     @GetMapping("columnsFilter")
     public ApiResult<ColumnsConfigView> getColumnsConfigView(@RequestParam long dbReplicationId) {
         try {

@@ -265,6 +265,7 @@ public class DrcBuildServiceV2Test {
         Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.anyLong())).thenReturn(getMhaDbMappingTbls1());
         Mockito.when(dbReplicationTblDao.queryByMappingIds(Mockito.anyList(), Mockito.anyList(), Mockito.anyInt())).thenReturn(getDbReplicationTbls());
         Mockito.when(dbTblDao.queryByIds(Mockito.anyList())).thenReturn(getDbTbls());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
 
         List<DbReplicationView> result = drcBuildServiceV2.getDbReplicationView("srcMha", "dstMha");
         Assert.assertEquals(result.size(), 2);
