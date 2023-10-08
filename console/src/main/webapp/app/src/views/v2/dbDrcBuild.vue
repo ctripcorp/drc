@@ -346,6 +346,47 @@ export default {
         show: false,
         tableColumns: [
           {
+            title: '状态（点击查看详情）',
+            key: 'status',
+            width: 200,
+            align: 'center',
+            render: (h, params) => {
+              const row = params.row
+              const status = row.viewOnlyInfo.drcStatus
+              const disabled = status === -1
+              let type, text
+              if (status === 1) {
+                text = '已接入'
+                type = 'primary'
+              } else {
+                text = '未接入'
+                type = 'default'
+              }
+              return h('div', [
+                h('Button', {
+                  on: {
+                    click: async () => {
+                      const routeData = this.$router.resolve({
+                        path: '/drcV2',
+                        query: {
+                          step: 3,
+                          srcMhaName: row.srcMhaName,
+                          dstMhaName: row.dstMhaName
+                        }
+                      })
+                      window.open(routeData.href, '_blank')
+                    }
+                  },
+                  props: {
+                    type: type,
+                    disabled: disabled,
+                    icon: 'ios-open-outline'
+                  }
+                }, text)
+              ])
+            }
+          },
+          {
             title: '源集群',
             key: 'srcMhaName',
             render: (h, params) => {

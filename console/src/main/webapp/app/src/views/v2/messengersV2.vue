@@ -7,11 +7,11 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
-          <Row  style="background: #f8f8f9; border-top: 1px solid #e8eaec;">
-            <Col span="3" style="display: flex;float: right;margin: 5px" >
-              <Dropdown style="display: flex;float: right" >
-                <Button type="primary" icon="ios-hammer">
-                  操作
+          <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+            <Col span="2" style="display: flex;float: left;margin: 5px" >
+              <Dropdown placement="bottom-start">
+                <Button type="default" icon="ios-hammer">
+                  新建配置
                   <Icon type="ios-arrow-down"></Icon>
                 </Button>
                 <template #list>

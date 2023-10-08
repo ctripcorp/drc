@@ -16,6 +16,17 @@ public class DrcAutoBuildParam {
     private RowsFilterCreateParam rowsFilterCreateParam;
     private ColumnsFilterCreateParam columnsFilterCreateParam;
 
+
+    private ViewOnlyInfo viewOnlyInfo;
+
+    public ViewOnlyInfo getViewOnlyInfo() {
+        return viewOnlyInfo;
+    }
+
+    public void setViewOnlyInfo(ViewOnlyInfo viewOnlyInfo) {
+        this.viewOnlyInfo = viewOnlyInfo;
+    }
+
     public ColumnsFilterCreateParam getColumnsFilterCreateParam() {
         return columnsFilterCreateParam;
     }
@@ -117,5 +128,17 @@ public class DrcAutoBuildParam {
                 ", rowsFilterCreateParam=" + rowsFilterCreateParam +
                 ", columnsFilterCreateParam=" + columnsFilterCreateParam +
                 '}';
+    }
+
+    public static class ViewOnlyInfo {
+        private Integer drcStatus;
+
+        public Integer getDrcStatus() {
+            return drcStatus;
+        }
+
+        public void setDrcStatus(Integer drcStatus) {
+            this.drcStatus = drcStatus;
+        }
     }
 }

@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.dto.v2.MhaDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.error.AutoBuildErrorEnum;
 import com.ctrip.framework.drc.console.exception.ConsoleException;
 import com.ctrip.framework.drc.console.param.v2.DbReplicationBuildParam;
@@ -40,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -290,7 +292,41 @@ public class DrcAutoBuildServiceImpl implements DrcAutoBuildService {
             param.setDbName(dbNames);
             list.add(param);
         }
+
+        this.fillExtraInfo(list);
+
         return list;
+    }
+
+    private void fillExtraInfo(List<DrcAutoBuildParam> list) {
+        Set<String> mhaNames = new HashSet<>();
+        list.forEach(e -> {
+            mhaNames.add(e.getSrcMhaName());
+            mhaNames.add(e.getDstMhaName());
+        });
+        try {
+            List<MhaTblV2> mhaTblV2List = mhaTblDao.queryByMhaNames(Lists.newArrayList(mhaNames), BooleanEnum.FALSE.getCode());
+            Map<String, MhaTblV2> mhaMap = mhaTblV2List.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, e -> e, (e1, e2) -> e1));
+            for (DrcAutoBuildParam param : list) {
+                MhaTblV2 srcMha = mhaMap.get(param.getSrcMhaName());
+                MhaTblV2 dstMha = mhaMap.get(param.getDstMhaName());
+                DrcAutoBuildParam.ViewOnlyInfo viewOnlyInfo = new DrcAutoBuildParam.ViewOnlyInfo();
+                param.setViewOnlyInfo(viewOnlyInfo);
+
+                if (srcMha == null || dstMha == null) {
+                    viewOnlyInfo.setDrcStatus(-1);
+                    continue;
+                }
+                MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMha.getId(), dstMha.getId(), BooleanEnum.FALSE.getCode());
+                if (mhaReplicationTbl == null) {
+                    viewOnlyInfo.setDrcStatus(-1);
+                    continue;
+                }
+                viewOnlyInfo.setDrcStatus(mhaReplicationTbl.getDrcStatus());
+            }
+        } catch (SQLException e) {
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 
     private String buildErrorMessage(List<MhaReplicationPreviewDto> notValidDB) {
