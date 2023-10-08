@@ -300,11 +300,9 @@ public class DrcAutoBuildServiceImplTest {
         drcAutoBuildServiceImpl.autoBuildDrc(req);
         verify(drcBuildService, times(1)).buildMha(any());
         verify(drcBuildService, times(2)).syncMhaDbInfoFromDbaApiIfNeeded(any());
-        verify(drcBuildService, times(1)).configureDbReplications(any());
+        verify(drcBuildService, times(1)).buildDbReplicationConfig(any());
         verify(drcBuildService, times(2)).autoConfigReplicatorsWithRealTimeGtid(any());
         verify(drcBuildService, times(1)).autoConfigAppliers(any(), any(), anyBoolean());
-        verify(drcBuildService, times(1)).buildRowsFilter(any());
-        verify(drcBuildService, times(1)).buildColumnsFilter(any());
     }
 
 
