@@ -208,11 +208,21 @@ public class ResourceServiceImpl implements ResourceService {
         List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, type);
 
         MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        List<ResourceView> resourceViewsInUse = new ArrayList<>();
         if (type == ModuleEnum.REPLICATOR.getCode()) {
-            resourceViews.addAll(getReplicatorsInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
         } else if (type == ModuleEnum.APPLIER.getCode()) {
-            resourceViews.addAll(getAppliersInUse(mhaTbl.getId()));
-            resourceViews.addAll(getMessengersInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getAppliersInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
+        }
+
+        if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
+            List<Long> resourceIds = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+            resourceViewsInUse.forEach(e -> {
+                if (!resourceIds.contains(e.getResourceId())) {
+                    resourceViews.add(e);
+                }
+            });
         }
         return resourceViews;
     }
