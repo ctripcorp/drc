@@ -41,7 +41,7 @@ public class ResourceController {
     @GetMapping("mha/all")
     public ApiResult<List<ResourceView>> getMhaAvailableResource(@RequestParam String mhaName, @RequestParam int type) {
         try {
-            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResource(mhaName, type));
+            return ApiResult.getSuccessInstance(resourceService.getMhaAvailableResourceWithUse(mhaName, type));
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
