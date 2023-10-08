@@ -178,9 +178,9 @@ public class BatchTransactionContextResourceTest {
     }
 
     private void assertResult(TransactionContextResource context, long trxRowNum,long conflictRowNum, long rollbackRowNum,long recordNum){
-        assertEquals(trxRowNum, context.trxRowNum);
-        assertEquals(conflictRowNum, context.conflictRowNum);
-        assertEquals(rollbackRowNum, context.rollbackRowNum);
+        assertEquals(trxRowNum, context.trxRowNum.longValue());
+        assertEquals(conflictRowNum, context.conflictRowNum.longValue());
+        assertEquals(rollbackRowNum, context.rollbackRowNum.longValue());
         assertEquals(recordNum, context.cflRowLogsQueue.size());
     }
 

@@ -105,6 +105,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
     private TransactionData.ApplyResult conflictHandling(String savepointIdentifier) throws SQLException {
         savepointExecutor.rollbackToSavepoint(savepointIdentifier);
         loggerBatch.info("[Savepoint] rollback for {}", savepointIdentifier);
+        // todo trxRowsCount should be decrease
         writeEventWrappers.forEach(Runnable::run);
         boolean handleResult = everWrong();
         loggerBatch.info("[conflictHandling] {} for {} and lastUnbearable is {}", handleResult, fetchGtid(), getLastUnbearable());

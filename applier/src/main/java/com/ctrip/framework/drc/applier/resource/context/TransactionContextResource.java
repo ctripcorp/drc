@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,9 +115,9 @@ public class TransactionContextResource extends AbstractContext
     protected Throwable lastUnbearable;
     public long costTimeNS = 0;
     protected ConflictTransactionLog cflTrxLog;
-    protected long trxRowNum = 0;
-    protected long conflictRowNum = 0;
-    protected long rollbackRowNum = 0;
+    protected MutableLong trxRowNum = new MutableLong(0);
+    protected MutableLong conflictRowNum = new MutableLong(0);
+    protected MutableLong rollbackRowNum = new MutableLong(0);
     protected PriorityQueue<ConflictRowLog> cflRowLogsQueue = new PriorityQueue<>(RECORD_SIZE);
     protected Map<ConflictTable,Long> conflictTableRowsCount;
     protected ConflictRowLog curCflRowLog;
@@ -171,7 +172,7 @@ public class TransactionContextResource extends AbstractContext
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", null, delayMs);
 
-                if (trxRowNum == 0) {
+                if (trxRowNum.longValue() == 0L) {
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty xid", 1, 0);
                 } else {
@@ -180,8 +181,8 @@ public class TransactionContextResource extends AbstractContext
                         put("dbName", dbName);
                     }};
                     metricsActivity.report("transaction", dbTag, 1);
-                    metricsActivity.report("rows", dbTag, trxRowNum);
-                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", (int) trxRowNum, 0);
+                    metricsActivity.report("rows", dbTag, trxRowNum.longValue());
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", trxRowNum.intValue(), 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
@@ -199,8 +200,8 @@ public class TransactionContextResource extends AbstractContext
                 }
             }
             
-            if ((reportConflictActivity != null) && conflictRowNum > 0) {
-                if (rollbackRowNum == 0) {
+            if ((reportConflictActivity != null) && conflictRowNum.longValue() > 0) {
+                if (rollbackRowNum.longValue() == 0) {
                     cflTrxLog.setTrxRes(ConflictResult.COMMIT.getValue());
                 } else {
                     cflTrxLog.setTrxRes(ConflictResult.ROLLBACK.getValue());
@@ -826,14 +827,14 @@ public class TransactionContextResource extends AbstractContext
     public boolean everConflict() {
         // test todo
         loggerSC.info("class:{},gtid:{},conflictRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),conflictRowNum);
-        return conflictRowNum > 0;
+        return conflictRowNum.longValue() > 0;
     }
 
     @Override
     public boolean everRollback() {
         // test todo
         loggerSC.info("class:{},gtid:{},rollbackRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),rollbackRowNum);
-        return rollbackRowNum > 0;
+        return rollbackRowNum.longValue() > 0;
     }
     
     protected String statementToString(PreparedStatement statement) {
@@ -857,10 +858,10 @@ public class TransactionContextResource extends AbstractContext
     }
     
     private void conflictMark(Boolean isConflict) {
-        trxRowNum++;
+        trxRowNum.increment();
         if (isConflict) {
             curCflRowLog = new ConflictRowLog();
-            curCflRowLog.setRowId(trxRowNum);
+            curCflRowLog.setRowId(trxRowNum.longValue());
             curCflRowLog.setRawSql(rawSql);
             curCflRowLog.setRawRes(rawSqlExecuteResult);
         }
@@ -885,9 +886,10 @@ public class TransactionContextResource extends AbstractContext
     }
 
     private boolean recordCflRowLogIfNecessary() {
-        conflictRowNum++;
+        conflictRowNum.increment();
         if (ConflictResult.ROLLBACK.getValue() == curCflRowLog.getRowRes()) {
-            if (rollbackRowNum++ > RECORD_SIZE) {
+            rollbackRowNum.increment();
+            if (rollbackRowNum.longValue() > RECORD_SIZE) {
                 return false;
             }
             cflRowLogsQueue.add(curCflRowLog);
