@@ -824,11 +824,15 @@ public class TransactionContextResource extends AbstractContext
     
     @Override
     public boolean everConflict() {
+        // test todo
+        loggerSC.info("class:{},gtid:{},conflictRowNum",this.getClass().getSimpleName(),fetchGtid(),conflictRowNum);
         return conflictRowNum > 0;
     }
 
     @Override
     public boolean everRollback() {
+        // test todo
+        loggerSC.info("class:{},gtid:{},rollbackRowNum",this.getClass().getSimpleName(),fetchGtid(),rollbackRowNum);
         return rollbackRowNum > 0;
     }
     
