@@ -2,7 +2,15 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/mqConfigs">Mq投递配置 v2</BreadcrumbItem>
+      <BreadcrumbItem to="/v2/messengersV2">Messenger 集群</BreadcrumbItem>
+      <BreadcrumbItem :to="{
+          path: 'buildMessengerV2',query :{
+          step: 3,
+          mhaName: drc.mhaName
+        }
+      }">Messenger 配置
+      </BreadcrumbItem>
+      <BreadcrumbItem>Mq 同步表</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Row>
@@ -392,8 +400,14 @@ export default {
           }
         },
         {
-          title: '库表名',
-          key: 'directSchemaTableName'
+          title: '库名',
+          key: 'schema',
+          resizable: true
+        },
+        {
+          title: '表名',
+          key: 'table',
+          resizable: true
         }
       ],
       tableData: [],
@@ -683,8 +697,8 @@ export default {
     getTableData: function (response) {
       return response.map(item => {
         return {
-          directSchemaTableName: item.directSchemaTableName,
-          name: item.name,
+          directSchemaTableName: item.fullName,
+          table: item.table,
           schema: item.schema
         }
       })
@@ -697,11 +711,11 @@ export default {
         return
       }
       this.checkDbTableLoading = true
-      this.axios.get('/api/drc/v2/mysql/getMatchTable', {
+      this.axios.get('/api/drc/v2/mysql/preCheckMySqlTables', {
         params: {
-          mhaName: this.drc.mhaName,
+          mha: this.drc.mhaName,
           nameFilter:
-            this.topic.db + '.' + this.topic.table
+            this.topic.db + '\\.' + this.topic.table
         }
       }).then(response => {
         if (response.data.status === 1) {

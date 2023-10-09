@@ -80,7 +80,12 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
         List<String> dstTableList = mysqlServiceV2.queryTablesWithNameFilter(dstMha.getMhaName(), nameFilter);
         List<String> srcDbList = extractDbs(srcTableList);
         List<String> dstDbList = extractDbs(dstTableList);
-
+        if (CollectionUtils.isEmpty(srcDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for srcMha: "+srcMha.getMhaName());
+        }
+        if (CollectionUtils.isEmpty(dstDbList)) {
+            throw ConsoleExceptionUtils.message("db table not found for dstMha: "+dstMha.getMhaName());
+        }
         if (!CommonUtils.isSameList(srcDbList, dstDbList)) {
             logger.error("insertMhaDbMappings srcDb dstDb is not same, srcDbList: {}, dstDbList: {}", srcDbList, dstDbList);
             throw ConsoleExceptionUtils.message("srcMha dstMha contains different dbs");

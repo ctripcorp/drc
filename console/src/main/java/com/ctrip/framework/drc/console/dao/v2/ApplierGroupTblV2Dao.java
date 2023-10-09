@@ -5,9 +5,12 @@ import com.ctrip.framework.drc.console.dao.entity.v2.ApplierGroupTblV2;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by dengquanliang
@@ -37,6 +40,15 @@ public class ApplierGroupTblV2Dao extends AbstractDao<ApplierGroupTblV2> {
         sqlBuilder.selectAll().equal(MHA_REPLICATION_ID, mhaReplicationId, Types.BIGINT)
         .and().equal(DELETED, deleted, Types.BIGINT);
         return queryOne(sqlBuilder);
+    }
+
+    public List<ApplierGroupTblV2> queryByMhaReplicationIds(List<Long> mhaReplicationIds) throws SQLException {
+        if (CollectionUtils.isEmpty(mhaReplicationIds)) {
+            return new ArrayList<>();
+        }
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().in(MHA_REPLICATION_ID, mhaReplicationIds, Types.BIGINT);
+        return queryList(sqlBuilder);
     }
     
     public Long insertOrReCover(Long mhaReplicationId, String gtidInit) throws SQLException {

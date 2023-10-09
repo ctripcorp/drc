@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.dto.v2;
 
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaReplicationTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
+import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -25,6 +26,28 @@ public class MhaReplicationDto {
     private Integer status;
 
     private MhaDelayInfoDto delayInfoDto;
+
+    public static MhaReplicationDto from(MhaReplicationTbl e, Map<Long, MhaTblV2> mhaMap, Map<Long, DcDo> dcDoMap) {
+        MhaReplicationDto dto = new MhaReplicationDto();
+        dto.setReplicationId(e.getId());
+        dto.setDatachangeLasttime(e.getDatachangeLasttime().getTime());
+        dto.setStatus(e.getDrcStatus());
+        MhaTblV2 srcMhaTbl = mhaMap.get(e.getSrcMhaId());
+        MhaTblV2 dstMhaTbl = mhaMap.get(e.getDstMhaId());
+        if (srcMhaTbl != null) {
+            DcDo dcDo = dcDoMap.get(srcMhaTbl.getDcId());
+            dto.setSrcMha(MhaDto.from(srcMhaTbl, dcDo));
+        } else {
+            dto.setSrcMha(new MhaDto());
+        }
+        if (dstMhaTbl != null) {
+            DcDo dcDo = dcDoMap.get(dstMhaTbl.getDcId());
+            dto.setSrcMha(MhaDto.from(dstMhaTbl, dcDo));
+        } else {
+            dto.setDstMha(new MhaDto());
+        }
+        return dto;
+    }
 
     public static MhaReplicationDto from(MhaReplicationTbl e, Map<Long, MhaTblV2> mhaMap) {
         MhaReplicationDto dto = new MhaReplicationDto();

@@ -61,6 +61,8 @@ public class ResourceServiceImpl implements ResourceService {
     private ApplierGroupTblV2Dao applierGroupTblDao;
     @Autowired
     private MhaReplicationTblDao mhaReplicationTblDao;
+    @Autowired
+    private MessengerGroupTblDao messengerGroupTblDao;
 
     @Override
     public void configureResource(ResourceBuildParam param) throws Exception {
@@ -199,6 +201,98 @@ public class ResourceServiceImpl implements ResourceService {
         DcTbl dcTbl = dcTblDao.queryById(mhaTbl.getDcId());
         List<Long> dcIds = dcTblDao.queryByRegionName(dcTbl.getRegionName()).stream().map(DcTbl::getId).collect(Collectors.toList());
         return getResourceViews(dcIds, type, mhaTbl.getTag());
+    }
+
+    @Override
+    public List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception {
+        List<ResourceView> resourceViews = getMhaAvailableResource(mhaName, type);
+
+        MhaTblV2 mhaTbl = mhaTblV2Dao.queryByMhaName(mhaName, BooleanEnum.FALSE.getCode());
+        List<ResourceView> resourceViewsInUse = new ArrayList<>();
+        if (type == ModuleEnum.REPLICATOR.getCode()) {
+            resourceViewsInUse.addAll(getReplicatorsInUse(mhaTbl.getId()));
+        } else if (type == ModuleEnum.APPLIER.getCode()) {
+            resourceViewsInUse.addAll(getAppliersInUse(mhaTbl.getId()));
+            resourceViewsInUse.addAll(getMessengersInUse(mhaTbl.getId()));
+        }
+
+        if (!CollectionUtils.isEmpty(resourceViewsInUse)) {
+            List<Long> resourceIds = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+            resourceViewsInUse.forEach(e -> {
+                if (!resourceIds.contains(e.getResourceId())) {
+                    resourceViews.add(e);
+                }
+            });
+        }
+        return resourceViews;
+    }
+
+    private List<ResourceView> getReplicatorsInUse(long mhaId) throws Exception {
+        ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaId);
+        if (replicatorGroupTbl == null) {
+            return new ArrayList<>();
+        }
+        List<ReplicatorTbl> replicatorTbls = replicatorTblDao.queryByRGroupIds(Lists.newArrayList(replicatorGroupTbl.getId()), BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(replicatorTbls)) {
+            return new ArrayList<>();
+        }
+        List<Long> resourceIds = replicatorTbls.stream().map(ReplicatorTbl::getResourceId).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+        return buildResourceViews(resourceTbls);
+    }
+
+    private List<ResourceView> getAppliersInUse(long mhaId) throws Exception {
+        List<MhaReplicationTbl> mhaReplicationTbls = mhaReplicationTblDao.queryByDstMhaId(mhaId);
+        if (CollectionUtils.isEmpty(mhaReplicationTbls)) {
+            return new ArrayList<>();
+        }
+        if (CollectionUtils.isEmpty(mhaReplicationTbls)) {
+            return new ArrayList<>();
+        }
+        List<Long> mhaReplicationIds = mhaReplicationTbls.stream().map(MhaReplicationTbl::getId).collect(Collectors.toList());
+        List<ApplierGroupTblV2> applierGroupTblV2s = applierGroupTblDao.queryByMhaReplicationIds(mhaReplicationIds);
+        if (CollectionUtils.isEmpty(applierGroupTblV2s)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> applierGroupIds = applierGroupTblV2s.stream().map(ApplierGroupTblV2::getId).collect(Collectors.toList());
+        List<ApplierTblV2> applierTblV2s = applierTblDao.queryByApplierGroupIds(applierGroupIds, BooleanEnum.FALSE.getCode());
+        if (CollectionUtils.isEmpty(applierTblV2s)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> resourceIds = applierTblV2s.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+        return buildResourceViews(resourceTbls);
+    }
+
+    private List<ResourceView> getMessengersInUse(long mhaId) throws Exception {
+        MessengerGroupTbl messengerGroupTbl = messengerGroupTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        if (messengerGroupTbl == null) {
+            return new ArrayList<>();
+        }
+        List<MessengerTbl> messengerTbls = messengerTblDao.queryByGroupId(messengerGroupTbl.getId());
+        if (CollectionUtils.isEmpty(messengerTbls)) {
+            return new ArrayList<>();
+        }
+        List<Long> resourceIds = messengerTbls.stream().map(MessengerTbl::getResourceId).collect(Collectors.toList());
+        List<ResourceTbl> resourceTbls = resourceTblDao.queryByIds(resourceIds);
+        return buildResourceViews(resourceTbls);
+    }
+
+    private List<ResourceView> buildResourceViews(List<ResourceTbl> resourceTbls) {
+        List<ResourceView> resourceViews = resourceTbls.stream().map(source -> {
+            ResourceView target = new ResourceView();
+            target.setResourceId(source.getId());
+            target.setIp(source.getIp());
+            target.setAz(source.getAz());
+            target.setTag(source.getTag());
+            target.setType(source.getType());
+            target.setActive(source.getActive());
+
+            return target;
+        }).collect(Collectors.toList());
+        return resourceViews;
     }
 
     @Override
