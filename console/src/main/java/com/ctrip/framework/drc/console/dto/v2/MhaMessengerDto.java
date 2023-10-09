@@ -12,6 +12,15 @@ public class MhaMessengerDto {
     private MhaDto srcMha;
     private Set<String> dbs;
     private MhaDelayInfoDto delayInfoDto;
+    private Integer status;
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
 
     public Long getMessengerGroupId() {
         return messengerGroupId;

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.core.service.ops;
 
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
@@ -20,5 +21,7 @@ public interface OPSApiService extends Ordered {
     List<HickWallTrafficEntity> getTrafficFromHickWall(HickWallTrafficContext context) throws Exception;
 
     List<HickWallMessengerDelayEntity> getMessengerDelayFromHickWall(String getAllClusterUrl, String accessToken, List<String> mha) throws IOException;
+    
+    List<HickWallMhaReplicationDelayEntity> getMhaReplicationDelay(String getAllClusterUrl, String accessToken) throws IOException;
 
 }
