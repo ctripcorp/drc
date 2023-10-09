@@ -43,6 +43,7 @@ import com.google.common.collect.Sets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import org.apache.commons.lang3.StringUtils;
@@ -51,6 +52,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
@@ -200,6 +202,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private Filter<OutboundLogEventContext> filterChain;
 
         private boolean in_exclude_group = false;
+
+        private ByteBuffer headBuffer = ByteBuffer.allocateDirect(eventHeaderLengthVersionGt1);
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
@@ -431,7 +435,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                     return false;
                 }
 
-                ByteBuf headByteBuf = EventReader.readHeader(fileChannel);
+                ByteBuf headByteBuf = EventReader.readHeader(fileChannel, headBuffer);
                 long eventSize = LogEventUtils.parseNextLogEventSize(headByteBuf);
                 if (!checkEventSize(fileChannel, headByteBuf, eventSize)) {
                     continue;

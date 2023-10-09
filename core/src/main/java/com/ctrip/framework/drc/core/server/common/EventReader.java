@@ -67,6 +67,18 @@ public class EventReader {
         return doRead(fileChannel, eventHeaderLengthVersionGt1);
     }
 
+    public static ByteBuf readHeader(FileChannel fileChannel, ByteBuffer headBuffer) {
+        try {
+            headBuffer.clear();
+            ByteBuf byteBuf = Unpooled.wrappedBuffer(headBuffer);
+            readFixSize(fileChannel, headBuffer, byteBuf, eventHeaderLengthVersionGt1);
+            return byteBuf;
+        } catch (Throwable t) {
+            logger.error("doRead error and readSize for header {}", eventHeaderLengthVersionGt1, t);
+            throw t;
+        }
+    }
+
     private static ByteBuf doRead(FileChannel fileChannel, int readSize) {
         try {
             ByteBuffer headBuffer = ByteBuffer.allocateDirect(readSize);
