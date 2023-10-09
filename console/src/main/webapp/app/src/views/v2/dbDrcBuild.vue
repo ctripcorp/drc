@@ -293,8 +293,7 @@ export default {
               'FRA'
             ],
             drcStrategyIdsForChose: [
-              2000000002,
-              20001
+              2000000002
             ],
             fetchModeForChose: [
               {
@@ -591,6 +590,9 @@ export default {
         param.dalClusterName = this.formItem.dalClusterModeOption.dalClusterName
       }
       if (this.formItem.switch.rowsFilter) {
+        if (this.formItem.rowsFilterDetail.fetchMode === 0) {
+          this.formItem.rowsFilterDetail.context = this.formItem.constants.rowsFilter.configInTripUid.regionsChosen.join(',')
+        }
         param.openRowsFilterConfig = true
         param.rowsFilterDetail = this.formItem.rowsFilterDetail
       }
@@ -604,6 +606,9 @@ export default {
       const that = this
       that.dataLoading = true
       const params = this.getParams()
+      if (!this.checkParam(params)) {
+        return
+      }
       console.log(params)
       await that.axios.post('/api/drc/v2/autoconfig/submit', params)
         .then(response => {
@@ -740,6 +745,9 @@ export default {
     },
     async preCheckBuildParam () {
       const params = this.getParams()
+      if (!this.checkParam(params)) {
+        return
+      }
       const that = this
       that.dataLoading = true
       that.finalBuildParam = []
@@ -903,6 +911,34 @@ export default {
         }
       }
       return result
+    },
+    checkParam (params) {
+      if (params.openRowsFilterConfig === true) {
+        const rowsFilterConfig = params.rowsFilterDetail
+        console.log('rowsFilterConfig', rowsFilterConfig)
+        // check rows filter
+        if (rowsFilterConfig.mode === 1) {
+          if (rowsFilterConfig.columns.length === 0 && rowsFilterConfig.udlColumns.length === 0) {
+            this.$Message.warning('行过滤检测失败：uid 与 uld字段不能同时为空！')
+            return false
+          }
+          if (rowsFilterConfig.fetchMode === 0 &&
+            (
+              rowsFilterConfig.context === '' ||
+              rowsFilterConfig.context === undefined ||
+              rowsFilterConfig.context === '//filter by config'
+            )
+          ) {
+            this.$Message.warning('行过滤检测失败：context 不能为空！')
+            return false
+          }
+        }
+        if (rowsFilterConfig.mode === '' || rowsFilterConfig.mode === undefined || (rowsFilterConfig.columns.length === 0 && rowsFilterConfig.udlColumns.length === 0)) {
+          this.$Message.warning('缺少行过滤配置 禁止提交')
+          return false
+        }
+      }
+      return true
     }
   },
   computed: {
