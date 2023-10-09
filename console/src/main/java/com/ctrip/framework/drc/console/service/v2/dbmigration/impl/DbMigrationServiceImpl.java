@@ -811,6 +811,8 @@ public class DbMigrationServiceImpl implements DbMigrationService {
 
         long targetMhaId = rollBack ? newMhaId : oldMhaId;
         List<MhaDbMappingTbl> deleteMhaDbMappingTbls = migrateMhaDbMappingTbls.stream().filter(e -> e.getMhaId().equals(targetMhaId)).collect(Collectors.toList());
+        List<MhaDbMappingTbl> deleteNewUnMigrateMappings = newMhaDbMappings.stream().filter(e -> unMigrateDbIds.contains(e.getDbId())).collect(Collectors.toList());
+        deleteMhaDbMappingTbls.addAll(deleteNewUnMigrateMappings);
         mhaDbMappingTblDao.delete(deleteMhaDbMappingTbls);
 
         if (!existMhaReplication(targetMhaId)) {
