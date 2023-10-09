@@ -72,5 +72,10 @@ public class MigrationTaskTblDao extends AbstractDao<MigrationTaskTbl> {
         sqlBuilder.selectAll().and().equal(OLD_MHA_DBA, oldMhaDBA, Types.VARCHAR);
         return client.query(sqlBuilder, new DalHints());
     }
-    
+
+    public List<MigrationTaskTbl> queryByStatus(String status) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.selectAll().and().equal(STATUS, status, Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
+    }
 }

@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.service.console;
 import com.ctrip.framework.drc.core.http.HttpUtils;
 import com.ctrip.framework.drc.core.service.ops.AppClusterResult;
 import com.ctrip.framework.drc.core.service.ops.AppNode;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficContext;
 import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallTrafficEntity;
@@ -150,6 +151,33 @@ public class OPSApiServiceImpl implements OPSApiService {
 
         return JsonUtils.fromJsonToList(result, HickWallMessengerDelayEntity.class);
     }
+
+    @Override
+    public List<HickWallMhaReplicationDelayEntity> getMhaReplicationDelay(String getAllClusterUrl, String accessToken) throws IOException {
+        Map<String, Object> requestBody = Maps.newLinkedHashMap();
+        requestBody.put("access_token", accessToken);
+        requestBody.put("request_body", null);
+        String formatUrl = getAllClusterUrl + "?query=fx.drc.delay_mean&step=30&db=APM-FX";
+
+        OkHttpClient client = new OkHttpClient().newBuilder().build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, JsonUtils.toJson(requestBody));
+        Request request = new Request.Builder()
+                .url(formatUrl)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+        String responseStr;
+        try (Response response = client.newCall(request).execute()) {
+            responseStr = response.body().string();
+        }
+        JsonObject jsonObject = JsonUtils.fromJson(responseStr, JsonObject.class);
+        JsonObject data = jsonObject.get("data").getAsJsonObject();
+        String result = JsonUtils.toJson(data.get("result"));
+
+        return JsonUtils.fromJsonToList(result, HickWallMhaReplicationDelayEntity.class);
+    }
+
 
     @Override
     public int getOrder() {

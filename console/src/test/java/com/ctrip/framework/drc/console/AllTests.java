@@ -52,6 +52,7 @@ import com.ctrip.framework.drc.console.service.impl.*;
 import com.ctrip.framework.drc.console.service.monitor.impl.MonitorServiceImplTest;
 import com.ctrip.framework.drc.console.service.remote.qconfig.QConfigServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.*;
+import com.ctrip.framework.drc.console.service.v2.dbmigration.MigrationTaskManagerTest;
 import com.ctrip.framework.drc.console.service.v2.dbmigration.impl.DbMigrationServiceImplTest;
 import com.ctrip.framework.drc.console.service.v2.external.dba.DbaApiServiceTest;
 import com.ctrip.framework.drc.console.service.v2.impl.*;
@@ -175,6 +176,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
         DbaApiServiceTest.class,
         DrcAutoBuildServiceImplTest.class,
         MachineServiceImplTest.class,
+        MigrationTaskManagerTest.class,
 //
         // controller
         MetaControllerV2Test.class,

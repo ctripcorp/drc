@@ -12,10 +12,7 @@ import com.ctrip.framework.drc.console.service.v2.MhaDbMappingService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.CommonUtils;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
-import com.ctrip.framework.drc.core.service.utils.Constants;
-import java.sql.SQLException;
-
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -179,5 +174,35 @@ public class MhaDbMappingServiceImpl implements MhaDbMappingService {
 
         logger.info("insertDbMappingTbls: {}", insertDbMappingTbls);
         mhaDbMappingTblDao.batchInsert(insertDbMappingTbls);
+    }
+
+    @Override
+    public void copyAndInitMhaDbMappings(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) throws SQLException {
+        List<MhaDbMappingTbl> exist = mhaDbMappingTblDao.queryByMhaId(newMhaTbl.getId());
+        List<MhaDbMappingTbl> toBeInsert = Lists.newArrayList();
+        Set<Long> existedDb = exist.stream().map(MhaDbMappingTbl::getDbId).collect(Collectors.toSet());
+        List<MhaDbMappingTbl> copies = copyFrom(newMhaTbl, mhaDbMappingInOldMha);
+        copies.forEach(mhaDbMappingTbl -> {
+            if (!existedDb.contains(mhaDbMappingTbl.getDbId())) {
+                toBeInsert.add(mhaDbMappingTbl);
+            }
+        });
+        if (!CollectionUtils.isEmpty(toBeInsert)) {
+            int[] ints = mhaDbMappingTblDao.batchInsert(toBeInsert);
+            logger.info("copyMhaDbMappings from :{},expected size: {} ,res:{}",
+                    newMhaTbl.getMhaName(), toBeInsert.size(), Arrays.stream(ints).sum());
+        }
+    }
+
+    private List<MhaDbMappingTbl> copyFrom(MhaTblV2 newMhaTbl, List<MhaDbMappingTbl> mhaDbMappingInOldMha) {
+        List<MhaDbMappingTbl> res = Lists.newArrayList();
+        for (MhaDbMappingTbl mhaDbMappingTbl : mhaDbMappingInOldMha) {
+            MhaDbMappingTbl copy = new MhaDbMappingTbl();
+            copy.setMhaId(newMhaTbl.getId());
+            copy.setDbId(mhaDbMappingTbl.getDbId());
+            copy.setDeleted(BooleanEnum.FALSE.getCode());
+            res.add(copy);
+        }
+        return res;
     }
 }

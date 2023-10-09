@@ -15,18 +15,20 @@ public class MigrationTaskVo {
     private String newMhaDba;
     private String status;
     private String operator;
+    private String log;
 
     @Override
     public String toString() {
         return "MigrationTaskVo{" +
                 "id=" + id +
-                ", dbs='" + dbs + '\'' +
+                ", dbs=" + dbs +
                 ", oldMha='" + oldMha + '\'' +
                 ", newMha='" + newMha + '\'' +
                 ", oldMhaDba='" + oldMhaDba + '\'' +
                 ", newMhaDba='" + newMhaDba + '\'' +
                 ", status='" + status + '\'' +
                 ", operator='" + operator + '\'' +
+                ", log='" + log + '\'' +
                 '}';
     }
 
@@ -94,6 +96,14 @@ public class MigrationTaskVo {
         this.operator = operator;
     }
 
+    public String getLog() {
+        return log;
+    }
+
+    public void setLog(String log) {
+        this.log = log;
+    }
+
     public static MigrationTaskVo from(MigrationTaskTbl tbl) {
         MigrationTaskVo vo = new MigrationTaskVo();
         vo.setId(tbl.getId());
@@ -104,6 +114,7 @@ public class MigrationTaskVo {
         vo.setOperator(tbl.getOperator());
         vo.setNewMhaDba(tbl.getNewMhaDba());
         vo.setNewMhaDba(tbl.getOldMhaDba());
+        vo.setLog(tbl.getLog());
         return vo;
 
 

@@ -28,4 +28,7 @@ public interface MhaServiceV2 {
     void updateMhaTag(String mhaName, String tag) throws Exception;
 
     String getMhaDc(String mhaName) throws Exception;
+    
+    // key:mhaName , value: replicator slave delay
+    Map<String,Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception;
 }
