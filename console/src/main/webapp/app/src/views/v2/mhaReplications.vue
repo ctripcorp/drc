@@ -15,18 +15,18 @@
                   <Row :gutter=10>
                     <Col span="10">
                       <Input prefix="ios-search" v-model="srcMha.name" placeholder="集群名↵"
-                             @on-enter="getReplications">
+                             @on-enter="getReplications(1)">
                       </Input>
                     </Col>
                     <Col span="7">
                       <Select filterable prefix="ios-home" clearable v-model="srcMha.buId" placeholder="部门"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
                       </Select>
                     </Col>
                     <Col span="7">
                       <Select filterable prefix="ios-pin" clearable v-model="srcMha.regionId" placeholder="地域"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in regions" :value="item.id" :key="item.regionName">
                           {{ item.regionName }}
                         </Option>
@@ -41,19 +41,19 @@
                   <Row :gutter=10>
                     <Col span="10">
                       <Input prefix="ios-search" v-model="dstMha.name" placeholder="集群名↵"
-                             @on-enter="getReplications">
+                             @on-enter="getReplications(1)">
                       </Input>
                     </Col>
                     <Col span="7">
                       <Select filterable prefix="ios-home" clearable v-model="dstMha.buId" placeholder="部门"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
                       </Select>
                     </Col>
                     <Col span="7">
                       <Select filterable prefix="ios-pin" clearable v-model="dstMha.regionId"
                               placeholder="地域"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
                             item.regionName
                           }}
@@ -71,19 +71,19 @@
                   <Row :gutter=10>
                     <Col span="9">
                       <Input prefix="ios-search" v-model="relatedMha.name" placeholder="集群名↵"
-                             @on-enter="getReplications">
+                             @on-enter="getReplications(1)">
                       </Input>
                     </Col>
                     <Col span="5">
                       <Select filterable prefix="ios-home" clearable v-model="relatedMha.buId" placeholder="部门"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in bus" :value="item.id" :key="item.buName">{{ item.buName }}</Option>
                       </Select>
                     </Col>
                     <Col span="5">
                       <Select filterable prefix="ios-pin" clearable v-model="relatedMha.regionId"
                               placeholder="地域"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in regions" :value="item.id" :key="item.regionName">{{
                             item.regionName
                           }}
@@ -93,7 +93,7 @@
                     <Col span="5">
                       <Select filterable prefix="ios-pin" clearable v-model="drcStatus"
                               placeholder="状态"
-                              @on-change="getReplications">
+                              @on-change="getReplications(1)">
                         <Option v-for="item in drcStatusList" :value="item.value" :key="item.status">{{
                             item.status
                           }}
@@ -107,7 +107,7 @@
           </Col>
           <Col span="4">
             <Row :gutter=10 align="middle">
-              <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications">查询</Button>
+              <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getReplications(1)">查询</Button>
               <i-switch v-model="preciseSearchMode" size="large" style="margin-left: 10px">进阶
                 <template #open>
                   <span>进阶</span>
@@ -123,6 +123,22 @@
           </Col>
         </Row>
         <br>
+        <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+          <Col span="2" style="display: flex;float: left;margin: 5px" >
+            <Dropdown placement="bottom-start">
+              <Button type="default" icon="ios-hammer">
+                新建配置
+                <Icon type="ios-arrow-down"></Icon>
+              </Button>
+                <template #list>
+                  <DropdownMenu >
+                    <DropdownItem @click.native="() => {$router.push({path: '/drcV2'})}">新建DRC配置（MHA）</DropdownItem>
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/dbDrcBuild'})}">新建DRC配置（DB维度）</DropdownItem>
+                  </DropdownMenu>
+                </template>
+              </Dropdown>
+          </Col>
+        </Row>
         <Table :loading="dataLoading" stripe border :columns="columns" :data="replications" :span-method="handleSpan">
           <template slot-scope="{ row, index }" slot="action">
             <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row.replicationId)">
@@ -143,7 +159,7 @@
             show-total
             show-sizer
             show-elevator
-            @on-change="getReplications"
+            @on-change="getReplications(current)"
             @on-page-size-change="handleChangeSize"></Page>
         </div>
         <Drawer title="Basic Drawer" width="80" :closable="true" v-model="replicationDetail.show">
@@ -385,16 +401,20 @@ export default {
       size: 10,
       // query param
       srcMha: {
-        name: null,
-        buName: null,
-        regionName: null
+        name: this.$route.query.srcMhaName,
+        buId: null,
+        regionId: null
       },
       dstMha: {
-        name: null,
-        buName: null,
-        regionName: null
+        name: this.$route.query.dstMhaName,
+        buId: null,
+        regionId: null
       },
-      relatedMha: {},
+      relatedMha: {
+        name: this.$route.query.mhaName,
+        buId: null,
+        regionId: null
+      },
       drcStatus: null,
       preciseSearchMode: false,
       // get from backend
@@ -453,26 +473,27 @@ export default {
     resetParam () {
       this.srcMha = {
         name: null,
-        buName: null,
-        regionName: null
+        buId: null,
+        regionId: null
       }
       this.dstMha = {
         name: null,
-        buName: null,
-        regionName: null
+        buId: null,
+        regionId: null
       }
       this.relatedMha = {
         name: null,
-        buName: null,
-        regionName: null
+        buId: null,
+        regionId: null
       }
       this.drcStatus = null
-      this.getReplications()
+      this.getReplications(1)
     },
-    async getReplications () {
+    async getReplications (pageIndex = 1) {
+      this.resetPath()
       const that = this
       const params = {
-        pageIndex: this.current,
+        pageIndex: pageIndex,
         pageSize: this.size
       }
       if (this.preciseSearchMode) {
@@ -538,7 +559,7 @@ export default {
     handleChangeSize (val) {
       this.size = val
       this.$nextTick(() => {
-        this.getReplications()
+        this.getReplications(1)
       })
     },
     handleBeforeChange () {
@@ -571,7 +592,7 @@ export default {
         } else {
           this.$Message.warning('监控操作失败')
         }
-        this.getReplications()
+        this.getReplications(1)
       })
     },
     checkConfig (replicationId) {
@@ -605,6 +626,11 @@ export default {
         }
       })
     },
+    goToDrcLink () {
+      this.$router.push({
+        path: '/drcV2'
+      })
+    },
     showModal (row) {
       console.log('show modal')
       this.$Modal.success({
@@ -625,7 +651,7 @@ export default {
                       this.$Modal.remove()
                       this.srcMha.name = srcName
                       this.dstMha.name = dstName
-                      this.getReplications()
+                      this.getReplications(1)
                     }
                   },
                   {
@@ -721,13 +747,34 @@ export default {
       const url = 'http://hickwall.ctripcorp.com/grafanav2/d/vWeGmjFVk/drc-mha?from=now-1h&to=now&var-mha=' + srcName +
         '&var-auto_gen_other_mha=' + dstName
       window.open(url, '_blank')
+    },
+    resetPath () {
+      if (this.preciseSearchMode) {
+        this.$router.replace({
+          query: {
+            srcMhaName: this.srcMha.name,
+            dstMhaName: this.dstMha.name,
+            preciseSearchMode: true
+          }
+          // eslint-disable-next-line handle-callback-err
+        }).catch(err => {})
+      } else {
+        this.$router.replace({
+          query: {
+            mhaName: this.relatedMha.name,
+            preciseSearchMode: false
+          }
+          // eslint-disable-next-line handle-callback-err
+        }).catch(err => {})
+      }
+      console.log('this.$route.query.preciseSearchMode', this.$route.query.preciseSearchMode, typeof this.$route.query.preciseSearchMode)
     }
   },
   created () {
     this.srcMha.name = this.$route.query.srcMhaName
     this.dstMha.name = this.$route.query.dstMhaName
-    this.preciseSearchMode = this.$route.query.preciseSearchMode
-    this.getReplications()
+    this.preciseSearchMode = this.$route.query.preciseSearchMode === true || this.$route.query.preciseSearchMode === 'true'
+    this.getReplications(1)
     this.getRegions()
     this.getBus()
   }

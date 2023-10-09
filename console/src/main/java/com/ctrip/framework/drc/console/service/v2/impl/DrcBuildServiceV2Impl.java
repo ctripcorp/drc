@@ -121,6 +121,8 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
     private MachineTblDao machineTblDao;
     @Autowired
     private DefaultConsoleConfig consoleConfig;
+    @Autowired
+    private DbMetaCorrectService dbMetaCorrectService;
 
 
     private final ExecutorService executorService = ThreadUtils.newFixedThreadPool(5, "drcMetaRefreshV2");
@@ -602,6 +604,28 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         return mhaTblV2;
     }
 
+
+    @Override
+    @DalTransactional(logicDbName = "fxdrcmetadb_w")
+    public void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException {
+        Long mhaId = existMha.getId();
+        String mhaName = existMha.getMhaName();
+        List<MachineTbl> machineTbls = machineTblDao.queryByMhaId(mhaId, BooleanEnum.FALSE.getCode());
+        boolean synced = machineTbls.stream().anyMatch(e -> e.getMaster().equals(BooleanEnum.TRUE.getCode()));
+        if (synced) {
+            logger.info("{} is already synced", mhaName);
+            return;
+        }
+
+        DbaClusterInfoResponse clusterMembersInfo = dbaApiService.getClusterMembersInfo(mhaName);
+        List<MemberInfo> memberlist = clusterMembersInfo.getData().getMemberlist();
+        List<MachineTbl> machineFromDba = memberlist.stream()
+                .map(memberInfo -> extractFrom(memberInfo, mhaId))
+                .collect(Collectors.toList());
+
+        dbMetaCorrectService.mhaInstancesChange(machineFromDba, existMha);
+    }
+
     @Override
     public void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException {
         ReplicatorGroupTbl replicatorGroupTbl = replicatorGroupTblDao.queryByMhaId(mhaTbl.getId());
@@ -639,44 +663,85 @@ public class DrcBuildServiceV2Impl implements DrcBuildServiceV2 {
         }
     }
 
+
+    @Override
+    public void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+        MhaReplicationTbl mhaReplicationTbl = mhaReplicationTblDao.queryByMhaId(srcMhaTbl.getId(), destMhaTbl.getId(), BooleanEnum.FALSE.getCode());
+        if (mhaReplicationTbl == null) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, mha replication not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+        ApplierGroupTblV2 applierGroupTblV2 = applierGroupTblDao.queryByMhaReplicationId(mhaReplicationTbl.getId(), BooleanEnum.FALSE.getCode());
+        if(applierGroupTblV2 == null) {
+            throw ConsoleExceptionUtils.message(String.format("configure appliers fail, applier group not init yet! drc: %s->%s", srcMhaTbl.getMhaName(), destMhaTbl.getMhaName()));
+        }
+        autoConfigAppliers(mhaReplicationTbl, applierGroupTblV2, srcMhaTbl, destMhaTbl, updateGtidToRealTime);
+    }
+
     @Override
     public void autoConfigAppliersWithRealTimeGtid(
             MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup,
             MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException {
-        String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
-        if (StringUtils.isBlank(mhaExecutedGtid)) {
-            logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
-            throw new ConsoleException("getMhaExecutedGtid failed!");
-        }
-        applierGroup.setGtidInit(mhaExecutedGtid);
-        applierGroupTblDao.update(applierGroup);
-        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
+        autoConfigAppliers(mhaReplicationTbl, applierGroup, srcMhaTbl, destMhaTbl, true);
+    }
 
+    private void autoConfigAppliers(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException {
+        // applier group
+        if (updateGtidToRealTime) {
+            String mhaExecutedGtid = mysqlServiceV2.getMhaExecutedGtid(srcMhaTbl.getMhaName());
+            if (StringUtils.isBlank(mhaExecutedGtid)) {
+                logger.error("[[mha={}]] getMhaExecutedGtid failed", srcMhaTbl.getMhaName());
+                throw new ConsoleException("getMhaExecutedGtid failed!");
+            }
+            applierGroup.setGtidInit(mhaExecutedGtid);
+            applierGroupTblDao.update(applierGroup);
+            logger.info("[[mha={}]] autoConfigAppliers with gtid:{}", destMhaTbl.getMhaName(), mhaExecutedGtid);
+        }
+        // mha replication
         mhaReplicationTbl.setDrcStatus(1);
         mhaReplicationTblDao.update(mhaReplicationTbl);
-        logger.info("[[mha={}]] autoConfigAppliersWithRealTimeGtid update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+        logger.info("[[mha={}]] autoConfigAppliers update mhaReplicationTbl drcStatus to 1", destMhaTbl.getMhaName());
+
+        // appliers
+        List<ApplierTblV2> existAppliers = applierTblDao.queryByApplierGroupId(applierGroup.getId(), BooleanEnum.FALSE.getCode());
+        List<Long> inUseResourceId = existAppliers.stream().map(ApplierTblV2::getResourceId).collect(Collectors.toList());
+        List<String> inUseIps = resourceTblDao.queryByIds(inUseResourceId).stream().map(ResourceTbl::getIp).collect(Collectors.toList());
 
         ResourceSelectParam selectParam = new ResourceSelectParam();
         selectParam.setType(ModuleEnum.APPLIER.getCode());
         selectParam.setMhaName(destMhaTbl.getMhaName());
-        List<ResourceView> resourceViews = resourceService.autoConfigureResource(selectParam);
+        selectParam.setSelectedIps(inUseIps);
+        List<ResourceView> resourceViews = resourceService.handOffResource(selectParam);
         if (CollectionUtils.isEmpty(resourceViews)) {
             logger.error("[[mha={}]] autoConfigAppliers failed", destMhaTbl.getMhaName());
             throw new ConsoleException("autoConfigAppliers failed!");
-        } else {
-            List<ApplierTblV2> insertAppliers = Lists.newArrayList();
-            for (ResourceView resourceView : resourceViews) {
-                ApplierTblV2 applierTbl = new ApplierTblV2();
-                applierTbl.setApplierGroupId(applierGroup.getId());
-                applierTbl.setResourceId(resourceView.getResourceId());
-                applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
-                applierTbl.setMaster(BooleanEnum.FALSE.getCode());
-                applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
-                insertAppliers.add(applierTbl);
-            }
-            int[] ints = applierTblDao.batchInsert(insertAppliers);
-            logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
         }
+
+        // insert new appliers
+        List<ApplierTblV2> insertAppliers = resourceViews.stream()
+                .filter(e -> !inUseResourceId.contains(e.getResourceId()))
+                .map(e -> buildApplierTbl(applierGroup, e))
+                .collect(Collectors.toList());
+
+        // delete old appliers
+        List<Long> newResourceId = resourceViews.stream().map(ResourceView::getResourceId).collect(Collectors.toList());
+        List<ApplierTblV2> deleteAppliers = existAppliers.stream()
+                .filter(e -> !newResourceId.contains(e.getResourceId()))
+                .collect(Collectors.toList());
+        deleteAppliers.forEach(e -> e.setDeleted(BooleanEnum.TRUE.getCode()));
+
+        applierTblDao.batchInsert(insertAppliers);
+        applierTblDao.batchUpdate(deleteAppliers);
+        logger.info("[[mha={}]] autoConfigAppliers success", destMhaTbl.getMhaName());
+    }
+
+    private static ApplierTblV2 buildApplierTbl(ApplierGroupTblV2 applierGroup, ResourceView resourceView) {
+        ApplierTblV2 applierTbl = new ApplierTblV2();
+        applierTbl.setApplierGroupId(applierGroup.getId());
+        applierTbl.setResourceId(resourceView.getResourceId());
+        applierTbl.setPort(ConsoleConfig.DEFAULT_APPLIER_PORT);
+        applierTbl.setMaster(BooleanEnum.FALSE.getCode());
+        applierTbl.setDeleted(BooleanEnum.FALSE.getCode());
+        return applierTbl;
     }
 
     @Override

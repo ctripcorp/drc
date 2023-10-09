@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.console.dto.v2.DbReplicationDto;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.enums.ReplicationTypeEnum;
+import com.ctrip.framework.drc.console.param.v2.DbQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.DataMediaServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MessengerServiceV2;
@@ -323,6 +324,16 @@ public class MetaInfoServiceV2Impl implements MetaInfoServiceV2 {
     @Override
     public List<DcDo> queryAllDcWithCache() {
         return dcCache.get();
+    }
+
+    @Override
+    public List<DbTbl> queryDbByPage(DbQuery dbQuery) {
+        try {
+            return dbTblDao.queryByPage(dbQuery);
+        } catch (SQLException e) {
+            logger.error("queryAllRegion exception", e);
+            throw ConsoleExceptionUtils.message(ReadableErrorDefEnum.QUERY_TBL_EXCEPTION, e);
+        }
     }
 
     @Override

@@ -28,6 +28,8 @@ public interface ResourceService {
     List<ResourceView> getResourceView(ResourceQueryParam param) throws Exception;
 
     List<ResourceView> getMhaAvailableResource(String mhaName, int type) throws Exception;
+
+    List<ResourceView> getMhaAvailableResourceWithUse(String mhaName, int type) throws Exception;
     
     List<ResourceView> autoConfigureResource(ResourceSelectParam param) throws SQLException;
 

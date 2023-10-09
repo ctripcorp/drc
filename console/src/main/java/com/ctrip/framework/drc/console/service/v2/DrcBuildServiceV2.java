@@ -54,10 +54,15 @@ public interface DrcBuildServiceV2 {
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
     
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
-    
+
+    void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException;
+
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
-    
-    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl,ApplierGroupTblV2 applierGroup,MhaTblV2 srcMhaTbl,MhaTblV2 destMhaTbl) throws SQLException;
+
+
+    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException;
+
+    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
     
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 }

@@ -176,6 +176,11 @@ const routes = [
     component: () => import('../views/v2/resourceV2.vue')
   },
   {
+    path: '/v2/dbDrcBuild',
+    name: 'v2/dbDrcBuild',
+    component: () => import('../views/v2/dbDrcBuild.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }
