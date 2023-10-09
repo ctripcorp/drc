@@ -52,7 +52,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.insert(beforeRows, beforeBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
+            trxRowNum.addAndGet(-beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -64,7 +64,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
+            trxRowNum.addAndGet(beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -76,7 +76,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.delete(beforeRows, beforeBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
+            trxRowNum.addAndGet(beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
