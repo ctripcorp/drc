@@ -163,7 +163,7 @@ public class TransactionContextResource extends AbstractContext
             long delayMs = fetchDelayMS();
             String gtid = fetchGtid();
             // test todo
-            loggerSC.info("dispose trx:{},rows:{},conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",gtid,trxRowNum,conflictRowNum,rollbackRowNum,curCflRowLog);
+            loggerSC.info("dispose class:{} trx:{},rows:{},conflictRowNum:{},rollbackRowNum:{}",this.getClass().getSimpleName(),gtid,trxRowNum,conflictRowNum,rollbackRowNum);
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
