@@ -24,6 +24,7 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -890,6 +891,7 @@ public class TransactionContextResource extends AbstractContext
         conflictTableRowsCount.put(thisRow,++count);
     }
 
+    // rowsRes: commit out first, then rowsId: bigger one out first
     private boolean recordCflRowLogIfNecessary() {
         conflictRowNum.increment();
         if (ConflictResult.ROLLBACK.getValue() == curCflRowLog.getRowRes()) {

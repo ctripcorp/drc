@@ -21,11 +21,11 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
     
     @Override
     public int compareTo(ConflictRowLog another) {
-        // compare rowRes first, then rowId ,rollback > commit
+        // compare rowRes first, then rowId ,rollback > commit, rowId desc
         if (this.rowRes == another.rowRes) {
-            return (int) (this.rowId - another.getRowId());
+            return (int) (another.getRowId() - this.rowId);
         } else {
-            return another.getRowRes() - this.rowRes;
+            return this.rowRes - another.rowRes;
         }
     }
 

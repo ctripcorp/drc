@@ -1,6 +1,9 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
 import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
@@ -10,6 +13,8 @@ import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
 import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
+import java.util.Comparator;
+import java.util.PriorityQueue;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.junit.Assert;
 import org.junit.Before;
@@ -103,8 +108,30 @@ public class BatchTransactionContextResourceTest {
         context.RECORD_SIZE = 3;
         doConflict(context);
         assertResult(context, 4,4,0,3);
+        PriorityQueue<ConflictRowLog> cflQueue =  context.cflRowLogsQueue;
+        assertEquals(3L,cflQueue.poll().getRowId());
+        assertEquals(2L,cflQueue.poll().getRowId());
+        assertEquals(1L,cflQueue.poll().getRowId());
         context.dispose();
     }
+
+    @Test
+    public void testRollbackAndCommitRecord() {
+        ConflictTransactionLog conflictTransactionLog = JsonUtils.fromJson(
+                "{\"srcMha\":\"phd_test2\",\"dstMha\":\"phd_test1\",\"gtid\":\"f1e60816-432d-11ee-ace8-fa163e4c2412:5071902\",\"handleTime\":1696923534058,\"cflLogs\":[{\"db\":\"migrationdb\",\"table\":\"benchmark\",\"rawSql\":\"/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (11,5,'2023-10-10 15:38:52.959')\",\"rawRes\":\"DUPLICATE_ENTRY\",\"dstRecord\":\"|11|5|2023-10-10 15:38:20.423|\",\"handleSql\":\"/*DRC INSERT 1*/ UPDATE `migrationdb`.`benchmark` SET `id`=11,`drc_id_int`=5,`datachange_lasttime`='2023-10-10 15:38:52.959' WHERE `id`=11 AND `datachange_lasttime`<='2023-10-10 15:38:52.959'\",\"handleSqlRes\":\"UPDATE_COUNT_EQUALS_ONE\",\"rowRes\":0,\"rowId\":3},{\"db\":\"migrationdb\",\"table\":\"benchmark\",\"rawSql\":\"/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (10,4,'2023-10-10 15:38:52.959')\",\"rawRes\":\"DUPLICATE_ENTRY\",\"dstRecord\":\"|10|4|2023-10-10 15:38:20.423|\",\"handleSql\":\"/*DRC INSERT 1*/ UPDATE `migrationdb`.`benchmark` SET `id`=10,`drc_id_int`=4,`datachange_lasttime`='2023-10-10 15:38:52.959' WHERE `id`=10 AND `datachange_lasttime`<='2023-10-10 15:38:52.959'\",\"handleSqlRes\":\"UPDATE_COUNT_EQUALS_ONE\",\"rowRes\":0,\"rowId\":2},{\"db\":\"migrationdb\",\"table\":\"benchmark\",\"rawSql\":\"/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (9,3,'2023-10-10 15:38:52.959')\",\"rawRes\":\"DUPLICATE_ENTRY\",\"dstRecord\":\"|9|3|2023-10-10 15:38:20.423|\",\"handleSql\":\"/*DRC INSERT 1*/ UPDATE `migrationdb`.`benchmark` SET `id`=9,`drc_id_int`=3,`datachange_lasttime`='2023-10-10 15:38:52.959' WHERE `id`=9 AND `datachange_lasttime`<='2023-10-10 15:38:52.959'\",\"handleSqlRes\":\"UPDATE_COUNT_EQUALS_ONE\",\"rowRes\":0,\"rowId\":1},{\"db\":\"migrationdb\",\"table\":\"benchmark\",\"rawSql\":\"/*DRC UPDATE 0*/ UPDATE `migrationdb`.`benchmark` SET `id`=1,`drc_id_int`=1000,`datachange_lasttime`='2023-10-10 15:31:39.783' WHERE `id`=1 AND `datachange_lasttime`='2023-10-10 15:31:39.783'\",\"rawRes\":\"UPDATE_COUNT_EQUALS_ZERO\",\"dstRecord\":\"|1|100|2023-10-10 15:36:18.0|\",\"handleSql\":\"handle conflict failed\",\"handleSqlRes\":\"handle conflict failed\",\"rowRes\":1,\"rowId\":4}],\"trxRes\":1}",
+                ConflictTransactionLog.class);
+        List<ConflictRowLog> conflictRowLogs = conflictTransactionLog.getCflLogs();
+        PriorityQueue<ConflictRowLog> queue = new PriorityQueue<>();
+        queue.add(conflictRowLogs.get(2)); // rowId 1
+        queue.add(conflictRowLogs.get(1)); // rowId 2
+        queue.add(conflictRowLogs.get(0)); // rowId 3
+        queue.add(conflictRowLogs.get(3)); // rowId 4
+        assertEquals(3L,queue.poll().getRowId());
+        assertEquals(2L,queue.poll().getRowId());
+        assertEquals(1L,queue.poll().getRowId());
+        assertEquals(4L,queue.poll().getRowId());
+    }
+    
 
     @Test
     public void testLimitedSizeConflictWithRollback() throws Exception {
