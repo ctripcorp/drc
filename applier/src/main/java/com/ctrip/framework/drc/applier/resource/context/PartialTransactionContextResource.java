@@ -23,21 +23,24 @@ public class PartialTransactionContextResource extends TransactionContextResourc
     @Override
     public void doInitialize() {
         this.keyValues = parent.getKeyValues();
-        this.conflictTableRowsCount = parent.conflictTableRowsCount;
-        this.cflRowLogsQueue = parent.cflRowLogsQueue;
+        this.lastUnbearable = parent.lastUnbearable;
+        this.progress = parent.progress;
+        this.connection = parent.connection;
+        this.transactionTable = parent.transactionTable;
+        
         this.logs = parent.logs;
         this.cflTrxLog = parent.cflTrxLog;
         this.trxRowNum = parent.trxRowNum;
         this.conflictRowNum = parent.conflictRowNum;
         this.rollbackRowNum = parent.rollbackRowNum;
-        this.lastUnbearable = parent.lastUnbearable;
+        this.cflRowLogsQueue = parent.cflRowLogsQueue;
+        this.conflictTableRowsCount = parent.conflictTableRowsCount;
+        this.curCflRowLog = parent.curCflRowLog;
         this.costTimeNS = parent.costTimeNS;
 
         this.metricsActivity = parent.metricsActivity;
         this.reportConflictActivity = parent.reportConflictActivity;
-        this.progress = parent.progress;
-        this.connection = parent.connection;
-        this.transactionTable = parent.transactionTable;
+        
     }
 
     @Override

@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -116,10 +115,10 @@ public class TransactionContextResource extends AbstractContext
     protected Throwable lastUnbearable;
     public long costTimeNS = 0;
     protected ConflictTransactionLog cflTrxLog;
-    protected AtomicLong trxRowNum = new AtomicLong (0);
-    protected AtomicLong conflictRowNum = new AtomicLong(0);
-    protected AtomicLong rollbackRowNum = new AtomicLong(0);
-    protected PriorityQueue<ConflictRowLog> cflRowLogsQueue = new PriorityQueue<>(RECORD_SIZE);
+    protected MutableLong trxRowNum;
+    protected MutableLong conflictRowNum;
+    protected MutableLong rollbackRowNum;
+    protected PriorityQueue<ConflictRowLog> cflRowLogsQueue;
     protected Map<ConflictTable,Long> conflictTableRowsCount;
     protected ConflictRowLog curCflRowLog;
     protected String rawSql = null;
@@ -229,6 +228,10 @@ public class TransactionContextResource extends AbstractContext
         connection = dataSource.getConnection();
         logs = new CircularFifoQueue<>(RECORD_SIZE);
         cflTrxLog = new ConflictTransactionLog();
+        trxRowNum = new MutableLong (0);
+        conflictRowNum = new MutableLong(0);
+        rollbackRowNum = new MutableLong(0);
+        cflRowLogsQueue = new PriorityQueue<>(RECORD_SIZE);
         conflictTableRowsCount = Maps.newHashMap();
         lastUnbearable = null;
         costTimeNS = 0;
@@ -860,7 +863,7 @@ public class TransactionContextResource extends AbstractContext
     }
     
     private void conflictMark(Boolean isConflict) {
-        trxRowNum.incrementAndGet();
+        trxRowNum.increment();
         if (isConflict) {
             curCflRowLog = new ConflictRowLog();
             curCflRowLog.setRowId(trxRowNum.longValue());
@@ -888,9 +891,9 @@ public class TransactionContextResource extends AbstractContext
     }
 
     private boolean recordCflRowLogIfNecessary() {
-        conflictRowNum.incrementAndGet();
+        conflictRowNum.increment();
         if (ConflictResult.ROLLBACK.getValue() == curCflRowLog.getRowRes()) {
-            rollbackRowNum.incrementAndGet();
+            rollbackRowNum.increment();
             if (rollbackRowNum.longValue() > RECORD_SIZE) {
                 return false;
             }
