@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
+import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,6 +45,16 @@ public class ConflictLogController {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowsLogView(param));
             apiResult.setPageReq(param.getPageReq());
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("detail")
+    public ApiResult<ConflictTrxLogDetailView> getConflictTrxLogDetailView(@RequestParam long conflictTrxLogId) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());

@@ -11,7 +11,9 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
+import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -96,5 +98,36 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return target;
         }).collect(Collectors.toList());
         return views;
+    }
+
+    @Override
+    public ConflictTrxLogDetailView getConflictTrxLogDetailView(Long conflictTrxLogId) throws Exception {
+        ConflictTrxLogDetailView view = new ConflictTrxLogDetailView();
+        view.setConflictTrxLogId(conflictTrxLogId);
+
+        ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
+        if (conflictTrxLogTbl == null) {
+            return view;
+        }
+        view.setTrxResult(conflictTrxLogTbl.getTrxResult());
+
+        MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getSrcMhaName());
+        MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
+        DcTbl srcDcTbl = dcTblDao.queryById(srcMha.getDcId());
+        DcTbl dstTbl = dcTblDao.queryById(dstMha.getDcId());
+        view.setSrcDc(srcDcTbl.getDcName());
+        view.setDstDc(dstTbl.getDcName());
+
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogId(conflictTrxLogId);
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            return view;
+        }
+        List<ConflictRowsLogDetailView> rowsLogDetailViews = conflictRowsLogTbls.stream().map(source -> {
+            ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
+            BeanUtils.copyProperties(source, target);
+            return target;
+        }).collect(Collectors.toList());
+        view.setRowsLogDetailViews(rowsLogDetailViews);
+        return view;
     }
 }

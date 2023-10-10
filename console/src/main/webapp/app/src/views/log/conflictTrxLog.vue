@@ -22,7 +22,8 @@
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime" placeholder="结束日期"></DatePicker>
+              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime"
+                          placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
@@ -44,6 +45,9 @@
       <template slot-scope="{ row, index }" slot="action">
         <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
           查看
+        </Button>
+        <Button type="primary" size="small" @click="getLogDetail(row, index)" style="margin-right: 5px">
+          详情
         </Button>
       </template>
     </Table>
@@ -175,12 +179,49 @@ export default {
   },
   methods: {
     getTrxData () {
-      const beginTime = new Date(this.queryParam.beginHandleTime).getTime()
-      alert(beginTime)
-    },
-    getRowsData () {
+      const beginHandleTime = new Date(this.queryParam.beginHandleTime).getTime()
+      const endHandleTime = new Date(this.queryParam.beginHandleTime).getTime()
+      const params = {
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
+        gtId: this.queryParam.gtid,
+        srcMhaName: this.queryParam.srcMhaName,
+        dstMhaName: this.queryParam.dstMhaName,
+        trxResult: this.queryParam.trxResult,
+        pageReq: {
+          pageSize: this.size,
+          pageIndex: this.current
+        }
+      }
+      const reqParam = this.flattenObj(params)
+      this.axios.get('/api/drc/v2/conflict/log/trx', { params: reqParam })
+        .then(response => {
+          const data = response.data
+          const pageResult = data.pageReq
+          if (data.status === 1) {
+            this.$Message.error('查询失败')
+          } else if (data.data.length === 0 || pageResult.totalCount === 0) {
+            this.total = 0
+            this.current = 1
+            this.tableData = []
+            this.$Message.warning('查询结果为空')
+          } else {
+            this.total = pageResult.totalCount
+            this.current = pageResult.pageIndex
+            this.tableData = data.data
+            this.$Message.success('查询成功')
+          }
+        })
     },
     resetParam () {
+      this.queryParam = {
+        srcMhaName: null,
+        dstMhaName: null,
+        gtid: null,
+        beginHandleTime: null,
+        endHandleTime: null,
+        trxResult: null
+      }
     },
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
@@ -188,6 +229,14 @@ export default {
       // alert(this.tabVal)
       this.tabVal = 'rowsLog'
       // alert(this.tabVal)
+    },
+    getLogDetail (row, index) {
+      this.$router.push({
+        path: '/conflictLogDetail',
+        query: {
+          conflictTrxLogId: row.conflictTrxLogId
+        }
+      })
     },
     handleChangeSize (val) {
       this.size = val

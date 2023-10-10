@@ -186,6 +186,21 @@ const routes = [
     component: () => import('../views/log/conflictRowsLog.vue')
   },
   {
+    path: '/conflictLogDetail',
+    name: 'conflictLogDetail',
+    component: () => import('../views/log/conflictLogDetail.vue')
+  },
+  {
+    path: '/conflictRowsLogDetail',
+    name: 'conflictRowsLogDetail',
+    component: () => import('../views/log/conflictRowsLogDetail.vue')
+  },
+  {
+    path: '/test',
+    name: 'test',
+    component: () => import('../views/log/test.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

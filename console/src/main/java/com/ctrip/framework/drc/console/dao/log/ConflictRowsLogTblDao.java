@@ -40,6 +40,12 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         return queryList(sqlBuilder);
     }
 
+    public List<ConflictRowsLogTbl> queryByTrxLogId(long trxLogId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(CONFLICT_TRX_LOG_ID, trxLogId, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuilder(ConflictRowsLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
