@@ -24,7 +24,6 @@ import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -163,8 +162,6 @@ public class TransactionContextResource extends AbstractContext
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
             String gtid = fetchGtid();
-            // test todo
-            loggerSC.info("dispose class:{} trx:{},rows:{},conflictRowNum:{},rollbackRowNum:{}",this.getClass().getSimpleName(),gtid,trxRowNum,conflictRowNum,rollbackRowNum);
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
@@ -831,16 +828,12 @@ public class TransactionContextResource extends AbstractContext
     
     @Override
     public boolean everConflict() {
-        // test todo
-        loggerSC.info("class:{},gtid:{},conflictRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),conflictRowNum);
         return conflictRowNum.longValue() > 0;
     }
 
     @Override
     public boolean everRollback() {
-        // test todo
-        loggerSC.info("class:{},gtid:{},rollbackRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),rollbackRowNum);
-        return rollbackRowNum.longValue() > 0;
+       return rollbackRowNum.longValue() > 0;
     }
     
     protected String statementToString(PreparedStatement statement) {
@@ -883,8 +876,6 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
         curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
         recordCflRowLogIfNecessary();
-        // test todo
-        loggerSC.info("recordCflRowLogIfNecessary,conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",conflictRowNum,rollbackRowNum,curCflRowLog);
         // for hickWall report
         ConflictTable thisRow = isOverwrite ? new ConflictTable(db, table, ConflictType.Commit) : new ConflictTable(db, table, ConflictType.Rollback);;
         Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
