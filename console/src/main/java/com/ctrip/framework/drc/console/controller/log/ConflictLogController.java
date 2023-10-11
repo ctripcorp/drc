@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.log;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
+import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
@@ -55,6 +56,16 @@ public class ConflictLogController {
     public ApiResult<ConflictTrxLogDetailView> getConflictTrxLogDetailView(@RequestParam long conflictTrxLogId) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictTrxLogDetailView(conflictTrxLogId));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("records")
+    public ApiResult<ConflictCurrentRecordView> getConflictCurrentRecordView(@RequestParam long conflictTrxLogId) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());

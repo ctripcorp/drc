@@ -176,6 +176,11 @@ const routes = [
     component: () => import('../views/v2/resourceV2.vue')
   },
   {
+    path: '/v2/dbDrcBuild',
+    name: 'v2/dbDrcBuild',
+    component: () => import('../views/v2/dbDrcBuild.vue')
+  },
+  {
     path: '/conflictLog',
     name: 'conflictLog',
     component: () => import('../views/log/conflictLog.vue')
@@ -194,11 +199,6 @@ const routes = [
     path: '/conflictRowsLogDetail',
     name: 'conflictRowsLogDetail',
     component: () => import('../views/log/conflictRowsLogDetail.vue')
-  },
-  {
-    path: '/test',
-    name: 'test',
-    component: () => import('../views/log/test.vue')
   },
   {
     path: '/',

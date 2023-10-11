@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
@@ -19,4 +20,6 @@ public interface ConflictLogService {
     List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception;
 
     ConflictTrxLogDetailView getConflictTrxLogDetailView(Long conflictTrxLogId) throws Exception;
+
+    ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception;
 }

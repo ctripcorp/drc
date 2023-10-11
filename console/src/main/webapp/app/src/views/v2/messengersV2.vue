@@ -2,11 +2,26 @@
   <base-component>
     <Breadcrumb :style="{margin: '15px 0 15px 185px', position: 'fixed'}">
       <BreadcrumbItem to="/home">首页</BreadcrumbItem>
-      <BreadcrumbItem to="/v2/messengersV2">MQ投递集群</BreadcrumbItem>
+      <BreadcrumbItem >Messenger 集群</BreadcrumbItem>
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <div style="padding: 1px 1px">
         <Card>
+          <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+            <Col span="2" style="display: flex;float: left;margin: 5px" >
+              <Dropdown placement="bottom-start">
+                <Button type="default" icon="ios-hammer">
+                  新建配置
+                  <Icon type="ios-arrow-down"></Icon>
+                </Button>
+                <template #list>
+                  <DropdownMenu >
+                    <DropdownItem @click.native="() => {$router.push({path: '/v2/buildMessengerV2'})}">新建Messenger配置</DropdownItem>
+                  </DropdownMenu>
+                </template>
+              </Dropdown>
+            </Col>
+          </Row>
           <Table :loading="dataLoading" stripe :columns="columns" :data="dataWithPage" border>
             <template slot-scope="{ row, index }" slot="action">
               <Button type="success" size="small" style="margin-right: 5px" @click="checkConfig(row, index)">查看

@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.console.param.v2.*;
 import com.ctrip.framework.drc.console.vo.v2.ColumnsConfigView;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.console.vo.v2.RowsFilterConfigView;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -25,6 +26,8 @@ public interface DrcBuildServiceV2 {
     String buildDrc(DrcBuildParam param) throws Exception;
 
     void buildDbReplicationConfig(DbReplicationBuildParam param) throws Exception;
+
+    Pair<Long, Long> checkDbReplicationFilter(List<Long> dbReplicationIds) throws Exception;
 
     List<Long> configureDbReplications(DbReplicationBuildParam param) throws Exception;
 
@@ -51,10 +54,15 @@ public interface DrcBuildServiceV2 {
     String buildMessengerDrc(MessengerMetaDto dto) throws Exception;
     
     MhaTblV2 syncMhaInfoFormDbaApi(String mhaName) throws SQLException;
-    
+
+    void syncMhaDbInfoFromDbaApiIfNeeded(MhaTblV2 existMha) throws SQLException;
+
     void autoConfigReplicatorsWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
-    
-    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl,ApplierGroupTblV2 applierGroup,MhaTblV2 srcMhaTbl,MhaTblV2 destMhaTbl) throws SQLException;
+
+
+    void autoConfigAppliers(MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl, boolean updateGtidToRealTime) throws SQLException;
+
+    void autoConfigAppliersWithRealTimeGtid(MhaReplicationTbl mhaReplicationTbl, ApplierGroupTblV2 applierGroup, MhaTblV2 srcMhaTbl, MhaTblV2 destMhaTbl) throws SQLException;
     
     void autoConfigMessengersWithRealTimeGtid(MhaTblV2 mhaTbl) throws SQLException;
 }

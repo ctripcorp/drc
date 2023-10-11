@@ -199,4 +199,15 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         return tables;
     }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords")
+    public Map<String, Object> queryTableRecords(String mha, String sql) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("queryTableRecords from mha: {}, db not exist", mha);
+            return new HashMap<>();
+        }
+        return MySqlUtils.queryRecords(endpoint, sql);
+    }
 }

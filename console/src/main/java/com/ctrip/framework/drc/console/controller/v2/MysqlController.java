@@ -180,4 +180,17 @@ public class MysqlController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @GetMapping("queryTableRecords")
+    public ApiResult<Map<String, Object>> queryTableRecords(@RequestParam String mha, @RequestParam String sql) {
+        try {
+            logger.info("queryTablesWithNameFilter: {}", mha);
+            Map<String, Object> result = mysqlServiceV2.queryTableRecords(mha, sql);
+            return ApiResult.getSuccessInstance(result);
+        } catch (Exception e) {
+            logger.warn("queryTablesWithNameFilter error", mha, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
 }

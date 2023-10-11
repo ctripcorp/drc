@@ -44,4 +44,6 @@ public interface MysqlServiceV2 {
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
 
     Long getCurrentTime(String mha);
+
+    Map<String, Object> queryTableRecords(String mha, String sql);
 }

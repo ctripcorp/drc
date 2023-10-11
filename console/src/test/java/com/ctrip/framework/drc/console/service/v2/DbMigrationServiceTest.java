@@ -91,8 +91,8 @@ public class DbMigrationServiceTest {
             initMock();
             dbMigrateService.offlineOldDrcConfig(1L);
 
-            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(dbReplicationTblDao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(2)).update(Mockito.anyList());
             Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
             Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
             Mockito.verify(mhaReplicationTblDao, Mockito.times(2)).update(Mockito.any(MhaReplicationTbl.class));
@@ -112,8 +112,8 @@ public class DbMigrationServiceTest {
             dbMigrateService.rollBackNewDrcConfig(1L);
 
 
-            Mockito.verify(dbReplicationTblDao, Mockito.times(3)).update(Mockito.anyList());
-            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(3)).update(Mockito.anyList());
+            Mockito.verify(dbReplicationTblDao, Mockito.times(2)).update(Mockito.anyList());
+            Mockito.verify(dBReplicationFilterMappingTblDao, Mockito.times(2)).update(Mockito.anyList());
             Mockito.verify(messengerGroupTblDao, Mockito.times(1)).update(Mockito.any(MessengerGroupTbl.class));
             Mockito.verify(messengerTblDao, Mockito.times(1)).update(Mockito.anyList());
             Mockito.verify(mhaReplicationTblDao, Mockito.never()).update(Mockito.any(MhaReplicationTbl.class));

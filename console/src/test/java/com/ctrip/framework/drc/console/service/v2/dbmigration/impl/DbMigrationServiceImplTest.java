@@ -43,6 +43,7 @@ import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.service.v2.impl.MetaGeneratorV3;
 import com.ctrip.framework.drc.core.config.RegionConfig;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -119,7 +120,10 @@ public class DbMigrationServiceImplTest {
 
     DbTbl db1 = MockEntityBuilder.buildDbTbl(1L, "db1");
     DbTbl db2 = MockEntityBuilder.buildDbTbl(2L, "db2");
+    DbTbl db3 = MockEntityBuilder.buildDbTbl(3L, "db3");
 
+    
+    
     MhaDbMappingTbl mha1Db1Mapping = MockEntityBuilder.buildMhaDbMappingTbl(1L, mha1, db1);
     MhaDbMappingTbl mha1Db2Mapping = MockEntityBuilder.buildMhaDbMappingTbl(2L, mha1, db2);
     MhaDbMappingTbl mha3Db1Mapping = MockEntityBuilder.buildMhaDbMappingTbl(3L, mha3, db1);
@@ -127,22 +131,31 @@ public class DbMigrationServiceImplTest {
     MhaDbMappingTbl mha4Db2Mapping = MockEntityBuilder.buildMhaDbMappingTbl(5L, mha4, db2);
     MhaDbMappingTbl mha2Db1Mapping = MockEntityBuilder.buildMhaDbMappingTbl(6L, mha2, db1);
     MhaDbMappingTbl mha2Db2Mapping = MockEntityBuilder.buildMhaDbMappingTbl(7L, mha2, db2);
-
+    MhaDbMappingTbl mha1Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(8L, mha1, db3);
+    MhaDbMappingTbl mha2Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(9L, mha2, db3);
+    MhaDbMappingTbl mha3Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(10L, mha3, db3);
+    MhaDbMappingTbl mha4Db3Mapping = MockEntityBuilder.buildMhaDbMappingTbl(11L, mha4, db3);
+    
+    
     DbReplicationTbl db1ReplicaInMha1_3 = MockEntityBuilder.buildDbReplicationTbl(1L, mha1Db1Mapping, mha3Db1Mapping,0);
     DbReplicationTbl db1ReplicaInMha3_1 = MockEntityBuilder.buildDbReplicationTbl(2L, mha3Db1Mapping, mha1Db1Mapping,0);
     DbReplicationTbl db1MqReplicaInMha1 = MockEntityBuilder.buildDbReplicationTbl(3L, mha1Db1Mapping, null,1);
-    DbReplicationTbl db2ReplicaInMha3_1 = MockEntityBuilder.buildDbReplicationTbl(4L, mha3Db2Mapping, mha1Db2Mapping,0);
     DbReplicationTbl db2ReplicaInMha4_1 = MockEntityBuilder.buildDbReplicationTbl(5L, mha4Db2Mapping, mha1Db2Mapping,0);
+    DbReplicationTbl db3ReplicaInMha1_3 = MockEntityBuilder.buildDbReplicationTbl(6L, mha1Db3Mapping, mha3Db3Mapping,0);
+    DbReplicationTbl db3MqReplicaInMha1 = MockEntityBuilder.buildDbReplicationTbl(7L, mha1Db3Mapping, null,1);
 
     DbReplicationFilterMappingTbl rowsFilterRule1 = MockEntityBuilder.buildDbReplicationFilterMappingTbl(1L,db1ReplicaInMha1_3,1L,null,null);
     DbReplicationFilterMappingTbl columnsFilterRule2 = MockEntityBuilder.buildDbReplicationFilterMappingTbl(2L,db1ReplicaInMha3_1,null,1L,null);
     DbReplicationFilterMappingTbl mqFilterRule3 = MockEntityBuilder.buildDbReplicationFilterMappingTbl(3L,db1MqReplicaInMha1,null,null,1L);
+    DbReplicationFilterMappingTbl mqFilterRule4 = MockEntityBuilder.buildDbReplicationFilterMappingTbl(3L,db3MqReplicaInMha1,null,null,1L);
     
     MigrationTaskTbl migrationTaskTbl = MockEntityBuilder.buildMigrationTaskTbl(1L,"mha1","mha2","[\"db1\",\"db2\"]","drctest");
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
+        Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
+        Mockito.when(mhaTblV2Dao.update(Mockito.any(MhaTblV2.class))).thenReturn(1);
     }
 
     @Test
@@ -154,12 +167,13 @@ public class DbMigrationServiceImplTest {
         existedTask.setNewMhaDba("mha2");
         existedTask.setStatus(MigrationStatusEnum.PRE_STARTED.getStatus());
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList(existedTask));
+        Mockito.when(consoleConfig.getLocalConfigCloudDc()).thenReturn(Sets.newHashSet());
         Pair<String, Long> stringLongPair1 = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair1.getRight().longValue());
 
         Mockito.when(migrationTaskTblDao.queryByOldMhaDBA(Mockito.anyString())).thenReturn(Lists.newArrayList());
         // normal case
-        mockReplicationInfos();
+        mockMigrateDbsReplicationInfos();
         Pair<String, Long> stringLongPair = dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         Assert.assertEquals(1L,stringLongPair.getRight().longValue());
         Mockito.verify(drcBuildServiceV2,Mockito.times(1)).syncMhaInfoFormDbaApi(Mockito.eq("mha2"));
@@ -175,7 +189,7 @@ public class DbMigrationServiceImplTest {
         
         // check case2:
         try {
-            mockReplicationInfos();
+            mockMigrateDbsReplicationInfos();
             mockDbMigrationCheckForbiddenCase2();
             dbMigrationService.dbMigrationCheckAndCreateTask(dbMigrationParam);
         } catch (ConsoleException e) {
@@ -184,7 +198,7 @@ public class DbMigrationServiceImplTest {
     }
 
     @Test
-    public void testExStartDbMigrationTask() throws Exception {
+    public void testPreStartDbMigrationTask() throws Exception {
         Mockito.when(migrationTaskTblDao.queryByPk(Mockito.eq(migrationTaskTbl.getId()))).thenReturn(migrationTaskTbl);
         Mockito.when(consoleConfig.getConfgiCheckSwitch()).thenReturn(true);
         
@@ -202,10 +216,15 @@ public class DbMigrationServiceImplTest {
         } catch (ConsoleException e) {
             Assert.assertTrue(e.getMessage().contains("MhaConfigs not equals!"));
         }
-        
-        mockNormalExStart();
+
+        // mha1 -> mha3 : db1,db3;mha3->mha1: db1
+        // mha4 -> mha1: db3
+        // mha1 migrate to mha2 ["db1","db2"]
+        mockNormalPreStartCopyAllDbReplication();
         migrationTaskTbl.setStatus(MigrationStatusEnum.INIT.getStatus());
         Assert.assertTrue(dbMigrationService.preStartDbMigrationTask(migrationTaskTbl.getId()));
+        Mockito.verify(dbReplicationTblDao,Mockito.times(5)).insertWithReturnId(Mockito.any(DbReplicationTbl.class));
+        Mockito.verify(dbReplicationFilterMappingTblDao,Mockito.times(4)).insertWithReturnId(Mockito.any(DbReplicationFilterMappingTbl.class));
     }
     
     
@@ -254,7 +273,7 @@ public class DbMigrationServiceImplTest {
     
     private void mockNormalStartTask() throws Exception {
         mockQueryTaskInfo();
-        mockReplicationInfos();
+        mockMigrateDbsReplicationInfos();
         
         Mockito.when(mhaReplicationTblDao.queryByMhaId(Mockito.eq(mha3.getId()),Mockito.eq(mha2.getId()),Mockito.eq(0)))
                 .thenReturn(mhaReplication3_2);
@@ -288,18 +307,51 @@ public class DbMigrationServiceImplTest {
         Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha2"))).thenReturn(new HashMap<String,Object>() {{put("config1","value2");}});
     }
     
-    private void mockNormalExStart() throws Exception {
+    private void mockNormalPreStartCopyMigrateDbsReplication() throws Exception {
         mockQueryTaskInfo();
         Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha1"))).thenReturn(new HashMap<String,Object>() {{put("config1","value1");}});
         Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha2"))).thenReturn(new HashMap<String,Object>() {{put("config1","value1");}});
-        mockReplicationInfos();
+        mockMigrateDbsReplicationInfos();
         Mockito.doNothing().when(mhaDbMappingService).buildMhaDbMappings(Mockito.eq("mha2"),Mockito.eq(Lists.newArrayList("db1","db2")));
         Mockito.when(mhaDbMappingTblDao.queryByDbIdsAndMhaIds(Mockito.eq(Lists.newArrayList(db1.getId())),Mockito.eq(Lists.newArrayList(mha2.getId())))).thenReturn(Lists.newArrayList(mha2Db1Mapping,mha2Db2Mapping));
         //initDbReplicationTblsInNewMha
-        Mockito.when(dbReplicationTblDao.queryMappingIds(Lists.newArrayList(mha1Db1Mapping.getId(),mha1Db2Mapping.getId()))).thenReturn(Lists.newArrayList());
+        Mockito.when(dbReplicationTblDao.queryMappingIds(Lists.newArrayList(mha3Db1Mapping.getId(),mha3Db2Mapping.getId()))).thenReturn(Lists.newArrayList());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1ReplicaInMha1_3.getId()))).thenReturn(Lists.newArrayList(rowsFilterRule1));
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db3ReplicaInMha1_3.getId()))).thenReturn(Lists.newArrayList());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1ReplicaInMha3_1.getId()))).thenReturn(Lists.newArrayList(columnsFilterRule2));
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1MqReplicaInMha1.getId()))).thenReturn(Lists.newArrayList(mqFilterRule3));
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db3MqReplicaInMha1.getId()))).thenReturn(Lists.newArrayList(mqFilterRule4));
+        Mockito.when(dbReplicationTblDao.insertWithReturnId(Mockito.any(DbReplicationTbl.class))).thenReturn(1L);
+        Mockito.when(dbReplicationFilterMappingTblDao.insertWithReturnId(Mockito.any(DbReplicationFilterMappingTbl.class))).thenReturn(1L);
+        // initMhaReplicationsAndApplierGroups
+        Mockito.when(mhaReplicationTblDao.insertOrReCover(Mockito.anyLong(),Mockito.anyLong())).thenReturn(1L);
+        Mockito.when(applierGroupTblV2Dao.insertOrReCover(Mockito.anyLong(),Mockito.any())).thenReturn(1L);
+        // initReplicatorGroupAndMessengerGroup
+        Mockito.when(replicatorGroupTblDao.upsertIfNotExist(Mockito.anyLong())).thenReturn(1L);
+        Mockito.when(messengerGroupTblDao.upsertIfNotExist(Mockito.anyLong(),Mockito.anyLong(),Mockito.any())).thenReturn(1L);
+
+        Mockito.doNothing().when(drcBuildServiceV2).autoConfigReplicatorsWithRealTimeGtid(Mockito.any(MhaTblV2.class));
+        Mockito.when(metaGeneratorV3.getDrc()).thenThrow(new Exception("mock exception"));
+        Mockito.when(migrationTaskTblDao.update(Mockito.any(MigrationTaskTbl.class))).thenReturn(1);
+    }
+    
+    private void mockNormalPreStartCopyAllDbReplication() throws Exception {
+        // mha1 -> mha3 : db1,db3;mha3->mha1: db1
+        // mha4 -> mha1: db3
+        // mha1 migrate to mha2 ["db1","db2"]
+        mockQueryTaskInfo();
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha1"))).thenReturn(new HashMap<String,Object>() {{put("config1","value1");}});
+        Mockito.when(mysqlServiceV2.preCheckMySqlConfig(Mockito.eq("mha2"))).thenReturn(new HashMap<String,Object>() {{put("config1","value1");}});
+        mockMigrateDbsReplicationInfos();
+        mockReplicationInfoInMha1_3();
+        mockInitMhaDbMappings();
+        
+        //initDbReplicationTblsInNewMha
+        Mockito.when(dbReplicationTblDao.queryMappingIds(Lists.newArrayList(mha3Db1Mapping.getId(),mha3Db3Mapping.getId()))).thenReturn(Lists.newArrayList());
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1ReplicaInMha1_3.getId()))).thenReturn(Lists.newArrayList(rowsFilterRule1));
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1ReplicaInMha3_1.getId()))).thenReturn(Lists.newArrayList(columnsFilterRule2));
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db1MqReplicaInMha1.getId()))).thenReturn(Lists.newArrayList(mqFilterRule3));
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Lists.newArrayList(db3MqReplicaInMha1.getId()))).thenReturn(Lists.newArrayList(mqFilterRule4));
         Mockito.when(dbReplicationTblDao.insertWithReturnId(Mockito.any(DbReplicationTbl.class))).thenReturn(1L);
         Mockito.when(dbReplicationFilterMappingTblDao.insertWithReturnId(Mockito.any(DbReplicationFilterMappingTbl.class))).thenReturn(1L);
         // initMhaReplicationsAndApplierGroups
@@ -316,12 +368,37 @@ public class DbMigrationServiceImplTest {
     
     
     
+    private void mockReplicationInfoInMha1_3() throws SQLException {
+        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.eq(mha1.getId()))).thenReturn(Lists.newArrayList(mha1Db1Mapping,mha1Db2Mapping,mha1Db3Mapping));
+        Mockito.when(mhaDbMappingTblDao.queryByMhaId(Mockito.eq(mha3.getId()))).thenReturn(Lists.newArrayList(mha3Db1Mapping,mha3Db3Mapping));
+        Mockito.when(dbReplicationTblDao.queryByMappingIds(
+                Mockito.eq(Lists.newArrayList(mha1Db1Mapping.getId(),mha1Db2Mapping.getId(),mha1Db3Mapping.getId())),
+                Mockito.eq(Lists.newArrayList(mha3Db1Mapping.getId(),mha3Db3Mapping.getId())),
+                Mockito.eq(DB_TO_DB.getType()))).thenReturn(Lists.newArrayList(db1ReplicaInMha1_3,db3ReplicaInMha1_3));
+        Mockito.when(dbReplicationTblDao.queryByMappingIds(
+                Mockito.eq(Lists.newArrayList(mha3Db1Mapping.getId(),mha3Db3Mapping.getId())),
+                Mockito.eq(Lists.newArrayList(mha1Db1Mapping.getId(),mha1Db2Mapping.getId(),mha1Db3Mapping.getId())),
+                Mockito.eq(DB_TO_DB.getType()))).thenReturn(Lists.newArrayList(db1ReplicaInMha3_1));
+        Mockito.when(dbReplicationTblDao.queryBySrcMappingIds(
+                Mockito.eq(Lists.newArrayList(mha1Db1Mapping.getId(),mha1Db2Mapping.getId(),mha1Db3Mapping.getId())),
+                Mockito.eq(DB_TO_MQ.getType()))).thenReturn(Lists.newArrayList(db1MqReplicaInMha1,db3MqReplicaInMha1));
+    }
     
-    // db1 mha1 -> mha2
-    private void mockReplicationInfos() throws SQLException{
+    private void mockInitMhaDbMappings() throws SQLException {
+        Mockito.doNothing().when(mhaDbMappingService).copyAndInitMhaDbMappings(Mockito.eq(mha3),Mockito.eq(Lists.newArrayList(mha1Db1Mapping,mha1Db3Mapping)));
+        Mockito.when(mhaDbMappingTblDao.queryByDbIdsAndMhaIds(
+                Mockito.eq(Lists.newArrayList(mha1Db1Mapping.getDbId(),mha1Db3Mapping.getDbId())),
+                Mockito.eq(Lists.newArrayList(mha2.getId())))
+        ).thenReturn(Lists.newArrayList(mha2Db1Mapping,mha2Db3Mapping));
+    }
+    
+    
+    // db1 mha1 migrate to  mha2
+    private void mockMigrateDbsReplicationInfos() throws SQLException{
         // check and init mha info
         DbMigrationParam dbMigrationParam = mockDbMigrationParam();
         MachineTbl machineTbl1 = MockEntityBuilder.buildMachineTbl();
+        mha1.setMonitorSwitch(0);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip1"), Mockito.eq(3306))).thenReturn(machineTbl1);
         Mockito.when(mhaTblV2Dao.queryByPk(Mockito.eq(1L))).thenReturn(mha1);
         Mockito.when(machineTblDao.queryByIpPort(Mockito.eq("ip2"), Mockito.eq(3306))).thenReturn(null);

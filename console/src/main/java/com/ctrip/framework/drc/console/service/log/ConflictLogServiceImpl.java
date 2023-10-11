@@ -10,12 +10,15 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
-import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
-import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
+import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -24,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,6 +48,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
     private DcTblDao dcTblDao;
+    @Autowired
+    private MysqlServiceV2 mysqlService;
+
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(6, "conflictLog"));
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -128,6 +136,101 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             return target;
         }).collect(Collectors.toList());
         view.setRowsLogDetailViews(rowsLogDetailViews);
+        return view;
+    }
+
+    @Override
+    public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception {
+        ConflictCurrentRecordView view = new ConflictCurrentRecordView();
+        ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
+        if (conflictTrxLogTbl == null) {
+            return view;
+        }
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogId(conflictTrxLogId);
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            return view;
+        }
+        List<String> rawSqlList = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getRawSql).collect(Collectors.toList());
+        MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getSrcMhaName());
+        MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
+
+        List<Map<String, Object>> srcResults = new ArrayList<>();
+        List<Map<String, Object>> dstResults = new ArrayList<>();
+        List<ListenableFuture<Map<String, Object>>> srcFutures = new ArrayList<>();
+        List<ListenableFuture<Map<String, Object>>> dstFutures = new ArrayList<>();
+        for (String rawSql : rawSqlList) {
+            ListenableFuture<Map<String, Object>> srcFuture = executorService.submit(() -> mysqlService.queryTableRecords(srcMha.getMhaName(), rawSql));
+            ListenableFuture<Map<String, Object>> dstFuture = executorService.submit(() -> mysqlService.queryTableRecords(dstMha.getMhaName(), rawSql));
+            srcFutures.add(srcFuture);
+            dstFutures.add(dstFuture);
+        }
+
+        for (ListenableFuture<Map<String, Object>> future : srcFutures) {
+            try {
+                Map<String, Object> result = future.get(5, TimeUnit.SECONDS);
+                srcResults.add(result);
+            } catch (Exception e) {
+                logger.error("query src records error: {}", e);
+                throw ConsoleExceptionUtils.message("query src records error");
+            }
+        }
+        for (ListenableFuture<Map<String, Object>> future : dstFutures) {
+            try {
+                Map<String, Object> result = future.get(5, TimeUnit.SECONDS);
+                dstResults.add(result);
+            } catch (Exception e) {
+                logger.error("query dst records error: {}", e);
+                throw ConsoleExceptionUtils.message("query dst records error");
+            }
+        }
+
+        Map<String, List<Map<String, Object>>> srcResultMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> dstResultMap = new HashMap<>();
+        Map<String, List<String>> srcColumnMap = new HashMap<>();
+        Map<String, List<String>> dstColumnMap = new HashMap<>();
+
+        for (Map<String, Object> srcResult : srcResults) {
+            String tableName = String.valueOf(srcResult.get("tableName"));
+            List<Map<String, Object>> recordList = (List<Map<String, Object>>) srcResult.get("record");
+            if (srcResultMap.containsKey(tableName)) {
+                srcResultMap.get(tableName).addAll(recordList);
+            } else {
+                srcResultMap.put(tableName, recordList);
+                List<String> columns = (List<String>) srcResult.get("columnList");
+                srcColumnMap.put(tableName, columns);
+            }
+        }
+
+        for (Map<String, Object> dstResult : dstResults) {
+            String tableName = String.valueOf(dstResult.get("tableName"));
+            List<Map<String, Object>> recordList = (List<Map<String, Object>>) dstResult.get("record");
+            if (dstResultMap.containsKey(tableName)) {
+                dstResultMap.get(tableName).addAll(recordList);
+            } else {
+                dstResultMap.put(tableName, recordList);
+                List<String> columns = (List<String>) dstResult.get("columnList");
+                dstColumnMap.put(tableName, columns);
+            }
+        }
+
+        List<Map<String, Object>> srcRecords = new ArrayList<>();
+        List<Map<String, Object>> dstRecords = new ArrayList<>();
+        srcResultMap.forEach((tableName, records) -> {
+            List<String> columns = srcColumnMap.get(tableName);
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("columns", columns);
+            resultMap.put("records", records);
+            srcRecords.add(resultMap);
+        });
+        dstResultMap.forEach((tableName, records) -> {
+            List<String> columns = dstColumnMap.get(tableName);
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("columns", columns);
+            resultMap.put("records", records);
+            dstRecords.add(resultMap);
+        });
+        view.setSrcRecords(srcRecords);
+        view.setDstRecords(dstRecords);
         return view;
     }
 }

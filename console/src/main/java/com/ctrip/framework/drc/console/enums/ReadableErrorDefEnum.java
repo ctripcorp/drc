@@ -39,6 +39,10 @@ public enum ReadableErrorDefEnum implements IErrorDef {
     DELETE_TBL_EXCEPTION("DELETE_TBL_EXCEPTION", "delete exception, please contact devops"),
 
 
+    DRC_TABLE_NOT_MATCH_BETWEEN_SRC_AND_DST("DRC_TABLE_NOT_MATCH","tables in src and dst not match"),
+    DRC_TABLE_EMPTY("DRC_TABLE_EMPTY","table not found"),
+
+
     TIMEOUT_EXCEPTION("TIMEOUT_EXCEPTION", "timeout"),
 
     UNKNOWN_EXCEPTION("UNKNOWN_EXCEPTION", "unknown exception, please contact devops"),
