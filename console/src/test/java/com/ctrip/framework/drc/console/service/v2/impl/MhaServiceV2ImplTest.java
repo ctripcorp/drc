@@ -1,6 +1,7 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.MachineTbl;
 import com.ctrip.framework.drc.console.dao.entity.MessengerGroupTbl;
@@ -14,9 +15,13 @@ import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
+import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -74,6 +79,13 @@ public class MhaServiceV2ImplTest {
 
     @Mock
     private MessengerGroupTblDao messengerGroupTblDao;
+
+    @Mock
+    private OPSApiService opsApiServiceImpl;
+    
+    @Mock
+    private DomainConfig domainConfig;
+    
 
     @Before
     public void setup() throws SQLException {
@@ -225,6 +237,16 @@ public class MhaServiceV2ImplTest {
         Assert.assertEquals(2, mha1.size());
     }
 
+    @Test
+    public void testGetMhaReplicatorSlaveDelay() throws Exception {
+        Mockito.when(domainConfig.getTrafficFromHickWallFat()).thenReturn("http://localhost:8080");
+        Mockito.when(domainConfig.getOpsAccessTokenFat()).thenReturn("token1");
+        Mockito.when(opsApiServiceImpl.getMhaReplicationDelay(Mockito.anyString(), Mockito.anyString())).thenReturn(getDelayInfo());
+        Map<String, Long> mhaServiceV2MhaReplicatorSlaveDelay = mhaServiceV2.getMhaReplicatorSlaveDelay(
+                Lists.newArrayList("mha1"));
+        Assert.assertEquals(1, mhaServiceV2MhaReplicatorSlaveDelay.size());
+    }
+
     private static void assertResult(List<MhaTblV2> expectResult, Map<Long, MhaTblV2> result) {
         Assert.assertEquals(result.size(), expectResult.size());
         for (MhaTblV2 mhaTblV2 : expectResult) {
@@ -239,4 +261,77 @@ public class MhaServiceV2ImplTest {
     private static List<DcDo> getDcDos() {
         return JSON.parseArray("[{\"dcId\":1,\"dcName\":\"test\",\"regionId\":1,\"regionName\":\"test\"}]", DcDo.class);
     }
+    
+    private List<HickWallMhaReplicationDelayEntity> getDelayInfo() {
+        String json = " [\n"
+                + "            {\n"
+                + "                \"metric\": {\n"
+                + "                    \"cluster\": \"dalCluster\",\n"
+                + "                    \"address\": \"/127.0.0.1:8383\",\n"
+                + "                    \"role\": \"slave\",\n"
+                + "                    \"groupId\": \"21055779\",\n"
+                + "                    \"ip\": \"127.0.0.1\",\n"
+                + "                    \"destDc\": \"shaxy\",\n"
+                + "                    \"idc\": \"SIN-AWS\",\n"
+                + "                    \"srcDc\": \"sinaws\",\n"
+                + "                    \"env\": \"PRO\",\n"
+                + "                    \"hostname\": \"\",\n"
+                + "                    \"bu\": \"BBZ\",\n"
+                + "                    \"srcMha\": \"mha1\",\n"
+                + "                    \"__name__\": \"fx.drc.delay_mean\",\n"
+                + "                    \"appid\": \"100023928\",\n"
+                + "                    \"destMha\": \"mha2\",\n"
+                + "                    \"~db\": \"APM-FX\"\n"
+                + "                },\n"
+                + "                \"values\": [\n"
+                + "                    [\n"
+                + "                        1694067760,\n"
+                + "                        \"68.3004539086\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067790,\n"
+                + "                        \"68.2521759254\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067820,\n"
+                + "                        \"68.1745746861\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067850,\n"
+                + "                        \"67.9720347484\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067880,\n"
+                + "                        \"67.9094651203\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067910,\n"
+                + "                        \"67.8785720115\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067940,\n"
+                + "                        \"67.9048681064\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694067970,\n"
+                + "                        \"67.9868880466\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694068000,\n"
+                + "                        \"67.8932267389\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694068030,\n"
+                + "                        \"68.0018267219\"\n"
+                + "                    ],\n"
+                + "                    [\n"
+                + "                        1694068060,\n"
+                + "                        \"68.0018267219\"\n"
+                + "                    ]\n"
+                + "                ]\n"
+                + "            }\n"
+                + "        ]";
+        return JsonUtils.fromJsonToList(json,HickWallMhaReplicationDelayEntity.class);
+    }
+    
 }

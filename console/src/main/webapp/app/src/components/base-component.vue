@@ -12,22 +12,16 @@
           <Submenu name="v2-0">
             <template slot="title">
               <Icon type="ios-apps"></Icon>
-              集群管理
+              元信息管理
             </template>
             <MenuItem name="/v2/mhaReplications" to="/v2/mhaReplications">
-              <span>MHA复制</span>
-            </MenuItem>
-            <MenuItem name="/drcV2" to="/drcV2">
-              <span>DRC配置</span>
+              <span>MHA 同步</span>
             </MenuItem>
             <MenuItem name="/v2/messengersV2" to="/v2/messengersV2">
-              <span>Messenger集群</span>
+              <span>Messenger 同步</span>
             </MenuItem>
-            <MenuItem name="/v2/buildMessengerV2" to="/v2/buildMessengerV2">
-              <span>Messenger配置</span>
-            </MenuItem>
-            <MenuItem name="/v2/migration" to="/v2/migration">
-              <span>DB 搬迁任务</span>
+            <MenuItem name="/metaMessage" to="/metaMessage">
+              <span>行过滤标识</span>
             </MenuItem>
           </Submenu>
           <Submenu name="1">
@@ -35,6 +29,9 @@
               <Icon type="ios-analytics"></Icon>
               自助运维
             </template>
+            <MenuItem name="/v2/migration" to="/v2/migration">
+              <span>DB 搬迁任务</span>
+            </MenuItem>
             <MenuItem name="/conflictLog" to="/conflictLog">
               <span>冲突处理V2</span>
             </MenuItem>
@@ -57,19 +54,13 @@
               资源管理
             </template>
             <MenuItem name="/v2/resourceV2" to="/v2/resourceV2">
-              <span>DRC资源</span>
-            </MenuItem>
-            <MenuItem name="/drcResource" to="/drcResource">
-              <span>DRC资源录入</span>
+              <span>DRC机器资源</span>
             </MenuItem>
             <MenuItem name="/proxyResource" to="/proxyResource">
               <span>Proxy资源</span>
             </MenuItem>
             <MenuItem name="/proxyRouteCluster" to="/proxyRouteCluster">
               <span>Proxy路由</span>
-            </MenuItem>
-            <MenuItem name="/metaMessage" to="/metaMessage">
-              <span>行过滤元信息配置</span>
             </MenuItem>
           </Submenu>
           <MenuItem name="/manage" to="/manage">
@@ -147,6 +138,8 @@ export default {
       case '/drcV2':
       case '/v2/buildMessengerV2':
       case '/v2/messengersV2':
+      case '/v2/dbDrcBuild':
+      case '/metaMessage':
         this.openNames = ['v2-0']
         break
       case '/apply':
@@ -160,6 +153,7 @@ export default {
       case '/access':
         this.openNames = ['0']
         break
+      case '/v2/migration':
       case '/incrementDataConsistencyResult':
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':
@@ -169,14 +163,21 @@ export default {
         this.openNames = ['1']
         break
       case '/drcResource':
-      case '/metaMessage':
       case '/proxyResource':
       case '/v2/resourceV2':
       case '/proxyRouteCluster':
         this.openNames = ['2']
         break
     }
-    this.activeName = this.$route.path
+    let activeName = this.$route.path
+    if (['/drcV2', '/v2/dbDrcBuild'].includes(this.$route.path)) {
+      activeName = '/v2/mhaReplications'
+    } else if (['/v2/buildMessengerV2'].includes(this.$route.path)) {
+      activeName = '/v2/messengersV2'
+    } else if (['/drcResource'].includes(this.$route.path)) {
+      activeName = '/v2/resourceV2'
+    }
+    this.activeName = activeName
     this.getUserName()
     this.getLogoutUrl()
   },

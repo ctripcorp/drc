@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.console.dao;
 
 import com.ctrip.framework.drc.console.dao.entity.DbTbl;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
+import com.ctrip.framework.drc.console.param.v2.DbQuery;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.util.CollectionUtils;
 
@@ -31,6 +33,13 @@ public class DbTblDao extends AbstractDao<DbTbl> {
 		SelectSqlBuilder builder = new SelectSqlBuilder();
 		builder.selectAll().in("db_name", dbNames, Types.VARCHAR, false);
 		return client.query(builder,new DalHints());
+    }
+
+	public List<DbTbl> queryByPage(DbQuery query) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder().atPage(query.getPageIndex(), query.getPageSize())
+                .orderBy(ID, false);
+        sqlBuilder.and().likeNullable("db_name", query.getLikeByDbNameFromBeginning(),  MatchPattern.BEGIN_WITH,Types.VARCHAR);
+        return client.query(sqlBuilder, new DalHints());
     }
 
 	public List<DbTbl> queryByIds(List<Long> ids) throws SQLException {

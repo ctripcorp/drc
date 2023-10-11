@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2.impl;
 
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.*;
 import com.ctrip.framework.drc.console.dao.entity.*;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
@@ -9,13 +10,18 @@ import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
 import com.ctrip.framework.drc.console.param.v2.MhaQuery;
 import com.ctrip.framework.drc.console.pojo.domain.DcDo;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.service.v2.MetaInfoServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MhaServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.DrcBuildPreCheckVo;
 import com.ctrip.framework.drc.core.monitor.enums.ModuleEnum;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.service.ops.OPSApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMessengerDelayEntity;
+import com.ctrip.framework.drc.core.service.statistics.traffic.HickWallMhaReplicationDelayEntity;
 import com.ctrip.platform.dal.dao.DalHints;
 import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
@@ -43,7 +49,8 @@ import java.util.stream.Collectors;
 public class MhaServiceV2Impl implements MhaServiceV2 {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
+    private OPSApiService opsApiServiceImpl = ApiContainer.getOPSApiServiceImpl();
+    
     @Autowired
     private MhaTblV2Dao mhaTblV2Dao;
     @Autowired
@@ -65,6 +72,8 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
     private MessengerGroupTblDao messengerGroupTblDao;
     @Autowired
     private MessengerTblDao messengerTblDao;
+    @Autowired
+    private DomainConfig domainConfig;
 
     @Override
     @DalTransactional(logicDbName = "fxdrcmetadb_w")
@@ -327,4 +336,20 @@ public class MhaServiceV2Impl implements MhaServiceV2 {
         DcTbl dcTbl = dcTblDao.queryById(mhaTblV2.getDcId());
         return dcTbl.getDcName();
     }
+
+    @Override
+    public Map<String, Long> getMhaReplicatorSlaveDelay(List<String> mhas) throws Exception {
+        String trafficFromHickWall = domainConfig.getTrafficFromHickWall();
+        String opsAccessToken = domainConfig.getOpsAccessToken();
+        if (EnvUtils.fat()) {
+            trafficFromHickWall = domainConfig.getTrafficFromHickWallFat();
+            opsAccessToken = domainConfig.getOpsAccessTokenFat();
+        }
+        List<HickWallMhaReplicationDelayEntity> mhaReplicationDelay = opsApiServiceImpl.getMhaReplicationDelay(
+                trafficFromHickWall, opsAccessToken);
+        return mhaReplicationDelay.stream().filter(entity -> mhas.contains(entity.getSrcMha()))
+                .collect(Collectors.toMap(
+                        HickWallMhaReplicationDelayEntity::getSrcMha, HickWallMhaReplicationDelayEntity::getDelay,(e1, e2) -> e1));
+    }
+    
 }

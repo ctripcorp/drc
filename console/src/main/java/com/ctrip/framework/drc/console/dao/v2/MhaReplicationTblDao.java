@@ -107,4 +107,10 @@ public class MhaReplicationTblDao extends AbstractDao<MhaReplicationTbl> {
         insert(new DalHints(), keyHolder, mhaReplicationTbl);
         return (Long) keyHolder.getKey();
     }
+
+    public List<MhaReplicationTbl> queryByDstMhaId(long dstMhaId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(DST_MHA_ID, dstMhaId, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
 }

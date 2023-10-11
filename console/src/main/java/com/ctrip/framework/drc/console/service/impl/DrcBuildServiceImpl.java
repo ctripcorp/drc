@@ -110,6 +110,7 @@ public class DrcBuildServiceImpl implements DrcBuildService {
         Long mhaGroupId = metaInfoService.getMhaGroupId(metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
         if(mhaGroupId == null) {
             logger.info("{} {} not same group", metaProposalDto.getSrcMha(), metaProposalDto.getDestMha());
+            
             msg = metaProposalDto.getSrcMha() + " and " + metaProposalDto.getDestMha() + " are NOT in same mha group, cannot establish DRC";
             return Pair.of(msg, null);
         }

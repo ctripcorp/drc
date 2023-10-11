@@ -39,6 +39,13 @@ public class MigrationTaskTbl implements DalPojo {
     private String dbs;
 
     /**
+     * 搬迁记录 /n 换行
+     */
+    @Column(name = "log")
+    @Type(value = Types.LONGVARCHAR)
+    private String log;
+
+    /**
      * 原集群名(DRC系统）
      */
     @Column(name = "old_mha")
@@ -117,6 +124,14 @@ public class MigrationTaskTbl implements DalPojo {
         this.dbs = dbs;
     }
 
+    public String getLog() {
+        return log;
+    }
+
+    public void setLog(String log) {
+        this.log = log;
+    }
+    
     public String getOldMha() {
         return oldMha;
     }
