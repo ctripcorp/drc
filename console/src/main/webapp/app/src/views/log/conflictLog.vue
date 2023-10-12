@@ -30,7 +30,7 @@ export default {
   data () {
     return {
       tabValue: 'trxLog',
-      gtid: 'test111',
+      gtid: null,
       refresh: false
     }
   },

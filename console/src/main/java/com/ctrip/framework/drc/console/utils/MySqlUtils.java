@@ -822,7 +822,7 @@ public class MySqlUtils {
             String operateType = parseResultMap.get("operateType");
             if (operateType == null) {
                 logger.info("[[tag=conflictLog]] select Record could only get condition from insert and update");
-                return null;
+                return new HashMap<>();
             }
 
             String tableName = parseResultMap.get("tableName");
@@ -837,7 +837,7 @@ public class MySqlUtils {
         } catch(Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            return null;
+            return new HashMap<>();
         } finally {
             if(readResource != null) {
                 readResource.close();
@@ -851,10 +851,19 @@ public class MySqlUtils {
         ResultSetMetaData md = rs.getMetaData();
         int columnCount = md.getColumnCount();
         List<String> columnList = new ArrayList<>();
+        List<Map<String, Object>> metaColumn = new ArrayList<>();
         for (int j = 1; j <= columnCount; j++) {
+            Map<String, Object> columnData = new LinkedHashMap<>();
+            columnData.put("title", md.getColumnName(j));
+            columnData.put("key", md.getColumnName(j));
+            columnData.put("width", 200);
+            columnData.put("tooltip", true);
+            metaColumn.add(columnData);
+            columnList.add(md.getColumnName(j));
             columnList.add(md.getColumnName(j));
         }
-        ret.put("columnList", columnList);
+        ret.put("columns", columnList);
+        ret.put("metaColumn", metaColumn);
 
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();

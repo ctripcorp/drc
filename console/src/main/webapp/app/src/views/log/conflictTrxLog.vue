@@ -1,5 +1,5 @@
 <template>
-  <div style="padding: 1px 1px ">
+  <div style="padding: 1px 1px">
     <Row :gutter=10 align="middle">
       <Col span="22">
         <Card :padding=5>
@@ -18,7 +18,7 @@
                      @on-enter="getTrxData"></Input>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" value-format="timestamp" v-model="queryParam.beginHandleTime"
+              <DatePicker type="date" :editable="editable" format="yyyy-MM-dd" v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
@@ -36,7 +36,7 @@
       </Col>
       <Col span="1">
         <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getTrxData">查询</Button>
-        <Button icon="md-refresh" :loading="dataLoading" @click="resetParam" style="margin-top: 20px">重置
+        <Button icon="md-refresh"  @click="resetParam" style="margin-top: 20px">重置
         </Button>
       </Col>
     </Row>
@@ -68,6 +68,7 @@
 </template>
 
 <script>
+
 export default {
   name: 'conflictTrxLog',
   props: {
@@ -76,6 +77,7 @@ export default {
   data () {
     return {
       editable: false,
+      clearable: false,
       dataLoading: false,
       queryParam: {
         srcMhaName: null,
@@ -85,26 +87,7 @@ export default {
         endHandleTime: null,
         trxResult: null
       },
-      tableData: [
-        {
-          srcMhaName: 'testA',
-          dstMhaName: 'testB',
-          gtid: 'c5ed128d-5b8b-11ee-ae5e-fa163e4168ae',
-          trxRowsNum: 0,
-          cflRowsNum: 1,
-          trxResult: 0,
-          handleTime: '2023-09-23 10:00:00'
-        },
-        {
-          srcMhaName: 'testB',
-          dstMhaName: 'testA',
-          gtid: 'c5ed128d-5b8b-11ee-ae5e',
-          trxRowsNum: 0,
-          cflRowsNum: 1,
-          trxResult: 1,
-          handleTime: '2023-09-23 11:00:00'
-        }
-      ],
+      tableData: [],
       columns: [
         {
           title: '事务ID',
@@ -179,11 +162,13 @@ export default {
   },
   methods: {
     getTrxData () {
-      const beginHandleTime = new Date(this.queryParam.beginHandleTime).getTime()
-      const endHandleTime = new Date(this.queryParam.beginHandleTime).getTime()
+      const beginTime = this.queryParam.beginHandleTime
+      const endTime = this.queryParam.endHandleTime
+      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
+      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      console.log('beginTime: ' + beginTime)
+      console.log('endTime: ' + endTime)
       const params = {
-        beginHandleTime: beginHandleTime,
-        endHandleTime: endHandleTime,
         gtId: this.queryParam.gtid,
         srcMhaName: this.queryParam.srcMhaName,
         dstMhaName: this.queryParam.dstMhaName,
@@ -193,7 +178,14 @@ export default {
           pageIndex: this.current
         }
       }
+      if (!isNaN(beginHandleTime)) {
+        params.beginHandleTime = beginHandleTime
+      }
+      if (!isNaN(endHandleTime) && endHandleTime !== null) {
+        params.endHandleTime = endHandleTime + 24 * 60 * 60 * 1000 - 1
+      }
       const reqParam = this.flattenObj(params)
+      this.dataLoading = true
       this.axios.get('/api/drc/v2/conflict/log/trx', { params: reqParam })
         .then(response => {
           const data = response.data
@@ -203,7 +195,7 @@ export default {
           } else if (data.data.length === 0 || pageResult.totalCount === 0) {
             this.total = 0
             this.current = 1
-            this.tableData = []
+            this.tableData = data.data
             this.$Message.warning('查询结果为空')
           } else {
             this.total = pageResult.totalCount
@@ -212,6 +204,23 @@ export default {
             this.$Message.success('查询成功')
           }
         })
+        .finally(() => {
+          this.dataLoading = false
+        })
+    },
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     resetParam () {
       this.queryParam = {
@@ -226,9 +235,7 @@ export default {
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
       this.$emit('gtidChanged', row.gtid)
-      // alert(this.tabVal)
       this.tabVal = 'rowsLog'
-      // alert(this.tabVal)
     },
     getLogDetail (row, index) {
       this.$router.push({
@@ -244,6 +251,9 @@ export default {
         this.getTrxData()
       })
     }
+  },
+  created () {
+    this.getTrxData()
   }
 }
 </script>

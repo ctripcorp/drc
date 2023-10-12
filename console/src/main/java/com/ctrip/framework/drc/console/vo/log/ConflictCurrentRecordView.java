@@ -10,6 +10,7 @@ import java.util.Map;
 public class ConflictCurrentRecordView {
     private List<Map<String, Object>> srcRecords;
     private List<Map<String, Object>> dstRecords;
+    private boolean recordIsEqual;
 
     public List<Map<String, Object>> getSrcRecords() {
         return srcRecords;
@@ -25,5 +26,13 @@ public class ConflictCurrentRecordView {
 
     public void setDstRecords(List<Map<String, Object>> dstRecords) {
         this.dstRecords = dstRecords;
+    }
+
+    public boolean isRecordIsEqual() {
+        return recordIsEqual;
+    }
+
+    public void setRecordIsEqual(boolean recordIsEqual) {
+        this.recordIsEqual = recordIsEqual;
     }
 }

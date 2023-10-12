@@ -15,15 +15,15 @@
             <Tag :loading="logTableLoading" :color="trxLog.trxResult==0?'success':'error'" size="medium">{{trxLog.trxResultStr}}</Tag>
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突事务记录：
-            <Tag :color="trxLog.hasDiff==false?'success':'error'" size="medium">{{trxLog.diffStr}}</Tag>
+            <Tag :color="trxLog.recordEqual==true?'success':'error'" size="medium">{{trxLog.diffStr}}</Tag>
           </div>
           <Divider/>
           <div class="ivu-list-item-meta-title">源机房({{trxLog.srcDc}})</div>
-          <Table size="small" :loading="tableLoading" stripe :columns="srcTable.columns" :data="srcTable.data"
+          <Table size="small" stripe v-for="(item, index) in srcRecords" :key="index" :columns="item.columns" :data="item.records"
                  border></Table>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstDc}})</div>
-          <Table size="small" :loading="tableLoading" stripe :columns="dstTable.columns" :data="dstTable.data"
+          <Table size="small" stripe v-for="(item, index) in dstRecords" :key="index" :columns="item.columns" :data="item.records"
                  border></Table>
           <Divider/>
         </Card>
@@ -32,8 +32,19 @@
           <p slot="title">
             自动冲突处理流程
           </p>
-          <Table :loading="logTableLoading" stripe :columns="trxLog.columns" :data="trxLog.tableData"
-                 border></Table>
+          <Table stripe :loading="logTableLoading" :columns="trxLog.columns" :data="dataWithPage" ></Table>
+          <div>
+            <Page
+              :transfer="true"
+              :total="trxLog.tableData.length"
+              :current.sync="trxLog.current"
+              :page-size-opts="trxLog.pageSizeOpts"
+              :page-size="this.trxLog.size"
+              show-total
+              show-sizer
+              show-elevator
+              @on-page-size-change="handleChangeSize"></Page>
+          </div>
         </Card>
       </div>
     </Content>
@@ -51,58 +62,45 @@ export default {
   data () {
     return {
       conflictTrxLogId: 0,
-      tableLoading: true,
+      recordLoading: false,
       logTableLoading: false,
+      srcRecords: [],
+      dstRecords: [],
       srcTable: {
         data: [],
         columns: []
       },
       dstTable: {
         data: [],
-        columns: {}
+        columns: []
       },
       trxLog: {
-        srcDc: 'shaxy',
-        dstDc: 'sinaws',
-        trxResult: 0,
-        trxResultStr: 'commit',
-        hasDiff: true,
-        diffStr: '数据不一致',
-        tableData: [
-          {
-            rawSql: '/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (1,1,\'2023-09-28 16:06:15.019\')',
-            rawSqlResult: 'BATCHED',
-            dstRowRecord: '|1|1|2023-09-28 16:01:15.537|',
-            handlerSql: '/*DRC INSERT 1*/ UPDATE `migrationdb`.`benchmark` SET `id`=1,`drc_id_int`=1,`datachange_lasttime`=\'2023-09-28 16:06:15.019\' WHERE `id`=1 AND `datachange_lasttime`<=\'2023-09-28 16:06:15.019\'',
-            handlerSqlResult: 'UPDATE_COUNT_EQUALS_ONE',
-            rowResult: 0
-          },
-          {
-            rawSql: '/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (5,5,\'2023-09-28 16:06:15.019\')',
-            rawSqlResult: 'DUPLICATE_ENTRY',
-            dstRowRecord: '|5|5|2023-09-28 16:01:15.537|',
-            handlerSql: '/*DRC INSERT 1*/ UPDATE `migrationdb`.`benchmark` SET `id`=5,`drc_id_int`=5,`datachange_lasttime`=\'2023-09-28 16:06:15.019\' WHERE `id`=5 AND `datachange_lasttime`<=\'2023-09-28 16:06:15.019\'',
-            handlerSqlResult: 'UPDATE_COUNT_EQUALS_ONE',
-            rowResult: 1
-          }],
+        srcDc: '',
+        dstDc: '',
+        trxResult: null,
+        trxResultStr: '',
+        hasDiff: null,
+        recordEqual: null,
+        diffStr: '',
+        tableData: [],
         columns: [
           {
             type: 'expand',
-            width: 50,
+            width: 40,
             render: (h, params) => {
               const row = params.row
               return h(conflictRowsLogDetail, {
                 props: {
                   rowData: '/*原始SQL*/\n' + row.rawSql + '\n/*原始SQL处理结果: ' + row.rawSqlResult + '*/\n\n' + '/*冲突时行记录*/\n' +
-                    row.dstRowRecord + '\n\n' + '/*冲突时行记录*/\n' + row.handlerSql + '\n/*冲突时行记录处理结果: ' + row.handlerSqlResult + '*/\n'
+                    row.dstRowRecord + '\n\n' + '/*冲突时行记录*/\n' + row.handleSql + '\n/*冲突时行记录处理结果: ' + row.handleSqlResult + '*/'
                 }
               })
             }
           },
           {
             title: '序号',
-            width: 50,
-            align: 'center',
+            width: 60,
+            // align: 'left',
             render: (h, params) => {
               return h(
                 'span',
@@ -112,7 +110,8 @@ export default {
           },
           {
             title: '原始sql',
-            key: 'rawSql'
+            key: 'rawSql',
+            tooltip: true
           },
           {
             title: '处理结果',
@@ -130,12 +129,24 @@ export default {
               }, text)
             }
           }
-        ]
+        ],
+        total: 0,
+        current: 1,
+        size: 10,
+        pageSizeOpts: [10, 20, 50, 100]
       }
     }
   },
   methods: {
-    getLogDetailView () {
+    handleSpan ({ row, column, rowIndex, columnIndex }) {
+      if (columnIndex === 0) {
+        return [0, 0]
+      }
+    },
+    handleChangeSize (val) {
+      this.trxLog.size = val
+    },
+    getTrxLogDetail () {
       this.logTableLoading = true
       this.axios.get('/api/drc/v2/conflict/log/detail?conflictTrxLogId=' + this.conflictTrxLogId)
         .then(response => {
@@ -143,20 +154,44 @@ export default {
             this.$Message.error('查询冲突详情失败!')
           } else {
             const data = response.data.data
-            this.trxLog = {
-              srcDc: data.srcDc,
-              dstDc: data.dstDc,
-              trxResult: data.trxResult,
-              trxResultStr: data.trxResult === 0 ? 'commit' : 'rollback',
-              tableData: data.rowsLogDetailViews
-            }
+            this.trxLog.srcDc = data.src
+            this.trxLog.dstDc = data.dstDc
+            this.trxLog.trxResult = data.trxResult
+            this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
+            this.trxLog.tableData = data.rowsLogDetailViews
           }
         })
-      this.logTableLoading = true
+        .finally(() => {
+          this.logTableLoading = false
+        })
+    },
+    getTrxRecords () {
+      this.axios.get('/api/drc/v2/conflict/log/records?conflictTrxLogId=' + this.conflictTrxLogId)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询当前行记录失败!')
+          } else {
+            const data = response.data.data
+            this.trxLog.recordEqual = data.recordIsEqual
+            this.trxLog.diffStr = data.recordIsEqual === 0 ? '数据一致' : '数据不一致'
+            this.srcRecords = data.srcRecords
+            this.dstRecords = data.dstRecords
+          }
+        })
+    }
+  },
+  computed: {
+    dataWithPage () {
+      const data = this.trxLog.tableData
+      const start = this.trxLog.current * this.trxLog.size - this.trxLog.size
+      const end = start + this.trxLog.size
+      return [...data].slice(start, end)
     }
   },
   created () {
     this.conflictTrxLogId = this.$route.query.conflictTrxLogId
+    this.getTrxLogDetail()
+    this.getTrxRecords()
   }
 }
 </script>

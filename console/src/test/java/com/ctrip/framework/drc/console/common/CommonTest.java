@@ -1,4 +1,4 @@
-package com.ctrip.framework.drc.console;
+package com.ctrip.framework.drc.console.common;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;

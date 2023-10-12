@@ -6,12 +6,21 @@ package com.ctrip.framework.drc.console.vo.log;
  */
 public class ConflictRowsLogView {
     private Long conflictRowsLogId;
+    private String gtid;
     private String dbName;
     private String tableName;
     private String handleTime;
     private Integer rowResult;
     private String srcDc;
     private String dstDc;
+
+    public String getGtid() {
+        return gtid;
+    }
+
+    public void setGtid(String gtid) {
+        this.gtid = gtid;
+    }
 
     public Long getConflictRowsLogId() {
         return conflictRowsLogId;

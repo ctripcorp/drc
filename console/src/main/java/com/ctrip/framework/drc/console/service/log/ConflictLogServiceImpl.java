@@ -2,23 +2,34 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
+import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
+import com.ctrip.framework.drc.console.dao.entity.v2.DbReplicationFilterMappingTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.MhaTblV2;
 import com.ctrip.framework.drc.console.dao.log.ConflictRowsLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.ConflictTrxLogTblDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictRowsLogTbl;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
+import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
+import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -49,9 +60,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Autowired
     private DcTblDao dcTblDao;
     @Autowired
+    private ColumnsFilterTblV2Dao columnsFilterTblV2Dao;
+    @Autowired
+    private DbReplicationFilterMappingTblDao dbReplicationFilterMappingTblDao;
+    @Autowired
     private MysqlServiceV2 mysqlService;
+    @Autowired
+    private DrcBuildServiceV2 drcBuildServiceV2;
 
-    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(6, "conflictLog"));
+    private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -73,6 +90,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public List<ConflictRowsLogView> getConflictRowsLogView(ConflictRowsLogQueryParam param) throws Exception {
+        if (StringUtils.isNotBlank(param.getGtid())) {
+            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryByGtid(param.getGtid());
+            if (conflictTrxLogTbl != null) {
+                param.setConflictTrxLogId(conflictTrxLogTbl.getId());
+            }
+        }
+
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByParam(param);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
             return new ArrayList<>();
@@ -99,6 +123,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setConflictRowsLogId(source.getId());
 
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogMap.get(source.getConflictTrxLogId());
+            target.setGtid(conflictTrxLogTbl.getGtid());
             MhaTblV2 srcMha = mhaMap.get(conflictTrxLogTbl.getSrcMhaName());
             MhaTblV2 dstMha = mhaMap.get(conflictTrxLogTbl.getDstMhaName());
             target.setSrcDc(dcMap.get(srcMha.getDcId()));
@@ -154,76 +179,44 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getSrcMhaName());
         MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
 
-        List<Map<String, Object>> srcResults = new ArrayList<>();
-        List<Map<String, Object>> dstResults = new ArrayList<>();
-        List<ListenableFuture<Map<String, Object>>> srcFutures = new ArrayList<>();
-        List<ListenableFuture<Map<String, Object>>> dstFutures = new ArrayList<>();
+        List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
         for (String rawSql : rawSqlList) {
-            ListenableFuture<Map<String, Object>> srcFuture = executorService.submit(() -> mysqlService.queryTableRecords(srcMha.getMhaName(), rawSql));
-            ListenableFuture<Map<String, Object>> dstFuture = executorService.submit(() -> mysqlService.queryTableRecords(dstMha.getMhaName(), rawSql));
-            srcFutures.add(srcFuture);
-            dstFutures.add(dstFuture);
+            ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future =
+                    executorService.submit(() -> queryRecords(srcMha.getMhaName(), dstMha.getMhaName(), rawSql));
+            futures.add(future);
         }
 
-        for (ListenableFuture<Map<String, Object>> future : srcFutures) {
-            try {
-                Map<String, Object> result = future.get(5, TimeUnit.SECONDS);
-                srcResults.add(result);
-            } catch (Exception e) {
-                logger.error("query src records error: {}", e);
-                throw ConsoleExceptionUtils.message("query src records error");
-            }
-        }
-        for (ListenableFuture<Map<String, Object>> future : dstFutures) {
-            try {
-                Map<String, Object> result = future.get(5, TimeUnit.SECONDS);
-                dstResults.add(result);
-            } catch (Exception e) {
-                logger.error("query dst records error: {}", e);
-                throw ConsoleExceptionUtils.message("query dst records error");
-            }
-        }
-
+        boolean recordIsEqual = true;
         Map<String, List<Map<String, Object>>> srcResultMap = new HashMap<>();
         Map<String, List<Map<String, Object>>> dstResultMap = new HashMap<>();
-        Map<String, List<String>> srcColumnMap = new HashMap<>();
-        Map<String, List<String>> dstColumnMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> srcColumnMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> dstColumnMap = new HashMap<>();
+        for (ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future: futures) {
+            try {
+                Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = future.get(10, TimeUnit.SECONDS);
+                recordIsEqual &= resultPair.getLeft();
+                Map<String, Object> srcResult = resultPair.getRight().getLeft();
+                Map<String, Object> dstResult = resultPair.getRight().getRight();
 
-        for (Map<String, Object> srcResult : srcResults) {
-            String tableName = String.valueOf(srcResult.get("tableName"));
-            List<Map<String, Object>> recordList = (List<Map<String, Object>>) srcResult.get("record");
-            if (srcResultMap.containsKey(tableName)) {
-                srcResultMap.get(tableName).addAll(recordList);
-            } else {
-                srcResultMap.put(tableName, recordList);
-                List<String> columns = (List<String>) srcResult.get("columnList");
-                srcColumnMap.put(tableName, columns);
-            }
-        }
-
-        for (Map<String, Object> dstResult : dstResults) {
-            String tableName = String.valueOf(dstResult.get("tableName"));
-            List<Map<String, Object>> recordList = (List<Map<String, Object>>) dstResult.get("record");
-            if (dstResultMap.containsKey(tableName)) {
-                dstResultMap.get(tableName).addAll(recordList);
-            } else {
-                dstResultMap.put(tableName, recordList);
-                List<String> columns = (List<String>) dstResult.get("columnList");
-                dstColumnMap.put(tableName, columns);
+                extractRecords(srcResultMap, srcColumnMap, srcResult);
+                extractRecords(dstResultMap, dstColumnMap, dstResult);
+            } catch (Exception e) {
+                logger.error("query records error: {}", e);
+                throw ConsoleExceptionUtils.message("query records error");
             }
         }
 
         List<Map<String, Object>> srcRecords = new ArrayList<>();
         List<Map<String, Object>> dstRecords = new ArrayList<>();
         srcResultMap.forEach((tableName, records) -> {
-            List<String> columns = srcColumnMap.get(tableName);
+            List<Map<String, Object>> columns = srcColumnMap.get(tableName);
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("columns", columns);
             resultMap.put("records", records);
             srcRecords.add(resultMap);
         });
         dstResultMap.forEach((tableName, records) -> {
-            List<String> columns = dstColumnMap.get(tableName);
+            List<Map<String, Object>> columns = dstColumnMap.get(tableName);
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("columns", columns);
             resultMap.put("records", records);
@@ -231,6 +224,128 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         });
         view.setSrcRecords(srcRecords);
         view.setDstRecords(dstRecords);
+        view.setRecordIsEqual(recordIsEqual);
         return view;
+    }
+
+    private void extractRecords(Map<String, List<Map<String, Object>>> resultMap, Map<String, List<Map<String, Object>>> columnMap, Map<String, Object> result) {
+        String tableName = String.valueOf(result.get("tableName"));
+        List<Map<String, Object>> recordList = (List<Map<String, Object>>) result.get("record");
+        if (resultMap.containsKey(tableName)) {
+            resultMap.get(tableName).addAll(recordList);
+        } else {
+            resultMap.put(tableName, recordList);
+            List<Map<String, Object>> columns = (List<Map<String, Object>>) result.get("metaColumn");
+            columnMap.put(tableName, columns);
+        }
+    }
+
+    private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(String srcMhaName, String dstMhaName, String rawSql) throws Exception {
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+        List<DbReplicationView> dbReplicationViews = columnsFilerPair.getLeft();
+        Map<Long, List<String>> columnsFieldMap = columnsFilerPair.getRight();
+
+        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(srcMhaName, rawSql);
+        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(dstMhaName, rawSql);
+        boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
+
+        return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));
+    }
+
+    private boolean recordIsEqual(Map<String, Object> srcResultMap,
+                                  Map<String, Object> dstResultMap,
+                                  Map<Long, List<String>> columnsFieldMap,
+                                  List<DbReplicationView> dbReplicationViews) {
+        List<Map<String, Object>> srcRecords = (List<Map<String, Object>>) srcResultMap.get("record");
+        List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResultMap.get("record");
+
+        if (CollectionUtils.isEmpty(srcRecords) && CollectionUtils.isEmpty(dstRecords)) {
+            return true;
+        }
+        if (CollectionUtils.isEmpty(srcRecords) || CollectionUtils.isEmpty(dstRecords)) {
+            return false;
+        }
+        // `db`.`table`
+        String tableName = (String) srcResultMap.get("tableName");
+        List<String> columns = (List<String>) srcResultMap.get("columns");
+        if (columnsFieldMap != null) {
+            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+            if (dbReplicationId != null) {
+                List<String> filterColumns = columnsFieldMap.get(dbReplicationId);
+                if (!CollectionUtils.isEmpty(filterColumns)) {
+                    columns = columns.stream().filter(e -> !filterColumns.contains(e.toLowerCase())).collect(Collectors.toList());
+                }
+            }
+        }
+
+        Map<String, Object> srcRecord = srcRecords.get(0);
+        Map<String, Object> dstRecord = dstRecords.get(0);
+        return recordIsEqual(columns, srcRecord, dstRecord);
+    }
+
+    private  boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
+        for (String column : columns) {
+            Object srcValue = srcRecord.get(column);
+            Object dstValue = dstRecord.get(column);
+            if (srcValue == null && dstValue == null) {
+                return true;
+            }
+            if (srcValue == null || dstValue == null) {
+                return false;
+            }
+            if (!srcValue.equals(dstValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private Long getDbReplicationIdByTableName(String tableName, List<DbReplicationView> dbReplicationViews) {
+        String fullTableName = tableName.replace("`", "");
+        String[] tables = fullTableName.split("\\.");
+        String dbName = tables[0];
+        String table = tables[1].toLowerCase();
+        for (DbReplicationView view : dbReplicationViews) {
+            if (!view.getDbName().equalsIgnoreCase(dbName)) {
+                continue;
+            }
+            AviatorRegexFilter aviatorRegexFilter = new AviatorRegexFilter(view.getLogicTableName());
+            if (aviatorRegexFilter.filter(table)) {
+                return view.getDbReplicationId();
+            }
+        }
+        return null;
+    }
+
+    private Pair<List<DbReplicationView>, Map<Long, List<String>>> getTableColumnsFilterFields(String srcMhaName, String dstMhaName) throws Exception {
+        List<DbReplicationView> dbReplicationViews = drcBuildServiceV2.getDbReplicationView(srcMhaName, dstMhaName);
+        List<DbReplicationView> columnsFilterDbReplications = dbReplicationViews.stream()
+                .filter(e -> !CollectionUtils.isEmpty(e.getFilterTypes())
+                        && e.getFilterTypes().contains(FilterTypeEnum.COLUMNS_FILTER.getCode()))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(columnsFilterDbReplications)) {
+            return Pair.of(dbReplicationViews, null);
+        }
+
+        List<Long> columnsFilterDbReplicationIds = columnsFilterDbReplications.stream().map(DbReplicationView::getDbReplicationId).collect(Collectors.toList());
+        List<DbReplicationFilterMappingTbl> dbReplicationFilterMappingTbls = dbReplicationFilterMappingTblDao.queryByDbReplicationIds(columnsFilterDbReplicationIds);
+        Set<Long> columnsFilterIds = dbReplicationFilterMappingTbls.stream().map(DbReplicationFilterMappingTbl::getColumnsFilterId).filter(e -> e != -1L).collect(Collectors.toSet());
+
+        List<ColumnsFilterTblV2> columnsFilterTblV2s = columnsFilterTblV2Dao.queryByIds(Lists.newArrayList(columnsFilterIds));
+        Map<Long, List<String>> columnsFilterMap = columnsFilterTblV2s.stream().collect(
+                Collectors.toMap(ColumnsFilterTblV2::getId, e -> JsonUtils.fromJsonToList(e.getColumns(), String.class)));
+        Map<Long, Long> dbReplicationFilterMappingMap = dbReplicationFilterMappingTbls.stream().collect(
+                Collectors.toMap(DbReplicationFilterMappingTbl::getDbReplicationId, DbReplicationFilterMappingTbl::getColumnsFilterId));
+
+        Map<Long, List<String>> columnsFieldMap = new HashMap<>();
+        for (DbReplicationView dbReplicationView : columnsFilterDbReplications) {
+            long dbReplicationId = dbReplicationView.getDbReplicationId();
+            List<String> columnsFields = columnsFilterMap.get(dbReplicationFilterMappingMap.getOrDefault(dbReplicationId, -1L));
+            if (!CollectionUtils.isEmpty(columnsFields)) {
+                columnsFields = columnsFields.stream().map(String::toLowerCase).collect(Collectors.toList());
+            }
+            columnsFieldMap.put(dbReplicationId, columnsFields);
+        }
+        return Pair.of(dbReplicationViews, columnsFieldMap);
     }
 }
