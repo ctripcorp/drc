@@ -1,5 +1,7 @@
 package com.ctrip.framework.drc.fetcher.conflict;
 
+import java.util.Objects;
+
 /**
  * @ClassName ConflictRowLog
  * @Author haodongPan
@@ -21,12 +23,29 @@ public class ConflictRowLog implements Comparable<ConflictRowLog> {
     
     @Override
     public int compareTo(ConflictRowLog another) {
-        // compare rowRes first, then rowId ,rollback > commit
+        // compare rowRes first, then rowId ,rollback > commit, rowId desc
         if (this.rowRes == another.rowRes) {
-            return (int) (this.rowId - another.getRowId());
+            return (int) (another.getRowId() - this.rowId);
         } else {
-            return another.getRowRes() - this.rowRes;
+            return this.rowRes - another.rowRes;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ConflictRowLog that = (ConflictRowLog) o;
+        return rowRes == that.rowRes && rowId == that.rowId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(rowRes, rowId);
     }
 
     @Override

@@ -8,7 +8,11 @@ import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.google.common.collect.Lists;
+import java.util.PriorityQueue;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -571,6 +575,6 @@ public class TransactionContextResourceTest extends ConflictTest implements Appl
         context.commit();
         context.dispose();
     }
-
+    
 
 }

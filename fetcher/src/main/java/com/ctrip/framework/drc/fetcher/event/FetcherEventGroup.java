@@ -17,9 +17,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FetcherEventGroup implements EventGroup, AutoCloseable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-
-    // test todo
-    public static final int CAPACITY = 2;
+    
+    public static final int CAPACITY = BigTransactionThreshold.getInstance().getThreshold();
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition notEmpty = lock.newCondition();
     private final Condition notFull= lock.newCondition();

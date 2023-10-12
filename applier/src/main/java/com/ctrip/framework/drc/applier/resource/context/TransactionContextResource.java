@@ -115,10 +115,10 @@ public class TransactionContextResource extends AbstractContext
     protected Throwable lastUnbearable;
     public long costTimeNS = 0;
     protected ConflictTransactionLog cflTrxLog;
-    protected MutableLong trxRowNum = new MutableLong(0);
-    protected MutableLong conflictRowNum = new MutableLong(0);
-    protected MutableLong rollbackRowNum = new MutableLong(0);
-    protected PriorityQueue<ConflictRowLog> cflRowLogsQueue = new PriorityQueue<>(RECORD_SIZE);
+    protected MutableLong trxRowNum;
+    protected MutableLong conflictRowNum;
+    protected MutableLong rollbackRowNum;
+    protected PriorityQueue<ConflictRowLog> cflRowLogsQueue;
     protected Map<ConflictTable,Long> conflictTableRowsCount;
     protected ConflictRowLog curCflRowLog;
     protected String rawSql = null;
@@ -162,8 +162,6 @@ public class TransactionContextResource extends AbstractContext
             String trace = endTrace("T");
             long delayMs = fetchDelayMS();
             String gtid = fetchGtid();
-            // test todo
-            loggerSC.info("dispose trx:{},rows:{},conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",gtid,trxRowNum,conflictRowNum,rollbackRowNum,curCflRowLog);
             loggerTE.info("[{}] ({}) [{}] cost: {}us{}{}{}", registryKey, gtid, fetchDepth(), costTimeNS / 1000,
                     ((delayMs > 10) ? ("(" + trace + ")") : ""),
                     ((delayMs > 100) ? "SLOW" : ""),
@@ -228,6 +226,10 @@ public class TransactionContextResource extends AbstractContext
         connection = dataSource.getConnection();
         logs = new CircularFifoQueue<>(RECORD_SIZE);
         cflTrxLog = new ConflictTransactionLog();
+        trxRowNum = new MutableLong (0);
+        conflictRowNum = new MutableLong(0);
+        rollbackRowNum = new MutableLong(0);
+        cflRowLogsQueue = new PriorityQueue<>(RECORD_SIZE);
         conflictTableRowsCount = Maps.newHashMap();
         lastUnbearable = null;
         costTimeNS = 0;
@@ -826,16 +828,12 @@ public class TransactionContextResource extends AbstractContext
     
     @Override
     public boolean everConflict() {
-        // test todo
-        loggerSC.info("class:{},gtid:{},conflictRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),conflictRowNum);
         return conflictRowNum.longValue() > 0;
     }
 
     @Override
     public boolean everRollback() {
-        // test todo
-        loggerSC.info("class:{},gtid:{},rollbackRowNum:{}",this.getClass().getSimpleName(),fetchGtid(),rollbackRowNum);
-        return rollbackRowNum.longValue() > 0;
+       return rollbackRowNum.longValue() > 0;
     }
     
     protected String statementToString(PreparedStatement statement) {
@@ -878,14 +876,13 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
         curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
         recordCflRowLogIfNecessary();
-        // test todo
-        loggerSC.info("recordCflRowLogIfNecessary,conflictRowNum:{},rollbackRowNum:{},curCflRowLog:{}",conflictRowNum,rollbackRowNum,curCflRowLog);
         // for hickWall report
         ConflictTable thisRow = isOverwrite ? new ConflictTable(db, table, ConflictType.Commit) : new ConflictTable(db, table, ConflictType.Rollback);;
         Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
         conflictTableRowsCount.put(thisRow,++count);
     }
 
+    // rowsRes: commit out first, then rowsId: bigger one out first
     private boolean recordCflRowLogIfNecessary() {
         conflictRowNum.increment();
         if (ConflictResult.ROLLBACK.getValue() == curCflRowLog.getRowRes()) {
