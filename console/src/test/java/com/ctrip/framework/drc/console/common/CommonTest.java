@@ -37,7 +37,7 @@ public class CommonTest {
 
     @Test
     public void test02() {
-        String insertSql = "/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (1,1,'2023-09-28 16:06:15.019')";
+        String insertSql = "/*DRC UPDATE 0*/ UPDATE `drcmonitordb`.`delaymonitor` SET `id`=3322,`src_ip`='sharb',`dest_ip`='{\"d\":\"sharb\",\"r\":\"sha\",\"m\":\"oy-drc2test\"}',`datachange_lasttime`='2023-08-10 15:25:16.516' WHERE `id`=3322 AND `datachange_lasttime`='2023-08-10 15:25:15.475'";
         Map<String, String> parseResult = parseSql(insertSql);
         String sql = String.format(SELECT_SQL, parseResult.get("tableName"), parseResult.get("conditionStr"));
         System.out.println(parseResult.get("operateType"));

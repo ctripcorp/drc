@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.dto.log.ConflictTrxLogDto;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -191,7 +192,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, List<Map<String, Object>>> dstResultMap = new HashMap<>();
         Map<String, List<Map<String, Object>>> srcColumnMap = new HashMap<>();
         Map<String, List<Map<String, Object>>> dstColumnMap = new HashMap<>();
-        for (ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future: futures) {
+        for (ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future : futures) {
             try {
                 Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = future.get(10, TimeUnit.SECONDS);
                 recordIsEqual &= resultPair.getLeft();
@@ -226,6 +227,47 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         view.setDstRecords(dstRecords);
         view.setRecordIsEqual(recordIsEqual);
         return view;
+    }
+
+    @Override
+    public void createConflictLog(ConflictTrxLogDto conflictTrxLogDto) throws Exception {
+        ConflictTrxLogTbl conflictTrxLogTbl = buildConflictTrxLog(conflictTrxLogDto);
+        long conflictTrxLogId = conflictTrxLogTblDao.insertWithReturnId(conflictTrxLogTbl);
+
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = buildConflictRowsLogs(conflictTrxLogId, conflictTrxLogDto);
+        conflictRowsLogTblDao.insert(conflictRowsLogTbls);
+    }
+
+    private ConflictTrxLogTbl buildConflictTrxLog(ConflictTrxLogDto conflictTrxLogDto) {
+        ConflictTrxLogTbl conflictTrxLogTbl = new ConflictTrxLogTbl();
+        conflictTrxLogTbl.setSrcMhaName(conflictTrxLogDto.getSrcMha());
+        conflictTrxLogTbl.setDstMhaName(conflictTrxLogDto.getDstMha());
+        conflictTrxLogTbl.setGtid(conflictTrxLogDto.getGtid());
+        conflictTrxLogTbl.setTrxRowsNum(conflictTrxLogDto.getTrxRowsNum());
+        conflictTrxLogTbl.setCflRowsNum(conflictTrxLogDto.getCflRowsNum());
+        conflictTrxLogTbl.setTrxResult(conflictTrxLogDto.getTrxRes());
+        conflictTrxLogTbl.setHandleTime(conflictTrxLogDto.getHandleTime());
+        return conflictTrxLogTbl;
+    }
+
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTrxLogDto conflictTrxLogDto) {
+        List<ConflictRowsLogTbl> conflictTrxLogTbls = conflictTrxLogDto.getCflLogs().stream().map(source -> {
+            ConflictRowsLogTbl target = new ConflictRowsLogTbl();
+            target.setConflictTrxLogId(conflictTrxLogId);
+            target.setDbName(source.getDb());
+            target.setTableName(source.getTable());
+            target.setRawSql(source.getRawSql());
+            target.setRawSqlResult(source.getRawSqlRes());
+            target.setHandleSql(source.getHandleSql());
+            target.setHandleSqlResult(source.getHandleSqlRes());
+            target.setDstRowRecord(source.getDstRowRecord());
+            target.setRowResult(source.getRowsRes());
+            target.setHandleTime(conflictTrxLogDto.getHandleTime());
+
+            return target;
+        }).collect(Collectors.toList());
+
+        return conflictTrxLogTbls;
     }
 
     private void extractRecords(Map<String, List<Map<String, Object>>> resultMap, Map<String, List<Map<String, Object>>> columnMap, Map<String, Object> result) {
@@ -283,7 +325,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return recordIsEqual(columns, srcRecord, dstRecord);
     }
 
-    private  boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
+    private boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
         for (String column : columns) {
             Object srcValue = srcRecord.get(column);
             Object dstValue = dstRecord.get(column);

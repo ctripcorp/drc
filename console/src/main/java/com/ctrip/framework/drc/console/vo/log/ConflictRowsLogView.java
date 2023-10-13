@@ -13,6 +13,15 @@ public class ConflictRowsLogView {
     private Integer rowResult;
     private String srcDc;
     private String dstDc;
+    private String rawSql;
+
+    public String getRawSql() {
+        return rawSql;
+    }
+
+    public void setRawSql(String rawSql) {
+        this.rawSql = rawSql;
+    }
 
     public String getGtid() {
         return gtid;

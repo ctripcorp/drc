@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.dto.log.ConflictTrxLogDto;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
@@ -11,10 +12,7 @@ import com.ctrip.framework.drc.core.http.ApiResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,7 +21,7 @@ import java.util.List;
  * 2023/9/27 14:19
  */
 @RestController
-@RequestMapping("/api/drc/v2/conflict/log/")
+@RequestMapping("/api/drc/v2/log/conflict/")
 public class ConflictLogController {
     private static final Logger logger = LoggerFactory.getLogger(ConflictLogController.class);
 
@@ -67,6 +65,16 @@ public class ConflictLogController {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId));
             return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("")
+    public ApiResult<Boolean> createCon(@RequestBody ConflictTrxLogDto conflictTrxLogDto) {
+        try {
+            conflictLogService.createConflictLog(conflictTrxLogDto);
+            return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

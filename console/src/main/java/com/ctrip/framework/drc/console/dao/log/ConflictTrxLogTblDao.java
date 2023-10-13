@@ -42,7 +42,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
 
     public ConflictTrxLogTbl queryByGtid(String gtid) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.equal(GTID, gtid, Types.VARCHAR);
+        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR);
         return queryOne(sqlBuilder);
     }
 

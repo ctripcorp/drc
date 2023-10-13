@@ -44,7 +44,7 @@
     <Table stripe border :columns="columns" :data="tableData">
       <template slot-scope="{ row, index }" slot="action">
         <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
-          查看
+          冲突行
         </Button>
         <Button type="primary" size="small" @click="getLogDetail(row, index)" style="margin-right: 5px">
           详情
@@ -91,7 +91,8 @@ export default {
       columns: [
         {
           title: '事务ID',
-          key: 'gtid'
+          key: 'gtid',
+          tooltip: true
         },
         {
           title: '源MHA',
@@ -186,7 +187,7 @@ export default {
       }
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
-      this.axios.get('/api/drc/v2/conflict/log/trx', { params: reqParam })
+      this.axios.get('/api/drc/v2/log/conflict/trx', { params: reqParam })
         .then(response => {
           const data = response.data
           const pageResult = data.pageReq

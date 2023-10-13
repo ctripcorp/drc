@@ -26,7 +26,7 @@
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
                       @on-change="getData">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
@@ -85,7 +85,8 @@ export default {
       columns: [
         {
           title: '事务ID',
-          key: 'gtid'
+          key: 'gtid',
+          tooltip: true
         },
         {
           title: '同步方向',
@@ -103,14 +104,20 @@ export default {
           }
         },
         {
-          title: '库名',
-          key: 'dbName',
-          width: 200
-        },
-        {
           title: '表名',
           key: 'tableName',
-          width: 200
+          width: 250,
+          tooltip: true,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.dbName + '.' + row.tableName
+            return h('div', text)
+          }
+        },
+        {
+          title: '原始sql',
+          key: 'rawSql',
+          tooltip: true
         },
         {
           title: '事务提交时间',
@@ -133,13 +140,13 @@ export default {
               }
             }, text)
           }
-        },
-        {
-          title: '操作',
-          slot: 'action',
-          width: 150,
-          align: 'center'
         }
+        // {
+        //   title: '操作',
+        //   slot: 'action',
+        //   width: 150,
+        //   align: 'center'
+        // }
       ],
       total: 0,
       current: 1,
@@ -166,7 +173,7 @@ export default {
       console.log('beginTime: ' + beginTime)
       console.log('endTime: ' + endTime)
       const params = {
-        gtId: this.queryParam.gtid,
+        gtid: this.queryParam.gtid,
         dbName: this.queryParam.dbName,
         tableName: this.queryParam.tableName,
         rowResult: this.queryParam.rowResult,
@@ -183,7 +190,7 @@ export default {
       }
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
-      this.axios.get('/api/drc/v2/conflict/log/rows', { params: reqParam })
+      this.axios.get('/api/drc/v2/log/conflict/rows', { params: reqParam })
         .then(response => {
           const data = response.data
           const pageResult = data.pageReq

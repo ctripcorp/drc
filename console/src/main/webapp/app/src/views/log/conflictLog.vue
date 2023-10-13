@@ -39,6 +39,7 @@ export default {
       // alert(newVal + ':' + val)
       if (newVal === 'trxLog') {
         this.refresh = true
+        // this.refresh = false
       } else {
         this.refresh = false
       }

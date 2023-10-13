@@ -22,7 +22,7 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String CONFLICT_TRX_LOG_ID = "conflict_trx_log_id";
     private static final String DB_NAME = "db_name";
     private static final String TABLE_NAME = "table_name";
-    private static final String ROW_RESULT = "rows_result";
+    private static final String ROW_RESULT = "row_result";
     private static final String HANDLE_TIME = "handle_time";
 
     public ConflictRowsLogTblDao() throws SQLException {

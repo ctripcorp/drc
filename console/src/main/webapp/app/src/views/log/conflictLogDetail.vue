@@ -12,14 +12,18 @@
             自动冲突处理结果
           </p>
           <div class="ivu-list-item-meta-title">事务提交结果：
-            <Tag :loading="logTableLoading" :color="trxLog.trxResult==0?'success':'error'" size="medium">{{trxLog.trxResultStr}}</Tag>
+<!--            <Tag :loading="logTableLoading" :color="trxLog.trxResult==0?'success':'error'" size="medium">{{trxLog.trxResultStr}}</Tag>-->
+            <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">{{trxLog.trxResultStr}}</Button>
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突事务记录：
-            <Tag :color="trxLog.recordEqual==true?'success':'error'" size="medium">{{trxLog.diffStr}}</Tag>
+            <Tooltip content="数据一致性比对忽略字段过滤的列">
+<!--              <Tag :loading="recordLoading" :color="trxLog.recordEqual==true?'success':'error'" size="medium">{{trxLog.diffStr}}</Tag>-->
+              <Button :loading="recordLoading" size="small" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
+            </Tooltip >
           </div>
           <Divider/>
           <div class="ivu-list-item-meta-title">源机房({{trxLog.srcDc}})</div>
-          <Table size="small" stripe v-for="(item, index) in srcRecords" :key="index" :columns="item.columns" :data="item.records"
+          <Table  size="small" stripe v-for="(item, index) in srcRecords" :key="index" :columns="item.columns" :data="item.records"
                  border></Table>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstDc}})</div>
@@ -148,13 +152,13 @@ export default {
     },
     getTrxLogDetail () {
       this.logTableLoading = true
-      this.axios.get('/api/drc/v2/conflict/log/detail?conflictTrxLogId=' + this.conflictTrxLogId)
+      this.axios.get('/api/drc/v2/log/conflict/detail?conflictTrxLogId=' + this.conflictTrxLogId)
         .then(response => {
           if (response.data.status === 1) {
             this.$Message.error('查询冲突详情失败!')
           } else {
             const data = response.data.data
-            this.trxLog.srcDc = data.src
+            this.trxLog.srcDc = data.srcDc
             this.trxLog.dstDc = data.dstDc
             this.trxLog.trxResult = data.trxResult
             this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
@@ -166,17 +170,22 @@ export default {
         })
     },
     getTrxRecords () {
-      this.axios.get('/api/drc/v2/conflict/log/records?conflictTrxLogId=' + this.conflictTrxLogId)
+      this.recordLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/records?conflictTrxLogId=' + this.conflictTrxLogId)
         .then(response => {
           if (response.data.status === 1) {
-            this.$Message.error('查询当前行记录失败!')
+            // this.$Message.error('查询当前行记录失败!')
+            this.trxLog.diffStr = '数据比对失败'
           } else {
             const data = response.data.data
             this.trxLog.recordEqual = data.recordIsEqual
-            this.trxLog.diffStr = data.recordIsEqual === 0 ? '数据一致' : '数据不一致'
+            this.trxLog.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
             this.srcRecords = data.srcRecords
             this.dstRecords = data.dstRecords
           }
+        })
+        .finally(() => {
+          this.recordLoading = false
         })
     }
   },
