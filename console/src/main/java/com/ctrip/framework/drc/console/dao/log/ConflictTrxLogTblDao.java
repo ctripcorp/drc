@@ -63,7 +63,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         return sqlBuilder;
     }
 
-    public void batchInsertWithReturnId(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws SQLException {
+    public List<ConflictTrxLogTbl> batchInsertWithReturnId(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insertWithKeyHolder(keyHolder, conflictTrxLogTbls);
         List<Number> idList = keyHolder.getIdList();
@@ -71,5 +71,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         for (int i = 0; i < size; i++) {
             conflictTrxLogTbls.get(i).setId((Long) idList.get(i));
         }
+
+        return conflictTrxLogTbls;
     }
 }

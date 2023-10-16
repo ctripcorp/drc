@@ -99,11 +99,17 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testCreateConflict() throws Exception {
-        Mockito.doNothing().when(conflictTrxLogTblDao).batchInsertWithReturnId(Mockito.anyList());
+        Mockito.when(conflictTrxLogTblDao.batchInsertWithReturnId(Mockito.anyList())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(conflictRowsLogTblDao.insert(Mockito.anyList())).thenReturn(new int[1]);
 
         ConflictTransactionLog trxLog = buildConflictTransactionLog();
         conflictLogService.createConflictLog(Lists.newArrayList(trxLog));
+    }
+
+    @Test
+    public void testGetConflictCurrentRecordView() throws Exception {
+        Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
+        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTbls().get(0));
     }
 
     private ConflictTransactionLog buildConflictTransactionLog() {
