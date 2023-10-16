@@ -12,7 +12,7 @@ import java.sql.Types;
  * 2023/9/26 10:52
  */
 @Entity
-@Database(name = "fxdrclogdb_w")
+@Database(name = "bbzfxdrclogdb_w")
 @Table(name = "conflict_trx_log_tbl")
 public class ConflictTrxLogTbl {
     /**

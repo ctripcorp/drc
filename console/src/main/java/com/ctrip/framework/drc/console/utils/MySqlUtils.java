@@ -1,5 +1,12 @@
 package com.ctrip.framework.drc.console.utils;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.util.JdbcConstants;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -19,10 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -104,6 +108,7 @@ public class MySqlUtils {
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
+    private static final String SELECT_SQL = "SELECT * FROM %s WHERE %s";
     private static final int COLUMN_INDEX = 1;
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
 
@@ -807,6 +812,110 @@ public class MySqlUtils {
             }
         }
         return "three accounts ready";
+    }
+
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            Map<String, String> parseResultMap = parseSql(rawSql);
+            String operateType = parseResultMap.get("operateType");
+            if (operateType == null) {
+                logger.info("[[tag=conflictLog]] select Record could only get condition from insert and update");
+                return new HashMap<>();
+            }
+
+            String tableName = parseResultMap.get("tableName");
+            String sql = String.format(SELECT_SQL, tableName, parseResultMap.get("conditionStr"));
+            logger.info("[[tag=conflictLog]] sql:{}",sql);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            Map<String, Object> result = resultSetConvertMap(rs);
+            result.put("tableName", tableName);
+            return result;
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new HashMap<>();
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+    }
+
+    public static Map<String, Object> resultSetConvertMap(ResultSet rs) throws SQLException {
+        Map<String, Object> ret = new HashMap<>();
+        List<Map<String, Object>> list = new ArrayList<>();
+        ResultSetMetaData md = rs.getMetaData();
+        int columnCount = md.getColumnCount();
+        List<String> columnList = new ArrayList<>();
+        List<Map<String, Object>> metaColumn = new ArrayList<>();
+        for (int j = 1; j <= columnCount; j++) {
+            Map<String, Object> columnData = new LinkedHashMap<>();
+            columnData.put("title", md.getColumnName(j));
+            columnData.put("key", md.getColumnName(j));
+//            columnData.put("width", 200);
+            columnData.put("tooltip", true);
+            metaColumn.add(columnData);
+            columnList.add(md.getColumnName(j));
+        }
+        ret.put("columns", columnList);
+        ret.put("metaColumn", metaColumn);
+
+        while (rs.next()) {
+            Map<String, Object> rowData = new LinkedHashMap<>();
+            for (String columnName : columnList) {
+                rowData.put(columnName, rs.getString(columnName));
+            }
+            list.add(rowData);
+        }
+        ret.put("record", list);
+        return ret;
+    }
+
+    public static Map<String, String> parseSql(String sql) {
+        Map<String, String> parseResult = new HashMap<>();
+
+        String dbType = JdbcConstants.MYSQL;
+        String formatSql = SQLUtils.format(sql, dbType);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
+        SQLStatement stmt = stmtList.get(0);
+
+        if (formatSql.startsWith("UPDATE")) {
+            MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+            stmt.accept(visitor);
+            String tableName = visitor.getCurrentTable();
+            parseResult.put("tableName", tableName);
+            Map<TableStat.Name, TableStat> manipulationMap = visitor.getTables();
+            String tableNameFormat = tableName.replace("`", "");
+            TableStat.Name name = new TableStat.Name(tableNameFormat);
+            TableStat stat = manipulationMap.get(name);
+            parseResult.put("operateType", stat.toString());
+            List<TableStat.Condition> Conditions = visitor.getConditions();
+            TableStat.Condition equalCondition = Conditions.get(0);
+            String equalConditionStr = equalCondition.toString();
+            parseResult.put("conditionStr", equalConditionStr);
+        } else if (formatSql.startsWith("INSERT")) {
+            MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
+            insertStatement.getTableSource().toString();
+            String tableName = insertStatement.getTableSource().toString();
+            parseResult.put("tableName", tableName);
+
+            List<SQLExpr> columns = insertStatement.getColumns();
+            SQLExpr columnsExpr = columns.get(0);
+            String column = columnsExpr.toString();
+
+            List<SQLExpr> values = insertStatement.getValues().getValues();
+            SQLExpr valueExpr = values.get(0);
+            String value = valueExpr.toString();
+            String conditionStr = column + " = " + value;
+            parseResult.put("conditionStr", conditionStr);
+            parseResult.put("operateType", "Insert");
+        }
+
+        return parseResult;
     }
 
 

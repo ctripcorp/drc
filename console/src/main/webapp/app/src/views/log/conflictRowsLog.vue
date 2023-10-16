@@ -26,7 +26,7 @@
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
                       @on-change="getData">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
@@ -36,7 +36,7 @@
       </Col>
       <Col span="1">
         <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
-        <Button icon="md-refresh" :loading="dataLoading" @click="resetParam" style="margin-top: 20px">重置</Button>
+        <Button icon="md-refresh" @click="resetParam" style="margin-top: 20px">重置</Button>
       </Col>
     </Row>
     <br>
@@ -81,19 +81,12 @@ export default {
         endHandleTime: null,
         rowResult: null
       },
-      tableData: [{
-        dbName: 'db',
-        tableName: 'table',
-        gtid: 'c5ed128d-5b8b-11ee-ae5e-fa163e4168ae',
-        rowResult: 0,
-        handleTime: '2023-09-23 10:00:00',
-        srcDc: 'shaxy',
-        dstDc: 'sinaws'
-      }],
+      tableData: [],
       columns: [
         {
           title: '事务ID',
-          key: 'gtid'
+          key: 'gtid',
+          tooltip: true
         },
         {
           title: '同步方向',
@@ -111,14 +104,20 @@ export default {
           }
         },
         {
-          title: '库名',
-          key: 'dbName',
-          width: 200
-        },
-        {
           title: '表名',
           key: 'tableName',
-          width: 200
+          width: 250,
+          tooltip: true,
+          render: (h, params) => {
+            const row = params.row
+            const text = row.dbName + '.' + row.tableName
+            return h('div', text)
+          }
+        },
+        {
+          title: '原始sql',
+          key: 'rawSql',
+          tooltip: true
         },
         {
           title: '事务提交时间',
@@ -141,13 +140,13 @@ export default {
               }
             }, text)
           }
-        },
-        {
-          title: '操作',
-          slot: 'action',
-          width: 150,
-          align: 'center'
         }
+        // {
+        //   title: '操作',
+        //   slot: 'action',
+        //   width: 150,
+        //   align: 'center'
+        // }
       ],
       total: 0,
       current: 1,
@@ -167,8 +166,65 @@ export default {
   },
   methods: {
     getData () {
+      const beginTime = this.queryParam.beginHandleTime
+      const endTime = this.queryParam.endHandleTime
+      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
+      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      console.log('beginTime: ' + beginTime)
+      console.log('endTime: ' + endTime)
+      const params = {
+        gtid: this.queryParam.gtid,
+        dbName: this.queryParam.dbName,
+        tableName: this.queryParam.tableName,
+        rowResult: this.queryParam.rowResult,
+        pageReq: {
+          pageSize: this.size,
+          pageIndex: this.current
+        }
+      }
+      if (!isNaN(beginHandleTime)) {
+        params.beginHandleTime = beginHandleTime
+      }
+      if (!isNaN(endHandleTime) && endHandleTime !== null) {
+        params.endHandleTime = endHandleTime + 24 * 60 * 60 * 1000 - 1
+      }
+      const reqParam = this.flattenObj(params)
+      this.dataLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/rows', { params: reqParam })
+        .then(response => {
+          const data = response.data
+          const pageResult = data.pageReq
+          if (data.status === 1) {
+            this.$Message.error('查询失败')
+          } else if (data.data.length === 0 || pageResult.totalCount === 0) {
+            this.total = 0
+            this.current = 1
+            this.tableData = data.data
+            this.$Message.warning('查询结果为空')
+          } else {
+            this.total = pageResult.totalCount
+            this.current = pageResult.pageIndex
+            this.tableData = data.data
+            this.$Message.success('查询成功')
+          }
+        })
+        .finally(() => {
+          this.dataLoading = false
+        })
     },
-    getRowsData () {
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     resetParam () {
       this.queryParam = {
@@ -190,6 +246,7 @@ export default {
     }
   },
   created () {
+    this.getData()
   }
 }
 </script>

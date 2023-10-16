@@ -1,5 +1,5 @@
 <template>
-  <div style="padding: 1px 1px ">
+  <div style="padding: 1px 1px">
     <Row :gutter=10 align="middle">
       <Col span="22">
         <Card :padding=5>
@@ -18,11 +18,12 @@
                      @on-enter="getTrxData"></Input>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" value-format="timestamp" v-model="queryParam.beginHandleTime"
+              <DatePicker type="date" :editable="editable" format="yyyy-MM-dd" v-model="queryParam.beginHandleTime"
                           placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="3">
-              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime" placeholder="结束日期"></DatePicker>
+              <DatePicker type="date" :editable="editable" v-model="queryParam.endHandleTime"
+                          placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
               <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
@@ -35,7 +36,7 @@
       </Col>
       <Col span="1">
         <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getTrxData">查询</Button>
-        <Button icon="md-refresh" :loading="dataLoading" @click="resetParam" style="margin-top: 20px">重置
+        <Button icon="md-refresh"  @click="resetParam" style="margin-top: 20px">重置
         </Button>
       </Col>
     </Row>
@@ -43,7 +44,10 @@
     <Table stripe border :columns="columns" :data="tableData">
       <template slot-scope="{ row, index }" slot="action">
         <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
-          查看
+          冲突行
+        </Button>
+        <Button type="primary" size="small" @click="getLogDetail(row, index)" style="margin-right: 5px">
+          详情
         </Button>
       </template>
     </Table>
@@ -64,6 +68,7 @@
 </template>
 
 <script>
+
 export default {
   name: 'conflictTrxLog',
   props: {
@@ -72,6 +77,7 @@ export default {
   data () {
     return {
       editable: false,
+      clearable: false,
       dataLoading: false,
       queryParam: {
         srcMhaName: null,
@@ -81,30 +87,12 @@ export default {
         endHandleTime: null,
         trxResult: null
       },
-      tableData: [
-        {
-          srcMhaName: 'testA',
-          dstMhaName: 'testB',
-          gtid: 'c5ed128d-5b8b-11ee-ae5e-fa163e4168ae',
-          trxRowsNum: 0,
-          cflRowsNum: 1,
-          trxResult: 0,
-          handleTime: '2023-09-23 10:00:00'
-        },
-        {
-          srcMhaName: 'testB',
-          dstMhaName: 'testA',
-          gtid: 'c5ed128d-5b8b-11ee-ae5e',
-          trxRowsNum: 0,
-          cflRowsNum: 1,
-          trxResult: 1,
-          handleTime: '2023-09-23 11:00:00'
-        }
-      ],
+      tableData: [],
       columns: [
         {
           title: '事务ID',
-          key: 'gtid'
+          key: 'gtid',
+          tooltip: true
         },
         {
           title: '源MHA',
@@ -175,19 +163,88 @@ export default {
   },
   methods: {
     getTrxData () {
-      const beginTime = new Date(this.queryParam.beginHandleTime).getTime()
-      alert(beginTime)
+      const beginTime = this.queryParam.beginHandleTime
+      const endTime = this.queryParam.endHandleTime
+      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
+      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      console.log('beginTime: ' + beginTime)
+      console.log('endTime: ' + endTime)
+      const params = {
+        gtId: this.queryParam.gtid,
+        srcMhaName: this.queryParam.srcMhaName,
+        dstMhaName: this.queryParam.dstMhaName,
+        trxResult: this.queryParam.trxResult,
+        pageReq: {
+          pageSize: this.size,
+          pageIndex: this.current
+        }
+      }
+      if (!isNaN(beginHandleTime)) {
+        params.beginHandleTime = beginHandleTime
+      }
+      if (!isNaN(endHandleTime) && endHandleTime !== null) {
+        params.endHandleTime = endHandleTime + 24 * 60 * 60 * 1000 - 1
+      }
+      const reqParam = this.flattenObj(params)
+      this.dataLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/trx', { params: reqParam })
+        .then(response => {
+          const data = response.data
+          const pageResult = data.pageReq
+          if (data.status === 1) {
+            this.$Message.error('查询失败')
+          } else if (data.data.length === 0 || pageResult.totalCount === 0) {
+            this.total = 0
+            this.current = 1
+            this.tableData = data.data
+            this.$Message.warning('查询结果为空')
+          } else {
+            this.total = pageResult.totalCount
+            this.current = pageResult.pageIndex
+            this.tableData = data.data
+            this.$Message.success('查询成功')
+          }
+        })
+        .finally(() => {
+          this.dataLoading = false
+        })
     },
-    getRowsData () {
+    flattenObj (ob) {
+      const result = {}
+      for (const i in ob) {
+        if ((typeof ob[i]) === 'object' && !Array.isArray(ob[i])) {
+          const temp = this.flattenObj(ob[i])
+          for (const j in temp) {
+            result[i + '.' + j] = temp[j]
+          }
+        } else {
+          result[i] = ob[i]
+        }
+      }
+      return result
     },
     resetParam () {
+      this.queryParam = {
+        srcMhaName: null,
+        dstMhaName: null,
+        gtid: null,
+        beginHandleTime: null,
+        endHandleTime: null,
+        trxResult: null
+      }
     },
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
       this.$emit('gtidChanged', row.gtid)
-      // alert(this.tabVal)
       this.tabVal = 'rowsLog'
-      // alert(this.tabVal)
+    },
+    getLogDetail (row, index) {
+      this.$router.push({
+        path: '/conflictLogDetail',
+        query: {
+          conflictTrxLogId: row.conflictTrxLogId
+        }
+      })
     },
     handleChangeSize (val) {
       this.size = val
@@ -195,6 +252,9 @@ export default {
         this.getTrxData()
       })
     }
+  },
+  created () {
+    this.getTrxData()
   }
 }
 </script>

@@ -12,8 +12,8 @@ import java.sql.Types;
  * 2023/9/26 14:01
  */
 @Entity
-@Database(name = "fxdrclogdb_w")
-@Table(name = "conflict_trx_log_tbl")
+@Database(name = "bbzfxdrclogdb_w")
+@Table(name = "conflict_rows_log_tbl")
 public class ConflictRowsLogTbl {
     /**
      * 主键

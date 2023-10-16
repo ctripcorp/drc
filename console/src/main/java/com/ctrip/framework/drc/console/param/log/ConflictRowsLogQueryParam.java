@@ -8,12 +8,29 @@ import com.ctrip.framework.drc.core.http.PageReq;
  */
 public class ConflictRowsLogQueryParam {
     private Long conflictTrxLogId;
+    private String gtid;
     private String dbName;
     private String tableName;
     private Long beginHandleTime;
     private Long endHandleTime;
     private Integer rowResult;
     private PageReq pageReq;
+
+    public String getGtid() {
+        return gtid;
+    }
+
+    public void setGtid(String gtid) {
+        this.gtid = gtid;
+    }
+
+    public Long getConflictTrxLogId() {
+        return conflictTrxLogId;
+    }
+
+    public void setConflictTrxLogId(Long conflictTrxLogId) {
+        this.conflictTrxLogId = conflictTrxLogId;
+    }
 
     public Long getBeginHandleTime() {
         return beginHandleTime;
@@ -29,14 +46,6 @@ public class ConflictRowsLogQueryParam {
 
     public void setEndHandleTime(Long endHandleTime) {
         this.endHandleTime = endHandleTime;
-    }
-
-    public Long getConflictTrxLogId() {
-        return conflictTrxLogId;
-    }
-
-    public void setConflictTrxLogId(Long conflictTrxLogId) {
-        this.conflictTrxLogId = conflictTrxLogId;
     }
 
     public String getDbName() {

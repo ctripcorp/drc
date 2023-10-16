@@ -30,7 +30,7 @@ export default {
   data () {
     return {
       tabValue: 'trxLog',
-      gtid: 'test111',
+      gtid: null,
       refresh: false
     }
   },
@@ -39,6 +39,7 @@ export default {
       // alert(newVal + ':' + val)
       if (newVal === 'trxLog') {
         this.refresh = true
+        // this.refresh = false
       } else {
         this.refresh = false
       }

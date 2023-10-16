@@ -40,14 +40,24 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         return queryList(sqlBuilder);
     }
 
+    public ConflictTrxLogTbl queryByGtid(String gtid) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(GTID, gtid, Types.VARCHAR);
+        return queryOne(sqlBuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuilder(ConflictTrxLogQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
         sqlBuilder.and().likeNullable(SRC_MHA_NAME, param.getSrcMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().likeNullable(DST_MHA_NAME, param.getDstMhaName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().equalNullable(GTID, param.getGtId(), Types.VARCHAR)
-                .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT)
-                .and().greaterThanNullable(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT)
-                .and().lessThanNullable(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
+                .and().equalNullable(TRX_RESULT, param.getTrxResult(), Types.TINYINT);
+        if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
+            sqlBuilder.and().greaterThan(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);
+        }
+        if (param.getEndHandleTime() != null && param.getEndHandleTime() > 0L) {
+            sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
+        }
 
         return sqlBuilder;
     }
