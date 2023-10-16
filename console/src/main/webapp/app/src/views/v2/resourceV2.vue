@@ -64,9 +64,6 @@
             <Button type="error" size="small" style="margin-right: 5px" @click="preDeleteResource(row, index)">
               下线
             </Button>
-            <Button type="info" size="small" style="margin-right: 5px" @click="test(row, index)">
-              测试
-            </Button>
           </template>
         </Table>
         <div style="text-align: center;margin: 16px 0">
@@ -450,14 +447,6 @@ export default {
         }
       }
       return result
-    },
-    test (row, index) {
-      this.$router.push({
-        path: '/conflictLog',
-        query: {
-          tabVal: 'trxRows'
-        }
-      })
     }
   },
   created () {

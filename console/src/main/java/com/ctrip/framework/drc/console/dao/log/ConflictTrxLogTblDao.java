@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
+import com.ctrip.platform.dal.dao.KeyHolder;
 import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
 import org.springframework.stereotype.Repository;
@@ -60,5 +61,17 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         }
 
         return sqlBuilder;
+    }
+
+    public List<ConflictTrxLogTbl> batchInsertWithReturnId(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws SQLException {
+        KeyHolder keyHolder = new KeyHolder();
+        insertWithKeyHolder(keyHolder, conflictTrxLogTbls);
+        List<Number> idList = keyHolder.getIdList();
+        int size = conflictTrxLogTbls.size();
+        for (int i = 0; i < size; i++) {
+            conflictTrxLogTbls.get(i).setId((Long) idList.get(i));
+        }
+
+        return conflictTrxLogTbls;
     }
 }

@@ -96,7 +96,7 @@ export default {
               return h(conflictRowsLogDetail, {
                 props: {
                   rowData: '/*原始SQL*/\n' + row.rawSql + '\n/*原始SQL处理结果: ' + row.rawSqlResult + '*/\n\n' + '/*冲突时行记录*/\n' +
-                    row.dstRowRecord + '\n\n' + '/*冲突时行记录*/\n' + row.handleSql + '\n/*冲突时行记录处理结果: ' + row.handleSqlResult + '*/'
+                    row.dstRowRecord + '\n\n' + '/*冲突处理SQL*/\n' + row.handleSql + '\n/*冲突处理SQL处理结果: ' + row.handleSqlResult + '*/'
                 }
               })
             }
@@ -111,6 +111,11 @@ export default {
                 params.index + 1
               )
             }
+          },
+          {
+            title: '执行顺序',
+            key: 'rowId',
+            width: 100
           },
           {
             title: '原始sql',

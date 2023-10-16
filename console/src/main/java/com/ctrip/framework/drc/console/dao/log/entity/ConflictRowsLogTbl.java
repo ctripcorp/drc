@@ -95,6 +95,13 @@ public class ConflictRowsLogTbl {
     private Long handleTime;
 
     /**
+     * 执行顺序ID
+     */
+    @Column(name = "row_id")
+    @Type(value = Types.BIGINT)
+    private Long rowId;
+
+    /**
      * 是否删除, 0-否; 1-是
      */
     @Column(name = "deleted")
@@ -225,5 +232,13 @@ public class ConflictRowsLogTbl {
 
     public void setHandleTime(Long handleTime) {
         this.handleTime = handleTime;
+    }
+
+    public Long getRowId() {
+        return rowId;
+    }
+
+    public void setRowId(Long rowId) {
+        this.rowId = rowId;
     }
 }

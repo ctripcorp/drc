@@ -12,7 +12,6 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
-import com.ctrip.framework.drc.console.dto.log.ConflictTrxLogDto;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -25,6 +24,8 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -168,6 +169,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Override
     public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception {
         ConflictCurrentRecordView view = new ConflictCurrentRecordView();
+
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
         if (conflictTrxLogTbl == null) {
             return view;
@@ -230,39 +232,47 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public void createConflictLog(ConflictTrxLogDto conflictTrxLogDto) throws Exception {
-        ConflictTrxLogTbl conflictTrxLogTbl = buildConflictTrxLog(conflictTrxLogDto);
-        long conflictTrxLogId = conflictTrxLogTblDao.insertWithReturnId(conflictTrxLogTbl);
+    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
+    public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
+        conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
+        Map<String, Long> trxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getGtid, ConflictTrxLogTbl::getId));
 
-        List<ConflictRowsLogTbl> conflictRowsLogTbls = buildConflictRowsLogs(conflictTrxLogId, conflictTrxLogDto);
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = new ArrayList<>();
+        trxLogs.stream().forEach(trxLog -> {
+            Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog);
+            conflictRowsLogTbls.addAll(conflictRowsLogList);
+        });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
     }
 
-    private ConflictTrxLogTbl buildConflictTrxLog(ConflictTrxLogDto conflictTrxLogDto) {
+    private ConflictTrxLogTbl buildConflictTrxLog(ConflictTransactionLog trxLog) {
         ConflictTrxLogTbl conflictTrxLogTbl = new ConflictTrxLogTbl();
-        conflictTrxLogTbl.setSrcMhaName(conflictTrxLogDto.getSrcMha());
-        conflictTrxLogTbl.setDstMhaName(conflictTrxLogDto.getDstMha());
-        conflictTrxLogTbl.setGtid(conflictTrxLogDto.getGtid());
-        conflictTrxLogTbl.setTrxRowsNum(conflictTrxLogDto.getTrxRowsNum());
-        conflictTrxLogTbl.setCflRowsNum(conflictTrxLogDto.getCflRowsNum());
-        conflictTrxLogTbl.setTrxResult(conflictTrxLogDto.getTrxRes());
-        conflictTrxLogTbl.setHandleTime(conflictTrxLogDto.getHandleTime());
+        conflictTrxLogTbl.setSrcMhaName(trxLog.getSrcMha());
+        conflictTrxLogTbl.setDstMhaName(trxLog.getDstMha());
+        conflictTrxLogTbl.setGtid(trxLog.getGtid());
+        conflictTrxLogTbl.setTrxRowsNum(trxLog.getTrxRowsNum());
+        conflictTrxLogTbl.setCflRowsNum(trxLog.getCflRowsNum());
+        conflictTrxLogTbl.setTrxResult(trxLog.getTrxRes());
+        conflictTrxLogTbl.setHandleTime(trxLog.getHandleTime());
         return conflictTrxLogTbl;
     }
 
-    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTrxLogDto conflictTrxLogDto) {
-        List<ConflictRowsLogTbl> conflictTrxLogTbls = conflictTrxLogDto.getCflLogs().stream().map(source -> {
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog) {
+        List<ConflictRowsLogTbl> conflictTrxLogTbls = trxLog.getCflLogs().stream().map(source -> {
             ConflictRowsLogTbl target = new ConflictRowsLogTbl();
             target.setConflictTrxLogId(conflictTrxLogId);
             target.setDbName(source.getDb());
             target.setTableName(source.getTable());
             target.setRawSql(source.getRawSql());
-            target.setRawSqlResult(source.getRawSqlRes());
+            target.setRawSqlResult(source.getRawRes());
             target.setHandleSql(source.getHandleSql());
             target.setHandleSqlResult(source.getHandleSqlRes());
-            target.setDstRowRecord(source.getDstRowRecord());
-            target.setRowResult(source.getRowsRes());
-            target.setHandleTime(conflictTrxLogDto.getHandleTime());
+            target.setDstRowRecord(source.getDstRecord());
+            target.setRowResult(source.getRowRes());
+            target.setHandleTime(trxLog.getHandleTime());
+            target.setRowId(source.getRowId());
 
             return target;
         }).collect(Collectors.toList());
@@ -316,6 +326,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 List<String> filterColumns = columnsFieldMap.get(dbReplicationId);
                 if (!CollectionUtils.isEmpty(filterColumns)) {
                     columns = columns.stream().filter(e -> !filterColumns.contains(e.toLowerCase())).collect(Collectors.toList());
+                    List<Map<String, Object>> srcMetaColumns = (List<Map<String, Object>>) srcResultMap.get("metaColumn");
+                    List<Map<String, Object>> dstMetaColumns = (List<Map<String, Object>>) dstResultMap.get("metaColumn");
+                    setFilterColumnTip(srcMetaColumns, filterColumns);
+                    setFilterColumnTip(dstMetaColumns, filterColumns);
                 }
             }
         }
@@ -323,6 +337,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, Object> srcRecord = srcRecords.get(0);
         Map<String, Object> dstRecord = dstRecords.get(0);
         return recordIsEqual(columns, srcRecord, dstRecord);
+    }
+
+    private void setFilterColumnTip(List<Map<String, Object>> metaColumns, List<String> filterColumns) {
+        for (Map<String, Object> metaColumn : metaColumns) {
+            String column = (String) metaColumn.get("key");
+            if (filterColumns.contains(column)) {
+                metaColumn.put("title", column + " (字段过滤)");
+            }
+        }
     }
 
     private boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {
