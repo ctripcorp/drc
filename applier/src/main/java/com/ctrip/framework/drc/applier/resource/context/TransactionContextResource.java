@@ -204,6 +204,8 @@ public class TransactionContextResource extends AbstractContext
                 } else {
                     cflTrxLog.setTrxRes(ConflictResult.ROLLBACK.getValue());
                 }
+                cflTrxLog.setCflRowsNum(conflictRowNum.longValue());
+                cflTrxLog.setTrxRowsNum(trxRowNum.longValue());
                 cflTrxLog.setGtid(gtid);
                 List<ConflictRowLog> cflLogs = new ArrayList<>(cflRowLogsQueue.size());
                 loggerSC.info("trx:{},cflRowLogsQueue.size:{}",gtid,cflRowLogsQueue.size());
