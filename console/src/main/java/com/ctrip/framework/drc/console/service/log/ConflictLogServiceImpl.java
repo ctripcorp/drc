@@ -232,11 +232,17 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     @DalTransactional(logicDbName = "bbzxdrclogdb_w")
-    public void createConflictLog(ConflictTransactionLog trxLog) throws Exception {
-        ConflictTrxLogTbl conflictTrxLogTbl = buildConflictTrxLog(trxLog);
-        long conflictTrxLogId = conflictTrxLogTblDao.insertWithReturnId(conflictTrxLogTbl);
+    public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
+        conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
+        Map<String, Long> trxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getGtid, ConflictTrxLogTbl::getId));
 
-        List<ConflictRowsLogTbl> conflictRowsLogTbls = buildConflictRowsLogs(conflictTrxLogId, trxLog);
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = new ArrayList<>();
+        trxLogs.stream().forEach(trxLog -> {
+            Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog);
+            conflictRowsLogTbls.addAll(conflictRowsLogList);
+        });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
     }
 

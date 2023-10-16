@@ -71,9 +71,9 @@ public class ConflictLogController {
     }
 
     @PostMapping("")
-    public ApiResult<Boolean> createCon(@RequestBody ConflictTransactionLog conflictTrxLogDto) {
+    public ApiResult<Boolean> createConflictLog(@RequestBody List<ConflictTransactionLog> trxLogs) {
         try {
-            conflictLogService.createConflictLog(conflictTrxLogDto);
+            conflictLogService.createConflictLog(trxLogs);
             return ApiResult.getSuccessInstance(true);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
