@@ -113,6 +113,11 @@ export default {
             }
           },
           {
+            title: '执行顺序',
+            key: 'rowId',
+            width: 100
+          },
+          {
             title: '原始sql',
             key: 'rawSql',
             tooltip: true

@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.console.controller.log;
 
-import com.ctrip.framework.drc.console.dto.log.ConflictTrxLogDto;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
@@ -9,6 +8,7 @@ import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
 import com.ctrip.framework.drc.core.http.ApiResult;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +71,7 @@ public class ConflictLogController {
     }
 
     @PostMapping("")
-    public ApiResult<Boolean> createCon(@RequestBody ConflictTrxLogDto conflictTrxLogDto) {
+    public ApiResult<Boolean> createCon(@RequestBody ConflictTransactionLog conflictTrxLogDto) {
         try {
             conflictLogService.createConflictLog(conflictTrxLogDto);
             return ApiResult.getSuccessInstance(true);

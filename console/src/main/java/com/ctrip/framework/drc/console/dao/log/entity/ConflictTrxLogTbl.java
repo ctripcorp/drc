@@ -49,15 +49,15 @@ public class ConflictTrxLogTbl {
      * 事务影响行数
      */
     @Column(name = "trx_rows_num")
-    @Type(value = Types.INTEGER)
-    private Integer trxRowsNum;
+    @Type(value = Types.BIGINT)
+    private Long trxRowsNum;
 
     /**
      * 冲突影响行数
      */
     @Column(name = "cfl_rows_num")
-    @Type(value = Types.INTEGER)
-    private Integer cflRowsNum;
+    @Type(value = Types.BIGINT)
+    private Long cflRowsNum;
 
     /**
      * 事务处理结果: 0-commit 1-rollback
@@ -126,19 +126,19 @@ public class ConflictTrxLogTbl {
         this.gtid = gtid;
     }
 
-    public Integer getTrxRowsNum() {
+    public Long getTrxRowsNum() {
         return trxRowsNum;
     }
 
-    public void setTrxRowsNum(Integer trxRowsNum) {
+    public void setTrxRowsNum(Long trxRowsNum) {
         this.trxRowsNum = trxRowsNum;
     }
 
-    public Integer getCflRowsNum() {
+    public Long getCflRowsNum() {
         return cflRowsNum;
     }
 
-    public void setCflRowsNum(Integer cflRowsNum) {
+    public void setCflRowsNum(Long cflRowsNum) {
         this.cflRowsNum = cflRowsNum;
     }
 
