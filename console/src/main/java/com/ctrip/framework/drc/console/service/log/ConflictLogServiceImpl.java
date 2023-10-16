@@ -169,6 +169,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     @Override
     public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception {
         ConflictCurrentRecordView view = new ConflictCurrentRecordView();
+
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
         if (conflictTrxLogTbl == null) {
             return view;

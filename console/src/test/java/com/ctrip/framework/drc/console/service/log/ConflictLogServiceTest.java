@@ -9,13 +9,16 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
+import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
 import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
+import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.google.common.collect.Lists;
@@ -27,9 +30,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.getDcTbls;
+import static com.ctrip.framework.drc.console.service.v2.MigrateEntityBuilder.*;
 
 /**
  * Created by dengquanliang
@@ -109,7 +114,61 @@ public class ConflictLogServiceTest {
     @Test
     public void testGetConflictCurrentRecordView() throws Exception {
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
-        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTbls().get(0));
+        Mockito.when(conflictRowsLogTblDao.queryByTrxLogId(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
+        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("srcMha"), Mockito.anyString())).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("dstMha"), Mockito.anyString())).thenReturn(getDstResMap());
+
+        ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L);
+        Assert.assertTrue(result.isRecordIsEqual());
+
+    }
+
+    private Map<String, Object> getSrcResMap() {
+        Map<String, Object> res = new HashMap<>();
+        res.put("tableName", "db.table");
+
+        Map<String, Object> records = new HashMap<>();
+        records.put("id", 1L);
+        records.put("column", "a");
+        res.put("record", Lists.newArrayList(records));
+
+        Map<String, Object> metaColumn = new HashMap<>();
+        metaColumn.put("key", "column");
+        res.put("metaColumn", Lists.newArrayList(metaColumn));
+
+        res.put("columns", Lists.newArrayList("column"));
+        return res;
+    }
+
+    private Map<String, Object> getDstResMap() {
+        Map<String, Object> res = new HashMap<>();
+        res.put("tableName", "tableName");
+
+        Map<String, Object> records = new HashMap<>();
+        records.put("id", 1L);
+        records.put("column", "b");
+        res.put("record", Lists.newArrayList(records));
+
+        Map<String, Object> metaColumn = new HashMap<>();
+        metaColumn.put("key", "column");
+        res.put("metaColumn", Lists.newArrayList(metaColumn));
+
+        res.put("columns", Lists.newArrayList("column"));
+        return res;
+    }
+
+    private List<DbReplicationView> getDbReplicationViews() {
+        DbReplicationView view = new DbReplicationView();
+        view.setDbReplicationId(200L);
+        view.setDbName("db");
+        view.setLogicTableName("table");
+        view.setFilterTypes(Lists.newArrayList(FilterTypeEnum.COLUMNS_FILTER.getCode()));
+        return Lists.newArrayList(view);
     }
 
     private ConflictTransactionLog buildConflictTransactionLog() {
