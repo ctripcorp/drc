@@ -42,8 +42,8 @@
     <br>
     <Table stripe border :columns="columns" :data="tableData">
       <template slot-scope="{ row, index }" slot="action">
-        <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
-          查看
+        <Button type="success" size="small" @click="queryTrxLog(row, index)" style="margin-right: 5px">
+          冲突事务
         </Button>
       </template>
     </Table>
@@ -140,13 +140,13 @@ export default {
               }
             }, text)
           }
+        },
+        {
+          title: '操作',
+          slot: 'action',
+          width: 150,
+          align: 'center'
         }
-        // {
-        //   title: '操作',
-        //   slot: 'action',
-        //   width: 150,
-        //   align: 'center'
-        // }
       ],
       total: 0,
       current: 1,
@@ -165,6 +165,11 @@ export default {
     }
   },
   methods: {
+    queryTrxLog (row, index) {
+      this.$emit('tabValueChanged', 'trxLog')
+      this.$emit('gtidChanged', row.gtid)
+      this.tabVal = 'rowsLog'
+    },
     getData () {
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
@@ -235,8 +240,6 @@ export default {
         endHandleTime: null,
         rowResult: null
       }
-    },
-    queryRowsLog (row, index) {
     },
     handleChangeSize (val) {
       this.size = val

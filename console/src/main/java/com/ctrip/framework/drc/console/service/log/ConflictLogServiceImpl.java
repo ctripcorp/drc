@@ -25,6 +25,7 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -230,6 +231,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
+    @DalTransactional(logicDbName = "bbzxdrclogdb_w")
     public void createConflictLog(ConflictTrxLogDto conflictTrxLogDto) throws Exception {
         ConflictTrxLogTbl conflictTrxLogTbl = buildConflictTrxLog(conflictTrxLogDto);
         long conflictTrxLogId = conflictTrxLogTblDao.insertWithReturnId(conflictTrxLogTbl);
@@ -316,6 +318,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 List<String> filterColumns = columnsFieldMap.get(dbReplicationId);
                 if (!CollectionUtils.isEmpty(filterColumns)) {
                     columns = columns.stream().filter(e -> !filterColumns.contains(e.toLowerCase())).collect(Collectors.toList());
+                    List<Map<String, Object>> srcMetaColumns = (List<Map<String, Object>>) srcResultMap.get("metaColumn");
+                    List<Map<String, Object>> dstMetaColumns = (List<Map<String, Object>>) dstResultMap.get("metaColumn");
+                    setFilterColumnTip(srcMetaColumns, filterColumns);
+                    setFilterColumnTip(dstMetaColumns, filterColumns);
                 }
             }
         }
@@ -323,6 +329,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<String, Object> srcRecord = srcRecords.get(0);
         Map<String, Object> dstRecord = dstRecords.get(0);
         return recordIsEqual(columns, srcRecord, dstRecord);
+    }
+
+    private void setFilterColumnTip(List<Map<String, Object>> metaColumns, List<String> filterColumns) {
+        for (Map<String, Object> metaColumn : metaColumns) {
+            String column = (String) metaColumn.get("key");
+            if (filterColumns.contains(column)) {
+                metaColumn.put("title", column + " (字段过滤)");
+            }
+        }
     }
 
     private boolean recordIsEqual(List<String> columns, Map<String, Object> srcRecord, Map<String, Object> dstRecord) {

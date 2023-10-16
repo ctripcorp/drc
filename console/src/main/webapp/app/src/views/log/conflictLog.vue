@@ -5,12 +5,13 @@
     </Breadcrumb>
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Tabs v-model="tabValue">
-        <TabPane label="冲突事务" name="trxLog">
-          <conflict-trx-log :gtid="gtid" v-on:tabValueChanged="updateTabValue"
-                            v-on:gtidChanged="updateGtid"></conflict-trx-log>
-        </TabPane>
         <TabPane label="冲突行" name="rowsLog">
-          <conflict-rows-log v-if="refresh" :gtid="gtid"></conflict-rows-log>
+          <conflict-rows-log v-if="refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
+                             v-on:gtidChanged="updateGtid"></conflict-rows-log>
+        </TabPane>
+        <TabPane label="冲突事务" name="trxLog">
+          <conflict-trx-log v-if="!refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
+                            v-on:gtidChanged="updateGtid"></conflict-trx-log>
         </TabPane>
       </Tabs>
     </Content>
@@ -29,9 +30,9 @@ export default {
   name: 'conflictLog',
   data () {
     return {
-      tabValue: 'trxLog',
+      tabValue: 'rowsLog',
       gtid: null,
-      refresh: false
+      refresh: true
     }
   },
   watch: {
