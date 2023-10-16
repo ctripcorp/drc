@@ -33,11 +33,11 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_JSON);
-//        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
-//        HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
-//        restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
+        HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
+        restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         // only for test todo
         logger.info("report conflict log: {}", JsonUtils.toJson(taskList));    
     }
