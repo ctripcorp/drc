@@ -44,6 +44,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
+        logger.info("conflictLogUploadSwitch:{}",conflictLogUploadSwitch);
         if ("on".equals(conflictLogUploadSwitch)) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
