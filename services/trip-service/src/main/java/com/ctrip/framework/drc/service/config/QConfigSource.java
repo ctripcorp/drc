@@ -47,7 +47,7 @@ public class QConfigSource extends AbstractConfigSource implements ConfigSource<
 
                         if (type == String.class) {
                             field.set(object, value);
-                            logger.info("config changed - {}/{}: {}", key.filename, key.key, value);
+                            logger.info("object:{}/{},filed:{}/{},config changed - {}/{}: {}", object,object.getClass().getName(),field,field.getDeclaringClass().getName(),key.filename, key.key, value);
                         }
 
                         logger.info("config changed - {}/{}/{}: {}", key.filename, key.key,type, value);

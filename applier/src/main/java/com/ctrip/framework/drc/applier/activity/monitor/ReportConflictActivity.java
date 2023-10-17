@@ -29,7 +29,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     public String conflictLogUploadUrl = "unset";
 
     @InstanceConfig(path = "conflict.log.upload.switch")
-    public String conflictLogUploadSwitch = "unset";
+    public volatile String conflictLogUploadSwitch = "unset";
 
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
@@ -39,7 +39,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         // only for test todo
-        logger.info("report conflict log: {}", JsonUtils.toJson(taskList));    
+        logger.info("conflictLogUploadSwitch:{},report conflict log: {}", conflictLogUploadSwitch,JsonUtils.toJson(taskList));    
     }
 
     @Override
