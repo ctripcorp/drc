@@ -875,6 +875,7 @@ public class MySqlUtils {
         return ret;
     }
 
+    //todo 支持delete
     public static Map<String, String> parseSql(String sql) {
         Map<String, String> parseResult = new HashMap<>();
 
@@ -897,7 +898,7 @@ public class MySqlUtils {
             TableStat.Condition equalCondition = Conditions.get(0);
             String equalConditionStr = equalCondition.toString();
             parseResult.put("conditionStr", equalConditionStr);
-        } else if (formatSql.startsWith("INSERT")) {
+        } else if (formatSql.startsWith("INSERT")) {  //todo 按照主键 唯一键
             MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
             insertStatement.getTableSource().toString();
             String tableName = insertStatement.getTableSource().toString();

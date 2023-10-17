@@ -76,7 +76,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.delete(beforeRows, beforeBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
+            trxRowNum.subtract(beforeRows.size()); // 状态回滚放到rollback
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -92,7 +92,7 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
                     return TransactionData.ApplyResult.SUCCESS;
                 case BATCH_ERROR:
                     loggerBatch.info("[executeBatch] BATCH_ERROR for {}", fetchGtid());
-                    return conflictHandling(savepointIdentifier);
+                    return conflictHandling(savepointIdentifier); 
             }
         } catch (Throwable t) {
             logger.error("executeBatch error for {}", fetchGtid(), t);
