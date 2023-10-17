@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -314,8 +315,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<DbReplicationView> dbReplicationViews = columnsFilerPair.getLeft();
         Map<Long, List<String>> columnsFieldMap = columnsFilerPair.getRight();
 
-        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(srcMhaName, rawSql);
-        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(dstMhaName, rawSql);
+        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, rawSql));
+        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, rawSql));
         boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
 
         return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));

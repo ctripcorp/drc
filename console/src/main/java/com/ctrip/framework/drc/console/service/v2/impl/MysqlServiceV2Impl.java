@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.console.service.v2.impl;
 
 import com.ctrip.framework.drc.console.aop.forward.PossibleRemote;
 import com.ctrip.framework.drc.console.aop.forward.response.TableSchemaListApiResult;
+import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
 import com.ctrip.framework.drc.console.enums.ReadableErrorDefEnum;
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.CacheMetaService;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
@@ -209,5 +211,16 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             return new HashMap<>();
         }
         return MySqlUtils.queryRecords(endpoint, sql);
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class)
+    public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
+        if (endpoint == null) {
+            logger.error("queryTableRecords from mha: {}, db not exist", requestBody.getMha());
+            return new HashMap<>();
+        }
+        return MySqlUtils.queryRecords(endpoint, requestBody.getRawSql());
     }
 }

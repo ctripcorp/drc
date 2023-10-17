@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 
@@ -46,4 +47,6 @@ public interface MysqlServiceV2 {
     Long getCurrentTime(String mha);
 
     Map<String, Object> queryTableRecords(String mha, String sql);
+
+    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody);
 }
