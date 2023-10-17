@@ -7,10 +7,11 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.ForwardTypeEnum;
 import com.ctrip.framework.drc.console.enums.HttpRequestEnum;
-import com.ctrip.framework.drc.console.utils.DalUtils;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.core.http.HttpUtils;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.google.common.collect.Sets;
+import com.google.common.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -22,10 +23,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @ClassName RemoteAspect
@@ -38,7 +41,7 @@ import java.util.*;
 public class RemoteHttpAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteHttpAspect.class);
-    
+
     @Autowired
     private DefaultConsoleConfig consoleConfig;
 
@@ -47,10 +50,10 @@ public class RemoteHttpAspect {
 
     @Autowired
     private DcTblDao dcTblDao;
-    
+
     @Pointcut("@annotation(com.ctrip.framework.drc.console.aop.forward.PossibleRemote)")
     public void pointCut(){};
-    
+
     @Around(value = "pointCut() && @annotation(possibleRemote)")
     public Object aroundOperate(ProceedingJoinPoint point, PossibleRemote possibleRemote) {
         try {
@@ -58,12 +61,12 @@ public class RemoteHttpAspect {
             Set<String> publicCloudRegion = consoleConfig.getPublicCloudRegion();
             Set<String> localConfigCloudDc = consoleConfig.getLocalConfigCloudDc();
             Map<String, String> consoleRegionUrls = consoleConfig.getConsoleRegionUrls();
-            
+
             Map<String, Object> argsNotExcluded = getArgsNotExcluded(point,possibleRemote.excludeArguments());
             ForwardTypeEnum forwardType = possibleRemote.forwardType();
-            
+
             switch (forwardType) {
-                case TO_META_DB: 
+                case TO_META_DB:
                     if (publicCloudRegion.contains(localRegion)) {
                         StringBuilder url = new StringBuilder(consoleConfig.getCenterRegionUrl());
                         return forwardByHttp(url,possibleRemote,argsNotExcluded);
@@ -72,7 +75,7 @@ public class RemoteHttpAspect {
                     }
                 case TO_OVERSEA_BY_ARG:
                     if (!publicCloudRegion.contains(localRegion) ) {
-                        String regionByArgs = getRegionByArgs(argsNotExcluded);
+                        String regionByArgs = getRegionByArgs(argsNotExcluded, possibleRemote);
                         if (publicCloudRegion.contains(regionByArgs)) {
                             StringBuilder url = new StringBuilder(consoleRegionUrls.get(regionByArgs));
                             return forwardByHttp(url,possibleRemote,argsNotExcluded);
@@ -92,18 +95,45 @@ public class RemoteHttpAspect {
             return null;
         }
     }
-    
+
     private Object invokeOriginalMethod(ProceedingJoinPoint point) throws Throwable{
         Object[] args = point.getArgs();
         return point.proceed(args);
     }
-    
+
     private Object forwardByHttp(StringBuilder regionUrl, PossibleRemote possibleRemote, Map<String, Object> args) {
         if (StringUtils.isEmpty(regionUrl)) {
             throw new IllegalArgumentException("no regionUrl find");
         }
-        
+
         regionUrl.append(possibleRemote.path());
+        ApiResult apiResult;
+        HttpRequestEnum httpRequestType = possibleRemote.httpType();
+        switch (httpRequestType) {
+            case GET:
+                spliceUrl(regionUrl, args);
+                apiResult = HttpUtils.get(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            case PUT:
+                apiResult = HttpUtils.put(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            case POST:
+                String paramValue = JsonUtils.toJson(args.get("requestBody"));
+                Object requestBody = JsonUtils.fromJson(paramValue, possibleRemote.requestClass());
+                apiResult = HttpUtils.post(regionUrl.toString(), requestBody);
+                break;
+            case DELETE:
+                apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());
+                break;
+            default:
+                logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + httpRequestType.getDescription());
+                return null;
+        }
+        logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", regionUrl);
+        return apiResult.getData();
+    }
+
+    private void spliceUrl(StringBuilder regionUrl, Map<String, Object> args) {
         boolean isFirstArgs = true;
         for (Map.Entry<String, Object> entry : args.entrySet()) {
             if (isFirstArgs) {
@@ -113,38 +143,30 @@ public class RemoteHttpAspect {
                 regionUrl.append("&").append(entry.getKey()).append("=").append(entry.getValue());
             }
         }
-        logger.info("[[tag=remoteHttpAop]] remote invoke console via Http url:{}", regionUrl);
-        
-        ApiResult apiResult;
-        HttpRequestEnum httpRequestType = possibleRemote.httpType();
-        switch (httpRequestType) {
-            case GET:
-                apiResult = HttpUtils.get(regionUrl.toString(), possibleRemote.responseType());
-                break;
-            case PUT:
-                apiResult = HttpUtils.put(regionUrl.toString(), possibleRemote.responseType());
-                break;
-            case POST:
-                apiResult = HttpUtils.post(regionUrl.toString(), possibleRemote.responseType());
-                break;
-            case DELETE:
-                apiResult = HttpUtils.delete(regionUrl.toString(), possibleRemote.responseType());
-                break;
-            default:
-                logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod" + httpRequestType.getDescription());
-                return null;
-        }
-        return apiResult.getData();
     }
 
-    private String getDcNameByArgs(Map<String, Object> arguments) {
+    private String getDcNameByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {
+        switch (possibleRemote.httpType()) {
+            case GET:
+                return getDcName(arguments);
+            case POST:
+                String paramValue = JsonUtils.toJson(arguments.get("requestBody"));
+                Map<String, Object> paramMap = JsonUtils.fromJson(paramValue, new TypeToken<Map<String, Object>>(){}.getType());
+                return getDcName(paramMap);
+            default:
+                logger.error("[[tag=remoteHttpAop]] unsupported HttpRequestMethod");
+                return null;
+        }
+    }
+
+    private String getDcName(Map<String, Object> arguments) {
+        String dcName = null;
         try {
-            String dcName = null;
             if (arguments.containsKey("mha") || arguments.containsKey("mhaName") ||
                     arguments.containsKey("dc") || arguments.containsKey("dcName")) {
                 if (arguments.containsKey("dc")) {
                     dcName = (String) arguments.get("dc");
-                } else if (arguments.containsKey("dcName"))  {
+                } else if (arguments.containsKey("dcName")) {
                     dcName = (String) arguments.get("dcName");
                 } else if (arguments.containsKey("mha")) {
                     dcName = getDcName((String) arguments.get("mha"));
@@ -152,11 +174,11 @@ public class RemoteHttpAspect {
                     dcName = getDcName((String) arguments.get("mhaName"));
                 }
             }
-            return dcName;
         } catch (SQLException e) {
             logger.error("[[tag=remoteHttpAop]] sql error", e);
             return null;
         }
+        return dcName;
     }
 
     private String getDcName(String mha) throws SQLException {
@@ -166,9 +188,9 @@ public class RemoteHttpAspect {
         }
         return dcTblDao.queryByPk(mhaTblV2.getDcId()).getDcName();
     }
-    
-    private String getRegionByArgs(Map<String, Object> arguments) {
-        String dcNameByArgs = getDcNameByArgs(arguments);
+
+    private String getRegionByArgs(Map<String, Object> arguments, PossibleRemote possibleRemote) {
+        String dcNameByArgs = getDcNameByArgs(arguments, possibleRemote);
         if (StringUtils.isEmpty(dcNameByArgs)) {
             logger.warn("[[tag=remoteHttpAop]] no region find by arguments");
             return null;
@@ -176,7 +198,7 @@ public class RemoteHttpAspect {
             return consoleConfig.getRegionForDc(dcNameByArgs);
         }
     }
-    
+
     /**
      * 获取参数Map集合
      * @param joinPoint
@@ -198,6 +220,6 @@ public class RemoteHttpAspect {
         }
         return param;
     }
-    
+
 }
     

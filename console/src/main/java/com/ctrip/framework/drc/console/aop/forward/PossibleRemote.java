@@ -24,4 +24,6 @@ public @interface PossibleRemote {
     String[] excludeArguments() default {};
     
     Class<? extends ApiResult>  responseType() default ApiResult.class;
+
+    Class requestClass() default Object.class;
 }

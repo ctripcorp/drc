@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
@@ -10,10 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -184,11 +182,23 @@ public class MysqlController {
     @GetMapping("queryTableRecords")
     public ApiResult<Map<String, Object>> queryTableRecords(@RequestParam String mha, @RequestParam String sql) {
         try {
-            logger.info("queryTablesWithNameFilter: {}", mha);
+            logger.info("queryTableRecords: {}", mha);
             Map<String, Object> result = mysqlServiceV2.queryTableRecords(mha, sql);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
             logger.warn("queryTablesWithNameFilter error", mha, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @PostMapping("queryTableRecords")
+    public ApiResult<Map<String, Object>> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
+        try {
+            logger.info("queryTableRecords: {}", requestBody);
+            Map<String, Object> result = mysqlServiceV2.queryTableRecords(requestBody);
+            return ApiResult.getSuccessInstance(result);
+        } catch (Exception e) {
+            logger.warn("queryTablesWithNameFilter error", requestBody, e);
             return ApiResult.getFailInstance(null);
         }
     }

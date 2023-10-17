@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.core.service.utils;
 import com.google.common.collect.Lists;
 import com.google.gson.*;
 
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -33,6 +34,10 @@ public class JsonUtils {
 
     public static <T> T fromJson(String json, Class<T> clazz) {
         return getInstance().gson.fromJson(json, clazz);
+    }
+
+    public static <T> T fromJson(String json, Type type) {
+        return getInstance().gson.fromJson(json, type);
     }
 
     public static JsonObject parseObject(String json) {
