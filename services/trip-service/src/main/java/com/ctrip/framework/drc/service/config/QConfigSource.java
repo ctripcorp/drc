@@ -46,7 +46,7 @@ public class QConfigSource extends AbstractConfigSource implements ConfigSource<
                         }
 
                         if (type == String.class) {
-                            field.set(object, value);
+                            field.set(object, value); // todo set 没有生效？
                             logger.info("object:{}/{},filed:{}/{},config changed - {}/{}: {}", object,object.getClass().getName(),field,field.getDeclaringClass().getName(),key.filename, key.key, value);
                         }
 
