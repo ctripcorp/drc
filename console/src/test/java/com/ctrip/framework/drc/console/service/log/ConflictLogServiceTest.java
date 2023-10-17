@@ -125,7 +125,15 @@ public class ConflictLogServiceTest {
 
         ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L);
         Assert.assertTrue(result.isRecordIsEqual());
+    }
 
+    @Test
+    public void testDeleteTrxLogs() throws Exception {
+        Mockito.when(conflictTrxLogTblDao.queryByHandleTime(Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls());
+        Mockito.when(conflictRowsLogTblDao.queryByTrxLogIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+
+        long result = conflictLogService.deleteTrxLogs(0, System.currentTimeMillis());
+        Assert.assertEquals(result, buildConflictRowsLogTbls().size());
     }
 
     private Map<String, Object> getSrcResMap() {

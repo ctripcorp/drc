@@ -126,6 +126,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogMap.get(source.getConflictTrxLogId());
             target.setGtid(conflictTrxLogTbl.getGtid());
+            target.setConflictTrxLogId(conflictTrxLogTbl.getId());
             MhaTblV2 srcMha = mhaMap.get(conflictTrxLogTbl.getSrcMhaName());
             MhaTblV2 dstMha = mhaMap.get(conflictTrxLogTbl.getDstMhaName());
             target.setSrcDc(dcMap.get(srcMha.getDcId()));
@@ -245,6 +246,22 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
+    }
+
+    @Override
+    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
+    public long deleteTrxLogs(long beginTime, long endTime) throws Exception {
+        List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByHandleTime(beginTime, endTime);
+        if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
+            return 0;
+        }
+        List<Long> trxLogIds = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getId).collect(Collectors.toList());
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogIds(trxLogIds);
+
+        conflictTrxLogTblDao.delete(conflictTrxLogTbls);
+        conflictRowsLogTblDao.delete(conflictRowsLogTbls);
+
+        return conflictRowsLogTbls.size();
     }
 
     private ConflictTrxLogTbl buildConflictTrxLog(ConflictTransactionLog trxLog) {

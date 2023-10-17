@@ -42,6 +42,9 @@
     <br>
     <Table stripe border :columns="columns" :data="tableData">
       <template slot-scope="{ row, index }" slot="action">
+        <Button type="primary" size="small" @click="getLogDetail(row, index)" style="margin-right: 5px">
+          详情
+        </Button>
         <Button type="success" size="small" @click="queryTrxLog(row, index)" style="margin-right: 5px">
           冲突事务
         </Button>
@@ -91,7 +94,7 @@ export default {
         {
           title: '同步方向',
           key: 'dc',
-          width: 200,
+          width: 160,
           render: (h, params) => {
             const row = params.row
             const color = 'blue'
@@ -122,7 +125,7 @@ export default {
         {
           title: '事务提交时间',
           key: 'handleTime',
-          width: 200,
+          width: 180,
           sortable: true
         },
         {
@@ -144,7 +147,7 @@ export default {
         {
           title: '操作',
           slot: 'action',
-          width: 150,
+          width: 165,
           align: 'center'
         }
       ],
@@ -165,6 +168,14 @@ export default {
     }
   },
   methods: {
+    getLogDetail (row, index) {
+      this.$router.push({
+        path: '/conflictLogDetail',
+        query: {
+          conflictTrxLogId: row.conflictTrxLogId
+        }
+      })
+    },
     queryTrxLog (row, index) {
       this.$emit('tabValueChanged', 'trxLog')
       this.$emit('gtidChanged', row.gtid)

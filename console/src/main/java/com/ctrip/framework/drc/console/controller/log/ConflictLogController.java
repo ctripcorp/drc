@@ -79,4 +79,14 @@ public class ConflictLogController {
             return ApiResult.getFailInstance(null, e.getMessage());
         }
     }
+
+    @DeleteMapping("")
+    public ApiResult<Boolean> deleteTrxLogs(@RequestParam long beginTime, @RequestParam long endTime) {
+        try {
+            conflictLogService.deleteTrxLogs(beginTime, endTime);
+            return ApiResult.getSuccessInstance(true);
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }

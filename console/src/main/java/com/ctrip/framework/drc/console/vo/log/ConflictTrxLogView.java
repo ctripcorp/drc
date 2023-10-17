@@ -9,8 +9,8 @@ public class ConflictTrxLogView {
     private String srcMhaName;
     private String dstMhaName;
     private String gtid;
-    private Integer trxRowsNum;
-    private Integer cflRowsNum;
+    private Long trxRowsNum;
+    private Long cflRowsNum;
     private Integer trxResult;
     private String handleTime;
 
@@ -46,19 +46,19 @@ public class ConflictTrxLogView {
         this.gtid = gtid;
     }
 
-    public Integer getTrxRowsNum() {
+    public Long getTrxRowsNum() {
         return trxRowsNum;
     }
 
-    public void setTrxRowsNum(Integer trxRowsNum) {
+    public void setTrxRowsNum(Long trxRowsNum) {
         this.trxRowsNum = trxRowsNum;
     }
 
-    public Integer getCflRowsNum() {
+    public Long getCflRowsNum() {
         return cflRowsNum;
     }
 
-    public void setCflRowsNum(Integer cflRowsNum) {
+    public void setCflRowsNum(Long cflRowsNum) {
         this.cflRowsNum = cflRowsNum;
     }
 

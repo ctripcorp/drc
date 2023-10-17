@@ -14,6 +14,15 @@ public class ConflictRowsLogView {
     private String srcDc;
     private String dstDc;
     private String rawSql;
+    private Long conflictTrxLogId;
+
+    public Long getConflictTrxLogId() {
+        return conflictTrxLogId;
+    }
+
+    public void setConflictTrxLogId(Long conflictTrxLogId) {
+        this.conflictTrxLogId = conflictTrxLogId;
+    }
 
     public String getRawSql() {
         return rawSql;

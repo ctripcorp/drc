@@ -43,11 +43,11 @@
     <br>
     <Table stripe border :columns="columns" :data="tableData">
       <template slot-scope="{ row, index }" slot="action">
-        <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
-          冲突行
-        </Button>
         <Button type="primary" size="small" @click="getLogDetail(row, index)" style="margin-right: 5px">
           详情
+        </Button>
+        <Button type="success" size="small" @click="queryRowsLog(row, index)" style="margin-right: 5px">
+          冲突行
         </Button>
       </template>
     </Table>

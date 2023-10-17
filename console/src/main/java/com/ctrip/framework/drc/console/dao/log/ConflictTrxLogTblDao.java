@@ -63,6 +63,13 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         return sqlBuilder;
     }
 
+    public List<ConflictTrxLogTbl> queryByHandleTime(long beginTime, long endTime) throws SQLException {
+        SelectSqlBuilder sqlBuilder = new SelectSqlBuilder();
+        sqlBuilder.selectAll().greaterThan(HANDLE_TIME, beginTime, Types.BIGINT)
+                .and().lessThan(HANDLE_TIME, endTime, Types.BIGINT);
+        return queryList(sqlBuilder);
+    }
+
     public List<ConflictTrxLogTbl> batchInsertWithReturnId(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws SQLException {
         KeyHolder keyHolder = new KeyHolder();
         insertWithKeyHolder(keyHolder, conflictTrxLogTbls);

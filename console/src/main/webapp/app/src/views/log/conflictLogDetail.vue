@@ -102,17 +102,6 @@ export default {
             }
           },
           {
-            title: '序号',
-            width: 60,
-            // align: 'left',
-            render: (h, params) => {
-              return h(
-                'span',
-                params.index + 1
-              )
-            }
-          },
-          {
             title: '执行顺序',
             key: 'rowId',
             width: 100
