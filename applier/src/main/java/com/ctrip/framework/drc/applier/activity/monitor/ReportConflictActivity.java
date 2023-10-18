@@ -37,13 +37,13 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
         HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
-        // only for test todo
-        logger.info("conflictLogUploadSwitch:{},report conflict log: {}", conflictLogUploadSwitch,JsonUtils.toJson(taskList));    
     }
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        if ("on".equals(conflictLogUploadSwitch)) {
+        // only for test todo remove
+        logger.info("conflictLogUploadSwitch:{} to be report conflict log: {}", conflictLogUploadSwitch,JsonUtils.toJson(conflictTransactionLog));
+        if ("on".equals(ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch())) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
