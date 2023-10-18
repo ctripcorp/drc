@@ -21,6 +21,9 @@ public class BatchPreparedStatementExecutor implements PreparedStatementExecutor
     private static final Logger logger = LoggerFactory.getLogger(BatchPreparedStatementExecutor.class);
 
     private Statement statement;
+    
+    private long batchExecuteSize = 0;
+    private long lastBatchSize = 0;
 
     public BatchPreparedStatementExecutor(Statement statement) {
         this.statement = statement;
@@ -29,6 +32,7 @@ public class BatchPreparedStatementExecutor implements PreparedStatementExecutor
     @Override
     public StatementExecutorResult execute(PreparedStatement statement) {
         try {
+            batchExecuteSize++;
             this.statement.addBatch(statementToString(statement));
             return StatementExecutorResult.of(BATCHED);
         } catch (Throwable t) {
@@ -54,11 +58,18 @@ public class BatchPreparedStatementExecutor implements PreparedStatementExecutor
         } catch (Throwable t) {
             logger.error("executeBatch error", t);
             result = TransactionData.ApplyResult.BATCH_ERROR;
+        } finally {
+            lastBatchSize = batchExecuteSize;
+            batchExecuteSize = 0;
         }
 
         return result;
     }
 
+    public long getBatchExecuteSize() {
+        return lastBatchSize;
+    }
+    
     @Override
     public void dispose() {
         try {

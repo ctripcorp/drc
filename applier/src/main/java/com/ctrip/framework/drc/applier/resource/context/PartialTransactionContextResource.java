@@ -29,13 +29,8 @@ public class PartialTransactionContextResource extends TransactionContextResourc
         this.transactionTable = parent.transactionTable;
         
         this.logs = parent.logs;
-        this.cflTrxLog = parent.cflTrxLog;
-        this.trxRowNum = parent.trxRowNum;
-        this.conflictRowNum = parent.conflictRowNum;
-        this.rollbackRowNum = parent.rollbackRowNum;
-        this.cflRowLogsQueue = parent.cflRowLogsQueue;
-        this.conflictTableRowsCount = parent.conflictTableRowsCount;
         this.costTimeNS = parent.costTimeNS;
+        this.trxRecorder = parent.trxRecorder;
 
         this.metricsActivity = parent.metricsActivity;
         this.reportConflictActivity = parent.reportConflictActivity;

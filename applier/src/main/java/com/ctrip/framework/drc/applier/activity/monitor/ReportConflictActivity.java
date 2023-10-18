@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -24,12 +25,10 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.url")
-    public String conflictLogUploadUrl = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.switch")
-    public volatile String conflictLogUploadSwitch = "unset";
+    
+    public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
+    
+    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
 
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
@@ -44,7 +43,6 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        logger.info("ReportConflictActivity:{},conflictLogUploadSwitch:{}",this,conflictLogUploadSwitch);
         if ("on".equals(conflictLogUploadSwitch)) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
