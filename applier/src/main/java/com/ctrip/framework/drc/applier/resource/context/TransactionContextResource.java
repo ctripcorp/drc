@@ -190,6 +190,7 @@ public class TransactionContextResource extends AbstractContext
             
             if ((reportConflictActivity != null) && trxRecorder.getConflictRowNum() > 0) {
                 ConflictTransactionLog cflTrxLog = trxRecorder.summaryBeforeReport(gtid);
+                logger.info("submitReportConflictActivity: {}", cflTrxLog);
                 if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
@@ -621,7 +622,7 @@ public class TransactionContextResource extends AbstractContext
                         }
                     }
                 }
-                overwriteMark(false, destCurrentRecord, "handle conflict failed", "handle conflict failed");
+                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -719,7 +720,7 @@ public class TransactionContextResource extends AbstractContext
                     overwriteMark(true, destCurrentRecord, rawSql, rawSqlExecuteResult);
                     continue STATEMENT;
                 }
-                overwriteMark(false, destCurrentRecord, "handle conflict failed", "handle conflict failed");
+                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -779,7 +780,7 @@ public class TransactionContextResource extends AbstractContext
                         identifier, bitmapOfIdentifier,
                         columns, "DRC INSERT CONFLICT", preparedStatementExecutor
                 );
-                overwriteMark(true, destCurrentRecord, "ignore conflict", "ignore conflict");
+                overwriteMark(true, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -849,7 +850,8 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setHandleSql(conflictHandleSql);
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
         curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
-        trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
+        boolean b = trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
+        logger.info("record conflict row log: {},curCflRow:{}", b, curCflRowLog);
     }
     
 
