@@ -1,19 +1,31 @@
 package com.ctrip.framework.drc.console.param.mysql;
 
+import java.util.List;
+
 /**
  * Created by dengquanliang
  * 2023/10/17 17:04
  */
 public class QueryRecordsRequest {
     private String mha;
-    private String rawSql;
+    private String sql;
+    private List<String> onUpdateColumns;
 
     public QueryRecordsRequest() {
     }
 
-    public QueryRecordsRequest(String mha, String rawSql) {
+    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns) {
         this.mha = mha;
-        this.rawSql = rawSql;
+        this.sql = sql;
+        this.onUpdateColumns = onUpdateColumns;
+    }
+
+    public List<String> getOnUpdateColumns() {
+        return onUpdateColumns;
+    }
+
+    public void setOnUpdateColumns(List<String> onUpdateColumns) {
+        this.onUpdateColumns = onUpdateColumns;
     }
 
     public String getMha() {
@@ -24,11 +36,11 @@ public class QueryRecordsRequest {
         this.mha = mha;
     }
 
-    public String getRawSql() {
-        return rawSql;
+    public String getSql() {
+        return sql;
     }
 
-    public void setRawSql(String rawSql) {
-        this.rawSql = rawSql;
+    public void setSql(String sql) {
+        this.sql = sql;
     }
 }

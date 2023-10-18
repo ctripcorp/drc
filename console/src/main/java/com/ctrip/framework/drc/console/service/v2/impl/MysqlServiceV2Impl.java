@@ -203,17 +203,6 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
     }
 
     @Override
-    @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords")
-    public Map<String, Object> queryTableRecords(String mha, String sql) {
-        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
-        if (endpoint == null) {
-            logger.error("queryTableRecords from mha: {}, db not exist", mha);
-            return new HashMap<>();
-        }
-        return MySqlUtils.queryRecords(endpoint, sql);
-    }
-
-    @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class)
     public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
@@ -221,6 +210,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             logger.error("queryTableRecords from mha: {}, db not exist", requestBody.getMha());
             return new HashMap<>();
         }
-        return MySqlUtils.queryRecords(endpoint, requestBody.getRawSql());
+        return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns());
+    }
+
+    @Override
+    @PossibleRemote(path = "/api/drc/v2/mysql/onUpdateColumns")
+    public List<String> getAllOnUpdateColumns(String mha, String db, String table) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("queryTableRecords from mha: {}, db not exist", mha);
+            return new ArrayList<>();
+        }
+        return MySqlUtils.getAllOnUpdateColumns(endpoint, db, table);
     }
 }
