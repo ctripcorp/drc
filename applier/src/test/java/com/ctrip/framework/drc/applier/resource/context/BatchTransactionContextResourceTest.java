@@ -1,19 +1,25 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
+import static org.junit.Assert.assertEquals;
+
 import com.ctrip.framework.drc.applier.event.ApplierColumnsRelatedTest;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
-import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
-import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
-import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.applier.resource.context.sql.StatementExecutorResult;
 import com.ctrip.framework.drc.applier.resource.mysql.DataSource;
 import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.xpipe.api.codec.Codec;
 import com.google.common.collect.Lists;
 import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
-import java.util.Comparator;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.PriorityQueue;
 import org.apache.tomcat.jdbc.pool.PooledConnection;
 import org.junit.Assert;
@@ -23,14 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * @Author limingdong
@@ -108,7 +106,7 @@ public class BatchTransactionContextResourceTest {
         context.RECORD_SIZE = 3;
         doConflict(context);
         assertResult(context, 4,4,0,3);
-        PriorityQueue<ConflictRowLog> cflQueue =  context.cflRowLogsQueue;
+        PriorityQueue<ConflictRowLog> cflQueue =  context.trxRecorder.getCflRowLogsQueue();
         assertEquals(3L,cflQueue.poll().getRowId());
         assertEquals(2L,cflQueue.poll().getRowId());
         assertEquals(1L,cflQueue.poll().getRowId());
@@ -205,10 +203,10 @@ public class BatchTransactionContextResourceTest {
     }
 
     private void assertResult(TransactionContextResource context, long trxRowNum,long conflictRowNum, long rollbackRowNum,long recordNum){
-        assertEquals(trxRowNum, context.trxRowNum.longValue());
-        assertEquals(conflictRowNum, context.conflictRowNum.longValue());
-        assertEquals(rollbackRowNum, context.rollbackRowNum.longValue());
-        assertEquals(recordNum, context.cflRowLogsQueue.size());
+        assertEquals(trxRowNum, context.trxRecorder.getTrxRowNum());
+        assertEquals(conflictRowNum, context.trxRecorder.getConflictRowNum());
+        assertEquals(rollbackRowNum, context.trxRecorder.getRollbackRowNum());
+        assertEquals(recordNum, context.trxRecorder.getCflRowLogsQueue().size());
     }
 
     private void doConflict(TransactionContextResource context) throws Exception {

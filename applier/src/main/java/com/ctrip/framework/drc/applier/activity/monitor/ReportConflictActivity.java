@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -24,12 +25,10 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.url")
-    public String conflictLogUploadUrl = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.switch")
-    public String conflictLogUploadSwitch = "unset";
+    
+    public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
+    
+    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
 
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
@@ -38,13 +37,13 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
         HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
-        // only for test todo
-        logger.info("report conflict log: {}", JsonUtils.toJson(taskList));    
     }
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        if ("on".equals(conflictLogUploadSwitch)) {
+        // only for test todo remove
+        logger.info("conflictLogUploadSwitch:{} to be report conflict log: {}", conflictLogUploadSwitch,JsonUtils.toJson(conflictTransactionLog));
+        if ("on".equals(ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch())) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());

@@ -52,7 +52,6 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.insert(beforeRows, beforeBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -64,7 +63,6 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.update(beforeRows, beforeBitmap, afterRows, afterBitmap, columns);
-            trxRowNum.subtract(beforeRows.size());
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -76,7 +74,6 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
         writeEventWrappers.add(() -> {
             setTableKey(tableKey);
             super.delete(beforeRows, beforeBitmap, columns);
-            trxRowNum.subtract(beforeRows.size()); // 状态回滚放到rollback
         });
         batchRowsCount.addAndGet(beforeRows.size());
     }
@@ -107,6 +104,8 @@ public class PartialBigTransactionContextResource extends PartialTransactionCont
 
     private TransactionData.ApplyResult conflictHandling(String savepointIdentifier) throws SQLException {
         savepointExecutor.rollbackToSavepoint(savepointIdentifier);
+        long batchExecuteSize = preparedStatementExecutor.getBatchExecuteSize();
+        trxRecorder.setTrxRowNum(trxRecorder.getTrxRowNum() - batchExecuteSize);
         loggerBatch.info("[Savepoint] rollback for {}", savepointIdentifier);
         writeEventWrappers.forEach(Runnable::run);
         boolean handleResult = everWrong();
