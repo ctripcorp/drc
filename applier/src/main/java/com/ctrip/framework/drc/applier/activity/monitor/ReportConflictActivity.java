@@ -45,7 +45,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
             return trySubmit(conflictTransactionLog);
         }
-        return true;
+        return false;
     }
 
     public void setRestTemplate(RestOperations restTemplate) {
