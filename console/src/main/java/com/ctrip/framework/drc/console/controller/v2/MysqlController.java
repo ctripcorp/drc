@@ -179,18 +179,6 @@ public class MysqlController {
         }
     }
 
-    @GetMapping("queryTableRecords")
-    public ApiResult<Map<String, Object>> queryTableRecords(@RequestParam String mha, @RequestParam String sql) {
-        try {
-            logger.info("queryTableRecords: {}", mha);
-            Map<String, Object> result = mysqlServiceV2.queryTableRecords(mha, sql);
-            return ApiResult.getSuccessInstance(result);
-        } catch (Exception e) {
-            logger.warn("queryTablesWithNameFilter error", mha, e);
-            return ApiResult.getFailInstance(null);
-        }
-    }
-
     @PostMapping("queryTableRecords")
     public ApiResult<Map<String, Object>> queryTableRecords(@RequestBody QueryRecordsRequest requestBody) {
         try {
@@ -198,7 +186,19 @@ public class MysqlController {
             Map<String, Object> result = mysqlServiceV2.queryTableRecords(requestBody);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
-            logger.warn("queryTablesWithNameFilter error", requestBody, e);
+            logger.error("queryTablesWithNameFilter error", requestBody, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
+    @GetMapping("onUpdateColumns")
+    public ApiResult<List<String>> getAllOnUpdateColumns(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
+        try {
+            logger.info("getAllOnUpdateColumns, mha: {}, db:{}, table: {}", mha, db, table);
+            List<String> onUpdateColumns = mysqlServiceV2.getAllOnUpdateColumns(mha, db, table);
+            return ApiResult.getSuccessInstance(onUpdateColumns);
+        } catch (Exception e) {
+            logger.error("getAllOnUpdateColumns, mha: {}, db:{}, table: {}", mha, db, table, e);
             return ApiResult.getFailInstance(null);
         }
     }

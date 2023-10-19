@@ -180,14 +180,19 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
             return view;
         }
-        List<String> rawSqlList = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getRawSql).collect(Collectors.toList());
         MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getSrcMhaName());
         MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
 
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMha.getMhaName(), dstMha.getMhaName());
+        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMha.getMhaName());
         List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
-        for (String rawSql : rawSqlList) {
-            ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future =
-                    executorService.submit(() -> queryRecords(srcMha.getMhaName(), dstMha.getMhaName(), rawSql));
+        for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
+            String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
+
+            String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
+            List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
+            ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future = executorService.submit(() ->
+                    queryRecords(srcMha.getMhaName(), dstMha.getMhaName(), sql, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
             futures.add(future);
         }
 
@@ -265,6 +270,33 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictRowsLogTbls.size();
     }
 
+    private Map<String, List<String>> getOnUpdateColumns(List<ConflictRowsLogTbl> conflictRowsLogTbls, String mhaName) {
+        List<String> tableNames = conflictRowsLogTbls.stream().map(rowLog -> rowLog.getDbName() + "." + rowLog.getTableName()).distinct().collect(Collectors.toList());
+        List<ListenableFuture<Pair<String, List<String>>>> columnFutures = new ArrayList<>();
+        for (String tableName : tableNames) {
+            ListenableFuture<Pair<String, List<String>>> future = executorService.submit(() -> queryOnUpdateColumns(mhaName, tableName));
+            columnFutures.add(future);
+        }
+
+        Map<String, List<String>> columnMap = new HashMap<>();
+        for (ListenableFuture<Pair<String, List<String>>> future : columnFutures) {
+            try {
+                Pair<String, List<String>> resultPair = future.get(5, TimeUnit.SECONDS);
+                columnMap.put(resultPair.getLeft(), resultPair.getRight());
+            } catch (Exception e) {
+                logger.error("queryOnUpdateColumns error mha: {}", mhaName, e);
+                throw ConsoleExceptionUtils.message("queryOnUpdateColumns error");
+            }
+        }
+        return columnMap;
+    }
+
+    private Pair<String, List<String>> queryOnUpdateColumns(String mha, String tableName) {
+        String[] tables = tableName.split("\\.");
+        List<String> onUpdateColumns = mysqlService.getAllOnUpdateColumns(mha, tables[0], tables[1]);
+        return Pair.of(tableName, onUpdateColumns);
+    }
+
     private ConflictTrxLogTbl buildConflictTrxLog(ConflictTransactionLog trxLog) {
         ConflictTrxLogTbl conflictTrxLogTbl = new ConflictTrxLogTbl();
         conflictTrxLogTbl.setSrcMhaName(trxLog.getSrcMha());
@@ -310,13 +342,14 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
     }
 
-    private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(String srcMhaName, String dstMhaName, String rawSql) throws Exception {
-        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
-        List<DbReplicationView> dbReplicationViews = columnsFilerPair.getLeft();
-        Map<Long, List<String>> columnsFieldMap = columnsFilerPair.getRight();
-
-        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, rawSql));
-        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, rawSql));
+    private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(String srcMhaName,
+                                                                                       String dstMhaName,
+                                                                                       String sql,
+                                                                                       List<String> onUpdateColumns,
+                                                                                       List<DbReplicationView> dbReplicationViews,
+                                                                                       Map<Long, List<String>> columnsFieldMap) {
+        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns));
+        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns));
         boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
 
         return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));

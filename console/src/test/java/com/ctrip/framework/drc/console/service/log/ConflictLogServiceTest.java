@@ -120,8 +120,8 @@ public class ConflictLogServiceTest {
         Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
         Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
-        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("srcMha"), Mockito.anyString())).thenReturn(getSrcResMap());
-        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("dstMha"), Mockito.anyString())).thenReturn(getDstResMap());
+//        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("srcMha"), Mockito.anyString())).thenReturn(getSrcResMap());
+//        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("dstMha"), Mockito.anyString())).thenReturn(getDstResMap());
 
         ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L);
         Assert.assertTrue(result.isRecordIsEqual());
