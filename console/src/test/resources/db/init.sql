@@ -10,6 +10,48 @@ CREATE TABLE `drcmonitordb`.`delaymonitor`
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE DATABASE IF NOT EXISTS bbzfxdrclogdb;
+
+CREATE TABLE `bbzfxdrclogdb`.`conflict_trx_log_tbl`
+(
+    `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `src_mha_name`        varchar(64)           DEFAULT '' COMMENT '源mha名称',
+    `dst_mha_name`        varchar(64)           DEFAULT '' COMMENT '目标mha名称',
+    `gtid`                varchar(256)          DEFAULT '' COMMENT '事务id',
+    `trx_rows_num`        bigint(20) DEFAULT '-1' COMMENT '事务影响行数',
+    `cfl_rows_num`        bigint(20) DEFAULT '-1' COMMENT '冲突影响行数',
+    `trx_result`          tinyint(4) DEFAULT '-1' COMMENT '事务处理结果: 0-commit 1-rollback',
+    `handle_time`         bigint(20) DEFAULT '-1' COMMENT '处理时间',
+    `deleted`             tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0-否; 1-是',
+    `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY                   `ix_datachange_lasttime` (`datachange_lasttime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='冲突事务记录表';
+
+CREATE TABLE `bbzfxdrclogdb`.`conflict_rows_log_tbl`
+(
+    `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `conflict_trx_log_id` bigint(20) NOT NULL DEFAULT '-1' COMMENT '冲突事务记录主键id',
+    `db_name`             varchar(64)           DEFAULT '' COMMENT '库名',
+    `table_name`          varchar(64)           DEFAULT '' COMMENT '表名',
+    `raw_sql`             text COMMENT '原始sql',
+    `raw_sql_result`      varchar(64)           DEFAULT '' COMMENT '原始sql执行结果',
+    `dst_row_record`      text COMMENT '目标关联行记录',
+    `handle_sql`          text COMMENT '冲突处理sql',
+    `handle_sql_result`   varchar(64)           DEFAULT '' COMMENT '冲突处理sql执行结果',
+    `row_result`          tinyint(4) NOT NULL DEFAULT '-1' COMMENT '处理结果: 0-commit 1-rollback',
+    `handle_time`         bigint(20) DEFAULT '-1' COMMENT '处理时间',
+    `deleted`             tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0-否; 1-是',
+    `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    `row_id`              bigint(20) NOT NULL DEFAULT '-1' COMMENT '执行顺序ID',
+    PRIMARY KEY (`id`),
+    KEY                   `idx_db_table` (`db_name`,`table_name`),
+    KEY                   `idx_trx_log_id` (`conflict_trx_log_id`),
+    KEY                   `ix_datachange_lasttime` (`datachange_lasttime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='冲突行记录表';
+
 CREATE DATABASE IF NOT EXISTS fxdrcmetadb;
 
 CREATE TABLE `fxdrcmetadb`.`applier_upload_log_tbl`
@@ -220,7 +262,7 @@ CREATE TABLE `applier_group_tbl`
 (
     `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
     `replicator_group_id` bigint(20) COMMENT 'replicator group id',
-    `gtid_executed`           varchar(1000) COMMENT '初始gtid',
+    `gtid_executed`       varchar(1000) COMMENT '初始gtid',
     `mha_id`              bigint(20) COMMENT '集群mha id',
     `includedDbs`         varchar(255)          DEFAULT NULL COMMENT 'request db list, seprated by commas,',
     `name_filter`         varchar(2047)         DEFAULT NULL COMMENT 'table name filter, seprated by commas',
@@ -562,42 +604,45 @@ CREATE TABLE `messenger_tbl`
 ) ENGINE=InnoDB COMMENT='messengerz表关联资源';
 
 
-CREATE TABLE `columns_filter_tbl` (
-    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'pk',
-    `data_media_id` bigint(20) NOT NULL DEFAULT '0' COMMENT 'data_media_id',
-    `mode` varchar(40) NOT NULL DEFAULT 'exclude' COMMENT '列过滤配置 模式 exclude, include',
-    `columns` text NOT NULL COMMENT '包含或者不包含的列',
-    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
-    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+CREATE TABLE `columns_filter_tbl`
+(
+    `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'pk',
+    `data_media_id`       bigint(20) NOT NULL DEFAULT '0' COMMENT 'data_media_id',
+    `mode`                varchar(40)  NOT NULL DEFAULT 'exclude' COMMENT '列过滤配置 模式 exclude, include',
+    `columns`             text         NOT NULL COMMENT '包含或者不包含的列',
+    `deleted`             tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY `ix_data_media_id` (`data_media_id`),
-    KEY `ix_datachange_lasttime` (`datachange_lasttime`)
+    KEY                   `ix_data_media_id` (`data_media_id`),
+    KEY                   `ix_datachange_lasttime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='字段过滤配置表';
 
-CREATE TABLE `dataMediaPair_tbl` (
-    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `type` tinyint(4) NOT NULL DEFAULT '1' COMMENT '0:db->db，1:db->mq',
-    `group_id` bigint(20) NOT NULL DEFAULT '0' COMMENT 'applier/messenger_group_id',
-    `src_data_media_name` varchar(2000) DEFAULT NULL COMMENT '源端表级别名',
-    `dest_data_media_name` varchar(255) DEFAULT NULL COMMENT '目标端表级别名',
-    `properties` text COMMENT 'json保存相关配置,由type决定类型',
-    `processor` text COMMENT '保存java 文件兼容Otter EventProcessor',
-    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
-    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    `tag` varchar(255) DEFAULT NULL COMMENT '一对n时业务区分tag,正常为空',
+CREATE TABLE `dataMediaPair_tbl`
+(
+    `id`                   bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `type`                 tinyint(4) NOT NULL DEFAULT '1' COMMENT '0:db->db，1:db->mq',
+    `group_id`             bigint(20) NOT NULL DEFAULT '0' COMMENT 'applier/messenger_group_id',
+    `src_data_media_name`  varchar(2000)         DEFAULT NULL COMMENT '源端表级别名',
+    `dest_data_media_name` varchar(255)          DEFAULT NULL COMMENT '目标端表级别名',
+    `properties`           text COMMENT 'json保存相关配置,由type决定类型',
+    `processor`            text COMMENT '保存java 文件兼容Otter EventProcessor',
+    `deleted`              tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time`          timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '创建时间',
+    `datachange_lasttime`  timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
+    `tag`                  varchar(255)          DEFAULT NULL COMMENT '一对n时业务区分tag,正常为空',
     PRIMARY KEY (`id`),
-    KEY `ix_group_id` (`group_id`),
-    KEY `ix_DataChange_LastTime` (`datachange_lasttime`)
+    KEY                    `ix_group_id` (`group_id`),
+    KEY                    `ix_DataChange_LastTime` (`datachange_lasttime`)
 ) ENGINE=InnoDB COMMENT='同步表级别配置';
 
-CREATE TABLE `rows_filter_tbl_v2` (
-    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
-    `mode` tinyint(4) NOT NULL DEFAULT '-1' COMMENT '行过滤配置 模式 0-java_regex,1-trip_udl 2-trip_uid',
-    `configs` text COMMENT 'json保存parameters List',
-    `deleted` tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
-    `create_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+CREATE TABLE `rows_filter_tbl_v2`
+(
+    `id`                  bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+    `mode`                tinyint(4) NOT NULL DEFAULT '-1' COMMENT '行过滤配置 模式 0-java_regex,1-trip_udl 2-trip_uid',
+    `configs`             text COMMENT 'json保存parameters List',
+    `deleted`             tinyint(4) NOT NULL DEFAULT '0' COMMENT '是否删除, 0:否; 1:是',
+    `create_time`         timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP (3) COMMENT '更新时间',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='行过滤配置表';
