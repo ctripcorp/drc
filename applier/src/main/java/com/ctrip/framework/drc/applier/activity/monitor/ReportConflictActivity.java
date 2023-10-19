@@ -28,8 +28,6 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     
     public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
     
-    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
-
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
         HttpHeaders headers = new HttpHeaders();
@@ -41,9 +39,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        // only for test todo remove
-        logger.info("conflictLogUploadSwitch:{} to be report conflict log: {}", conflictLogUploadSwitch,JsonUtils.toJson(conflictTransactionLog));
-        if ("on".equals(ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch())) {
+         if ("on".equals(ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch())) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
