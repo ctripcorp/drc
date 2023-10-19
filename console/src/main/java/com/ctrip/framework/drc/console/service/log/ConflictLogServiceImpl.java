@@ -405,7 +405,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             Object srcValue = srcRecord.get(column);
             Object dstValue = dstRecord.get(column);
             if (srcValue == null && dstValue == null) {
-                return true;
+                continue;
             }
             if (srcValue == null || dstValue == null) {
                 return false;

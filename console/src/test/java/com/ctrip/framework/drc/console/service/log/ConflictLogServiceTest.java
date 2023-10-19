@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
@@ -30,6 +31,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,6 +115,8 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetConflictCurrentRecordView() throws Exception {
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>());
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>());
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryByTrxLogId(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls());
         Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
@@ -120,8 +124,8 @@ public class ConflictLogServiceTest {
         Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
         Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
-//        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("srcMha"), Mockito.anyString())).thenReturn(getSrcResMap());
-//        Mockito.when(mysqlService.queryTableRecords(Mockito.eq("dstMha"), Mockito.anyString())).thenReturn(getDstResMap());
+        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
 
         ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L);
         Assert.assertTrue(result.isRecordIsEqual());

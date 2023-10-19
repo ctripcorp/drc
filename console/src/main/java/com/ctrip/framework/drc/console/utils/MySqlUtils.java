@@ -879,8 +879,13 @@ public class MySqlUtils {
             Map<String, Object> columnData = new LinkedHashMap<>();
             columnData.put("title", md.getColumnName(j));
             columnData.put("key", md.getColumnName(j));
-//            columnData.put("width", 200);
+            columnData.put("width", 200);
             columnData.put("tooltip", true);
+            if (j == 1) {
+                columnData.put("fixed", "left");
+            } else if (j == columnCount) {
+                columnData.put("fixed", "right");
+            }
             metaColumn.add(columnData);
             columnList.add(md.getColumnName(j));
         }
