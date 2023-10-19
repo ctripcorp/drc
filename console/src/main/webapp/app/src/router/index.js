@@ -181,6 +181,26 @@ const routes = [
     component: () => import('../views/v2/dbDrcBuild.vue')
   },
   {
+    path: '/conflictLog',
+    name: 'conflictLog',
+    component: () => import('../views/log/conflictLog.vue')
+  },
+  {
+    path: '/conflictRowsLog',
+    name: 'conflictRowsLog',
+    component: () => import('../views/log/conflictRowsLog.vue')
+  },
+  {
+    path: '/conflictLogDetail',
+    name: 'conflictLogDetail',
+    component: () => import('../views/log/conflictLogDetail.vue')
+  },
+  {
+    path: '/conflictRowsLogDetail',
+    name: 'conflictRowsLogDetail',
+    component: () => import('../views/log/conflictRowsLogDetail.vue')
+  },
+  {
     path: '/',
     redirect: '/home'
   }

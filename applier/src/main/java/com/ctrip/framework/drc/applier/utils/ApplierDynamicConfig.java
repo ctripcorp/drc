@@ -22,6 +22,14 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     public static ApplierDynamicConfig getInstance() {
         return ConfigHolder.INSTANCE;
     }
+    
+    public String getConflictLogUploadUrl() {
+        return getProperty("conflict.log.upload.url", "");
+    }
+    
+    public String getConflictLogUploadSwitch() {
+        return getProperty("conflict.log.upload.switch", "off");
+    }
 
 
     public long getLwmToleranceTime() {

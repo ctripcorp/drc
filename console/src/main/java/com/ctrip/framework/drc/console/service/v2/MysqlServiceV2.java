@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.v2;
 
+import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.check.TableCheckVo;
 
@@ -44,4 +45,8 @@ public interface MysqlServiceV2 {
     Set<String> getTablesWithoutColumn(String column, String namespace, String name, String mhaName);
 
     Long getCurrentTime(String mha);
+
+    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody);
+
+    List<String> getAllOnUpdateColumns(String mha, String db, String table);
 }

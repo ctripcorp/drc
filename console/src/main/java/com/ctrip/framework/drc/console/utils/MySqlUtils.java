@@ -1,5 +1,12 @@
 package com.ctrip.framework.drc.console.utils;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.util.JdbcConstants;
 import com.ctrip.framework.drc.console.monitor.delay.config.DelayMonitorConfig;
 import com.ctrip.framework.drc.console.monitor.delay.impl.execution.GeneralSingleExecution;
 import com.ctrip.framework.drc.console.monitor.delay.impl.operator.WriteSqlOperatorWrapper;
@@ -9,8 +16,8 @@ import com.ctrip.framework.drc.core.driver.binlog.gtid.db.PurgedGtidReader;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.db.ShowMasterGtidReader;
 import com.ctrip.framework.drc.core.driver.command.netty.endpoint.MySqlEndpoint;
 import com.ctrip.framework.drc.core.driver.healthcheck.task.ExecutedGtidQueryTask;
-import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.monitor.operator.ReadResource;
+import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.xpipe.api.endpoint.Endpoint;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -19,10 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -99,13 +103,16 @@ public class MySqlUtils {
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
-    private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
+    private static final String GET_ON_UPDATE_COLUMN_CONDITION = " and EXTRA like '%on update%';";
+    private static final String SELECT_SQL = "SELECT * FROM %s WHERE %s";
     private static final int COLUMN_INDEX = 1;
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
+    private static final String EQUAL = "=";
+    private static final String SINGLE_QUOTE = "'";
 
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
@@ -807,6 +814,162 @@ public class MySqlUtils {
             }
         }
         return "three accounts ready";
+    }
+
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            Map<String, String> parseResultMap = parseSql(rawSql, onUpdateColumns);
+
+            String tableName = parseResultMap.get("tableName");
+            String sql = String.format(SELECT_SQL, tableName, parseResultMap.get("conditionStr"));
+            logger.info("[[tag=conflictLog]] sql:{}",sql);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            Map<String, Object> result = resultSetConvertMap(rs);
+            result.put("tableName", tableName);
+            return result;
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new HashMap<>();
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+    }
+
+    public static List<String> getAllOnUpdateColumns (Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        List<String> dbs = Lists.newArrayList();
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(GET_COLUMN_PREFIX, db, table) + GET_ON_UPDATE_COLUMN_CONDITION;
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+            while(rs.next()) {
+                dbs.add(rs.getString(1));
+            }
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return new ArrayList<>();
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+        return dbs;
+    }
+
+    public static Map<String, Object> resultSetConvertMap(ResultSet rs) throws SQLException {
+        Map<String, Object> ret = new HashMap<>();
+        List<Map<String, Object>> list = new ArrayList<>();
+        ResultSetMetaData md = rs.getMetaData();
+        int columnCount = md.getColumnCount();
+        List<String> columnList = new ArrayList<>();
+        List<Map<String, Object>> metaColumn = new ArrayList<>();
+        for (int j = 1; j <= columnCount; j++) {
+            Map<String, Object> columnData = new LinkedHashMap<>();
+            columnData.put("title", md.getColumnName(j));
+            columnData.put("key", md.getColumnName(j));
+            columnData.put("width", 200);
+            columnData.put("tooltip", true);
+            if (j == 1) {
+                columnData.put("fixed", "left");
+            } else if (j == columnCount) {
+                columnData.put("fixed", "right");
+            }
+            metaColumn.add(columnData);
+            columnList.add(md.getColumnName(j));
+        }
+        ret.put("columns", columnList);
+        ret.put("metaColumn", metaColumn);
+
+        while (rs.next()) {
+            Map<String, Object> rowData = new LinkedHashMap<>();
+            for (String columnName : columnList) {
+                rowData.put(columnName, rs.getString(columnName));
+            }
+            list.add(rowData);
+        }
+        ret.put("record", list);
+        return ret;
+    }
+
+    public static Map<String, String> parseSql(String sql, List<String> onUpdateColumns) {
+        Map<String, String> parseResult = new HashMap<>();
+
+        String dbType = JdbcConstants.MYSQL;
+        String formatSql = SQLUtils.format(sql, dbType);
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
+        SQLStatement stmt = stmtList.get(0);
+
+        if (formatSql.startsWith("UPDATE") || formatSql.startsWith("DELETE")) {
+            MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+            stmt.accept(visitor);
+            String tableName = visitor.getCurrentTable();
+            parseResult.put("tableName", tableName);
+            Map<TableStat.Name, TableStat> manipulationMap = visitor.getTables();
+            String tableNameFormat = tableName.replace("`", "");
+            TableStat.Name name = new TableStat.Name(tableNameFormat);
+            TableStat stat = manipulationMap.get(name);
+            parseResult.put("operateType", stat.toString());
+            List<TableStat.Condition> conditions = visitor.getConditions();
+            conditions = conditions.stream().filter(e -> !onUpdateColumns.contains(e.getColumn().getName())).collect(Collectors.toList());
+
+            boolean firstCondition = true;
+            StringBuilder whereCondition = new StringBuilder();
+            for (TableStat.Condition condition : conditions) {
+                if (!EQUAL.equals(condition.getOperator())) {
+                    continue;
+                }
+                if (!firstCondition) {
+                    whereCondition.append(" AND ");
+                }
+                String column = condition.getColumn().getName();
+                String value = condition.getValues().get(0).toString();
+                whereCondition.append(column + "=" + toStringVal(value));
+                firstCondition = false;
+            }
+
+            parseResult.put("conditionStr", whereCondition.toString());
+        } else if (formatSql.startsWith("INSERT")) {
+            MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
+            insertStatement.getTableSource().toString();
+            String tableName = insertStatement.getTableSource().toString();
+            parseResult.put("tableName", tableName);
+
+            List<SQLExpr> columns = insertStatement.getColumns();
+            List<SQLExpr> values = insertStatement.getValues().getValues();
+            boolean firstCondition = true;
+            StringBuilder condition = new StringBuilder();
+            for (int i = 0; i < columns.size(); i++) {
+                String columnName = columns.get(i).toString();
+                if (onUpdateColumns.contains(columnName)) {
+                    continue;
+                }
+                String value = values.get(i).toString();
+                if (!firstCondition) {
+                    condition.append(" AND ");
+                }
+                condition.append(columnName + " = " + value);
+                firstCondition = false;
+            }
+
+            parseResult.put("conditionStr", condition.toString());
+            parseResult.put("operateType", "Insert");
+        }
+
+        return parseResult;
+    }
+
+    private static String toStringVal(String val) {
+        return SINGLE_QUOTE + val + SINGLE_QUOTE;
     }
 
 

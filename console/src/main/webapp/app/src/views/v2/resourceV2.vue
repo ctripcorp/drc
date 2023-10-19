@@ -122,32 +122,6 @@ export default {
   data () {
     return {
       columns: [
-        // {
-        //   title: '类型',
-        //   key: 'type',
-        //   width: 80,
-        //   render: (h, params) => {
-        //     const row = params.row
-        //     const color = row.type === 1 ? '#19be6b' : '#2db7f5'
-        //     let text = 'none'
-        //     switch (row.type) {
-        //       case 0:
-        //         text = 'R'
-        //         break
-        //       case 1:
-        //         text = 'A'
-        //         break
-        //       default:
-        //         text = '无'
-        //         break
-        //     }
-        //     return h('Tag', {
-        //       props: {
-        //         color: color
-        //       }
-        //     }, text)
-        //   }
-        // },
         {
           title: '类型',
           key: 'type',

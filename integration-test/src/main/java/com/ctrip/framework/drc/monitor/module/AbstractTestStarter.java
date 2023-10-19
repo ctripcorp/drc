@@ -34,6 +34,7 @@ public abstract class AbstractTestStarter {
         cleanUp();
         try {
             unidirectionalReplicateModule = getUnidirectionalReplicateModule(mysqlPortA, mysqlPortB, replicatorPortA, REGISTRY_KEY);
+            logger.info("find available Port, srcPort:{},dstPort:{}",mysqlPortA,mysqlPortB);
             unidirectionalReplicateModule.initialize();
             unidirectionalReplicateModule.start();  //just for phase necessary
         } catch (Exception e) {

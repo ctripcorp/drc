@@ -32,18 +32,21 @@
             <MenuItem name="/v2/migration" to="/v2/migration">
               <span>DB 搬迁任务</span>
             </MenuItem>
-            <MenuItem name="/monitor" to="/monitor">
+            <MenuItem name="/conflictLog" to="/conflictLog">
               <span>冲突处理</span>
             </MenuItem>
-            <MenuItem name="/incrementDataConsistencyResult" to="/incrementDataConsistencyResult">
-              <span>实时数据一致性校验</span>
-            </MenuItem>
-            <MenuItem name="/fullDataConsistencyCluster" to="/fullDataConsistencyCluster">
-              <span>手工数据一致性校验</span>
-            </MenuItem>
-            <MenuItem name="/unitRouteVerificationCluster" to="/unitRouteVerificationCluster">
-              <span>单元化路由校验</span>
-            </MenuItem>
+<!--            <MenuItem name="/monitor" to="/monitor">-->
+<!--              <span>冲突处理</span>-->
+<!--            </MenuItem>-->
+<!--            <MenuItem name="/incrementDataConsistencyResult" to="/incrementDataConsistencyResult">-->
+<!--              <span>实时数据一致性校验</span>-->
+<!--            </MenuItem>-->
+<!--            <MenuItem name="/fullDataConsistencyCluster" to="/fullDataConsistencyCluster">-->
+<!--              <span>手工数据一致性校验</span>-->
+<!--            </MenuItem>-->
+<!--            <MenuItem name="/unitRouteVerificationCluster" to="/unitRouteVerificationCluster">-->
+<!--              <span>单元化路由校验</span>-->
+<!--            </MenuItem>-->
           </Submenu>
           <Submenu name="2">
             <template slot="title">
@@ -155,6 +158,7 @@ export default {
       case '/incrementDataConsistencyHandle':
       case '/incrementDataConsistencyCluster':
       case '/incrementDataConsistencyCheck':
+      case '/conflictLog':
       case '/monitor':
         this.openNames = ['1']
         break

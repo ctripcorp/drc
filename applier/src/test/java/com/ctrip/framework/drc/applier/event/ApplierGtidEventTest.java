@@ -46,8 +46,8 @@ public class ApplierGtidEventTest {
         long sequenceNumber = 10;
         DecryptedTransactionContextResource context = mock(DecryptedTransactionContextResource.class);
         when(context.fetchSequenceNumber()).thenReturn((long)10);
-        when(context.getConflictMap()).thenReturn(Lists.newArrayList(false, false, false));
-        when(context.getOverwriteMap()).thenReturn(Lists.newArrayList());
+        when(context.everConflict()).thenReturn(false);
+        when(context.everRollback()).thenReturn(true);
         MockGtidEvent e9_10 = new MockGtidEvent(GTID, lastCommitted, sequenceNumber);
         e9_10.setDirectMemory(mock(DirectMemory.class));
         e9_10.setLogEventHeader(mock(LogEventHeader.class));

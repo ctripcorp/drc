@@ -1,16 +1,15 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
-import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
+import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
-import com.ctrip.framework.drc.fetcher.system.TaskQueueActivity;
-import com.ctrip.xpipe.spring.RestTemplateFactory;
 import com.google.common.collect.Lists;
 import org.springframework.http.*;
 import org.springframework.web.client.RestOperations;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,13 +25,10 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.url")
-    public String conflictLogUploadUrl = "unset";
-
-    @InstanceConfig(path = "conflict.log.upload.switch")
-    public String conflictLogUploadSwitch = "unset";
-
+    
+    public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
+    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
+    
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
         HttpHeaders headers = new HttpHeaders();
@@ -44,14 +40,14 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        if ("on".equals(conflictLogUploadSwitch)) {
-            conflictTransactionLog.setSrcMhaName(srcMhaName);
-            conflictTransactionLog.setDestMhaName(destMhaName);
-            conflictTransactionLog.setClusterName(cluster);
-            conflictTransactionLog.setConflictHandleTime(System.currentTimeMillis());
+        conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
+         if ("on".equals(conflictLogUploadSwitch)) {
+            conflictTransactionLog.setSrcMha(srcMhaName);
+            conflictTransactionLog.setDstMha(destMhaName);
+            conflictTransactionLog.setHandleTime(System.currentTimeMillis());
             return trySubmit(conflictTransactionLog);
         }
-        return true;
+        return false;
     }
 
     public void setRestTemplate(RestOperations restTemplate) {

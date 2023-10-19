@@ -1,10 +1,8 @@
 package com.ctrip.framework.drc.applier.resource.context;
 
-import com.ctrip.framework.drc.applier.activity.monitor.ConflictType;
 import com.ctrip.framework.drc.applier.activity.monitor.MetricsActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.ReportConflictActivity;
 import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTable;
-import com.ctrip.framework.drc.applier.activity.monitor.entity.ConflictTransactionLog;
 import com.ctrip.framework.drc.applier.resource.position.TransactionTable;
 import com.ctrip.framework.drc.applier.resource.condition.Progress;
 import com.ctrip.framework.drc.applier.resource.context.sql.*;
@@ -14,13 +12,15 @@ import com.ctrip.framework.drc.core.driver.schema.data.Bitmap;
 import com.ctrip.framework.drc.core.driver.schema.data.Columns;
 import com.ctrip.framework.drc.core.driver.schema.data.TableKey;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import com.ctrip.framework.drc.fetcher.conflict.enums.ConflictResult;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionContext;
 import com.ctrip.framework.drc.fetcher.event.transaction.TransactionData;
 import com.ctrip.framework.drc.fetcher.resource.context.AbstractContext;
 import com.ctrip.framework.drc.fetcher.system.*;
 import com.ctrip.xpipe.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,7 +34,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
@@ -106,19 +105,20 @@ public class TransactionContextResource extends AbstractContext
     protected PreparedStatementExecutor executor = PreparedStatementExecutor.DEFAULT;
     protected Connection connection;
     protected TableKey tableKey;
-    public static int CONFLICT_SIZE = 100;
-    protected List<Boolean> conflictMap = null;
-    protected List<Boolean> overwriteMap = null;
     protected Queue<String> logs;
-    protected ConflictTransactionLog conflictTransactionLog;
+    protected Throwable lastUnbearable;
+    public long costTimeNS = 0;
+    
+    public static int RECORD_SIZE = 100;
+    protected TransactionLogRecorder trxRecorder;
+    
+    protected ConflictRowLog curCflRowLog;
     protected String rawSql = null;
     protected String rawSqlExecuteResult = null;
     protected String destCurrentRecord = null;
     protected String conflictHandleSql = null;
     protected String conflictHandleSqlResult = null;
-    protected Throwable lastUnbearable;
-    public long costTimeNS = 0;
-    protected Map<ConflictTable,Long> conflictTableRowsCount;
+    
 
     @Override
     public Throwable getLastUnbearable() {
@@ -162,28 +162,23 @@ public class TransactionContextResource extends AbstractContext
 
             if (metricsActivity != null) {
                 metricsActivity.report("trx.delay", null, delayMs);
-
-                if (conflictMap.isEmpty()) {
+                if (trxRecorder.getTrxRowNum() == 0L) {
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "empty xid", 1, 0);
                 } else {
-                    int rowsSize = conflictMap.size();
                     String dbName = tableKey != null ? tableKey.getDatabaseName() : "";
-                    HashMap<String, String> dbTag = new HashMap<>() {{
-                        put("dbName", dbName);
-                    }};
+                    HashMap<String, String> dbTag = new HashMap<>() {{put("dbName", dbName);}};
                     metricsActivity.report("transaction", dbTag, 1);
-                    metricsActivity.report("rows", dbTag, rowsSize);
-                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", rowsSize, 0);
+                    metricsActivity.report("rows", dbTag, trxRecorder.getTrxRowNum());
+                    DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "rows", (int) trxRecorder.getTrxRowNum(), 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "gtid", 1, 0);
                     DefaultEventMonitorHolder.getInstance().logBatchEvent("event", "xid", 1, 0);
                 }
-
                 
-                for (Entry<ConflictTable, Long> entry : conflictTableRowsCount.entrySet()) {
+                for (Entry<ConflictTable, Long> entry : trxRecorder.getConflictTableRowsCount().entrySet()) {
                     ConflictTable conflictRow = entry.getKey();
                     Map<String,String> tags = conflictRow.generateTags();
-                    if (conflictRow.getType() == ConflictType.Commit) {
+                    if (conflictRow.getConflictRes() == ConflictResult.COMMIT.getValue()) {
                         metricsActivity.report("trx.conflict.commit", tags, 1);
                         metricsActivity.report("rows.conflict.commit", tags, entry.getValue());
                     } else {
@@ -192,14 +187,10 @@ public class TransactionContextResource extends AbstractContext
                     }
                 }
             }
-
-            if ((reportConflictActivity != null) && getConflictMap().contains(true)) {
-                if (getOverwriteMap().contains(false)) {
-                    conflictTransactionLog.setLastResult("rollback");
-                } else {
-                    conflictTransactionLog.setLastResult("commit");
-                }
-                if (!reportConflictActivity.report(conflictTransactionLog)) {
+            
+            if ((reportConflictActivity != null) && trxRecorder.getConflictRowNum() > 0) {
+                ConflictTransactionLog cflTrxLog = trxRecorder.summaryBeforeReport(gtid);
+                if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
             }
@@ -212,11 +203,8 @@ public class TransactionContextResource extends AbstractContext
     public void doInitialize() throws Exception {
         super.doInitialize();
         connection = dataSource.getConnection();
-        conflictMap = new ArrayList<>(CONFLICT_SIZE);
-        overwriteMap = new ArrayList<>(CONFLICT_SIZE);
-        logs = new CircularFifoQueue<>(CONFLICT_SIZE);
-        conflictTransactionLog = new ConflictTransactionLog();
-        conflictTableRowsCount = Maps.newHashMap();
+        logs = new CircularFifoQueue<>(RECORD_SIZE);
+        trxRecorder = new TransactionLogRecorder(RECORD_SIZE);
         lastUnbearable = null;
         costTimeNS = 0;
         beginTrace("t");
@@ -633,7 +621,7 @@ public class TransactionContextResource extends AbstractContext
                         }
                     }
                 }
-                overwriteMark(false, destCurrentRecord, "handle conflict failed", "handle conflict failed");
+                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -731,7 +719,7 @@ public class TransactionContextResource extends AbstractContext
                     overwriteMark(true, destCurrentRecord, rawSql, rawSqlExecuteResult);
                     continue STATEMENT;
                 }
-                overwriteMark(false, destCurrentRecord, "handle conflict failed", "handle conflict failed");
+                overwriteMark(false, destCurrentRecord, null, "handle conflict failed");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -791,7 +779,7 @@ public class TransactionContextResource extends AbstractContext
                         identifier, bitmapOfIdentifier,
                         columns, "DRC INSERT CONFLICT", preparedStatementExecutor
                 );
-                overwriteMark(true, destCurrentRecord, "ignore conflict", "ignore conflict");
+                overwriteMark(true, destCurrentRecord, null, "ignore conflict");
             }
         } catch (Throwable e) {
             lastUnbearable = e;
@@ -811,17 +799,17 @@ public class TransactionContextResource extends AbstractContext
     public Connection getConnection() {
         return connection;
     }
-
+    
     @Override
-    public List<Boolean> getConflictMap() {
-        return conflictMap;
+    public boolean everConflict() {
+        return trxRecorder.getConflictRowNum() > 0;
     }
 
     @Override
-    public List<Boolean> getOverwriteMap() {
-        return overwriteMap;
+    public boolean everRollback() {
+       return trxRecorder.getRollbackRowNum() > 0;
     }
-
+    
     protected String statementToString(PreparedStatement statement) {
         try {
             return ((com.mysql.jdbc.PreparedStatement)statement).asSql();
@@ -841,42 +829,30 @@ public class TransactionContextResource extends AbstractContext
     private void addLogs(String log) {
         logs.add(log);
     }
-
+    
     private void conflictMark(Boolean isConflict) {
-        conflictMap.add(isConflict);
-        if (conflictMap.size() < CONFLICT_SIZE) {
-            conflictTransactionLog.getRawSqlList().add(rawSql);
-            conflictTransactionLog.getRawSqlExecutedResultList().add(rawSqlExecuteResult);
-            if (!isConflict) {
-                conflictTransactionLog.getDestCurrentRecordList().add("0");
-                conflictTransactionLog.getConflictHandleSqlList().add("0");
-                conflictTransactionLog.getConflictHandleSqlExecutedResultList().add("0");
-            }
+        trxRecorder.trxRowNumIncrement();
+        if (isConflict) {
+            curCflRowLog = new ConflictRowLog();
+            curCflRowLog.setRowId(trxRecorder.getTrxRowNum());
+            curCflRowLog.setRawSql(rawSql);
+            curCflRowLog.setRawRes(rawSqlExecuteResult);
         }
     }
 
     private void overwriteMark(Boolean isOverwrite, String destCurrentRecord, String conflictHandleSql, String conflictHandleSqlResult) {
-        recordConflictRow(isOverwrite);
-        overwriteMap.add(isOverwrite);
-        if (overwriteMap.size() < CONFLICT_SIZE) {
-            conflictTransactionLog.getDestCurrentRecordList().add(destCurrentRecord);
-            conflictTransactionLog.getConflictHandleSqlList().add(conflictHandleSql);
-            conflictTransactionLog.getConflictHandleSqlExecutedResultList().add(conflictHandleSqlResult);
-        }
-    }
-    
-    private void recordConflictRow(Boolean isOverwriteSuccess) {
         String db = fetchTableKey().getDatabaseName();
         String table = fetchTableKey().getTableName();
-        ConflictTable thisRow;
-        if (isOverwriteSuccess) {
-            thisRow = new ConflictTable(db, table, ConflictType.Commit);
-        } else {
-            thisRow = new ConflictTable(db, table, ConflictType.Rollback);
-        }
-        Long count = conflictTableRowsCount.getOrDefault(thisRow, 0L);
-        conflictTableRowsCount.put(thisRow,++count);
+        curCflRowLog.setDb(db);
+        curCflRowLog.setTable(table);
+        curCflRowLog.setDstRecord(destCurrentRecord);
+        curCflRowLog.setHandleSql(conflictHandleSql);
+        curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
+        curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
+        boolean b = trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
+        logger.info("record conflict row log: {},curCflRow:{}", b, curCflRowLog);
     }
+    
 
     private void logRawSQL(PreparedStatement statement, PreparedStatementExecutor preparedStatementExecutor) {
         logSQL(statement, preparedStatementExecutor);
@@ -947,7 +923,7 @@ public class TransactionContextResource extends AbstractContext
     }
 
     protected boolean everWrong() {
-        return getLastUnbearable() != null || getOverwriteMap().contains(false);
+        return getLastUnbearable() != null || everRollback();
     }
 
     @Override

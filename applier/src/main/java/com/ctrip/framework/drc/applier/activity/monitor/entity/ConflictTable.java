@@ -1,6 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.monitor.entity;
 
-import com.ctrip.framework.drc.applier.activity.monitor.ConflictType;
+
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Objects;
@@ -15,7 +15,7 @@ public class ConflictTable {
     
     private String db;
     private String table;
-    private ConflictType type;   // 1-commit,0-rollback
+    private int conflictRes;   // 0-commit,1-rollback
 
 
     public Map<String,String> generateTags() {
@@ -29,10 +29,10 @@ public class ConflictTable {
     public ConflictTable() {
     }
 
-    public ConflictTable(String db, String table, ConflictType type) {
+    public ConflictTable(String db, String table, int type) {
         this.db = db;
         this.table = table;
-        this.type = type;
+        this.conflictRes = type;
     }
 
     @Override
@@ -44,12 +44,12 @@ public class ConflictTable {
             return false;
         }
         ConflictTable that = (ConflictTable) o;
-        return type.getVal() == that.type.getVal() && Objects.equals(db, that.db) && Objects.equals(table, that.table);
+        return Objects.equals(db, that.db) && Objects.equals(table, that.table) && conflictRes == that.getConflictRes();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(db, table, type.getVal());
+        return Objects.hash(db, table, conflictRes);
     }
 
     public String getDb() {
@@ -68,12 +68,11 @@ public class ConflictTable {
         this.table = table;
     }
 
-
-    public ConflictType getType() {
-        return type;
+    public int getConflictRes() {
+        return conflictRes;
     }
 
-    public void setType(ConflictType type) {
-        this.type = type;
+    public void setConflictRes(int conflictRes) {
+        this.conflictRes = conflictRes;
     }
 }
