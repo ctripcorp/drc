@@ -103,13 +103,11 @@ public class MySqlUtils {
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
-    private static final String GET_ALL_COLUMN_PREFIX = "select group_concat(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_PRIMARY_KEY_COLUMN = " and column_key='PRI';";
     private static final String GET_STANDARD_UPDATE_COLUMN = " and COLUMN_TYPE in ('timestamp(3)','datetime(3)') and EXTRA like '%on update%';";
     private static final String GET_ON_UPDATE_COLUMN = " and  EXTRA like 'on update%';";
-    private static final String GET_ON_UPDATE_COLUMN_CONDTION = " and EXTRA like '%on update%';";
-    private static final String GET_ON_UPDATE_COLUMNS = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s' and EXTRA like '%on update%';";
+    private static final String GET_ON_UPDATE_COLUMN_CONDITION = " and EXTRA like '%on update%';";
     private static final String SELECT_SQL = "SELECT * FROM %s WHERE %s";
     private static final int COLUMN_INDEX = 1;
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
@@ -849,7 +847,7 @@ public class MySqlUtils {
         List<String> dbs = Lists.newArrayList();
         ReadResource readResource = null;
         try {
-            String sql = String.format(GET_COLUMN_PREFIX, db, table) + GET_ON_UPDATE_COLUMN_CONDTION;
+            String sql = String.format(GET_COLUMN_PREFIX, db, table) + GET_ON_UPDATE_COLUMN_CONDITION;
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
