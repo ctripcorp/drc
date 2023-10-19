@@ -294,6 +294,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private Pair<String, List<String>> queryOnUpdateColumns(String mha, String tableName) {
         String[] tables = tableName.split("\\.");
         List<String> onUpdateColumns = mysqlService.getAllOnUpdateColumns(mha, tables[0], tables[1]);
+        onUpdateColumns = onUpdateColumns.stream().map(column -> "`" + column + "`").collect(Collectors.toList());
         return Pair.of(tableName, onUpdateColumns);
     }
 
