@@ -27,6 +27,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     public String destMhaName = "unset";
     
     public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
+    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
     
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
@@ -39,7 +40,8 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-         if ("on".equals(ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch())) {
+        conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
+         if ("on".equals(conflictLogUploadSwitch)) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
