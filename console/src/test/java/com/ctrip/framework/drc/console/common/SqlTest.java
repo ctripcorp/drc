@@ -36,7 +36,7 @@ public class SqlTest {
 
     @Test
     public void testInsert() {
-        String insertSql = "/*DRC INSERT 0*/ INSERT INTO `migrationdb`.`benchmark` (`id`,`drc_id_int`,`datachange_lasttime`) VALUES (1,10,'2023-09-28 16:06:15.019')";
+        String insertSql = "/*DRC UPDATE 2*/ INSERT INTO `bbzmembersaccountshard14db`.`user_password6` (`UID`,`Pwd`,`Version`,`PwdType`,`CreationTime`,`DataChange_LastTime`,`userdata_location`) VALUES ('_SLOSX6JVW1WWAC0','cH6eGnn0bYUaSKHChyqqR+3lThPrS77p',1,1,'2023-10-07 14:36:33.947','2023-10-19 11:22:48.113','JP')";
         String insertFormatSql = SQLUtils.format(insertSql, JdbcConstants.MYSQL);
         Map<String, String> parseResult = parseSql(insertSql);
         System.out.println(parseResult);
@@ -94,6 +94,7 @@ public class SqlTest {
                 firstCondition = false;
             }
 //            String equalConditionStr = Joiner.on(" AND ").join(conditions);
+//            parseResult.put("conditionStr", equalConditionStr);
             parseResult.put("conditionStr", whereCondition.toString());
         } else if (formatSql.startsWith("INSERT")) {
             MySqlInsertStatement insertStatement = (MySqlInsertStatement) stmt;
@@ -115,7 +116,7 @@ public class SqlTest {
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + toSqlValue(value));
+                condition.append(columnName + " = " + value);
                 firstCondition = false;
             }
 

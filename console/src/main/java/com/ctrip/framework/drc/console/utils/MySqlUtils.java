@@ -954,7 +954,7 @@ public class MySqlUtils {
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + toStringVal(value));
+                condition.append(columnName + " = " + value);
                 firstCondition = false;
             }
 
