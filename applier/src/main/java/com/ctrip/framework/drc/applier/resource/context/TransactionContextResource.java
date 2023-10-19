@@ -190,7 +190,6 @@ public class TransactionContextResource extends AbstractContext
             
             if ((reportConflictActivity != null) && trxRecorder.getConflictRowNum() > 0) {
                 ConflictTransactionLog cflTrxLog = trxRecorder.summaryBeforeReport(gtid);
-                logger.info("submitReportConflictActivity: {}", cflTrxLog);
                 if (!reportConflictActivity.report(cflTrxLog)) {
                     DefaultEventMonitorHolder.getInstance().logEvent("DRC.applier.conflict.discard", tableKey.toString());
                 }
