@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.utils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
@@ -953,11 +954,16 @@ public class MySqlUtils {
                 if (onUpdateColumns.contains(columnName)) {
                     continue;
                 }
-                String value = values.get(i).toString();
+                SQLExpr valueExpr = values.get(i);
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + value);
+                if (valueExpr instanceof SQLNullExpr) {
+                    condition.append(columnName + " is " + valueExpr);
+                } else {
+                    condition.append(columnName + " = " + valueExpr);
+                }
+
                 firstCondition = false;
             }
 
