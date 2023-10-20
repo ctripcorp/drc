@@ -850,7 +850,6 @@ public class TransactionContextResource extends AbstractContext
         curCflRowLog.setHandleSqlRes(conflictHandleSqlResult);
         curCflRowLog.setRowRes(isOverwrite ? ConflictResult.COMMIT.getValue() : ConflictResult.ROLLBACK.getValue());
         boolean b = trxRecorder.recordCflRowLogIfNecessary(curCflRowLog);
-        logger.info("record conflict row log: {},curCflRow:{}", b, curCflRowLog);
     }
     
 
