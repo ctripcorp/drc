@@ -122,6 +122,20 @@ public class ConflictRowsLogTbl {
     @Type(value = Types.TIMESTAMP)
     private Timestamp datachangeLasttime;
 
+    /**
+     * 源region
+     */
+    @Column(name = "src_region")
+    @Type(value = Types.VARCHAR)
+    private String srcRegion;
+
+    /**
+     * 目标region
+     */
+    @Column(name = "dst_region")
+    @Type(value = Types.VARCHAR)
+    private String dstRegion;
+
     public Long getId() {
         return id;
     }
@@ -240,5 +254,21 @@ public class ConflictRowsLogTbl {
 
     public void setRowId(Long rowId) {
         this.rowId = rowId;
+    }
+
+    public String getSrcRegion() {
+        return srcRegion;
+    }
+
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
+    }
+
+    public String getDstRegion() {
+        return dstRegion;
+    }
+
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
     }
 }

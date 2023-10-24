@@ -61,9 +61,19 @@ public class ConflictLogController {
     }
 
     @GetMapping("records")
-    public ApiResult<ConflictCurrentRecordView> getConflictCurrentRecordView(@RequestParam long conflictTrxLogId) {
+    public ApiResult<ConflictCurrentRecordView> getConflictCurrentRecordView(@RequestParam long conflictTrxLogId, @RequestParam int columnSize) {
         try {
-            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId));
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictCurrentRecordView(conflictTrxLogId, columnSize));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/row/record")
+    public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam long conflictRowLogId, @RequestParam int columnSize) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogId, columnSize));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
@@ -81,10 +91,10 @@ public class ConflictLogController {
     }
 
     @DeleteMapping("")
-    public ApiResult<Boolean> deleteTrxLogs(@RequestParam long beginTime, @RequestParam long endTime) {
+    public ApiResult<Long> deleteTrxLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
-            conflictLogService.deleteTrxLogs(beginTime, endTime);
-            return ApiResult.getSuccessInstance(true);
+            long result = conflictLogService.deleteTrxLogs(beginTime, endTime);
+            return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

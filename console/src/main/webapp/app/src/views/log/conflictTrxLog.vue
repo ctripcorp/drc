@@ -236,7 +236,8 @@ export default {
     queryRowsLog (row, index) {
       this.$emit('tabValueChanged', 'rowsLog')
       this.$emit('gtidChanged', row.gtid)
-      this.tabVal = 'rowsLog'
+      this.$emit('searchModeChanged', 'true')
+      // this.tabVal = 'rowsLog'
     },
     getLogDetail (row, index) {
       this.$router.push({

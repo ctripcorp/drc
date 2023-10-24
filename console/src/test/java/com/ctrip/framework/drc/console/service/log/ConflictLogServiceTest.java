@@ -127,7 +127,7 @@ public class ConflictLogServiceTest {
         Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
         Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
 
-        ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L);
+        ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L, 12);
         Assert.assertTrue(result.isRecordIsEqual());
     }
 

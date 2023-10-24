@@ -12,6 +12,7 @@ import com.ctrip.framework.drc.console.dao.log.entity.ConflictTrxLogTbl;
 import com.ctrip.framework.drc.console.dao.v2.ColumnsFilterTblV2Dao;
 import com.ctrip.framework.drc.console.dao.v2.DbReplicationFilterMappingTblDao;
 import com.ctrip.framework.drc.console.dao.v2.MhaTblV2Dao;
+import com.ctrip.framework.drc.console.enums.BooleanEnum;
 import com.ctrip.framework.drc.console.enums.FilterTypeEnum;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
@@ -72,6 +73,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private DrcBuildServiceV2 drcBuildServiceV2;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
+    private static final int BATCH_SIZE = 2000;
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -107,17 +109,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         List<Long> conflictTrxLogIds = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getConflictTrxLogId).collect(Collectors.toList());
         List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByIds(conflictTrxLogIds);
-        Set<String> mhaNames = new HashSet<>();
-        List<String> srcMhaNames = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getSrcMhaName).distinct().collect(Collectors.toList());
-        List<String> dstMhaNames = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getDstMhaName).distinct().collect(Collectors.toList());
-        mhaNames.addAll(srcMhaNames);
-        mhaNames.addAll(dstMhaNames);
-        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(mhaNames));
-        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
 
         Map<Long, ConflictTrxLogTbl> conflictTrxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
-        Map<String, MhaTblV2> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, Function.identity()));
-        Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getDcName));
 
         List<ConflictRowsLogView> views = conflictRowsLogTbls.stream().map(source -> {
             ConflictRowsLogView target = new ConflictRowsLogView();
@@ -128,10 +121,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogMap.get(source.getConflictTrxLogId());
             target.setGtid(conflictTrxLogTbl.getGtid());
             target.setConflictTrxLogId(conflictTrxLogTbl.getId());
-            MhaTblV2 srcMha = mhaMap.get(conflictTrxLogTbl.getSrcMhaName());
-            MhaTblV2 dstMha = mhaMap.get(conflictTrxLogTbl.getDstMhaName());
-            target.setSrcDc(dcMap.get(srcMha.getDcId()));
-            target.setDstDc(dcMap.get(dstMha.getDcId()));
+            target.setSrcRegion(source.getSrcRegion());
+            target.setDstRegion(source.getDstRegion());
             return target;
         }).collect(Collectors.toList());
         return views;
@@ -169,22 +160,22 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception {
+    public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId, int columnSize) throws Exception {
         ConflictCurrentRecordView view = new ConflictCurrentRecordView();
 
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
         if (conflictTrxLogTbl == null) {
-            return view;
+            throw ConsoleExceptionUtils.message("冲突日志不存在");
         }
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogId(conflictTrxLogId);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
-            return view;
+            throw ConsoleExceptionUtils.message("冲突日志不存在");
         }
-        MhaTblV2 srcMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getSrcMhaName());
-        MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
+        String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
+        String dstMhaName = conflictTrxLogTbl.getDstMhaName();
 
-        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMha.getMhaName(), dstMha.getMhaName());
-        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMha.getMhaName());
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
         List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
         for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
             String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
@@ -192,7 +183,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
             List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
             ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future = executorService.submit(() ->
-                    queryRecords(srcMha.getMhaName(), dstMha.getMhaName(), sql, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
+                    queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
             futures.add(future);
         }
 
@@ -216,6 +207,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             }
         }
 
+        List<DbReplicationView> dbReplicationViews = drcBuildServiceV2.getDbReplicationView(dstMhaName, srcMhaName);
         List<Map<String, Object>> srcRecords = new ArrayList<>();
         List<Map<String, Object>> dstRecords = new ArrayList<>();
         srcResultMap.forEach((tableName, records) -> {
@@ -223,6 +215,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("columns", columns);
             resultMap.put("records", records);
+            resultMap.put("tableName", tableName);
+
+            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+            boolean doubleSync = dbReplicationId != null;
+            resultMap.put("doubleSync", doubleSync);
             srcRecords.add(resultMap);
         });
         dstResultMap.forEach((tableName, records) -> {
@@ -230,11 +227,62 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("columns", columns);
             resultMap.put("records", records);
+            resultMap.put("tableName", tableName);
+
+            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+            boolean doubleSync = dbReplicationId != null;
+            resultMap.put("doubleSync", doubleSync);
             dstRecords.add(resultMap);
         });
         view.setSrcRecords(srcRecords);
         view.setDstRecords(dstRecords);
         view.setRecordIsEqual(recordIsEqual);
+        return view;
+    }
+
+    @Override
+    public ConflictCurrentRecordView getConflictRowRecordView(Long conflictRowLogId, int columnSize) throws Exception {
+        ConflictCurrentRecordView view = new ConflictCurrentRecordView();
+        ConflictRowsLogTbl rowLog = conflictRowsLogTblDao.queryById(conflictRowLogId);
+        if (rowLog == null) {
+            throw ConsoleExceptionUtils.message("冲突日志不存在");
+        }
+        ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(rowLog.getConflictTrxLogId());
+        if (conflictTrxLogTbl == null) {
+            throw ConsoleExceptionUtils.message("冲突日志不存在");
+        }
+        String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
+        String dstMhaName = conflictTrxLogTbl.getDstMhaName();
+        String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+
+        List<DbReplicationView> dbReplicationViews = drcBuildServiceV2.getDbReplicationView(dstMhaName, srcMhaName);
+        Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+        boolean doubleSync = dbReplicationId != null;
+
+        Pair<String, List<String>> onUpdateColumnPair = queryOnUpdateColumns(srcMhaName, tableName);
+        List<String> onUpdateColumns = onUpdateColumnPair.getRight();
+
+        String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
+        Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight());
+        view.setRecordIsEqual(resultPair.getLeft());
+        Map<String, Object> srcResult = resultPair.getRight().getLeft();
+        Map<String, Object> dstResult = resultPair.getRight().getRight();
+
+        Map<String, Object> srcRecord = new HashMap<>();
+        Map<String, Object> dstRecord = new HashMap<>();
+        srcRecord.put("columns", srcResult.get("metaColumn"));
+        srcRecord.put("records", srcResult.get("record"));
+        srcRecord.put("tableName", tableName);
+        srcRecord.put("doubleSync", doubleSync);
+
+        dstRecord.put("columns", dstResult.get("metaColumn"));
+        dstRecord.put("records", dstResult.get("record"));
+        dstRecord.put("tableName", tableName);
+        dstRecord.put("doubleSync", doubleSync);
+
+        view.setSrcRecords(Lists.newArrayList(srcRecord));
+        view.setDstRecords(Lists.newArrayList(dstRecord));
         return view;
     }
 
@@ -245,10 +293,20 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
         Map<String, Long> trxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getGtid, ConflictTrxLogTbl::getId));
 
+        Set<String> mhaNames = new HashSet<>();
+        for (ConflictTransactionLog trxLog : trxLogs) {
+            mhaNames.add(trxLog.getSrcMha());
+            mhaNames.add(trxLog.getDstMha());
+        }
+        List<MhaTblV2> mhaTblV2s = mhaTblV2Dao.queryByMhaNames(Lists.newArrayList(mhaNames), BooleanEnum.FALSE.getCode());
+        Map<String, Long> mhaMap = mhaTblV2s.stream().collect(Collectors.toMap(MhaTblV2::getMhaName, MhaTblV2::getDcId));
+        List<DcTbl> dcTbls = dcTblDao.queryAllExist();
+        Map<Long, String> dcMap = dcTbls.stream().collect(Collectors.toMap(DcTbl::getId, DcTbl::getRegionName));
+
         List<ConflictRowsLogTbl> conflictRowsLogTbls = new ArrayList<>();
         trxLogs.stream().forEach(trxLog -> {
             Long conflictTrxLogId = trxLogMap.get(trxLog.getGtid());
-            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog);
+            List<ConflictRowsLogTbl> conflictRowsLogList = buildConflictRowsLogs(conflictTrxLogId, trxLog, mhaMap, dcMap);
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
@@ -264,10 +322,40 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<Long> trxLogIds = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getId).collect(Collectors.toList());
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogIds(trxLogIds);
 
-        conflictTrxLogTblDao.delete(conflictTrxLogTbls);
-        conflictRowsLogTblDao.delete(conflictRowsLogTbls);
+        batchDeleteTrxLogs(conflictTrxLogTbls);
+        batchDeleteRowLogs(conflictRowsLogTbls);
 
         return conflictRowsLogTbls.size();
+    }
+
+    private int batchDeleteTrxLogs(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws Exception {
+        int resultSize = 0;
+        if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
+            return resultSize;
+        }
+        int size = conflictTrxLogTbls.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + BATCH_SIZE, size);
+            List<ConflictTrxLogTbl> subTrxLogTbls = conflictTrxLogTbls.subList(i, toIndex);
+            i += BATCH_SIZE;
+            resultSize += conflictTrxLogTblDao.batchDelete(subTrxLogTbls).length;
+        }
+        return resultSize;
+    }
+
+    private int batchDeleteRowLogs(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws Exception {
+        int resultSize = 0;
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            return resultSize;
+        }
+        int size = conflictRowsLogTbls.size();
+        for (int i = 0; i < size; ) {
+            int toIndex = Math.min(i + BATCH_SIZE, size);
+            List<ConflictRowsLogTbl> subRowsLogTbls = conflictRowsLogTbls.subList(i, toIndex);
+            i += BATCH_SIZE;
+            resultSize += conflictRowsLogTblDao.batchDelete(subRowsLogTbls).length;
+        }
+        return resultSize;
     }
 
     private Map<String, List<String>> getOnUpdateColumns(List<ConflictRowsLogTbl> conflictRowsLogTbls, String mhaName) {
@@ -310,7 +398,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictTrxLogTbl;
     }
 
-    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog) {
+    private List<ConflictRowsLogTbl> buildConflictRowsLogs(long conflictTrxLogId, ConflictTransactionLog trxLog, Map<String, Long> mhaMap, Map<Long, String> dcMap) {
+        long srcDcId = mhaMap.getOrDefault(trxLog.getSrcMha(), 0L);
+        long dstDcId = mhaMap.getOrDefault(trxLog.getDstMha(), 0L);
+        String srcRegion = dcMap.getOrDefault(srcDcId, "");
+        String dstRegion = dcMap.getOrDefault(dstDcId, "");
+
         List<ConflictRowsLogTbl> conflictTrxLogTbls = trxLog.getCflLogs().stream().map(source -> {
             ConflictRowsLogTbl target = new ConflictRowsLogTbl();
             target.setConflictTrxLogId(conflictTrxLogId);
@@ -324,6 +417,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             target.setRowResult(source.getRowRes());
             target.setHandleTime(trxLog.getHandleTime());
             target.setRowId(source.getRowId());
+            target.setSrcRegion(srcRegion);
+            target.setDstRegion(dstRegion);
 
             return target;
         }).collect(Collectors.toList());
@@ -346,11 +441,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(String srcMhaName,
                                                                                        String dstMhaName,
                                                                                        String sql,
+                                                                                       int columnSize,
                                                                                        List<String> onUpdateColumns,
                                                                                        List<DbReplicationView> dbReplicationViews,
                                                                                        Map<Long, List<String>> columnsFieldMap) {
-        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns));
-        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns));
+        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
+        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
         boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
 
         return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));

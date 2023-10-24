@@ -22,7 +22,9 @@ public interface ConflictLogService {
 
     ConflictTrxLogDetailView getConflictTrxLogDetailView(Long conflictTrxLogId) throws Exception;
 
-    ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId) throws Exception;
+    ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId, int columnSize) throws Exception;
+
+    ConflictCurrentRecordView getConflictRowRecordView(Long conflictRowLogId, int columnSize) throws Exception;
 
     void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception;
 

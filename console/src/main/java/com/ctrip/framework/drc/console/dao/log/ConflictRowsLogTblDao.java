@@ -24,6 +24,8 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String TABLE_NAME = "table_name";
     private static final String ROW_RESULT = "row_result";
     private static final String HANDLE_TIME = "handle_time";
+    private static final String SRC_REGION = "src_region";
+    private static final String DST_REGION = "dst_region";
 
     public ConflictRowsLogTblDao() throws SQLException {
         super(ConflictRowsLogTbl.class);
@@ -57,6 +59,8 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
         sqlBuilder.and().equalNullable(CONFLICT_TRX_LOG_ID, param.getConflictTrxLogId(), Types.BIGINT)
                 .and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR)
                 .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.CONTAINS, Types.VARCHAR)
+                .and().equalNullable(SRC_REGION, param.getSrcRegion(), Types.VARCHAR)
+                .and().equalNullable(DST_REGION, param.getDstRegion(), Types.VARCHAR)
                 .and().equalNullable(ROW_RESULT, param.getRowResult(), Types.TINYINT);
         if (param.getBeginHandleTime() != null && param.getBeginHandleTime() > 0L) {
             sqlBuilder.and().greaterThan(HANDLE_TIME, param.getBeginHandleTime(), Types.BIGINT);

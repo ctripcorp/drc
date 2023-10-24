@@ -210,7 +210,7 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
             logger.error("queryTableRecords from mha: {}, db not exist", requestBody.getMha());
             return new HashMap<>();
         }
-        return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns());
+        return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getColumnSize());
     }
 
     @Override
