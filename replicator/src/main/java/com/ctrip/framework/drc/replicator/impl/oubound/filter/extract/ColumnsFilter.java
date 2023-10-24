@@ -23,27 +23,24 @@ public class ColumnsFilter extends AbstractLogEventFilter<ExtractFilterContext> 
 
     private OutboundMonitorReport outboundMonitorReport;
 
-    private boolean shouldFilterColumns;
-
     public ColumnsFilter(ExtractFilterChainContext chainContext) {
         this.registryKey = chainContext.getDataMediaConfig().getRegistryKey();
         this.dataMediaManager = new DataMediaManager(chainContext.getDataMediaConfig());
         this.outboundMonitorReport = chainContext.getOutboundMonitorReport();
-        this.shouldFilterColumns = chainContext.shouldFilterColumns();
     }
 
     @Override
     public boolean doFilter(ExtractFilterContext context) {
-        if (shouldFilterColumns) {
+        if (context.needExtractColumns()) {
             AbstractRowsEvent rowsEvent = context.getRowsEvent();
             TableMapLogEvent drcTableMapLogEvent = context.getDrcTableMapLogEvent();
             List<Integer> extractedColumnsIndex = context.getExtractedColumnsIndex();
 
             ColumnsFilterContext columnsFilterContext = new ColumnsFilterContext(drcTableMapLogEvent.getSchemaNameDotTableName(), extractedColumnsIndex);
             boolean columnsExtracted = dataMediaManager.filterColumns(rowsEvent, columnsFilterContext);
-            context.setColumnsExtracted(columnsExtracted);
 
             if (columnsExtracted) {
+                context.setRewrite(true);
                 String schemaName = drcTableMapLogEvent.getSchemaName();
                 String tableName = drcTableMapLogEvent.getTableName();
                 int rowsSize = rowsEvent.getRows().size();
@@ -53,6 +50,6 @@ public class ColumnsFilter extends AbstractLogEventFilter<ExtractFilterContext> 
             }
         }
 
-        return doNext(context, false);
+        return doNext(context, true);
     }
 }

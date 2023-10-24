@@ -8,7 +8,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 
 import java.io.ByteArrayOutputStream;
-import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.drc_heartbeat_log_event;
@@ -18,7 +17,7 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.TIME_SPAN_
  * Created by mingdongli
  * 2019/11/25 下午10:34.
  */
-public class DrcHeartbeatLogEvent extends AbstractLogEvent implements LogEventMerger {
+public class DrcHeartbeatLogEvent extends AbstractLogEvent {
 
     public static final int APPLIER_TOUCH_PROGRESS = 0x01;
 
@@ -67,11 +66,6 @@ public class DrcHeartbeatLogEvent extends AbstractLogEvent implements LogEventMe
     @Override
     public void write(IoCache ioCache) {
         super.write(ioCache);
-    }
-
-    @Override
-    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
-        return mergeByteBuf(headByteBuf, payloadBuf);
     }
 
     private byte[] toBytes() {

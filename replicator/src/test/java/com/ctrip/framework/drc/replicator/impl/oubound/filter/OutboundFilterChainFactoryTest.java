@@ -48,7 +48,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
         super.setUp();
         when(channel.writeAndFlush(any(ByteBuf.class))).thenReturn(channelFuture);
         String properties = String.format(ROW_FILTER_PROPERTIES, RowsFilterType.Custom.getName());
-        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport);
+        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", properties), outboundMonitorReport, null, false, null);
         filterChainFactory = new OutboundFilterChainFactory();
     }
 
@@ -229,7 +229,7 @@ public class OutboundFilterChainFactoryTest extends AbstractRowsFilterTest {
     }
 
     public void doTestDoFilter_columnsFilter(String columnsFilterProperty) throws Exception {
-        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", columnsFilterProperty), outboundMonitorReport);
+        filterChainContext= new OutboundFilterChainContext(channel, ConsumeType.Applier, DataMediaConfig.from("ut_test", columnsFilterProperty), outboundMonitorReport, null, false, null);
         filterChainFactory = new OutboundFilterChainFactory();
 
 

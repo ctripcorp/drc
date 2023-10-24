@@ -22,7 +22,7 @@ import static com.ctrip.framework.drc.core.driver.config.GlobalConfig.LOG_EVENT_
  * @Author limingdong
  * @create 2022/9/30
  */
-public class ReferenceCountedDelayMonitorLogEvent extends AbstractRowsEvent implements LogEventMerger {
+public class ReferenceCountedDelayMonitorLogEvent extends AbstractRowsEvent {
 
     private static Logger logger = LoggerFactory.getLogger(DelayMonitorLogEvent.class);
 
@@ -135,11 +135,6 @@ public class ReferenceCountedDelayMonitorLogEvent extends AbstractRowsEvent impl
     public void retain() {
         getLogEventHeader().getHeaderBuf().retain();
         getPayloadBuf().retain();
-    }
-
-    @Override
-    protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
-        return mergeByteBuf(headByteBuf, payloadBuf);
     }
 
     public void release(int decrement) {

@@ -57,6 +57,13 @@ public class EventReader {
         return compositeByteBuf;
     }
 
+    public static CompositeByteBuf readEvent(LogEvent logEvent, ByteBuf headByteBuf, ByteBuf bodyByteBuf) {
+        CompositeByteBuf compositeByteBuf = PooledByteBufAllocator.DEFAULT.compositeDirectBuffer();
+        compositeByteBuf.addComponents(true, headByteBuf, bodyByteBuf);
+        logEvent.read(compositeByteBuf);
+        return compositeByteBuf;
+    }
+
     public static ByteBuf readBody(FileChannel fileChannel, long eventSize) {
         int bodySize = (int) eventSize - eventHeaderLengthVersionGt1;
         return doRead(fileChannel, bodySize);
@@ -67,12 +74,11 @@ public class EventReader {
         return doRead(fileChannel, eventHeaderLengthVersionGt1);
     }
 
-    public static ByteBuf readHeader(FileChannel fileChannel, ByteBuffer headBuffer) {
+    public static void readHeader(FileChannel fileChannel, ByteBuffer headBuffer, ByteBuf headByteBuf) {
         try {
             headBuffer.clear();
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(headBuffer);
-            readFixSize(fileChannel, headBuffer, byteBuf, eventHeaderLengthVersionGt1);
-            return byteBuf;
+            headByteBuf.readerIndex(0);
+            readFixSize(fileChannel, headBuffer, eventHeaderLengthVersionGt1);
         } catch (Throwable t) {
             logger.error("doRead error and readSize for header {}", eventHeaderLengthVersionGt1, t);
             throw t;
@@ -101,9 +107,39 @@ public class EventReader {
                 size = fileChannel.read(byteBuffer);
                 if (remindSize == size) {
                     if (readTime > 0) {
-                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
-                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
-                        logger.warn("Event type is {} and size is {}", eventType, eventSize);
+//                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
+//                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
+                        logger.warn("read time is {} and size is {}", readTime, expectedSize);
+                    }
+                    return true;
+                }
+                logger.warn("Event size {} less than {}", size, remindSize);
+                if (size > 0) {
+                    remindSize -= size;
+                }
+                readTime++;
+                Thread.sleep(1 << readTime);
+            } while (readTime < MAX_TIMES);
+            logger.error("Remind event size {} to be read", remindSize);
+        } catch (Exception e) {
+            logger.error("readFixSize error with size {}, remind size {}", size, remindSize, e);
+        }
+        return false;
+    }
+
+    private static boolean readFixSize(FileChannel fileChannel, ByteBuffer byteBuffer, int expectedSize) {
+        int MAX_TIMES = 10;
+        int readTime = 0;
+        int remindSize = expectedSize;
+        int size = 0;
+        try {
+            do {
+                size = fileChannel.read(byteBuffer);
+                if (remindSize == size) {
+                    if (readTime > 0) {
+//                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
+//                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
+                        logger.warn("read time is {} and size is {}", readTime, expectedSize);
                     }
                     return true;
                 }
@@ -124,6 +160,12 @@ public class EventReader {
     public static void releaseCompositeByteBuf(CompositeByteBuf compositeByteBuf) {
         if (compositeByteBuf != null && compositeByteBuf.refCnt() > 0) {
             compositeByteBuf.release(compositeByteBuf.refCnt());
+        }
+    }
+
+    public static void releaseBodyByteBuf(ByteBuf bodyByteBuf) {
+        if (bodyByteBuf != null && bodyByteBuf.refCnt() > 0) {
+            bodyByteBuf.release(bodyByteBuf.refCnt());
         }
     }
 }

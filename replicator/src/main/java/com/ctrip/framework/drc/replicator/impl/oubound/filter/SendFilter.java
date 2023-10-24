@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
 import io.netty.buffer.ByteBuf;
@@ -7,7 +8,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.concurrent.GenericFutureListener;
 
-import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
+import java.io.IOException;
 
 /**
  * @Author limingdong
@@ -23,21 +24,34 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        boolean noRewrite = doNext(value, value.isNoRewrite());
-        if (value.getCause() != null) {
-            return noRewrite;
+        boolean skipEvent = doNext(value, value.isSkipEvent());
+
+        ByteBuf bodyByteBuf = value.getBodyByteBuf();
+        if (bodyByteBuf == null) {
+            try {
+                value.getFileChannel().position(value.getFileChannelPos() + value.getEventSize());
+            } catch (IOException e) {
+                value.setCause(e);
+            }
+        } else {
+            EventReader.releaseBodyByteBuf(bodyByteBuf);
         }
 
-        if (value.isSkipEvent()) {
+        if (value.getCause() != null) {
+            return false;
+        }
+
+        if (skipEvent) {
             return true;
         }
 
-        if (noRewrite) {
-            channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos() - eventHeaderLengthVersionGt1, value.getEventSize()).retain());
-        } else {
+        if (value.isRewrite()) {
             sendRewriteEvent(value);
+        } else {
+            channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos(), value.getEventSize()).retain());
         }
-        return noRewrite;
+
+        return true;
     }
 
     private void sendRewriteEvent(OutboundLogEventContext value) {

@@ -13,13 +13,13 @@ public class TypeFilterTest {
     @Test
     public void doFilter() {
 
-        TypeFilter typeFilter = new TypeFilter(ConsumeType.Console, true);
+        TypeFilter typeFilter = new TypeFilter(ConsumeType.Console);
         Assert.assertTrue(typeFilter.doFilter(new OutboundLogEventContext()));
 
-        typeFilter = new TypeFilter(ConsumeType.Applier, false);
+        typeFilter = new TypeFilter(ConsumeType.Applier);
         Assert.assertTrue(typeFilter.doFilter(new OutboundLogEventContext()));
 
-        typeFilter = new TypeFilter(ConsumeType.Applier, true);
+        typeFilter = new TypeFilter(ConsumeType.Applier);
         Assert.assertFalse(typeFilter.doFilter(new OutboundLogEventContext()));
     }
 }

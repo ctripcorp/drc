@@ -55,7 +55,7 @@ public class SystemConfig {
 
     public static final String JDBC_URL_FORMAT = JDBC_PREFIX + "%d" + SystemConfig.JDBC_URL_PARAM;
 
-    public static final int MASTER_HEARTBEAT_PERIOD_SECONDS = 10;
+    public static final int MASTER_HEARTBEAT_PERIOD_SECONDS = 10 * 10000;
 
     public static final int CONNECTION_IDLE_TIMEOUT_SECOND = MASTER_HEARTBEAT_PERIOD_SECONDS * 3;
 

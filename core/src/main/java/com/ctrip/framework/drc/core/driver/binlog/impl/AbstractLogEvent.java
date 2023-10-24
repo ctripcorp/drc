@@ -24,7 +24,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
  * <p>
  * Sep 01, 2019
  */
-public abstract class AbstractLogEvent implements LogEvent {
+public abstract class AbstractLogEvent implements LogEvent, LogEventMerger {
 
     private LogEventHeader logEventHeader;
 
@@ -86,7 +86,7 @@ public abstract class AbstractLogEvent implements LogEvent {
     }
 
     protected List<ByteBuf> getEventByteBuf(ByteBuf headByteBuf, ByteBuf payloadBuf) {
-        return Lists.newArrayList(headByteBuf, payloadBuf);
+        return mergeByteBuf(headByteBuf, payloadBuf);
     }
 
     @Override

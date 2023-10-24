@@ -14,23 +14,26 @@ public class TypeFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private ConsumeType consumeType;
 
-    private boolean shouldExtract;
-
-    public TypeFilter(ConsumeType consumeType, boolean shouldExtract) {
+    public TypeFilter(ConsumeType consumeType) {
         this.consumeType = consumeType;
-        this.shouldExtract = shouldExtract;
     }
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-        if (ConsumeType.Applier == consumeType && LogEventUtils.isApplierIgnored(value.getEventType())) {
-            value.setFilteredEventSize(0);
+        switch (consumeType) {
+            case Applier:
+            case Messenger:
+                filterApplier(value);
+                break;
+            default:
+        }
+
+        return doNext(value, value.isSkipEvent());
+    }
+
+    private void filterApplier(OutboundLogEventContext value) {
+        if (LogEventUtils.isApplierIgnored(value.getEventType())) {
             value.setSkipEvent(true);
-            return doNext(value, true);
         }
-        if (ConsumeType.Applier != consumeType || !shouldExtract) {
-            value.setNoRewrite(true);
-        }
-        return doNext(value, value.isNoRewrite());
     }
 }
