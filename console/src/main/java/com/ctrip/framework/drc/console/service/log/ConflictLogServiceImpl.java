@@ -287,7 +287,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
         List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
         conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
@@ -328,6 +327,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return conflictRowsLogTbls.size();
     }
 
+    @Override
+    public long deleteTrxLogsByTime(long beginTime, long endTime) throws Exception {
+        return 0;
+    }
+
     private int batchDeleteTrxLogs(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws Exception {
         int resultSize = 0;
         if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
@@ -339,6 +343,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             List<ConflictTrxLogTbl> subTrxLogTbls = conflictTrxLogTbls.subList(i, toIndex);
             i += BATCH_SIZE;
             resultSize += conflictTrxLogTblDao.batchDelete(subTrxLogTbls).length;
+            logger.info("batchDelete trxLogs size: " +resultSize);
         }
         return resultSize;
     }
@@ -354,6 +359,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             List<ConflictRowsLogTbl> subRowsLogTbls = conflictRowsLogTbls.subList(i, toIndex);
             i += BATCH_SIZE;
             resultSize += conflictRowsLogTblDao.batchDelete(subRowsLogTbls).length;
+            logger.info("batchDelete rowLogs size: " +resultSize);
         }
         return resultSize;
     }

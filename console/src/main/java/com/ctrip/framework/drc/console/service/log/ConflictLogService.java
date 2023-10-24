@@ -29,4 +29,6 @@ public interface ConflictLogService {
     void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception;
 
     long deleteTrxLogs(long beginTime, long endTime) throws Exception;
+
+    long deleteTrxLogsByTime(long beginTime, long endTime) throws Exception;
 }
