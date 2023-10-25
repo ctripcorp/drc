@@ -26,6 +26,8 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
     private static final String HANDLE_TIME = "handle_time";
     private static final String SRC_REGION = "src_region";
     private static final String DST_REGION = "dst_region";
+    private static final String ID = "id";
+    private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
 
     public ConflictRowsLogTblDao() throws SQLException {
         super(ConflictRowsLogTbl.class);
@@ -69,5 +71,9 @@ public class ConflictRowsLogTblDao extends AbstractDao<ConflictRowsLogTbl> {
             sqlBuilder.and().lessThan(HANDLE_TIME, param.getEndHandleTime(), Types.BIGINT);
         }
         return sqlBuilder;
+    }
+
+    public int batchDeleteByHandleTime(long beginTime, long endTime) throws SQLException {
+        return client.delete(WHERE_SQL, new DalHints(), beginTime, endTime);
     }
 }

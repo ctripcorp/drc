@@ -25,6 +25,7 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
     private static final String GTID = "gtid";
     private static final String HANDLE_TIME = "handle_time";
     private static final String TRX_RESULT = "trx_result";
+    private static final String WHERE_SQL = "handle_time >= ? and handle_time <= ?";
 
     public ConflictTrxLogTblDao() throws SQLException {
         super(ConflictTrxLogTbl.class);
@@ -80,5 +81,9 @@ public class ConflictTrxLogTblDao extends AbstractDao<ConflictTrxLogTbl> {
         }
 
         return conflictTrxLogTbls;
+    }
+
+    public int batchDeleteByHandleTime(long beginTime, long endTime) throws SQLException {
+        return client.delete(WHERE_SQL, new DalHints(), beginTime, endTime);
     }
 }

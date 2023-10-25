@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -73,7 +74,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private DrcBuildServiceV2 drcBuildServiceV2;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
+    private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
     private static final int BATCH_SIZE = 2000;
+    private static final int SEVEN = 7;
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -103,29 +106,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
 
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByParam(param);
-        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
-            return new ArrayList<>();
-        }
+        return getConflictRowsLogViews(conflictRowsLogTbls);
+    }
 
-        List<Long> conflictTrxLogIds = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getConflictTrxLogId).collect(Collectors.toList());
-        List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByIds(conflictTrxLogIds);
-
-        Map<Long, ConflictTrxLogTbl> conflictTrxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
-
-        List<ConflictRowsLogView> views = conflictRowsLogTbls.stream().map(source -> {
-            ConflictRowsLogView target = new ConflictRowsLogView();
-            BeanUtils.copyProperties(source, target, "handleTime");
-            target.setHandleTime(DateUtils.longToString(source.getHandleTime()));
-            target.setConflictRowsLogId(source.getId());
-
-            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogMap.get(source.getConflictTrxLogId());
-            target.setGtid(conflictTrxLogTbl.getGtid());
-            target.setConflictTrxLogId(conflictTrxLogTbl.getId());
-            target.setSrcRegion(source.getSrcRegion());
-            target.setDstRegion(source.getDstRegion());
-            return target;
-        }).collect(Collectors.toList());
-        return views;
+    @Override
+    public List<ConflictRowsLogView> getConflictRowsLogView(List<Long> conflictRowLogIds) throws Exception {
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
+        return getConflictRowsLogViews(conflictRowsLogTbls);
     }
 
     @Override
@@ -203,7 +190,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                 extractRecords(dstResultMap, dstColumnMap, dstResult);
             } catch (Exception e) {
                 logger.error("query records error: {}", e);
-                throw ConsoleExceptionUtils.message("query records error");
+                throw ConsoleExceptionUtils.message(e.getMessage());
             }
         }
 
@@ -287,6 +274,58 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
+    public ConflictRowsRecordCompareView compareRowRecords(List<Long> conflictRowLogIds) throws Exception {
+        ConflictRowsRecordCompareView view = new ConflictRowsRecordCompareView();
+
+        List<ListenableFuture<Pair<Long, ConflictCurrentRecordView>>> futures = new ArrayList<>();
+        for (long conflictRowLogId : conflictRowLogIds) {
+            ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future = compareExecutorService.submit(() -> getConflictRowRecordView(conflictRowLogId));
+            futures.add(future);
+        }
+
+        Map<Long, ConflictCurrentRecordView> recordViewMap = new HashMap<>();
+        for (ListenableFuture<Pair<Long, ConflictCurrentRecordView>> future : futures) {
+            try {
+                Pair<Long, ConflictCurrentRecordView> resultPair = future.get(5, TimeUnit.SECONDS);
+                recordViewMap.put(resultPair.getLeft(), resultPair.getRight());
+            } catch (Exception e) {
+                logger.error("compare records error", e);
+                throw ConsoleExceptionUtils.message(e.getMessage());
+            }
+        }
+
+        List<Long> rowLogIds = new ArrayList<>();
+        Map<String, Boolean> resultMap = new HashMap<>();
+        recordViewMap.forEach((rowLogId, recordView) -> {
+            Map<String, Object> srcRecord = recordView.getSrcRecords().get(0);
+            boolean recordIsEqual = recordView.isRecordIsEqual();
+            String tableName = (String) srcRecord.get("tableName");
+            if (!resultMap.containsKey(tableName) || !recordIsEqual) {
+                resultMap.put(tableName, recordIsEqual);
+            }
+            if (!recordIsEqual) {
+                rowLogIds.add(rowLogId);
+            }
+        });
+
+        List<ConflictRowsRecordDetail> recordDetailList = new ArrayList<>();
+        resultMap.forEach((tableName, recordIsEqual) -> {
+            ConflictRowsRecordDetail recordDetail = new ConflictRowsRecordDetail();
+            recordDetail.setTableName(tableName);
+            recordDetail.setRecordIsEqual(recordIsEqual);
+            recordDetailList.add(recordDetail);
+        });
+
+        view.setRecordDetailList(recordDetailList);
+        view.setRowLogIds(rowLogIds);
+        return view;
+    }
+
+    private Pair<Long, ConflictCurrentRecordView> getConflictRowRecordView(long rowLogId) throws Exception {
+        return Pair.of(rowLogId, getConflictRowRecordView(rowLogId, SEVEN));
+    }
+
+    @Override
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
         List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
         conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
@@ -328,8 +367,41 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     @Override
-    public long deleteTrxLogsByTime(long beginTime, long endTime) throws Exception {
-        return 0;
+    @DalTransactional(logicDbName = "bbzfxdrclogdb_w")
+    public Map<String, Integer> deleteTrxLogsByTime(long beginTime, long endTime) throws Exception {
+        Map<String, Integer> resultMap = new HashMap<>();
+        int trxLogDeleteSize = conflictTrxLogTblDao.batchDeleteByHandleTime(beginTime, endTime);
+        int rowLogDeleteSize = conflictRowsLogTblDao.batchDeleteByHandleTime(beginTime, endTime);
+
+        resultMap.put("trxLogDeleteSize", trxLogDeleteSize);
+        resultMap.put("rowLogDeleteSize", rowLogDeleteSize);
+        return resultMap;
+    }
+
+    private List<ConflictRowsLogView> getConflictRowsLogViews(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> conflictTrxLogIds = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getConflictTrxLogId).collect(Collectors.toList());
+        List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByIds(conflictTrxLogIds);
+
+        Map<Long, ConflictTrxLogTbl> conflictTrxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getId, Function.identity()));
+
+        List<ConflictRowsLogView> views = conflictRowsLogTbls.stream().map(source -> {
+            ConflictRowsLogView target = new ConflictRowsLogView();
+            BeanUtils.copyProperties(source, target, "handleTime");
+            target.setHandleTime(DateUtils.longToString(source.getHandleTime()));
+            target.setConflictRowsLogId(source.getId());
+
+            ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogMap.get(source.getConflictTrxLogId());
+            target.setGtid(conflictTrxLogTbl.getGtid());
+            target.setConflictTrxLogId(conflictTrxLogTbl.getId());
+            target.setSrcRegion(source.getSrcRegion());
+            target.setDstRegion(source.getDstRegion());
+            return target;
+        }).collect(Collectors.toList());
+        return views;
     }
 
     private int batchDeleteTrxLogs(List<ConflictTrxLogTbl> conflictTrxLogTbls) throws Exception {
@@ -451,10 +523,15 @@ public class ConflictLogServiceImpl implements ConflictLogService {
                                                                                        List<String> onUpdateColumns,
                                                                                        List<DbReplicationView> dbReplicationViews,
                                                                                        Map<Long, List<String>> columnsFieldMap) {
-        Map<String, Object> srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
-        Map<String, Object> dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+        Map<String, Object> srcResultMap;
+        Map<String, Object> dstResultMap;
+        try {
+            srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
+            dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+        } catch (Exception e) {
+            throw ConsoleExceptionUtils.message(e.getMessage());
+        }
         boolean sameRecord = recordIsEqual(srcResultMap, dstResultMap, columnsFieldMap, dbReplicationViews);
-
         return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));
     }
 

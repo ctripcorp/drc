@@ -817,7 +817,7 @@ public class MySqlUtils {
         return "three accounts ready";
     }
 
-    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) {
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) throws Exception{
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
@@ -835,7 +835,8 @@ public class MySqlUtils {
         } catch(Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            return new HashMap<>();
+//            return new HashMap<>();
+            throw ConsoleExceptionUtils.message(t.getMessage());
         } finally {
             if(readResource != null) {
                 readResource.close();

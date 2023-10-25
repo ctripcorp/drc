@@ -67,6 +67,13 @@
       <Col span="4">
         <Row :gutter=10 align="middle">
           <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
+          <Tooltip content="勾选冲突行进行数据一致性比对">
+            <Button type="primary" :loading="compareLoading" style="margin-left: 10px" @click="compareRecords">数据比对</Button>
+          </Tooltip>
+
+        </Row>
+        <Row :gutter=10 align="middle" style="margin-top: 20px">
+          <Button icon="md-refresh" @click="resetParam">重置</Button>
           <i-switch v-model="searchMode" size="large" style="margin-left: 10px">进阶
             <template #open>
               <span>进阶</span>
@@ -76,13 +83,11 @@
             </template>
           </i-switch>
         </Row>
-        <Row :gutter=10 align="middle" style="margin-top: 20px">
-          <Button icon="md-refresh" @click="resetParam">重置</Button>
-        </Row>
       </Col>
     </Row>
     <br>
-    <Table stripe border :columns="columns" :data="tableData">
+    <Table stripe border :columns="columns" :data="tableData" ref="multipleTable"
+           @on-selection-change="changeSelection">
       <template slot-scope="{ row, index }" slot="action">
         <Button type="primary" size="small" @click="getLogDetail1(row, index)" style="margin-right: 5px">
           详情
@@ -145,6 +150,18 @@
         </Card>
       </div>
     </Modal>
+    <Modal
+      v-model="compareModal"
+      title="数据一致性比对结果"
+      width="800px">
+      <div v-if="this.rowLogIds.length>0" class="ivu-list-item-meta-title">存在数据比对不一致的冲突行，点击查询
+        <Tooltip content="冲突行仅限当前页面">
+          <Button size="middle" type="success" @click="getUnEqualRecords">冲突行</Button>
+        </Tooltip >
+      </div>
+      <Table stripe border :loading="compareLoading" :columns="compareData.columns" :data="compareData.compareRowRecords">
+      </Table>
+    </Modal>
   </div>
 </template>
 
@@ -163,8 +180,35 @@ export default {
   },
   data () {
     return {
+      compareModal: false,
+      multiData: [],
       detailModal: false,
       modalLoading: false,
+      compareLoading: false,
+      rowLogIds: [],
+      compareData: {
+        compareRowRecords: [],
+        columns: [
+          {
+            title: '表名',
+            key: 'tableName'
+          },
+          {
+            title: '比对结果',
+            key: 'recordIsEqual',
+            render: (h, params) => {
+              const row = params.row
+              const color = row.recordIsEqual ? 'blue' : 'volcano'
+              const text = row.recordIsEqual ? '数据一致' : '数据不一致'
+              return h('Tag', {
+                props: {
+                  color: color
+                }
+              }, text)
+            }
+          }
+        ]
+      },
       logDetail: {
         srcRecords: [],
         dstRecords: [],
@@ -193,6 +237,23 @@ export default {
       },
       tableData: [],
       columns: [
+        // {
+        //   title: '序号',
+        //   width: 75,
+        //   align: 'center',
+        //   // fixed: 'left',
+        //   render: (h, params) => {
+        //     return h(
+        //       'span',
+        //       params.index + 1
+        //     )
+        //   }
+        // },
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
         {
           title: '同步方向',
           key: 'dc',
@@ -284,6 +345,40 @@ export default {
     }
   },
   methods: {
+    compareRecords () {
+      const multiData = this.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      this.compareLoading = true
+      this.compareModal = true
+      const rowLogIds = []
+      multiData.forEach(data => rowLogIds.push(data.conflictRowsLogId))
+      this.axios.get('/api/drc/v2/log/conflict/records/compare?conflictRowLogIds=' + rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error({
+              content: '数据比对失败! ' + response.data.message,
+              duration: 5
+            })
+            // this.$Message.error(response.data.message)
+            // this.$Message.error('数据比对失败!')
+          } else {
+            const data = response.data.data
+            this.compareData.compareRowRecords = data.recordDetailList
+            this.rowLogIds = []
+            data.rowLogIds.forEach(e => this.rowLogIds.push(e))
+          }
+        })
+        .finally(() => {
+          this.compareLoading = false
+        })
+    },
+    changeSelection (val) {
+      this.multiData = val
+      console.log(this.multiData)
+    },
     getLogDetail1 (row, index) {
       this.modalLoading = true
       this.detailModal = true
@@ -294,7 +389,12 @@ export default {
       this.axios.get('/api/drc/v2/log/conflict/row/record?conflictRowLogId=' + row.conflictRowsLogId + '&columnSize=12')
         .then(response => {
           if (response.data.status === 1) {
-            // this.$Message.error('查询当前行记录失败!')
+            this.$Message.error({
+              content: '查询失败! ' + response.data.message,
+              duration: 5
+            })
+            // this.$Message.error(response.data.message)
+            this.logDetail.recordEqual = false
             this.logDetail.diffStr = '数据比对失败'
           } else {
             const data = response.data.data
@@ -329,7 +429,34 @@ export default {
       this.$emit('gtidChanged', row.gtid)
       // this.tabVal = 'rowsLog'
     },
+    getUnEqualRecords () {
+      this.multiData = []
+      this.compareModal = false
+      this.dataLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/rows/rowLogIds?rowLogIds=' + this.rowLogIds)
+        .then(response => {
+          const data = response.data
+          if (data.status === 1) {
+            this.$Message.error('查询失败')
+          } else {
+            this.tableData = data.data
+            this.total = data.data.length
+            this.current = 1
+            this.tableData = data.data
+            if (this.total === 0) {
+              this.$Message.warning('查询结果为空')
+            } else {
+              this.$Message.success('以下冲突行数据对比不一致')
+            }
+          }
+        })
+        .finally(() => {
+          this.dataLoading = false
+        })
+    },
     getData () {
+      this.compareData.compareRowRecords = []
+      this.rowLogIds = []
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
       const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
@@ -354,6 +481,8 @@ export default {
       if (!isNaN(endHandleTime) && endHandleTime !== null) {
         params.endHandleTime = endHandleTime
       }
+      console.log('params')
+      console.log(params)
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
       this.axios.get('/api/drc/v2/log/conflict/rows', { params: reqParam })
@@ -403,6 +532,7 @@ export default {
         srcRegion: null,
         dstRegion: null
       }
+      this.rowLogIds = null
     },
     handleChangeSize (val) {
       this.size = val
