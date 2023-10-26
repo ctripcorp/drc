@@ -15,10 +15,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.param.mysql.QueryRecordsRequest;
 import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
-import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogView;
-import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogDetailView;
-import com.ctrip.framework.drc.console.vo.log.ConflictTrxLogView;
+import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
@@ -30,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -94,6 +92,43 @@ public class ConflictLogServiceTest {
     }
 
     @Test
+    public void testGetConflictRowRecordView() throws Exception {
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>(), 12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>(), 12);
+        Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
+        Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
+        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+
+        ConflictCurrentRecordView result = conflictLogService.getConflictRowRecordView(1L, 12);
+        Assert.assertTrue(result.isRecordIsEqual());
+    }
+
+    @Test
+    public void testCompareRowRecords() throws Exception {
+        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>(), 12);
+        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>(), 12);
+        Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
+        Mockito.when(conflictRowsLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
+        Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
+        Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
+        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+
+        ConflictRowsRecordCompareView result = conflictLogService.compareRowRecords(Lists.newArrayList(1L));
+        Assert.assertEquals(result.getRecordDetailList().size(), 1);
+        Assert.assertTrue(CollectionUtils.isEmpty(result.getRowLogIds()));
+    }
+
+    @Test
     public void testGetConflictTrxLogDetailView() throws Exception {
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.anyString())).thenReturn(getMhaTbls().get(0));
@@ -115,17 +150,15 @@ public class ConflictLogServiceTest {
 
     @Test
     public void testGetConflictCurrentRecordView() throws Exception {
-        QueryRecordsRequest srcRequest = new QueryRecordsRequest("srcMha", "sql", new ArrayList<>());
-        QueryRecordsRequest dstRequest = new QueryRecordsRequest("dstMha", "sql", new ArrayList<>());
         Mockito.when(conflictTrxLogTblDao.queryById(Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls().get(0));
         Mockito.when(conflictRowsLogTblDao.queryByTrxLogId(Mockito.anyLong())).thenReturn(buildConflictRowsLogTbls());
-        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
-        Mockito.when( mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("srcMha"))).thenReturn(getMhaTbls().get(0));
+        Mockito.when(mhaTblV2Dao.queryByMhaName(Mockito.eq("dstMha"))).thenReturn(getMhaTbls().get(1));
         Mockito.when(drcBuildServiceV2.getDbReplicationView(Mockito.anyString(), Mockito.anyString())).thenReturn(getDbReplicationViews());
         Mockito.when(dbReplicationFilterMappingTblDao.queryByDbReplicationIds(Mockito.anyList())).thenReturn(getFilterMappings());
         Mockito.when(columnsFilterTblV2Dao.queryByIds(Mockito.anyList())).thenReturn(Lists.newArrayList(getColumnsFilterTbl()));
-        Mockito.when(mysqlService.queryTableRecords(srcRequest)).thenReturn(getSrcResMap());
-        Mockito.when(mysqlService.queryTableRecords(dstRequest)).thenReturn(getDstResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getSrcResMap());
+        Mockito.when(mysqlService.queryTableRecords(Mockito.any())).thenReturn(getDstResMap());
 
         ConflictCurrentRecordView result = conflictLogService.getConflictCurrentRecordView(1L, 12);
         Assert.assertTrue(result.isRecordIsEqual());
@@ -135,9 +168,20 @@ public class ConflictLogServiceTest {
     public void testDeleteTrxLogs() throws Exception {
         Mockito.when(conflictTrxLogTblDao.queryByHandleTime(Mockito.anyLong(), Mockito.anyLong())).thenReturn(buildConflictTrxLogTbls());
         Mockito.when(conflictRowsLogTblDao.queryByTrxLogIds(Mockito.anyList())).thenReturn(buildConflictRowsLogTbls());
+        Mockito.when(conflictTrxLogTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[1]);
+        Mockito.when(conflictRowsLogTblDao.batchDelete(Mockito.anyList())).thenReturn(new int[1]);
 
         long result = conflictLogService.deleteTrxLogs(0, System.currentTimeMillis());
         Assert.assertEquals(result, buildConflictRowsLogTbls().size());
+    }
+
+    @Test
+    public void testDeleteTrxLogsByTime() throws Exception {
+        Mockito.when(conflictTrxLogTblDao.batchDeleteByHandleTime(Mockito.anyLong(), Mockito.anyLong())).thenReturn(1);
+        Mockito.when(conflictRowsLogTblDao.batchDeleteByHandleTime(Mockito.anyLong(), Mockito.anyLong())).thenReturn(1);
+
+        Map<String, Integer> result = conflictLogService.deleteTrxLogsByTime(1L, 1L);
+        Assert.assertNotNull(result);
     }
 
     private Map<String, Object> getSrcResMap() {
@@ -159,7 +203,7 @@ public class ConflictLogServiceTest {
 
     private Map<String, Object> getDstResMap() {
         Map<String, Object> res = new HashMap<>();
-        res.put("tableName", "tableName");
+        res.put("tableName", "db.table");
 
         Map<String, Object> records = new HashMap<>();
         records.put("id", 1L);

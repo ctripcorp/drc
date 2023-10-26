@@ -251,7 +251,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<String> onUpdateColumns = onUpdateColumnPair.getRight();
 
         String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
-        Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight());
+        Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair =
+                queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight());
         view.setRecordIsEqual(resultPair.getLeft());
         Map<String, Object> srcResult = resultPair.getRight().getLeft();
         Map<String, Object> dstResult = resultPair.getRight().getRight();
