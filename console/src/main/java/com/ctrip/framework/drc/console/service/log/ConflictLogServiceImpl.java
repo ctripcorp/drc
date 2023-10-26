@@ -152,11 +152,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
         if (conflictTrxLogTbl == null) {
-            throw ConsoleExceptionUtils.message("冲突日志不存在");
+            throw ConsoleExceptionUtils.message("trxLog not exist");
         }
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogId(conflictTrxLogId);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
-            throw ConsoleExceptionUtils.message("冲突日志不存在");
+            throw ConsoleExceptionUtils.message("rowLog not exist");
         }
         String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
         String dstMhaName = conflictTrxLogTbl.getDstMhaName();
@@ -232,11 +232,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         ConflictCurrentRecordView view = new ConflictCurrentRecordView();
         ConflictRowsLogTbl rowLog = conflictRowsLogTblDao.queryById(conflictRowLogId);
         if (rowLog == null) {
-            throw ConsoleExceptionUtils.message("冲突日志不存在");
+            throw ConsoleExceptionUtils.message("rowLog not exist");
         }
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(rowLog.getConflictTrxLogId());
         if (conflictTrxLogTbl == null) {
-            throw ConsoleExceptionUtils.message("冲突日志不存在");
+            throw ConsoleExceptionUtils.message("trxLog not exist");
         }
         String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
         String dstMhaName = conflictTrxLogTbl.getDstMhaName();
