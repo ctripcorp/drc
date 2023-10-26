@@ -484,7 +484,7 @@ export default {
               }
               this.rowsFilterConfig.mode = res.mode
               this.rowsFilterConfig.columns = res.columns === null ? [] : res.columns
-              if (res.udlColumns.length !== 0) {
+              if (res.udlColumns !== null) {
                 this.rowsFilterConfig.udlColumns = res.udlColumns
               }
               this.rowsFilterConfig.drcStrategyId = res.drcStrategyId === 0 ? null : res.drcStrategyId

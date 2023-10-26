@@ -6,12 +6,12 @@
     <Content class="content" :style="{padding: '10px', background: '#fff', margin: '50px 0 1px 185px', zIndex: '1'}">
       <Tabs v-model="tabValue">
         <TabPane label="冲突行" name="rowsLog">
-          <conflict-rows-log v-if="refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
+          <conflict-rows-log v-if="refresh" :gtid="gtid" :searchMode="searchMode" v-on:tabValueChanged="updateTabValue"
                              v-on:gtidChanged="updateGtid"></conflict-rows-log>
         </TabPane>
         <TabPane label="冲突事务" name="trxLog">
           <conflict-trx-log v-if="!refresh" :gtid="gtid" v-on:tabValueChanged="updateTabValue"
-                            v-on:gtidChanged="updateGtid"></conflict-trx-log>
+                            v-on:gtidChanged="updateGtid"  v-on:searchModeChanged="updateSearchMode"></conflict-trx-log>
         </TabPane>
       </Tabs>
     </Content>
@@ -32,7 +32,8 @@ export default {
     return {
       tabValue: 'rowsLog',
       gtid: null,
-      refresh: true
+      refresh: true,
+      searchMode: false
     }
   },
   watch: {
@@ -55,6 +56,9 @@ export default {
     },
     updateGtid (e) {
       this.gtid = e
+    },
+    updateSearchMode (e) {
+      this.searchMode = e
     }
   }
 }

@@ -186,7 +186,7 @@ public class MysqlController {
             Map<String, Object> result = mysqlServiceV2.queryTableRecords(requestBody);
             return ApiResult.getSuccessInstance(result);
         } catch (Exception e) {
-            logger.error("queryTablesWithNameFilter error", requestBody, e);
+            logger.error("queryTableRecords error", requestBody, e);
             return ApiResult.getFailInstance(null);
         }
     }

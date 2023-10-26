@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.common;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
@@ -36,7 +37,7 @@ public class SqlTest {
 
     @Test
     public void testInsert() {
-        String insertSql = "/*DRC UPDATE 2*/ INSERT INTO `bbzmembersaccountshard14db`.`user_password6` (`UID`,`Pwd`,`Version`,`PwdType`,`CreationTime`,`DataChange_LastTime`,`userdata_location`) VALUES ('_SLOSX6JVW1WWAC0','cH6eGnn0bYUaSKHChyqqR+3lThPrS77p',1,1,'2023-10-07 14:36:33.947','2023-10-19 11:22:48.113','JP')";
+        String insertSql = "/*DRC UPDATE 2*/ INSERT INTO `bbzimelongdetailshard05db`.`adviceofread` (`id`,`cid`,`ownerId`,`partnerId`,`type`,`messageCreateTime`,`DataChange_LastTime`,`dbshard`,`id_bak`,`ver_a`,`ver_b`) VALUES (115374965,'openim1528979669764ial96mqt0mq00:1399054765677084752:1','openim1528979669764ial96mqt0mq00','1399054765677084752',1,1697710421615,'2023-10-19 20:56:33',null,null,'2020-02-02 00:00:00','2023-10-19 20:56:33')";
         String insertFormatSql = SQLUtils.format(insertSql, JdbcConstants.MYSQL);
         Map<String, String> parseResult = parseSql(insertSql);
         System.out.println(parseResult);
@@ -112,11 +113,15 @@ public class SqlTest {
                 if (columnName.equals("`datachange_lasttime`")) {
                     continue;
                 }
-                String value = values.get(i).toString();
+                SQLExpr valueExpr = values.get(i);
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + value);
+                if (valueExpr instanceof SQLNullExpr) {
+                    condition.append(columnName + " is " + valueExpr);
+                } else {
+                    condition.append(columnName + " = " + valueExpr);
+                }
                 firstCondition = false;
             }
 

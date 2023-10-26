@@ -204,13 +204,17 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
 
     @Override
     @PossibleRemote(path = "/api/drc/v2/mysql/queryTableRecords", httpType = HttpRequestEnum.POST, requestClass = QueryRecordsRequest.class)
-    public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) {
+    public Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception {
         Endpoint endpoint = cacheMetaService.getMasterEndpoint(requestBody.getMha());
         if (endpoint == null) {
             logger.error("queryTableRecords from mha: {}, db not exist", requestBody.getMha());
             return new HashMap<>();
         }
-        return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns());
+        try {
+            return MySqlUtils.queryRecords(endpoint, requestBody.getSql(), requestBody.getOnUpdateColumns(), requestBody.getColumnSize());
+        } catch (Exception e) {
+            throw ConsoleExceptionUtils.message(e.getMessage());
+        }
     }
 
     @Override

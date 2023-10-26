@@ -12,24 +12,33 @@
             自动冲突处理结果
           </p>
           <div class="ivu-list-item-meta-title">事务提交结果：
-<!--            <Tag :loading="logTableLoading" :color="trxLog.trxResult==0?'success':'error'" size="medium">{{trxLog.trxResultStr}}</Tag>-->
             <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">{{trxLog.trxResultStr}}</Button>
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突事务记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
-<!--              <Tag :loading="recordLoading" :color="trxLog.recordEqual==true?'success':'error'" size="medium">{{trxLog.diffStr}}</Tag>-->
               <Button :loading="recordLoading" size="small" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
             </Tooltip >
           </div>
           <Divider/>
           <div class="ivu-list-item-meta-title">源机房({{trxLog.srcDc}})</div>
-          <Table  size="small" stripe v-for="(item, index) in srcRecords" :key="index" :columns="item.columns" :data="item.records"
-                 border></Table>
+          <Card v-for="(item, index) in srcRecords" :key="index">
+            <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
+              <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
+              </Tooltip >
+            </div>
+            <Table  size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+          </Card>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstDc}})</div>
-          <Table size="small" stripe v-for="(item, index) in dstRecords" :key="index" :columns="item.columns" :data="item.records"
-                 border></Table>
-          <Divider/>
+          <Card v-for="(item, index) in dstRecords" :key="index">
+            <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
+              <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
+              </Tooltip >
+            </div>
+            <Table  size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+          </Card>
         </Card>
         <Divider/>
         <Card>
@@ -165,7 +174,7 @@ export default {
     },
     getTrxRecords () {
       this.recordLoading = true
-      this.axios.get('/api/drc/v2/log/conflict/records?conflictTrxLogId=' + this.conflictTrxLogId)
+      this.axios.get('/api/drc/v2/log/conflict/records?conflictTrxLogId=' + this.conflictTrxLogId + '&columnSize=12')
         .then(response => {
           if (response.data.status === 1) {
             // this.$Message.error('查询当前行记录失败!')
@@ -175,7 +184,9 @@ export default {
             this.trxLog.recordEqual = data.recordIsEqual
             this.trxLog.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
             this.srcRecords = data.srcRecords
+            // data.srcRecords.forEach(e => this.srcRecords.push(e))
             this.dstRecords = data.dstRecords
+            // data.dstRecords.forEach(e => this.dstRecords.push(e))
           }
         })
         .finally(() => {
