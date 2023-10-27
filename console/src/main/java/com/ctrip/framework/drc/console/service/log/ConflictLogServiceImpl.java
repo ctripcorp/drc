@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DefaultConsoleConfig;
 import com.ctrip.framework.drc.console.dao.DcTblDao;
 import com.ctrip.framework.drc.console.dao.entity.DcTbl;
 import com.ctrip.framework.drc.console.dao.entity.v2.ColumnsFilterTblV2;
@@ -26,8 +27,10 @@ import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
 import com.ctrip.framework.drc.core.server.utils.ThreadUtils;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
+import com.ctrip.framework.drc.fetcher.conflict.ConflictRowLog;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -72,6 +75,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private MysqlServiceV2 mysqlService;
     @Autowired
     private DrcBuildServiceV2 drcBuildServiceV2;
+    @Autowired
+    private DefaultConsoleConfig defaultConsoleConfig;
 
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(5, "conflictLog"));
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
@@ -328,6 +333,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public void createConflictLog(List<ConflictTransactionLog> trxLogs) throws Exception {
+        trxLogs = filterTransactionLogs(trxLogs);
+        if (CollectionUtils.isEmpty(trxLogs)) {
+            logger.info("trxLogs are empty");
+            return;
+        }
+
         List<ConflictTrxLogTbl> conflictTrxLogTbls = trxLogs.stream().map(this::buildConflictTrxLog).collect(Collectors.toList());
         conflictTrxLogTbls = conflictTrxLogTblDao.batchInsertWithReturnId(conflictTrxLogTbls);
         Map<String, Long> trxLogMap = conflictTrxLogTbls.stream().collect(Collectors.toMap(ConflictTrxLogTbl::getGtid, ConflictTrxLogTbl::getId));
@@ -349,6 +360,24 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             conflictRowsLogTbls.addAll(conflictRowsLogList);
         });
         conflictRowsLogTblDao.insert(conflictRowsLogTbls);
+    }
+
+    private List<ConflictTransactionLog> filterTransactionLogs(List<ConflictTransactionLog> trxLogs) {
+        List<String> conflictDbBlacklist = defaultConsoleConfig.getConflictDbBlacklist();
+        if (CollectionUtils.isEmpty(conflictDbBlacklist)) {
+            return trxLogs;
+        }
+
+        String dbFilter = Joiner.on("|").join(conflictDbBlacklist);
+        AviatorRegexFilter regexFilter = new AviatorRegexFilter(dbFilter);
+        trxLogs.stream().forEach(trxLog -> {
+            List<ConflictRowLog> cflLogs = trxLog.getCflLogs().stream().filter(cflLog -> {
+                String tableName = cflLog.getDb() + "." + cflLog.getTable();
+                return !regexFilter.filter(tableName);
+            }).collect(Collectors.toList());
+            trxLog.setCflLogs(cflLogs);
+        });
+        return trxLogs.stream().filter(trxLog -> !CollectionUtils.isEmpty(trxLog.getCflLogs())).collect(Collectors.toList());
     }
 
     @Override
