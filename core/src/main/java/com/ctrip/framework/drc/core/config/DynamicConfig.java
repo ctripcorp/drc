@@ -20,6 +20,8 @@ public class DynamicConfig extends AbstractConfigBean {
     private static final String INDEPENDENT_EMBEDDED_MYSQL_SWITCH = "independent.embedded.mysql.switch";
 
     private static final String INDEPENDENT_EMBEDDED_MYSQL_SWITCH_KEY = INDEPENDENT_EMBEDDED_MYSQL_SWITCH + ".%s";
+    private static final String UPGRADE_EMBEDDED_MYSQL_SWITCH = "upgrade.8.embedded.mysql.switch";
+    private static final String UPGRADE_EMBEDDED_MYSQL_SWITCH_KEY = UPGRADE_EMBEDDED_MYSQL_SWITCH + ".%s";
 
     private static final String PURGED_GTID_SET_CHECK_SWITCH = "purged.gtid.set.check.switch";
 
@@ -65,5 +67,14 @@ public class DynamicConfig extends AbstractConfigBean {
 
     public boolean getReceiveCheckSwitch() {
         return getBooleanProperty(RECEIVE_CHECK_SWITCH, false);
+    }
+
+
+    public boolean getEmbeddedMySQLUpgradeTo8Switch(String key) {
+        String value = getProperty(String.format(UPGRADE_EMBEDDED_MYSQL_SWITCH_KEY, key));
+        if (StringUtils.isBlank(value)) {
+            return getBooleanProperty(UPGRADE_EMBEDDED_MYSQL_SWITCH, false);
+        }
+        return Boolean.parseBoolean(value);
     }
 }

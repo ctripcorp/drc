@@ -1,6 +1,11 @@
 package com.ctrip.framework.drc.monitor.config;
 
 import com.ctrip.xpipe.config.AbstractConfigBean;
+import com.google.common.collect.Lists;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by jixinwang on 2020/8/17
@@ -32,6 +37,9 @@ public class ConfigService extends AbstractConfigBean {
     private static final String KEY_AUTO_DAL_SWITCH = "auto.dal.switch";
     private static final String KEY_AUTO_UNI_SWITCH = "auto.uni.switch";
     private static final String KEY_AUTO_BI_SWITCH = "auto.bi.switch";
+    private static final String KEY_AUTO_TABLE_COMPARE_SWITCH = "auto.table.compare.switch";
+    private static final String KEY_AUTO_TABLE_COMPARE_EXCLUDE_MHA = "auto.table.compare.exclude.mha";
+    private static final String KEY_AUTO_TABLE_COMPARE_INCLUDE_MHA = "auto.table.compare.include.mha";
     private static final String UNI_LATERAL_TRUNCATE_SWITCH = "uni.lateral.truncate.switch";
     private static final String UCS_UNIT_ROUTE = "ucs.unit.route";
     private static final String BI_LATERAL_SCHEDULE_PERIOD = "bi.lateral.schedule.period";
@@ -139,6 +147,9 @@ public class ConfigService extends AbstractConfigBean {
 
     public boolean getAutoDalSwitch() {
         return getBooleanProperty(KEY_AUTO_DAL_SWITCH, DEFAULT_AUTO_DAL_SWITCH);
+    }
+    public boolean getAutoTableCompareSwitch() {
+        return getBooleanProperty(KEY_AUTO_TABLE_COMPARE_SWITCH, false);
     }
 
     public int getDrcMonitorQpsRound() {
@@ -251,5 +262,21 @@ public class ConfigService extends AbstractConfigBean {
 
     public int getBiLateralSchedulePeriod() {
         return getIntProperty(BI_LATERAL_SCHEDULE_PERIOD, 3600);
+    }
+
+    public List<String> getExcludeCompareMha() {
+        String property = getProperty(KEY_AUTO_TABLE_COMPARE_EXCLUDE_MHA, "");
+        if (StringUtils.isEmpty(property)) {
+            return Collections.emptyList();
+        }
+        return Lists.newArrayList(property.split(","));
+    }
+
+    public List<String> getCompareMha() {
+        String property = getProperty(KEY_AUTO_TABLE_COMPARE_INCLUDE_MHA, "");
+        if (StringUtils.isEmpty(property)) {
+            return Collections.emptyList();
+        }
+        return Lists.newArrayList(property.split(","));
     }
 }

@@ -71,16 +71,10 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             parseQueryEvent(queryLogEvent, value.getGtid());
         } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
-            schemaManager.recovery(snapshotLogEvent);
+            schemaManager.recovery(snapshotLogEvent, false);
             value.mark(OTHER_F);
         } else if (drc_ddl_log_event == logEventType) {
-            if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-                DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
-                doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
-                DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);
-            } else {
-                DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
-            }
+            DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
         }
 
         return doNext(value, value.isInExcludeGroup());

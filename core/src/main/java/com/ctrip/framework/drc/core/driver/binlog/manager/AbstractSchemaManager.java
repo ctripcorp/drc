@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.core.driver.binlog.manager;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.DrcSchemaSnapshotLogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.*;
@@ -54,16 +53,14 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     @Override
-    public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent) {
-        if (!shouldInitEmbeddedMySQL() && DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog skip due to not empty or switch on for {}", registryKey);
-            return true;
+    public boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent, boolean fromLatestLocalBinlog) {
+        if (shouldRecover(fromLatestLocalBinlog)) {
+            Map<String, Map<String, String>> future = snapshotLogEvent.getDdls();
+            boolean res = doClone(future);
+            DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", future, registryKey);
+            return res;
         }
-
-        Map<String, Map<String, String>> future = snapshotLogEvent.getDdls();
-        boolean res = doClone(future);
-        DDL_LOGGER.info("[Recovery] DrcSchemaSnapshotLogEvent from binlog finished with result {} for {}", future, registryKey);
-        return res;
+        return true;
     }
 
     protected boolean doClone(Map<String, Map<String, String>> ddlSchemas) {
@@ -138,4 +135,7 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
     }
 
     protected abstract boolean shouldInitEmbeddedMySQL();
+
+    public abstract Boolean isEmbeddedDbEmpty();
+
 }

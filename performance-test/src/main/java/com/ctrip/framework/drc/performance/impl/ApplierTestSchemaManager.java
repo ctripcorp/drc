@@ -69,4 +69,14 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     protected boolean shouldInitEmbeddedMySQL() {
         return false;
     }
+
+    @Override
+    public Boolean isEmbeddedDbEmpty() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldRecover(boolean fromLatestLocalBinlog) {
+        return false;
+    }
 }

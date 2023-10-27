@@ -2,7 +2,9 @@ package com.ctrip.framework.drc.replicator.impl.inbound.schema.task;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.manager.task.NamedCallable;
+import com.ctrip.framework.drc.core.monitor.reporter.DefaultTransactionMonitorHolder;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.MySQLVariablesConfiguration;
+import com.wix.mysql.distribution.Version;
 import ctrip.framework.drc.mysql.DbKey;
 import ctrip.framework.drc.mysql.EmbeddedDb;
 
@@ -22,28 +24,30 @@ public class DbCreateTask implements NamedCallable<MySQLInstance> {
 
     private String registryKey;
 
+    private Version version;
+
     public DbCreateTask(int port, String registryKey) {
         this.port = port;
         this.registryKey = registryKey;
+        this.version = DynamicConfig.getInstance().getEmbeddedMySQLUpgradeTo8Switch(registryKey) ? Version.v8_0_32 : Version.v5_7_23;
+    }
+
+    public DbCreateTask(int port, String registryKey, Version version) {
+        this.port = port;
+        this.registryKey = registryKey;
+        this.version = version;
     }
 
     @Override
-    public MySQLInstance call() {
-        tryDeleteDirectory();
-        Map<String, Object> variables =  MySQLVariablesConfiguration.getInstance().getVariables(registryKey);
-        return new MySQLInstanceCreator(new EmbeddedDb().mysqlServer(new DbKey(registryKey, port), variables));
+    public MySQLInstance call() throws Exception {
+        return DefaultTransactionMonitorHolder.getInstance().logTransaction("embedded.db.create." + version.getMajorVersion(), registryKey, () -> {
+            Map<String, Object> variables = MySQLVariablesConfiguration.getInstance().getVariables(registryKey, version);
+            return new MySQLInstanceCreator(new EmbeddedDb().mysqlServer(new DbKey(registryKey, port), variables, version));
+        });
     }
 
     @Override
     public void afterException(Throwable t) {
-        tryDeleteDirectory();
-    }
-
-    private void tryDeleteDirectory() {
-        if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
-            String path = mysqlInstanceDir(registryKey, port);
-            deleteDirectory(path);
-            DDL_LOGGER.info("[Delete] mysql path {} for {}", path, registryKey);
-        }
+        DDL_LOGGER.info("DbCreateTask error for " + registryKey + ": " + t.getMessage(), t);
     }
 }
