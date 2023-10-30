@@ -69,12 +69,16 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         final LogEventType logEventType = logEvent.getLogEventType();
         if (query_log_event == logEventType) {
             QueryLogEvent queryLogEvent = (QueryLogEvent) logEvent;
-            parseQueryEvent(queryLogEvent, value.getGtid());
+            boolean ddlDone = parseQueryEvent(queryLogEvent, value.getGtid());
+            if (ddlDone && parseDrcDdl) {
+                parseDrcDdl = false;
+                DDL_LOGGER.info("[DRC DDL] stop parse drc ddl event after encounter mysql native ddl {}", queryLogEvent.getQuery());
+            }
         } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
             parseDrcDdl = schemaManager.shouldRecover(false);
             if (parseDrcDdl) {
-                DDL_LOGGER.info("[Apply] start parse drc ddl");
+                DDL_LOGGER.info("[DRC DDL] need recovery, start parse drc ddl");
                 schemaManager.recovery(snapshotLogEvent, false);
             }
             value.mark(OTHER_F);
@@ -130,10 +134,6 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
-            }
-            if (parseDrcDdl) {
-                parseDrcDdl = false;
-                DDL_LOGGER.info("[Apply] stop parse drc ddl event after encounter mysql native ddl: {}", queryString);
             }
             queryString = applyResult.getDdl();
             schemaManager.persistDdl(schemaInBinlog, tableName, queryString);
