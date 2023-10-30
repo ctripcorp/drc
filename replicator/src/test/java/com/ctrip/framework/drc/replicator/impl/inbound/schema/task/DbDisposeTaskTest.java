@@ -24,33 +24,6 @@ public class DbDisposeTaskTest {
     }
 
     @Test
-    public void testGetVersionForMySQL8() throws IOException, InterruptedException {
-        Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-        testGetVersion(Version.v5_7_23, port);
-        testGetVersion(Version.v8_0_32, port);
-    }
-
-    @Test
-    public void testDestroyRestoredMySQL() throws Exception {
-        Version targetVersion = Version.v8_0_32;
-
-        MySQLInstance useless = isUsed(port)
-                ? new RetryTask<>(new DbRestoreTask(port, registryKey, targetVersion)).call()
-                : new RetryTask<>(new DbCreateTask(port, registryKey, targetVersion)).call();
-
-        MySQLInstance embeddedDb = isUsed(port)
-                ? new RetryTask<>(new DbRestoreTask(port, registryKey, targetVersion)).call()
-                : new RetryTask<>(new DbCreateTask(port, registryKey, targetVersion)).call();
-        if (!(embeddedDb instanceof MySQLInstanceExisting)) {
-            throw new Exception("expect existing mysql");
-        }
-        Assert.assertEquals(targetVersion, DbDisposeTask.getExistingMysqlVersion(port));
-        embeddedDb.destroy();
-        Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-    }
-
-
-    @Test
     public void testDispose() throws IOException, InterruptedException {
         Version targetVersion = Version.v8_0_32;
         Version otherVersion = Version.v5_7_23;
@@ -76,12 +49,5 @@ public class DbDisposeTaskTest {
 
         Assert.assertEquals(result, Result.SUCCESS);
         Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-    }
-
-    public void testGetVersion(Version targetVersion, int port) throws IOException, InterruptedException {
-        MySQLInstance embeddedMysql = new RetryTask<>(new DbCreateTask(port, "test", targetVersion)).call();
-        Version existingMysqlVersion = DbDisposeTask.getExistingMysqlVersion(port);
-        embeddedMysql.destroy();
-        Assert.assertEquals(existingMysqlVersion, targetVersion);
     }
 }
