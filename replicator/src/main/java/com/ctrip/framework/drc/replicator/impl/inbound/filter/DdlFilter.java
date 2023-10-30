@@ -70,9 +70,9 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         if (query_log_event == logEventType) {
             QueryLogEvent queryLogEvent = (QueryLogEvent) logEvent;
             boolean ddlDone = parseQueryEvent(queryLogEvent, value.getGtid());
-            if (ddlDone && parseDrcDdl) {
-                parseDrcDdl = false;
+            if (parseDrcDdl && ddlDone) {
                 DDL_LOGGER.info("[DRC DDL] stop parse drc ddl event after encounter mysql native ddl {}", queryLogEvent.getQuery());
+                parseDrcDdl = false;
             }
         } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
@@ -83,7 +83,7 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             }
             value.mark(OTHER_F);
         } else if (drc_ddl_log_event == logEventType) {
-            if (this.parseDrcDdl) {
+            if (parseDrcDdl) {
                 DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
                 doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
                 DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);
