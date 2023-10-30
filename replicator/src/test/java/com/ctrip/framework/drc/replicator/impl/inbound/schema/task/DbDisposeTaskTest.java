@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.manager.task.RetryTask;
 import com.ctrip.framework.drc.replicator.impl.inbound.schema.task.DbDisposeTask.Result;
 import com.wix.mysql.distribution.Version;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -12,11 +13,25 @@ import static com.ctrip.framework.drc.core.driver.util.MySQLConstants.isUsed;
 
 public class DbDisposeTaskTest {
 
+    public String registryKey = "test";
+    public int port = 9999;
+
+
+    @Before
+    public void cleanUp() {
+        new RetryTask<>(new DbDisposeTask(port, registryKey, Version.v5_7_23)).call();
+        new RetryTask<>(new DbDisposeTask(port, registryKey, Version.v8_0_32)).call();
+    }
+
+    @Test
+    public void testGetVersionForMySQL8() throws IOException, InterruptedException {
+        Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
+        testGetVersion(Version.v5_7_23, port);
+        testGetVersion(Version.v8_0_32, port);
+    }
 
     @Test
     public void testDestroyRestoredMySQL() throws Exception {
-        int port = 9999;
-        String registryKey = "test";
         Version targetVersion = Version.v8_0_32;
 
         MySQLInstance useless = isUsed(port)
@@ -32,15 +47,11 @@ public class DbDisposeTaskTest {
         Assert.assertEquals(targetVersion, DbDisposeTask.getExistingMysqlVersion(port));
         embeddedDb.destroy();
         Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-
-        embeddedDb.destroy();
     }
 
 
     @Test
     public void testDispose() throws IOException, InterruptedException {
-        int port = 9999;
-        String registryKey = "test";
         Version targetVersion = Version.v8_0_32;
         Version otherVersion = Version.v5_7_23;
 
@@ -65,14 +76,6 @@ public class DbDisposeTaskTest {
 
         Assert.assertEquals(result, Result.SUCCESS);
         Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-    }
-
-    @Test
-    public void testGetVersionForMySQL8() throws IOException, InterruptedException {
-        int port = 9999;
-        Assert.assertNull(DbDisposeTask.getExistingMysqlVersion(port));
-        testGetVersion(Version.v5_7_23, port);
-        testGetVersion(Version.v8_0_32, port);
     }
 
     public void testGetVersion(Version targetVersion, int port) throws IOException, InterruptedException {
