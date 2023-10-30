@@ -107,8 +107,6 @@ public class EventReader {
                 size = fileChannel.read(byteBuffer);
                 if (remindSize == size) {
                     if (readTime > 0) {
-//                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
-//                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
                         logger.warn("read time is {} and size is {}", readTime, expectedSize);
                     }
                     return true;
@@ -137,8 +135,6 @@ public class EventReader {
                 size = fileChannel.read(byteBuffer);
                 if (remindSize == size) {
                     if (readTime > 0) {
-//                        long eventSize = LogEventUtils.parseNextLogEventSize(byteBuf);
-//                        LogEventType eventType = LogEventUtils.parseNextLogEventType(byteBuf);
                         logger.warn("read time is {} and size is {}", readTime, expectedSize);
                     }
                     return true;

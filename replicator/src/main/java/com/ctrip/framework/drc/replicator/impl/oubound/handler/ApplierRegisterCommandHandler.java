@@ -15,6 +15,7 @@ import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
 import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
+import com.ctrip.framework.drc.core.server.common.EventReaderException;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -261,7 +262,8 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                             outboundMonitorReport,
                             dumpCommandPacket.getGtidSet(),
                             skipDrcGtidLogEvent,
-                            aviatorFilter
+                            aviatorFilter,
+                            channelAttributeKey
                     )
             );
         }
@@ -453,6 +455,15 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                 outboundContext.reset(fileChannel.position());
 
                 filterChain.doFilter(outboundContext);
+
+                Exception sendException = outboundContext.getCause();
+                if (sendException != null) {
+                    if (sendException instanceof EventReaderException) {
+                        continue;
+                    } else {
+                        throw sendException;
+                    }
+                }
 
                 endPos = fileChannel.size();
             }

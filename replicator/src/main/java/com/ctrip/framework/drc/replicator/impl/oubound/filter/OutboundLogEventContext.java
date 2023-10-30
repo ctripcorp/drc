@@ -57,6 +57,8 @@ public class OutboundLogEventContext {
 
     private boolean inExcludeGroup = false;
 
+    private long transactionSize;
+
     public OutboundLogEventContext() {
     }
 
@@ -317,5 +319,13 @@ public class OutboundLogEventContext {
         EventReader.readEvent(rowsEvent, headByteBuf, bodyByteBuf);
         logEvent = rowsEvent;
         return rowsEvent;
+    }
+
+    public long getTransactionSize() {
+        return transactionSize;
+    }
+
+    public void setTransactionSize(long transactionSize) {
+        this.transactionSize = transactionSize;
     }
 }

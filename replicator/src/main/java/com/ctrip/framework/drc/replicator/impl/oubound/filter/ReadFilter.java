@@ -45,8 +45,9 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
         try {
             //TODO: can remove
-            if (!checkEventSize(fileChannel, headByteBuf, eventSize)) {
+            if (!checkEventSize(fileChannel, eventSize)) {
                 value.setCause(new EventReaderException("check event size error"));
+                value.setSkipEvent(true);
             }
 
             if (checkPartialTransaction(fileChannel, eventSize, eventType, value.isEverSeeGtid())) {
@@ -60,9 +61,8 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         return doNext(value, value.isSkipEvent());
     }
 
-    private boolean checkEventSize(FileChannel fileChannel, ByteBuf headByteBuf, long eventSize) throws IOException {
+    private boolean checkEventSize(FileChannel fileChannel, long eventSize) throws IOException {
         if (fileChannel.position() + eventSize - eventHeaderLengthVersionGt1 > fileChannel.size()) {
-            headByteBuf.release();
             fileChannel.position(fileChannel.position() - eventHeaderLengthVersionGt1);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.size", registerKey);
             logger.warn("check event size false, size: {}", eventSize);

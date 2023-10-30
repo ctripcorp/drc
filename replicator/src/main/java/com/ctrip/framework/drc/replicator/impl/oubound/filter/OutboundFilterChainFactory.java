@@ -19,7 +19,7 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
     @Override
     public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
-        SendFilter sendFilter = new SendFilter(context.getChannel());
+        SendFilter sendFilter = new SendFilter(context);
 
         ReadFilter readFilter = new ReadFilter(context.getRegisterKey());
         sendFilter.setSuccessor(readFilter);

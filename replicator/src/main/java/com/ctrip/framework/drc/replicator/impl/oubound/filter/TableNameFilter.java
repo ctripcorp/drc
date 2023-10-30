@@ -64,6 +64,7 @@ public class TableNameFilter extends AbstractLogEventFilter<OutboundLogEventCont
         if (shouldSkipTableMapEvent(tableMapLogEvent.getSchemaNameDotTableName())) {
             skipRowsRelatedTableMap.put(tableMapLogEvent.getTableId(), tableMapLogEvent);
             value.setSkipEvent(true);
+            GTID_LOGGER.info("[Skip] table map event {} for name filter", tableMapLogEvent.getSchemaNameDotTableName());
         }
     }
 
