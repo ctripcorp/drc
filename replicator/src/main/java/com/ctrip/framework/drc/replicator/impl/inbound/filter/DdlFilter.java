@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
@@ -56,6 +55,8 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private String registryKey;
 
+    private boolean parseDrcDdl = false;
+
     public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey) {
         this.schemaManager = schemaManager;
         this.monitorManager = monitorManager;
@@ -71,10 +72,20 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             parseQueryEvent(queryLogEvent, value.getGtid());
         } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
-            schemaManager.recovery(snapshotLogEvent, false);
+            parseDrcDdl = schemaManager.shouldRecover(false);
+            if (parseDrcDdl) {
+                DDL_LOGGER.info("[Apply] start parse drc ddl");
+                schemaManager.recovery(snapshotLogEvent, false);
+            }
             value.mark(OTHER_F);
         } else if (drc_ddl_log_event == logEventType) {
-            DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
+            if (this.parseDrcDdl) {
+                DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
+                doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
+                DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);
+            } else {
+                DDL_LOGGER.info("[Skip] drc_ddl_log_event for {}", registryKey);
+            }
         }
 
         return doNext(value, value.isInExcludeGroup());
@@ -119,6 +130,10 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
                 DDL_LOGGER.info("[Apply] skip DDL {} for table partition in {}", queryString, getClass().getSimpleName());
                 return false;
+            }
+            if (parseDrcDdl) {
+                parseDrcDdl = false;
+                DDL_LOGGER.info("[Apply] stop parse drc ddl event after encounter mysql native ddl: {}", queryString);
             }
             queryString = applyResult.getDdl();
             schemaManager.persistDdl(schemaInBinlog, tableName, queryString);
