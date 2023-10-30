@@ -263,7 +263,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
                             dumpCommandPacket.getGtidSet(),
                             skipDrcGtidLogEvent,
                             aviatorFilter,
-                            channelAttributeKey
+                            channelAttributeKey,
+                            replicatorRegion,
+                            applierRegion
                     )
             );
         }

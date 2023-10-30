@@ -57,7 +57,7 @@ public class OutboundLogEventContext {
 
     private boolean inExcludeGroup = false;
 
-    private long transactionSize;
+    private long filteredSize;
 
     public OutboundLogEventContext() {
     }
@@ -321,11 +321,11 @@ public class OutboundLogEventContext {
         return rowsEvent;
     }
 
-    public long getTransactionSize() {
-        return transactionSize;
+    public long getFilteredSize() {
+        return filteredSize;
     }
 
-    public void setTransactionSize(long transactionSize) {
-        this.transactionSize = transactionSize;
+    public void setFilteredSize(long filteredSize) {
+        this.filteredSize = filteredSize;
     }
 }

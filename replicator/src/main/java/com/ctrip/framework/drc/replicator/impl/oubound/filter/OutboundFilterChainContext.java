@@ -32,10 +32,14 @@ public class OutboundFilterChainContext {
 
     private ChannelAttributeKey channelAttributeKey;
 
+    private String srcRegion;
+
+    private String dstRegion;
+
     public OutboundFilterChainContext(String registerKey, Channel channel, ConsumeType consumeType,
                                       DataMediaConfig dataMediaConfig, OutboundMonitorReport outboundMonitorReport,
                                       GtidSet excludedSet, boolean skipDrcGtidLogEvent, AviatorRegexFilter aviatorFilter,
-                                      ChannelAttributeKey channelAttributeKey) {
+                                      ChannelAttributeKey channelAttributeKey, String srcRegion, String dstRegion) {
         this.registerKey = registerKey;
         this.channel = channel;
         this.consumeType = consumeType;
@@ -45,6 +49,8 @@ public class OutboundFilterChainContext {
         this.skipDrcGtidLogEvent = skipDrcGtidLogEvent;
         this.aviatorFilter = aviatorFilter;
         this.channelAttributeKey = channelAttributeKey;
+        this.srcRegion = srcRegion;
+        this.dstRegion = dstRegion;
     }
 
     public String getRegisterKey() {
@@ -96,9 +102,10 @@ public class OutboundFilterChainContext {
                                                   DataMediaConfig dataMediaConfig,
                                                   OutboundMonitorReport outboundMonitorReport, GtidSet excludedSet,
                                                   boolean skipDrcGtidLogEvent, AviatorRegexFilter aviatorFilter,
-                                                  ChannelAttributeKey channelAttributeKey) {
+                                                  ChannelAttributeKey channelAttributeKey, String srcRegion,
+                                                  String dstRegion) {
         return new OutboundFilterChainContext(registerKey, channel, consumeType, dataMediaConfig, outboundMonitorReport,
-                excludedSet, skipDrcGtidLogEvent, aviatorFilter, channelAttributeKey);
+                excludedSet, skipDrcGtidLogEvent, aviatorFilter, channelAttributeKey, srcRegion, dstRegion);
     }
 
     public GtidSet getExcludedSet() {
@@ -131,5 +138,21 @@ public class OutboundFilterChainContext {
 
     public void setChannelAttributeKey(ChannelAttributeKey channelAttributeKey) {
         this.channelAttributeKey = channelAttributeKey;
+    }
+
+    public String getSrcRegion() {
+        return srcRegion;
+    }
+
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
+    }
+
+    public String getDstRegion() {
+        return dstRegion;
+    }
+
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
     }
 }

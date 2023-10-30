@@ -19,7 +19,10 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
 
     @Override
     public Filter<OutboundLogEventContext> createFilterChain(OutboundFilterChainContext context) {
+        MonitorFilter monitorFilter = new MonitorFilter(context);
+
         SendFilter sendFilter = new SendFilter(context);
+        monitorFilter.setSuccessor(sendFilter);
 
         ReadFilter readFilter = new ReadFilter(context.getRegisterKey());
         sendFilter.setSuccessor(readFilter);
@@ -43,6 +46,6 @@ public class OutboundFilterChainFactory implements FilterChainFactory<OutboundFi
             }
         }
 
-        return sendFilter;
+        return monitorFilter;
     }
 }
