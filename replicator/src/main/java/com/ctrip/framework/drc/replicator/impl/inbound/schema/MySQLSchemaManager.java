@@ -171,6 +171,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
     }
 
 
+    @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
     public Boolean isEmbeddedDbEmpty() {
         try (Connection connection = inMemoryDataSource.getConnection()) {
