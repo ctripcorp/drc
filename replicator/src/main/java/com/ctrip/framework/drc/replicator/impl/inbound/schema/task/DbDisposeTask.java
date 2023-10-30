@@ -111,6 +111,7 @@ public class DbDisposeTask implements NamedCallable<DbDisposeTask.Result> {
                 // command: /opt/data/drc/unit_test.mhaName-18383/mysql-8.0/bin/mysqld
                 Optional<Version> version = processHandle
                         .info().command()
+                        .filter(e -> e.contains("mysql"))
                         .map(e -> e.contains("mysql-8.0") ? Version.v8_0_32 : Version.v5_7_23);
                 if (version.isPresent()) {
                     return version.get();
