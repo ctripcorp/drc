@@ -7,11 +7,13 @@ import com.ctrip.framework.drc.replicator.MockTest;
 import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.table_map_log_event;
@@ -35,7 +37,13 @@ public class ReplicatorTableMapLogEventTest extends MockTest {
         ByteBuf byteBuf = initLatin1CharsetByteBuf();
         TableMapLogEvent tableMapLogEvent = new ReplicatorTableMapLogEvent().read(byteBuf);
         tableMapLogEvent.write(ioCache);
-        verify(ioCache, times(1)).write(Lists.newArrayList(tableMapLogEvent.getLogEventHeader().getHeaderBuf(), tableMapLogEvent.getPayloadBuf()));
+        List<ByteBuf> res = new ArrayList<>(1);
+        ByteBuf headerBuf = tableMapLogEvent.getLogEventHeader().getHeaderBuf();
+        ByteBuf payloadBuf = tableMapLogEvent.getPayloadBuf();
+        headerBuf.readerIndex(0);
+        payloadBuf.readerIndex(0);
+        res.add(PooledByteBufAllocator.DEFAULT.compositeDirectBuffer().addComponents(true, headerBuf, payloadBuf));
+        verify(ioCache, times(1)).write(res);
     }
 
     @Test
