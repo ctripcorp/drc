@@ -136,6 +136,6 @@ public abstract class AbstractSchemaManager extends AbstractLifecycle implements
 
     protected abstract boolean shouldInitEmbeddedMySQL();
 
-    public abstract Boolean isEmbeddedDbEmpty();
+    public abstract boolean isEmbeddedDbEmpty();
 
 }

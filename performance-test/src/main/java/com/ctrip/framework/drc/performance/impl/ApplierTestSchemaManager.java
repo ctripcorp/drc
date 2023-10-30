@@ -71,7 +71,7 @@ public class ApplierTestSchemaManager extends AbstractSchemaManager {
     }
 
     @Override
-    public Boolean isEmbeddedDbEmpty() {
+    public boolean isEmbeddedDbEmpty() {
         return false;
     }
 

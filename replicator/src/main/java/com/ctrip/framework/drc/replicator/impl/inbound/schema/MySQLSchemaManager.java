@@ -173,7 +173,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @SuppressWarnings("findbugs:RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
-    public Boolean isEmbeddedDbEmpty() {
+    public boolean isEmbeddedDbEmpty() {
         try (Connection connection = inMemoryDataSource.getConnection()) {
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet resultSet = statement.executeQuery(SHOW_DATABASES_QUERY)) {
@@ -183,7 +183,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
             }
         } catch (SQLException e) {
             DDL_LOGGER.error("queryDb for {} error", registryKey, e);
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -371,7 +371,7 @@ public class MySQLSchemaManager extends AbstractSchemaManager implements SchemaM
 
     @Override
     public boolean shouldRecover(boolean fromLatestLocalBinlog) {
-        boolean dbEmpty = Boolean.TRUE.equals(isEmbeddedDbEmpty());
+        boolean dbEmpty = isEmbeddedDbEmpty();
         if (!dbEmpty) {
             DDL_LOGGER.info("[Recovery Skip] due to already init for {} (Version: {})", registryKey, embeddedDbVersion);
         }
