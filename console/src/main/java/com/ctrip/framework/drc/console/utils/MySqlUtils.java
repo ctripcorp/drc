@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.utils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
@@ -816,7 +817,7 @@ public class MySqlUtils {
         return "three accounts ready";
     }
 
-    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns) {
+    public static Map<String, Object> queryRecords(Endpoint endpoint, String rawSql, List<String> onUpdateColumns, int columnSize) throws Exception{
         WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
         ReadResource readResource = null;
         try {
@@ -828,13 +829,14 @@ public class MySqlUtils {
             GeneralSingleExecution execution = new GeneralSingleExecution(sql);
             readResource = sqlOperatorWrapper.select(execution);
             ResultSet rs = readResource.getResultSet();
-            Map<String, Object> result = resultSetConvertMap(rs);
+            Map<String, Object> result = resultSetConvertMap(rs, columnSize);
             result.put("tableName", tableName);
             return result;
         } catch(Throwable t) {
             logger.error("[[monitor=table,endpoint={}:{}]] getTables error: ", endpoint.getHost(), endpoint.getPort(), t);
             removeSqlOperator(endpoint);
-            return new HashMap<>();
+//            return new HashMap<>();
+            throw ConsoleExceptionUtils.message(t.getMessage());
         } finally {
             if(readResource != null) {
                 readResource.close();
@@ -866,24 +868,27 @@ public class MySqlUtils {
         return dbs;
     }
 
-    public static Map<String, Object> resultSetConvertMap(ResultSet rs) throws SQLException {
+    public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
         ResultSetMetaData md = rs.getMetaData();
         int columnCount = md.getColumnCount();
         List<String> columnList = new ArrayList<>();
         List<Map<String, Object>> metaColumn = new ArrayList<>();
+        boolean fixed = columnCount >= columnSize;
         for (int j = 1; j <= columnCount; j++) {
             Map<String, Object> columnData = new LinkedHashMap<>();
             columnData.put("title", md.getColumnName(j));
             columnData.put("key", md.getColumnName(j));
-            columnData.put("width", 200);
-            columnData.put("tooltip", true);
-            if (j == 1) {
-                columnData.put("fixed", "left");
-            } else if (j == columnCount) {
-                columnData.put("fixed", "right");
+            if (fixed) {
+                columnData.put("width", 200);
+                if (j == 1) {
+                    columnData.put("fixed", "left");
+                } else if (j == columnCount) {
+                    columnData.put("fixed", "right");
+                }
             }
+            columnData.put("tooltip", true);
             metaColumn.add(columnData);
             columnList.add(md.getColumnName(j));
         }
@@ -953,11 +958,16 @@ public class MySqlUtils {
                 if (onUpdateColumns.contains(columnName)) {
                     continue;
                 }
-                String value = values.get(i).toString();
+                SQLExpr valueExpr = values.get(i);
                 if (!firstCondition) {
                     condition.append(" AND ");
                 }
-                condition.append(columnName + " = " + value);
+                if (valueExpr instanceof SQLNullExpr) {
+                    condition.append(columnName + " is " + valueExpr);
+                } else {
+                    condition.append(columnName + " = " + valueExpr);
+                }
+
                 firstCondition = false;
             }
 

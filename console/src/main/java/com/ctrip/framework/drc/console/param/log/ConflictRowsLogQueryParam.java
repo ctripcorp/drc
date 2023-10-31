@@ -13,8 +13,26 @@ public class ConflictRowsLogQueryParam {
     private String tableName;
     private Long beginHandleTime;
     private Long endHandleTime;
+    private String srcRegion;
+    private String dstRegion;
     private Integer rowResult;
     private PageReq pageReq;
+
+    public String getSrcRegion() {
+        return srcRegion;
+    }
+
+    public void setSrcRegion(String srcRegion) {
+        this.srcRegion = srcRegion;
+    }
+
+    public String getDstRegion() {
+        return dstRegion;
+    }
+
+    public void setDstRegion(String dstRegion) {
+        this.dstRegion = dstRegion;
+    }
 
     public String getGtid() {
         return gtid;

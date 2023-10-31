@@ -219,11 +219,15 @@
           {{alertInfo.title}}
           <template #desc>{{alertInfo.message}}</template>
         </Alert>
+        <Alert type="success" show-icon v-if="alertInfo.successShow" closable>
+          {{alertInfo.title}}
+          <template #desc>{{alertInfo.message}}</template>
+        </Alert>
         <Table size="small" :loading="dataLoading" stripe border :columns="drawer.tableColumns" :data="finalBuildParam"></Table>
         <div class="drawer-footer">
           <Divider></Divider>
-          <Button style="margin-right: 8px" @click="drawer.show = false">取消</Button>
-          <Button type="primary" @click="submitAll" :loading="dataLoading">提交</Button>
+          <Button style="margin-right: 8px" @click="drawer.show = false">关闭</Button>
+          <Button v-show="!successSubmit" type="primary" @click="submitAll" :loading="dataLoading">提交</Button>
         </div>
       </Drawer>
     </Content>
@@ -235,7 +239,7 @@ export default {
   data () {
     return {
       formItem: {
-        buildMode: -1,
+        buildMode: 0,
         srcRegionName: null,
         dstRegionName: null,
         dbName: null,
@@ -243,7 +247,7 @@ export default {
           dalClusterName: null
         },
         buName: null,
-        tag: null,
+        tag: 'COMMON',
         tableName: null,
         rowsFilterDetail: {
           mode: 1,
@@ -448,6 +452,7 @@ export default {
       },
       alertInfo: {
         show: false,
+        successShow: false,
         title: null,
         message: null
       },
@@ -556,6 +561,7 @@ export default {
         }
       },
       dataLoading: false,
+      successSubmit: false,
       commonColumnLoading: false
     }
   },
@@ -590,8 +596,12 @@ export default {
         param.dalClusterName = this.formItem.dalClusterModeOption.dalClusterName
       }
       if (this.formItem.switch.rowsFilter) {
-        if (this.formItem.rowsFilterDetail.fetchMode === 0) {
-          this.formItem.rowsFilterDetail.context = this.formItem.constants.rowsFilter.configInTripUid.regionsChosen.join(',')
+        if (this.formItem.rowsFilterDetail.mode === 1) {
+          if (this.formItem.rowsFilterDetail.fetchMode === 0) {
+            this.formItem.rowsFilterDetail.context = this.formItem.constants.rowsFilter.configInTripUid.regionsChosen.join(',')
+          } else {
+            this.formItem.rowsFilterDetail.context = '//filter by config'
+          }
         }
         param.openRowsFilterConfig = true
         param.rowsFilterDetail = this.formItem.rowsFilterDetail
@@ -605,6 +615,9 @@ export default {
     async submitAll () {
       const that = this
       that.dataLoading = true
+      that.alertInfo.show = false
+      that.alertInfo.successShow = false
+      that.successSubmit = false
       const params = this.getParams()
       if (!this.checkParam(params)) {
         return
@@ -616,6 +629,11 @@ export default {
           const success = data.status !== 1
           if (success) {
             that.$Message.success('提交成功')
+            this.preCheckBuildParam()
+            that.successSubmit = true
+            that.alertInfo.successShow = true
+            that.alertInfo.message = null
+            that.alertInfo.title = '提交成功'
           } else {
             that.$Message.warning('提交失败: ' + data.message)
             that.alertInfo.show = true
@@ -751,6 +769,9 @@ export default {
       const that = this
       that.dataLoading = true
       that.finalBuildParam = []
+      that.alertInfo.show = false
+      that.alertInfo.successShow = false
+      that.successSubmit = false
       console.log('precheckParam', params)
       await that.axios.post('/api/drc/v2/autoconfig/preCheckBuildParam', params)
         .then(response => {
@@ -922,6 +943,10 @@ export default {
             this.$Message.warning('行过滤检测失败：uid 与 uld字段不能同时为空！')
             return false
           }
+          if (rowsFilterConfig.udlColumns.length !== 0 && !rowsFilterConfig.drcStrategyId) {
+            this.$Message.warning('行过滤检测失败：UDL策略不可为空！')
+            return false
+          }
           if (rowsFilterConfig.fetchMode === 0 &&
             (
               rowsFilterConfig.context === '' ||
@@ -932,10 +957,11 @@ export default {
             this.$Message.warning('行过滤检测失败：context 不能为空！')
             return false
           }
-        }
-        if (rowsFilterConfig.mode === '' || rowsFilterConfig.mode === undefined || (rowsFilterConfig.columns.length === 0 && rowsFilterConfig.udlColumns.length === 0)) {
-          this.$Message.warning('缺少行过滤配置 禁止提交')
-          return false
+        } else {
+          if (rowsFilterConfig.mode === '' || rowsFilterConfig.mode === undefined || rowsFilterConfig.columns.length === 0) {
+            this.$Message.warning('缺少行过滤配置 禁止提交')
+            return false
+          }
         }
       }
       return true

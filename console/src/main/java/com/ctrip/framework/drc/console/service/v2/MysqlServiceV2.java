@@ -46,7 +46,7 @@ public interface MysqlServiceV2 {
 
     Long getCurrentTime(String mha);
 
-    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody);
+    Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception;
 
     List<String> getAllOnUpdateColumns(String mha, String db, String table);
 }

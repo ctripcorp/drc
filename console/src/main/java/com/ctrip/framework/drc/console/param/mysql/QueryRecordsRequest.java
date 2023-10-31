@@ -10,6 +10,7 @@ public class QueryRecordsRequest {
     private String mha;
     private String sql;
     private List<String> onUpdateColumns;
+    private int columnSize;
 
     public QueryRecordsRequest() {
     }
@@ -18,6 +19,21 @@ public class QueryRecordsRequest {
         this.mha = mha;
         this.sql = sql;
         this.onUpdateColumns = onUpdateColumns;
+    }
+
+    public QueryRecordsRequest(String mha, String sql, List<String> onUpdateColumns, int columnSize) {
+        this.mha = mha;
+        this.sql = sql;
+        this.onUpdateColumns = onUpdateColumns;
+        this.columnSize = columnSize;
+    }
+
+    public int getColumnSize() {
+        return columnSize;
+    }
+
+    public void setColumnSize(int columnSize) {
+        this.columnSize = columnSize;
     }
 
     public List<String> getOnUpdateColumns() {
