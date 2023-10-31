@@ -54,6 +54,49 @@ public class QueryLogEventTest {
         Assert.assertEquals(0 ,queryLogEvent.getPayloadBuf().readableBytes());
     }
 
+    @Test
+    public void readTestForMysql8() {
+        final ByteBuf byteBuf = initByteBuf_mysql8();
+        final QueryLogEvent queryLogEvent = new QueryLogEvent().read(byteBuf);
+        if (null == queryLogEvent) {
+            Assert.fail();
+        }
+
+        if (null == queryLogEvent.getLogEventHeader()) {
+            Assert.fail();
+        }
+
+        Assert.assertEquals(13564120, queryLogEvent.getSlaveProxyId());
+        Assert.assertEquals(0, queryLogEvent.getErrorCode());
+        Assert.assertEquals(45, queryLogEvent.getStatusVarLength());
+
+        final QueryLogEvent.QueryStatus queryStatus = queryLogEvent.getQueryStatus();
+        Assert.assertEquals(0, queryStatus.getFlags2());
+        Assert.assertEquals(1306525696, queryStatus.getSqlMode());
+        Assert.assertEquals("std", queryStatus.getCatalog());
+        Assert.assertEquals(7, queryStatus.getAutoIncrementIncrement());
+        Assert.assertEquals(1, queryStatus.getAutoIncrementOffset());
+        Assert.assertEquals(33, queryStatus.getClientCharset());
+        Assert.assertEquals(33, queryStatus.getClientCollation());
+        Assert.assertEquals(45, queryStatus.getServerCollation());
+        Assert.assertNull(queryStatus.getTimeZone());
+        Assert.assertEquals(-1, queryStatus.getLcTime());
+        Assert.assertEquals(-1, queryStatus.getCharsetDatabase());
+        Assert.assertEquals(-1, queryStatus.getTableMapForUpdate());
+        Assert.assertEquals(-1, queryStatus.getMasterDataWritten());
+        Assert.assertNull(queryStatus.getUser());
+        Assert.assertNull(queryStatus.getHost());
+        Assert.assertEquals(-1, queryStatus.getMicroseconds());
+        Assert.assertEquals(172187046, queryStatus.getDdlXid());
+
+        Assert.assertNull(queryStatus.getUpdateDbNames());
+
+        Assert.assertEquals("create table drc2.tour_shopping_modify_status like drc1.tour_shopping_modify_status", queryLogEvent.getQuery());
+        Assert.assertEquals("327faad7", Long.toHexString(queryLogEvent.getChecksum()));
+
+        Assert.assertEquals(0 ,queryLogEvent.getPayloadBuf().readableBytes());
+    }
+
     /**
      * | mysql-bin.000019 | 1443 | Query          |         1 |        1516 | BEGIN
      *
@@ -92,4 +135,26 @@ public class QueryLogEventTest {
 
         return byteBuf;
     }
+
+    // create table drc2.tour_shopping_modify_status like drc3.tour_shopping_modify_status;
+    private ByteBuf initByteBuf_mysql8() {
+        final ByteBuf byteBuf = ByteBufAllocator.DEFAULT.directBuffer(35);
+        byte[] bytes = new byte[] {
+                (byte) 0xd8, (byte) 0x48, (byte) 0x3f, (byte) 0x65, (byte) 0x02, (byte) 0xf3, (byte) 0xde, (byte) 0x02, (byte) 0x00, (byte) 0xa5, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xce, (byte) 0xa7, (byte) 0x5e, (byte) 0x10, (byte) 0x00, (byte) 0x00,
+                (byte) 0xd8, (byte) 0xf8, (byte) 0xce, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x2d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0xe0, (byte) 0x4d, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x06, (byte) 0x03, (byte) 0x73, (byte) 0x74, (byte) 0x64,
+                (byte) 0x03, (byte) 0x07, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x04, (byte) 0x21, (byte) 0x00, (byte) 0x21, (byte) 0x00, (byte) 0x2d, (byte) 0x00, (byte) 0x11, (byte) 0xa6, (byte) 0x5d, (byte) 0x43,
+                (byte) 0x0a, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x12, (byte) 0x2d, (byte) 0x00, (byte) 0x13, (byte) 0x00, (byte) 0x00, (byte) 0x63, (byte) 0x72, (byte) 0x65, (byte) 0x61, (byte) 0x74,
+                (byte) 0x65, (byte) 0x20, (byte) 0x74, (byte) 0x61, (byte) 0x62, (byte) 0x6c, (byte) 0x65, (byte) 0x20, (byte) 0x64, (byte) 0x72, (byte) 0x63, (byte) 0x32, (byte) 0x2e, (byte) 0x74, (byte) 0x6f, (byte) 0x75,
+                (byte) 0x72, (byte) 0x5f, (byte) 0x73, (byte) 0x68, (byte) 0x6f, (byte) 0x70, (byte) 0x70, (byte) 0x69, (byte) 0x6e, (byte) 0x67, (byte) 0x5f, (byte) 0x6d, (byte) 0x6f, (byte) 0x64, (byte) 0x69, (byte) 0x66,
+                (byte) 0x79, (byte) 0x5f, (byte) 0x73, (byte) 0x74, (byte) 0x61, (byte) 0x74, (byte) 0x75, (byte) 0x73, (byte) 0x20, (byte) 0x6c, (byte) 0x69, (byte) 0x6b, (byte) 0x65, (byte) 0x20, (byte) 0x64, (byte) 0x72,
+                (byte) 0x63, (byte) 0x31, (byte) 0x2e, (byte) 0x74, (byte) 0x6f, (byte) 0x75, (byte) 0x72, (byte) 0x5f, (byte) 0x73, (byte) 0x68, (byte) 0x6f, (byte) 0x70, (byte) 0x70, (byte) 0x69, (byte) 0x6e, (byte) 0x67,
+                (byte) 0x5f, (byte) 0x6d, (byte) 0x6f, (byte) 0x64, (byte) 0x69, (byte) 0x66, (byte) 0x79, (byte) 0x5f, (byte) 0x73, (byte) 0x74, (byte) 0x61, (byte) 0x74, (byte) 0x75, (byte) 0x73, (byte) 0xd7, (byte) 0xaa,
+                (byte) 0x7f, (byte) 0x32
+        };
+        byteBuf.writeBytes(bytes);
+
+        return byteBuf;
+    }
+
 }
