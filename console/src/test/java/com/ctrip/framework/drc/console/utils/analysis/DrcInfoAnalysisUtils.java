@@ -67,9 +67,17 @@ public class DrcInfoAnalysisUtils {
     
     private void countAll(List<DrcDbInfo> dbInfos) throws IOException {
         List<DrcDbInfo> sha = filterBySrcRegion(dbInfos,"sha");
-        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(sha);
-        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(sha);
-        String res = "sha:\n" + getAllDistinctDbs(sha);
+        List<DrcDbInfo> sin = filterBySrcRegion(dbInfos,"sin");
+        List<DrcDbInfo> fra = filterBySrcRegion(dbInfos,"fra");
+        List<DrcDbInfo> sinibuaws = filterBySrcRegion(dbInfos,"sinibuaws");
+        List<DrcDbInfo> all = Lists.newArrayList();
+        all.addAll(sha);
+        all.addAll(sin);
+        all.addAll(fra);
+        all.addAll(sinibuaws);
+        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(all);
+        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(all);
+        String res = "sha:\n" + getAllDistinctDbs(all);
         res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
         res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
 

@@ -18,12 +18,17 @@ import static com.ctrip.framework.drc.core.server.config.SystemConfig.DEFAULT_CO
  */
 public class QConfig extends AbstractConfig implements ConfigChangeListener {
 
-    private MapConfig config = MapConfig.get(DEFAULT_CONFIG_FILE_NAME);
+    private MapConfig config;
 
-    private Map<String, String> currentConfigs = new HashMap<>(config.asMap());
+    private Map<String, String> currentConfigs;
 
     public QConfig() {
-        config.asMap();
+        this(DEFAULT_CONFIG_FILE_NAME);
+    }
+
+    public QConfig(String fileName) {
+        config = MapConfig.get(fileName);
+        currentConfigs = new HashMap<>(config.asMap());
         config.addListener(new Configuration.ConfigListener<>() {
             @Override
             public synchronized void onLoad(Map<String, String> conf) {
@@ -48,7 +53,11 @@ public class QConfig extends AbstractConfig implements ConfigChangeListener {
             }
         });
     }
-
+    
+    public Set<String> getKeys() {
+        return config.asMap().keySet();
+    }
+    
     @Override
     public String get(String key) {
         return config.asMap().get(key);

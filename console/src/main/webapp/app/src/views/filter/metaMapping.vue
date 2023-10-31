@@ -58,9 +58,15 @@ export default {
     }
   },
   created () {
-    this.metaFilterId = this.$route.query.metaFilterId
-    this.metaFilterName = this.$route.query.metaFilterName
-    this.getMetaMappings()
+    this.axios.get('/api/drc/v2/permission/meta/rowsFilterMark').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.metaFilterId = this.$route.query.metaFilterId
+      this.metaFilterName = this.$route.query.metaFilterName
+      this.getMetaMappings()
+    })
   }
 }
 </script>
