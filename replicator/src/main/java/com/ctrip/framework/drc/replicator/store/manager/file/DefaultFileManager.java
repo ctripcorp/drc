@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -319,7 +318,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             if (fileChannel.position() == 0) {
                 fileChannel.position(LOG_EVENT_START);
             }
-            boolean shouldRecoverFromDdl = schemaManager.shouldRecover(true);
+            boolean shouldRecoverFromDdl = false;
             final long endPos = fileChannel.size();
             while (endPos > fileChannel.position()) {
                 Pair<ByteBuf, Integer> headerContent = readFile(fileChannel, headBuffer);
@@ -428,10 +427,13 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                             }
                         }
                         ddlLogEvent.release();
-                    } else if (LogEventType.drc_schema_snapshot_log_event == eventType && shouldRecoverFromDdl) {
+                    } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();
                         snapshotLogEvent.read(compositeByteBuf);
-                        schemaManager.recovery(snapshotLogEvent, true);
+                        shouldRecoverFromDdl = schemaManager.shouldRecover(true);
+                        if (shouldRecoverFromDdl) {
+                            schemaManager.recovery(snapshotLogEvent, true);
+                        }
                         snapshotLogEvent.release();
                     } else {
                         DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();
