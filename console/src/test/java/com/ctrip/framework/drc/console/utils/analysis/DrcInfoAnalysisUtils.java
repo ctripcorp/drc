@@ -36,11 +36,39 @@ public class DrcInfoAnalysisUtils {
         List<DrcDbInfo> dbInfos = readFromFile(resource.getPath());
         countRegion(dbInfos,"sha","sin");
         countRegion(dbInfos,"sha","fra");
-        countRegion(dbInfos,"sha","sinibuaws");
+        countVpc(dbInfos);
         countAll(dbInfos);
     }
-    
-    
+
+    private void countVpc(List<DrcDbInfo> dbInfos) throws IOException {
+        List<DrcDbInfo> sha2sinibuaws = filterByRegion(dbInfos, "sha", "sinibuaws");
+        List<DrcDbInfo> sha2ali = filterByRegion(dbInfos, "sha", "sinibualiyun");
+        List<DrcDbInfo> aws2sha = filterByRegion(dbInfos, "sinibuaws", "sha");
+        List<DrcDbInfo> ali2sha = filterByRegion(dbInfos, "sinibualiyun", "sha");
+
+        List<DrcDbInfo> vpc = Lists.newArrayList();
+        vpc.addAll(sha2sinibuaws);
+        vpc.addAll(sha2ali);
+        vpc.addAll(aws2sha);
+        vpc.addAll(ali2sha);
+        
+        List<DrcDbInfo> rowsFilterDbInfos = filterByRowsFilter(vpc);
+        List<DrcDbInfo> columnsFilterDbInfos = filterByColumnsFilter(vpc);
+        String res = "vpc" + "\n" + getAllDistinctDbs(vpc);
+        res += "\n\nrowsFilterDbInfos:\n" + getAllDistinctDbs(rowsFilterDbInfos);
+        res += "\n\ncolumnsFilterDbInfos:\n" + getAllDistinctDbs(columnsFilterDbInfos);
+
+        URL resource = this.getClass().getClassLoader().getResource("analysis/drc.json");
+        File file = new File( resource.getPath() +"/../vpc"  + ".txt");
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        FileOutputStream fileOs = new FileOutputStream(file);
+        byte[] bytes = res.getBytes();
+        fileOs.write(bytes);
+        fileOs.flush();
+        fileOs.close();
+    }
     
     
     private void countRegion(List<DrcDbInfo> dbInfos,String srcRegion,String destRegion) throws IOException {
@@ -63,7 +91,6 @@ public class DrcInfoAnalysisUtils {
         fileOs.close();
     }
     
-
     
     private void countAll(List<DrcDbInfo> dbInfos) throws IOException {
         List<DrcDbInfo> sha = filterBySrcRegion(dbInfos,"sha");
