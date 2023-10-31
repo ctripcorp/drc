@@ -240,12 +240,13 @@ export default {
       // this.tabVal = 'rowsLog'
     },
     getLogDetail (row, index) {
-      this.$router.push({
+      const detail = this.$router.resolve({
         path: '/conflictLogDetail',
         query: {
           conflictTrxLogId: row.conflictTrxLogId
         }
       })
+      window.open(detail.href, '_blank')
     },
     handleChangeSize (val) {
       this.size = val

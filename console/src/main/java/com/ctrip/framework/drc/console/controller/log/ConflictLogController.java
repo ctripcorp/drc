@@ -6,6 +6,7 @@ import com.ctrip.framework.drc.console.service.log.ConflictLogService;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,7 +90,7 @@ public class ConflictLogController {
     }
 
     @GetMapping("/records/compare")
-    public ApiResult<ConflictRowsRecordCompareView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
+    public ApiResult<ConflictRowsRecordCompareView> compareRowRecords(@RequestParam List<Long> conflictRowLogIds) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.compareRowRecords(conflictRowLogIds));
             return apiResult;
@@ -122,6 +123,36 @@ public class ConflictLogController {
     public ApiResult<Map<String, Integer>> deleteRowLogs(@RequestParam long beginTime, @RequestParam long endTime) {
         try {
             return ApiResult.getSuccessInstance(conflictLogService.deleteTrxLogsByTime(beginTime, endTime));
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/check")
+    public ApiResult<Pair<String, String>> checkSameMhaReplication(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.checkSameMhaReplication(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/detail")
+    public ApiResult<List<ConflictRowsLogDetailView>> getConflictRowLogDetailView(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowLogDetailView(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/rows/records")
+    public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogIds));
+            return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
         }

@@ -11,16 +11,16 @@
           <p slot="title">
             自动冲突处理结果
           </p>
-          <div class="ivu-list-item-meta-title">事务提交结果：
+          <div v-if="!byRowLogIds" class="ivu-list-item-meta-title">事务提交结果：
             <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">{{trxLog.trxResultStr}}</Button>
           </div>
-          <div class="ivu-list-item-meta-title">所有机房当前冲突事务记录：
+          <div class="ivu-list-item-meta-title">所有机房当前冲突行记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
               <Button :loading="recordLoading" size="small" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
             </Tooltip >
           </div>
           <Divider/>
-          <div class="ivu-list-item-meta-title">源机房({{trxLog.srcDc}})</div>
+          <div class="ivu-list-item-meta-title">源机房({{trxLog.srcRegion}})</div>
           <Card v-for="(item, index) in srcRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
@@ -30,7 +30,7 @@
             <Table  size="small" stripe :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
-          <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstDc}})</div>
+          <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstRegion}})</div>
           <Card v-for="(item, index) in dstRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
@@ -74,6 +74,8 @@ export default {
   },
   data () {
     return {
+      byRowLogIds: false,
+      rowLogIds: [],
       conflictTrxLogId: 0,
       recordLoading: false,
       logTableLoading: false,
@@ -88,8 +90,8 @@ export default {
         columns: []
       },
       trxLog: {
-        srcDc: '',
-        dstDc: '',
+        srcRegion: '',
+        dstRegion: '',
         trxResult: null,
         trxResultStr: '',
         hasDiff: null,
@@ -161,11 +163,25 @@ export default {
             this.$Message.error('查询冲突详情失败!')
           } else {
             const data = response.data.data
-            this.trxLog.srcDc = data.srcDc
-            this.trxLog.dstDc = data.dstDc
+            this.trxLog.srcRegion = data.srcRegion
+            this.trxLog.dstRegion = data.dstRegion
             this.trxLog.trxResult = data.trxResult
             this.trxLog.trxResultStr = data.trxResult === 0 ? 'commit' : 'rollback'
             this.trxLog.tableData = data.rowsLogDetailViews
+          }
+        })
+        .finally(() => {
+          this.logTableLoading = false
+        })
+    },
+    getTrxLogDetail1 () {
+      this.logTableLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/rows/detail?conflictRowLogIds=' + this.rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error('查询冲突详情失败!')
+          } else {
+            this.trxLog.tableData = response.data.data
           }
         })
         .finally(() => {
@@ -192,6 +208,25 @@ export default {
         .finally(() => {
           this.recordLoading = false
         })
+    },
+    getTrxRecords1 () {
+      this.recordLoading = true
+      this.axios.get('/api/drc/v2/log/conflict/rows/records?conflictRowLogIds=' + this.rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            // this.$Message.error('查询当前行记录失败!')
+            this.trxLog.diffStr = '数据比对失败'
+          } else {
+            const data = response.data.data
+            this.trxLog.recordEqual = data.recordIsEqual
+            this.trxLog.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
+            this.srcRecords = data.srcRecords
+            this.dstRecords = data.dstRecords
+          }
+        })
+        .finally(() => {
+          this.recordLoading = false
+        })
     }
   },
   computed: {
@@ -204,8 +239,17 @@ export default {
   },
   created () {
     this.conflictTrxLogId = this.$route.query.conflictTrxLogId
-    this.getTrxLogDetail()
-    this.getTrxRecords()
+    this.byRowLogIds = this.$route.query.byRowLogIds
+    this.rowLogIds = this.$route.query.rowLogIds
+    this.srcRegion = this.$route.query.srcRegion
+    this.dstRegion = this.$route.query.dstRegion
+    if (this.byRowLogIds) {
+      this.getTrxLogDetail1()
+      this.getTrxRecords1()
+    } else {
+      this.getTrxLogDetail()
+      this.getTrxRecords()
+    }
   }
 }
 </script>

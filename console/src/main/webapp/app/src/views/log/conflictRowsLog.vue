@@ -67,13 +67,6 @@
       <Col span="4">
         <Row :gutter=10 align="middle">
           <Button type="primary" icon="ios-search" :loading="dataLoading" @click="getData">查询</Button>
-          <Tooltip content="勾选冲突行进行数据一致性比对">
-            <Button type="primary" :loading="compareLoading" style="margin-left: 10px" @click="compareRecords">数据比对</Button>
-          </Tooltip>
-
-        </Row>
-        <Row :gutter=10 align="middle" style="margin-top: 20px">
-          <Button icon="md-refresh" @click="resetParam">重置</Button>
           <i-switch v-model="searchMode" size="large" style="margin-left: 10px">进阶
             <template #open>
               <span>进阶</span>
@@ -83,9 +76,28 @@
             </template>
           </i-switch>
         </Row>
+        <Row :gutter=10 align="middle" style="margin-top: 20px">
+          <Button icon="md-refresh" @click="resetParam">重置</Button>
+        </Row>
       </Col>
     </Row>
     <br>
+    <Row  style="background: #fdfdff; border: 1px solid #e8eaec;">
+      <Col span="2" style="display: flex;float: left;margin: 5px" >
+        <Dropdown placement="bottom-start">
+          <Button type="default" icon="ios-hammer">
+            批量操作
+            <Icon type="ios-arrow-down"></Icon>
+          </Button>
+          <template #list>
+            <DropdownMenu >
+              <DropdownItem @click.native="compareRecords">数据比对</DropdownItem>
+              <DropdownItem @click.native="getLogDetails">冲突行详情</DropdownItem>
+            </DropdownMenu>
+          </template>
+        </Dropdown>
+      </Col>
+    </Row>
     <Table stripe border :columns="columns" :data="tableData" ref="multipleTable"
            @on-selection-change="changeSelection">
       <template slot-scope="{ row, index }" slot="action">
@@ -256,7 +268,7 @@ export default {
         },
         {
           title: '同步方向',
-          key: 'dc',
+          key: 'region',
           width: 160,
           render: (h, params) => {
             const row = params.row
@@ -358,12 +370,11 @@ export default {
       this.axios.get('/api/drc/v2/log/conflict/records/compare?conflictRowLogIds=' + rowLogIds)
         .then(response => {
           if (response.data.status === 1) {
+            this.compareData.compareRowRecords = []
             this.$Message.error({
               content: '数据比对失败! ' + response.data.message,
               duration: 5
             })
-            // this.$Message.error(response.data.message)
-            // this.$Message.error('数据比对失败!')
           } else {
             const data = response.data.data
             this.compareData.compareRowRecords = data.recordDetailList
@@ -373,6 +384,33 @@ export default {
         })
         .finally(() => {
           this.compareLoading = false
+        })
+    },
+    getLogDetails () {
+      const multiData = this.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const rowLogIds = []
+      const row = multiData[0]
+      multiData.forEach(data => rowLogIds.push(data.conflictRowsLogId))
+      this.axios.get('/api/drc/v2/log/conflict/rows/check?conflictRowLogIds=' + rowLogIds)
+        .then(response => {
+          if (response.data.status === 1) {
+            this.$Message.error(response.data.message)
+          } else {
+            const detail = this.$router.resolve({
+              path: '/conflictLogDetail',
+              query: {
+                byRowLogIds: true,
+                rowLogIds: rowLogIds,
+                srcRegion: row.srcRegion,
+                dstRegion: row.dstRegion
+              }
+            })
+            window.open(detail.href, '_blank')
+          }
         })
     },
     changeSelection (val) {
@@ -416,14 +454,6 @@ export default {
           this.regions = response.data.data
         })
     },
-    getLogDetail (row, index) {
-      this.$router.push({
-        path: '/conflictLogDetail',
-        query: {
-          conflictrowLogId: row.conflictrowLogId
-        }
-      })
-    },
     queryTrxLog (row, index) {
       this.$emit('tabValueChanged', 'trxLog')
       this.$emit('gtidChanged', row.gtid)
@@ -455,6 +485,7 @@ export default {
         })
     },
     getData () {
+      this.multiData = []
       this.compareData.compareRowRecords = []
       this.rowLogIds = []
       const beginTime = this.queryParam.beginHandleTime

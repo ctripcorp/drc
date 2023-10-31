@@ -4,6 +4,7 @@ import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -33,4 +34,10 @@ public interface ConflictLogService {
     long deleteTrxLogs(long beginTime, long endTime) throws Exception;
 
     Map<String, Integer> deleteTrxLogsByTime(long beginTime, long endTime) throws Exception;
+
+    Pair<String, String> checkSameMhaReplication(List<Long> conflictRowLogIds) throws Exception;
+
+    List<ConflictRowsLogDetailView> getConflictRowLogDetailView(List<Long> conflictRowLogIds) throws Exception;
+
+    ConflictCurrentRecordView getConflictRowRecordView(List<Long> conflictRowLogIds) throws Exception;
 }

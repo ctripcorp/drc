@@ -196,6 +196,11 @@ const routes = [
     component: () => import('../views/log/conflictLogDetail.vue')
   },
   {
+    path: '/conflictApproval',
+    name: 'conflictApproval',
+    component: () => import('../views/log/conflictApproval.vue')
+  },
+  {
     path: '/conflictRowsLogDetail',
     name: 'conflictRowsLogDetail',
     component: () => import('../views/log/conflictRowsLogDetail.vue')

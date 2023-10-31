@@ -82,6 +82,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private final ListeningExecutorService compareExecutorService = MoreExecutors.listeningDecorator(ThreadUtils.newFixedThreadPool(10, "conflictRowCompare"));
     private static final int BATCH_SIZE = 2000;
     private static final int SEVEN = 7;
+    private static final int TWELVE = 12;
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -135,8 +136,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         MhaTblV2 dstMha = mhaTblV2Dao.queryByMhaName(conflictTrxLogTbl.getDstMhaName());
         DcTbl srcDcTbl = dcTblDao.queryById(srcMha.getDcId());
         DcTbl dstTbl = dcTblDao.queryById(dstMha.getDcId());
-        view.setSrcDc(srcDcTbl.getDcName());
-        view.setDstDc(dstTbl.getDcName());
+        view.setSrcRegion(srcDcTbl.getRegionName());
+        view.setDstRegion(dstTbl.getRegionName());
 
         List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByTrxLogId(conflictTrxLogId);
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
@@ -145,6 +146,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictRowsLogDetailView> rowsLogDetailViews = conflictRowsLogTbls.stream().map(source -> {
             ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
             BeanUtils.copyProperties(source, target);
+            target.setRowLogId(source.getId());
             return target;
         }).collect(Collectors.toList());
         view.setRowsLogDetailViews(rowsLogDetailViews);
@@ -153,8 +155,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
     @Override
     public ConflictCurrentRecordView getConflictCurrentRecordView(Long conflictTrxLogId, int columnSize) throws Exception {
-        ConflictCurrentRecordView view = new ConflictCurrentRecordView();
-
         ConflictTrxLogTbl conflictTrxLogTbl = conflictTrxLogTblDao.queryById(conflictTrxLogId);
         if (conflictTrxLogTbl == null) {
             throw ConsoleExceptionUtils.message("trxLog not exist");
@@ -163,73 +163,10 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
             throw ConsoleExceptionUtils.message("rowLog not exist");
         }
+
         String srcMhaName = conflictTrxLogTbl.getSrcMhaName();
         String dstMhaName = conflictTrxLogTbl.getDstMhaName();
-
-        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
-        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
-        List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
-        for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
-            String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
-
-            String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
-            List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
-            ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future = executorService.submit(() ->
-                    queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
-            futures.add(future);
-        }
-
-        boolean recordIsEqual = true;
-        Map<String, List<Map<String, Object>>> srcResultMap = new HashMap<>();
-        Map<String, List<Map<String, Object>>> dstResultMap = new HashMap<>();
-        Map<String, List<Map<String, Object>>> srcColumnMap = new HashMap<>();
-        Map<String, List<Map<String, Object>>> dstColumnMap = new HashMap<>();
-        for (ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future : futures) {
-            try {
-                Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = future.get(10, TimeUnit.SECONDS);
-                recordIsEqual &= resultPair.getLeft();
-                Map<String, Object> srcResult = resultPair.getRight().getLeft();
-                Map<String, Object> dstResult = resultPair.getRight().getRight();
-
-                extractRecords(srcResultMap, srcColumnMap, srcResult);
-                extractRecords(dstResultMap, dstColumnMap, dstResult);
-            } catch (Exception e) {
-                logger.error("query records error: {}", e);
-                throw ConsoleExceptionUtils.message(e.getMessage());
-            }
-        }
-
-        List<DbReplicationView> dbReplicationViews = drcBuildServiceV2.getDbReplicationView(dstMhaName, srcMhaName);
-        List<Map<String, Object>> srcRecords = new ArrayList<>();
-        List<Map<String, Object>> dstRecords = new ArrayList<>();
-        srcResultMap.forEach((tableName, records) -> {
-            List<Map<String, Object>> columns = srcColumnMap.get(tableName);
-            Map<String, Object> resultMap = new HashMap<>();
-            resultMap.put("columns", columns);
-            resultMap.put("records", records);
-            resultMap.put("tableName", tableName);
-
-            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
-            boolean doubleSync = dbReplicationId != null;
-            resultMap.put("doubleSync", doubleSync);
-            srcRecords.add(resultMap);
-        });
-        dstResultMap.forEach((tableName, records) -> {
-            List<Map<String, Object>> columns = dstColumnMap.get(tableName);
-            Map<String, Object> resultMap = new HashMap<>();
-            resultMap.put("columns", columns);
-            resultMap.put("records", records);
-            resultMap.put("tableName", tableName);
-
-            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
-            boolean doubleSync = dbReplicationId != null;
-            resultMap.put("doubleSync", doubleSync);
-            dstRecords.add(resultMap);
-        });
-        view.setSrcRecords(srcRecords);
-        view.setDstRecords(dstRecords);
-        view.setRecordIsEqual(recordIsEqual);
-        return view;
+        return getConflictCurrentRecordView(conflictRowsLogTbls, srcMhaName, dstMhaName, columnSize);
     }
 
     @Override
@@ -255,9 +192,8 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Pair<String, List<String>> onUpdateColumnPair = queryOnUpdateColumns(srcMhaName, tableName);
         List<String> onUpdateColumns = onUpdateColumnPair.getRight();
 
-        String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
         Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair =
-                queryRecords(srcMhaName, dstMhaName, sql, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight());
+                queryRecords(rowLog, srcMhaName, dstMhaName, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight());
         view.setRecordIsEqual(resultPair.getLeft());
         Map<String, Object> srcResult = resultPair.getRight().getLeft();
         Map<String, Object> dstResult = resultPair.getRight().getRight();
@@ -268,11 +204,13 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         srcRecord.put("records", srcResult.get("record"));
         srcRecord.put("tableName", tableName);
         srcRecord.put("doubleSync", doubleSync);
+        srcRecord.put("rowLogId", srcResult.get("rowLogId"));
 
         dstRecord.put("columns", dstResult.get("metaColumn"));
         dstRecord.put("records", dstResult.get("record"));
         dstRecord.put("tableName", tableName);
         dstRecord.put("doubleSync", doubleSync);
+        dstRecord.put("rowLogId", dstResult.get("rowLogId"));
 
         view.setSrcRecords(Lists.newArrayList(srcRecord));
         view.setDstRecords(Lists.newArrayList(dstRecord));
@@ -408,6 +346,127 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return resultMap;
     }
 
+    @Override
+    public Pair<String, String> checkSameMhaReplication(List<Long> conflictRowLogIds) throws Exception {
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            throw ConsoleExceptionUtils.message("rowLogs not exist");
+        }
+
+        return getMhaPair(conflictRowsLogTbls);
+    }
+
+    @Override
+    public List<ConflictRowsLogDetailView> getConflictRowLogDetailView(List<Long> conflictRowLogIds) throws Exception {
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            return new ArrayList<>();
+        }
+
+        List<ConflictRowsLogDetailView> views = conflictRowsLogTbls.stream().map(source -> {
+            ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
+            BeanUtils.copyProperties(source, target);
+            target.setRowLogId(source.getId());
+            return target;
+        }).collect(Collectors.toList());
+        return views;
+    }
+
+    @Override
+    public ConflictCurrentRecordView getConflictRowRecordView(List<Long> conflictRowLogIds) throws Exception {
+        List<ConflictRowsLogTbl> conflictRowsLogTbls = conflictRowsLogTblDao.queryByIds(conflictRowLogIds);
+        if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
+            throw ConsoleExceptionUtils.message("rowLogs not exist");
+        }
+
+        Pair<String, String> mhaPair = getMhaPair(conflictRowsLogTbls);
+        String srcMhaName = mhaPair.getLeft();
+        String dstMhaName = mhaPair.getRight();
+        return getConflictCurrentRecordView(conflictRowsLogTbls, srcMhaName, dstMhaName, TWELVE);
+    }
+
+    private Pair<String, String> getMhaPair(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
+        List<Long> trxLogIds = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getConflictTrxLogId).distinct().collect(Collectors.toList());
+        List<ConflictTrxLogTbl> conflictTrxLogTbls = conflictTrxLogTblDao.queryByIds(trxLogIds);
+        if (CollectionUtils.isEmpty(conflictTrxLogTbls)) {
+            throw ConsoleExceptionUtils.message("trxLogs not exist");
+        }
+        List<String> srcMhaNames = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getSrcMhaName).distinct().collect(Collectors.toList());
+        List<String> dstMhaNames = conflictTrxLogTbls.stream().map(ConflictTrxLogTbl::getDstMhaName).distinct().collect(Collectors.toList());
+
+        if (srcMhaNames.size() != 1 || dstMhaNames.size() != 1) {
+            throw ConsoleExceptionUtils.message("selected rowLogs belong to different mhaReplication");
+        }
+        return Pair.of(srcMhaNames.get(0), dstMhaNames.get(0));
+    }
+
+    private ConflictCurrentRecordView getConflictCurrentRecordView(List<ConflictRowsLogTbl> conflictRowsLogTbls, String srcMhaName, String dstMhaName, int columnSize) throws Exception {
+        ConflictCurrentRecordView view = new ConflictCurrentRecordView();
+
+        Pair<List<DbReplicationView>, Map<Long, List<String>>> columnsFilerPair = getTableColumnsFilterFields(srcMhaName, dstMhaName);
+        Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
+        List<ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>>> futures = new ArrayList<>();
+        for (ConflictRowsLogTbl rowLog : conflictRowsLogTbls) {
+            String tableName = rowLog.getDbName() + "." + rowLog.getTableName();
+            List<String> onUpdateColumns = onUpdateColumnMap.getOrDefault(tableName, new ArrayList<>());
+            ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future = executorService.submit(() ->
+                    queryRecords(rowLog, srcMhaName, dstMhaName, columnSize, onUpdateColumns, columnsFilerPair.getLeft(), columnsFilerPair.getRight()));
+            futures.add(future);
+        }
+
+        boolean recordIsEqual = true;
+        Map<String, List<Map<String, Object>>> srcResultMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> dstResultMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> srcColumnMap = new HashMap<>();
+        Map<String, List<Map<String, Object>>> dstColumnMap = new HashMap<>();
+        for (ListenableFuture<Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>>> future : futures) {
+            try {
+                Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> resultPair = future.get(10, TimeUnit.SECONDS);
+                recordIsEqual &= resultPair.getLeft();
+                Map<String, Object> srcResult = resultPair.getRight().getLeft();
+                Map<String, Object> dstResult = resultPair.getRight().getRight();
+
+                extractRecords(srcResultMap, srcColumnMap, srcResult);
+                extractRecords(dstResultMap, dstColumnMap, dstResult);
+            } catch (Exception e) {
+                logger.error("query records error: {}", e);
+                throw ConsoleExceptionUtils.message(e.getMessage());
+            }
+        }
+
+        List<DbReplicationView> dbReplicationViews = drcBuildServiceV2.getDbReplicationView(dstMhaName, srcMhaName);
+        List<Map<String, Object>> srcRecords = new ArrayList<>();
+        List<Map<String, Object>> dstRecords = new ArrayList<>();
+        srcResultMap.forEach((tableName, records) -> {
+            List<Map<String, Object>> columns = srcColumnMap.get(tableName);
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("columns", columns);
+            resultMap.put("records", records);
+            resultMap.put("tableName", tableName);
+
+            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+            boolean doubleSync = dbReplicationId != null;
+            resultMap.put("doubleSync", doubleSync);
+            srcRecords.add(resultMap);
+        });
+        dstResultMap.forEach((tableName, records) -> {
+            List<Map<String, Object>> columns = dstColumnMap.get(tableName);
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("columns", columns);
+            resultMap.put("records", records);
+            resultMap.put("tableName", tableName);
+
+            Long dbReplicationId = getDbReplicationIdByTableName(tableName, dbReplicationViews);
+            boolean doubleSync = dbReplicationId != null;
+            resultMap.put("doubleSync", doubleSync);
+            dstRecords.add(resultMap);
+        });
+        view.setSrcRecords(srcRecords);
+        view.setDstRecords(dstRecords);
+        view.setRecordIsEqual(recordIsEqual);
+        return view;
+    }
+
     private List<ConflictRowsLogView> getConflictRowsLogViews(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
         if (CollectionUtils.isEmpty(conflictRowsLogTbls)) {
             return new ArrayList<>();
@@ -445,7 +504,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             List<ConflictTrxLogTbl> subTrxLogTbls = conflictTrxLogTbls.subList(i, toIndex);
             i += BATCH_SIZE;
             resultSize += conflictTrxLogTblDao.batchDelete(subTrxLogTbls).length;
-            logger.info("batchDelete trxLogs size: " +resultSize);
+            logger.info("batchDelete trxLogs size: " + resultSize);
         }
         return resultSize;
     }
@@ -461,7 +520,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
             List<ConflictRowsLogTbl> subRowsLogTbls = conflictRowsLogTbls.subList(i, toIndex);
             i += BATCH_SIZE;
             resultSize += conflictRowsLogTblDao.batchDelete(subRowsLogTbls).length;
-            logger.info("batchDelete rowLogs size: " +resultSize);
+            logger.info("batchDelete rowLogs size: " + resultSize);
         }
         return resultSize;
     }
@@ -546,18 +605,21 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
     }
 
-    private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(String srcMhaName,
+    private Pair<Boolean, Pair<Map<String, Object>, Map<String, Object>>> queryRecords(ConflictRowsLogTbl rowLog,
+                                                                                       String srcMhaName,
                                                                                        String dstMhaName,
-                                                                                       String sql,
                                                                                        int columnSize,
                                                                                        List<String> onUpdateColumns,
                                                                                        List<DbReplicationView> dbReplicationViews,
                                                                                        Map<Long, List<String>> columnsFieldMap) {
+        String sql = StringUtils.isNotBlank(rowLog.getHandleSql()) ? rowLog.getHandleSql() : rowLog.getRawSql();
         Map<String, Object> srcResultMap;
         Map<String, Object> dstResultMap;
         try {
             srcResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(srcMhaName, sql, onUpdateColumns, columnSize));
             dstResultMap = mysqlService.queryTableRecords(new QueryRecordsRequest(dstMhaName, sql, onUpdateColumns, columnSize));
+            srcResultMap.put("rowLogId", rowLog.getId());
+            dstResultMap.put("rowLogId", rowLog.getId());
         } catch (Exception e) {
             throw ConsoleExceptionUtils.message(e.getMessage());
         }
