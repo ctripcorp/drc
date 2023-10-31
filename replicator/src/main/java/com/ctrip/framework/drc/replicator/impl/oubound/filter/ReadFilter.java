@@ -49,13 +49,8 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 value.setCause(new EventReaderException("check event size error"));
                 value.setSkipEvent(true);
             }
-
-            if (checkPartialTransaction(fileChannel, eventSize, eventType, value.isEverSeeGtid())) {
-                value.setSkipEvent(true);
-            }
-
         } catch (IOException e) {
-            value.setCause(new Exception("check event size error"));
+            value.setCause(e);
         }
 
         return doNext(value, value.isSkipEvent());
@@ -69,15 +64,5 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             return false;
         }
         return true;
-    }
-
-    // first file start with non gtid event, for example gtid in binlog.00001, and tablemap in binlog.00002
-    private boolean checkPartialTransaction(FileChannel fileChannel, long eventSize, LogEventType eventType, boolean everSeeGtid) throws IOException {
-        if (!everSeeGtid && !LogEventUtils.isDrcEvent(eventType)) {
-            fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
-            DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.partial", registerKey);
-            return true;
-        }
-        return false;
     }
 }

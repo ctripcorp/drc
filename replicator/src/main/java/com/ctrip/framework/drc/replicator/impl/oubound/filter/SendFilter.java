@@ -42,7 +42,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
         }
 
         if (value.getCause() != null) {
-            return false;
+            return true;
         }
 
         if (skipEvent) {
@@ -58,7 +58,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
             channel.writeAndFlush(new BinlogFileRegion(value.getFileChannel(), value.getFileChannelPos(), value.getEventSize()).retain());
         }
 
-        return true;
+        return false;
     }
 
     private void sendRewriteEvent(OutboundLogEventContext value) {

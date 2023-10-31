@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.Objects;
 
+import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventHeaderLength.eventHeaderLengthVersionGt1;
 import static com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType.*;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isDrcGtidLogEvent;
 import static com.ctrip.framework.drc.core.driver.util.LogEventUtils.isOriginGtidLogEvent;
@@ -88,6 +89,16 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                     GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
                     value.setInExcludeGroup(false);
                 }
+            } else {
+                try {
+                    if (checkPartialTransaction(value.getFileChannel(), value.getEventSize(), eventType, value.isEverSeeGtid())) {
+                        value.setSkipEvent(true);
+                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
+                        logger.warn("check event partial false, event type: {}", eventType);
+                    }
+                } catch (IOException e) {
+                    value.setCause(e);
+                }
             }
         }
 
@@ -127,5 +138,15 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         } else if (LogEventUtils.isDrcDdlLogEvent(eventType)) {
             GTID_LOGGER.info("[S] drc ddl, {}", gtidForLog);
         }
+    }
+
+    // first file start with non gtid event, for example gtid in binlog.00001, and tablemap in binlog.00002
+    private boolean checkPartialTransaction(FileChannel fileChannel, long eventSize, LogEventType eventType, boolean everSeeGtid) throws IOException {
+        if (!everSeeGtid && !LogEventUtils.isDrcEvent(eventType)) {
+            fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.partial", registerKey);
+            return true;
+        }
+        return false;
     }
 }

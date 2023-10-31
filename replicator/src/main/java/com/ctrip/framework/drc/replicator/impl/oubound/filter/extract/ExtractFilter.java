@@ -77,7 +77,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
             TableMapLogEvent rewriteTableMapEvent = rewriteTableMapEvent(tableMapLogEvent, eventType);
             value.setRewrite(true);
             value.setLogEvent(rewriteTableMapEvent);
-            value.setFilteredSize(rewriteTableMapEvent.getLogEventHeader().getEventSize());
+            value.setEventSize(rewriteTableMapEvent.getLogEventHeader().getEventSize());
         }
     }
 
@@ -117,7 +117,7 @@ public class ExtractFilter extends AbstractLogEventFilter<OutboundLogEventContex
                 AbstractRowsEvent extractedRowsEvent = filteredRowsEvent.extract(extractedColumns);
                 value.setRewrite(true);
                 value.setLogEvent(extractedRowsEvent);
-                value.setFilteredSize(extractedRowsEvent.getLogEventHeader().getEventSize());
+                value.setEventSize(extractedRowsEvent.getLogEventHeader().getEventSize());
             } catch (Exception e) {
                 logger.error("[ExtractFilter] error", e);
                 value.setCause(e);

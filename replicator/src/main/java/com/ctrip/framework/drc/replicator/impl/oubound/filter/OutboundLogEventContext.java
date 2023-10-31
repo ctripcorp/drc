@@ -57,8 +57,6 @@ public class OutboundLogEventContext {
 
     private boolean inExcludeGroup = false;
 
-    private long filteredSize;
-
     public OutboundLogEventContext() {
     }
 
@@ -319,13 +317,5 @@ public class OutboundLogEventContext {
         EventReader.readEvent(rowsEvent, headByteBuf, bodyByteBuf);
         logEvent = rowsEvent;
         return rowsEvent;
-    }
-
-    public long getFilteredSize() {
-        return filteredSize;
-    }
-
-    public void setFilteredSize(long filteredSize) {
-        this.filteredSize = filteredSize;
     }
 }
