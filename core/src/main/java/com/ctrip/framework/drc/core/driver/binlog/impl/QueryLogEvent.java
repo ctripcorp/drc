@@ -200,8 +200,8 @@ public class QueryLogEvent extends AbstractLogEvent {
                 readStatusVarLength.addAndGet(2);
                 break;
             case q_sql_require_primary_key:
-                payload.readUnsignedShortLE();
-                readStatusVarLength.addAndGet(2);
+                payload.readBoolean();
+                readStatusVarLength.addAndGet(1);
                 break;
             case q_commit_ts:
             case q_commit_ts2:
