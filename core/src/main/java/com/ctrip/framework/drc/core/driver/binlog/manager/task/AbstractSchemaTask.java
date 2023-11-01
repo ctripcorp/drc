@@ -144,7 +144,7 @@ public abstract class AbstractSchemaTask<V> implements NamedCallable<V> {
                 DDL_LOGGER.error("[BatchTask] fail and set res false for {}", identity);
                 countDownLatch.countDown();
             }
-        });
+        }, MoreExecutors.directExecutor());
 
         try {
             boolean queryResult = countDownLatch.await(60 * 3 , TimeUnit.SECONDS);

@@ -58,7 +58,7 @@ public class DbClusterUuidQueryTask extends AbstractQueryTask<List<String>> {
                 logger.error("doQuery error in countDownLatch wait", t);
                 countDownLatch.countDown();
             }
-        });
+        }, MoreExecutors.directExecutor());
 
         try {
             boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);

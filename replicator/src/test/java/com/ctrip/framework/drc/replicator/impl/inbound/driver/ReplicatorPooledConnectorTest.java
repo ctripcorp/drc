@@ -10,6 +10,7 @@ import com.ctrip.xpipe.netty.commands.NettyClient;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.netty.channel.Channel;
 import io.netty.util.Attribute;
 import org.junit.After;
@@ -77,7 +78,7 @@ public class ReplicatorPooledConnectorTest extends MockTest {
             public void onFailure(Throwable t) {
                 Assert.assertNotNull(t);
             }
-        });
+        }, MoreExecutors.directExecutor());
         Thread.sleep( 1000);
     }
 
@@ -119,7 +120,7 @@ public class ReplicatorPooledConnectorTest extends MockTest {
             public void onFailure(Throwable t) {
                 Assert.assertNotNull(t);
             }
-        });
+        }, MoreExecutors.directExecutor());
         Thread.sleep( 10000);
     }
 

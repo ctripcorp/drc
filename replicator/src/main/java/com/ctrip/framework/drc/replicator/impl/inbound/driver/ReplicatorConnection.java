@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.lang3.StringUtils;
 
 import java.net.SocketException;
@@ -292,7 +293,7 @@ public class ReplicatorConnection extends AbstractInstanceConnection implements 
                 public void onFailure(Throwable t) {
                     logger.error("[fetchServerUuid] fetchServerUuid error", t);
                 }
-            });
+            }, MoreExecutors.directExecutor());
             return true;
         }
 
