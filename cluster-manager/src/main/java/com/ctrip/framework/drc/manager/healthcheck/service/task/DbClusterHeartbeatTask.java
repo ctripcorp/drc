@@ -59,7 +59,7 @@ public class DbClusterHeartbeatTask extends AbstractMasterQueryTask<DbCluster> {
             public void onFailure(Throwable t) {
                 countDownLatch.countDown();
             }
-        }, MoreExecutors.directExecutor());
+        });
 
         try {
             boolean queryResult = countDownLatch.await(CONNECTION_TIMEOUT + CONNECTION_TIMEOUT_DELTA, TimeUnit.MILLISECONDS);

@@ -7,6 +7,6 @@ import static org.junit.Assert.*;
 public class MqConfigVoTest {
 
     @Test
-    public void testFrom()   {
+    public void testFrom() {
     }
 }

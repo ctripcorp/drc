@@ -77,7 +77,7 @@ public class DefaultMySQLMasterManager extends AbstractCurrentMetaObserver imple
                 public void onFailure(Throwable t) {
                     logger.error("[Ping] DbCluster uuid {} error", dbs, t);
                 }
-            }, MoreExecutors.directExecutor());
+            });
 
             return listenableFuture;
         }

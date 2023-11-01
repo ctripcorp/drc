@@ -73,7 +73,7 @@ public class DefaultClusterService extends AbstractLifecycle implements ClusterS
                 public void onFailure(Throwable t) {
                     logger.error("[Ping] DbCluster uuid {} error", dbs, t);
                 }
-            }, MoreExecutors.directExecutor());
+            });
 
             return listenableFuture;
         }
