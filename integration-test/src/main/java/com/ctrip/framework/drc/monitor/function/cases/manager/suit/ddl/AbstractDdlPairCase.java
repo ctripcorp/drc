@@ -190,6 +190,7 @@ public abstract class AbstractDdlPairCase extends AbstractBenchmarkCase implemen
                 return true;
             } else {
                 t.addData(dmlType.getDescription(), StatusEnum.FAIL.getDescription());
+                t.setStatus(new Exception("Not all ddl cases pass"));
                 return false;
             }
         } catch (Exception e) {
@@ -230,6 +231,7 @@ public abstract class AbstractDdlPairCase extends AbstractBenchmarkCase implemen
                 return true;
             } else {
                 t.addData(dmlType.getDescription(), StatusEnum.FAIL.getDescription());
+                t.setStatus(new Exception("Not all ddl cases pass"));
                 return false;
             }
         } catch (Exception e) {

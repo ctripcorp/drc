@@ -153,7 +153,7 @@ public class DdlFilterTest extends MockTest {
         LogEventHeader logEventHeader = new LogEventHeader(drc_schema_snapshot_log_event.getType(), 1L, 64, 12246);
         when(schemaSnapshotLogEvent.getLogEventHeader()).thenReturn(logEventHeader);
         when(schemaSnapshotLogEvent.getLogEventType()).thenReturn(drc_schema_snapshot_log_event);
-        when(schemaManager.recovery(schemaSnapshotLogEvent)).thenReturn(true);
+        when(schemaManager.recovery(schemaSnapshotLogEvent, false)).thenReturn(true);
         InboundLogEventContext logEventWithGroupFlag = new InboundLogEventContext(schemaSnapshotLogEvent, null,  new TransactionFlags(), "");
         Assert.assertTrue(ddlFilter.doFilter(logEventWithGroupFlag));
     }

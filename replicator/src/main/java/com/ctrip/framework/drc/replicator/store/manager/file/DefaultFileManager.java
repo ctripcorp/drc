@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.store.manager.file;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidConsumer;
@@ -319,6 +318,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
             if (fileChannel.position() == 0) {
                 fileChannel.position(LOG_EVENT_START);
             }
+            boolean shouldRecoverFromDdl = false;
             final long endPos = fileChannel.size();
             while (endPos > fileChannel.position()) {
                 Pair<ByteBuf, Integer> headerContent = readFile(fileChannel, headBuffer);
@@ -419,7 +419,7 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     if (LogEventType.drc_ddl_log_event == eventType) {
                         DrcDdlLogEvent ddlLogEvent = new DrcDdlLogEvent();
                         ddlLogEvent.read(compositeByteBuf);
-                        if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+                        if (shouldRecoverFromDdl) {
                             List<DdlResult> ddlResults = DdlParser.parse(ddlLogEvent.getDdl(), ddlLogEvent.getSchema());
                             ApplyResult applyResult = schemaManager.apply(ddlLogEvent.getSchema(), ddlResults.get(0).getTableName(), ddlLogEvent.getDdl(), ddlResults.get(0).getType(), gtid);
                             if (ApplyResult.Status.PARTITION_SKIP == applyResult.getStatus()) {
@@ -430,14 +430,15 @@ public class DefaultFileManager extends AbstractLifecycle implements FileManager
                     } else if (LogEventType.drc_schema_snapshot_log_event == eventType) {
                         DrcSchemaSnapshotLogEvent snapshotLogEvent = new DrcSchemaSnapshotLogEvent();
                         snapshotLogEvent.read(compositeByteBuf);
-                        schemaManager.recovery(snapshotLogEvent);
+                        shouldRecoverFromDdl = schemaManager.shouldRecover(true);
+                        if (shouldRecoverFromDdl) {
+                            schemaManager.recovery(snapshotLogEvent, true);
+                        }
                         snapshotLogEvent.release();
                     } else {
                         DrcIndexLogEvent indexLogEvent = new DrcIndexLogEvent();
                         indexLogEvent.read(compositeByteBuf);
-                        List<Long> localIndices = DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)
-                                 ? indexLogEvent.getNotRevisedIndices()
-                                 : indexLogEvent.getIndices();
+                        List<Long> localIndices = indexLogEvent.getNotRevisedIndices();
                         int previousGtidSize = localIndices.size();
                         if (previousGtidSize > 1) {
                             long position = localIndices.get(previousGtidSize - 1);

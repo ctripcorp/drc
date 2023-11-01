@@ -13,7 +13,9 @@ import static de.flapdoodle.embed.process.distribution.Platform.OS_X;
 public class OSX8FileSetEmitter extends Nix implements FileSetEmitter {
     @Override
     public boolean matches(Platform platform, Version version) {
-        return (Platform.detect() == OS_X) && Objects.equals(version.getMajorVersion(), "8.0");
+        return (Platform.detect() == OS_X)
+                && Objects.equals(version.getMajorVersion(), "8.0")
+                && version.getMinorVersion() <= 17;
     }
 
     @Override
