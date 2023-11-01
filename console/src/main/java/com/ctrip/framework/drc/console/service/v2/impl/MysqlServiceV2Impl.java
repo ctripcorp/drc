@@ -227,4 +227,15 @@ public class MysqlServiceV2Impl implements MysqlServiceV2 {
         }
         return MySqlUtils.getAllOnUpdateColumns(endpoint, db, table);
     }
+
+    @Override
+//    @PossibleRemote(path = "/api/drc/v2/mysql/uniqueIndex")
+    public String getFirstUniqueIndex(String mha, String db, String table) {
+        Endpoint endpoint = cacheMetaService.getMasterEndpoint(mha);
+        if (endpoint == null) {
+            logger.error("getFirstUniqueIndex from mha: {}, db not exist", mha);
+            return null;
+        }
+        return MySqlUtils.getFirstUniqueIndex(endpoint, db, table);
+    }
 }

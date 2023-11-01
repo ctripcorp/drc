@@ -102,6 +102,7 @@ public class MySqlUtils {
     private static final String DEFAULT_ZERO_TIME = "0000-00-00 00:00:00";
 
     private static final String SELECT_DELAY_MONITOR_DATACHANGE_LASTTIME_SQL = "SELECT `datachange_lasttime` FROM `drcmonitordb`.`delaymonitor` WHERE (CASE JSON_VALID(dest_ip) WHEN TRUE THEN JSON_EXTRACT(dest_ip, \"$.m\") ELSE NULL END) = ?;";
+    public static final String INDEX_QUERY = "SELECT INDEX_NAME,COLUMN_NAME FROM information_schema.statistics WHERE `table_schema` = '%s' AND `table_name` = '%s' and NON_UNIQUE=0 ORDER BY SEQ_IN_INDEX;";
     private static final String SELECT_CURRENT_TIMESTAMP = "SELECT CURRENT_TIMESTAMP();";
     private static final String GET_COLUMN_PREFIX = "select column_name from information_schema.columns where table_schema='%s' and table_name='%s'";
     private static final String GET_ALL_COLUMN_SQL = "select distinct(column_name) from information_schema.columns where table_schema='%s' and table_name='%s'";
@@ -114,6 +115,8 @@ public class MySqlUtils {
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
     private static final String EQUAL = "=";
     private static final String SINGLE_QUOTE = "'";
+    private static final String MARKs = "`";
+    public static final String PRIMARY = "PRIMARY";
 
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
         return getTables(endpoint, GET_DEFAULT_TABLES, false);
@@ -868,6 +871,34 @@ public class MySqlUtils {
         return dbs;
     }
 
+    public static String getFirstUniqueIndex(Endpoint endpoint, String db, String table) {
+        WriteSqlOperatorWrapper sqlOperatorWrapper = getSqlOperatorWrapper(endpoint);
+        ReadResource readResource = null;
+        try {
+            String sql = String.format(INDEX_QUERY, db, table);
+            GeneralSingleExecution execution = new GeneralSingleExecution(sql);
+            readResource = sqlOperatorWrapper.select(execution);
+            ResultSet rs = readResource.getResultSet();
+
+            List<List<String>> identifies = extractIndex(rs);
+            int size  = identifies.size();
+            for (int i = 0; i < size; i++) {
+                if (identifies.get(i).size() == 1) {
+                    return identifies.get(i).get(0);
+                }
+            }
+        } catch(Throwable t) {
+            logger.error("[[monitor=table,endpoint={}:{}]] getAllOnUpdateColumns error: ", endpoint.getHost(), endpoint.getPort(), t);
+            removeSqlOperator(endpoint);
+            return null;
+        } finally {
+            if(readResource != null) {
+                readResource.close();
+            }
+        }
+        return null;
+    }
+
     public static Map<String, Object> resultSetConvertMap(ResultSet rs, int columnSize) throws SQLException {
         Map<String, Object> ret = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
@@ -978,10 +1009,43 @@ public class MySqlUtils {
         return parseResult;
     }
 
-    private static String toStringVal(String val) {
+    public static List<List<String>> extractIndex(ResultSet resultSet) {
+
+        List<List<String>> identifies = Lists.newArrayList();
+
+        try {
+            Map<String, List<String>> uniqueIndexes = Maps.newHashMap();
+            while (resultSet.next()) {
+                String indexName = resultSet.getString(1);
+                List<String> columnNames = uniqueIndexes.get(indexName);
+                if (columnNames == null) {
+                    columnNames = Lists.newArrayList();
+                    uniqueIndexes.put(indexName, columnNames);
+                }
+                columnNames.add(resultSet.getString(2));
+            }
+
+            for (Map.Entry<String, List<String>> entry : uniqueIndexes.entrySet()) {
+                if (PRIMARY.equalsIgnoreCase(entry.getKey())) {
+                    identifies.add(0, entry.getValue());
+                } else {
+                    identifies.add(entry.getValue());
+                }
+            }
+        } catch (Throwable t) {
+            logger.error("IndexExtractor error", t);
+        }
+
+        return identifies;
+    }
+
+    public static String toStringVal(String val) {
         return SINGLE_QUOTE + val + SINGLE_QUOTE;
     }
 
+    public static String toSqlField(String s) {
+        return MARKs + s + MARKs;
+    }
 
     public static final class TableSchemaName {
         private String schema;

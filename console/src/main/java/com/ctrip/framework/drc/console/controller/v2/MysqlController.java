@@ -203,4 +203,15 @@ public class MysqlController {
         }
     }
 
+    @GetMapping("uniqueIndex")
+    public ApiResult<String> getFirstUniqueIndex(@RequestParam String mha, @RequestParam String db, @RequestParam String table) {
+        try {
+            logger.info("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table);
+            return ApiResult.getSuccessInstance(mysqlServiceV2.getFirstUniqueIndex(mha, db, table));
+        } catch (Exception e) {
+            logger.error("getFirstUniqueIndex, mha: {}, db:{}, table: {}", mha, db, table, e);
+            return ApiResult.getFailInstance(null);
+        }
+    }
+
 }

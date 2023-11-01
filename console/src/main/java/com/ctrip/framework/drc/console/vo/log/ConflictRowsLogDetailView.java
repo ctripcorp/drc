@@ -11,14 +11,14 @@ public class ConflictRowsLogDetailView {
     private String handleSqlResult;
     private String dstRowRecord;
     private Integer rowResult;
-    private Long rowLogId;
+    private Long rowId;
 
-    public Long getRowLogId() {
-        return rowLogId;
+    public Long getRowId() {
+        return rowId;
     }
 
-    public void setRowLogId(Long rowLogId) {
-        this.rowLogId = rowLogId;
+    public void setRowId(Long rowId) {
+        this.rowId = rowId;
     }
 
     public String getRawSql() {

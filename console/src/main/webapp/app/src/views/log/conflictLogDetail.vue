@@ -16,7 +16,7 @@
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突行记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
-              <Button :loading="recordLoading" size="small" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
+              <Button :loading="recordLoading" size="small" @click="getRecords" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
             </Tooltip >
           </div>
           <Divider/>
@@ -43,7 +43,7 @@
         <Divider/>
         <Card>
           <p slot="title">
-            自动冲突处理流程
+            DRC冲突处理流程
           </p>
           <Table stripe :loading="logTableLoading" :columns="trxLog.columns" :data="dataWithPage" ></Table>
           <div>
@@ -59,6 +59,22 @@
               @on-page-size-change="handleChangeSize"></Page>
           </div>
         </Card>
+        <Divider/>
+        <Card>
+          <p slot="title">
+            自动冲突处理
+          </p>
+          <div class="ivu-list-item-meta-title">批量选择冲突行自动冲突处理：
+            <Tooltip content="忽略数据一致的冲突行">
+              <Button  size="small" @click="getRecords" type="success">生成SQL</Button>
+            </Tooltip >
+          </div>
+          <div>
+            <codemirror v-for="(item, index) in trxLog.tableData" :key ="index" v-model="item.rawSql" :options="options"></codemirror>
+<!--            <codemirror v-model="trxLog.tableData[0].rawSql" :options="options"></codemirror>-->
+          </div>
+        </Card>
+        <Divider/>
       </div>
     </Content>
   </base-component>
@@ -66,11 +82,17 @@
 
 <script>
 import conflictRowsLogDetail from './conflictRowsLogDetail.vue'
+import { codemirror } from 'vue-codemirror'
+import 'codemirror/theme/ambiance.css'
+import 'codemirror/mode/sql/sql.js'
 
 export default {
   name: 'conflictLogDetail',
   props: {
     rowData: String
+  },
+  components: {
+    codemirror
   },
   data () {
     return {
@@ -99,6 +121,11 @@ export default {
         diffStr: '',
         tableData: [],
         columns: [
+          {
+            type: 'selection',
+            width: 40,
+            align: 'center'
+          },
           {
             type: 'expand',
             width: 40,
@@ -143,6 +170,15 @@ export default {
         current: 1,
         size: 10,
         pageSizeOpts: [10, 20, 50, 100]
+      },
+      options: {
+        value: '',
+        mode: 'text/x-mysql',
+        theme: 'ambiance',
+        lineWrapping: true,
+        height: 100,
+        readOnly: true,
+        lineNumbers: true
       }
     }
   },
@@ -227,6 +263,13 @@ export default {
         .finally(() => {
           this.recordLoading = false
         })
+    },
+    getRecords () {
+      if (this.byRowLogIds) {
+        this.getTrxRecords1()
+      } else {
+        this.getTrxRecords()
+      }
     }
   },
   computed: {
@@ -255,5 +298,14 @@ export default {
 </script>
 
 <style scoped>
+.ivu-table .table-info-cell-extra-column-add {
+  background-color: #2db7f5;
+  color: #fff;
+}
+
+.ivu-table .table-info-cell-extra-column-diff {
+  background-color: #ff6600;
+  color: #fff;
+}
 
 </style>

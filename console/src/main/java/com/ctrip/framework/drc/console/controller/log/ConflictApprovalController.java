@@ -3,6 +3,7 @@ package com.ctrip.framework.drc.console.controller.log;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalService;
 import com.ctrip.framework.drc.console.vo.log.ConflictApprovalView;
+import com.ctrip.framework.drc.console.vo.log.ConflictAutoHandleView;
 import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
 import com.ctrip.framework.drc.core.http.ApiResult;
@@ -47,6 +48,16 @@ public class ConflictApprovalController {
     public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam Long approvalId) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictRecordView(approvalId));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @GetMapping("/detail")
+    public ApiResult<List<ConflictAutoHandleView>> getConflictAutoHandleView(@RequestParam Long batchId) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictAutoHandleView(batchId));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());

@@ -2,6 +2,7 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.vo.log.ConflictApprovalView;
+import com.ctrip.framework.drc.console.vo.log.ConflictAutoHandleView;
 import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
 import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
 
@@ -18,4 +19,6 @@ public interface ConflictApprovalService {
     ConflictCurrentRecordView getConflictRecordView(Long approvalId) throws Exception;
 
     List<ConflictRowsLogDetailView> getConflictRowLogDetailView(Long approvalId) throws Exception;
+
+    List<ConflictAutoHandleView> getConflictAutoHandleView(Long batchId) throws Exception;
 }

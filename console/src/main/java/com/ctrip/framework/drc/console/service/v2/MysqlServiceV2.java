@@ -49,4 +49,6 @@ public interface MysqlServiceV2 {
     Map<String, Object> queryTableRecords(QueryRecordsRequest requestBody) throws Exception;
 
     List<String> getAllOnUpdateColumns(String mha, String db, String table);
+
+    String getFirstUniqueIndex(String mha, String db, String table);
 }

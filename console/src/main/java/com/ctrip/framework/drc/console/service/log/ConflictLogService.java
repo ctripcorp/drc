@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.vo.log.*;
@@ -40,4 +41,6 @@ public interface ConflictLogService {
     List<ConflictRowsLogDetailView> getConflictRowLogDetailView(List<Long> conflictRowLogIds) throws Exception;
 
     ConflictCurrentRecordView getConflictRowRecordView(List<Long> conflictRowLogIds) throws Exception;
+
+    List<ConflictAutoHandleView> createHandleSql(ConflictAutoHandleParam param) throws Exception;
 }
