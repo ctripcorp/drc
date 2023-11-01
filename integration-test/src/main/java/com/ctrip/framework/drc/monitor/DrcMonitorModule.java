@@ -17,6 +17,7 @@ import com.ctrip.framework.drc.monitor.function.cases.truncate.DefaultTableTrunc
 import com.ctrip.framework.drc.monitor.function.cases.truncate.TableTruncate;
 import com.ctrip.framework.drc.monitor.function.operator.DefaultSqlOperator;
 import com.ctrip.framework.drc.monitor.function.operator.ReadWriteSqlOperator;
+import com.ctrip.framework.drc.monitor.function.task.TableCompareTask;
 import com.ctrip.framework.drc.monitor.performance.DdlUpdateCase;
 import com.ctrip.framework.drc.monitor.performance.QPSTestPairCase;
 import com.ctrip.framework.drc.monitor.performance.ResultCompareCase;
@@ -77,6 +78,7 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
     protected ScheduledExecutorService dalScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("dal-scheduledExecutorService");
 
     private ScheduledExecutorService unilateralScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("unilateral-scheduledExecutorService");
+    private ScheduledExecutorService compareTableScheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("table-compare-scheduledExecutorService");
 
     private boolean writeOneTransaction = true;   // build replication automatically
 
@@ -224,6 +226,15 @@ public class DrcMonitorModule extends AbstractLifecycle implements Destroyable {
                 }
             }
         }, 10, 1, TimeUnit.SECONDS);
+
+
+        TableCompareTask tableCompareTask = new TableCompareTask();
+        compareTableScheduledExecutorService.scheduleWithFixedDelay(() -> {
+            if (ConfigService.getInstance().getAutoTableCompareSwitch()) {
+                tableCompareTask.compare();
+            }
+        }, 10, 100, TimeUnit.SECONDS);
+
 
         if (writeOneTransaction) {
             new MultiDBWriteInTransactionPairCase().test(sourceSqlOperator, reverseSourceSqlOperator); //write one transaction

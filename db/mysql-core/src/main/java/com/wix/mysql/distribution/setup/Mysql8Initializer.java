@@ -21,15 +21,18 @@ public class Mysql8Initializer implements Initializer {
     @Override
     public void apply(IExtractedFileSet files, IRuntimeConfig runtimeConfig, MysqldConfig config) throws IOException {
         File baseDir = files.baseDir();
-        FileUtils.deleteDirectory(new File(baseDir, "data"));
 
-        Process p = Runtime.getRuntime().exec(new String[]{
-                files.executable().getAbsolutePath(),
-                "--no-defaults",
-                "--initialize-insecure",
-                format("--basedir=%s", baseDir),
-                format("--datadir=%s/data", baseDir)});
+        if (!new File(baseDir, "data").exists()) {
+            Process p = Runtime.getRuntime().exec(new String[]{
+                    files.executable().getAbsolutePath(),
+                    "--no-defaults",
+                    "--initialize-insecure",
+                    "--log-error",
+                    format("--lower_case_table_names=%d", 1),
+                    format("--basedir=%s", baseDir),
+                    format("--datadir=%s/data", baseDir)});
 
-        new ProcessRunner(files.executable().getAbsolutePath()).run(p, runtimeConfig, config.getTimeout(NANOSECONDS));
+            new ProcessRunner(files.executable().getAbsolutePath()).run(p, runtimeConfig, config.getTimeout(NANOSECONDS));
+        }
     }
 }
