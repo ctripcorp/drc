@@ -201,6 +201,12 @@
             <groupId>com.ctrip.soa.22437</groupId>
             <artifactId>iamfacadeservice</artifactId>
             <version>0.0.9</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
