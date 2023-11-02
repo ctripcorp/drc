@@ -7,6 +7,7 @@ import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.springframework.http.*;
 import org.springframework.web.client.RestOperations;
 
@@ -28,6 +29,9 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     
     public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
     public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
+
+
+    private LinkedBlockingQueue<ConflictTransactionLog> discardLogs = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
     
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
@@ -36,6 +40,11 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
         HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
+        if (!discardLogs.isEmpty()) {
+            List<ConflictTransactionLog> logs = Lists.newArrayList();
+            discardLogs.drainTo(logs);
+            restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
+        }
     }
 
     @Override
@@ -45,9 +54,17 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
-            return trySubmit(conflictTransactionLog);
+            if(!trySubmit(conflictTransactionLog)) {
+                recordDiscardLog(conflictTransactionLog);
+            }
+            return true;
         }
         return false;
+    }
+    
+    private void recordDiscardLog(ConflictTransactionLog conflictTransactionLog) {
+        // todo simplify log and add log to discardLogs
+        con
     }
 
     public void setRestTemplate(RestOperations restTemplate) {
