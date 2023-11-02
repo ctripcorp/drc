@@ -156,6 +156,7 @@
             </div>
             <Table :loading="modalLoading" size="small" stripe :columns="item.columns" :data="item.records" border></Table>
           </Card>
+          <Divider/>
           <Card>
             <codemirror v-model="rowData" :options="options"></codemirror>
           </Card>
@@ -434,6 +435,8 @@ export default {
             // this.$Message.error(response.data.message)
             this.logDetail.recordEqual = false
             this.logDetail.diffStr = '数据比对失败'
+            this.logDetail.srcRecords = []
+            this.logDetail.dstRecords = []
           } else {
             const data = response.data.data
             this.logDetail.recordEqual = data.recordIsEqual

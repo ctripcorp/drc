@@ -31,6 +31,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,7 +116,7 @@ public class MySqlUtils {
     private static final int DATACHANGE_LASTTIME_INDEX = 1;
     private static final String EQUAL = "=";
     private static final String SINGLE_QUOTE = "'";
-    private static final String MARKs = "`";
+    private static final String MARKS = "`";
     public static final String PRIMARY = "PRIMARY";
 
     public static List<TableSchemaName> getDefaultTables(Endpoint endpoint) {
@@ -929,7 +930,13 @@ public class MySqlUtils {
         while (rs.next()) {
             Map<String, Object> rowData = new LinkedHashMap<>();
             for (String columnName : columnList) {
-                rowData.put(columnName, rs.getString(columnName));
+                Object val = rs.getObject(columnName);
+                if (val instanceof Date) {
+                    rowData.put(columnName, String.valueOf(val));
+                } else {
+                    rowData.put(columnName, val);
+                }
+//                rowData.put(columnName, rs.getString(columnName));
             }
             list.add(rowData);
         }
@@ -1039,12 +1046,22 @@ public class MySqlUtils {
         return identifies;
     }
 
-    public static String toStringVal(String val) {
+    public static String toStringVal(Object val) {
         return SINGLE_QUOTE + val + SINGLE_QUOTE;
     }
 
     public static String toSqlField(String s) {
-        return MARKs + s + MARKs;
+        return MARKS + s + MARKS;
+    }
+
+    public static Object toSqlValue(Object val) {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Number) {
+            return val;
+        }
+        return toStringVal(val);
     }
 
     public static final class TableSchemaName {

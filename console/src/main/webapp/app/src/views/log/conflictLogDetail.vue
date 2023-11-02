@@ -12,32 +12,38 @@
             自动冲突处理结果
           </p>
           <div v-if="!byRowLogIds" class="ivu-list-item-meta-title">事务提交结果：
-            <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">{{trxLog.trxResultStr}}</Button>
+            <Button :loading="logTableLoading" size="small" :type="trxLog.trxResult==0?'success':'error'">
+              {{trxLog.trxResultStr}}
+            </Button>
           </div>
           <div class="ivu-list-item-meta-title">所有机房当前冲突行记录：
             <Tooltip content="数据一致性比对忽略字段过滤的列">
               <Button :loading="recordLoading" size="small" @click="getRecords" :type="trxLog.recordEqual==true?'success':'error'">{{trxLog.diffStr}}</Button>
-            </Tooltip >
+            </Tooltip>
           </div>
           <Divider/>
           <div class="ivu-list-item-meta-title">源机房({{trxLog.srcRegion}})</div>
           <Card v-for="(item, index) in srcRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
-                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
-              </Tooltip >
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">
+                  {{item.doubleSync == true ? '双向同步' : '单向同步'}}
+                </Button>
+              </Tooltip>
             </div>
-            <Table  size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table size="small" stripe :columns="item.columns" :data="item.records" border></Table>
           </Card>
           <Divider/>
           <div class="ivu-list-item-meta-title">目标机房({{trxLog.dstRegion}})</div>
           <Card v-for="(item, index) in dstRecords" :key="index">
             <div class="ivu-list-item-meta-title">表名：{{item.tableName}}
               <Tooltip :content="item.doubleSync==true?'双向同步':'单向同步'">
-                <Button size="small" :type="item.doubleSync==true?'success':'primary'">{{item.doubleSync==true?'双向同步':'单向同步'}}</Button>
-              </Tooltip >
+                <Button size="small" :type="item.doubleSync==true?'success':'primary'">
+                  {{item.doubleSync == true ? '双向同步' : '单向同步'}}
+                </Button>
+              </Tooltip>
             </div>
-            <Table  size="small" stripe :columns="item.columns" :data="item.records" border></Table>
+            <Table size="small" stripe :columns="item.columns" :data="item.records" border></Table>
           </Card>
         </Card>
         <Divider/>
@@ -45,7 +51,8 @@
           <p slot="title">
             DRC冲突处理流程
           </p>
-          <Table stripe :loading="logTableLoading" :columns="trxLog.columns" :data="dataWithPage" ></Table>
+          <Table stripe :loading="logTableLoading" :columns="trxLog.columns" :data="dataWithPage"
+                 ref="multipleTable" @on-selection-change="changeSelection"></Table>
           <div>
             <Page
               :transfer="true"
@@ -62,17 +69,22 @@
         <Divider/>
         <Card>
           <p slot="title">
-            自动冲突处理
+            选择冲突行自动冲突处理
           </p>
-          <div class="ivu-list-item-meta-title">批量选择冲突行自动冲突处理：
-            <Tooltip content="忽略数据一致的冲突行">
-              <Button  size="small" @click="getRecords" type="success">生成SQL</Button>
-            </Tooltip >
-          </div>
-          <div>
-            <codemirror v-for="(item, index) in trxLog.tableData" :key ="index" v-model="item.rawSql" :options="options"></codemirror>
-<!--            <codemirror v-model="trxLog.tableData[0].rawSql" :options="options"></codemirror>-->
-          </div>
+          <Row :gutter=10>
+            <Col span="3">
+              <Select filterable clearable v-model="writeSide" placeholder="选择写入region">
+                <Option v-for="item in regionOpt" :value="item.key" :key="item.key">{{ item.val }}</Option>
+              </Select>
+            </Col>
+            <Col span="4">
+              <Tooltip content="忽略数据一致的冲突行">
+                <Button :loading="sqlLoading" size="small" @click="generateHandleSql" type="success">生成SQL</Button>
+              </Tooltip>
+            </Col>
+          </Row>
+          <br>
+          <codemirror v-model="handleSql" :options="options"></codemirror>
         </Card>
         <Divider/>
       </div>
@@ -96,6 +108,13 @@ export default {
   },
   data () {
     return {
+      handleSql: '',
+      handleSqlList: [],
+      showHandleSql: false,
+      multiData: [],
+      sqlLoading: false,
+      writeSide: 0,
+      regionOpt: [],
       byRowLogIds: false,
       rowLogIds: [],
       conflictTrxLogId: 0,
@@ -145,6 +164,17 @@ export default {
             width: 100
           },
           {
+            title: '表名',
+            key: 'tableName',
+            width: 250,
+            tooltip: true,
+            render: (h, params) => {
+              const row = params.row
+              const text = row.dbName + '.' + row.tableName
+              return h('div', text)
+            }
+          },
+          {
             title: '原始sql',
             key: 'rawSql',
             tooltip: true
@@ -183,6 +213,42 @@ export default {
     }
   },
   methods: {
+    generateHandleSql () {
+      const multiData = this.multiData
+      if (multiData === undefined || multiData === null || multiData.length === 0) {
+        this.$Message.warning('请勾选！')
+        return
+      }
+      const rowLogIds = []
+      const srcRecords = []
+      const dstRecords = []
+      multiData.forEach(data => rowLogIds.push(data.rowLogId))
+      this.srcRecords.forEach(srcRecord => {
+        srcRecord.records.forEach(record => srcRecords.push(record))
+      })
+      this.dstRecords.forEach(dstRecord => {
+        dstRecord.records.forEach(record => dstRecords.push(record))
+      })
+      this.sqlLoading = true
+      this.axios.post('/api/drc/v2/log/conflict/rows/handleSql', {
+        writeSide: this.writeSide,
+        srcRecords: srcRecords,
+        dstRecords: dstRecords,
+        rowLogIds: rowLogIds
+      }).then(res => {
+        const data = res.data
+        if (data.status === 0) {
+          this.handleSqlList = data.data
+          const handleSqlList = []
+          data.data.forEach(e => handleSqlList.push(e.autoHandleSql))
+          this.handleSql = handleSqlList.join('\n')
+        } else {
+          this.$Message.error('自动生成SQL失败: ' + data.message)
+        }
+      }).finally(() => {
+        this.sqlLoading = false
+      })
+    },
     handleSpan ({ row, column, rowIndex, columnIndex }) {
       if (columnIndex === 0) {
         return [0, 0]
@@ -270,6 +336,9 @@ export default {
       } else {
         this.getTrxRecords()
       }
+    },
+    changeSelection (val) {
+      this.multiData = val
     }
   },
   computed: {
@@ -284,8 +353,8 @@ export default {
     this.conflictTrxLogId = this.$route.query.conflictTrxLogId
     this.byRowLogIds = this.$route.query.byRowLogIds
     this.rowLogIds = this.$route.query.rowLogIds
-    this.srcRegion = this.$route.query.srcRegion
-    this.dstRegion = this.$route.query.dstRegion
+    this.trxLog.srcRegion = this.$route.query.srcRegion
+    this.trxLog.dstRegion = this.$route.query.dstRegion
     if (this.byRowLogIds) {
       this.getTrxLogDetail1()
       this.getTrxRecords1()
@@ -293,6 +362,16 @@ export default {
       this.getTrxLogDetail()
       this.getTrxRecords()
     }
+    this.regionOpt = [
+      {
+        key: 0,
+        val: this.trxLog.srcRegion
+      },
+      {
+        key: 1,
+        val: this.trxLog.dstRegion
+      }
+    ]
   }
 }
 </script>

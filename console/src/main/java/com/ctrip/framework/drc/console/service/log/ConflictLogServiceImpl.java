@@ -23,6 +23,7 @@ import com.ctrip.framework.drc.console.service.v2.DrcBuildServiceV2;
 import com.ctrip.framework.drc.console.service.v2.MysqlServiceV2;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.DateUtils;
+import com.ctrip.framework.drc.console.utils.MySqlUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.console.vo.v2.DbReplicationView;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -88,6 +89,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     private static final String UPDATE_SQL = "UPDATE %s SET %s WHERE %s";
     private static final String INSERT_SQL = "INSERT INTO %s (%s) VALUES (%s)";
     private static final String DELETE_SQL = "DELETE FROM %s WHERE %s";
+    private static final String EQUAL_SYMBOL = "=";
+    private static final String MARKS = "`";
+    private static final String EMPTY_SQL = "EMPTY_SQL";
 
     @Override
     public List<ConflictTrxLogView> getConflictTrxLogView(ConflictTrxLogQueryParam param) throws Exception {
@@ -151,6 +155,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictRowsLogDetailView> rowsLogDetailViews = conflictRowsLogTbls.stream().map(source -> {
             ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
             BeanUtils.copyProperties(source, target);
+            target.setRowLogId(source.getId());
             return target;
         }).collect(Collectors.toList());
         view.setRowsLogDetailViews(rowsLogDetailViews);
@@ -368,6 +373,7 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictRowsLogDetailView> views = conflictRowsLogTbls.stream().map(source -> {
             ConflictRowsLogDetailView target = new ConflictRowsLogDetailView();
             BeanUtils.copyProperties(source, target);
+            target.setRowLogId(source.getId());
             return target;
         }).collect(Collectors.toList());
         return views;
@@ -394,7 +400,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         }
         Pair<String, String> mhaPair = getMhaPair(conflictRowsLogTbls);
         String srcMhaName = mhaPair.getLeft();
-        String dstMhaName = mhaPair.getRight();
 
         Map<String, List<String>> onUpdateColumnMap = getOnUpdateColumns(conflictRowsLogTbls, srcMhaName);
         Map<String, String> uniqueIndexMap = getUniqueIndex(conflictRowsLogTbls, srcMhaName);
@@ -402,11 +407,11 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         Map<Long, Map<String, Object>> srcRecordMap = new HashMap<>();
         Map<Long, Map<String, Object>> dstRecordMap = new HashMap<>();
         for (Map<String, Object> srcRecord : param.getSrcRecords()) {
-            long rowLogId = Long.valueOf((String) srcRecord.get(ROW_LOG_ID));
+            long rowLogId = Long.valueOf(String.valueOf(srcRecord.get(ROW_LOG_ID)));
             srcRecordMap.put(rowLogId, srcRecord);
         }
         for (Map<String, Object> dstRecord : param.getDstRecords()) {
-            long rowLogId = Long.valueOf((String) dstRecord.get(ROW_LOG_ID));
+            long rowLogId = Long.valueOf(String.valueOf(dstRecord.get(ROW_LOG_ID)));
             dstRecordMap.put(rowLogId, dstRecord);
         }
 
@@ -414,9 +419,9 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         List<ConflictAutoHandleView> views = conflictRowsLogTbls.stream().map(source -> {
             ConflictAutoHandleView target = new ConflictAutoHandleView();
             target.setRowLogId(source.getId());
-            target.setDbName(source.getDbName());
-            target.setTableName(source.getTableName());
 
+            String handleSql = createConflictHandleSql(source, onUpdateColumnMap, uniqueIndexMap, srcRecordMap, dstRecordMap, writeToDstMha);
+            target.setAutoHandleSql(handleSql);
             return target;
         }).collect(Collectors.toList());
         return views;
@@ -444,19 +449,62 @@ public class ConflictLogServiceImpl implements ConflictLogService {
     }
 
     private String createConflictHandleSql(String tableName, Map<String, Object> sourceRecord, Map<String, Object> targetRecord, String onUpdateColumn, String uniqueIndex) {
-        String sql;
         if (sourceRecord != null && targetRecord != null) {  //update
-            sql = UPDATE_SQL;
-            StringBuilder setFieldBuilder = new StringBuilder();
-            List<String> setFields = new ArrayList<>();
-            sourceRecord.forEach((column, value) -> {
-            });
+            return createUpdateSql(sourceRecord, targetRecord,tableName,  onUpdateColumn, uniqueIndex);
         } else if (sourceRecord != null) {  //insert
-            sql = INSERT_SQL;
-        } else {  //delete
-            sql = DELETE_SQL;
+            return createInsertSql(tableName, sourceRecord);
+        } else if (targetRecord != null){  //delete
+            return createDeleteSql(tableName, targetRecord, onUpdateColumn, uniqueIndex);
+        } else {
+            return EMPTY_SQL;
         }
-        return "";
+    }
+
+    //onUpdateColumn - `datachange_lasttime`, uniqueIndex - id
+    private String createDeleteSql(String tableName, Map<String, Object> targetRecord, String onUpdateColumn, String uniqueIndex) {
+        StringBuilder whereCondition = new StringBuilder();
+        String uniqueIndexCondition = MySqlUtils.toSqlField(uniqueIndex) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(uniqueIndex));
+        String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumn.replace(MARKS, "")));
+        whereCondition.append(uniqueIndexCondition).append(" AND ").append(onUpdateCondition);
+
+        return String.format(DELETE_SQL, MySqlUtils.toSqlField(tableName), whereCondition);
+    }
+
+    private String createInsertSql(String tableName, Map<String, Object> sourceRecord) {
+        List<String> columns = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+        sourceRecord.forEach((column, value) -> {
+            if (!ROW_LOG_ID.equals(column)) {
+                columns.add(column);
+                values.add(MySqlUtils.toSqlValue(value));
+            }
+        });
+
+        String columnSql = Joiner.on(",").join(columns);
+        String valueSql = Joiner.on(",").join(values);
+        return String.format(INSERT_SQL, MySqlUtils.toSqlField(tableName), columnSql, valueSql);
+    }
+
+    private String createUpdateSql(Map<String, Object> sourceRecord, Map<String, Object> targetRecord, String tableName, String onUpdateColumn, String uniqueIndex) {
+        List<String> setFields = new ArrayList<>();
+        sourceRecord.forEach((column, value) -> {
+            if (!ROW_LOG_ID.equals(column)) {
+                String setField = MySqlUtils.toSqlField(column) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(value);
+                setFields.add(setField);
+            }
+        });
+        String setFiledSql = Joiner.on(",").join(setFields);
+
+        StringBuilder whereCondition = new StringBuilder();
+        String uniqueIndexCondition = MySqlUtils.toSqlField(uniqueIndex) + EQUAL_SYMBOL + MySqlUtils.toSqlValue(sourceRecord.get(uniqueIndex));
+        String onUpdateCondition = onUpdateColumn + EQUAL_SYMBOL + MySqlUtils.toSqlValue(targetRecord.get(onUpdateColumn.replace(MARKS, "")));
+        whereCondition.append(uniqueIndexCondition).append(" AND ").append(onUpdateCondition);
+
+        return String.format(UPDATE_SQL, MySqlUtils.toSqlField(tableName), setFiledSql, whereCondition);
+    }
+
+    private String removeSingleQuote(String column) {
+        return column.replace(MARKS, "");
     }
 
     private Pair<String, String> getMhaPair(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
@@ -731,8 +779,12 @@ public class ConflictLogServiceImpl implements ConflictLogService {
 
         List<Map<String, Object>> srcRecords = (List<Map<String, Object>>) srcResultMap.get("record");
         List<Map<String, Object>> dstRecords = (List<Map<String, Object>>) dstResultMap.get("record");
-        srcRecords.get(0).put(ROW_LOG_ID, rowLog.getId());
-        dstRecords.get(0).put(ROW_LOG_ID, rowLog.getId());
+        if (!CollectionUtils.isEmpty(srcRecords)) {
+            srcRecords.get(0).put(ROW_LOG_ID, rowLog.getId());
+        }
+        if (!CollectionUtils.isEmpty(dstRecords)) {
+            dstRecords.get(0).put(ROW_LOG_ID, rowLog.getId());
+        }
         return Pair.of(sameRecord, Pair.of(srcResultMap, dstResultMap));
     }
 

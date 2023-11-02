@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.console.controller.log;
 
+import com.ctrip.framework.drc.console.param.log.ConflictAutoHandleParam;
 import com.ctrip.framework.drc.console.param.log.ConflictRowsLogQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictTrxLogQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictLogService;
@@ -7,8 +8,6 @@ import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +21,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/drc/v2/log/conflict/")
 public class ConflictLogController {
-    private static final Logger logger = LoggerFactory.getLogger(ConflictLogController.class);
 
     @Autowired
     private ConflictLogService conflictLogService;
@@ -152,6 +150,16 @@ public class ConflictLogController {
     public ApiResult<ConflictCurrentRecordView> getConflictRowRecordView(@RequestParam List<Long> conflictRowLogIds) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.getConflictRowRecordView(conflictRowLogIds));
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
+
+    @PostMapping("/rows/handleSql")
+    public ApiResult<ConflictAutoHandleView> createHandleSql(@RequestBody ConflictAutoHandleParam param) {
+        try {
+            ApiResult apiResult = ApiResult.getSuccessInstance(conflictLogService.createHandleSql(param));
             return apiResult;
         } catch (Exception e) {
             return ApiResult.getFailInstance(null, e.getMessage());
