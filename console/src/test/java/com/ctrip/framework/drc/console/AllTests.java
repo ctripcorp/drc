@@ -15,7 +15,7 @@ import com.ctrip.framework.drc.console.controller.v2.MhaReplicationControllerTes
 import com.ctrip.framework.drc.console.dao.ApplierUploadLogTblDaoUnitTest;
 import com.ctrip.framework.drc.console.dao.v2.MhaReplicationTblDaoTest;
 import com.ctrip.framework.drc.console.dto.MhaInstanceGroupDtoTest;
-import com.ctrip.framework.drc.console.dto.RowsFilterConfigDtoTest;
+import com.ctrip.framework.drc.console.dto.RowsFilterRegisterConfigDtoTest;
 import com.ctrip.framework.drc.console.enums.EnvEnumTest;
 import com.ctrip.framework.drc.console.enums.EstablishStatusEnumTest;
 import com.ctrip.framework.drc.console.enums.TableEnum;
@@ -258,7 +258,7 @@ import static com.ctrip.framework.drc.console.utils.UTConstants.*;
 
         //entity
         MhaInstanceGroupDtoTest.class,
-        RowsFilterConfigDtoTest.class,
+        RowsFilterRegisterConfigDtoTest.class,
         RowsFilterMappingVoTest.class,
         SimplexDrcBuildVoTest.class,
         MhaReplicationQueryTest.class,

@@ -181,7 +181,13 @@ export default {
     }
   },
   created () {
-    this.getMetaMappings()
+    this.axios.get('/api/drc/v2/permission/meta/rowsFilterMark').then((response) => {
+      if (response.data.status === 403) {
+        this.$router.push('/nopermission')
+        return
+      }
+      this.getMetaMappings()
+    })
   }
 }
 </script>
