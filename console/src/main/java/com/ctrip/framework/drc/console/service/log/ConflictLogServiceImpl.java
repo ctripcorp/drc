@@ -503,10 +503,6 @@ public class ConflictLogServiceImpl implements ConflictLogService {
         return String.format(UPDATE_SQL, MySqlUtils.toSqlField(tableName), setFiledSql, whereCondition);
     }
 
-    private String removeSingleQuote(String column) {
-        return column.replace(MARKS, "");
-    }
-
     private Pair<String, String> getMhaPair(List<ConflictRowsLogTbl> conflictRowsLogTbls) throws SQLException {
         List<String> dbNames = conflictRowsLogTbls.stream().map(ConflictRowsLogTbl::getDbName).distinct().collect(Collectors.toList());
         if (dbNames.size() != 1) {
