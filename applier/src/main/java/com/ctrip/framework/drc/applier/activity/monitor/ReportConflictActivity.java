@@ -1,7 +1,6 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
 import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
-import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
@@ -26,13 +25,13 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-    
-    public String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
-    public String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
 
+    public static int BRIEF_LOG_QUEUE_SIZE = 100000;
+    public static int BRIEF_LOG_BATCH_SIZE = 10000;
+    // one brief log is about 250 bytes, 100000 logs is about 25M
+    private final LinkedBlockingQueue<ConflictTransactionLog> briefLogsQueue = new LinkedBlockingQueue<>(BRIEF_LOG_QUEUE_SIZE);
+    private final String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
 
-    private LinkedBlockingQueue<ConflictTransactionLog> discardLogs = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
-    
     @Override
     public void doReport(List<ConflictTransactionLog> taskList) {
         HttpHeaders headers = new HttpHeaders();
@@ -40,31 +39,31 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         headers.setAccept(Lists.newArrayList(MediaType.APPLICATION_JSON));
         HttpEntity<Object> entity = new HttpEntity<Object>(taskList, headers);
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
-        if (!discardLogs.isEmpty()) {
+        if (!briefLogsQueue.isEmpty()) {
             List<ConflictTransactionLog> logs = Lists.newArrayList();
-            discardLogs.drainTo(logs);
+            briefLogsQueue.drainTo(logs,BRIEF_LOG_BATCH_SIZE);
             restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         }
     }
 
     @Override
     public boolean report(ConflictTransactionLog conflictTransactionLog) {
-        conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
+        String conflictLogUploadSwitch = ApplierDynamicConfig.getInstance().getConflictLogUploadSwitch();
          if ("on".equals(conflictLogUploadSwitch)) {
             conflictTransactionLog.setSrcMha(srcMhaName);
             conflictTransactionLog.setDstMha(destMhaName);
             conflictTransactionLog.setHandleTime(System.currentTimeMillis());
             if(!trySubmit(conflictTransactionLog)) {
-                recordDiscardLog(conflictTransactionLog);
+                return reportBriefLog(conflictTransactionLog);
             }
             return true;
         }
         return false;
     }
     
-    private void recordDiscardLog(ConflictTransactionLog conflictTransactionLog) {
-        // todo simplify log and add log to discardLogs
-        con
+    private boolean reportBriefLog(ConflictTransactionLog conflictTransactionLog) {
+        conflictTransactionLog.brief();
+        return briefLogsQueue.offer(conflictTransactionLog);
     }
 
     public void setRestTemplate(RestOperations restTemplate) {
