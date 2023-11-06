@@ -32,7 +32,7 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
 
     private static int ROUND;
 
-    private static String INSERT_SQL = "insert into bbzbbzdrcbenchmarktmpdb.benchmark (`drc_id_int`,`datachange_lasttime`) values ('2', NOW());";
+    private static String INSERT_SQL = "insert into bbzbbzdrcbenchmarktmpdb.conflictBenchmark (`drc_id_int`,`datachange_lasttime`) values ('2', NOW());";
 
     static {
         ROUND = ConfigService.getInstance().getConflictBenchmarkQPS()/10;
