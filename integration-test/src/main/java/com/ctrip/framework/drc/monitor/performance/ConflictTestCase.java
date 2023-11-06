@@ -9,6 +9,7 @@ import com.ctrip.framework.drc.monitor.function.operator.ReadWriteSqlOperator;
 import com.ctrip.xpipe.api.monitor.Task;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @ClassName ConflictTestCase
@@ -32,7 +33,7 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
 
     private static int ROUND;
 
-    private static String INSERT_SQL = "insert into bbzbbzdrcbenchmarktmpdb.conflictBenchmark (`drc_id_int`,`datachange_lasttime`) values ('2', NOW());";
+    private static String INSERT_SQL = "insert into bbzbbzdrcbenchmarktmpdb.conflictBenchmark (`id`,`drc_id_int`,`datachange_lasttime`) values (%d,'2', NOW());";
 
     static {
         ROUND = ConfigService.getInstance().getConflictBenchmarkQPS()/10;
@@ -40,6 +41,7 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
     }
 
     private ExecutorService executorService = Executors.newFixedThreadPool(ROUND);
+    private AtomicInteger pk = new AtomicInteger(0);
 
 
     @Override
@@ -58,8 +60,7 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
                         DefaultTransactionMonitorHolder.getInstance().logTransaction("ConflictTestCase", "Insert", new Task() {
                             @Override
                             public void go() throws Exception {
-                                round(dst);
-                                round(src);
+                                round(src, dst);
                             }
                         });
                     } catch (Exception e) {
@@ -71,9 +72,16 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
         return true;
     }
 
-    protected void round(ReadWriteSqlOperator src) {
-        Execution insertExecution = new SingleInsertExecution(INSERT_SQL);
+    protected void round(ReadWriteSqlOperator src,ReadWriteSqlOperator dest) {
+        int curPk = pk.getAndIncrement();
+        String sql = String.format(INSERT_SQL, curPk);
+        Execution insertExecution = new SingleInsertExecution(sql);
         InsertCase insertCase = new QPSTestCase(insertExecution);
-        insertCase.executeInsert(src);
+        insertCase.executeInsert(dest);
+
+        Execution insertExecution2 = new SingleInsertExecution(sql);
+        InsertCase insertCase2 = new QPSTestCase(insertExecution2);
+        insertCase2.executeInsert(src);
+        
     }
 }
