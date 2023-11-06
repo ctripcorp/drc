@@ -2,15 +2,18 @@ package com.ctrip.framework.drc.console.dao.log;
 
 import com.ctrip.framework.drc.console.dao.AbstractDao;
 import com.ctrip.framework.drc.console.dao.log.entity.ConflictApprovalTbl;
+import com.ctrip.framework.drc.console.dao.log.entity.ConflictAutoHandleBatchTbl;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.platform.dal.dao.DalHints;
-import com.ctrip.platform.dal.dao.sqlbuilder.MatchPattern;
 import com.ctrip.platform.dal.dao.sqlbuilder.SelectSqlBuilder;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by dengquanliang
@@ -24,6 +27,10 @@ public class ConflictApprovalTblDao extends AbstractDao<ConflictApprovalTbl> {
     private static final String APPLICANT = "applicant";
     private static final String APPROVAL_RESULT = "approval_result";
     private static final String DATACHANGE_LASTTIME = "datachange_lasttime";
+    private static final String BATCH_ID = "batch_id";
+
+    @Autowired
+    private ConflictAutoHandleBatchTblDao conflictAutoHandleBatchTblDao;
 
     public ConflictApprovalTblDao() throws SQLException {
         super(ConflictApprovalTbl.class);
@@ -40,11 +47,22 @@ public class ConflictApprovalTblDao extends AbstractDao<ConflictApprovalTbl> {
         return queryList(sqlBuilder);
     }
 
+    public ConflictApprovalTbl queryByBatchId(long batchId) throws SQLException {
+        SelectSqlBuilder sqlBuilder = initSqlBuilder();
+        sqlBuilder.and().equal(BATCH_ID, batchId, Types.BIGINT);
+        return queryOne(sqlBuilder);
+    }
+
     private SelectSqlBuilder buildSqlBuilder(ConflictApprovalQueryParam param) throws SQLException {
         SelectSqlBuilder sqlBuilder = initSqlBuilder();
-        sqlBuilder.and().likeNullable(DB_NAME, param.getDbName(), MatchPattern.CONTAINS, Types.VARCHAR)
-                .and().likeNullable(TABLE_NAME, param.getTableName(), MatchPattern.CONTAINS, Types.VARCHAR)
-                .and().equalNullable(APPLICANT, param.getApplicant(), Types.VARCHAR)
+
+        if (StringUtils.isNotBlank(param.getDbName()) || StringUtils.isNotBlank(param.getTableName())) {
+            List<ConflictAutoHandleBatchTbl> batchTbls = conflictAutoHandleBatchTblDao.queryByDb(param.getDbName(), param.getTableName());
+            List<Long> batchIds = batchTbls.stream().map(ConflictAutoHandleBatchTbl::getId).collect(Collectors.toList());
+            sqlBuilder.and().in(BATCH_ID, batchIds, Types.BIGINT);
+        }
+
+        sqlBuilder.and().equalNullable(APPLICANT, param.getApplicant(), Types.VARCHAR)
                 .and().equalNullable(APPROVAL_RESULT, param.getApprovalResult(), Types.TINYINT);
 
         return sqlBuilder;

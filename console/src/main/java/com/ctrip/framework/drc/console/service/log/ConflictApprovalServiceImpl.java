@@ -2,17 +2,21 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
+import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
+import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
+import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiRequest;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
+import com.ctrip.framework.drc.console.service.api.ApprovalOpenApiService;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
-import com.ctrip.framework.drc.console.vo.log.ConflictApprovalView;
-import com.ctrip.framework.drc.console.vo.log.ConflictAutoHandleView;
-import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
+import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
-import org.checkerframework.triplog.shaded.checker.units.qual.C;
+import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,8 @@ import java.util.stream.Collectors;
 @Service
 public class ConflictApprovalServiceImpl implements ConflictApprovalService {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     @Autowired
     private ConflictApprovalTblDao conflictApprovalTblDao;
     @Autowired
@@ -44,6 +50,11 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     private ConflictTrxLogTblDao conflictTrxLogTblDao;
     @Autowired
     private ConflictLogService conflictLogService;
+    @Autowired
+    private ApprovalOpenApiService approvalOpenApiService;
+
+    private static final String APPROVED = "Approved";
+    private static final String REJECTED = "Rejected";
 
     @Override
     public List<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) throws Exception {
@@ -123,6 +134,33 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
             return target;
         }).collect(Collectors.toList());
         conflictAutoHandleTblDao.insert(autoHandleTbls);
+
+        ApprovalOpenApiRequest request = new ApprovalOpenApiRequest();
+        request.setApprovers(Lists.newArrayList("ql_deng"));
+        ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
+        data.setBatchId(batchId);
+
+        request.setData(JsonUtils.toJson(data));
+        approvalOpenApiService.createApproval(request);
+    }
+
+    @Override
+    public void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception {
+        logger.info("approvalCallBack request: ", request);
+        long batchId = request.getData().getBatchId();
+        ConflictApprovalTbl conflictApprovalTbl = conflictApprovalTblDao.queryByBatchId(batchId);
+        if (REJECTED.equalsIgnoreCase(request.getApprovalStatus())) {
+            conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.REJECTED.getCode());
+            conflictApprovalTbl.setRemark(request.getRejectReason());
+        } else if (APPROVED.equalsIgnoreCase(request.getApprovalStatus())) {
+            if (ApprovalTypeEnum.DB_OWNER.getCode() == conflictApprovalTbl.getCurrentApproverType()) {
+                conflictApprovalTbl.setCurrentApproverType(ApprovalTypeEnum.DBA.getCode());
+            } else if (ApprovalTypeEnum.DBA.getCode() == conflictApprovalTbl.getCurrentApproverType()) {
+                conflictApprovalTbl.setApprovalResult(ApprovalResultEnum.APPROVED.getCode());
+            }
+        }
+
+        conflictApprovalTblDao.update(conflictApprovalTbl);
     }
 
     private Long insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {

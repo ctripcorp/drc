@@ -2,11 +2,7 @@ package com.ctrip.framework.drc.console.service.log;
 
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
-import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
-import com.ctrip.framework.drc.console.vo.log.ConflictApprovalView;
-import com.ctrip.framework.drc.console.vo.log.ConflictAutoHandleView;
-import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
+import com.ctrip.framework.drc.console.vo.log.*;
 
 import java.util.List;
 
@@ -25,4 +21,6 @@ public interface ConflictApprovalService {
     List<ConflictAutoHandleView> getConflictAutoHandleView(Long batchId) throws Exception;
 
     void createConflictApproval(ConflictApprovalCreateParam param) throws Exception;
+
+    void approvalCallBack(ConflictApprovalCallBackRequest request) throws Exception;
 }

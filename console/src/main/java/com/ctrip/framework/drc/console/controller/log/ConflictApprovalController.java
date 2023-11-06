@@ -2,10 +2,7 @@ package com.ctrip.framework.drc.console.controller.log;
 
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.service.log.ConflictApprovalService;
-import com.ctrip.framework.drc.console.vo.log.ConflictApprovalView;
-import com.ctrip.framework.drc.console.vo.log.ConflictAutoHandleView;
-import com.ctrip.framework.drc.console.vo.log.ConflictCurrentRecordView;
-import com.ctrip.framework.drc.console.vo.log.ConflictRowsLogDetailView;
+import com.ctrip.framework.drc.console.vo.log.*;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -64,4 +61,15 @@ public class ConflictApprovalController {
         }
     }
 
+
+    @PostMapping("/callback")
+    public ApiResult<Boolean> approvalCallBack(@RequestBody ConflictApprovalCallBackRequest request) {
+        try {
+            conflictApprovalService.approvalCallBack(request);
+            ApiResult apiResult = ApiResult.getSuccessInstance(true);
+            return apiResult;
+        } catch (Exception e) {
+            return ApiResult.getFailInstance(null, e.getMessage());
+        }
+    }
 }

@@ -53,25 +53,18 @@ public class ConflictApprovalTbl {
     private String applicant;
 
     /**
-     * db owner审批
+     * 审批单号
      */
-    @Column(name = "db_approver")
+    @Column(name = "ticket_id")
     @Type(value = Types.VARCHAR)
-    private String dbApprover;
-
-    /**
-     * dba审批
-     */
-    @Column(name = "dba_approver")
-    @Type(value = Types.VARCHAR)
-    private String dbaApprover;
+    private String ticketId;
 
     /**
      * 当前审批人, 0-db owner; 1-dba
      */
     @Column(name = "current_approver_type")
-    @Type(value = Types.VARCHAR)
-    private String currentApproverType;
+    @Type(value = Types.TINYINT)
+    private Integer currentApproverType;
 
     /**
      * 是否删除, 0-否; 1-是
@@ -134,27 +127,19 @@ public class ConflictApprovalTbl {
         this.applicant = applicant;
     }
 
-    public String getDbApprover() {
-        return dbApprover;
+    public String getTicketId() {
+        return ticketId;
     }
 
-    public void setDbApprover(String dbApprover) {
-        this.dbApprover = dbApprover;
+    public void setTicketId(String ticketId) {
+        this.ticketId = ticketId;
     }
 
-    public String getDbaApprover() {
-        return dbaApprover;
-    }
-
-    public void setDbaApprover(String dbaApprover) {
-        this.dbaApprover = dbaApprover;
-    }
-
-    public String getCurrentApproverType() {
+    public Integer getCurrentApproverType() {
         return currentApproverType;
     }
 
-    public void setCurrentApproverType(String currentApproverType) {
+    public void setCurrentApproverType(Integer currentApproverType) {
         this.currentApproverType = currentApproverType;
     }
 
