@@ -25,11 +25,9 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-
-    public static int BRIEF_LOG_QUEUE_SIZE = 100000;
-    public static int BRIEF_LOG_BATCH_SIZE = 10000;
+    
     // one brief log is about 250 bytes, 100000 logs is about 25M
-    private final LinkedBlockingQueue<ConflictTransactionLog> briefLogsQueue = new LinkedBlockingQueue<>(BRIEF_LOG_QUEUE_SIZE);
+    private final LinkedBlockingQueue<ConflictTransactionLog> briefLogsQueue = new LinkedBlockingQueue<>(ApplierDynamicConfig.getInstance().getBriefLogsQueueSize());
     private final String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
 
     @Override
@@ -41,7 +39,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         if (!briefLogsQueue.isEmpty()) {
             List<ConflictTransactionLog> logs = Lists.newArrayList();
-            briefLogsQueue.drainTo(logs,BRIEF_LOG_BATCH_SIZE);
+            briefLogsQueue.drainTo(logs,ApplierDynamicConfig.getInstance().getBriefLogsReportSize()); // todo ut & conflict mock test
             restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         }
     }

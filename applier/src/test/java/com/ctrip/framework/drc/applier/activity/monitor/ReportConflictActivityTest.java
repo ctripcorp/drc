@@ -23,7 +23,6 @@ public class ReportConflictActivityTest {
         RestOperations restTemplate = mock(RestOperations.class);
         ExecutorResource executorResource = new ExecutorResource();
         executorResource.initialize();
-        TmpReportConflictActivity.BRIEF_LOG_QUEUE_SIZE = 1;
         ReportConflictActivity reportConflictActivity = new TmpReportConflictActivity();
         reportConflictActivity.executor = executorResource;
         reportConflictActivity.setRestTemplate(restTemplate);
@@ -31,7 +30,7 @@ public class ReportConflictActivityTest {
         reportConflictActivity.initialize();
         reportConflictActivity.start();
         reportConflictActivity.stop(); // stop take task from queue
-        
+        // test config in drc.properties
         ConflictTransactionLog conflictTransactionLog = new ConflictTransactionLog();
         boolean report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertTrue(report);

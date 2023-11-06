@@ -14,7 +14,7 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     private static final long DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
 
     private ApplierDynamicConfig() {}
-
+    
     private static class ConfigHolder {
         public static final ApplierDynamicConfig INSTANCE = new ApplierDynamicConfig();
     }
@@ -31,7 +31,14 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
         return getProperty("conflict.log.upload.switch", "off");
     }
 
+    public int getBriefLogsQueueSize() {
+        return getIntProperty("conflict.log.brief.queue.size", 100000);
+    }
 
+    public int getBriefLogsReportSize() {
+        return getIntProperty("conflict.log.brief.report.size", 10000);
+    }
+    
     public long getLwmToleranceTime() {
         return getLongProperty(APPLIER_LWM_TOLERANCE_TIME, DEFAULT_APPLIER_LWM_TOLERANCE_TIME);
     }

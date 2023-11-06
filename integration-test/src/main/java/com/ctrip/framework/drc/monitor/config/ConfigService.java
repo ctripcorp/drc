@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class ConfigService extends AbstractConfigBean {
 
+    
+
     private static class ConfigServiceHolder {
         private static ConfigService instance = new ConfigService();
     }
@@ -104,7 +106,8 @@ public class ConfigService extends AbstractConfigBean {
     private static final boolean DEFAULT_BINLOG_NOBLOB_ROW_IMAGE_SWITCH = false;
     private static final boolean DEFAULT_BENCHMARK_TWO_SIDE_WRITE_SWITCH =false;
 
-
+    
+    
     public String getDrcMonitorMysqlSrcIp() {
         return getProperty(KEY_DRC_MONITOR_MYSQL_SRC_IP, DEFAULT_DRC_MONITOR_MYSQL_SRC_IP);
     }
@@ -188,6 +191,14 @@ public class ConfigService extends AbstractConfigBean {
         return getBooleanProperty(KEY_RESULT_COMPARE_SWITCH, DEFAULT_RESULT_COMPARE_SWITCH);
     }
 
+    public boolean getConflictBenchmarkSwitch() {
+        return getBooleanProperty("conflict.benchmark.switch", false);
+    }
+    
+    public int getConflictBenchmarkQPS() {
+        return getIntProperty("conflict.benchmark.qps", 1000);
+    }
+
     public boolean getDrcDdlQpsSwitch() {
         return getBooleanProperty(KEY_DRC_DDL_QPS_SWITCH, DEFAULT_DRC_DDL_QPS_SWITCH);
     }
@@ -195,7 +206,7 @@ public class ConfigService extends AbstractConfigBean {
     public int getDrcDdlQpsRound() {
         return getIntProperty(KEY_DRC_DDL_QPS_ROUND, DEFAULT_DRC_DDL_QPS_ROUND);
     }
-
+    
     public boolean getGenericDdlSwitch() {
         return getBooleanProperty(KEY_GENERIC_DDL_SWITCH, DEFAULT_GENERIC_DDL_SWITCH);
     }
