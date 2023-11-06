@@ -16,18 +16,23 @@ import java.util.concurrent.Executors;
  * @Date 2023/11/6 14:55
  * @Version: $
  */
-//CREATE TABLE `bbzbbzdrcbenchmarktmpdb`.`conflictBenchmark` (
-//  `id` int NOT NULL AUTO_INCREMENT,
-//  `drc_id_int` int NOT NULL DEFAULT '1' COMMENT '空',
-//  `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-//  PRIMARY KEY (`id`)
-//) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/**
+ *
+ CREATE TABLE `bbzbbzdrcbenchmarktmpdb`.`conflictBenchmark` (
+ `id` int NOT NULL AUTO_INCREMENT,
+ `drc_id_int` int NOT NULL DEFAULT '1' COMMENT '空',
+ `datachange_lasttime` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+ PRIMARY KEY (`id`)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+ */
+
+
 public class ConflictTestCase extends AbstractBenchmarkCase{
 
 
     private static int ROUND;
 
-    private static String INSERT_SQL = "insert into migrationdb.benchmark (`drc_id_int`,`datachange_lasttime`) values ('2', NOW());";
+    private static String INSERT_SQL = "insert into bbzbbzdrcbenchmarktmpdb.benchmark (`drc_id_int`,`datachange_lasttime`) values ('2', NOW());";
 
     static {
         ROUND = ConfigService.getInstance().getConflictBenchmarkQPS()/10;
