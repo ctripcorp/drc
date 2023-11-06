@@ -27,6 +27,27 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     public String destMhaName = "unset";
     
     // one brief log is about 250 bytes, 100000 logs is about 25M
+    // {
+    //		"srcMha": "mha1",
+    //		"dstMha": "mha2",
+    //		"gtid": "uuid1:1",
+    //		"trxRowsNum": 1000,
+    //		"cflRowsNum": 200,
+    //		"trxRes": 0 
+    //		"handleTime": 1695633004624, 
+    //		"cflLogs": [ 
+    //			{
+    //				"db": "db",
+    //				"table" : "table",
+    //				"rawSql": "",
+    //				"rawSqlRes": "",
+    //				"dstRowRecord": "",
+    //				"handleSql" "",
+    //				"handleSqlRes": "",
+    //				"rowRes": 0 
+    //			}
+    //		]
+    // }
     private final LinkedBlockingQueue<ConflictTransactionLog> briefLogsQueue = new LinkedBlockingQueue<>(ApplierDynamicConfig.getInstance().getBriefLogsQueueSize());
     private final String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
 
@@ -39,8 +60,9 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
         if (!briefLogsQueue.isEmpty()) {
             List<ConflictTransactionLog> logs = Lists.newArrayList();
-            briefLogsQueue.drainTo(logs,ApplierDynamicConfig.getInstance().getBriefLogsReportSize()); // todo ut & conflict mock test
-            restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, entity, ApiResult.class);
+            HttpEntity<Object> briefLogs = new HttpEntity<Object>(logs, headers);
+            briefLogsQueue.drainTo(logs,ApplierDynamicConfig.getInstance().getBriefLogsReportSize()); // todo add debug log
+            restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, briefLogs, ApiResult.class);
         }
     }
 
