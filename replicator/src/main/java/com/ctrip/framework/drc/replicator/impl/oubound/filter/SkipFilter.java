@@ -8,6 +8,7 @@ import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
+import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -35,6 +36,10 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
 
     private String previousGtid = StringUtils.EMPTY;
 
+    private boolean inExcludeGroup = false;
+
+    private ChannelAttributeKey channelAttributeKey;
+
     private String registerKey;
 
     public SkipFilter(OutboundFilterChainContext context) {
@@ -42,74 +47,74 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         this.skipDrcGtidLogEvent = context.isSkipDrcGtidLogEvent();
         this.consumeType = context.getConsumeType();
         this.registerKey = context.getRegisterKey();
+        this.channelAttributeKey = context.getChannelAttributeKey();
     }
 
     @Override
     public boolean doFilter(OutboundLogEventContext value) {
-
         LogEventType eventType = value.getEventType();
 
         if (LogEventUtils.isGtidLogEvent(eventType)) {
-            value.setEverSeeGtid(true);
-            GtidLogEvent gtidLogEvent = value.readGtidEvent();
-            value.setLogEvent(gtidLogEvent);
-            value.setGtid(gtidLogEvent.getGtid());
-            boolean inExcludeGroup = skipEvent(excludedSet, eventType, gtidLogEvent.getGtid(), value.isInExcludeGroup());
-            value.setInExcludeGroup(inExcludeGroup);
-            String newGtidForLog = gtidLogEvent.getGtid();
-            previousGtid = newGtidForLog;
-            if (inExcludeGroup) {
-                GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", newGtidForLog, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
-                DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
-                value.setSkipEvent(true);
-                long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
-                if (nextTransactionOffset > 0) {
-                    FileChannel fileChannel = value.getFileChannel();
-                    try {
-                        fileChannel.position(fileChannel.position() + nextTransactionOffset);
-                        value.setInExcludeGroup(false);
-
-                    } catch (IOException e) {
-                        value.setCause(new Exception("position error"));
-                    }
-                }
-            }
-
-            if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
-                value.setInExcludeGroup(true);
-            }
-
+            handleGtidEvent(value, eventType);
         } else {
-            boolean isSlaveConcerned = LogEventUtils.isSlaveConcerned(eventType);
-            if (!isSlaveConcerned && value.isInExcludeGroup()) {
-                value.setSkipEvent(true);
-
-                //skip all transaction, clear in_exclude_group
-                if (xid_log_event == eventType) {
-                    GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
-                    value.setInExcludeGroup(false);
-                }
-            } else {
-                try {
-                    if (checkPartialTransaction(value.getFileChannel(), value.getEventSize(), eventType, value.isEverSeeGtid())) {
-                        value.setSkipEvent(true);
-                        DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
-                        logger.warn("check event partial false, event type: {}", eventType);
-                    }
-                } catch (IOException e) {
-                    value.setCause(e);
-                }
-            }
+            handleNonGtidEvent(value, eventType);
         }
 
-        if (!value.isInExcludeGroup()) {
+        if (inExcludeGroup) {
+            channelAttributeKey.handleEvent(false);
+        } else {
+            channelAttributeKey.handleEvent(true);
             logGtid(previousGtid, eventType);
         }
 
         return doNext(value, value.isSkipEvent());
     }
 
-    private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid, boolean inExcludeGroup) {
+    private void handleGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
+        value.setEverSeeGtid(true);
+        GtidLogEvent gtidLogEvent = value.readGtidEvent();
+        value.setLogEvent(gtidLogEvent);
+        value.setGtid(gtidLogEvent.getGtid());
+        previousGtid = gtidLogEvent.getGtid();
+
+        inExcludeGroup = skipEvent(excludedSet, eventType, gtidLogEvent.getGtid());
+        if (inExcludeGroup) {
+            GTID_LOGGER.info("[Skip] gtid log event, gtid:{}, lastCommitted:{}, sequenceNumber:{}, type:{}", previousGtid, gtidLogEvent.getLastCommitted(), gtidLogEvent.getSequenceNumber(), eventType);
+            DefaultEventMonitorHolder.getInstance().logEvent("DRC.replicator.outbound.gtid.skip", registerKey);
+            value.setSkipEvent(true);
+            long nextTransactionOffset = gtidLogEvent.getNextTransactionOffset();
+            if (nextTransactionOffset > 0) {
+                skipPosition(value, nextTransactionOffset);
+                inExcludeGroup = false;
+            }
+        }
+
+        if (drc_gtid_log_event == eventType && !consumeType.requestAllBinlog()) {
+            inExcludeGroup = true;
+        }
+    }
+
+    private void handleNonGtidEvent(OutboundLogEventContext value, LogEventType eventType) {
+        if (inExcludeGroup && !LogEventUtils.isSlaveConcerned(eventType)) {
+            skipPosition(value, value.getEventSize() - eventHeaderLengthVersionGt1);
+            value.setSkipEvent(true);
+
+            //skip all transaction, clear in_exclude_group
+            if (xid_log_event == eventType) {
+                GTID_LOGGER.info("[Reset] in_exclude_group to false, gtid:{}", previousGtid);
+                inExcludeGroup = false;
+            }
+        } else {
+            // TODO: can remove in next version
+            if (checkPartialTransaction(value, value.isEverSeeGtid())) {
+                value.setSkipEvent(true);
+                DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.check.partial", registerKey);
+                logger.warn("check event partial false, event type: {}", eventType);
+            }
+        }
+    }
+
+    private boolean skipEvent(GtidSet excludedSet, LogEventType eventType, String gtid) {
         if (eventType == gtid_log_event) {
             return new GtidSet(gtid).isContainedWithin(excludedSet);
         }
@@ -128,7 +133,7 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
             if (StringUtils.isNotBlank(gtidForLog)) {
                 GTID_LOGGER.info("[S] G, {}", gtidForLog);
             }
-        }  else if (isDrcGtidLogEvent(eventType)) {
+        } else if (isDrcGtidLogEvent(eventType)) {
             frequencySend.addOne();
             if (StringUtils.isNotBlank(gtidForLog)) {
                 GTID_LOGGER.info("[S] drc G, {}", gtidForLog);
@@ -141,12 +146,23 @@ public class SkipFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
     }
 
     // first file start with non gtid event, for example gtid in binlog.00001, and tablemap in binlog.00002
-    private boolean checkPartialTransaction(FileChannel fileChannel, long eventSize, LogEventType eventType, boolean everSeeGtid) throws IOException {
-        if (!everSeeGtid && !LogEventUtils.isDrcEvent(eventType)) {
-            fileChannel.position(fileChannel.position() + eventSize - eventHeaderLengthVersionGt1);
+    private boolean checkPartialTransaction(OutboundLogEventContext value, boolean everSeeGtid) {
+        if (!everSeeGtid && !LogEventUtils.isDrcEvent(value.getEventType())) {
+            skipPosition(value, value.getEventSize() - eventHeaderLengthVersionGt1);
             DefaultEventMonitorHolder.getInstance().logEvent("DRC.read.partial", registerKey);
             return true;
         }
         return false;
+    }
+
+    private void skipPosition(OutboundLogEventContext value, Long skipSize) {
+        try {
+            FileChannel fileChannel = value.getFileChannel();
+            fileChannel.position(fileChannel.position() + skipSize);
+        } catch (IOException e) {
+            logger.error("skip position error:", e);
+            value.setCause(e);
+            value.setSkipEvent(true);
+        }
     }
 }

@@ -27,6 +27,8 @@ public class DynamicConfig extends AbstractConfigBean {
 
     private static final String RECEIVE_CHECK_SWITCH = "receive.check.switch";
 
+    private static final String TRAFFIC_COUNT_CHANGE = "traffic.count.change";
+
     private DynamicConfig() {}
 
     private static class ConfigHolder {
@@ -69,12 +71,15 @@ public class DynamicConfig extends AbstractConfigBean {
         return getBooleanProperty(RECEIVE_CHECK_SWITCH, false);
     }
 
-
     public boolean getEmbeddedMySQLUpgradeTo8Switch(String key) {
         String value = getProperty(String.format(UPGRADE_EMBEDDED_MYSQL_SWITCH_KEY, key));
         if (StringUtils.isBlank(value)) {
             return getBooleanProperty(UPGRADE_EMBEDDED_MYSQL_SWITCH, false);
         }
         return Boolean.parseBoolean(value);
+    }
+
+    public boolean getTrafficCountChangeSwitch() {
+        return getBooleanProperty(TRAFFIC_COUNT_CHANGE, false);
     }
 }

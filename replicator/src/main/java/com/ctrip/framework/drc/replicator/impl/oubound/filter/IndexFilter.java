@@ -47,7 +47,7 @@ public class IndexFilter extends AbstractLogEventFilter<OutboundLogEventContext>
         if (indices.size() > 1) {
             GtidSet firstGtidSet = readPreviousGtids(fileChannel, indices.get(0));
             for (int i = 1; i < indices.size(); ++i) {
-                if (indices.get(i) == indices.get(i - 1)) {
+                if (indices.get(i).equals(indices.get(i - 1))) {
                     restorePosition(fileChannel, indices.get(i - 1), currentPosition);
                     break;
                 }

@@ -1,5 +1,6 @@
 package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 
+import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.impl.TableMapLogEvent;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
@@ -29,7 +30,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
 
     private long tableMapSize;
 
-    private String tableName;
+    private String dbName;
 
     public MonitorFilter(OutboundFilterChainContext context) {
         this.outboundMonitorReport = context.getOutboundMonitorReport();
@@ -48,6 +49,7 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
         }
 
         LogEventType eventType = value.getEventType();
+        boolean trafficCountChange = DynamicConfig.getInstance().getTrafficCountChangeSwitch();
 
         if (gtid_log_event == eventType) {
             transactionSize = value.getEventSize();
@@ -55,13 +57,20 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
             outboundMonitorReport.addOneCount();
         } else if (table_map_log_event == eventType) {
             tableMapSize = value.getEventSize();
-            tableName = ((TableMapLogEvent) value.getLogEvent()).getSchemaNameDotTableName();
+            if (!trafficCountChange) {
+                transactionSize += value.getEventSize();
+            }
+            dbName = ((TableMapLogEvent) value.getLogEvent()).getSchemaName();
         } else if (LogEventUtils.isRowsEvent(eventType)) {
-            transactionSize += value.getEventSize() + tableMapSize;
+            if (trafficCountChange) {
+                transactionSize += value.getEventSize() + tableMapSize;
+            } else {
+                transactionSize += value.getEventSize();
+            }
             tableMapSize = 0;
         } else if (xid_log_event == eventType) {
             transactionSize += value.getEventSize();
-            outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(tableName, srcRegion, dstRegion, consumeType), transactionSize);
+            outboundMonitorReport.updateTrafficStatistic(new TrafficStatisticKey(dbName, srcRegion, dstRegion, consumeType), transactionSize);
             clear();
         }
 
@@ -71,6 +80,6 @@ public class MonitorFilter extends AbstractPostLogEventFilter<OutboundLogEventCo
     private void clear() {
         transactionSize = 0;
         tableMapSize = 0;
-        tableName = StringUtils.EMPTY;
+        dbName = StringUtils.EMPTY;
     }
 }

@@ -4,7 +4,7 @@ import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.util.LogEventUtils;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
 import com.ctrip.framework.drc.core.server.common.EventReader;
-import com.ctrip.framework.drc.core.server.common.EventReaderException;
+import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractLogEventFilter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -44,9 +44,9 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         value.setEventSize(eventSize);
 
         try {
-            //TODO: can remove
+            //TODO: can remove by optimizing
             if (!checkEventSize(fileChannel, eventSize)) {
-                value.setCause(new EventReaderException("check event size error"));
+                value.setCause(new SizeNotEnoughException("check event size error"));
                 value.setSkipEvent(true);
             }
         } catch (IOException e) {

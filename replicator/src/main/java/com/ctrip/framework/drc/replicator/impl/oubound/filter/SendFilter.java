@@ -3,7 +3,6 @@ package com.ctrip.framework.drc.replicator.impl.oubound.filter;
 import com.ctrip.framework.drc.core.server.common.EventReader;
 import com.ctrip.framework.drc.core.server.common.filter.AbstractPostLogEventFilter;
 import com.ctrip.framework.drc.replicator.impl.oubound.channel.BinlogFileRegion;
-import com.ctrip.framework.drc.replicator.impl.oubound.channel.ChannelAttributeKey;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -19,11 +18,8 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
     private Channel channel;
 
-    private ChannelAttributeKey channelAttributeKey;
-
     public SendFilter(OutboundFilterChainContext context) {
         this.channel = context.getChannel();
-        this.channelAttributeKey = context.getChannelAttributeKey();
     }
 
     @Override
@@ -35,7 +31,9 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
             try {
                 value.getFileChannel().position(value.getFileChannelPos() + value.getEventSize());
             } catch (IOException e) {
+                logger.error("skip position error:", e);
                 value.setCause(e);
+                value.setSkipEvent(true);
             }
         } else {
             EventReader.releaseBodyByteBuf(bodyByteBuf);
@@ -46,10 +44,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
         }
 
         if (skipEvent) {
-            channelAttributeKey.handleEvent(false);
             return true;
-        } else {
-            channelAttributeKey.handleEvent(true);
         }
 
         if (value.isRewrite()) {

@@ -2,7 +2,6 @@ package com.ctrip.framework.drc.replicator.impl.oubound.handler;
 
 import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.config.RegionConfig;
-import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidManager;
 import com.ctrip.framework.drc.core.driver.binlog.gtid.GtidSet;
 import com.ctrip.framework.drc.core.driver.binlog.impl.*;
@@ -13,9 +12,8 @@ import com.ctrip.framework.drc.core.driver.command.packet.ResultCode;
 import com.ctrip.framework.drc.core.driver.command.packet.applier.ApplierDumpCommandPacket;
 import com.ctrip.framework.drc.core.meta.DataMediaConfig;
 import com.ctrip.framework.drc.core.monitor.kpi.OutboundMonitorReport;
-import com.ctrip.framework.drc.core.monitor.log.Frequency;
 import com.ctrip.framework.drc.core.monitor.reporter.DefaultEventMonitorHolder;
-import com.ctrip.framework.drc.core.server.common.EventReaderException;
+import com.ctrip.framework.drc.core.server.common.SizeNotEnoughException;
 import com.ctrip.framework.drc.core.server.common.enums.ConsumeType;
 import com.ctrip.framework.drc.core.server.common.filter.Filter;
 import com.ctrip.framework.drc.core.server.common.filter.table.aviator.AviatorRegexFilter;
@@ -62,12 +60,6 @@ import static com.ctrip.framework.drc.replicator.store.manager.file.DefaultFileM
  * 2019/9/21 10:13
  */
 public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler implements CommandHandler {
-
-    private static final int END_OF_STATEMENT_FLAG = 1;
-
-    private static final String DRC_GTID_EVENT_DB_NAME = "drc_gtid_db";
-
-    private static final String DRC_FILTERED_DB_NAME = "drc_filtered_db";
 
     private GtidManager gtidManager;
 
@@ -183,21 +175,9 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
         private String applierName;
 
-        private boolean shouldSkipEvent = false;
-
-        private int continuousTableMapCount = 0;
-
-        private Map<Long, String> skipTableNameMap = Maps.newHashMap();
-
-        private LogEventType lastEventType = null;
-
         private AviatorRegexFilter aviatorFilter = null;
 
         private String applierRegion;
-
-        private long transactionSize;
-
-        private String sendingSchema;
 
         private String ip;
 
@@ -206,10 +186,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private long waitEndPosition;
 
         private volatile boolean channelClosed = false;
-
-        private Frequency frequencySend = new Frequency("FRE GTID SEND");
-
-        private boolean everSeeGtid = false;
 
         private ResultCode resultCode;
 
@@ -224,8 +200,6 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
         private Filter<OutboundLogEventContext> filterChain;
 
         private OutboundLogEventContext outboundContext = new OutboundLogEventContext();
-
-        private boolean in_exclude_group = false;
 
         public DumpTask(Channel channel, ApplierDumpCommandPacket dumpCommandPacket, String ip) throws Exception {
             this.channel = channel;
@@ -460,7 +434,7 @@ public class ApplierRegisterCommandHandler extends AbstractServerCommandHandler 
 
                 Exception sendException = outboundContext.getCause();
                 if (sendException != null) {
-                    if (sendException instanceof EventReaderException) {
+                    if (sendException instanceof SizeNotEnoughException) {
                         continue;
                     } else {
                         throw sendException;
