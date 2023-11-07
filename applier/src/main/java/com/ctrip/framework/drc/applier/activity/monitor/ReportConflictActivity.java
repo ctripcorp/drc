@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class ReportConflictActivity extends ReportActivity<ConflictTransactionLog, Boolean> {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger loggerSC = LoggerFactory.getLogger("SQL CONFLICT");
 
     @InstanceConfig(path = "cluster")
     public String cluster = "unset";
@@ -66,9 +66,10 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     }
     
     private boolean reportBriefLog(ConflictTransactionLog conflictTransactionLog) {
+        loggerSC.debug("trySubmit failed, cflTrxLog: {}", JsonUtils.toJson(conflictTransactionLog));
         conflictTransactionLog.brief();
         if (!briefLogsQueue.offer(conflictTransactionLog)) {
-            logger.info("briefLogsQueue is full, discard cflLog: {}", JsonUtils.toJson(conflictTransactionLog));
+            loggerSC.info("discard cflTrx cflTrxLog: {},", JsonUtils.toJson(conflictTransactionLog));
             return false;
         }
         return true;

@@ -40,10 +40,9 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
         logger.info("{}, [Init] ROUND to {}", ConflictTestCase.class.getSimpleName(),ROUND);
     }
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(ROUND);
-    private AtomicInteger pk = new AtomicInteger(0);
-
-
+    protected ExecutorService executorService = Executors.newFixedThreadPool(ROUND);
+    protected AtomicInteger pk = new AtomicInteger(0);
+    
     @Override
     protected boolean doWrite(ReadWriteSqlOperator src) {
         return true;
@@ -73,15 +72,18 @@ public class ConflictTestCase extends AbstractBenchmarkCase{
     }
 
     protected void round(ReadWriteSqlOperator src,ReadWriteSqlOperator dest) {
-        int curPk = pk.getAndIncrement();
-        String sql = String.format(INSERT_SQL, curPk);
-        Execution insertExecution = new SingleInsertExecution(sql);
+        String insertSql = getInsertSql();
+        Execution insertExecution = new SingleInsertExecution(insertSql);
         InsertCase insertCase = new QPSTestCase(insertExecution);
         insertCase.executeInsert(dest);
-
-        Execution insertExecution2 = new SingleInsertExecution(sql);
+        Execution insertExecution2 = new SingleInsertExecution(insertSql);
         InsertCase insertCase2 = new QPSTestCase(insertExecution2);
         insertCase2.executeInsert(src);
-        
+    }
+
+    protected String getInsertSql() {
+        int curPk = pk.getAndIncrement();
+        String sql = String.format(INSERT_SQL, curPk);
+        return sql;
     }
 }
