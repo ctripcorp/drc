@@ -30,6 +30,7 @@ public class ReportConflictActivityTest {
         reportConflictActivity.initialize();
         reportConflictActivity.start();
         reportConflictActivity.stop(); // stop take task from queue
+        
         // test config in drc.properties
         ConflictTransactionLog conflictTransactionLog = new ConflictTransactionLog();
         boolean report = reportConflictActivity.report(conflictTransactionLog);
@@ -48,6 +49,32 @@ public class ReportConflictActivityTest {
         Assert.assertFalse(report);
         
         Thread.sleep(200);
+        reportConflictActivity.dispose();
+    }
+
+    @Test
+    public void testDoReport() throws Exception {
+        MockitoAnnotations.openMocks(this);
+        RestOperations restTemplate = mock(RestOperations.class);
+        ExecutorResource executorResource = new ExecutorResource();
+        executorResource.initialize();
+        ReportConflictActivity reportConflictActivity = new TmpReportConflictActivity();
+        reportConflictActivity.executor = executorResource;
+        reportConflictActivity.setRestTemplate(restTemplate);
+
+        reportConflictActivity.initialize();
+        reportConflictActivity.start();
+        
+        // test config in drc.properties
+        ConflictTransactionLog conflictTransactionLog = new ConflictTransactionLog();
+        boolean report = reportConflictActivity.report(conflictTransactionLog);
+        Assert.assertTrue(report);
+
+        reportConflictActivity.report(conflictTransactionLog);
+        Assert.assertTrue(report);
+
+        Thread.sleep(200);
+        reportConflictActivity.stop();
         reportConflictActivity.dispose();
     }
     
