@@ -1,12 +1,15 @@
 package com.ctrip.framework.drc.applier.activity.monitor;
 
 import com.ctrip.framework.drc.applier.utils.ApplierDynamicConfig;
+import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.framework.drc.fetcher.activity.monitor.ReportActivity;
 import com.ctrip.framework.drc.fetcher.conflict.ConflictTransactionLog;
 import com.ctrip.framework.drc.fetcher.system.InstanceConfig;
 import com.ctrip.framework.drc.core.http.ApiResult;
 import com.google.common.collect.Lists;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.client.RestOperations;
 
@@ -17,6 +20,8 @@ import java.util.List;
  */
 public class ReportConflictActivity extends ReportActivity<ConflictTransactionLog, Boolean> {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     @InstanceConfig(path = "cluster")
     public String cluster = "unset";
 
@@ -25,29 +30,8 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
 
     @InstanceConfig(path = "target.mhaName")
     public String destMhaName = "unset";
-    
+
     // one brief log is about 250 bytes, 100000 logs is about 25M
-    // {
-    //		"srcMha": "mha1",
-    //		"dstMha": "mha2",
-    //		"gtid": "uuid1:1",
-    //		"trxRowsNum": 1000,
-    //		"cflRowsNum": 200,
-    //		"trxRes": 0 
-    //		"handleTime": 1695633004624, 
-    //		"cflLogs": [ 
-    //			{
-    //				"db": "db",
-    //				"table" : "table",
-    //				"rawSql": "",
-    //				"rawSqlRes": "",
-    //				"dstRowRecord": "",
-    //				"handleSql" "",
-    //				"handleSqlRes": "",
-    //				"rowRes": 0 
-    //			}
-    //		]
-    // }
     private final LinkedBlockingQueue<ConflictTransactionLog> briefLogsQueue = new LinkedBlockingQueue<>(ApplierDynamicConfig.getInstance().getBriefLogsQueueSize());
     private final String conflictLogUploadUrl = ApplierDynamicConfig.getInstance().getConflictLogUploadUrl();
 
@@ -61,7 +45,7 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
         if (!briefLogsQueue.isEmpty()) {
             List<ConflictTransactionLog> logs = Lists.newArrayList();
             HttpEntity<Object> briefLogs = new HttpEntity<Object>(logs, headers);
-            briefLogsQueue.drainTo(logs,ApplierDynamicConfig.getInstance().getBriefLogsReportSize()); // todo add debug log
+            briefLogsQueue.drainTo(logs,ApplierDynamicConfig.getInstance().getBriefLogsReportSize());
             restTemplate.exchange(conflictLogUploadUrl, HttpMethod.POST, briefLogs, ApiResult.class);
         }
     }
@@ -83,7 +67,11 @@ public class ReportConflictActivity extends ReportActivity<ConflictTransactionLo
     
     private boolean reportBriefLog(ConflictTransactionLog conflictTransactionLog) {
         conflictTransactionLog.brief();
-        return briefLogsQueue.offer(conflictTransactionLog);
+        if (!briefLogsQueue.offer(conflictTransactionLog)) {
+            logger.info("briefLogsQueue is full, discard cflLog: {}", JsonUtils.toJson(conflictTransactionLog));
+            return false;
+        }
+        return true;
     }
 
     public void setRestTemplate(RestOperations restTemplate) {

@@ -37,13 +37,35 @@ public class ReportConflictActivityTest {
         Assert.assertTrue(report);
         report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertTrue(report);
+
         
-        
+        // {
+        //		"srcMha": "mha1",
+        //		"dstMha": "mha2",
+        //		"gtid": "uuid1:1",
+        //		"trxRowsNum": 1000,
+        //		"cflRowsNum": 200,
+        //		"trxRes": 0 
+        //		"handleTime": 1695633004624, 
+        //		"cflLogs": [ 
+        //			{
+        //				"db": "db",
+        //				"table" : "table",
+        //				"rawSql": "",
+        //				"rawSqlRes": "",
+        //				"dstRowRecord": "",
+        //				"handleSql" "",
+        //				"handleSqlRes": "",
+        //				"rowRes": 0 
+        //			}
+        //		]
+        // }
         ConflictRowLog conflictRowLog1 = new ConflictRowLog();
         ConflictRowLog conflictRowLog2 = new ConflictRowLog();
         conflictTransactionLog.setCflLogs(Lists.newArrayList(conflictRowLog1, conflictRowLog2));
         report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertTrue(report);
+
         
         report = reportConflictActivity.report(conflictTransactionLog);
         Assert.assertFalse(report);
