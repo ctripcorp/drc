@@ -79,6 +79,7 @@ public class DynamicConfig extends AbstractConfigBean {
         return Boolean.parseBoolean(value);
     }
 
+
     public boolean getTrafficCountChangeSwitch() {
         return getBooleanProperty(TRAFFIC_COUNT_CHANGE, false);
     }
