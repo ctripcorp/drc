@@ -1,6 +1,5 @@
 package com.ctrip.framework.drc.replicator.impl.inbound.filter;
 
-import com.ctrip.framework.drc.core.config.DynamicConfig;
 import com.ctrip.framework.drc.core.driver.binlog.LogEvent;
 import com.ctrip.framework.drc.core.driver.binlog.constant.LogEventType;
 import com.ctrip.framework.drc.core.driver.binlog.constant.QueryType;
@@ -56,6 +55,8 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
 
     private String registryKey;
 
+    private boolean parseDrcDdl = false;
+
     public DdlFilter(SchemaManager schemaManager, MonitorManager monitorManager, String registryKey) {
         this.schemaManager = schemaManager;
         this.monitorManager = monitorManager;
@@ -68,13 +69,21 @@ public class DdlFilter extends AbstractLogEventFilter<InboundLogEventContext> {
         final LogEventType logEventType = logEvent.getLogEventType();
         if (query_log_event == logEventType) {
             QueryLogEvent queryLogEvent = (QueryLogEvent) logEvent;
-            parseQueryEvent(queryLogEvent, value.getGtid());
+            boolean ddlDone = parseQueryEvent(queryLogEvent, value.getGtid());
+            if (parseDrcDdl && ddlDone) {
+                DDL_LOGGER.info("[DRC DDL] stop parse drc ddl event after encounter mysql native ddl {}", queryLogEvent.getQuery());
+                parseDrcDdl = false;
+            }
         } else if (drc_schema_snapshot_log_event == logEventType) { // init only first time
             DrcSchemaSnapshotLogEvent snapshotLogEvent = (DrcSchemaSnapshotLogEvent) logEvent;
-            schemaManager.recovery(snapshotLogEvent);
+            parseDrcDdl = schemaManager.shouldRecover(false);
+            if (parseDrcDdl) {
+                DDL_LOGGER.info("[DRC DDL] need recovery, start parse drc ddl");
+                schemaManager.recovery(snapshotLogEvent, false);
+            }
             value.mark(OTHER_F);
         } else if (drc_ddl_log_event == logEventType) {
-            if (!DynamicConfig.getInstance().getIndependentEmbeddedMySQLSwitch(registryKey)) {
+            if (parseDrcDdl) {
                 DrcDdlLogEvent ddlLogEvent = (DrcDdlLogEvent) logEvent;
                 doParseQueryEvent(ddlLogEvent.getDdl(), ddlLogEvent.getSchema(), DEFAULT_CHARACTER_SET_SERVER, value.getGtid());
                 DDL_LOGGER.info("[Handle] drc_ddl_log_event of sql {} for {}", ddlLogEvent.getDdl(), registryKey);

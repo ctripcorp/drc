@@ -4,6 +4,7 @@ import com.ctrip.xpipe.api.codec.GenericTypeReference;
 import com.ctrip.xpipe.codec.JsonCodec;
 import com.ctrip.xpipe.config.AbstractConfigBean;
 import com.google.common.collect.Maps;
+import com.wix.mysql.distribution.Version;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
@@ -31,9 +32,9 @@ public class MySQLVariablesConfiguration extends AbstractConfigBean {
         return MySQLVariablesConfigurationHolder.INSTANCE;
     }
 
-    public Map<String, Object> getVariables(String key) {
+    public Map<String, Object> getVariables(String key, Version version) {
         Map<String, Object> variableMap = new HashMap<>();
-        getDefaultVariables(variableMap);
+        getDefaultVariables(variableMap, version);
         getVariables(variableMap, String.format(MYSQL_STRING_VARIABLES, key), String.class);
         getVariables(variableMap, String.format(MYSQL_INT_VARIABLES, key), Integer.class);
         getVariables(variableMap, String.format(MYSQL_BOOLEAN_VARIABLES, key), Boolean.class);
@@ -57,9 +58,15 @@ public class MySQLVariablesConfiguration extends AbstractConfigBean {
         }
     }
 
-    private void getDefaultVariables(Map<String, Object> variableMap) {
+    private void getDefaultVariables(Map<String, Object> variableMap, Version version) {
         Map<String, String> map = Maps.newHashMap();
-        map.put("sql_mode", "NO_AUTO_CREATE_USER");
+        if (Version.v8_0_32 == version) {
+            map.put("innodb_strict_mode", "off");
+            map.put("mysqlx", "0");
+            map.put("sql_mode", "ALLOW_INVALID_DATE");
+        } else {
+            map.put("sql_mode", "NO_AUTO_CREATE_USER");
+        }
         variableMap.putAll(map);
     }
 }

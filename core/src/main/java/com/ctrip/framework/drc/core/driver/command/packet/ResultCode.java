@@ -25,7 +25,9 @@ public enum ResultCode {
 
     SERVER_ALREADY_EXIST(6, "server already exists"),
 
-    UNKNOWN_ERROR(100, "unknown error");
+    UNKNOWN_ERROR(100, "unknown error"),
+    
+    NO_PERMISSION(403, "no permission");
 
     private int code;
 

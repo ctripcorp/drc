@@ -42,7 +42,7 @@
         <disruptor.version>3.4.4</disruptor.version>
         <netty-all.version>4.1.68.Final</netty-all.version>
         <guava.version>19.0</guava.version>
-        <fastjson.version>1.2.71</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
         <spring-platfrom-bom.version>2.0.5.RELEASE</spring-platfrom-bom.version>
@@ -337,6 +337,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
+                <scope>test</scope>
+                <version>${mockito-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
                 <scope>test</scope>
                 <version>${mockito-core.version}</version>
             </dependency>

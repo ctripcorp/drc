@@ -54,7 +54,6 @@ public class RestoredMysqldProcess implements IStopable {
 
     private final File pidFile;
 
-    private NotifyingStreamProcessor outputWatch;
 
     public RestoredMysqldProcess(Distribution distribution, MysqldConfig config, IRuntimeConfig runtimeConfig, RestoredMysqldExecutable executable)
             throws IOException {
@@ -66,7 +65,6 @@ public class RestoredMysqldProcess implements IStopable {
         this.pidFile = pidFile(this.executable.getFile().executable());
         this.processId = getPidFromFile(pidFile);
         logger.info("Restore mysqld of pid {}", processId);
-        outputWatch = new NotifyingStreamProcessor(StreamToLineProcessor.wrap(runtimeConfig.getProcessOutput().getOutput()));
     }
 
     @Override
@@ -139,10 +137,8 @@ public class RestoredMysqldProcess implements IStopable {
     }
 
     private boolean stopUsingMysqldadmin() {
-        NotifyingStreamProcessor.ResultMatchingListener shutdownListener = outputWatch.addListener(new NotifyingStreamProcessor.ResultMatchingListener(": Shutdown complete"));
-        boolean retValue = false;
-        Reader stdErr = null;
         try {
+            // 1. run cmd: [mysqladmin --no-defaults --protocol=tcp -uroot --port={} shutdown]
             String cmd = Paths.get(executable.getFile().baseDir().getAbsolutePath(), "bin", "mysqladmin").toString();
             ProcessBuilder pb = new ProcessBuilder(Arrays.asList(cmd, "--no-defaults", "--protocol=tcp",
                     format("-u%s", MysqldConfig.SystemDefaults.USERNAME),
@@ -150,49 +146,34 @@ public class RestoredMysqldProcess implements IStopable {
                     "shutdown"));
             Process p = pb.start();
             logger.debug("mysqladmin started");
-            stdErr = new InputStreamReader(p.getErrorStream());
-            retValue = p.waitFor(MYSQLADMIN_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            // 2. command timeout: fail
+            boolean retValue = p.waitFor(MYSQLADMIN_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (!retValue) {
                 p.destroy();
                 logger.error("mysql shutdown timed out after {} seconds", MYSQLADMIN_SHUTDOWN_TIMEOUT_SECONDS);
+                return false;
             }
-            else {
-                retValue = p.exitValue() == 0;
-                if (retValue) {
-                    shutdownListener.waitForResult(config.getTimeout(MILLISECONDS));
-
-                    //TODO: figure out a better strategy for this. It seems windows does not actually shuts down process after it says it does.
-                    if (Platform.detect() == Windows) {
-                        Thread.sleep(2000);
-                    }
-
-                    if (!shutdownListener.isInitWithSuccess()) {
-                        logger.error("mysql shutdown failed. Expected to find in output: 'Shutdown complete', got: " + shutdownListener.getFailureFound());
-                        retValue = false;
-                    } else {
-                        logger.debug("mysql shutdown succeeded.");
-                        retValue = true;
-                    }
-
+            // 3.1 command success
+            boolean commandSuccess = p.exitValue() == 0;
+            if (commandSuccess) {
+                return true;
+            }
+            // 3.2 command error, read detail stderr
+            try (Reader stdErr = new InputStreamReader(p.getErrorStream())) {
+                String errOutput = readToString(stdErr);
+                boolean alreadyShutDown = errOutput.contains("Can't connect to MySQL server on");
+                if (alreadyShutDown) {
+                    logger.warn("mysql was already shutdown - no need to add extra shutdown hook - process does it out of the box.");
+                    return true;
                 } else {
-                    String errOutput = readToString(stdErr);
-
-                    if (errOutput.contains("Can't connect to MySQL server on")) {
-                        logger.warn("mysql was already shutdown - no need to add extra shutdown hook - process does it out of the box.");
-                        retValue = true;
-                    } else {
-                        logger.error("mysql shutdown failed with error code: " + p.waitFor() + " and message: " + errOutput);
-                    }
+                    logger.error("mysql shutdown failed with error code: " + p.waitFor() + " and message: " + errOutput);
+                    return false;
                 }
             }
-
         } catch (InterruptedException | IOException e) {
             logger.warn("Encountered error why shutting down process.", e);
-        } finally {
-            closeCloseables(stdErr);
+            return false;
         }
-
-        return retValue;
     }
 
     protected boolean sendKillToProcess() {

@@ -25,7 +25,19 @@ public interface SchemaManager extends Lifecycle, ConnectionObserver {
      */
     Map<String/* schema */, Map<String/* table */, String>> snapshot();
 
-    boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent);
+    /**
+     * recover embedded db from snapshot
+     *
+     * @param snapshotLogEvent event
+     * @return
+     */
+    boolean recovery(DrcSchemaSnapshotLogEvent snapshotLogEvent, boolean fromLatestLocalBinlog);
+    /**
+     * will recover from event or not
+     * @param fromLatestLocalBinlog true if event from local binlog instead of other replicators
+     */
+    boolean shouldRecover(boolean fromLatestLocalBinlog);
+
 
     boolean clone(Endpoint endpoint);
 

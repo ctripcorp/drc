@@ -216,11 +216,11 @@ public class MySQLSchemaManagerTest extends MockTest {
     @Test
     public void testRecoveryException() throws Exception {
         DrcSchemaSnapshotLogEvent snapshotLogEvent = getDrcSchemaSnapshotLogEvent(true);
-        boolean res = mySQLSchemaManager.recovery(snapshotLogEvent);
+        boolean res = mySQLSchemaManager.recovery(snapshotLogEvent, true);
         Assert.assertTrue(res);
 
         snapshotLogEvent = getDrcSchemaSnapshotLogEvent(false);
-        res = mySQLSchemaManager.recovery(snapshotLogEvent);
+        res = mySQLSchemaManager.recovery(snapshotLogEvent, true);
         Assert.assertFalse(res);
     }
 
