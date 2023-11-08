@@ -50,7 +50,9 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
                 value.setSkipEvent(true);
             }
         } catch (IOException e) {
+            logger.error("check event size error:", e);
             value.setCause(e);
+            value.setSkipEvent(true);
         }
 
         return doNext(value, value.isSkipEvent());

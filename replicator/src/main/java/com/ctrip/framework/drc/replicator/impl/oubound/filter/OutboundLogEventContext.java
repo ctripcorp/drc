@@ -27,8 +27,6 @@ public class OutboundLogEventContext {
 
     private long eventSize;
 
-    private long filteredEventSize;
-
     private boolean noRewrite = false;
 
     private boolean rewrite;
@@ -64,7 +62,6 @@ public class OutboundLogEventContext {
         this.eventType = eventType;
         this.eventSize = eventSize;
         this.gtid = gtid;
-        this.filteredEventSize = eventSize;
     }
 
     public FileChannel getFileChannel() {
@@ -198,14 +195,6 @@ public class OutboundLogEventContext {
         } catch (IOException e) {
             setCause(e);
         }
-    }
-
-    public long getFilteredEventSize() {
-        return filteredEventSize;
-    }
-
-    public void setFilteredEventSize(long filteredEventSize) {
-        this.filteredEventSize = filteredEventSize;
     }
 
     public boolean isSkipEvent() {

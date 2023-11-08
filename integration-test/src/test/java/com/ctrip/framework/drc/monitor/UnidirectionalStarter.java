@@ -31,7 +31,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
 
     @Test
     public void doTest() throws Exception {
-        unidirectionalReplicateModule.setSrcImage("mysql:5.7");
+        unidirectionalReplicateModule.setSrcImage("mysql:8.0");
         unidirectionalReplicateModule.setDestImage("mysql:5.7");
         unidirectionalReplicateModule.startMySQLModule();
         unidirectionalReplicateModule.startRAModule(getSrcConfig(), getDstConfig());
@@ -54,7 +54,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
         customConfig.setApplyMode(ApplyMode.transaction_table);
 //        customConfig.setApplyMode(ApplyMode.mq);
 
-        customConfig.setNameFilter("drc1\\.insert.*");
+        customConfig.setNameFilter(".*\\..*");
 
         // rowsFilter
         customConfig.setRowsFilter(ROW_FILTER_PROPERTIES_REGEX); // rowsFilter
@@ -162,13 +162,22 @@ public class UnidirectionalStarter extends AbstractTestStarter {
             "  \"rowsFilters\": [" +
             "    {" +
             "      \"mode\": \"java_regex\"," +
-             "      \"tables\": \"drc1.insert2\"," +
+             "      \"tables\": \"drc4.row_filter\"," +
             "      \"parameters\": {" +
             "        \"columns\": [" +
-            "          \"one\"" +
+            "          \"uid\"" +
             "        ]," +
             "        \"context\": \"trip.*\"" +
             "      }" +
+            "    }" +
+            "  ]," +
+            "  \"columnsFilters\": [" +
+            "    {" +
+            "      \"mode\": \"exclude\"," +
+            "      \"tables\": \"drc1.insert1\"," +
+            "        \"columns\": [" +
+            "          \"two\"" +
+            "        ]" +
             "    }" +
             "  ]" +
             "}";
