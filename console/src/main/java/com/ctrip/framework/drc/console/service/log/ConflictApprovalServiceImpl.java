@@ -5,16 +5,21 @@ import com.ctrip.framework.drc.console.dao.log.entity.*;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
 import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiRequest;
+import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiResponse;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
 import com.ctrip.framework.drc.console.service.api.ApprovalOpenApiService;
+import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
+import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -53,8 +58,11 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @Autowired
     private ApprovalOpenApiService approvalOpenApiService;
 
+    private UserService userService = ApiContainer.getUserServiceImpl();
+
     private static final String APPROVED = "Approved";
     private static final String REJECTED = "Rejected";
+    private static final String USERNAME = "ql_deng";
 
     @Override
     public List<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) throws Exception {
@@ -135,13 +143,23 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }).collect(Collectors.toList());
         conflictAutoHandleTblDao.insert(autoHandleTbls);
 
+        //ql_deng TODO 2023/11/7: username
+        String username = userService.getInfo();
+        if (EnvUtils.fat() && StringUtils.isEmpty(username)) {
+            username = USERNAME;
+        }
+
+
         ApprovalOpenApiRequest request = new ApprovalOpenApiRequest();
-        request.setApprovers(Lists.newArrayList("ql_deng"));
+        request.setUsername(username);
+        request.setApprovers(Lists.newArrayList(username));
         ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
         data.setBatchId(batchId);
 
         request.setData(JsonUtils.toJson(data));
-        approvalOpenApiService.createApproval(request);
+        ApprovalOpenApiResponse response = approvalOpenApiService.createApproval(request);
+
+        insertApprovalTbl(batchId, username, response);
     }
 
     @Override
@@ -161,6 +179,16 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         }
 
         conflictApprovalTblDao.update(conflictApprovalTbl);
+    }
+
+    private void insertApprovalTbl(Long batchId, String username, ApprovalOpenApiResponse response) throws SQLException {
+        ConflictApprovalTbl approvalTbl = new ConflictApprovalTbl();
+        approvalTbl.setBatchId(batchId);
+        approvalTbl.setApprovalResult(ApprovalResultEnum.UNDER_APPROVAL.getCode());
+        approvalTbl.setApplicant(username);
+        approvalTbl.setTicketId(response.getData().get(0).getTicket_ID());
+        approvalTbl.setCurrentApproverType(ApprovalTypeEnum.DB_OWNER.getCode());
+        conflictApprovalTblDao.insert(approvalTbl);
     }
 
     private Long insertBatchTbl(List<ConflictHandleSqlDto> handleSqlDtos, Integer writeSide) throws SQLException {

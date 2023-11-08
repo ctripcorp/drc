@@ -78,13 +78,15 @@
               </Select>
             </Col>
             <Col span="4">
-              <Tooltip content="忽略数据一致的冲突行">
-                <Button :loading="sqlLoading" size="small" @click="generateHandleSql" type="success">生成SQL</Button>
-              </Tooltip>
+              <Button :loading="sqlLoading" size="middle" @click="generateHandleSql" type="success">生成SQL</Button>
             </Col>
           </Row>
           <br>
-          <codemirror v-model="handleSql" :options="options"></codemirror>
+          <div :loading="sqlLoading">
+            <codemirror  v-model="handleSql" :options="options"></codemirror>
+          </div>
+          <br>
+          <Button :loading="approvalLoading" size="middle" @click="generateApproval" type="primary">提交审批</Button>
         </Card>
         <Divider/>
       </div>
@@ -108,6 +110,7 @@ export default {
   },
   data () {
     return {
+      approvalLoading: false,
       handleSql: '',
       handleSqlList: [],
       showHandleSql: false,
@@ -213,6 +216,33 @@ export default {
     }
   },
   methods: {
+    generateApproval () {
+      if (this.handleSqlList.length === 0) {
+        this.$Message.warning('未生成SQL！')
+        return
+      }
+      this.approvalLoading = true
+      const SqlDataList = []
+      this.handleSqlList.forEach(sql => {
+        const sqlData = {
+          rowLogId: sql.rowLogId,
+          handleSql: sql.autoHandleSql
+        }
+        SqlDataList.push(sqlData)
+      })
+      this.axios.post('/api/drc/v2/log/approval/create', {
+        writeSide: this.writeSide,
+        handleSqlDtos: SqlDataList
+      }).then(res => {
+        if (res.data.status === 1) {
+          this.$Message.error('提交审批单失败！')
+        } else {
+          this.$Message.success('提交审批单成功')
+        }
+      }).finally(() => {
+        this.approvalLoading = false
+      })
+    },
     generateHandleSql () {
       const multiData = this.multiData
       if (multiData === undefined || multiData === null || multiData.length === 0) {
@@ -230,6 +260,7 @@ export default {
         dstRecord.records.forEach(record => dstRecords.push(record))
       })
       this.sqlLoading = true
+      this.handleSql = ''
       this.axios.post('/api/drc/v2/log/conflict/rows/handleSql', {
         writeSide: this.writeSide,
         srcRecords: srcRecords,

@@ -9,6 +9,15 @@ import java.util.List;
 public class ApprovalOpenApiRequest {
     private List<String> approvers;
     private String data;
+    private String username;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public String getData() {
         return data;

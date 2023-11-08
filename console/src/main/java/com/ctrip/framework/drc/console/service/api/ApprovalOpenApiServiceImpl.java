@@ -3,9 +3,7 @@ package com.ctrip.framework.drc.console.service.api;
 import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiRequest;
 import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiResponse;
-import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.core.http.HttpUtils;
-import com.ctrip.framework.drc.core.service.user.UserService;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +28,6 @@ public class ApprovalOpenApiServiceImpl implements ApprovalOpenApiService {
     private static final String ORDER = "Request_ID";
     private static final String DETAIL = "[详情链接](%s)";
 
-    private UserService userService = ApiContainer.getUserServiceImpl();
-
     @Autowired
     private DomainConfig domainConfig;
 
@@ -39,12 +35,10 @@ public class ApprovalOpenApiServiceImpl implements ApprovalOpenApiService {
     public ApprovalOpenApiResponse createApproval(ApprovalOpenApiRequest request) {
         String url = domainConfig.getOpsApprovalUrl();
         String sourceUrl = domainConfig.getConflictDetailUrl();
-        String username = userService.getInfo();
-
         String approvers = Joiner.on(";").join(request.getApprovers());
 
         Map<String, Object> update = new HashMap<>();
-        update.put("Submitter", username);
+        update.put("Submitter", request.getUsername());
         update.put("CC", domainConfig.getConflictCcEmail());
         update.put("Summary", SUMMARY);
         update.put("Detail Description", String.format(DETAIL, sourceUrl));
@@ -54,11 +48,14 @@ public class ApprovalOpenApiServiceImpl implements ApprovalOpenApiService {
         update.put("Source_Url", sourceUrl);
         update.put("Approval Type", APPROVAL_TYPE);
         update.put("Approver1", approvers);
+        update.put("Approver2", domainConfig.getDbaApprovers());
+        update.put("bizData", request.getData());
+        update.put("callbackUrl", domainConfig.getApprovalCallbackUrl());
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("update", update);
         requestBody.put("action", ACTION);
-        requestBody.put("username", username);
+        requestBody.put("username", request.getUsername());
         requestBody.put("fieldNames", Lists.newArrayList(TICKET_ID));
         requestBody.put("order", ORDER);
 
@@ -66,6 +63,7 @@ public class ApprovalOpenApiServiceImpl implements ApprovalOpenApiService {
         body.put("request_body", requestBody);
         body.put("access_token", domainConfig.getOpsApprovalToken());
 
-        return HttpUtils.post(url, body, ApprovalOpenApiResponse.class);
+        ApprovalOpenApiResponse response = HttpUtils.post(url, body, ApprovalOpenApiResponse.class);
+        return response;
     }
 }

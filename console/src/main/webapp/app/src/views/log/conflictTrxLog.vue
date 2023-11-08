@@ -6,16 +6,13 @@
           <template #title>查询条件</template>
           <Row :gutter=10>
             <Col span="8">
-              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.srcMhaName" placeholder="源MHA"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"
-                     @on-enter="getTrxData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.dstMhaName" placeholder="目标MHA"></Input>
             </Col>
             <Col span="3">
               <DatePicker type="date" :editable="editable" format="yyyy-MM-dd" v-model="queryParam.beginHandleTime"
@@ -26,8 +23,7 @@
                           placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果"
-                      @on-change="getTrxData">
+              <Select filterable clearable v-model="queryParam.trxResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>

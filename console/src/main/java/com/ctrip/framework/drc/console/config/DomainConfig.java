@@ -94,12 +94,17 @@ public class DomainConfig extends AbstractConfigBean {
     private static final String DEFAULT_APPROVAL_DETAIL_URL = "http://rc.ops.ctripcorp.com/#/approvalcenter/approve-detail";
     private static final String OPS_APPROVAL_URL = "ops.approval.url";
     private static final String OPS_APPROVAL_TOKEN = "aps.approval.token";
-    private static String CONFLICT_CC_EMAIL = "conflict_cc_email";
-    private static String CONFLICT_DBA_APPROVERS = "conflict.dba.approvers";
-    private static String APPROVAL_CALLBACK_URL = "approval.callback.url";
-    private static String APPROVAL_DETAIL_URL = "approval.detail.url";
-    private static String CONFLICT_DETAIL_URL = "conflict.detail.url";
+    private static final String CONFLICT_CC_EMAIL = "conflict_cc_email";
+    private static final String CONFLICT_DBA_APPROVERS = "conflict.dba.approvers";
+    private static final String APPROVAL_CALLBACK_URL = "approval.callback.url";
+    private static final String APPROVAL_DETAIL_URL = "approval.detail.url";
+    private static final String CONFLICT_DETAIL_URL = "conflict.detail.url";
+    private static final String DBA_APPROVERS = "dba.approvers";
 
+
+    public String getDbaApprovers() {
+        return getProperty(DBA_APPROVERS);
+    }
 
     public String getApprovalDetailUrl() {
         return getProperty(APPROVAL_DETAIL_URL, DEFAULT_APPROVAL_DETAIL_URL);

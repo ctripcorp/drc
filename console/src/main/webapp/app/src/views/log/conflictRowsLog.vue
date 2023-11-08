@@ -20,44 +20,39 @@
               </Select>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.dbName" placeholder="库名"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.dbName" placeholder="库名"></Input>
             </Col>
             <Col span="4">
-              <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.tableName" placeholder="表名"></Input>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
-                          placeholder="起始日期"></DatePicker>
+                          :clearable="false" placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          placeholder="结束日期"></DatePicker>
+                          :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="2">
-              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
-                      @on-change="getData">
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
           </Row>
           <Row :gutter=10 v-show="searchMode">
             <Col span="12">
-              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"
-                     @on-enter="getData"></Input>
+              <Input prefix="ios-search" v-model="queryParam.gtid" placeholder="事务id"></Input>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.beginHandleTime"
-                          placeholder="起始日期"></DatePicker>
+                          :clearable="false" placeholder="起始日期"></DatePicker>
             </Col>
             <Col span="4">
               <DatePicker type="datetime" :editable="editable" v-model="queryParam.endHandleTime"
-                          placeholder="结束日期"></DatePicker>
+                          :clearable="false" placeholder="结束日期"></DatePicker>
             </Col>
             <Col span="4">
-              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果"
-                      @on-change="getData">
+              <Select filterable clearable v-model="queryParam.rowResult" placeholder="执行结果">
                 <Option v-for="item in resultOpts" :value="item.val" :key="item.val">{{ item.name }}</Option>
               </Select>
             </Col>
@@ -244,8 +239,8 @@ export default {
         dbName: null,
         tableName: null,
         gtid: this.gtid,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: '2023-11-07 13:00:00',
+        endHandleTime: '2023-11-08 00:00:00',
         rowResult: null
       },
       tableData: [],
@@ -493,8 +488,10 @@ export default {
       this.rowLogIds = []
       const beginTime = this.queryParam.beginHandleTime
       const endTime = this.queryParam.endHandleTime
-      const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
-      const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
+      const beginHandleTime = new Date(beginTime).getTime()
+      const endHandleTime = new Date(endTime).getTime()
+      // const beginHandleTime = beginTime === null || isNaN(beginTime) ? null : new Date(beginTime).getTime()
+      // const endHandleTime = endTime === null || isNaN(endTime) ? null : new Date(endTime).getTime()
       console.log('beginTime: ' + beginTime)
       console.log('endTime: ' + endTime)
       const params = {
@@ -504,16 +501,12 @@ export default {
         rowResult: this.queryParam.rowResult,
         srcRegion: this.queryParam.srcRegion,
         dstRegion: this.queryParam.dstRegion,
+        beginHandleTime: beginHandleTime,
+        endHandleTime: endHandleTime,
         pageReq: {
           pageSize: this.size,
           pageIndex: this.current
         }
-      }
-      if (!isNaN(beginHandleTime)) {
-        params.beginHandleTime = beginHandleTime
-      }
-      if (!isNaN(endHandleTime) && endHandleTime !== null) {
-        params.endHandleTime = endHandleTime
       }
       console.log('params')
       console.log(params)
@@ -560,8 +553,8 @@ export default {
         dbName: null,
         tableName: null,
         gtId: null,
-        beginHandleTime: null,
-        endHandleTime: null,
+        beginHandleTime: '2023-11-07 13:00:00',
+        endHandleTime: '2023-11-08 00:00:00',
         rowResult: null,
         srcRegion: null,
         dstRegion: null
@@ -576,6 +569,7 @@ export default {
     }
   },
   created () {
+    this.resetParam()
     this.getData()
     this.getRegions()
   }

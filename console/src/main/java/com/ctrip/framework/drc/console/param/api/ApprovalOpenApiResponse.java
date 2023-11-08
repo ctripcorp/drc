@@ -36,7 +36,7 @@ public class ApprovalOpenApiResponse {
         this.data = data;
     }
 
-    static class ResponseData {
+    public static class ResponseData {
         private String Ticket_ID;
 
         public ResponseData() {
