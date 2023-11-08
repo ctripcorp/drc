@@ -1,24 +1,24 @@
 package com.ctrip.framework.drc.console.service.log;
 
+import com.ctrip.framework.drc.console.config.DomainConfig;
 import com.ctrip.framework.drc.console.dao.log.*;
 import com.ctrip.framework.drc.console.dao.log.entity.*;
 import com.ctrip.framework.drc.console.enums.ApprovalResultEnum;
 import com.ctrip.framework.drc.console.enums.ApprovalTypeEnum;
-import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiRequest;
-import com.ctrip.framework.drc.console.param.api.ApprovalOpenApiResponse;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalCreateParam;
 import com.ctrip.framework.drc.console.param.log.ConflictApprovalQueryParam;
 import com.ctrip.framework.drc.console.param.log.ConflictHandleSqlDto;
-import com.ctrip.framework.drc.console.service.api.ApprovalOpenApiService;
 import com.ctrip.framework.drc.console.service.impl.api.ApiContainer;
 import com.ctrip.framework.drc.console.utils.ConsoleExceptionUtils;
 import com.ctrip.framework.drc.console.utils.EnvUtils;
 import com.ctrip.framework.drc.console.vo.log.*;
+import com.ctrip.framework.drc.core.service.ops.ApprovalApiService;
+import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiRequest;
+import com.ctrip.framework.drc.core.service.statistics.traffic.ApprovalApiResponse;
 import com.ctrip.framework.drc.core.service.user.UserService;
 import com.ctrip.framework.drc.core.service.utils.JsonUtils;
 import com.ctrip.platform.dal.dao.annotation.DalTransactional;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,9 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
     @Autowired
     private ConflictLogService conflictLogService;
     @Autowired
-    private ApprovalOpenApiService approvalOpenApiService;
+    private DomainConfig domainConfig;
+
+    private ApprovalApiService approvalApiService = ApiContainer.getApprovalApiServiceImpl();
 
     private UserService userService = ApiContainer.getUserServiceImpl();
 
@@ -149,17 +151,26 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
             username = USERNAME;
         }
 
-
-        ApprovalOpenApiRequest request = new ApprovalOpenApiRequest();
-        request.setUsername(username);
-        request.setApprovers(Lists.newArrayList(username));
         ConflictApprovalCallBackRequest.Data data = new ConflictApprovalCallBackRequest.Data();
         data.setBatchId(batchId);
-
-        request.setData(JsonUtils.toJson(data));
-        ApprovalOpenApiResponse response = approvalOpenApiService.createApproval(request);
-
+        ApprovalApiRequest request = buildRequest(username, username, JsonUtils.toJson(data));
+        ApprovalApiResponse response = approvalApiService.createApproval(request);
         insertApprovalTbl(batchId, username, response);
+    }
+
+    private ApprovalApiRequest buildRequest(String dbOwner, String username, String data) {
+        ApprovalApiRequest request = new ApprovalApiRequest();
+        request.setUrl(domainConfig.getOpsApprovalUrl());
+        request.setSourceUrl(domainConfig.getConflictDetailUrl());
+        request.setApprover1(dbOwner);
+        request.setApprover2(domainConfig.getDbaApprovers());
+        request.setCcEmail(domainConfig.getConflictCcEmail());
+        request.setCallBackUrl(domainConfig.getApprovalCallbackUrl());
+        request.setUsername(username);
+        request.setData(data);
+        request.setToken(domainConfig.getOpsApprovalToken());
+
+        return request;
     }
 
     @Override
@@ -181,7 +192,7 @@ public class ConflictApprovalServiceImpl implements ConflictApprovalService {
         conflictApprovalTblDao.update(conflictApprovalTbl);
     }
 
-    private void insertApprovalTbl(Long batchId, String username, ApprovalOpenApiResponse response) throws SQLException {
+    private void insertApprovalTbl(Long batchId, String username, ApprovalApiResponse response) throws SQLException {
         ConflictApprovalTbl approvalTbl = new ConflictApprovalTbl();
         approvalTbl.setBatchId(batchId);
         approvalTbl.setApprovalResult(ApprovalResultEnum.UNDER_APPROVAL.getCode());

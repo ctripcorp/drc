@@ -163,7 +163,7 @@ export default {
       }
       const reqParam = this.flattenObj(params)
       this.dataLoading = true
-      this.axios.get('/api/drc/v2/log/conflict/approval', { params: reqParam })
+      this.axios.get('/api/drc/v2/log/approval/list', { params: reqParam })
         .then(response => {
           const data = response.data
           const pageResult = data.pageReq

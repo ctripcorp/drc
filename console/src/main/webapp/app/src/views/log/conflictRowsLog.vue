@@ -240,7 +240,7 @@ export default {
         tableName: null,
         gtid: this.gtid,
         beginHandleTime: '2023-11-07 13:00:00',
-        endHandleTime: '2023-11-08 00:00:00',
+        endHandleTime: '2023-11-07 15:00:00',
         rowResult: null
       },
       tableData: [],
@@ -438,7 +438,7 @@ export default {
             this.logDetail.diffStr = data.recordIsEqual ? '数据一致' : '数据不一致'
             this.logDetail.srcRecords = data.srcRecords
             this.logDetail.dstRecords = data.dstRecords
-            this.rowData = '/*原始SQL*/\n' + row.rawSql + '\n/*原始SQL处理结果: ' + row.rawSqlResult + '*/\n\n' + '/*冲突时行记录*/\n' +
+            this.rowData = '/*原始SQL*/\n' + row.rawSql + '\n/*原始SQL处理结果: ' + row.rawResult + '*/\n\n' + '/*冲突时行记录*/\n' +
               row.dstRowRecord + '\n\n' + '/*冲突处理SQL*/\n' + row.handleSql + '\n/*冲突处理SQL处理结果: ' + row.handleSqlResult + '*/'
           }
         })
@@ -554,7 +554,7 @@ export default {
         tableName: null,
         gtId: null,
         beginHandleTime: '2023-11-07 13:00:00',
-        endHandleTime: '2023-11-08 00:00:00',
+        endHandleTime: '2023-11-07 15:00:00',
         rowResult: null,
         srcRegion: null,
         dstRegion: null

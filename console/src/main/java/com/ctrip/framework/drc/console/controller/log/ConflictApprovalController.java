@@ -26,7 +26,7 @@ public class ConflictApprovalController {
     private ConflictApprovalService conflictApprovalService;
 
     @GetMapping("/list")
-    public ApiResult<ConflictApprovalView> getConflictApprovalViews(@RequestBody ConflictApprovalQueryParam param) {
+    public ApiResult<ConflictApprovalView> getConflictApprovalViews(ConflictApprovalQueryParam param) {
         try {
             ApiResult apiResult = ApiResult.getSuccessInstance(conflictApprovalService.getConflictApprovalViews(param));
             apiResult.setPageReq(param.getPageReq());
@@ -73,6 +73,7 @@ public class ConflictApprovalController {
     @PostMapping("/callback")
     public ApiResult<Boolean> approvalCallBack(@RequestBody ConflictApprovalCallBackRequest request) {
         try {
+            logger.info("approval callback, request: {}", request);
             conflictApprovalService.approvalCallBack(request);
             ApiResult apiResult = ApiResult.getSuccessInstance(true);
             return apiResult;
