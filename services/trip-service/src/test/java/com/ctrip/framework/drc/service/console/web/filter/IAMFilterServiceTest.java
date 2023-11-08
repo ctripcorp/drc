@@ -29,14 +29,14 @@ public class IAMFilterServiceTest {
     
     @Test
     public void testGetApiPermissionCode() {
-        Mockito.when(qConfig.get(Mockito.eq("/api1"), Mockito.any())).thenReturn("code1");
-        Mockito.when(qConfig.get(Mockito.eq("/api2"), Mockito.any())).thenReturn("code2");
-        Mockito.when(qConfig.getKeys()).thenReturn(Sets.newHashSet("/api1"));
-        iAMFilterService.onChange("/api1", null,null);
+        Mockito.when(qConfig.get(Mockito.eq("/api1/*"), Mockito.any())).thenReturn("code1");
+        Mockito.when(qConfig.get(Mockito.eq("/api2/*"), Mockito.any())).thenReturn("code2");
+        Mockito.when(qConfig.getKeys()).thenReturn(Sets.newHashSet("/api1/*"));
+        iAMFilterService.onChange("/api1/*", null,null);
         Assert.assertEquals("code1", iAMFilterService.getApiPermissionCode("http://www.test.com/api1/1"));
         Assert.assertNull(iAMFilterService.getApiPermissionCode("http://www.test.com/api2/2"));
-        Mockito.when(qConfig.getKeys()).thenReturn(Sets.newHashSet("/api1","/api2"));
-        iAMFilterService.onChange("/api2", null,null);
+        Mockito.when(qConfig.getKeys()).thenReturn(Sets.newHashSet("/api1/*","/api2/*"));
+        iAMFilterService.onChange("/api2/*", null,null);
         Assert.assertEquals("code2", iAMFilterService.getApiPermissionCode("http://www.test.com/api2/2"));
         
     }
