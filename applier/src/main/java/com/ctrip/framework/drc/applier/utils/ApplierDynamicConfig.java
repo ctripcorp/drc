@@ -12,6 +12,11 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
 
     private static final String FIRST_APPLIER_LWM_TOLERANCE_TIME = "drc.first.applier.lwm.tolerance.time";
     private static final long DEFAULT_FIRST_APPLIER_LWM_TOLERANCE_TIME = 10 * 60 * 1000; //10 minutes
+    
+    private static final String CONFLICT_LOG_UPLOAD_URL = "conflict.log.upload.url";
+    private static final String CONFLICT_LOG_UPLOAD_SWITCH = "conflict.log.upload.switch";
+    private static final String CONFLICT_LOG_BRIEF_QUEUE_SIZE = "conflict.log.brief.queue.size";
+    private static final String CONFLICT_LOG_BRIEF_REPORT_SIZE = "conflict.log.brief.report.size";
 
     private ApplierDynamicConfig() {}
     
@@ -24,19 +29,19 @@ public class ApplierDynamicConfig extends AbstractConfigBean {
     }
     
     public String getConflictLogUploadUrl() {
-        return getProperty("conflict.log.upload.url", "");
+        return getProperty(CONFLICT_LOG_UPLOAD_URL, "");
     }
     
     public String getConflictLogUploadSwitch() {
-        return getProperty("conflict.log.upload.switch", "off");
+        return getProperty(CONFLICT_LOG_UPLOAD_SWITCH, "off");
     }
 
     public int getBriefLogsQueueSize() {
-        return getIntProperty("conflict.log.brief.queue.size", 100000);
+        return getIntProperty(CONFLICT_LOG_BRIEF_QUEUE_SIZE, 40000);
     }
 
     public int getBriefLogsReportSize() {
-        return getIntProperty("conflict.log.brief.report.size", 10000);
+        return getIntProperty(CONFLICT_LOG_BRIEF_REPORT_SIZE, 10000);
     }
     
     public long getLwmToleranceTime() {
