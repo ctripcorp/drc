@@ -18,6 +18,8 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
 
     private Channel channel;
 
+    private ByteBuf bodyByteBuf;
+
     public SendFilter(OutboundFilterChainContext context) {
         this.channel = context.getChannel();
     }
@@ -26,7 +28,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
     public boolean doFilter(OutboundLogEventContext value) {
         boolean skipEvent = doNext(value, value.isSkipEvent());
 
-        ByteBuf bodyByteBuf = value.getBodyByteBuf();
+        bodyByteBuf = value.getBodyByteBuf();
         if (bodyByteBuf == null) {
             try {
                 value.getFileChannel().position(value.getFileChannelPos() + value.getEventSize());
@@ -36,7 +38,7 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
                 value.setSkipEvent(true);
             }
         } else {
-            EventReader.releaseBodyByteBuf(bodyByteBuf);
+            EventReader.releaseByteBuf(bodyByteBuf);
         }
 
         if (value.getCause() != null) {
@@ -69,5 +71,10 @@ public class SendFilter extends AbstractPostLogEventFilter<OutboundLogEventConte
                 });
             }
         });
+    }
+
+    @Override
+    public void release() {
+        EventReader.releaseByteBuf(bodyByteBuf);
     }
 }

@@ -162,7 +162,7 @@ public class UnidirectionalStarter extends AbstractTestStarter {
             "  \"rowsFilters\": [" +
             "    {" +
             "      \"mode\": \"java_regex\"," +
-             "      \"tables\": \"drc4.row_filter\"," +
+            "      \"tables\": \"drc4.row_filter\"," +
             "      \"parameters\": {" +
             "        \"columns\": [" +
             "          \"uid\"" +

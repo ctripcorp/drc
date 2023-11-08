@@ -159,9 +159,9 @@ public class EventReader {
         }
     }
 
-    public static void releaseBodyByteBuf(ByteBuf bodyByteBuf) {
-        if (bodyByteBuf != null && bodyByteBuf.refCnt() > 0) {
-            bodyByteBuf.release(bodyByteBuf.refCnt());
+    public static void releaseByteBuf(ByteBuf byteBuf) {
+        if (byteBuf != null && byteBuf.refCnt() > 0) {
+            byteBuf.release(byteBuf.refCnt());
         }
     }
 }

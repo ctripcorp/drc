@@ -67,4 +67,9 @@ public class ReadFilter extends AbstractLogEventFilter<OutboundLogEventContext> 
         }
         return true;
     }
+
+    @Override
+    public void release() {
+        EventReader.releaseByteBuf(headByteBuf);
+    }
 }
